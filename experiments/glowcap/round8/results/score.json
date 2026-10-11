@@ -398,9 +398,9 @@
       }
     },
     "bench": {
-      "medianUs": 694.4,
-      "p95Us": 1085.3,
-      "resumeMs": 39.67,
+      "medianUs": 799.7,
+      "p95Us": 1382.4,
+      "resumeMs": 44.86,
       "saveBytes": 989
     }
   },
@@ -831,9 +831,9 @@
       }
     },
     "bench": {
-      "medianUs": 291.8,
-      "p95Us": 646.2,
-      "resumeMs": 32.55,
+      "medianUs": 333.5,
+      "p95Us": 665.5,
+      "resumeMs": 37.49,
       "saveBytes": 1528
     }
   },
@@ -1261,9 +1261,9 @@
       }
     },
     "bench": {
-      "medianUs": 212.7,
-      "p95Us": 360.9,
-      "resumeMs": 76.38,
+      "medianUs": 240,
+      "p95Us": 478.7,
+      "resumeMs": 86.17,
       "saveBytes": 1583
     }
   },
@@ -1668,9 +1668,9 @@
       }
     },
     "bench": {
-      "medianUs": 18.8,
-      "p95Us": 45.7,
-      "resumeMs": 0.63,
+      "medianUs": 19.4,
+      "p95Us": 38.2,
+      "resumeMs": 0.6,
       "saveBytes": 284
     }
   },
@@ -2077,9 +2077,9 @@
       }
     },
     "bench": {
-      "medianUs": 17.9,
-      "p95Us": 35,
-      "resumeMs": 0.56,
+      "medianUs": 18.9,
+      "p95Us": 46.8,
+      "resumeMs": 0.65,
       "saveBytes": 226
     }
   },
@@ -2481,9 +2481,9 @@
       }
     },
     "bench": {
-      "medianUs": 32.2,
-      "p95Us": 55.3,
-      "resumeMs": 0.81,
+      "medianUs": 35.8,
+      "p95Us": 86.5,
+      "resumeMs": 0.84,
       "saveBytes": 200
     }
   }

@@ -252,3 +252,14 @@ read. The owner's answers to the open choices are recorded under
    `probe/reply.md`, and its diff is `probe/DIFF.md`. The reply came after
    rc.17 was published and before any author started, so its items wait for
    a later candidate (amendment 6).
+
+9. **The run (2026-10-11).** The six authors started together at 05:27 UTC
+   and all finished every phase green. No run was excluded under row 7; the
+   isolation check and its disclosures are in `launches.json` and the
+   record. The mutator's sites were frozen at `d644609` before it wrote any
+   mutant, and it was told only to continue, to keep `sites.json` unchanged
+   and to note any rewrite choice in `CHANGE.md`. `mutate.mjs` gained a
+   `--programs` option so the mutants could run in four processes; how a
+   mutant is judged is unchanged. Every check under `fuzz-checks/` beyond
+   `first-failures.mjs` is post hoc and labelled so in the record. The record
+   is the "Round 8" section of `../RESULTS.md`.

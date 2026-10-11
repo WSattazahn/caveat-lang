@@ -63,6 +63,17 @@ one reading: counting change cost by lines alone, without its regressions,
 would meet Rule A. Details are
 [below](#round-7-fresh-authors-blind-requests-rc11).
 
+**Round 8, fresh authors on blind requests, rc.17: TypeScript.** Six new
+agents built the beat from scratch under round 7's rules, three per side,
+with no run excluded. Caveat kept pace on the inherited requests and was
+cheaper on the countdown request, but two new requests needed a caveat that
+can be taken back or attached to an earlier life, which rc.17 cannot do, and
+every Caveat author rebuilt that with flags. Over the four new requests
+Caveat changed 484 lines against 148, got 2 of 4 phases green on the first
+run against 4, and caught 62% of mutants against 95%. Neither decision rule
+is met, under any reading. Details are
+[below](#round-8-fresh-authors-blind-requests-rc17).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -943,6 +954,426 @@ node longplay.mjs                 # → results/longplay.json
 node fuzz.mjs --impl=…/T2/impl/glowcap.ts --impl=… --sequences=300 --seed=7 --dump=results/fuzz-seed7.json
 node mutate.mjs > results/mutation.json
 node fuzz-checks/fade-boundary.mjs
+```
+
+## Round 8: fresh authors, blind requests, rc.17
+
+Round 8 repeats round 7 under the same registered rules, on the published
+`caveat-lang@0.1.0-rc.17` (tarball SHA256 `03bc86cf…91b6`, commit
+`304a16d`). It is step R2 of the "Round 8" table in
+[the path to 1.0](../../docs/releases/path-to-1.0.md). The rules are
+[round8/PROTOCOL.md](round8/PROTOCOL.md): round 7's protocol word for word,
+except for the eleven rows it changes. It was registered in four hashed
+stages before any author started: `registration.json` (`d42b70e`), `-2`
+(`4fcbca7`), `-3` (`b23c0cc`, the requests CR17–CR20, their scenarios and the
+per-request predictions) and `-4` (`57686de`, the rc.17 pin, packet, runner,
+comparator, fuzz mode and prompts). CR1–CR16 are inherited phases. CR17–CR20
+are new requests that a fresh agent wrote and a second agent reviewed, and
+they decide the round. Each author implemented 21 phases.
+
+**Authors.** Six fresh agents started together at 05:27 UTC on 2026-10-11
+with the registered prompts: C1, C2 and C3 on rc.17, and T1, T2 and T3 in
+TypeScript 7.0.2 (strict). Node was 22.22.0. All six committed every phase
+with all of its scenarios passing; none used `--incomplete`. Tokens, tool
+uses and durations are in `round8/launches.json`.
+
+**Isolation.** No run is excluded under row 7. Every author's transcript was
+searched for tool calls naming another author's directory, the private store,
+the mutator, drift, writer or reviewer directories, the task output folder,
+the session scratchpad, round 7, the repository, or the package's runtime,
+`lib/*.mjs` or `examples/`. None did, apart from C2 reading the output of its
+own background command. Three things are disclosed:
+
+- C1, T2 and T3 read `run.mjs` in their own directory. `README-author.md`
+  does not list it, but it holds no other author's work.
+- C2 was shown harness notices that C1 and C3 had finished, naming their
+  output files. It did not open them.
+- In CR13 and CR16 C2 added a size-logging hook to its adapter and ran it
+  through `run.mjs`, then removed it. Those runs are in its log.
+
+So every figure below is the registered set, C1–C3 against T1–T3, and there
+is no second reading. Each figure is the median of the side's three authors.
+A margin under 10 percent is a tie, and a tie goes to TypeScript.
+
+**The probe.** The learnability probe ran before the authors, on a Gemini
+chat. Its program does not load, 3 of its 30 constructs are the language as
+written, and it wrote the explanation bookkeeping by hand in the source.
+Its diff is [round8/probe/DIFF.md](round8/probe/DIFF.md). The reply came after rc.17 was
+published, so the authors read rc.17's docs without its four guide items;
+those go to rc.18 (amendment 6).
+
+### Measurements
+
+Per author, blind phases CR17–CR20 unless stated:
+
+| | C1 | C2 | C3 | T1 | T2 | T3 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Blind phases green on first run, of 4 | 3 | 2 | 2 | 4 | 4 | 4 |
+| Blind runs to reach all-green | 6 | 13 | 9 | 4 | 5 | 6 |
+| Blind failing runs | 1 | 6 | 4 | 0 | 0 | 0 |
+| Inherited phases green on first run, of 17 | 15 | 15 | 12 | 16 | 16 | 17 |
+| Code lines, end of CR20 (policy + glue) | 434 + 102 | 554 + 127 | 599 + 77 | 560 | 611 | 509 |
+| Bytes, end of CR20 | 31,363 | 38,113 | 40,363 | 27,323 | 27,805 | 25,606 |
+| Change cost, code lines, CR17–CR20 | 417 | 484 | 714 | 148 | 179 | 137 |
+| Regressions during CR17–CR20 | 0 | 11 | 11 | 0 | 0 | 0 |
+| Explanation failures (scenario ids) | 0 | 3 | 9 | 0 | 0 | 0 |
+| Dispatch + view, median µs | 800 | 334 | 240 | 19.4 | 18.9 | 35.8 |
+| Dispatch + view, p95 µs | 1,382 | 666 | 479 | 38.2 | 46.8 | 86.5 |
+| Resume ten minutes of play, ms | 44.9 | 37.5 | 86.2 | 0.60 | 0.65 | 0.84 |
+| Save after ten minutes, bytes | 989 | 1,528 | 1,583 | 284 | 226 | 200 |
+| Gzipped bytes a host ships | 811,310 | 812,831 | 811,940 | 7,670 | 8,010 | 7,410 |
+| Explanation drift, units, CR17–CR20 | 106 | 188 | 314 | 28 | 25 | 31 |
+| Mutation score, overall | 86.5% | 62.1% | 56.4% | 93.1% | 96.7% | 95.2% |
+
+Medians, and which side each favours:
+
+| | Caveat C1–C3 | TypeScript T1–T3 | Better |
+| --- | ---: | ---: | --- |
+| **1. Correctness**: blind first-run green | 2 | 4 | TypeScript |
+| Blind runs to all-green | 9 | 5 | TypeScript |
+| **2. Size**, code lines | 676 | 560 | TypeScript, +21% |
+| Size, bytes | 38,113 | 27,323 | TypeScript, +39% |
+| **3. Change cost**, code lines | 484 | 148 | TypeScript, 3.3× |
+| Regressions | 11 | 0 | TypeScript |
+| **4. Explanation failures** | 3 | 0 | TypeScript |
+| **5. Dispatch + view**, median µs | 334 | 19.4 | TypeScript; both under 1 ms |
+| Gzipped bytes shipped | 811,940 | 7,670 | TypeScript |
+| **6. Mutation score** | 62.1% | 95.2% | TypeScript |
+| **7. Explanation drift** | 188 | 28 | TypeScript |
+
+Per request, primary medians:
+
+| | CR17 countdowns | CR18 doubt | CR19 retaste | CR20 undoubt |
+| --- | ---: | ---: | ---: | ---: |
+| Change cost, Caveat / TypeScript | 17 / 24 | 151 / 33 | 61 / 56 | 319 / 33 |
+| Failing runs, Caveat / TypeScript | 0 / 0 | 1 / 0 | 0 / 0 | 2 / 0 |
+| First-run green, Caveat / TypeScript, of 3 | 3 / 3 | 0 / 3 | 3 / 3 | 1 / 3 |
+| Drift, Caveat / TypeScript | 3 / 3 | 38 / 8 | 26 / 15 | 123 / 4 |
+
+The rules for counting are round 7's (`round8/score.mjs` is round 7's
+`score.mjs` for round 8's authors and phases). Timings were taken with the
+machine otherwise idle, after the fuzz and the mutation runs finished; a
+first measurement taken while other agents were running gave the same order
+(`results/score.json` holds the idle one). Raw numbers are in
+`round8/results/`.
+
+### Verdicts
+
+**Rule A, adoption (unchanged): not met.** Caveat is better on none of
+measures 1–4. Correctness, size, change cost and explanation failures all
+favour TypeScript, and change cost is 3.3 times TypeScript's, beyond the 2×
+the rule allows. Round 7's reading question (lines alone against lines with
+regressions) does not arise: Caveat is worse on both.
+
+**Rule B, the stated claim: not met.** Caveat's mutation score is lower,
+its drift is higher, its blind change cost is higher, and first-run
+correctness and explanation failures are both worse. Only dispatch is under
+1 ms.
+
+Row 7 excluded no run. Row 5's set comparator for journal caveats removed
+the kind of failing run round 7 counted four of: none in this round is a
+caveat-order failure.
+
+### Where the Caveat cost came from
+
+**CR17, countdowns: Caveat cheaper.** Three read-only numbers. Caveat
+changed 17 lines against 24 and every author on both sides was green on the
+first run. The prediction was the reverse.
+
+**CR18 and CR20, doubt and take it back: the cost of the round.** Doubting a
+witness adds a `doubted` caveat to every citation of it; CR20 takes it back.
+All three Caveat authors found the same two limits in rc.17, wrote them in
+their notes, and worked around both with state:
+
+1. **A qualification cannot be taken back.** `qualify E with C` is permanent
+   in the evidence's record. To make a doubt reversible each author stopped
+   qualifying the witness and rebuilt `doubted` from plain flags: C1 through
+   a `doubt_mark` value that carries the caveat, C2 through a new internal
+   evidence `d` ("the player's doubt") cited as `qualified(…, d, doubted)`,
+   C3 through `examined(doubted)` citations guarded by a flag per witness.
+   CR20's median diff is 319 lines against TypeScript's 33, where the flip is
+   one boolean.
+2. **`qualify` names only the current occurrence of renewable evidence.** A
+   remembered witness from a mushroom's earlier life cannot be given
+   `doubted`, so at CR18 each author had a gap (C1 and C3 wrote "known
+   limit", C2 "KNOWN GAP"). CR20's workaround closed it for C2 and C3.
+
+The workaround is also where the regressions and explanation failures came
+from: C2's 11 regressions and 3 explanation failures, and C3's 11 and 9, all
+fall in CR18 and CR20, while the journal and memory were rebuilt around the
+flags.
+
+**CR19, retaste: a tie.** 61 lines against 56, every author green first.
+
+### What the suite did not see
+
+**Differential fuzz.** `round8/fuzz.mjs`, registered at stage 4, ran 300
+seeded sequences (seed 7, 815,501 events) through all six programs against
+T2:
+
+| Program | Sequences that diverged | First differences |
+| --- | ---: | --- |
+| T1, T3 | 0 | |
+| C1 | 40 | `journal` 29, countdowns (`fadesIn`) 11 |
+| C2 | 29 | `journal` 29 |
+| C3 | 184 | refused or failed events 144, `decision.basis` 11, countdowns 13, other 16 |
+
+A post-hoc rerun with the same generator records every divergence
+(`fuzz-checks/all-divergences.mjs`) and sorts them into classes
+(`fuzz-checks/classify.mjs`, `results/fuzz-classes-seed7.json`). Three
+classes cover all but three:
+
+- **Basis order, 69.** Each is the CR7 recovery commitment's two
+  observations in name order instead of the order they were observed. In
+  C1 and C2 it is the trust entry in the journal: both read the basis from
+  View 0.2's ordered grounds, but built the journal from binding
+  explanations, which View 0.2 leaves in name order
+  (`caveat-view-0.2.md`, "Ordered evidence in grounds"). C3 never asked for
+  View 0.2, so its `decision.basis` itself is in name order. This is round
+  7's work-list item 2 again: ordered grounds reach only a host that asks
+  for 0.2, and only the grounds.
+- **Countdowns one second long, 24 (C1 and C3).** Every case follows ticks
+  of 0.05, 0.1, 0.2 or −0.01 s. C1 and C3 compute the time left from the
+  session's accumulated clock (C1 keeps `$m_tasted_at`, C3 `tasted_at =
+  elapsed()`); the TypeScript programs count down per timer. The cause is
+  inferred from that, not traced in the runtime. This is the binary64 firing rule recorded
+  as F267 in round 7, now visible in a field the view shows. C2 kept its
+  own countdown state per mushroom and shows none.
+- **Sessions, 157 (C3).** From sequence 145 onwards C3's policy could not be
+  created. The fuzz runs synchronously and never frees a policy that has no
+  `free()`, so the runtime's finalizers never run. In a standalone check
+  (`fuzz-checks/session-reuse.mjs`) C3 traps with the WebAssembly error
+  `unreachable` on the 236th round of opening, playing, saving and resuming
+  in one process; C1 and C2 pass 400 rounds. A
+  rerun that collects garbage between sequences (`--release-between`,
+  `results/fuzz-classes-seed7-release-between.json`) removes the class:
+  C3 then diverges in 57 sequences, 26 on basis order, 28 on countdowns and
+  3 other.
+
+The three other C3 differences are program errors that no scenario reached:
+twice a mushroom's `why.absorb` shows `doubted` on a witness T2 shows
+without it, and once a label has no `because` where T2 cites `absorb_pool`.
+Their causes were not traced.
+
+**Long play and the save bound.** `round8/longplay.mjs` plays 10, 30 and 60
+regrowth cycles of every mushroom and saves:
+
+| Cycles | C1 | C2 | C3 | T1 | T2 | T3 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 4,073 | 14,500 | 9,621 | 783 | 522 | 307 |
+| 30 | 4,101 | 14,719 | 9,690 | 791 | 530 | 307 |
+| 60 | 4,105 | 14,720 | 9,670 | 791 | 530 | 331 |
+| Resume at 60, ms | 55.8 | 36.2 | 85.2 | 1.6 | 2.1 | 2.7 |
+
+Every program resumed to the same view. Unlike round 7, every Caveat save
+stops growing in this play, and resume no longer scales with play. All
+three are still over CR13's 4,096-byte bound in long play, C1 by 9 bytes.
+All three authors name one remaining source of growth that this play does
+not reach: rc.17 refuses a `window` on a decision series, so each recommit
+of `trust` adds a revision that stays in the save. C1 caps the series at
+256 revisions and C3 at 64 commits; C2 stops recommitting after 256.
+
+### Mutation score
+
+A fresh mutator agent listed every applicable site per program before any
+mutant ran (`round8/mutation/sites.json`, 485 sites, frozen at `d644609`),
+then wrote one mutant per site, each recorded as a `CHANGE.md` and a diff in
+`round8/mutation/mutants/`. `round8/mutate.mjs` (round 7's) ran each one
+through the static check, the runtime and the registered suite, then fuzzed
+every survivor against its original (100 sequences, seed 11). Results are in
+`round8/results/mutation.json`. To finish in hours rather than a day the run
+was split into four processes by program (`--programs`), which changes
+nothing about how a mutant is judged.
+
+| Program | M1 | M2 | M3 | M4 | M5 | Overall | Static / runtime / suite | Survivors, possibly equivalent |
+| --- | --- | --- | --- | --- | --- | --- | --- | ---: |
+| C1 | 16/16 | 1/1 | 1/1 | 2/4 | 25/30 | 45/52, 86.5% | 0 / 20 / 25 | 7, 4 |
+| C2 | 18/27 | 1/1 | 1/1 | 2/5 | 32/53 | 54/87, 62.1% | 0 / 26 / 28 | 33, 22 |
+| C3 | 23/26 | 1/1 | 2/2 | 2/4 | 65/132 | 93/165, 56.4% | 1 / 61 / 31 | 72, 65 |
+| T1 | 9/10 | 2/2 | 2/2 | 11/13 | 30/31 | 54/58, 93.1% | 0 / 1 / 53 | 4, 2 |
+| T2 | 16/16 | 2/2 | 2/2 | 12/13 | 26/27 | 58/60, 96.7% | 0 / 1 / 57 | 2, 1 |
+| T3 | 15/15 | 2/2 | 2/2 | 11/13 | 30/31 | 60/63, 95.2% | 0 / 1 / 59 | 3, 1 |
+
+**Where Caveat lost.** Two operators account for it.
+
+- **M5, cite evidence never read.** In round 7 `caveat check` refused every
+  Caveat M5 mutant before it ran. Here it refused none, because this
+  mutator wrote the extra citation as `observed(absorb_cave)` where round 7's
+  wrote the bare name. rc.17 refuses a bare evidence name in `because` at
+  load ("a declared evidence, not a value citation"), but accepts
+  `observed(E)` and refuses it only at run time, as `ungrounded_citation`,
+  once `E` has been observed and the binding is active. 122 of the 215
+  Caveat M5 mutants were caught that way or by the suite. Of the 93 that
+  survived, the fuzz could not tell 81 from their originals; the likely
+  reason, not traced, is that their bindings are inactive whenever the cave
+  mushroom has been absorbed. A
+  post-hoc rewrite of every Caveat M5 mutant to the bare name
+  (`fuzz-checks/m5-bare-name.sh`, `results/m5-bare-name.txt`) makes all
+  215 fail to load. So the score depends on which spelling a careless author
+  reaches for, and `caveat check` does not catch the one this mutator chose.
+- **M1 in C2, drop a caveat.** Nine of C2's 27 M1 mutants survived. Seven drop
+  the `d, doubted` arguments from the recovery commitment, a why citation or
+  journal pages 1 to 5, the CR20 workaround above, which the suite exercises
+  on only some pages. The other two remove the retaste's fade.
+
+**M4 on both sides.** Reversing `decision.basis` survives the suite in every
+program, because the registered comparator compares the basis as a set; the
+fuzz, which compares it in order, tells each one apart. Swapping the
+operands of the recovery commitment in Caveat source changes nothing, as
+predicted: View 0.2 orders grounds by observation, not by the source.
+
+A survivor that the fuzz cannot tell apart is labelled possibly equivalent.
+Because C3 can exhaust its sessions in one process (above), every survivor
+was fuzzed again with sessions freed between sequences
+(`fuzz-checks/survivors-release.sh`, `results/survivors-release-between.txt`).
+No label changed.
+
+### Explanation drift
+
+A drift agent counted, after each blind request, the explanation-producing
+units each diff touched (`round8/drift/DRIFT.md`, unit lists in
+`DRIFT.json`). Medians: CR17 3 against 3, CR18 38 against 8, CR19 26 against
+15, CR20 123 against 4. Like round 7's agent, it counted save code and also
+rejection guards as feeding explanations, since an accepted event adds
+evidence; it says the Caveat counts for CR18–CR20 would fall the most under
+a reading that leaves guards out. TypeScript's CR20 total is 1 to 5 units
+per program, against 50 to 206, so no reading of the guards closes that gap.
+
+### Learnability: why each Caveat blind run failed
+
+`round8/fuzz-checks/first-failures.mjs` (round 7's) re-runs every failing
+run's snapshot against its phase's scenarios. "First" marks a phase's first
+run.
+
+| Author | Phase, run | Scenarios failed | Cause | Kind |
+| --- | --- | --- | --- | --- |
+| C1 | CR18, first | S54–S56 | the program refused three doubts the scenarios accept, citing its rule that one undoubted observation must remain | author: the rule applied where CR18 does not apply it |
+| C2 | CR18, first | S54–S56 | a doubted witness still counted in the belief, label and note | author |
+| C2 | CR20, first | 10 | four saves over 4,096 bytes; six `ungrounded_citation` refusals of a `doubted` citation the value did not read | language: the save; language rule |
+| C2 | CR20, four more | 2 to 10 | an `undoubt` payload the adapter passed unparsed; an empty journal mid-rewrite; saves over the bound | glue; author; language: the save |
+| C3 | CR18, first and second | S48, S49 (first only), S54–S56 | journal entries lost during a memory rewrite; `doubt` refused because an event parameter must be a number, and the doubted evidence is a text id | author; language: event parameters carry numbers and sorts, not text |
+| C3 | CR20, first | 10 | `reopenedBy` and `history` kept only the first reopening after the rewrite; one save 35 bytes over | author; language: the save |
+
+**Language.** Again the save, now only in CR20 and by tens to hundreds of
+bytes. The citation rule (`ungrounded_citation`) caught C2 once, as it
+caught round 7's authors, and was fixed on the next run. New this round: an
+event cannot carry a text parameter, so a doubt naming `witness_pool_2` has
+to be parsed into numbers in the adapter (all three adapters do this).
+
+**Author.** The CR18 first-run failures are the authors' readings of the
+request, made while redesigning around the two qualification limits above.
+TypeScript authors met the same request with none.
+
+**The registered comparator.** No failing run in this round is an order
+failure of journal caveats; row 5 removed the four round 7 counted.
+
+### Predictions
+
+Round-level predictions were recorded before the protocol was registered
+([round8/PREDICTIONS.md](round8/PREDICTIONS.md)); primary medians.
+
+| Measure | Target | Expected, Caveat | Actual, Caveat | Expected, TypeScript | Actual, TypeScript | Outcome |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Blind first-run green, of 4 | 4 | 3 | 2 | 4 | 4 | **failed** for Caveat; held for TypeScript |
+| Blind runs to all-green | — | 5 | 9 | 4 | 5 | **failed** both |
+| Regressions | 0 | 0 | 11 | 0 | 0 | **failed** for Caveat |
+| Change cost, lines | lower than TypeScript | 150 | 484 | 220 | 148 | **failed** both, and the target |
+| Size, lines | lower than TypeScript | 380 | 676 | 560 | 560 | **failed** for Caveat; held for TypeScript; target missed |
+| Explanation failures | 0 | 0 | 3 | 0 | 0 | **failed** for Caveat |
+| Mutation score | 100% | 98% | 62.1% | 100% | 95.2% | **failed** both |
+| Drift, units | at or below TypeScript | 35 | 188 | 30 | 28 | **failed** for Caveat; target missed |
+| Dispatch, median µs | under 50 | 100 | 334 | 20 | 19.4 | **failed** for Caveat |
+| Gzipped bytes shipped | under 150,000 | 760,000 | 811,940 | 7,000 | 7,670 | both within 10%; target missed |
+| Rule A | met | met | not met | | | **failed** |
+| Rule B | — | not met | not met | | | held |
+
+Per request (recorded at stage 3):
+
+| Prediction | Caveat | TypeScript | Outcome |
+| --- | ---: | ---: | --- |
+| CR17: TypeScript smaller diff and fewer failed runs | 17 lines, 0 failed runs | 24, 0 | **failed**: Caveat −29%; failed runs tie |
+| CR18: Caveat smaller diff by more than 10% | 151 | 33 | **failed** |
+| CR18: Caveat at least one failed run | 1 | 0 | held |
+| CR19: tie | 61 | 56 | held (+9%) |
+| CR20: TypeScript smaller diff and fewer failed runs | 319 lines, 2 failed runs | 33, 0 | held |
+| Drift: Caveat lower on CR18 | 38 | 8 | **failed** |
+| Drift: TypeScript lower on CR17 and CR20 | 3, 123 | 3, 4 | **failed** on CR17 (a tie); held on CR20 |
+| Drift: tie on CR19 | 26 | 15 | **failed** |
+
+The probe's predictions are scored in `probe/DIFF.md`: two held and the
+third failed.
+
+### What this round can and cannot show
+
+It shows how rc.17 fares with six fresh agents of one model family on one
+beat. On the inherited requests and on CR17 and CR19, Caveat authors kept
+pace. On the two requests that needed a caveat to be taken back or attached
+to an earlier life, they rebuilt that bookkeeping with flags in the source,
+and that cost lines, regressions, drift and mutation score. TypeScript is the
+default. The round cannot show how people would fare, or other kinds of
+program. All agents, the request writer and reviewer, the mutator, the drift
+counter and the drafter of the protocol are one model family; only the probe
+was not. TypeScript is a language these agents know far better. The Caveat
+packet's specifications contain Glowcap fragments, disclosed at stage 4; none
+uses CR17–CR20's events or fields. One request pair, CR18 and CR20, decides
+most of the gap, and a different set of blind requests could show a smaller
+one. The mutation score turns on how the mutator spelled one operator (M5,
+above), so the per-operator rows matter more than the overall figure.
+
+No claim that Caveat is better than TypeScript goes into the README, AGENTS,
+the site or other documents on the strength of this round.
+
+**The work list this round leaves.** Each item names what the round
+observed, not a design.
+
+1. **Withdrawing a qualification.** Every Caveat author needed a caveat that
+   can be taken back, and built it from flags (CR20).
+2. **Qualifying an earlier occurrence.** `qualify` reaches only the current
+   life of renewable evidence (CR18).
+3. **Ordered evidence beyond grounds.** View 0.2 orders only commitment
+   grounds, and only for a host that asks; two programs built the order wrong
+   from binding explanations and one never asked (fuzz, 69 sequences).
+4. **A window on a decision series.** All three authors capped recommits
+   because the series cannot forget (long play).
+5. **Static coverage of `observed(E)` citations.** `caveat check` accepts a
+   `because` that cites `observed(E)` the value never reads; it is refused
+   only at run time (mutation, M5).
+6. **Text in events.** An event parameter cannot carry an evidence id;
+   adapters parse it into numbers.
+7. **Sessions a host never frees.** A host that creates many sessions in one
+   synchronous run exhausts the runtime with the error `unreachable`, which
+   does not say why (fuzz, C3).
+8. **Countdowns to the tick.** F267's firing rule now shows in a view field
+   (CR17's `fadesIn` and `regrowsIn`).
+
+### Reproduce (round 8)
+
+The authors' programs live outside the repository at run time; each one's
+final source is in `round8/runs/<ID>/impl/`, with its phase commits in
+`phases.bundle`, every test snapshot in `snapshots.tgz`, its runner log and
+its notes.
+
+```sh
+cd experiments/glowcap/round8
+node prepare.mjs authors --tarball=caveat-lang-0.1.0-rc.17.tgz   # checks its hash, installs it
+# then copy each runs/<ID>/impl/ to /home/claude/glowcap-r8/authors/<ID>/impl/,
+# runs/<ID>/{state.json,log.jsonl} to /home/claude/glowcap-r8/private/<ID>/,
+# and clone runs/<ID>/phases.bundle to /home/claude/glowcap-r8/private/<ID>/repo
+node score.mjs --bench > results/score.json        # measures 1–5
+node longplay.mjs > results/longplay.json
+A=/home/claude/glowcap-r8/authors
+node fuzz.mjs --impl=$A/T2/impl/glowcap.ts --impl=$A/T1/impl/glowcap.ts --impl=$A/T3/impl/glowcap.ts \
+  --impl=$A/C1/impl/adapter.mjs --impl=$A/C2/impl/adapter.mjs --impl=$A/C3/impl/adapter.mjs \
+  --sequences=300 --seed=7 --dump=results/fuzz-seed7.json
+# the same six --impl, recording every divergence, then with sessions freed between sequences
+node fuzz-checks/all-divergences.mjs … --sequences=300 --seed=7 --dump=DUMP.json
+node --expose-gc fuzz-checks/all-divergences.mjs … --sequences=300 --seed=7 --release-between --dump=DUMP-RB.json
+node fuzz-checks/classify.mjs DUMP.json > results/fuzz-classes-seed7.json
+# mutation: the mutator's directory holds sites.json and the full mutants
+node mutate.mjs --programs=C1 > C1.json   # and C2,T1 / C3 / T2,T3; join in sites.json order
+bash fuzz-checks/survivors-release.sh > results/survivors-release-between.txt
+bash fuzz-checks/m5-bare-name.sh > results/m5-bare-name.txt
+node fuzz-checks/first-failures.mjs C2   # each author
 ```
 
 ## Reproduce
