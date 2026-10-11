@@ -37,7 +37,10 @@ is the declared evidence itself. `renew` makes a new one, `EVIDENCE@2`, then
 `EVIDENCE@3`, and from then on every rule and binding that names `EVIDENCE`
 means that one: `reveal`, `qualified(…, EVIDENCE)`, `observed(EVIDENCE)`,
 `qualify EVIDENCE with …`, `reopen … because EVIDENCE` and
-`carries(EVIDENCE, …)`.
+`carries(EVIDENCE, …)`. The one exception is
+[`unqualify`](caveat-take-back-0.1.md), which reaches every held occurrence's
+qualifications, so that a doubt raised before a `renew` can be taken back
+after it.
 
 - A new occurrence is **unobserved**, and inherits the caveats *declared* on
   the evidence (`secondhand qualifies witness_cave;`). It does not inherit
@@ -130,6 +133,10 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-10-11 (rc.18, specified): `unqualify` reaches every held occurrence
+  of renewable evidence ([Take-back 0.1](caveat-take-back-0.1.md)). Every
+  other form still means the current occurrence.
 
 - 2026-10-05 (rc.15, specified): `renewable EVIDENCE window N` retires the
   oldest occurrence instead of refusing a `renew`

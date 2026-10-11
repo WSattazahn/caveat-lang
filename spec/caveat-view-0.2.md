@@ -175,6 +175,9 @@ in the runtime workflow (A5):
 - Named cases cover an accepted event, an accepted event that changes nothing
   else, a refusal, a restore, a sequence mismatch, a change to an explanation
   only, a late qualification, a departure, a journal window and a collection.
+  [Take-back 0.1](caveat-take-back-0.1.md#views) adds a take-back, a
+  qualification raised again after one, and the departure of a taken-back
+  occurrence.
 - Dispatch, view building, delta building, applying, and bytes are measured
   separately.
 
@@ -185,6 +188,11 @@ in the runtime workflow (A5):
 the additive order field above) and every refusal code are unchanged.
 
 ## Changes
+
+- 2026-10-11 (rc.18, specified; implemented in P4): a program with
+  `unqualify` has a `taken_back` member in the full view and in the delta,
+  applied like `decision_journal` ([Take-back 0.1](caveat-take-back-0.1.md#views)).
+  Every other program's view and delta are unchanged.
 
 - 2026-10-10: specified (Path to 1.0, A4).
 - 2026-10-10: implemented, with the save's `evidence_order` field and the
