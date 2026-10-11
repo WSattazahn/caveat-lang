@@ -104,7 +104,10 @@
       "role": "drift counter",
       "dispatched": "2026-10-11T06:22Z",
       "directory": "/home/claude/glowcap-r8/drift",
-      "prompt": "prompts/drift.md"
+      "prompt": "prompts/drift.md",
+      "tokens": 273803,
+      "toolUses": 55,
+      "durationSeconds": 598
     },
     {
       "role": "mutator (step 2, mutants; the same context resumed)",
