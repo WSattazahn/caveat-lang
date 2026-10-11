@@ -116,6 +116,12 @@ pub struct Provenance {
     /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub inherited: BTreeSet<String>,
+    /// The take-back caveats among `caveats` that this value holds through a
+    /// record rather than a live qualification, so no take-back removes them.
+    /// Only a program that takes back keeps any; see
+    /// spec/caveat-take-back-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub kept: BTreeSet<String>,
 }
 
 /// The departed records of one history that a provenance named: at least
@@ -297,6 +303,15 @@ impl Provenance {
         true
     }
 
+    /// Keep each of `caveats` this value carries: a record holds it now.
+    pub fn keep<'a>(&mut self, caveats: impl IntoIterator<Item = &'a String>) {
+        for caveat in caveats {
+            if self.caveats.contains(caveat) && !self.kept.contains(caveat) {
+                self.kept.insert(caveat.clone());
+            }
+        }
+    }
+
     /// A marker counts as one identifier, its history's name as its bytes.
     fn size(&self) -> Result<(usize, usize), String> {
         let count = self
@@ -368,6 +383,7 @@ impl Provenance {
         }
         self.evidence.extend(other.evidence.iter().cloned());
         self.caveats.extend(other.caveats.iter().cloned());
+        self.kept.extend(other.kept.iter().cloned());
         for (history, marker) in &other.departed {
             self.departed
                 .entry(history.clone())

@@ -357,7 +357,12 @@ steps leave every commitment's basis and grounds unchanged, together with the
 contrast on current values, the refusal classification and a nonempty witness.
 How commitments are created, reopening, the decision journal, reading archives,
 scheduled qualification, renewal and the graph closure of qualifiers are not
-modeled.
+modeled. Nine further laws in the same file cover one
+`unqualify` step of [Take-back 0.1](caveat-take-back-0.1.md): commitments and
+observations unchanged, and a current value that keeps its number and loses at
+most the take-back caveat, and only when it holds a marked occurrence. Which
+occurrences are marked and which values lose the caveat are inputs to that
+step; the runtime tests check how they are computed.
 
 The runner's `caveat-late-qualification/0.1` schema takes a `before` ledger and
 one qualification and returns the `after` frame. Its comparison differs from

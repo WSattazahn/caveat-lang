@@ -246,6 +246,13 @@ pub enum Effect {
         /// occurrence current now. See spec/caveat-renewal-0.1.md.
         after: Option<Expr>,
     },
+    /// Record that the live qualifications of every held occurrence of the
+    /// evidence by the caveat no longer stand. See
+    /// spec/caveat-take-back-0.1.md.
+    Unqualify {
+        evidence: String,
+        caveat: String,
+    },
     /// Give renewable evidence a new occurrence: from now on its name means a
     /// new, unobserved piece of evidence. See spec/caveat-renewal-0.1.md.
     Renew {
@@ -1014,7 +1021,8 @@ impl Changes {
             || !same(&old.reading_streams, &new.reading_streams)
             || !same(&old.decision_series, &new.decision_series)
             || !same(&old.renewals, &new.renewals)
-            || !same(&old.retired, &new.retired);
+            || !same(&old.retired, &new.retired)
+            || !same(&old.taken_back, &new.taken_back);
         Self {
             names,
             graph,
@@ -1063,6 +1071,13 @@ pub enum EffectReport {
     Qualify {
         evidence: String,
         caveat: String,
+    },
+    /// The occurrences whose qualification a take-back marked, in
+    /// occurrence order. See spec/caveat-take-back-0.1.md.
+    Unqualify {
+        evidence: String,
+        caveat: String,
+        occurrences: Vec<String>,
     },
     Renew {
         evidence: String,
@@ -1145,6 +1160,18 @@ pub struct Withdrawal {
     pub event: String,
 }
 
+/// One taken-back qualification: the occurrence whose live `qualifies`
+/// relation by the caveat it marked, and the event that marked it. See
+/// spec/caveat-take-back-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TakeBack {
+    pub evidence: String,
+    pub caveat: String,
+    pub sequence: u64,
+    pub event: String,
+}
+
 /// One change to a decision, in the order it happened. See
 /// spec/caveat-decision-journal-0.1.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1220,6 +1247,9 @@ pub struct ReactiveSnapshot {
     /// Withdrawn observations, in the order they were withdrawn.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub withdrawals: Vec<Withdrawal>,
+    /// Taken-back qualifications, in the order they were taken back.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub taken_back: Vec<TakeBack>,
     /// What each permitted commitment was permitted by, frozen.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub commitment_permissions: BTreeMap<String, PermissionRecord>,
@@ -1296,6 +1326,11 @@ pub struct ReactiveSession {
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
     withdrawals: Arc<Vec<Withdrawal>>,
+    /// Taken-back qualifications, in the order they were taken back.
+    taken_back: Arc<Vec<TakeBack>>,
+    /// The caveats some `unqualify` names, fixed at load; empty in a program
+    /// that does not take back.
+    take_back_caveats: Arc<BTreeSet<String>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     /// Declared reopening triggers, by series in name order, each with the
@@ -1505,6 +1540,8 @@ impl ReactiveSession {
             observations: Arc::default(),
             identifiers: Arc::default(),
             withdrawals: Arc::default(),
+            taken_back: Arc::default(),
+            take_back_caveats: Arc::default(),
             commitment_permissions: Arc::default(),
             reopening_triggers: Arc::default(),
             scheduled: Arc::default(),
@@ -1566,6 +1603,9 @@ impl ReactiveSession {
             .collect::<Vec<_>>();
         reopening_triggers.sort_by(|left, right| left.0.cmp(&right.0));
         let mut declared_triggers = Vec::new();
+        // Caveats state initializers name in `qualified(…, CAVEAT)`, checked
+        // against the take-back caveats once procedures are specialized.
+        let initializer_extras = std::cell::RefCell::new(BTreeSet::<String>::new());
         for (series, triggers) in reopening_triggers {
             let condition = reactive_expr::parse_unresolved(&format!(
                 "committed({series}) and not reopened({series})"
@@ -1780,7 +1820,10 @@ impl ReactiveSession {
                     if initial.validate(&numeric, &|kind, name| match kind {
                         "runtime_clock" => Ok(()),
                         "qualification_evidence" => session.require_kind(name, "evidence"),
-                        "qualification_caveat" => session.require_kind(name, "caveat"),
+                        "qualification_caveat" => {
+                            initializer_extras.borrow_mut().insert(name.to_string());
+                            session.require_kind(name, "caveat")
+                        }
                         "numeric_history" => session.require_history(name),
                         "has_sample" => session.require_readings(name),
                         _ if kind.starts_with(HAS_CAVEAT) => session
@@ -1971,6 +2014,7 @@ impl ReactiveSession {
         session.validate_procedures()?;
         session.specialize_procedures()?;
         session.declare_withdrawal_caveat()?;
+        session.declare_take_backs(&initializer_extras.into_inner())?;
         // A retirement names its history; `journal` names the journal's.
         if session.journal_window.is_some() && session.windows.contains("journal") {
             return Err(
@@ -2433,10 +2477,14 @@ impl ReactiveSession {
             match kind {
                 "runtime_clock" => Ok(()),
                 "observed" => self.require_kind(symbol, "evidence"),
-                "examined" => self.require_kind(symbol, "caveat"),
+                "examined" => {
+                    self.not_a_take_back_caveat(symbol, "examined")?;
+                    self.require_kind(symbol, "caveat")
+                }
                 "qualification_evidence" => self.require_kind(symbol, "evidence"),
                 "qualification_caveat" => {
                     self.not_the_withdrawal_caveat(symbol, "qualified")?;
+                    self.not_a_take_back_caveat(symbol, "qualified")?;
                     self.require_kind(symbol, "caveat")
                 }
                 "numeric_history" => self.require_history(symbol),
@@ -2558,6 +2606,10 @@ impl ReactiveSession {
                         }
                     }
                 }
+                Effect::Unqualify { evidence, caveat } => {
+                    self.require_kind(evidence, "evidence")?;
+                    self.require_kind(caveat, "caveat")?;
+                }
                 Effect::Renew { evidence } => {
                     if !self.renewals.contains_key(evidence) {
                         return Err(format!(
@@ -2610,6 +2662,7 @@ impl ReactiveSession {
                 Effect::Examine { caveat, .. } => {
                     self.require_kind(caveat, "caveat")?;
                     self.not_the_withdrawal_caveat(caveat, "examine")?;
+                    self.not_a_take_back_caveat(caveat, "examine")?;
                     if self.resources.is_none() {
                         return Err("reactive examination requires an attention budget".into());
                     }
@@ -2650,6 +2703,7 @@ impl ReactiveSession {
                     for caveat in retaining {
                         self.require_kind(caveat, "caveat")?;
                         self.not_the_withdrawal_caveat(caveat, "retaining")?;
+                        self.not_a_take_back_caveat(caveat, "retaining")?;
                         if !retained.insert(caveat) {
                             return Err(format!("duplicate retained caveat {caveat}"));
                         }
@@ -3203,19 +3257,21 @@ impl ReactiveSession {
                     .map_err(Into::into);
             }
             Effect::Sample { stream, .. } => {
+                let guard = self.frozen(guard).into_owned();
                 return Arc::make_mut(&mut self.reading_streams)
                     .get_mut(stream)
                     .expect("validated stream")
                     .selection_qualifications
-                    .merge(guard)
+                    .merge(&guard)
                     .map_err(Into::into);
             }
             Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
+                let guard = self.frozen(guard).into_owned();
                 return Arc::make_mut(&mut self.decision_series)
                     .get_mut(action)
                     .unwrap()
                     .selection_qualifications
-                    .merge(guard)
+                    .merge(&guard)
                     .map_err(Into::into);
             }
             Effect::Reveal { evidence, .. }
@@ -3239,12 +3295,13 @@ impl ReactiveSession {
             _ => None,
         };
         if let Some((kind, name)) = target {
+            let guard = self.frozen(guard).into_owned();
             Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
                 .entry(name)
                 .or_default()
-                .merge(guard)?;
+                .merge(&guard)?;
         }
         Ok(())
     }
@@ -3924,16 +3981,26 @@ impl ReactiveSession {
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
         let mut visited = HashSet::new();
         let mut caveats = HashSet::new();
+        let marked = self.marked_relations();
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
+            let mut passed = HashMap::new();
             for edge in self
                 .graph
                 .edges
                 .iter()
                 .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
             {
+                // A taken-back relation no longer qualifies what it names.
+                if let Some(count) = marked.get(&(edge.from, id)) {
+                    let seen = passed.entry(edge.from).or_insert(0);
+                    if *seen < *count {
+                        *seen += 1;
+                        continue;
+                    }
+                }
                 if matches!(
                     self.graph.nodes.get(&edge.from),
                     Some(NodeKind::Caveat { .. })
@@ -4337,9 +4404,12 @@ impl ReactiveSession {
                 for caveat in inherited {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
+                let mut observation = value.provenance.union(guard)?;
+                self.freeze(&mut observation);
                 Arc::make_mut(&mut self.observation_qualifications)
-                    .insert(name.clone(), value.provenance.union(guard)?);
-                let provenance = self.qualify(&name, &[])?;
+                    .insert(name.clone(), observation);
+                let mut provenance = self.qualify(&name, &[])?;
+                self.freeze(&mut provenance);
                 let readings = Arc::make_mut(&mut self.reading_streams)
                     .get_mut(stream)
                     .unwrap();
@@ -4411,12 +4481,14 @@ impl ReactiveSession {
                                 ),
                             ));
                         }
+                        let mut guard = guard.union(&delay.provenance)?;
+                        self.freeze(&mut guard);
                         let scheduled = ScheduledQualification {
                             evidence: occurrence,
                             caveat: caveat.clone(),
                             scheduled_at: self.elapsed,
                             after,
-                            guard: guard.union(&delay.provenance)?,
+                            guard,
                         };
                         self.add_pin(&scheduled.evidence);
                         self.collector_schedule(&scheduled, true);
@@ -4424,6 +4496,7 @@ impl ReactiveSession {
                     }
                 }
             }
+            Effect::Unqualify { evidence, caveat } => self.take_back(evidence, caveat)?,
             Effect::Withdraw { target, because } => {
                 let unobserved = |message: String| {
                     DispatchFailure::rejected(
@@ -4497,8 +4570,8 @@ impl ReactiveSession {
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 // The occurrence exists because this rule chose to renew.
                 if !guard.is_empty() {
-                    Arc::make_mut(&mut self.observation_qualifications)
-                        .insert(name.clone(), guard.clone());
+                    let guard = self.frozen(guard).into_owned();
+                    Arc::make_mut(&mut self.observation_qualifications).insert(name.clone(), guard);
                 }
                 Arc::make_mut(&mut self.renewals)
                     .get_mut(evidence)
@@ -4567,10 +4640,11 @@ impl ReactiveSession {
                 let evidence = self.occurrence(evidence).to_string();
                 if !self.predicate("observed", &evidence)? {
                     self.clear_predicate_dependency("observed", &evidence);
+                    let guard = self.frozen(guard).into_owned();
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
-                        .merge(guard)?;
+                        .merge(&guard)?;
                     self.record_observation(&evidence, true);
                     self.effects.push(EffectReport::Reveal {
                         evidence,
@@ -4594,10 +4668,11 @@ impl ReactiveSession {
                     .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
                 {
                     self.clear_predicate_dependency("observed", evidence);
+                    let guard = self.frozen(guard).into_owned();
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
-                        .merge(guard)?;
+                        .merge(&guard)?;
                     self.record_observation(evidence, false);
                     Arc::make_mut(&mut self.graph).relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
@@ -4616,7 +4691,7 @@ impl ReactiveSession {
                     .get(caveat)
                     .cloned()
                     .unwrap_or_default()
-                    .union(guard)?;
+                    .union(&self.frozen(guard))?;
                 let resources = self
                     .resources
                     .as_mut()
@@ -4718,8 +4793,10 @@ impl ReactiveSession {
                 for record in grounds.own_evidence() {
                     self.add_pin(record);
                 }
+                self.freeze(&mut grounds);
                 Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
+                self.freeze(&mut provenance);
 
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
@@ -4899,6 +4976,7 @@ impl ReactiveSession {
                     if let Some(series) = self.decision_series.get(action) {
                         self.inherit(&mut basis, &series.selection_qualifications)?;
                     }
+                    self.freeze(&mut basis);
                     self.clear_predicate_dependency("reopened", &current);
                     Arc::make_mut(&mut self.reopening_qualifications)
                         .entry(current.clone())
@@ -4939,6 +5017,127 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// How many `CAVEAT qualifies OCCURRENCE` relations a take-back has
+    /// marked, by caveat and occurrence. The marked relations of a pair are
+    /// its first ones in graph order, since a take-back marks the one live
+    /// relation and a qualify adds one only when none is live. Empty unless
+    /// the program has taken something back. See spec/caveat-take-back-0.1.md.
+    fn marked_relations(&self) -> HashMap<(NodeId, NodeId), usize> {
+        let mut marked = HashMap::new();
+        for record in self.taken_back.iter() {
+            if let (Some(&caveat), Some(&occurrence)) = (
+                self.symbols.get(&record.caveat),
+                self.symbols.get(&record.evidence),
+            ) {
+                *marked.entry((caveat, occurrence)).or_insert(0) += 1;
+            }
+        }
+        marked
+    }
+
+    /// Whether `caveat qualifies occurrence` through a relation no take-back
+    /// has marked.
+    fn has_live_relation(&self, caveat: NodeId, occurrence: NodeId) -> bool {
+        let relations = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.from == caveat && edge.to == occurrence && edge.relation == Relation::Qualifies
+            })
+            .count();
+        let marked = self
+            .taken_back
+            .iter()
+            .filter(|record| {
+                self.symbols.get(&record.caveat) == Some(&caveat)
+                    && self.symbols.get(&record.evidence) == Some(&occurrence)
+            })
+            .count();
+        relations > marked
+    }
+
+    /// A record holds the take-back caveats it carries: reading it back keeps
+    /// them. Nothing in a program that does not take back.
+    fn freeze(&self, provenance: &mut Provenance) {
+        if !self.take_back_caveats.is_empty() {
+            provenance.keep(self.take_back_caveats.iter());
+        }
+    }
+
+    /// `provenance` as a record holds it, copied only when that differs.
+    fn frozen<'a>(&self, provenance: &'a Provenance) -> std::borrow::Cow<'a, Provenance> {
+        if self.take_back_caveats.is_empty() {
+            return std::borrow::Cow::Borrowed(provenance);
+        }
+        let mut copy = provenance.clone();
+        self.freeze(&mut copy);
+        std::borrow::Cow::Owned(copy)
+    }
+
+    /// `unqualify EVIDENCE with CAVEAT`: mark the live relation of each held
+    /// occurrence, then take the caveat from each current value that no
+    /// longer has it live and does not keep it. See
+    /// spec/caveat-take-back-0.1.md, "Meaning".
+    fn take_back(&mut self, evidence: &str, caveat: &str) -> Result<(), String> {
+        let from = self.symbols[caveat];
+        let occurrences = match self.renewals.get(evidence) {
+            Some(renewal) => renewal.occurrences.clone(),
+            None => vec![evidence.to_string()],
+        };
+        let marked = occurrences
+            .into_iter()
+            .filter(|occurrence| {
+                !self.is_retired(occurrence)
+                    && self
+                        .symbols
+                        .get(occurrence)
+                        .is_some_and(|&to| self.has_live_relation(from, to))
+            })
+            .collect::<Vec<_>>();
+        if marked.is_empty() {
+            return Ok(());
+        }
+        let event = self.last_event.clone().unwrap_or_default();
+        let records = Arc::make_mut(&mut self.taken_back);
+        for occurrence in &marked {
+            records.push(TakeBack {
+                evidence: occurrence.clone(),
+                caveat: caveat.to_string(),
+                sequence: self.sequence,
+                event: event.clone(),
+            });
+        }
+        // Current values only, as a qualify. Commitment bases and grounds,
+        // reading archives and the journal keep what they recorded.
+        for slot in 0..self.states.len() {
+            let lineage = &self.states.cells[slot].value.provenance;
+            if !lineage.caveats.contains(caveat)
+                || lineage.kept.contains(caveat)
+                || !marked
+                    .iter()
+                    .any(|occurrence| lineage.evidence.contains(occurrence))
+                || lineage.evidence.iter().any(|name| {
+                    self.symbols
+                        .get(name)
+                        .is_some_and(|&id| self.has_live_relation(from, id))
+                })
+            {
+                continue;
+            }
+            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
+            let cell = self.states.cell_mut(slot);
+            cell.value.provenance.caveats.remove(caveat);
+            cell.grounds.caveats.remove(caveat);
+        }
+        self.effects.push(EffectReport::Unqualify {
+            evidence: evidence.to_string(),
+            caveat: caveat.to_string(),
+            occurrences: marked,
+        });
+        Ok(())
+    }
+
     /// A caveat learned late, applied to one occurrence of evidence: see
     /// spec/caveat-late-qualification-0.1.md.
     fn apply_qualification(
@@ -4948,12 +5147,9 @@ impl ReactiveSession {
         guard: &Provenance,
     ) -> Result<(), String> {
         let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
-        if !self
-            .graph
-            .edges
-            .iter()
-            .any(|edge| edge.from == from && edge.to == to && edge.relation == Relation::Qualifies)
-        {
+        // Once per live relation: after a take-back, qualifying again adds a
+        // new one. See spec/caveat-take-back-0.1.md.
+        if !self.has_live_relation(from, to) {
             Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
         }
         // The caveat and whatever qualifies it, as `qualified` inherits.
@@ -5051,6 +5247,90 @@ impl ReactiveSession {
             Consequence::Material,
         );
         Arc::make_mut(&mut self.symbols).insert(WITHDRAWN.into(), id);
+        Ok(())
+    }
+
+    /// Every `unqualify` of a program, after procedures are specialized.
+    fn take_back_effects(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.rules
+            .iter()
+            .map(|rule| &rule.effect)
+            .chain(
+                self.procedures
+                    .values()
+                    .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+            )
+            .filter_map(|effect| match effect {
+                Effect::Unqualify { evidence, caveat } => {
+                    Some((evidence.as_str(), caveat.as_str()))
+                }
+                _ => None,
+            })
+    }
+
+    /// The caveats a program takes back, and the rules that make a take-back
+    /// exact: see spec/caveat-take-back-0.1.md, "What a take-back caveat may
+    /// not do". Uses in rules, procedures and bindings are refused when they
+    /// are validated; state initializers name theirs in `extras`.
+    fn declare_take_backs(&mut self, extras: &BTreeSet<String>) -> Result<(), String> {
+        let mut caveats = BTreeSet::new();
+        for (evidence, caveat) in self.take_back_effects() {
+            self.require_kind(evidence, "evidence")
+                .map_err(|error| format!("unqualify {evidence} with {caveat}: {error}"))?;
+            self.require_kind(caveat, "caveat")
+                .map_err(|error| format!("unqualify {evidence} with {caveat}: {error}"))?;
+            if let Some((stream, _)) = self
+                .reading_streams
+                .iter()
+                .find(|(_, stream)| stream.template == evidence)
+            {
+                return Err(format!(
+                    "unqualify {evidence} with {caveat}: {evidence} is the template of reading stream {stream}, whose readings copy its caveats"
+                ));
+            }
+            if caveat == WITHDRAWN && self.withdraws() {
+                return Err(
+                    "unqualify cannot take back withdrawn: nothing undoes a withdrawal".into(),
+                );
+            }
+            caveats.insert(caveat.to_string());
+        }
+        // Every edge is declared while the program loads.
+        for caveat in &caveats {
+            let id = self.symbols[caveat];
+            for edge in self
+                .graph
+                .edges
+                .iter()
+                .filter(|edge| edge.relation == Relation::Qualifies)
+            {
+                if edge.from == id {
+                    return Err(format!(
+                        "{caveat} is taken back by unqualify, so a declaration cannot apply it; apply it with qualify"
+                    ));
+                }
+                if edge.to == id {
+                    return Err(format!(
+                        "{caveat} is taken back by unqualify, so a declared caveat cannot qualify it"
+                    ));
+                }
+            }
+            if extras.contains(caveat) {
+                return Err(format!(
+                    "qualified cannot name {caveat}: it is taken back by unqualify, so only qualify applies it"
+                ));
+            }
+        }
+        self.take_back_caveats = Arc::new(caveats);
+        Ok(())
+    }
+
+    fn not_a_take_back_caveat(&self, caveat: &str, place: &str) -> Result<(), String> {
+        if self.take_back_caveats.contains(caveat) {
+            return Err(format!(
+                "{place} cannot name {caveat}: it is taken back by unqualify, so only qualify applies it"
+            ));
+        }
         Ok(())
     }
 
@@ -5486,6 +5766,7 @@ impl ReactiveSession {
             observations: (*self.observations).clone(),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
+            taken_back: (*self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
@@ -5587,6 +5868,10 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                 selector => selector.clone(),
             },
             because: rename(because),
+        },
+        Effect::Unqualify { evidence, caveat } => Effect::Unqualify {
+            evidence: rename(evidence),
+            caveat: rename(caveat),
         },
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
@@ -6097,6 +6382,7 @@ fn effect_candidates(words: &[&str]) -> Vec<usize> {
                     | "call"
                     | "reject"
                     | "qualify"
+                    | "unqualify"
                     | "renew"
                     | "withdraw"
             )
@@ -6461,6 +6747,10 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 after: Some(reactive_expr::parse_unresolved(&rest.join(" "))?),
             })
         }
+        ["unqualify", evidence, "with", caveat] => Ok(Effect::Unqualify {
+            evidence: identifier(evidence)?,
+            caveat: identifier(caveat)?,
+        }),
         ["renew", evidence] => Ok(Effect::Renew {
             evidence: identifier(evidence)?,
         }),

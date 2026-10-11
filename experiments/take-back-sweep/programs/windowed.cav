@@ -1,0 +1,26 @@
+# Take-back 0.1 with a window: renewed occurrences of a doubted witness
+# retire and depart, taking their take-back records with them, and a value
+# that held one still doubted keeps the doubt. See
+# spec/caveat-take-back-0.1.md, "Departure and collection".
+claim edible;
+caveat doubted consequence material;
+evidence witness_pool from "the slime saw a creature eat it";
+renewable witness_pool window 2;
+state flagged = 0;
+state memory = 0;
+decisions trust limit 8;
+journal window 2;
+event see;
+event doubt;
+event regrow;
+event undoubt;
+event flag;
+event decide;
+on see reveal witness_pool supports edible;
+on see set memory = qualified(1, witness_pool);
+on flag when carries(witness_pool, doubted) set flagged = flagged + 1;
+on doubt when observed(witness_pool) qualify witness_pool with doubted;
+on regrow renew witness_pool;
+on undoubt unqualify witness_pool with doubted;
+on decide when memory > 0 commit trust because enough using memory;
+bind slime.flagged = flagged because flagged;

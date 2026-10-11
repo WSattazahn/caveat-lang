@@ -15,6 +15,12 @@ const originalWindows = [
   'c3-windows.cav', 'guarded-skip.cav', 'kit-explain-window.cav',
   'kit-types-window.cav', 'runtime-windows-world.cav',
 ].map(name => `experiments/departure-gate/${name}`);
+// Programs written in syntax rc.15 cannot load have no rc.15 behavior to
+// preserve. Each is named here, and must use that syntax.
+const newerThanBaseline = {
+  'experiments/take-back-sweep/programs/round8.cav': /\bunqualify\b/,
+  'experiments/take-back-sweep/programs/windowed.cav': /\bunqualify\b/,
+};
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: root, maxBuffer: 64 * 1024 * 1024, ...options });
@@ -60,7 +66,11 @@ const tracked = run('git', ['ls-files', '-z', '--', '*.cav'], { encoding: 'utf8'
 // Include this deliverable before staging without sweeping unrelated local
 // directories such as a user's preserved rc11 checkout.
 const additions = run('git', ['ls-files', '-z', '--others', '--exclude-standard', '--', 'experiments/departure-gate', 'experiments/agent-decisions/002-departure-continuation'], { encoding: 'utf8' }).stdout.split('\0').filter(path => path.endsWith('.cav'));
-const allPrograms = [...new Set([...tracked, ...additions])].sort();
+for (const [path, syntax] of Object.entries(newerThanBaseline)) {
+  assert.ok(tracked.includes(path) || additions.includes(path), `missing registered newer program: ${path}`);
+  assert.match(readFileSync(join(root, path), 'utf8'), syntax, `${path} no longer uses syntax newer than rc.15`);
+}
+const allPrograms = [...new Set([...tracked, ...additions])].filter(path => !(path in newerThanBaseline)).sort();
 assert.ok(allPrograms.length > 0, 'the tracked Caveat corpus must not be empty');
 const sourceDigest = () => digest(JSON.stringify(allPrograms.map(path => [path, digest(readFileSync(join(root, path)))])));
 const corpusDigest = sourceDigest();

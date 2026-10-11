@@ -1094,7 +1094,7 @@
         },
         {
           "name": "keyword.other.effect.caveat",
-          "match": "(?<![.\\w$])(?:set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|withdraw|defer)\\b"
+          "match": "(?<![.\\w$])(?:set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|unqualify|renew|withdraw|defer)\\b"
         },
         {
           "name": "keyword.operator.logical.caveat",

@@ -38,6 +38,15 @@ pub fn apply(view: &Value, delta: &Value) -> Result<Value, String> {
         let value = list(&next[name], field(name)?)?;
         next.insert(name.into(), value);
     }
+    // Only in a program that takes back, in the view and the delta alike.
+    match (next.get("taken_back"), delta.get("taken_back")) {
+        (Some(current), Some(change)) => {
+            let value = list(current, change)?;
+            next.insert("taken_back".into(), value);
+        }
+        (None, None) => {}
+        _ => return Err("taken_back is in only one of the view and the delta".into()),
+    }
     Ok(Value::Object(next))
 }
 

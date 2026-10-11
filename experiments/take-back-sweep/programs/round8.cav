@@ -1,0 +1,30 @@
+# Take-back 0.1, round 8 item 1 (CR18 to CR20): a witness is doubted, its
+# mushroom regrows, and the doubt is taken back. A corpus program so the
+# whole-corpus gates drive `unqualify`; see spec/caveat-take-back-0.1.md.
+claim edible;
+caveat doubted consequence material;
+evidence witness_pool from "the slime saw a creature eat it";
+evidence taste from "a taste";
+renewable witness_pool limit 64;
+state memory = 0;
+state tasted = 0;
+state recalled = 0;
+event see;
+event sip;
+event doubt;
+event regrow;
+event undoubt;
+event decide;
+event recall;
+on see reveal witness_pool supports edible;
+on see set memory = qualified(1, witness_pool);
+on sip reveal taste supports edible;
+on sip set tasted = memory + qualified(1, taste);
+on doubt when observed(witness_pool) qualify witness_pool with doubted;
+on doubt when observed(taste) qualify taste with doubted;
+on regrow renew witness_pool;
+on undoubt unqualify witness_pool with doubted;
+on decide when memory > 0 and not committed(trust) commit trust because enough using memory;
+on recall when committed(trust) set recalled = 1;
+bind slime.doubts = "doubted" when carries(witness_pool, doubted) because carries(witness_pool, doubted);
+bind slime.memory = memory because memory;

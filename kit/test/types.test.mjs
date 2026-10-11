@@ -157,6 +157,11 @@ on decide when not committed(uncover) commit uncover because enough using latest
 const RENEWAL = `claim safe; evidence bite from "a bite"; caveat faded consequence low; renewable bite limit 4;
   event tick dt min 0 max 0.1; event eat; event regrow;
   on eat reveal bite supports safe; on eat qualify bite with faded after 5; on regrow renew bite;`;
+// A take-back marks a qualification and records it in taken_back
+// (spec/caveat-take-back-0.1.md).
+const TAKE_BACK = `claim safe; evidence taste from "a taste"; caveat doubted consequence low;
+  event sip; event doubt; event undoubt;
+  on sip reveal taste supports safe; on doubt qualify taste with doubted; on undoubt unqualify taste with doubted;`;
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
 const WINDOWED = `claim seen; evidence glimpse from "a glimpse";
@@ -176,6 +181,7 @@ function sessionsOf() {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']]],
     ['evidence memory from "lookup"; event consult; on consult reveal memory;', [['consult']]],
     [WINDOWED, WINDOWED_EVENTS],
+    [TAKE_BACK, [['sip'], ['doubt'], ['undoubt']]],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];

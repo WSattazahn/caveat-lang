@@ -74,6 +74,10 @@ pub struct ReactiveSave {
     /// spec/caveat-withdrawal-0.1.md have none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub withdrawals: Vec<Withdrawal>,
+    /// Taken-back qualifications. Saves made before
+    /// spec/caveat-take-back-0.1.md have none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub taken_back: Vec<TakeBack>,
     /// Each permitted commitment's frozen permission record. Saves made
     /// before spec/caveat-permission-0.1.md have none.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -166,12 +170,15 @@ impl Serialize for Compact {
             departed: &'a BTreeMap<String, crate::reactive_expr::Marker>,
             #[serde(skip_serializing_if = "BTreeSet::is_empty")]
             inherited: &'a BTreeSet<String>,
+            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+            kept: &'a BTreeSet<String>,
         }
         Written {
             evidence: &self.0.evidence,
             caveats: &self.0.caveats,
             departed: &self.0.departed,
             inherited: &self.0.inherited,
+            kept: &self.0.kept,
         }
         .serialize(serializer)
     }
@@ -190,6 +197,8 @@ impl<'de> Deserialize<'de> for Compact {
             departed: BTreeMap<String, crate::reactive_expr::Marker>,
             #[serde(default)]
             inherited: BTreeSet<String>,
+            #[serde(default)]
+            kept: BTreeSet<String>,
         }
         let saved = Saved::deserialize(deserializer)?;
         Ok(Self(Provenance {
@@ -197,6 +206,7 @@ impl<'de> Deserialize<'de> for Compact {
             caveats: saved.caveats,
             departed: saved.departed,
             inherited: saved.inherited,
+            kept: saved.kept,
         }))
     }
 }
@@ -417,6 +427,7 @@ fn effect_kind(effect: &EffectReport) -> &'static str {
         EffectReport::Commit { .. } => "commit",
         EffectReport::Reopen { .. } => "reopen",
         EffectReport::Qualify { .. } => "qualify",
+        EffectReport::Unqualify { .. } => "unqualify",
         EffectReport::Renew { .. } => "renew",
         EffectReport::Withdraw { .. } => "withdraw",
         EffectReport::Retire { .. } => "retire",
@@ -677,6 +688,7 @@ impl ReactiveSession {
             observations: (!self.observations.is_empty()).then(|| (*self.observations).clone()),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
+            taken_back: (*self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             observation_qualifications: compact_map(&self.observation_qualifications),
@@ -792,6 +804,7 @@ impl ReactiveSession {
         let declared = self.declared_memberships();
         let observed = self.restore_graph(save)?;
         self.restore_withdrawals(save, &observed)?;
+        self.restore_taken_back(save)?;
         self.restore_states(&save.states, &observed, &caveats)?;
         self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_retired(save)?;
@@ -857,6 +870,36 @@ impl ReactiveSession {
         }
         for (id, provenance) in save.cues.iter().zip(&save.cue_qualifications) {
             provenances.push((format!("cue {id}"), &provenance.0));
+        }
+        // Kept caveats: see spec/caveat-take-back-0.1.md, "Snapshot and save".
+        for (what, provenance) in &provenances {
+            if let Some(caveat) = provenance.kept.iter().find(|caveat| {
+                !self.take_back_caveats.contains(*caveat) || !provenance.caveats.contains(*caveat)
+            }) {
+                return Err(format!(
+                    "{what} keeps {caveat}, which is not a take-back caveat it carries"
+                ));
+            }
+        }
+        for (name, state) in &save.states {
+            if let Some(grounds) = &state.grounds {
+                if !grounds.0.kept.is_subset(&state.lineage.0.kept) {
+                    return Err(format!(
+                        "state {name} grounds keep a caveat its lineage does not keep"
+                    ));
+                }
+            }
+        }
+        for (name, grounds) in &save.commitment_grounds {
+            if save
+                .commitment_bases
+                .get(name)
+                .is_some_and(|basis| !grounds.0.kept.is_subset(&basis.provenance.kept))
+            {
+                return Err(format!(
+                    "commitment {name} grounds keep a caveat its basis does not keep"
+                ));
+            }
         }
         let mut any_marker = false;
         for (what, provenance) in &provenances {
@@ -1149,6 +1192,93 @@ impl ReactiveSession {
                 .map_err(|error| format!("the withdrawal of {}: {error}", withdrawal.evidence))?;
         }
         self.withdrawals = Arc::new(save.withdrawals.clone());
+        Ok(())
+    }
+
+    /// Take-back records must each name an occurrence and a caveat some
+    /// `unqualify` of its event can reach, in sequence order, and agree with
+    /// the graph's relations: see spec/caveat-take-back-0.1.md, "Snapshot and
+    /// save". Conditions are not evaluated, so a record shows only what the
+    /// event could have taken back.
+    fn restore_taken_back(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        if save.taken_back.is_empty() {
+            return Ok(());
+        }
+        if self.take_back_caveats.is_empty() {
+            return Err("save holds take-backs but the program does not take back".into());
+        }
+        let mut last = 0;
+        let mut records = HashMap::<(NodeId, NodeId), usize>::new();
+        for record in &save.taken_back {
+            let what = format!(
+                "the take-back of {} with {}",
+                record.evidence, record.caveat
+            );
+            self.require_kind(&record.evidence, "evidence")
+                .map_err(|_| format!("{what} names unknown evidence {}", record.evidence))?;
+            let source = self.source_evidence(&record.evidence);
+            if source != record.evidence && !self.renewals.contains_key(source) {
+                return Err(format!("{what} names no occurrence of renewable evidence"));
+            }
+            if !self
+                .take_back_effects()
+                .any(|(evidence, caveat)| evidence == source && caveat == record.caveat)
+            {
+                return Err(format!(
+                    "{what}: no unqualify of this program takes back {} with {}",
+                    source, record.caveat
+                ));
+            }
+            if record.sequence == 0 || record.sequence > save.sequence || record.sequence < last {
+                return Err(format!("{what} is out of sequence"));
+            }
+            last = record.sequence;
+            if !self.events.contains_key(&record.event)
+                || !self
+                    .reached_effects(Some(&record.event))
+                    .iter()
+                    .any(|effect| {
+                        matches!(effect, Effect::Unqualify { evidence, caveat }
+                            if evidence == source && *caveat == record.caveat)
+                    })
+            {
+                return Err(format!(
+                    "{what} by {}: no unqualify of that event takes back {} with {}",
+                    record.event, source, record.caveat
+                ));
+            }
+            *records
+                .entry((self.symbols[&record.caveat], self.symbols[&record.evidence]))
+                .or_insert(0) += 1;
+        }
+        // Each relation but a pair's last needs its record; the last may have
+        // one. A take-back caveat has no declared relations.
+        let mut relations = HashMap::<(NodeId, NodeId), usize>::new();
+        for caveat in self.take_back_caveats.iter() {
+            let id = self.symbols[caveat];
+            for edge in self
+                .graph
+                .edges
+                .iter()
+                .filter(|edge| edge.from == id && edge.relation == Relation::Qualifies)
+            {
+                *relations.entry((id, edge.to)).or_insert(0) += 1;
+            }
+        }
+        for (pair, count) in &records {
+            if relations
+                .get(pair)
+                .is_none_or(|relations| count > relations)
+            {
+                return Err("a take-back record has no relation to mark".into());
+            }
+        }
+        for (pair, count) in &relations {
+            if records.get(pair).copied().unwrap_or(0) + 1 < *count {
+                return Err("a qualification has two live relations".into());
+            }
+        }
+        self.taken_back = Arc::new(save.taken_back.clone());
         Ok(())
     }
 
@@ -2439,6 +2569,9 @@ impl ReactiveSession {
                     .collect(),
                 EffectReport::Reopen { action, because } => vec![action, because],
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
+                EffectReport::Unqualify {
+                    evidence, caveat, ..
+                } => vec![evidence, caveat],
                 EffectReport::Renew { occurrence, .. } => vec![occurrence],
                 EffectReport::Withdraw { evidence, because } => vec![evidence, because],
                 // A journal entry is no symbol, and a departed record no
@@ -2930,6 +3063,45 @@ impl ReactiveSession {
                     return Err(fail("has no matching graph relation"));
                 }
             }
+            EffectReport::Unqualify {
+                evidence,
+                caveat,
+                occurrences,
+            } => {
+                named(self.require_kind(evidence, "evidence"))?;
+                named(self.require_kind(caveat, "caveat"))?;
+                if occurrences.is_empty() {
+                    return Err(fail("marks no occurrence"));
+                }
+                // Each occurrence the last event marked, in occurrence order;
+                // one that departed since takes its record with it.
+                let order = |occurrence: &str| {
+                    if occurrence == evidence {
+                        Some(1)
+                    } else {
+                        occurrence_parts(occurrence)
+                            .filter(|(base, _)| base == evidence)
+                            .map(|(_, ordinal)| ordinal)
+                    }
+                };
+                let mut last = 0;
+                for occurrence in occurrences {
+                    let ordinal = order(occurrence)
+                        .ok_or_else(|| fail("names an occurrence of other evidence"))?;
+                    if ordinal <= last {
+                        return Err(fail("lists its occurrences out of order"));
+                    }
+                    last = ordinal;
+                    let recorded = save.taken_back.iter().any(|record| {
+                        record.evidence == *occurrence
+                            && record.caveat == *caveat
+                            && record.sequence == save.sequence
+                    });
+                    if !recorded && !self.departed_in_last_event(save, occurrence) {
+                        return Err(fail("names an occurrence the last event did not mark"));
+                    }
+                }
+            }
             EffectReport::Renew {
                 evidence,
                 occurrence,
@@ -3086,6 +3258,15 @@ impl ReactiveSession {
                     after: None,
                 },
             ) => named(evidence, source) && caveat == added,
+            (
+                EffectReport::Unqualify {
+                    evidence, caveat, ..
+                },
+                Effect::Unqualify {
+                    evidence: source,
+                    caveat: taken,
+                },
+            ) => evidence == source && caveat == taken,
             (
                 EffectReport::Renew {
                     evidence,

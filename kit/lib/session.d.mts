@@ -374,6 +374,13 @@ export interface Provenance {
    * absent when empty.
    */
   inherited?: string[];
+  /**
+   * The take-back caveats among `caveats` this value holds through a record
+   * rather than a live qualification, so no take-back removes them. Only a
+   * program that takes back keeps any; absent when empty
+   * (spec/caveat-take-back-0.1.md).
+   */
+  kept?: string[];
 }
 
 /** At least `read` of `history`'s departed records numbered `from` to `through`, the last departing at `departed_at`. */
@@ -406,6 +413,8 @@ export interface Snapshot {
   identifiers?: string[];
   /** Withdrawn observations, in order; absent when there are none. */
   withdrawals?: Withdrawal[];
+  /** Taken-back qualifications, in order; absent when there are none (spec/caveat-take-back-0.1.md). */
+  taken_back?: TakeBack[];
   /** What each permitted commitment was permitted by; absent when there are none. */
   commitment_permissions?: Record<string, PermissionRecord>;
   scheduled_qualifications: ScheduledQualification[];
@@ -469,6 +478,8 @@ export interface View {
 export interface ViewV2 extends Omit<View, 'schema' | 'commitments'> {
   schema: 'caveat-reactive-view/0.2';
   commitments: ViewCommitment[];
+  /** The snapshot's take-back records; present only in a program with an `unqualify`. */
+  taken_back?: TakeBack[];
 }
 
 /** A commitment as View 0.2 shows it. */
@@ -494,6 +505,8 @@ export interface ViewDelta {
   /** Positions in the old list, ascending, then entries added at the end. */
   decision_journal: { removed: number[]; appended: DecisionJournalEntry[] };
   relations: { removed: number[]; appended: Relation[] };
+  /** Present only in a program with an `unqualify`, as the view's member. */
+  taken_back?: { removed: number[]; appended: TakeBack[] };
 }
 
 export interface QualifiedValue {
@@ -572,6 +585,14 @@ export interface ScheduledQualification {
 export interface Withdrawal {
   evidence: string;
   because: string;
+  sequence: number;
+  event: string;
+}
+
+/** One taken-back qualification: the occurrence whose live relation by `caveat` the event marked. */
+export interface TakeBack {
+  evidence: string;
+  caveat: string;
   sequence: number;
   event: string;
 }
@@ -676,6 +697,14 @@ export interface EffectQualify {
   caveat: string;
 }
 
+/** The occurrences whose qualification a take-back marked, in occurrence order (spec/caveat-take-back-0.1.md). */
+export interface EffectUnqualify {
+  kind: 'unqualify';
+  evidence: string;
+  caveat: string;
+  occurrences: string[];
+}
+
 export interface EffectRenew {
   kind: 'renew';
   evidence: string;
@@ -709,6 +738,7 @@ export type Effect =
   | EffectCommit
   | EffectReopen
   | EffectQualify
+  | EffectUnqualify
   | EffectRenew
   | EffectWithdraw
   | EffectRetire
