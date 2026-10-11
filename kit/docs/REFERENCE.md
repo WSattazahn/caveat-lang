@@ -99,6 +99,7 @@ end of the line; `--` is not a comment.
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |
 | `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). |
 | `renewable EVIDENCE limit N;` | Evidence whose name can move to up to N distinct occurrences ([renewal](reference/spec/caveat-renewal-0.1.md)). |
+| `for KIND as $NAME { STATEMENT; … };` | The body once per member of KIND: each `entity NAME kind KIND at PLACE;`, in order, after `place PLACE kind KIND;`. `state $m_eaten = 0;` declares `cave_eaten`, `pool_eaten` and so on, and `when target == target.$m` selects the member an event parameter `target kind KIND` names. Every body statement ends with `;` ([repetition](reference/spec/caveat-repetition-0.1.md)). |
 
 ### Rules
 
@@ -194,6 +195,5 @@ An agent integrating Caveat into an application made these three:
   [0.6](reference/spec/caveat-reactive-0.6.md) and
   [0.7 procedures](reference/spec/caveat-reactive-0.7.md), with the
   [documentation index](README.md) for everything else.
-- Not covered here: worlds and games (`place`, `entity`, `for` blocks, cues,
-  controls), attention budgets (`budget`, `examine`, `defer`), modules and
-  bundles.
+- Not covered here: connections, cues and controls in worlds and games,
+  attention budgets (`budget`, `examine`, `defer`), modules and bundles.
