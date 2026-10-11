@@ -1,0 +1,3882 @@
+[
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 76,
+  "description": "define doubt_mark: the examined(doubted) argument is the only source of the `doubted` caveat that journal entries and consumed-mushroom `why` cite; drop it"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 171,
+  "description": "jcite1: drop the `if(y1 == 1, doubt_mark, 0)` operand, so journal entry 1 no longer cites `doubted`"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 172,
+  "description": "jcite2: drop the doubt_mark operand (journal entry 2 loses `doubted`)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 173,
+  "description": "jcite3: drop the doubt_mark operand (journal entry 3 loses `doubted`)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 174,
+  "description": "jcite4: drop the doubt_mark operand (journal entry 4 loses `doubted`)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 175,
+  "description": "jcite5: drop the doubt_mark operand (journal entry 5 loses `doubted`)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 176,
+  "description": "jcite6: drop the doubt_mark operand (journal entry 6 loses `doubted`)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 202,
+  "description": "observe: remove `when dark == 1 qualify e with tasted_in_dark` (tastes and retastes lose tasted_in_dark)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 258,
+  "description": "remove `secondhand qualifies witness_$m`"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 283,
+  "description": "$m_eaten_cite: drop the doubt_mark operand, so \"Already eaten\" no longer cites `doubted` for a doubted consuming witness"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 286,
+  "description": "$m_in_dark: the has_caveat(…, tasted_in_dark) test (state form of carries) behaves as if the caveat were absent (false)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 287,
+  "description": "$m_faded: the has_caveat(…, taste_faded) test behaves as if the caveat were absent (false)"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 308,
+  "description": "on taste: the caveat-bearing `dark` argument to observe becomes 0, so a taste never carries tasted_in_dark"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 312,
+  "description": "remove `on taste qualify taste_$m with taste_faded after fade_seconds`"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 318,
+  "description": "on retaste: the caveat-bearing `dark` argument to observe becomes 0, so a retaste never carries tasted_in_dark"
+ },
+ {
+  "program": "C1",
+  "operator": "M1",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 321,
+  "description": "remove `on retaste qualify retaste_$m with taste_faded after fade_seconds`"
+ },
+ {
+  "program": "C1",
+  "operator": "M2",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 92,
+  "description": "decision.caveats: read the basis evidence's current caveats (from the live explanations) instead of the commitment's frozen grounds caveats"
+ },
+ {
+  "program": "C1",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 240,
+  "description": "remove the reopen rule `when found == 2 and committed(trust) reopen trust because e`"
+ },
+ {
+  "program": "C1",
+  "operator": "M4",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 74,
+  "description": "journal entry because (holds the new basis for a trust entry): reverse it"
+ },
+ {
+  "program": "C1",
+  "operator": "M4",
+  "site": "S2",
+  "file": "adapter.mjs",
+  "line": 91,
+  "description": "decision.basis: reverse the frozen grounds order"
+ },
+ {
+  "program": "C1",
+  "operator": "M4",
+  "site": "S3",
+  "file": "adapter.mjs",
+  "line": 94,
+  "description": "decision.history entry because (a committed entry's basis): reverse it"
+ },
+ {
+  "program": "C1",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 232,
+  "description": "recovery accumulation (the using value of the recovery commit): swap the operands so the new observation enters before the earlier one"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 390,
+  "description": "bind $m.label (statement at line 390): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 391,
+  "description": "bind $m.label (statement at line 391): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 392,
+  "description": "bind $m.label (statement at line 392): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 393,
+  "description": "bind $m.label (statement at line 393): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 394,
+  "description": "bind $m.label (statement at line 394): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 395,
+  "description": "bind $m.label (statement at line 395): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 396,
+  "description": "bind $m.label (statement at line 396): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 397,
+  "description": "bind $m.label (statement at line 397): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 398,
+  "description": "bind $m.label (statement at line 398): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 399,
+  "description": "bind $m.label (statement at line 399): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 400,
+  "description": "bind $m.label (statement at line 400): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 401,
+  "description": "bind $m.label (statement at line 401): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 404,
+  "description": "bind $m.why_absorb (statement at line 404): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 405,
+  "description": "bind $m.why_absorb (statement at line 405): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 406,
+  "description": "bind $m.why_absorb (statement at line 406): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 407,
+  "description": "bind $m.why_absorb (statement at line 407): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.cav",
+  "line": 408,
+  "description": "bind $m.why_absorb (statement at line 408): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.cav",
+  "line": 409,
+  "description": "bind $m.why_absorb (statement at line 409): add to `because $m_eaten_cite` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.cav",
+  "line": 410,
+  "description": "bind $m.why_taste (statement at line 410): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.cav",
+  "line": 411,
+  "description": "bind $m.why_taste (statement at line 411): add to `because $m_taste` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.cav",
+  "line": 412,
+  "description": "bind $m.why_taste (statement at line 412): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.cav",
+  "line": 413,
+  "description": "bind $m.why_taste (statement at line 413): add to `because $m_eaten_cite` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.cav",
+  "line": 450,
+  "description": "bind belief.supported_by (statement at line 450): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.cav",
+  "line": 451,
+  "description": "bind belief.contradicted_by (statement at line 451): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.cav",
+  "line": 464,
+  "description": "bind journal.cites1 (statement at line 464): add to `because jcite1` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.cav",
+  "line": 465,
+  "description": "bind journal.cites2 (statement at line 465): add to `because jcite2` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.cav",
+  "line": 466,
+  "description": "bind journal.cites3 (statement at line 466): add to `because jcite3` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S28",
+  "file": "glowcap.cav",
+  "line": 467,
+  "description": "bind journal.cites4 (statement at line 467): add to `because jcite4` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S29",
+  "file": "glowcap.cav",
+  "line": 468,
+  "description": "bind journal.cites5 (statement at line 468): add to `because jcite5` evidence the value never reads"
+ },
+ {
+  "program": "C1",
+  "operator": "M5",
+  "site": "S30",
+  "file": "glowcap.cav",
+  "line": 469,
+  "description": "bind journal.cites6 (statement at line 469): add to `because jcite6` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 153,
+  "description": "recovery commit on a doubted page: drop the `d, doubted` caveat-bearing arguments from the using expression (qualified(j5_x + j6_s, d, doubted) -> j5_x + j6_s)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 187,
+  "description": "remove `secondhand qualifies w_$m`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 212,
+  "description": "$m_can_retaste: the carries(t_$m, faded) test behaves as if the caveat were absent (false)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 251,
+  "description": "remove `on taste when glow == 0 qualify t_$m with dark`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 261,
+  "description": "remove `on retaste when glow == 0 qualify r_$m with dark`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 280,
+  "description": "remove `on tick when $m_fades and not $m_retasted qualify t_$m with faded`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 281,
+  "description": "remove `on tick when $m_fades and $m_retasted qualify r_$m with faded`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 289,
+  "description": "remove the regrowth-time `qualify t_$m with faded after $m_fade - dt` (lines 288-289)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 291,
+  "description": "remove the regrowth-time `qualify r_$m with faded after $m_fade - dt` (lines 290-291)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 313,
+  "description": "label \"Probably a glowcap (tasted in the dark)\" (taste): carries(t_$m, dark) behaves as absent (false)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 316,
+  "description": "label \"Probably a duskcap (tasted in the dark)\" (taste): carries(t_$m, dark) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 318,
+  "description": "label \"Probably a glowcap (taste has faded)\" (taste): carries(t_$m, faded) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 320,
+  "description": "label \"Probably a duskcap (taste has faded)\" (taste): carries(t_$m, faded) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 324,
+  "description": "label \"Probably a glowcap (tasted in the dark)\" (retaste): carries(r_$m, dark) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 327,
+  "description": "label \"Probably a duskcap (tasted in the dark)\" (retaste): carries(r_$m, dark) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 329,
+  "description": "label \"Probably a glowcap (taste has faded)\" (retaste): carries(r_$m, faded) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S17",
+  "file": "glowcap.cav",
+  "line": 331,
+  "description": "label \"Probably a duskcap (taste has faded)\" (retaste): carries(r_$m, faded) -> false"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S18",
+  "file": "glowcap.cav",
+  "line": 349,
+  "description": "why_absorb \"Already eaten\" by a doubted witness: drop the `doubted` caveat-bearing argument from the citation (because qualified(1, w_$m, doubted) -> qualified(1, w_$m), with the guard's qualified($m_doubted, w_$m, doubted) likewise)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S19",
+  "file": "glowcap.cav",
+  "line": 357,
+  "description": "why_taste \"Already eaten\" by a doubted witness: drop the `doubted` argument from the citation (and its guard)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S20",
+  "file": "glowcap.cav",
+  "line": 537,
+  "description": "journal.$e_cites for a doubted doubt/undoubt record: drop `d, doubted` from the binding (value and because)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S21",
+  "file": "glowcap.cav",
+  "line": 553,
+  "description": "journal.$e_cites on page 1, doubted: drop `d, doubted` (value and because)"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S22",
+  "file": "glowcap.cav",
+  "line": 556,
+  "description": "journal.$e_cites on page 2, doubted: drop `d, doubted`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S23",
+  "file": "glowcap.cav",
+  "line": 559,
+  "description": "journal.$e_cites on page 3, doubted: drop `d, doubted`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S24",
+  "file": "glowcap.cav",
+  "line": 562,
+  "description": "journal.$e_cites on page 4, doubted: drop `d, doubted`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S25",
+  "file": "glowcap.cav",
+  "line": 565,
+  "description": "journal.$e_cites on page 5, doubted: drop `d, doubted`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S26",
+  "file": "glowcap.cav",
+  "line": 568,
+  "description": "journal.$e_cites on page 6, doubted: drop `d, doubted`"
+ },
+ {
+  "program": "C2",
+  "operator": "M1",
+  "site": "S27",
+  "file": "glowcap.cav",
+  "line": 576,
+  "description": "journal.$e_trust_cites when doubted: drop `d, doubted` (value and because)"
+ },
+ {
+  "program": "C2",
+  "operator": "M2",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 120,
+  "description": "decision.caveats: read the basis evidence's current caveats instead of the frozen grounds caveats"
+ },
+ {
+  "program": "C2",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 132,
+  "description": "remove the reopen rule `when trusting == 1 reopen trust because e`"
+ },
+ {
+  "program": "C2",
+  "operator": "M4",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 108,
+  "description": "journal entry because (holds the new basis for a trust entry): reverse it"
+ },
+ {
+  "program": "C2",
+  "operator": "M4",
+  "site": "S2",
+  "file": "adapter.mjs",
+  "line": 119,
+  "description": "decision.basis: reverse the frozen grounds order"
+ },
+ {
+  "program": "C2",
+  "operator": "M4",
+  "site": "S3",
+  "file": "adapter.mjs",
+  "line": 126,
+  "description": "decision.history entry because: reverse it"
+ },
+ {
+  "program": "C2",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 152,
+  "description": "recovery commit (undoubted page 5): swap the operands, j6_s + j5_s"
+ },
+ {
+  "program": "C2",
+  "operator": "M4",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 153,
+  "description": "recovery commit (doubted page 5): swap the operands, j6_s + j5_x"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 306,
+  "description": "bind $m.label (statement at line 306): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 307,
+  "description": "bind $m.label (statement at line 307): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 308,
+  "description": "bind $m.label (statement at line 308): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 309,
+  "description": "bind $m.label (statement at line 309): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 310,
+  "description": "bind $m.label (statement at line 310): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 311,
+  "description": "bind $m.label (statement at line 311): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 313,
+  "description": "bind $m.label (statement at line 312): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 314,
+  "description": "bind $m.label (statement at line 314): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 316,
+  "description": "bind $m.label (statement at line 315): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 318,
+  "description": "bind $m.label (statement at line 317): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 320,
+  "description": "bind $m.label (statement at line 319): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 322,
+  "description": "bind $m.label (statement at line 322): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 324,
+  "description": "bind $m.label (statement at line 323): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 325,
+  "description": "bind $m.label (statement at line 325): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 327,
+  "description": "bind $m.label (statement at line 326): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 329,
+  "description": "bind $m.label (statement at line 328): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.cav",
+  "line": 331,
+  "description": "bind $m.label (statement at line 330): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.cav",
+  "line": 332,
+  "description": "bind $m.label (statement at line 332): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.cav",
+  "line": 340,
+  "description": "bind $m.why_absorb (statement at line 340): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.cav",
+  "line": 341,
+  "description": "bind $m.why_absorb (statement at line 341): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.cav",
+  "line": 342,
+  "description": "bind $m.why_absorb (statement at line 342): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.cav",
+  "line": 343,
+  "description": "bind $m.why_absorb (statement at line 343): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.cav",
+  "line": 344,
+  "description": "bind $m.why_absorb (statement at line 344): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.cav",
+  "line": 345,
+  "description": "bind $m.why_absorb (statement at line 345): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.cav",
+  "line": 346,
+  "description": "bind $m.why_absorb (statement at line 346): add to `because qualified(1, a_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.cav",
+  "line": 347,
+  "description": "bind $m.why_absorb (statement at line 347): add to `because qualified(1, w_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.cav",
+  "line": 349,
+  "description": "bind $m.why_absorb (statement at line 348): add to `because qualified(1, w_$m, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S28",
+  "file": "glowcap.cav",
+  "line": 350,
+  "description": "bind $m.why_taste (statement at line 350): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S29",
+  "file": "glowcap.cav",
+  "line": 351,
+  "description": "bind $m.why_taste (statement at line 351): add to `because qualified(1, t_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S30",
+  "file": "glowcap.cav",
+  "line": 352,
+  "description": "bind $m.why_taste (statement at line 352): add to `because qualified(1, r_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S31",
+  "file": "glowcap.cav",
+  "line": 353,
+  "description": "bind $m.why_taste (statement at line 353): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S32",
+  "file": "glowcap.cav",
+  "line": 354,
+  "description": "bind $m.why_taste (statement at line 354): add to `because qualified(1, a_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S33",
+  "file": "glowcap.cav",
+  "line": 355,
+  "description": "bind $m.why_taste (statement at line 355): add to `because qualified(1, w_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S34",
+  "file": "glowcap.cav",
+  "line": 357,
+  "description": "bind $m.why_taste (statement at line 356): add to `because qualified(1, w_$m, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S35",
+  "file": "glowcap.cav",
+  "line": 390,
+  "description": "bind belief.supported_by (statement at line 390): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S36",
+  "file": "glowcap.cav",
+  "line": 391,
+  "description": "bind belief.contradicted_by (statement at line 391): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S37",
+  "file": "glowcap.cav",
+  "line": 392,
+  "description": "bind belief.cited (statement at line 392): add to `because support, contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S38",
+  "file": "glowcap.cav",
+  "line": 535,
+  "description": "bind journal.$e_cites (statement at line 535): add to `because $e_g` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S39",
+  "file": "glowcap.cav",
+  "line": 537,
+  "description": "bind journal.$e_cites (statement at line 536): add to `because qualified($e_g, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S40",
+  "file": "glowcap.cav",
+  "line": 540,
+  "description": "bind journal.$e_cites (statement at line 539): add to `because j1_s, j1_c, j1_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S41",
+  "file": "glowcap.cav",
+  "line": 542,
+  "description": "bind journal.$e_cites (statement at line 541): add to `because j2_s, j2_c, j2_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S42",
+  "file": "glowcap.cav",
+  "line": 544,
+  "description": "bind journal.$e_cites (statement at line 543): add to `because j3_s, j3_c, j3_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S43",
+  "file": "glowcap.cav",
+  "line": 546,
+  "description": "bind journal.$e_cites (statement at line 545): add to `because j4_s, j4_c, j4_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S44",
+  "file": "glowcap.cav",
+  "line": 548,
+  "description": "bind journal.$e_cites (statement at line 547): add to `because j5_s, j5_c, j5_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S45",
+  "file": "glowcap.cav",
+  "line": 550,
+  "description": "bind journal.$e_cites (statement at line 549): add to `because j6_s, j6_c, j6_x` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S46",
+  "file": "glowcap.cav",
+  "line": 553,
+  "description": "bind journal.$e_cites (statement at line 551): add to `because qualified(j1_s + j1_c + j1_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S47",
+  "file": "glowcap.cav",
+  "line": 556,
+  "description": "bind journal.$e_cites (statement at line 554): add to `because qualified(j2_s + j2_c + j2_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S48",
+  "file": "glowcap.cav",
+  "line": 559,
+  "description": "bind journal.$e_cites (statement at line 557): add to `because qualified(j3_s + j3_c + j3_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S49",
+  "file": "glowcap.cav",
+  "line": 562,
+  "description": "bind journal.$e_cites (statement at line 560): add to `because qualified(j4_s + j4_c + j4_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S50",
+  "file": "glowcap.cav",
+  "line": 565,
+  "description": "bind journal.$e_cites (statement at line 563): add to `because qualified(j5_s + j5_c + j5_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S51",
+  "file": "glowcap.cav",
+  "line": 568,
+  "description": "bind journal.$e_cites (statement at line 566): add to `because qualified(j6_s + j6_c + j6_x, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S52",
+  "file": "glowcap.cav",
+  "line": 573,
+  "description": "bind journal.$e_trust_cites (statement at line 573): add to `because $e_h` evidence the value never reads"
+ },
+ {
+  "program": "C2",
+  "operator": "M5",
+  "site": "S53",
+  "file": "glowcap.cav",
+  "line": 576,
+  "description": "bind journal.$e_trust_cites (statement at line 574): add to `because qualified($e_h, d, doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 63,
+  "description": "journal caveats: drop the `['diary', d<n>]` member of the caveat union, the member that carries `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 247,
+  "description": "remove `secondhand qualifies witness_$m`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 277,
+  "description": "$m_can_retaste: carries(taste_$m, taste_faded) behaves as absent (false)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 300,
+  "description": "remove `on taste when glow == 0 qualify taste_$m with tasted_in_dark`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 309,
+  "description": "retaste refusal \"The taste has not faded yet.\": carries(taste_$m, taste_faded) behaves as absent (false)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 313,
+  "description": "remove `on retaste when glow == 0 qualify retaste_$m with tasted_in_dark`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 359,
+  "description": "remove the tick-time `qualify taste_$m with taste_faded` (lines 358-359)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 361,
+  "description": "remove the tick-time `qualify retaste_$m with taste_faded` (lines 360-361)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 365,
+  "description": "remove the regrowth-time `qualify taste_$m with taste_faded after …` (lines 364-365)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 367,
+  "description": "remove the regrowth-time `qualify retaste_$m with taste_faded after …` (lines 366-367)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 396,
+  "description": "label \"Probably a glowcap (tasted in the dark)\" (taste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 398,
+  "description": "label \"Probably a duskcap (tasted in the dark)\" (taste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 400,
+  "description": "label \"Probably a glowcap (taste has faded)\" (taste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 402,
+  "description": "label \"Probably a duskcap (taste has faded)\" (taste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 407,
+  "description": "label \"Probably a glowcap (tasted in the dark)\" (retaste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 409,
+  "description": "label \"Probably a duskcap (tasted in the dark)\" (retaste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S17",
+  "file": "glowcap.cav",
+  "line": 411,
+  "description": "label \"Probably a glowcap (taste has faded)\" (retaste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S18",
+  "file": "glowcap.cav",
+  "line": 413,
+  "description": "label \"Probably a duskcap (taste has faded)\" (retaste): carries -> false"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S19",
+  "file": "glowcap.cav",
+  "line": 426,
+  "description": "whyAbsorb \"Already eaten\" by a doubted witness: drop the examined(doubted) caveat-bearing argument from the because (and the guard)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S20",
+  "file": "glowcap.cav",
+  "line": 434,
+  "description": "whyTaste \"Already eaten\" by a doubted witness: drop examined(doubted) from the because (and the guard)"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S21",
+  "file": "glowcap.cav",
+  "line": 517,
+  "description": "diary.d1: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 1 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S22",
+  "file": "glowcap.cav",
+  "line": 540,
+  "description": "diary.d2: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 2 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S23",
+  "file": "glowcap.cav",
+  "line": 563,
+  "description": "diary.d3: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 3 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S24",
+  "file": "glowcap.cav",
+  "line": 586,
+  "description": "diary.d4: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 4 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S25",
+  "file": "glowcap.cav",
+  "line": 609,
+  "description": "diary.d5: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 5 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M1",
+  "site": "S26",
+  "file": "glowcap.cav",
+  "line": 632,
+  "description": "diary.d6: drop the examined(doubted) caveat-bearing argument (because examined(doubted) -> because nothing), so journal record 6 never shows `doubted`"
+ },
+ {
+  "program": "C3",
+  "operator": "M2",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 68,
+  "description": "decision.caveats: read the basis evidence's current caveats instead of the frozen grounds caveats"
+ },
+ {
+  "program": "C3",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 219,
+  "description": "remove the reopen rule `when k == sort.duskcap and standing >= 1 reopen trust because e`"
+ },
+ {
+  "program": "C3",
+  "operator": "M3",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 228,
+  "description": "remove the program's own reopen transition of trust_code to standing 2 (reopened)"
+ },
+ {
+  "program": "C3",
+  "operator": "M4",
+  "site": "S1",
+  "file": "adapter.mjs",
+  "line": 62,
+  "description": "journal entry because (holds the new basis for a trust record): reverse it"
+ },
+ {
+  "program": "C3",
+  "operator": "M4",
+  "site": "S2",
+  "file": "adapter.mjs",
+  "line": 67,
+  "description": "decision.basis: reverse the frozen grounds order"
+ },
+ {
+  "program": "C3",
+  "operator": "M4",
+  "site": "S3",
+  "file": "adapter.mjs",
+  "line": 69,
+  "description": "decision.history entry because: reverse it"
+ },
+ {
+  "program": "C3",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 452,
+  "description": "recovery commit: swap the operands, e6 + e5"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.cav",
+  "line": 388,
+  "description": "bind $m.label (statement at line 388): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.cav",
+  "line": 389,
+  "description": "bind $m.label (statement at line 389): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.cav",
+  "line": 390,
+  "description": "bind $m.label (statement at line 390): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.cav",
+  "line": 391,
+  "description": "bind $m.label (statement at line 391): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.cav",
+  "line": 392,
+  "description": "bind $m.label (statement at line 392): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.cav",
+  "line": 393,
+  "description": "bind $m.label (statement at line 393): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.cav",
+  "line": 394,
+  "description": "bind $m.label (statement at line 394): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.cav",
+  "line": 396,
+  "description": "bind $m.label (statement at line 395): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.cav",
+  "line": 398,
+  "description": "bind $m.label (statement at line 397): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.cav",
+  "line": 400,
+  "description": "bind $m.label (statement at line 399): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.cav",
+  "line": 402,
+  "description": "bind $m.label (statement at line 401): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.cav",
+  "line": 404,
+  "description": "bind $m.label (statement at line 404): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.cav",
+  "line": 405,
+  "description": "bind $m.label (statement at line 405): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.cav",
+  "line": 407,
+  "description": "bind $m.label (statement at line 406): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.cav",
+  "line": 409,
+  "description": "bind $m.label (statement at line 408): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.cav",
+  "line": 411,
+  "description": "bind $m.label (statement at line 410): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.cav",
+  "line": 413,
+  "description": "bind $m.label (statement at line 412): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.cav",
+  "line": 414,
+  "description": "bind $m.label (statement at line 414): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.cav",
+  "line": 417,
+  "description": "bind $m.whyAbsorb (statement at line 417): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.cav",
+  "line": 418,
+  "description": "bind $m.whyAbsorb (statement at line 418): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.cav",
+  "line": 419,
+  "description": "bind $m.whyAbsorb (statement at line 419): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.cav",
+  "line": 420,
+  "description": "bind $m.whyAbsorb (statement at line 420): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.cav",
+  "line": 421,
+  "description": "bind $m.whyAbsorb (statement at line 421): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.cav",
+  "line": 422,
+  "description": "bind $m.whyAbsorb (statement at line 422): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.cav",
+  "line": 423,
+  "description": "bind $m.whyAbsorb (statement at line 423): add to `because observed(absorb_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.cav",
+  "line": 424,
+  "description": "bind $m.whyAbsorb (statement at line 424): add to `because observed(witness_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.cav",
+  "line": 426,
+  "description": "bind $m.whyAbsorb (statement at line 425): add to `because observed(witness_$m), examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S28",
+  "file": "glowcap.cav",
+  "line": 427,
+  "description": "bind $m.whyTaste (statement at line 427): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S29",
+  "file": "glowcap.cav",
+  "line": 428,
+  "description": "bind $m.whyTaste (statement at line 428): add to `because $m_tasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S30",
+  "file": "glowcap.cav",
+  "line": 429,
+  "description": "bind $m.whyTaste (statement at line 429): add to `because $m_retasted` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S31",
+  "file": "glowcap.cav",
+  "line": 430,
+  "description": "bind $m.whyTaste (statement at line 430): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S32",
+  "file": "glowcap.cav",
+  "line": 431,
+  "description": "bind $m.whyTaste (statement at line 431): add to `because observed(absorb_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S33",
+  "file": "glowcap.cav",
+  "line": 432,
+  "description": "bind $m.whyTaste (statement at line 432): add to `because observed(witness_$m)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S34",
+  "file": "glowcap.cav",
+  "line": 434,
+  "description": "bind $m.whyTaste (statement at line 433): add to `because observed(witness_$m), examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S35",
+  "file": "glowcap.cav",
+  "line": 486,
+  "description": "bind belief.supportedBy (statement at line 486): add to `because support` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S36",
+  "file": "glowcap.cav",
+  "line": 487,
+  "description": "bind belief.contradictedBy (statement at line 487): add to `because contradiction` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S37",
+  "file": "glowcap.cav",
+  "line": 502,
+  "description": "bind diary.c1 (statement at line 502): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S38",
+  "file": "glowcap.cav",
+  "line": 503,
+  "description": "bind diary.c1 (statement at line 503): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S39",
+  "file": "glowcap.cav",
+  "line": 504,
+  "description": "bind diary.c1 (statement at line 504): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S40",
+  "file": "glowcap.cav",
+  "line": 505,
+  "description": "bind diary.c1 (statement at line 505): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S41",
+  "file": "glowcap.cav",
+  "line": 506,
+  "description": "bind diary.c1 (statement at line 506): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S42",
+  "file": "glowcap.cav",
+  "line": 507,
+  "description": "bind diary.c1 (statement at line 507): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S43",
+  "file": "glowcap.cav",
+  "line": 508,
+  "description": "bind diary.c1 (statement at line 508): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S44",
+  "file": "glowcap.cav",
+  "line": 509,
+  "description": "bind diary.c1 (statement at line 509): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S45",
+  "file": "glowcap.cav",
+  "line": 510,
+  "description": "bind diary.c1 (statement at line 510): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S46",
+  "file": "glowcap.cav",
+  "line": 511,
+  "description": "bind diary.c1 (statement at line 511): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S47",
+  "file": "glowcap.cav",
+  "line": 512,
+  "description": "bind diary.c1 (statement at line 512): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S48",
+  "file": "glowcap.cav",
+  "line": 513,
+  "description": "bind diary.c1 (statement at line 513): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S49",
+  "file": "glowcap.cav",
+  "line": 514,
+  "description": "bind diary.c1 (statement at line 514): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S50",
+  "file": "glowcap.cav",
+  "line": 515,
+  "description": "bind diary.c1 (statement at line 515): add to `because rd1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S51",
+  "file": "glowcap.cav",
+  "line": 516,
+  "description": "bind diary.d1 (statement at line 516): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S52",
+  "file": "glowcap.cav",
+  "line": 517,
+  "description": "bind diary.d1 (statement at line 517): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S53",
+  "file": "glowcap.cav",
+  "line": 525,
+  "description": "bind diary.c2 (statement at line 525): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S54",
+  "file": "glowcap.cav",
+  "line": 526,
+  "description": "bind diary.c2 (statement at line 526): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S55",
+  "file": "glowcap.cav",
+  "line": 527,
+  "description": "bind diary.c2 (statement at line 527): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S56",
+  "file": "glowcap.cav",
+  "line": 528,
+  "description": "bind diary.c2 (statement at line 528): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S57",
+  "file": "glowcap.cav",
+  "line": 529,
+  "description": "bind diary.c2 (statement at line 529): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S58",
+  "file": "glowcap.cav",
+  "line": 530,
+  "description": "bind diary.c2 (statement at line 530): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S59",
+  "file": "glowcap.cav",
+  "line": 531,
+  "description": "bind diary.c2 (statement at line 531): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S60",
+  "file": "glowcap.cav",
+  "line": 532,
+  "description": "bind diary.c2 (statement at line 532): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S61",
+  "file": "glowcap.cav",
+  "line": 533,
+  "description": "bind diary.c2 (statement at line 533): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S62",
+  "file": "glowcap.cav",
+  "line": 534,
+  "description": "bind diary.c2 (statement at line 534): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S63",
+  "file": "glowcap.cav",
+  "line": 535,
+  "description": "bind diary.c2 (statement at line 535): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S64",
+  "file": "glowcap.cav",
+  "line": 536,
+  "description": "bind diary.c2 (statement at line 536): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S65",
+  "file": "glowcap.cav",
+  "line": 537,
+  "description": "bind diary.c2 (statement at line 537): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S66",
+  "file": "glowcap.cav",
+  "line": 538,
+  "description": "bind diary.c2 (statement at line 538): add to `because rd2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S67",
+  "file": "glowcap.cav",
+  "line": 539,
+  "description": "bind diary.d2 (statement at line 539): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S68",
+  "file": "glowcap.cav",
+  "line": 540,
+  "description": "bind diary.d2 (statement at line 540): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S69",
+  "file": "glowcap.cav",
+  "line": 548,
+  "description": "bind diary.c3 (statement at line 548): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S70",
+  "file": "glowcap.cav",
+  "line": 549,
+  "description": "bind diary.c3 (statement at line 549): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S71",
+  "file": "glowcap.cav",
+  "line": 550,
+  "description": "bind diary.c3 (statement at line 550): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S72",
+  "file": "glowcap.cav",
+  "line": 551,
+  "description": "bind diary.c3 (statement at line 551): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S73",
+  "file": "glowcap.cav",
+  "line": 552,
+  "description": "bind diary.c3 (statement at line 552): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S74",
+  "file": "glowcap.cav",
+  "line": 553,
+  "description": "bind diary.c3 (statement at line 553): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S75",
+  "file": "glowcap.cav",
+  "line": 554,
+  "description": "bind diary.c3 (statement at line 554): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S76",
+  "file": "glowcap.cav",
+  "line": 555,
+  "description": "bind diary.c3 (statement at line 555): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S77",
+  "file": "glowcap.cav",
+  "line": 556,
+  "description": "bind diary.c3 (statement at line 556): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S78",
+  "file": "glowcap.cav",
+  "line": 557,
+  "description": "bind diary.c3 (statement at line 557): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S79",
+  "file": "glowcap.cav",
+  "line": 558,
+  "description": "bind diary.c3 (statement at line 558): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S80",
+  "file": "glowcap.cav",
+  "line": 559,
+  "description": "bind diary.c3 (statement at line 559): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S81",
+  "file": "glowcap.cav",
+  "line": 560,
+  "description": "bind diary.c3 (statement at line 560): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S82",
+  "file": "glowcap.cav",
+  "line": 561,
+  "description": "bind diary.c3 (statement at line 561): add to `because rd3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S83",
+  "file": "glowcap.cav",
+  "line": 562,
+  "description": "bind diary.d3 (statement at line 562): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S84",
+  "file": "glowcap.cav",
+  "line": 563,
+  "description": "bind diary.d3 (statement at line 563): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S85",
+  "file": "glowcap.cav",
+  "line": 571,
+  "description": "bind diary.c4 (statement at line 571): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S86",
+  "file": "glowcap.cav",
+  "line": 572,
+  "description": "bind diary.c4 (statement at line 572): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S87",
+  "file": "glowcap.cav",
+  "line": 573,
+  "description": "bind diary.c4 (statement at line 573): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S88",
+  "file": "glowcap.cav",
+  "line": 574,
+  "description": "bind diary.c4 (statement at line 574): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S89",
+  "file": "glowcap.cav",
+  "line": 575,
+  "description": "bind diary.c4 (statement at line 575): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S90",
+  "file": "glowcap.cav",
+  "line": 576,
+  "description": "bind diary.c4 (statement at line 576): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S91",
+  "file": "glowcap.cav",
+  "line": 577,
+  "description": "bind diary.c4 (statement at line 577): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S92",
+  "file": "glowcap.cav",
+  "line": 578,
+  "description": "bind diary.c4 (statement at line 578): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S93",
+  "file": "glowcap.cav",
+  "line": 579,
+  "description": "bind diary.c4 (statement at line 579): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S94",
+  "file": "glowcap.cav",
+  "line": 580,
+  "description": "bind diary.c4 (statement at line 580): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S95",
+  "file": "glowcap.cav",
+  "line": 581,
+  "description": "bind diary.c4 (statement at line 581): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S96",
+  "file": "glowcap.cav",
+  "line": 582,
+  "description": "bind diary.c4 (statement at line 582): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S97",
+  "file": "glowcap.cav",
+  "line": 583,
+  "description": "bind diary.c4 (statement at line 583): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S98",
+  "file": "glowcap.cav",
+  "line": 584,
+  "description": "bind diary.c4 (statement at line 584): add to `because rd4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S99",
+  "file": "glowcap.cav",
+  "line": 585,
+  "description": "bind diary.d4 (statement at line 585): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S100",
+  "file": "glowcap.cav",
+  "line": 586,
+  "description": "bind diary.d4 (statement at line 586): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S101",
+  "file": "glowcap.cav",
+  "line": 594,
+  "description": "bind diary.c5 (statement at line 594): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S102",
+  "file": "glowcap.cav",
+  "line": 595,
+  "description": "bind diary.c5 (statement at line 595): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S103",
+  "file": "glowcap.cav",
+  "line": 596,
+  "description": "bind diary.c5 (statement at line 596): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S104",
+  "file": "glowcap.cav",
+  "line": 597,
+  "description": "bind diary.c5 (statement at line 597): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S105",
+  "file": "glowcap.cav",
+  "line": 598,
+  "description": "bind diary.c5 (statement at line 598): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S106",
+  "file": "glowcap.cav",
+  "line": 599,
+  "description": "bind diary.c5 (statement at line 599): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S107",
+  "file": "glowcap.cav",
+  "line": 600,
+  "description": "bind diary.c5 (statement at line 600): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S108",
+  "file": "glowcap.cav",
+  "line": 601,
+  "description": "bind diary.c5 (statement at line 601): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S109",
+  "file": "glowcap.cav",
+  "line": 602,
+  "description": "bind diary.c5 (statement at line 602): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S110",
+  "file": "glowcap.cav",
+  "line": 603,
+  "description": "bind diary.c5 (statement at line 603): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S111",
+  "file": "glowcap.cav",
+  "line": 604,
+  "description": "bind diary.c5 (statement at line 604): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S112",
+  "file": "glowcap.cav",
+  "line": 605,
+  "description": "bind diary.c5 (statement at line 605): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S113",
+  "file": "glowcap.cav",
+  "line": 606,
+  "description": "bind diary.c5 (statement at line 606): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S114",
+  "file": "glowcap.cav",
+  "line": 607,
+  "description": "bind diary.c5 (statement at line 607): add to `because rd5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S115",
+  "file": "glowcap.cav",
+  "line": 608,
+  "description": "bind diary.d5 (statement at line 608): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S116",
+  "file": "glowcap.cav",
+  "line": 609,
+  "description": "bind diary.d5 (statement at line 609): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S117",
+  "file": "glowcap.cav",
+  "line": 617,
+  "description": "bind diary.c6 (statement at line 617): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S118",
+  "file": "glowcap.cav",
+  "line": 618,
+  "description": "bind diary.c6 (statement at line 618): add to `because e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S119",
+  "file": "glowcap.cav",
+  "line": 619,
+  "description": "bind diary.c6 (statement at line 619): add to `because e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S120",
+  "file": "glowcap.cav",
+  "line": 620,
+  "description": "bind diary.c6 (statement at line 620): add to `because e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S121",
+  "file": "glowcap.cav",
+  "line": 621,
+  "description": "bind diary.c6 (statement at line 621): add to `because e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S122",
+  "file": "glowcap.cav",
+  "line": 622,
+  "description": "bind diary.c6 (statement at line 622): add to `because e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S123",
+  "file": "glowcap.cav",
+  "line": 623,
+  "description": "bind diary.c6 (statement at line 623): add to `because e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S124",
+  "file": "glowcap.cav",
+  "line": 624,
+  "description": "bind diary.c6 (statement at line 624): add to `because e0, e1` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S125",
+  "file": "glowcap.cav",
+  "line": 625,
+  "description": "bind diary.c6 (statement at line 625): add to `because e1, e2` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S126",
+  "file": "glowcap.cav",
+  "line": 626,
+  "description": "bind diary.c6 (statement at line 626): add to `because e2, e3` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S127",
+  "file": "glowcap.cav",
+  "line": 627,
+  "description": "bind diary.c6 (statement at line 627): add to `because e3, e4` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S128",
+  "file": "glowcap.cav",
+  "line": 628,
+  "description": "bind diary.c6 (statement at line 628): add to `because e4, e5` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S129",
+  "file": "glowcap.cav",
+  "line": 629,
+  "description": "bind diary.c6 (statement at line 629): add to `because e5, e6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S130",
+  "file": "glowcap.cav",
+  "line": 630,
+  "description": "bind diary.c6 (statement at line 630): add to `because rd6` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S131",
+  "file": "glowcap.cav",
+  "line": 631,
+  "description": "bind diary.d6 (statement at line 631): add to `because nothing` evidence the value never reads"
+ },
+ {
+  "program": "C3",
+  "operator": "M5",
+  "site": "S132",
+  "file": "glowcap.cav",
+  "line": 632,
+  "description": "bind diary.d6 (statement at line 632): add to `because examined(doubted)` evidence the value never reads"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 130,
+  "description": "isDoubted: the includes(DOUBTED) caveat test behaves as if the caveat were absent (false)"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 189,
+  "description": "canRetaste: includes(FADED) test -> false"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 252,
+  "description": "mushroomRule dark: tc.includes(DARK) -> false"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 253,
+  "description": "mushroomRule faded: tc.includes(FADED) -> false"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 379,
+  "description": "tick fade guard: the cav.includes(FADED) test -> false"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 379,
+  "description": "tick fade: drop FADED from the caveat map entry ([...cav, FADED] -> [...cav])"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 392,
+  "description": "taste: caveat map entry [DARK] -> [] (taste never carries tasted_in_dark)"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 422,
+  "description": "witness: caveat map entry [SECONDHAND] -> []"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 453,
+  "description": "retaste: caveat map entry [DARK] -> []"
+ },
+ {
+  "program": "T1",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 470,
+  "description": "doubt: drop DOUBTED from the caveat map entry"
+ },
+ {
+  "program": "T1",
+  "operator": "M2",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 514,
+  "description": "render: decision.caveats = caveatsOf(s, s.decision.basis) (live) instead of the copy taken at commit"
+ },
+ {
+  "program": "T1",
+  "operator": "M2",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 635,
+  "description": "save decode: recompute decision caveats live from the restored basis instead of the saved commit-time copy"
+ },
+ {
+  "program": "T1",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 301,
+  "description": "remove the reopen transition s.decision.state = 'reopened'"
+ },
+ {
+  "program": "T1",
+  "operator": "M3",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 302,
+  "description": "remove the reopenedBy push"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 276,
+  "description": "commit: decision.basis = [...basis] reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 279,
+  "description": "commit: history entry because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 295,
+  "description": "recovery commit argument reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 324,
+  "description": "journal trust entry because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 514,
+  "description": "render: decision.basis reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 515,
+  "description": "render: history because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 517,
+  "description": "render: journal because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 587,
+  "description": "save encode: basis reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 590,
+  "description": "save encode: history because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 592,
+  "description": "save encode: journal because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 625,
+  "description": "save decode: journal because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 633,
+  "description": "save decode: basis reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M4",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 636,
+  "description": "save decode: history because reversed"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 139,
+  "description": "add an evidence id the value never reads to the explanation list: supportedBy list"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 143,
+  "description": "add an evidence id the value never reads to the explanation list: contradictedBy list"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 230,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: allowed (reason '') because []"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 234,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: absorb \"Already eaten\" because (by)"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 234,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Already eaten\" because ([...by])"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 236,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: absorb \"Out of reach\" because []"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 236,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Out of reach\" because []"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 238,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Known duskcap\" because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 239,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Marked to avoid\" because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 240,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Too risky untasted\" because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 241,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Already tasted\" because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 241,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste allowed because []"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 255,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: consumed label because []"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.ts",
+  "line": 257,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: tasted glowcap label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.ts",
+  "line": 259,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: tasted duskcap label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.ts",
+  "line": 261,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: \"Too risky\" label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.ts",
+  "line": 262,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: \"Glowing mushroom\" label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.ts",
+  "line": 263,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: \"Probably a glowcap\" label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.ts",
+  "line": 264,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: \"Probably a duskcap\" label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.ts",
+  "line": 266,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRule: \"Could be a duskcap\" label because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.ts",
+  "line": 276,
+  "description": "add an evidence id the value never reads to the explanation list: commit: decision.basis"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.ts",
+  "line": 279,
+  "description": "add an evidence id the value never reads to the explanation list: commit: committed history entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.ts",
+  "line": 292,
+  "description": "add an evidence id the value never reads to the explanation list: first commit basis argument [ev]"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.ts",
+  "line": 295,
+  "description": "add an evidence id the value never reads to the explanation list: recovery commit basis argument"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.ts",
+  "line": 302,
+  "description": "add an evidence id the value never reads to the explanation list: reopenedBy push"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.ts",
+  "line": 303,
+  "description": "add an evidence id the value never reads to the explanation list: reopened history entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.ts",
+  "line": 321,
+  "description": "add an evidence id the value never reads to the explanation list: journal observation entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S28",
+  "file": "glowcap.ts",
+  "line": 324,
+  "description": "add an evidence id the value never reads to the explanation list: journal trust entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S29",
+  "file": "glowcap.ts",
+  "line": 471,
+  "description": "add an evidence id the value never reads to the explanation list: journal doubt entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S30",
+  "file": "glowcap.ts",
+  "line": 475,
+  "description": "add an evidence id the value never reads to the explanation list: journal undoubt entry because"
+ },
+ {
+  "program": "T1",
+  "operator": "M5",
+  "site": "S31",
+  "file": "glowcap.ts",
+  "line": 501,
+  "description": "add an evidence id the value never reads to the explanation list: belief caveats: cited list sup ∪ con"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 123,
+  "description": "isDoubted: includes(DOUBTED) -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 198,
+  "description": "canRetaste: includes(TASTE_FADED) -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 246,
+  "description": "mushroomRow qualifier: cav.includes(TASTE_FADED) -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 246,
+  "description": "mushroomRow qualifier: cav.includes(TASTED_IN_DARK) -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 436,
+  "description": "taste: caveat list [TASTED_IN_DARK] -> []"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 447,
+  "description": "retaste: caveat list [TASTED_IN_DARK] -> []"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 464,
+  "description": "witness: caveats [SECONDHAND] -> []"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 490,
+  "description": "doubt: remove e.caveats.push(DOUBTED)"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 514,
+  "description": "tick fade: remove e.caveats.push(TASTE_FADED)"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 617,
+  "description": "save encode: the includes(TASTED_IN_DARK) flag test -> false (dark not saved)"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 618,
+  "description": "save encode: includes(TASTE_FADED) flag test -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 619,
+  "description": "save encode: includes(DOUBTED) flag test -> false"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 658,
+  "description": "save decode: remove the SECONDHAND restore"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S14",
+  "file": "glowcap.ts",
+  "line": 659,
+  "description": "save decode: remove the TASTED_IN_DARK restore"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S15",
+  "file": "glowcap.ts",
+  "line": 660,
+  "description": "save decode: remove the TASTE_FADED restore"
+ },
+ {
+  "program": "T2",
+  "operator": "M1",
+  "site": "S16",
+  "file": "glowcap.ts",
+  "line": 661,
+  "description": "save decode: remove the DOUBTED restore"
+ },
+ {
+  "program": "T2",
+  "operator": "M2",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 306,
+  "description": "viewOf: decision.caveats = caveatsOf(s, s.decision.basis) (live) instead of the commit-time copy"
+ },
+ {
+  "program": "T2",
+  "operator": "M2",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 691,
+  "description": "save decode: recompute decision caveats live from the restored basis instead of the saved copy"
+ },
+ {
+  "program": "T2",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 379,
+  "description": "remove the reopen transition d.state = 'reopened'"
+ },
+ {
+  "program": "T2",
+  "operator": "M3",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 380,
+  "description": "remove the reopenedBy push"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 304,
+  "description": "viewOf: decision.basis reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 307,
+  "description": "viewOf: history because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 309,
+  "description": "viewOf: journal because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 337,
+  "description": "commit: d.basis = [...basis] reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 340,
+  "description": "commit: history entry because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 361,
+  "description": "journal trust entry because (committed branch) reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 385,
+  "description": "recovery commit argument reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 645,
+  "description": "save encode: basis reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 645,
+  "description": "save encode: history because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 646,
+  "description": "save encode: journal because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 689,
+  "description": "save decode: basis reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 694,
+  "description": "save decode: history because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M4",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 700,
+  "description": "save decode: journal because reversed"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 131,
+  "description": "add an evidence id the value never reads to the explanation list: supportedBy list"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 132,
+  "description": "add an evidence id the value never reads to the explanation list: contradictedBy list"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 133,
+  "description": "add an evidence id the value never reads to the explanation list: belief caveats: cited list (all)"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 189,
+  "description": "add an evidence id the value never reads to the explanation list: why: allowed because []"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 234,
+  "description": "add an evidence id the value never reads to the explanation list: \"Already eaten\" refusal because (absorb and taste)"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 235,
+  "description": "add an evidence id the value never reads to the explanation list: consumed label because []"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 238,
+  "description": "add an evidence id the value never reads to the explanation list: \"Out of reach\" refusal because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 240,
+  "description": "add an evidence id the value never reads to the explanation list: \"Marked to avoid\" refusal because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 242,
+  "description": "add an evidence id the value never reads to the explanation list: tasted label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 244,
+  "description": "add an evidence id the value never reads to the explanation list: \"Already tasted\" refusal because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 250,
+  "description": "add an evidence id the value never reads to the explanation list: \"Known duskcap\" refusal because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 261,
+  "description": "add an evidence id the value never reads to the explanation list: \"Too risky\" label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 262,
+  "description": "add an evidence id the value never reads to the explanation list: \"Too risky untasted\" refusal because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.ts",
+  "line": 265,
+  "description": "add an evidence id the value never reads to the explanation list: \"Glowing mushroom\" label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.ts",
+  "line": 266,
+  "description": "add an evidence id the value never reads to the explanation list: \"Probably a glowcap\" label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.ts",
+  "line": 267,
+  "description": "add an evidence id the value never reads to the explanation list: \"Probably a duskcap\" label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.ts",
+  "line": 269,
+  "description": "add an evidence id the value never reads to the explanation list: \"Could be a duskcap\" label because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.ts",
+  "line": 337,
+  "description": "add an evidence id the value never reads to the explanation list: commit: decision.basis"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.ts",
+  "line": 340,
+  "description": "add an evidence id the value never reads to the explanation list: commit: committed history entry because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.ts",
+  "line": 359,
+  "description": "add an evidence id the value never reads to the explanation list: journal observation entry because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.ts",
+  "line": 361,
+  "description": "add an evidence id the value never reads to the explanation list: journal trust entry because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.ts",
+  "line": 377,
+  "description": "add an evidence id the value never reads to the explanation list: first commit basis argument [e.id]"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.ts",
+  "line": 380,
+  "description": "add an evidence id the value never reads to the explanation list: reopenedBy push"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.ts",
+  "line": 381,
+  "description": "add an evidence id the value never reads to the explanation list: reopened history entry because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.ts",
+  "line": 385,
+  "description": "add an evidence id the value never reads to the explanation list: recovery commit basis argument"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.ts",
+  "line": 491,
+  "description": "add an evidence id the value never reads to the explanation list: journal doubt entry because"
+ },
+ {
+  "program": "T2",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.ts",
+  "line": 499,
+  "description": "add an evidence id the value never reads to the explanation list: journal undoubt entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 65,
+  "description": "isDoubted: includes('doubted') -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 91,
+  "description": "canRetaste: includes('taste_faded') -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 156,
+  "description": "mushroomRow qualifier: tc.includes('taste_faded') -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 156,
+  "description": "mushroomRow qualifier: tc.includes('tasted_in_dark') -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 323,
+  "description": "witness: caveats ['secondhand'] -> []"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 333,
+  "description": "taste: caveats ['tasted_in_dark'] -> []"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 343,
+  "description": "retaste: caveats ['tasted_in_dark'] -> []"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 368,
+  "description": "doubt: drop 'doubted' from the caveat map entry"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 389,
+  "description": "tick fade: drop 'taste_faded' from the caveat map entry"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 452,
+  "description": "save fullToken: includes('tasted_in_dark') flag test -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 452,
+  "description": "save fullToken: includes('doubted') flag test -> false"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 514,
+  "description": "save restore: remove the secondhand restore"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 515,
+  "description": "save restore: remove the tasted_in_dark restore"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S14",
+  "file": "glowcap.ts",
+  "line": 519,
+  "description": "save restore: remove the taste_faded restore"
+ },
+ {
+  "program": "T3",
+  "operator": "M1",
+  "site": "S15",
+  "file": "glowcap.ts",
+  "line": 521,
+  "description": "save restore: remove the doubted restore"
+ },
+ {
+  "program": "T3",
+  "operator": "M2",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 198,
+  "description": "render: decision.caveats = caveatsOf(s, d.basis) (live) instead of basisCaveats"
+ },
+ {
+  "program": "T3",
+  "operator": "M2",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 569,
+  "description": "save decode: recompute basisCaveats live from the restored basis instead of the saved copy"
+ },
+ {
+  "program": "T3",
+  "operator": "M3",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 233,
+  "description": "remove the reopen transition d.state = 'reopened'"
+ },
+ {
+  "program": "T3",
+  "operator": "M3",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 234,
+  "description": "remove the reopenedBy push"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 193,
+  "description": "render: journal because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 196,
+  "description": "render: decision.basis reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 199,
+  "description": "render: history because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 231,
+  "description": "recovery commit argument reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 244,
+  "description": "pushHistory: journal trust entry because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 271,
+  "description": "commit: decision.basis reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 274,
+  "description": "commit: history entry because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 474,
+  "description": "save encode: journal (trust entry) because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 495,
+  "description": "save encode: basis reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 498,
+  "description": "save encode: history because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 557,
+  "description": "save decode: journal (trust entry) because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 568,
+  "description": "save decode: basis reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M4",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 573,
+  "description": "save decode: history because reversed"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S1",
+  "file": "glowcap.ts",
+  "line": 67,
+  "description": "add an evidence id the value never reads to the explanation list: sup list"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S2",
+  "file": "glowcap.ts",
+  "line": 68,
+  "description": "add an evidence id the value never reads to the explanation list: con list"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S3",
+  "file": "glowcap.ts",
+  "line": 139,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: absorb \"Already eaten\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S4",
+  "file": "glowcap.ts",
+  "line": 139,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Already eaten\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S5",
+  "file": "glowcap.ts",
+  "line": 140,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: absorb \"Out of reach\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S6",
+  "file": "glowcap.ts",
+  "line": 140,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Out of reach\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S7",
+  "file": "glowcap.ts",
+  "line": 143,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Known duskcap\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S8",
+  "file": "glowcap.ts",
+  "line": 144,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Marked to avoid\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S9",
+  "file": "glowcap.ts",
+  "line": 145,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: \"Too risky untasted\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S10",
+  "file": "glowcap.ts",
+  "line": 146,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: absorb allowed because []"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S11",
+  "file": "glowcap.ts",
+  "line": 147,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste \"Already tasted\" because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S12",
+  "file": "glowcap.ts",
+  "line": 147,
+  "description": "add an evidence id the value never reads to the explanation list: whyNot: taste allowed because []"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S13",
+  "file": "glowcap.ts",
+  "line": 153,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: consumed label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S14",
+  "file": "glowcap.ts",
+  "line": 157,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: tasted glowcap label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S15",
+  "file": "glowcap.ts",
+  "line": 158,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: tasted duskcap label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S16",
+  "file": "glowcap.ts",
+  "line": 160,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: \"Too risky\" label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S17",
+  "file": "glowcap.ts",
+  "line": 162,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: \"Glowing mushroom\" label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S18",
+  "file": "glowcap.ts",
+  "line": 163,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: \"Probably a glowcap\" label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S19",
+  "file": "glowcap.ts",
+  "line": 164,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: \"Probably a duskcap\" label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S20",
+  "file": "glowcap.ts",
+  "line": 165,
+  "description": "add an evidence id the value never reads to the explanation list: mushroomRow: \"Could be a duskcap\" label because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S21",
+  "file": "glowcap.ts",
+  "line": 184,
+  "description": "add an evidence id the value never reads to the explanation list: belief caveats: cited list sup ∪ con"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S22",
+  "file": "glowcap.ts",
+  "line": 222,
+  "description": "add an evidence id the value never reads to the explanation list: journal observation entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S23",
+  "file": "glowcap.ts",
+  "line": 229,
+  "description": "add an evidence id the value never reads to the explanation list: first commit basis argument [ev]"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S24",
+  "file": "glowcap.ts",
+  "line": 231,
+  "description": "add an evidence id the value never reads to the explanation list: recovery commit basis argument"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S25",
+  "file": "glowcap.ts",
+  "line": 234,
+  "description": "add an evidence id the value never reads to the explanation list: reopenedBy push"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S26",
+  "file": "glowcap.ts",
+  "line": 236,
+  "description": "add an evidence id the value never reads to the explanation list: reopened history entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S27",
+  "file": "glowcap.ts",
+  "line": 244,
+  "description": "add an evidence id the value never reads to the explanation list: journal trust entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S28",
+  "file": "glowcap.ts",
+  "line": 271,
+  "description": "add an evidence id the value never reads to the explanation list: commit: decision.basis"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S29",
+  "file": "glowcap.ts",
+  "line": 274,
+  "description": "add an evidence id the value never reads to the explanation list: commit: committed history entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S30",
+  "file": "glowcap.ts",
+  "line": 369,
+  "description": "add an evidence id the value never reads to the explanation list: journal doubt entry because"
+ },
+ {
+  "program": "T3",
+  "operator": "M5",
+  "site": "S31",
+  "file": "glowcap.ts",
+  "line": 378,
+  "description": "add an evidence id the value never reads to the explanation list: journal undoubt entry because"
+ }
+]

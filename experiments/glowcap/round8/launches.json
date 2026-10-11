@@ -92,13 +92,23 @@
       "role": "mutator (step 1, sites)",
       "dispatched": "2026-10-11T06:22Z",
       "directory": "/home/claude/glowcap-r8/mutator",
-      "prompt": "prompts/mutator.md"
+      "prompt": "prompts/mutator.md",
+      "tokens": 242437,
+      "toolUses": 19,
+      "durationSeconds": 495,
+      "sites": 485,
+      "sitesSha256": "f75c7ca9e058cbb6d8b8100efe6ca63e63799ce6440fe190c9be0be7bcf85650",
+      "note": "sites.json copied to mutation/sites.json and frozen before step 2; the mutator was told only to continue with step 2, keep sites.json unchanged, and record any rewrite choice in CHANGE.md, applied the same across programs"
     },
     {
       "role": "drift counter",
       "dispatched": "2026-10-11T06:22Z",
       "directory": "/home/claude/glowcap-r8/drift",
       "prompt": "prompts/drift.md"
+    },
+    {
+      "role": "mutator (step 2, mutants; the same context resumed)",
+      "dispatched": "2026-10-11T06:31Z"
     }
   ],
   "runNote": "The owner chose 'Full run' at 02:46 UTC on 2026-10-11 (amendment 7); the six authors were dispatched in parallel after stage 4 was registered (57686de) and the counted probe was committed (amendment 8).",
