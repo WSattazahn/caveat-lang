@@ -1,0 +1,108 @@
+{
+  "fetchedAt": "2026-10-11T04:31:46.347Z",
+  "version": "0.1.0-rc.17",
+  "rows": [
+    {
+      "check": "npm-latest",
+      "status": "ok",
+      "found": "0.1.0-rc.17"
+    },
+    {
+      "check": "npm-next",
+      "status": "ok",
+      "found": "0.1.0-rc.17"
+    },
+    {
+      "check": "registry",
+      "status": "ok",
+      "found": "0.1.0-rc.17"
+    },
+    {
+      "check": "registry-name",
+      "status": "ok",
+      "found": "io.github.WSattazahn/caveat-lang"
+    },
+    {
+      "check": "registry-package",
+      "status": "ok",
+      "found": "caveat-lang"
+    },
+    {
+      "check": "registry-status",
+      "status": "ok",
+      "found": "active"
+    },
+    {
+      "check": "registry-is-latest",
+      "status": "ok",
+      "found": true
+    },
+    {
+      "check": "registry-description",
+      "status": "ok",
+      "found": "Authoring bridge for Caveat: validate, check and test programs; explain decisions; find dependents."
+    },
+    {
+      "check": "registry-launch",
+      "status": "ok",
+      "found": "{\"packageArguments\":[{\"type\":\"positional\",\"value\":\"mcp\"}],\"runtimeHint\":\"npx\",\"transport\":{\"type\":\"stdio\"}}"
+    }
+  ],
+  "ok": true,
+  "responses": {
+    "npm": {
+      "url": "https://registry.npmjs.org/caveat-lang",
+      "status": 200,
+      "distTags": {
+        "next": "0.1.0-rc.17",
+        "latest": "0.1.0-rc.17"
+      },
+      "time": {
+        "0.1.0-rc.17": "2026-10-11T02:35:20.971Z"
+      }
+    },
+    "registry": {
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.WSattazahn%2Fcaveat-lang/versions/latest",
+      "status": 200,
+      "body": {
+        "server": {
+          "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+          "name": "io.github.WSattazahn/caveat-lang",
+          "description": "Authoring bridge for Caveat: validate, check and test programs; explain decisions; find dependents.",
+          "repository": {
+            "url": "https://github.com/WSattazahn/caveat-lang",
+            "source": "github"
+          },
+          "version": "0.1.0-rc.17",
+          "packages": [
+            {
+              "registryType": "npm",
+              "registryBaseUrl": "https://registry.npmjs.org",
+              "identifier": "caveat-lang",
+              "version": "0.1.0-rc.17",
+              "runtimeHint": "npx",
+              "transport": {
+                "type": "stdio"
+              },
+              "packageArguments": [
+                {
+                  "value": "mcp",
+                  "type": "positional"
+                }
+              ]
+            }
+          ]
+        },
+        "_meta": {
+          "io.modelcontextprotocol.registry/official": {
+            "status": "active",
+            "statusChangedAt": "2026-10-11T04:30:21.606734Z",
+            "publishedAt": "2026-10-11T04:30:21.606734Z",
+            "updatedAt": "2026-10-11T04:30:21.606734Z",
+            "isLatest": true
+          }
+        }
+      }
+    }
+  }
+}
