@@ -128,9 +128,9 @@ three, and what each run chose instead. It generalizes nothing beyond this
 agent, these prompts and this day. It makes no README or site claim. Results
 land by pull request, which merges only on the owner's word.
 
-## Amendment 1 (21:45 UTC, before any counted run)
+## Amendment 1 (about 21:30 UTC, before any counted run)
 
-The first attempt at run 1 (21:28 UTC) was stopped after a few minutes and is
+The first attempt at run 1 (21:28 UTC) was stopped after about a minute and is
 not counted. Its environment was not clean enough:
 
 - Its working directory sat under a path that contained `caveat-lang`, and

@@ -2,6 +2,8 @@
 
 Status: **design only.** Running it needs the owner's approval: which agents,
 how many runs, what they may install, and any cost. Nothing here has been run.
+The owner allowed a run on 2026-10-11. [Run 1](discovery/2026-10-11/RESULTS.md)
+used one agent at a reduced size; its plan says what differs from this design.
 It is outside every 1.0 release gate. Planned under
 [Path to 1.0](../releases/path-to-1.0.md), PR C6.
 
