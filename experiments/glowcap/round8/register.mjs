@@ -27,6 +27,13 @@ const files = {
   // Amendment 4: the blind requests, before the runtime's stage.
   3: ['PROTOCOL.md', 'PREDICTIONS.md', 'register.mjs', 'REQUESTS.md', 'REVIEW.md', 'scenarios-r8.mjs',
     'build-phases.mjs', 'phases/cr17.md', 'phases/cr18.md', 'phases/cr19.md', 'phases/cr20.md', 'launches.json'],
+  // Amendment 7: what depends on rc.17, the fuzz mode and every later agent's
+  // inputs, before any author starts. packet/manifest.json exists only once
+  // rc.17's verified publication record is on main (prepare.mjs manifest).
+  4: ['PROTOCOL.md', 'register.mjs', 'lib.mjs', 'exec.mjs', 'fuzz.mjs', 'prepare.mjs', 'packet/manifest.json',
+    'prompts/author-caveat.md', 'prompts/author-ts.md', 'prompts/mutator.md', 'prompts/drift.md',
+    'workspace/README-author.md', 'workspace/run.mjs', 'workspace/README-mutator.md', 'workspace/README-drift.md',
+    '../compare-views.mjs'],
 }[stage];
 if (!files) throw new Error(`stage ${stage} has no file list yet; add it when its files exist`);
 const out = path.join(here, stage === '1' ? 'registration.json' : `registration-${stage}.json`);

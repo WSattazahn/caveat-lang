@@ -195,3 +195,52 @@ read. The owner's answers to the open choices are recorded under
    wait" on the card asking whether rc.17's tag should wait for a counting
    run. So round 8 runs on rc.17's docs as they are, and any guide item
    from a later counting run goes to rc.18, as "Timing" provides.
+
+7. **Stage 4, and the run's size (2026-10-11).** rc.17 was published to npm
+   at 02:35 UTC from tag `v0.1.0-rc.17` (commit `304a16d`). Stage 4
+   (`registration-4.json`) holds what depends on it and every later agent's
+   inputs:
+   - **The pin (row 1).** `prepare.mjs` names the tarball npm serves for
+     `caveat-lang@0.1.0-rc.17`, SHA256
+     `03bc86cf7fc396b32a8184028303202d33c6ca33439b86939e07ba6621c991b6`
+     (its sha512 equals the registry's integrity field). It refuses to
+     prepare authors or the packet manifest unless
+     `docs/releases/v0.1.0-rc.17-npm-publication.json` records that hash as
+     verified, so stage 4 is registered only after that record is on main.
+   - **The packet (row 2).** The same transformation as round 7: the guide
+     loses its final section, from "Evidence from fresh authors". The hashes
+     are in `packet/manifest.json`.
+   - **Tooling (row 4).** Caveat authors are told about the CLI's `types`,
+     check-first `test` and `init` (the starter), and the starter's
+     `templates/` join what they may read. The package's runtime,
+     `lib/*.mjs` and `examples/` stay closed, as in round 7.
+   - **The comparator (row 5).** `exec.mjs` is round 7's, except that each
+     journal entry's `caveats` is compared as a set. `lib.mjs`,
+     `workspace/run.mjs` and `workspace/README-author.md` are round 7's, for
+     21 phases.
+   - **Fuzz.** `fuzz.mjs` is round 7's with CR18 to CR20's events added
+     (doubt, undoubt, retaste).
+   - **Prompts.** The author prompts are round 7's wave-2 prompts, with the
+     scratchpad sentence (row 6). The mutator's prompt and directory README
+     are round 7's, with that sentence added. The drift counter's README is
+     round 7's definition, applied to CR17 to CR20.
+   - **Versions (row 11).** Node 22.22.0 and `typescript` 7.0.2, as in
+     round 7.
+   - **Disclosed: Glowcap in the documentation.** As in round 7, specifications
+     in the frozen packet use Glowcap fragments. In rc.17 there are 19 of them,
+     plus the package README and two passages of the guide before the cut.
+     Some are new since rc.11 and cite round 7's CR13 to CR16 (windows,
+     departure, lineage compaction, which names round 7's C3 program). Those
+     are inherited phases here (row 3). No packet file uses CR17 to CR20's
+     events or fields. Two generic passages use the words "countdown" and
+     "doubt": `caveat-reactive-0.4.md` L97 and `caveat-save-0.1.md` L286.
+   - **Smoke check, not results.** Round 7's finished T1 and C3 programs went
+     through the runner on rc.17 in a separate root (`--smoke`). Each passed
+     all 50 CR16 scenarios, then failed exactly CR17's three new scenarios.
+     The fuzz ran across both programs.
+
+   The owner chose "Full run" at 02:46 UTC on 2026-10-11 on the card "Start
+   round 8's eight-agent run on rc.17 after your probe chat?". So *Size of
+   the run* stands: ten agents as registered, of which the writer and the
+   reviewer have already run. The eight that remain start once a counting
+   probe reply has been committed as `probe/reply.md`.
