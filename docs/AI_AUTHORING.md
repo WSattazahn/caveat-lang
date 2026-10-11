@@ -23,7 +23,12 @@ do these things. Caveat leaves each one to a rule the author writes.
   says that evidence `E` carries `C`, and nothing more. A caveat never fires,
   expires or checks a condition. Whatever should make `C` matter, such as a
   time, a count or a reading, is a rule: `on EVENT when … qualify E with C`,
-  or `qualify E with C after N`.
+  or `qualify E with C after N`. Its consequence level changes no outcome
+  either: the runtime reports it in the snapshot's `symbols` and no rule or
+  outcome reads it. To make a caveat change what happens, write a rule that
+  reads it, such as
+  `on approve when has_caveat(tests, C) reject "tests carry C";` or
+  `on recheck reopen D because caveated(tests, C);`.
 - **There are no records, lists or loops.** State is a number and `fn` is
   one pure expression. Several similar things, such as four mushrooms or six
   sensors, are entities of one kind, and their rules are written once in a
@@ -54,6 +59,20 @@ required dependency. Live retained memory, temporary peaks, save size and host
 archive storage are separate costs. See the
 [history integration guide](../kit/docs/HISTORY.md) for draining, exact versus
 conservative explanations and save/restore responsibilities.
+
+A decision series cannot have a window: `decisions NAME window N` is refused
+when the program loads, and series windows wait until after 1.0
+([Windows 0.1](../spec/caveat-windows-0.1.md#decision-series-not-in-rc15)).
+Every revision stays in the save with its frozen grounds, and each revision's
+lineage holds its predecessor's basis, so a program that recommits for as long
+as it runs grows its save with every recommit. Cap the series: its `limit` is
+the cap, and a guard such as `when history_count(trust) < 64` keeps the commit
+from being refused as `limit/history_limit`, which would refuse everything
+else the event did. Decide what the program shows once the cap is reached.
+The cap bounds the series, not its cost: up to that many revisions, each with
+its grounds, stay in every save. All three Caveat authors in Glowcap round 8
+capped a recommitted series this way, at 64 or 256
+([results](../experiments/glowcap/RESULTS.md#round-8-fresh-authors-blind-requests-rc17)).
 
 So let rules decide when
 inputs become evidence, and do not let the frame rate decide. For example,
@@ -107,6 +126,14 @@ the one it came from, that a final save restores, and that grounds stay within
 lineage. It exits 0 when every scenario passes, 1 when one fails and 2 when a
 file is invalid; a failure names the step, the path, and the expected and
 actual values.
+
+An expectation compares scalars exactly. An array must have the same length
+and match element by element, in order, so an expected list of grounds names
+every one in the order the snapshot lists it. An object matches partially:
+the members it lists must match, and others are ignored, at every depth. To
+match an array in any order write `{"$set": [...]}`, and to require only some
+elements write `{"$includes": [...]}`
+([Scenarios 0.1](../spec/caveat-scenarios-0.1.md)).
 
 A bare `"rejected": true` expects any `policy` refusal: the program's own
 `reject`, or a commit refused as `not_permitted`. Name the code to tell them
@@ -213,7 +240,12 @@ The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quo
    `commitment_bases`, `decision_series`, and `relations` in the snapshots,
    from a script or with the native replay. Run `caveat check` on the source
    for patterns worth a second look ([check](../spec/caveat-check-0.1.md)); a
-   warning is advice, not a failure.
+   warning is advice, not a failure. `caveat test` runs the same check on each
+   program a scenario file names and prints its warnings with the run, without
+   stopping it. To make a warning fail a gate, run `caveat check --strict`,
+   which exits 1 when there is one. Glowcap round 8's mutation harness
+   counted only programs that failed to load, so a C006 warning on each of
+   its 215 M5 mutants went uncounted.
 4. Exercise missing observations, contradictory readings, repeated equal
    readings, reopened decisions, and failures late in an event.
 5. Change one policy and run the same scenarios. Check both the changed
@@ -336,6 +368,17 @@ runtime accepts the declaration from rc.15's PR 3; check the package version.)
 The reading stays within `±(2^53 − 1)` units; a clock event that would leave
 that range is refused as `evaluation/bound_exceeded`. At a millisecond unit
 that is about 285,000 years.
+
+A countdown a view shows is a place where this rule becomes visible. A
+binding such as `bind m.fades_in = ceil(60 - (elapsed() - tasted_at));` over
+a fractional clock can show one second more at a boundary than a timer
+counted per event, because the accumulated sum lands just short of the whole
+second. In Glowcap round 8, two Caveat programs that counted down from the
+accumulated clock differed from TypeScript programs counting per timer this
+way after ticks of 0.05, 0.1 or 0.2 seconds. The round inferred the cause;
+on rc.17, that binding with steps of 0.1 showed one second more than a
+millisecond count on 13 of 600 steps. A countdown that must agree to the tick
+uses an integer clock.
 
 Without `integer`, the clock is finite binary64 and reading it has no state duration cap. Copying
 it into a state still enforces that state's bounds. Use direct reads for
@@ -471,6 +514,32 @@ a newly committed decision alone do not establish the right grounds.
 
 For hypotheses, see [branching with a separate runtime](../kit/examples/agent-evidence/BRANCHING.md).
 A second session sharing a WASM instance cannot isolate a trap.
+
+## Record "not ready" with its reasons
+
+A gate whose honest answer is "not ready" can keep that answer with its
+grounds as a decision of its own. A commit needs a value, and its grounds
+are what that value read
+([Reactive 0.3](../spec/caveat-reactive-0.3.md)), so `using` reads the
+evidence the refusal rests on:
+
+```caveat
+decisions ship limit 4;
+decisions hold limit 4;
+on assess when ci == 1 and build == 1 commit ship because enough using ci + build;
+on assess when not (ci == 1 and build == 1) commit hold because enough using ci + build;
+```
+
+Here `ci` and `build` hold `qualified(…)` readings of the `ci_run` and
+`build_check` evidence. After a failed CI run and a passing build, `explain`
+prints `hold@1 = 1` and `based on build_check, ci_run`. **A hold's value is
+not a verdict.** The `1` is only the sum `using` computed to read both
+readings; the verdict is which series is committed, here `hold` and not
+`ship`. Bind what a reader sees to `committed(hold)`, not to the hold's
+value, and say in the program that its value means nothing. A commit with
+`because` and no `using` has no grounds at all: `explain` prints "based on
+nothing". A decision with grounds and no value is planned as a 1.x addition
+([#198](https://github.com/WSattazahn/caveat-lang/issues/198)).
 
 ## Evidence from fresh authors
 
