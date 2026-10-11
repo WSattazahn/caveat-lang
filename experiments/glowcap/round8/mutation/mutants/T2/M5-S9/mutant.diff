@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -239,7 +239,7 @@
+   // CR14: a mark refuses absorbing after `Known duskcap` and before the twice-bitten check.
+   const marked: Refusal = m.marked ? { reason: 'Marked to avoid', because: [] } : null;
+   if (m.tasted !== null) {
+-    const because = [identifyingTaste(s, id)];
++    const because = [identifyingTaste(s, id), 'absorb_cave'];
+     const cav = caveatsOf(s, because);
+     const tasted: Refusal = { reason: 'Already tasted', because };
+     // CR5: the faded label wins over the dark label.

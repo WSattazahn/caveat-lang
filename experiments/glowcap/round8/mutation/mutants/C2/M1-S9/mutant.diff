@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -287,8 +287,6 @@
+     define $m_regrows = $m_regrow > 0 and $m_regrow <= dt;
+     on tick when $m_regrows and $m_fade > dt and not $m_retasted
+         qualify t_$m with faded after $m_fade - dt;
+-    on tick when $m_regrows and $m_fade > dt and $m_retasted
+-        qualify r_$m with faded after $m_fade - dt;
+     on tick when $m_regrows renew r_$m;
+     on tick when $m_regrows renew a_$m;
+     on tick when $m_regrows renew t_$m;

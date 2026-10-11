@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -233,7 +233,7 @@
+     d.state = 'reopened';
+     d.reopenedBy.push(ev);
+     keepLast(d.reopenedBy, DECISION_KEEP);
+-    pushHistory(s, { change: 'reopened', because: [ev] });
++    pushHistory(s, { change: 'reopened', because: [ev, 'absorb_cave'] });
+   }
+ }
+ 

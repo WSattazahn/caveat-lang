@@ -24,6 +24,11 @@ do these things. Caveat leaves each one to a rule the author writes.
   expires or checks a condition. Whatever should make `C` matter, such as a
   time, a count or a reading, is a rule: `on EVENT when … qualify E with C`,
   or `qualify E with C after N`.
+- **There are no records, lists or loops.** State is a number and `fn` is
+  one pure expression. Several similar things, such as four mushrooms or six
+  sensors, are entities of one kind, and their rules are written once in a
+  `for KIND as $NAME { … };` block, which expands to one copy per member
+  ([repetition](../spec/caveat-repetition-0.1.md)).
 - **There is no fallback.** Nothing is withdrawn, reopened or replaced
   because something else happened. A withdrawal is an explicit effect with a
   reason (`withdraw E because F`), and a reopening is explicit and has a
@@ -63,6 +68,19 @@ choice in the series' value (`using` 1 for parry, 2 for dodge), and the
 runtime refuses a second commit while one is in force as
 `evaluation/decision_in_force`, until a rule reopens it with a reason
 ([boss-stance](../kit/examples/boss-stance/boss.cav)).
+
+## What a guess gets wrong
+
+A model that was told only what Caveat is for, and asked to guess its syntax
+(Glowcap round 8's learnability probe), wrote these. Each is a habit from
+general-purpose languages:
+
+- `caveat NAME;`. A caveat declares its consequence:
+  `caveat NAME consequence LEVEL;`.
+- Records, lists, loops and text in state. Use entities of one kind and a
+  `for` block, as above.
+- `because` lists and caveat unions computed by hand. A value already carries
+  them; cite it with `because`, and run `caveat explain` to see them.
 
 ## Check a program with the kit
 
@@ -401,6 +419,12 @@ treat their absence as unknown. Saved records are checked for internal
 consistency; an unsigned save is not proof that its history really occurred.
 
 ## Citations and named expressions
+
+Grounds and caveats are not bookkeeping the author writes. A value carries the
+evidence and caveats it was computed from, a commit freezes its grounds, and
+the decision journal records each change, so a `because` list or a caveat
+union kept by hand, in the source or in the host, is a second copy that can
+drift from the first.
 
 A `because` citation is an expression whose provenance the value or its
 conditions actually read. A bare claim such as `intent_clear` is a known

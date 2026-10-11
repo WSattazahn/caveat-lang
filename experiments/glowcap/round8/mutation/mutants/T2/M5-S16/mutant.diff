@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -264,7 +264,7 @@
+     const bs = beliefState(supportedBy.length, contradictedBy.length);
+     if (bs === 'none') [label, because] = ['Glowing mushroom', []];
+     else if (bs === 'probably_safe') [label, because] = ['Probably a glowcap', supportedBy];
+-    else if (bs === 'probably_unsafe') [label, because] = ['Probably a duskcap', contradictedBy];
++    else if (bs === 'probably_unsafe') [label, because] = ['Probably a duskcap', [...contradictedBy, 'absorb_cave']];
+     // CR4: cite the counterexample only.
+     else [label, because] = ['Could be a duskcap — taste first', contradictedBy];
+   }

@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -60,7 +60,7 @@
+       .map((n) => ({
+         text: b.diary[`r${n}`],
+         because: cited(v, 'diary', `c${n}`),
+-        caveats: caveated(v, ['diary', `c${n}`], ['diary', `d${n}`]),
++        caveats: caveated(v, ['diary', `c${n}`]),
+       })),
+     decision: {
+       state: b.decision.state,

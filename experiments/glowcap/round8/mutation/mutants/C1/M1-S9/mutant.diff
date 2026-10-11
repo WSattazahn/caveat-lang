@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -255,7 +255,6 @@
+     evidence taste_$m from "the slime tasted the $m mushroom";
+     evidence witness_$m from "the slime saw another creature eat the $m mushroom";
+     evidence retaste_$m from "the slime tasted the $m mushroom a second time";
+-    secondhand qualifies witness_$m;
+     # Each life of the mushroom is a new occurrence of its evidence
+     # (absorb_cave, absorb_cave@2, ...). Lives are unlimited: only this life's
+     # and the previous life's occurrences stay live (a taste fades 60 s after it

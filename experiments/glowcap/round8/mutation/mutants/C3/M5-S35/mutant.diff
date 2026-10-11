@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -483,7 +483,7 @@
+ bind belief.note = "Based on one observation." when belief == 2 and contradiction == 1;
+ bind belief.note = "Based on " + number_text(contradiction) + " observations." when belief == 2 and contradiction > 1;
+ # The evidence lists are these bindings' citations.
+-bind belief.supportedBy = support because support;
++bind belief.supportedBy = support because support, observed(absorb_cave);
+ bind belief.contradictedBy = contradiction because contradiction;
+ 
+ bind decision.state = "none";

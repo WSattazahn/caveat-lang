@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -410,7 +410,7 @@
+     bind $m.why_taste = "" because nothing;
+     bind $m.why_taste = "Already tasted" when not $m_consumed and $m_taste != 0 because $m_taste;
+     bind $m.why_taste = "Out of reach" when not $m_consumed and $m_out_of_reach because nothing;
+-    bind $m.why_taste = "Already eaten" when $m_eaten_cite > 0 because $m_eaten_cite;
++    bind $m.why_taste = "Already eaten" when $m_eaten_cite > 0 because $m_eaten_cite, observed(absorb_cave);
+ };
+ 
+ # A doubt must leave at least one undoubted remembered observation (this runs

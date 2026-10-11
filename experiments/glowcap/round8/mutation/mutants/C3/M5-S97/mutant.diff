@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -580,7 +580,7 @@
+ bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 3 and e2 + e3 > 0 because e2, e3;
+ bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 4 and e3 + e4 > 0 because e3, e4;
+ bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 5 and e4 + e5 > 0 because e4, e5;
+-bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 6 and e5 + e6 > 0 because e5, e6;
++bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 6 and e5 + e6 > 0 because e5, e6, observed(absorb_cave);
+ bind diary.c4 = 1 when rtype(r4) >= 5 and rd4 > 0 because rd4;
+ bind diary.d4 = 0 because nothing;
+ bind diary.d4 = 1 when rdoubted(r4, rs4, doubts) and (examined(doubted) or true) because examined(doubted);

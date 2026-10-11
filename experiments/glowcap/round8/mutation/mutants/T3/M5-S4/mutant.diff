@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -136,7 +136,7 @@
+ // CR11: first matching reason an action is unavailable; '' when it is allowed.
+ function whyNot(s: State, id: string): { absorb: Why; taste: Why } {
+   const m = s.mushrooms[id];
+-  if (m.consumed) return { absorb: why(s, 'Already eaten', [m.consumedBy]), taste: why(s, 'Already eaten', [m.consumedBy]) };
++  if (m.consumed) return { absorb: why(s, 'Already eaten', [m.consumedBy]), taste: why(s, 'Already eaten', [m.consumedBy, 'absorb_cave']) };
+   if (OUT_OF_REACH.includes(id)) return { absorb: why(s, 'Out of reach', []), taste: why(s, 'Out of reach', []) };
+   const tasteEv = idTaste(s, id);
+   const contra = con(s);

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -365,7 +365,7 @@
+       if (obs === undefined || !obs.ev.startsWith('witness_')) fail(`${String(ev)} is not a remembered witness`);
+       if (isDoubted(s, obs.ev)) fail(`${obs.ev} is already doubted`);
+       if (!counted(s).some((o) => o.ev !== obs.ev)) fail('at least one undoubted observation must remain');
+-      s.caveats[obs.ev] = [...(s.caveats[obs.ev] ?? []), 'doubted'];
++      s.caveats[obs.ev] = [...(s.caveats[obs.ev] ?? [])];
+       pushJournal(s, { entry: 'doubt', because: [obs.ev] });
+       break;
+     }

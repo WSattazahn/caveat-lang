@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -518,7 +518,6 @@
+       if (age !== undefined) s.tasteAges[t.ev] = age;
+       else cav.push('taste_faded');
+     }
+-    if (t.doubted) cav.push('doubted');
+     if (cav.length > 0) s.caveats[t.ev] = cav;
+   };
+   LEVEL.forEach((id, i) => {

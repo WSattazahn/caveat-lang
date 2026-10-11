@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -511,7 +511,6 @@
+         e.age += dt;
+         if (e.age >= TASTE_FADE_SECONDS) {
+           // Fading is permanent, so the clock is no longer needed.
+-          e.caveats.push(TASTE_FADED);
+           delete e.age;
+         }
+       }

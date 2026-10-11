@@ -1,0 +1,62 @@
+{
+  "C1": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 4073,
+      "30": 4101,
+      "60": 4105
+    },
+    "resumeMs": 55.8,
+    "resumedSameView": true
+  },
+  "C2": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 14500,
+      "30": 14719,
+      "60": 14720
+    },
+    "resumeMs": 36.2,
+    "resumedSameView": true
+  },
+  "C3": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 9621,
+      "30": 9690,
+      "60": 9670
+    },
+    "resumeMs": 85.2,
+    "resumedSameView": true
+  },
+  "T1": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 783,
+      "30": 791,
+      "60": 791
+    },
+    "resumeMs": 1.6,
+    "resumedSameView": true
+  },
+  "T2": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 522,
+      "30": 530,
+      "60": 530
+    },
+    "resumeMs": 2.1,
+    "resumedSameView": true
+  },
+  "T3": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 307,
+      "30": 307,
+      "60": 331
+    },
+    "resumeMs": 2.7,
+    "resumedSameView": true
+  }
+}

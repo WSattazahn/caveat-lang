@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -150,7 +150,7 @@
+     when s == sort.glowcap and reopened(trust) and j5_n > 0 and j5_glow and history_count(trust) < 256
+         set trusting = 1;
+     when trusting == 1 and j5_n < 100000000 commit trust because enough using j5_s + j6_s;
+-    when trusting == 1 and j5_n >= 100000000 commit trust because enough using qualified(j5_x + j6_s, d, doubted);
++    when trusting == 1 and j5_n >= 100000000 commit trust because enough using qualified(j6_s + j5_x, d, doubted);
+     when trusting == 1 set e6_h = 7 + 0 * (j5_s + j5_x + j6_s);
+     set trusting = 0;
+ };

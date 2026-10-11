@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -315,7 +315,7 @@
+     # this life of the mushroom in place of the first taste.
+     on retaste when not $m_can_retaste reject "The slime cannot taste that mushroom again.";
+     on retaste when $m_contradicts_taste reject "That contradicts how the mushroom tasted.";
+-    on retaste call observe(retaste_$m, sort, if(glow > 0, 0, 1), 4, $m_life * 10 + $index);
++    on retaste call observe(retaste_$m, sort, 0, 4, $m_life * 10 + $index);
+     on retaste set $m_taste = qualified(sort, retaste_$m);
+     on retaste set $m_tasted_at = elapsed();
+     on retaste qualify retaste_$m with taste_faded after fade_seconds;

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -266,7 +266,7 @@
+     else if (bs === 'probably_safe') [label, because] = ['Probably a glowcap', supportedBy];
+     else if (bs === 'probably_unsafe') [label, because] = ['Probably a duskcap', contradictedBy];
+     // CR4: cite the counterexample only.
+-    else [label, because] = ['Could be a duskcap — taste first', contradictedBy];
++    else [label, because] = ['Could be a duskcap — taste first', [...contradictedBy, 'absorb_cave']];
+   }
+   if (outOfReach) return row(s, id, label, because, outOfReach, outOfReach);
+   return row(s, id, label, because, absorb, null);

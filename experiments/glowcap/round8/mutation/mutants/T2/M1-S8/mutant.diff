@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -487,7 +487,6 @@
+         return id !== e.id && other !== undefined && !isDoubted(other);
+       });
+       if (!othersUndoubted) throw new Error('at least one remembered observation must stay undoubted');
+-      e.caveats.push(DOUBTED);
+       journal(s, { entry: 'doubt', because: [e.id] });
+       return;
+     }

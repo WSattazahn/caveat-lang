@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -697,7 +697,7 @@
+     journal: sv.j.map(([c, because]) => {
+       const entry = JOURNAL_CODES[c];
+       if (entry === undefined) throw new Error(`bad journal code ${c}`);
+-      return { entry, because: because.map(idFromCode) };
++      return { entry, because: because.map(idFromCode).reverse() };
+     }),
+   };
+ }

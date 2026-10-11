@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -129,7 +129,6 @@
+     set e6_r = j6_ref + 1000000 * j5_ref;
+     # Every contradiction after trust was committed reopens it.
+     when s == sort.duskcap and committed(trust) set trusting = 1;
+-    when trusting == 1 reopen trust because e;
+     when trusting == 1 set e6_h = 6 + 0 * j6_c;
+     set trusting = 0;
+     # While trust has never been committed, the observation after which the

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -137,7 +137,7 @@
+ function whyNot(s: State, id: string): { absorb: Why; taste: Why } {
+   const m = s.mushrooms[id];
+   if (m.consumed) return { absorb: why(s, 'Already eaten', [m.consumedBy]), taste: why(s, 'Already eaten', [m.consumedBy]) };
+-  if (OUT_OF_REACH.includes(id)) return { absorb: why(s, 'Out of reach', []), taste: why(s, 'Out of reach', []) };
++  if (OUT_OF_REACH.includes(id)) return { absorb: why(s, 'Out of reach', ['absorb_cave']), taste: why(s, 'Out of reach', []) };
+   const tasteEv = idTaste(s, id);
+   const contra = con(s);
+   const absorb = m.tasted === 'duskcap' ? why(s, 'Known duskcap', [tasteEv])

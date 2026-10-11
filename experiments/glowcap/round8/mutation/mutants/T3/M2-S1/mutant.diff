@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -195,7 +195,7 @@
+       state: d.state,
+       basis: [...d.basis],
+       reopenedBy: [...d.reopenedBy],
+-      caveats: [...d.basisCaveats],
++      caveats: caveatsOf(s, d.basis),
+       history: d.history.map((h) => ({ change: h.change, because: [...h.because] })),
+     },
+   };

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -444,7 +444,7 @@
+       if (!isKind(kind)) throw new Error(`unknown kind: ${String(kind)}`);
+       if (!canRetaste(s, id)) throw new Error(`${id} cannot be retasted now`);
+       if (m.tasted !== kind) throw new Error(`${id} was tasted as ${String(m.tasted)}`);
+-      const caveats = s.glow > 0 ? [] : [TASTED_IN_DARK];
++      const caveats = s.glow > 0 ? [] : [];
+       const evId = evidenceId(s, 'retaste', id);
+       m.retasted = true;
+       observe(s, { id: evId, kind, caveats, age: 0 });

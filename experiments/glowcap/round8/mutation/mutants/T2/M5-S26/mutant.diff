@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -488,7 +488,7 @@
+       });
+       if (!othersUndoubted) throw new Error('at least one remembered observation must stay undoubted');
+       e.caveats.push(DOUBTED);
+-      journal(s, { entry: 'doubt', because: [e.id] });
++      journal(s, { entry: 'doubt', because: [e.id, 'absorb_cave'] });
+       return;
+     }
+     case 'undoubt': {

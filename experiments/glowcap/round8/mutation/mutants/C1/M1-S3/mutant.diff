@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -169,7 +169,7 @@
+ };
+ # What entry k cites: its evidence, and `doubted` while that witness is doubted.
+ define jcite1 = j1 + if(y1 == 1, doubt_mark, 0);
+-define jcite2 = j2 + if(y2 == 1, doubt_mark, 0);
++define jcite2 = j2;
+ define jcite3 = j3 + if(y3 == 1, doubt_mark, 0);
+ define jcite4 = j4 + if(y4 == 1, doubt_mark, 0);
+ define jcite5 = j5 + if(y5 == 1, doubt_mark, 0);

@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -318,7 +318,6 @@
+     on retaste call observe(retaste_$m, sort, if(glow > 0, 0, 1), 4, $m_life * 10 + $index);
+     on retaste set $m_taste = qualified(sort, retaste_$m);
+     on retaste set $m_tasted_at = elapsed();
+-    on retaste qualify retaste_$m with taste_faded after fade_seconds;
+ 
+     # Watching another creature eat it: consumed, teaches like an absorption,
+     # but the slime's own timers do not change. Risk to the slime is irrelevant.

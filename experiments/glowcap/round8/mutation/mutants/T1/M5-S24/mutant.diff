@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -292,7 +292,7 @@
+       if (beliefState(s) === 'probably_safe') return commit(s, [ev]);
+     } else if (s.decision.state === 'reopened' && s.sinceContradiction.length >= 2) {
+       // CR7: trust recovers on the second glowcap observation since the latest contradiction.
+-      return commit(s, s.sinceContradiction.slice(0, 2));
++      return commit(s, [...s.sinceContradiction.slice(0, 2), 'absorb_cave']);
+     }
+     return null;
+   } else {

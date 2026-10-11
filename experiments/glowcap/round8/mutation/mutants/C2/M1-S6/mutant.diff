@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -277,7 +277,6 @@
+ 
+     # A minute after the taste, it has faded.
+     define $m_fades = $m_fade > 0 and $m_fade <= dt;
+-    on tick when $m_fades and not $m_retasted qualify t_$m with faded;
+     on tick when $m_fades and $m_retasted qualify r_$m with faded;
+ 
+     # Forty-five seconds after it is consumed a new, unknown mushroom grows in

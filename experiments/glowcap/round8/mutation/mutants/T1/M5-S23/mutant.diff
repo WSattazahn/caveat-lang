@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -289,7 +289,7 @@
+     if (s.sinceContradiction.length < 2) s.sinceContradiction.push(ev);
+     if (s.decision.state === 'none') {
+       // CR13: never committed: commit when the belief (after forgetting) is probably_safe; basis is this observation.
+-      if (beliefState(s) === 'probably_safe') return commit(s, [ev]);
++      if (beliefState(s) === 'probably_safe') return commit(s, [ev, 'absorb_cave']);
+     } else if (s.decision.state === 'reopened' && s.sinceContradiction.length >= 2) {
+       // CR7: trust recovers on the second glowcap observation since the latest contradiction.
+       return commit(s, s.sinceContradiction.slice(0, 2));

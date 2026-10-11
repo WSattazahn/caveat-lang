@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -162,7 +162,7 @@
+     case 'none': return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: [] as string[] };
+     case 'probably_safe': return { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: supported };
+     case 'probably_unsafe': return { present: true, label: 'Probably a duskcap', canAbsorb: true, canTaste: true, because: contra };
+-    case 'uncertain': return { present: true, label: 'Could be a duskcap — taste first', canAbsorb: true, canTaste: true, because: contra };
++    case 'uncertain': return { present: true, label: 'Could be a duskcap — taste first', canAbsorb: true, canTaste: true, because: [...contra, 'absorb_cave'] };
+   }
+ }
+ 

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -243,7 +243,7 @@
+     const cav = caveatsOf(s, because);
+     const tasted: Refusal = { reason: 'Already tasted', because };
+     // CR5: the faded label wins over the dark label.
+-    const qualifier = cav.includes(TASTE_FADED) ? ' (taste has faded)' : cav.includes(TASTED_IN_DARK) ? ' (tasted in the dark)' : null;
++    const qualifier = cav.includes(TASTE_FADED) ? ' (taste has faded)' : false ? ' (tasted in the dark)' : null;
+     if (m.tasted === 'glowcap') {
+       return row(s, id, qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', because, marked, tasted);
+     }

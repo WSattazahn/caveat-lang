@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -184,7 +184,6 @@
+     evidence t_$m from "tasting $m";
+     evidence w_$m from "watching another creature eat $m";
+     evidence r_$m from "tasting $m again";
+-    secondhand qualifies w_$m;
+     # Each life of the mushroom is a new occurrence of its evidence: a_cave@2, ...
+     # Only the current life's occurrence stays live; older ones stay cited while
+     # something (a page, a basis, the runtime's journal) still rests on them.

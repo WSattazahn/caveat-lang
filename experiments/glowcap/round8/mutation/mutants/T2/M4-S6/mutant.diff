@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -358,7 +358,7 @@
+   const change = decide(s, e);
+   pushBounded(s.journal, { entry: e.kind, because: [e.id] }, JOURNAL_KEEP);
+   if (change !== null) {
+-    const because = change === 'committed' ? [...s.decision.basis] : [e.id];
++    const because = change === 'committed' ? [...s.decision.basis].reverse() : [e.id];
+     pushBounded(s.journal, { entry: change, because }, JOURNAL_KEEP);
+   }
+   prune(s);

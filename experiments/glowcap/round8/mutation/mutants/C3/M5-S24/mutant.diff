@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -419,7 +419,7 @@
+     bind $m.whyAbsorb = "Marked to avoid" when $m_marked == 1 because nothing;
+     bind $m.whyAbsorb = "Known duskcap" when $m_bitter because $m_tasted;
+     bind $m.whyAbsorb = "Known duskcap" when $m_bitter and $m_retasted because $m_retasted;
+-    bind $m.whyAbsorb = "Out of reach" when $m_out_of_reach because nothing;
++    bind $m.whyAbsorb = "Out of reach" when $m_out_of_reach because observed(absorb_cave);
+     bind $m.whyAbsorb = "Already eaten" when observed(absorb_$m) because observed(absorb_$m);
+     bind $m.whyAbsorb = "Already eaten" when observed(witness_$m) because observed(witness_$m);
+     bind $m.whyAbsorb = "Already eaten" when observed(witness_$m) and $m_doubted == 1

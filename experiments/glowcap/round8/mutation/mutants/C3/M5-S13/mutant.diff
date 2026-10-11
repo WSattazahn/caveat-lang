@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -402,7 +402,7 @@
+         when $m_bitter and carries(taste_$m, taste_faded) because $m_tasted;
+     # CR19: from a retaste on, it identifies the mushroom.
+     bind $m.label = "Glowcap" when $m_sweet and $m_retasted because $m_retasted;
+-    bind $m.label = "Duskcap — avoid" when $m_bitter and $m_retasted because $m_retasted;
++    bind $m.label = "Duskcap — avoid" when $m_bitter and $m_retasted because $m_retasted, observed(absorb_cave);
+     bind $m.label = "Probably a glowcap (tasted in the dark)"
+         when $m_sweet and $m_retasted and carries(retaste_$m, tasted_in_dark) because $m_retasted;
+     bind $m.label = "Probably a duskcap (tasted in the dark)"

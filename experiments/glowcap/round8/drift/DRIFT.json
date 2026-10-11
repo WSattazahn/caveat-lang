@@ -1,0 +1,4322 @@
+[
+ {
+  "program": "C1",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "36-89",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define fade_seconds",
+    "lines": "60-60",
+    "feeds": "caveats (taste_faded)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste qualify taste_$m with taste_faded after fade_seconds;",
+    "lines": "196-196",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   }
+  ],
+  "count": 3
+ },
+ {
+  "program": "C1",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgramEvent",
+    "lines": "17-35",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g1",
+    "lines": "40-40",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g2",
+    "lines": "41-41",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g3",
+    "lines": "42-42",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g4",
+    "lines": "43-43",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g5",
+    "lines": "44-44",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g6",
+    "lines": "45-45",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d1",
+    "lines": "46-46",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d2",
+    "lines": "47-47",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d3",
+    "lines": "48-48",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d4",
+    "lines": "49-49",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d5",
+    "lines": "50-50",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d6",
+    "lines": "51-51",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define support",
+    "lines": "53-53",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define contradiction",
+    "lines": "54-54",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_mark",
+    "lines": "61-61",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc undoubt",
+    "lines": "62-81",
+    "feeds": "belief.supportedBy/contradictedBy (drops doubted witness), journal[].caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn cites_witness",
+    "lines": "84-85",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j1",
+    "lines": "118-118",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j2",
+    "lines": "119-119",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j3",
+    "lines": "120-120",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j4",
+    "lines": "121-121",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j5",
+    "lines": "122-122",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j6",
+    "lines": "123-123",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn code_kind",
+    "lines": "112-112",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc observe",
+    "lines": "150-188",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_life",
+    "lines": "213-213",
+    "feeds": "evidence ids (life numbers) cited by explanations; doubt matching"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb call observe(absorb_$m, sort, 0, 1, $m_life * 10 + $index);",
+    "lines": "236-236",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste call observe(taste_$m, sort, if(glow > 0, 0, 1), 2, $m_life * 10 + $index);",
+    "lines": "241-241",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness call observe(witness_$m, sort, 0, 3, $m_life * 10 + $index);",
+    "lines": "251-251",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_sprouts set $m_life = $m_life + 1;",
+    "lines": "271-271",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_glowcap",
+    "lines": "276-276",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_duskcap",
+    "lines": "277-277",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_remembered",
+    "lines": "278-281",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when act != act.witness or not $m_doubt_remembered",
+    "lines": "282-283",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when life == $m_life qualify witness_$m with doubted;",
+    "lines": "284-284",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt call undoubt($m_doubt_glowcap, $m_doubt_duskcap, if(life == $m_life, 0, 1));",
+    "lines": "285-285",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when support + contradiction == 0 reject \"The slime must keep one undoubted observation.\";",
+    "lines": "325-325",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   }
+  ],
+  "count": 38
+ },
+ {
+  "program": "C1",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgramEvent",
+    "lines": "17-35",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "43-97",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn cites_witness",
+    "lines": "86-87",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn code_kind",
+    "lines": "115-115",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc observe",
+    "lines": "155-193",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc new_life",
+    "lines": "196-201",
+    "feeds": "evidence ids (life numbers) cited by explanations; doubt matching"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_can_retaste",
+    "lines": "241-242",
+    "feeds": "retaste acceptance, hence belief, decision, journal and mushroom because"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when not $m_can_retaste reject \"The slime cannot taste that mushroom again.\";",
+    "lines": "262-262",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when $m_contradicts_taste reject \"That contradicts how the mushroom tasted.\";",
+    "lines": "263-263",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste call observe(retaste_$m, sort, if(glow > 0, 0, 1), 4, $m_life * 10 + $index);",
+    "lines": "264-264",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set $m_taste = qualified(sort, retaste_$m);",
+    "lines": "265-265",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste qualify retaste_$m with taste_faded after fade_seconds;",
+    "lines": "267-267",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_glowcap",
+    "lines": "298-298",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_duskcap",
+    "lines": "299-299",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_sprouts call new_life(absorb_$m, taste_$m, witness_$m, retaste_$m);",
+    "lines": "294-294",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   }
+  ],
+  "count": 15
+ },
+ {
+  "program": "C1",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgramEvent",
+    "lines": "17-35",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define support",
+    "lines": "65-66",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define contradiction",
+    "lines": "67-68",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc undoubt",
+    "lines": "removed (was 64-83)",
+    "feeds": "belief.supportedBy/contradictedBy (drops doubted witness), journal[].caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn cites_witness",
+    "lines": "106-108",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x1",
+    "lines": "57-57",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x2",
+    "lines": "58-58",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x3",
+    "lines": "59-59",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x4",
+    "lines": "60-60",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x5",
+    "lines": "61-61",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state x6",
+    "lines": "62-62",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn slot_is",
+    "lines": "79-79",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc set_doubt",
+    "lines": "82-102",
+    "feeds": "belief.supportedBy/contradictedBy, journal[].caveats (doubted), journal entry because"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc note",
+    "lines": "156-169",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y1",
+    "lines": "150-150",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y2",
+    "lines": "151-151",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y3",
+    "lines": "152-152",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y4",
+    "lines": "153-153",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y5",
+    "lines": "154-154",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state y6",
+    "lines": "155-155",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite1",
+    "lines": "171-171",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite2",
+    "lines": "172-172",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite3",
+    "lines": "173-173",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite4",
+    "lines": "174-174",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite5",
+    "lines": "175-175",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define jcite6",
+    "lines": "176-176",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc observe",
+    "lines": "199-243",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_doubted_consumer",
+    "lines": "281-281",
+    "feeds": "mushrooms.<id>.why (doubted consumer), caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_eaten_cite",
+    "lines": "283-283",
+    "feeds": "mushrooms.<id>.why (doubted consumer), caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_remembered",
+    "lines": "removed (was 300-303)",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when life == $m_life qualify witness_$m with doubted;",
+    "lines": "removed (was 306-306)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt call undoubt($m_doubt_glowcap, $m_doubt_duskcap, if(life == $m_life, 0, 1));",
+    "lines": "removed (was 307-307)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_sprouts set $m_doubted_consumer = 0;",
+    "lines": "348-348",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_found",
+    "lines": "356-361",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_undoubt_found",
+    "lines": "362-367",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_consumer",
+    "lines": "369-369",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when act != act.witness or not $m_doubt_found",
+    "lines": "370-371",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_consumer set $m_doubted_consumer = 1;",
+    "lines": "372-372",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt call set_doubt($m_doubt_glowcap, $m_doubt_duskcap, 0, 1);",
+    "lines": "373-373",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when act != act.witness or not $m_undoubt_found",
+    "lines": "374-375",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when life == $m_life set $m_doubted_consumer = 0;",
+    "lines": "376-376",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt call set_doubt($m_doubt_glowcap, $m_doubt_duskcap, 1, 0);",
+    "lines": "377-377",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_absorb = \"Already eaten\" when $m_eaten_cite > 0 because $m_eaten_cite;",
+    "lines": "409-409",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_taste = \"Already eaten\" when $m_eaten_cite > 0 because $m_eaten_cite;",
+    "lines": "413-413",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites1 = jcite1 when j1 > 0 because jcite1;",
+    "lines": "464-464",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites2 = jcite2 when j2 > 0 because jcite2;",
+    "lines": "465-465",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites3 = jcite3 when j3 > 0 because jcite3;",
+    "lines": "466-466",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites4 = jcite4 when j4 > 0 because jcite4;",
+    "lines": "467-467",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites5 = jcite5 when j5 > 0 because jcite5;",
+    "lines": "468-468",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.cites6 = jcite6 when j6 > 0 because jcite6;",
+    "lines": "469-469",
+    "feeds": "journal[].because, caveats"
+   }
+  ],
+  "count": 50
+ },
+ {
+  "program": "C2",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "44-105",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_fade",
+    "lines": "148-148",
+    "feeds": "caveats (taste_faded)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste qualify t_$m with faded after 60;",
+    "lines": "removed (was 183-183)",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste set $m_fade = 60;",
+    "lines": "186-186",
+    "feeds": "caveats (taste_faded timing)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_fades",
+    "lines": "199-199",
+    "feeds": "caveats (taste_faded)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_fades qualify t_$m with faded;",
+    "lines": "200-200",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows and $m_fade > dt qualify t_$m with faded after $m_fade - dt;",
+    "lines": "207-207",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_fade = 0;",
+    "lines": "212-212",
+    "feeds": "caveats (taste_faded timing)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick set $m_fade = max(0, $m_fade - dt);",
+    "lines": "214-214",
+    "feeds": "caveats (taste_faded timing)"
+   }
+  ],
+  "count": 9
+ },
+ {
+  "program": "C2",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgram",
+    "lines": "14-30",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "doubtPayload",
+    "lines": "40-45",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc turn_page",
+    "lines": "61-92",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc observe",
+    "lines": "110-138",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_named",
+    "lines": "144-144",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_named_open",
+    "lines": "145-146",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define open_count",
+    "lines": "147-148",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_allowed",
+    "lines": "149-149",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when not doubt_named reject \"The slime does not remember seeing that.\";",
+    "lines": "150-150",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when not doubt_named_open reject \"The slime already doubts that.\";",
+    "lines": "151-151",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when open_count < 2 reject \"The slime must keep at least one observation it does not doubt.\";",
+    "lines": "152-152",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_life",
+    "lines": "176-176",
+    "feeds": "evidence ids (life numbers) cited by explanations; doubt matching"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "195-195",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "205-205",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "218-218",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when doubt_allowed and life == $m_life qualify w_$m with doubted;",
+    "lines": "231-231",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_life = min(1000000, $m_life + 1);",
+    "lines": "248-248",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $j_n",
+    "lines": "347-347",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_act",
+    "lines": "354-354",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_shown",
+    "lines": "360-360",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Absorbed the \" + $j_name + \" mushroom: \" + if($j_glow, \"it gave light.\", \"it made m...",
+    "lines": "368-369",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Tasted the \" + $j_name + \" mushroom: \" + if($j_glow, \"sweet.\", \"bitter.\")",
+    "lines": "370-371",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Saw a creature eat the \" + $j_name + \" mushroom: \" + if($j_glow, \"it glowed.\", \"it ...",
+    "lines": "372-373",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $j_x",
+    "lines": "353-353",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_life",
+    "lines": "355-355",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_named",
+    "lines": "362-362",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_open",
+    "lines": "363-363",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $j_named set $j_x = $j_s + $j_c;",
+    "lines": "365-365",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $j_named set $j_s = 0;",
+    "lines": "366-366",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $j_named set $j_c = 0;",
+    "lines": "367-367",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   }
+  ],
+  "count": 30
+ },
+ {
+  "program": "C2",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgram",
+    "lines": "14-31",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "occurrence",
+    "lines": "54-56",
+    "feeds": "evidence/caveat names in every explanation field"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "62-124",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_retasted",
+    "lines": "184-184",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_can_retaste",
+    "lines": "186-187",
+    "feeds": "retaste acceptance, hence belief, decision, journal and mushroom because"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when not $m_can_retaste reject \"The slime cannot taste that mushroom again.\";",
+    "lines": "232-232",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when sort != $m_taste reject \"That is not what the mushroom tasted like.\";",
+    "lines": "233-233",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste reveal r_$m;",
+    "lines": "234-234",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when glow == 0 qualify r_$m with dark;",
+    "lines": "235-235",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set $m_fade = 60;",
+    "lines": "236-236",
+    "feeds": "caveats (taste_faded timing)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste call observe(r_$m, sort, 4, $index);",
+    "lines": "237-237",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "238-238",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_fades and not $m_retasted qualify t_$m with faded;",
+    "lines": "254-254",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_fades and $m_retasted qualify r_$m with faded;",
+    "lines": "255-255",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows and $m_fade > dt and not $m_retasted",
+    "lines": "262-263",
+    "feeds": "caveats (taste_faded timing)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows and $m_fade > dt and $m_retasted",
+    "lines": "264-265",
+    "feeds": "caveats (taste_faded timing)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows renew r_$m;",
+    "lines": "266-266",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Glowcap\" when $m_retasted and $m_taste == 1 because qualified(1, r_$m);",
+    "lines": "295-295",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a glowcap (tasted in the dark)\" #2",
+    "lines": "296-297",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Duskcap — avoid\" when $m_retasted and $m_taste == 2 because qualified(1, r_$m);",
+    "lines": "298-298",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a duskcap (tasted in the dark)\" #2",
+    "lines": "299-300",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a glowcap (taste has faded)\" #2",
+    "lines": "301-302",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a duskcap (taste has faded)\" #2",
+    "lines": "303-304",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_absorb = \"Known duskcap\" when $m_retasted and $m_taste == 2 because qualified(1, r_$m);",
+    "lines": "317-317",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_taste = \"Already tasted\" when $m_retasted and $m_taste > 0 because qualified(1, r_$m);",
+    "lines": "323-323",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Tasted the \" + $j_name + \" mushroom again: \" + if($j_glow, \"sweet.\", \"bitter.\")",
+    "lines": "412-413",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   }
+  ],
+  "count": 26
+ },
+ {
+  "program": "C2",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "toProgram",
+    "lines": "14-32",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "doubtPayload",
+    "lines": "42-47",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "names",
+    "lines": "61-61",
+    "feeds": "evidence/caveat names in every explanation field"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "entry",
+    "lines": "108-108",
+    "feeds": "journal[].because, journal[].caveats"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "66-128",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc turn_page",
+    "lines": "72-97",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc observe",
+    "lines": "118-156",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state life_now",
+    "lines": "112-112",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_allowed",
+    "lines": "removed (was 152-152)",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_named_doubted",
+    "lines": "171-173",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when not doubt_named_doubted reject \"The slime does not doubt anything it remembers seeing there.\";",
+    "lines": "174-174",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when not observed(d) reveal d;",
+    "lines": "175-175",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define doubt_ref",
+    "lines": "177-177",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state note_g",
+    "lines": "179-179",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_life",
+    "lines": "205-205",
+    "feeds": "evidence ids (life numbers) cited by explanations; doubt matching"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_doubted",
+    "lines": "207-207",
+    "feeds": "mushrooms.<id>.why (doubted consumer), caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "removed (was 205-205)",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb set life_now = $m_life;",
+    "lines": "230-230",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "removed (was 215-215)",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness set life_now = $m_life;",
+    "lines": "240-240",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "removed (was 228-228)",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste set life_now = $m_life;",
+    "lines": "253-253",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set j6_n = j6_n + 1000 * $m_life;",
+    "lines": "removed (was 238-238)",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set life_now = $m_life;",
+    "lines": "263-263",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when doubt_allowed and life == $m_life qualify w_$m with doubted;",
+    "lines": "removed (was 250-250)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when life == $m_life set $m_doubted = 1;",
+    "lines": "275-275",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when life == $m_life set $m_doubted = 0;",
+    "lines": "276-276",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_life = min(99999, $m_life + 1);",
+    "lines": "298-298",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_doubted = 0;",
+    "lines": "299-299",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_absorb = \"Already eaten\" when $m_eaten_by_witness",
+    "lines": "348-349",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.why_taste = \"Already eaten\" when $m_eaten_by_witness",
+    "lines": "356-357",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j1_count",
+    "lines": "removed (was 369-369)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j2_count",
+    "lines": "removed (was 370-370)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j3_count",
+    "lines": "removed (was 371-371)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j4_count",
+    "lines": "removed (was 372-372)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j5_count",
+    "lines": "removed (was 373-373)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j6_count",
+    "lines": "removed (was 374-374)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j6_after",
+    "lines": "removed (was 375-375)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j5_after",
+    "lines": "removed (was 376-376)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j4_after",
+    "lines": "removed (was 377-377)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j3_after",
+    "lines": "removed (was 378-378)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j2_after",
+    "lines": "removed (was 379-379)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define j1_after",
+    "lines": "removed (was 380-380)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $j_n",
+    "lines": "401-401",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $j_t",
+    "lines": "removed (was 388-388)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_life",
+    "lines": "406-406",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_shown",
+    "lines": "removed (was 398-398)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_open",
+    "lines": "413-413",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Absorbed the \" + $j_name + \" mushroom: \" + if($j_glow, \"it gave light.\", \"it made m...",
+    "lines": "removed (was 406-407)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Tasted the \" + $j_name + \" mushroom: \" + if($j_glow, \"sweet.\", \"bitter.\")",
+    "lines": "removed (was 408-409)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Saw a creature eat the \" + $j_name + \" mushroom: \" + if($j_glow, \"it glowed.\", \"it ...",
+    "lines": "removed (was 410-411)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_seen = \"Tasted the \" + $j_name + \" mushroom again: \" + if($j_glow, \"sweet.\", \"bitter.\")",
+    "lines": "removed (was 412-413)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_trusted = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 414-415)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$j_trusted = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 416-417)",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $j_ref",
+    "lines": "410-410",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $j_named set note_g = $j_x;",
+    "lines": "419-419",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $j_named set $j_n = $j_n + 100000000;",
+    "lines": "420-420",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $j_named set note_g = $j_x;",
+    "lines": "421-421",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $j_named and $j_glow set $j_s = $j_x;",
+    "lines": "422-422",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $j_named and not $j_glow set $j_c = $j_x;",
+    "lines": "423-423",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $j_named set $j_x = 0;",
+    "lines": "424-424",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $j_named set $j_n = $j_n - 100000000;",
+    "lines": "425-425",
+    "feeds": "belief.supportedBy/contradictedBy (remembered pages), journal[].because/caveats, doubt acceptance"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc write_entry",
+    "lines": "452-477",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e1_count",
+    "lines": "480-480",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e2_count",
+    "lines": "481-481",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e3_count",
+    "lines": "482-482",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e4_count",
+    "lines": "483-483",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e5_count",
+    "lines": "484-484",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e6_count",
+    "lines": "485-485",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e6_after",
+    "lines": "486-486",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e5_after",
+    "lines": "487-487",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e4_after",
+    "lines": "488-488",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e3_after",
+    "lines": "489-489",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e2_after",
+    "lines": "490-490",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e1_after",
+    "lines": "491-491",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e6_page",
+    "lines": "494-494",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e5_page",
+    "lines": "495-495",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e4_page",
+    "lines": "496-496",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e3_page",
+    "lines": "497-497",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e2_page",
+    "lines": "498-498",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define e1_page",
+    "lines": "499-499",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $e_n",
+    "lines": "502-502",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $e_g",
+    "lines": "503-503",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $e_r",
+    "lines": "504-504",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $e_h",
+    "lines": "505-505",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_type",
+    "lines": "506-506",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_obs",
+    "lines": "509-509",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_first",
+    "lines": "510-510",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_second",
+    "lines": "511-511",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_flag1",
+    "lines": "512-512",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_flag2",
+    "lines": "513-513",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $e_n > 0 and $e_first == doubt_ref and not $e_flag1 set $e_n = $e_n + 1000;",
+    "lines": "517-517",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $e_n > 0 and $e_second == doubt_ref and not $e_flag2 set $e_n = $e_n + 2000;",
+    "lines": "518-518",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $e_n > 0 and $e_first == doubt_ref and $e_flag1 set $e_n = $e_n - 1000;",
+    "lines": "519-519",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $e_n > 0 and $e_second == doubt_ref and $e_flag2 set $e_n = $e_n - 2000;",
+    "lines": "520-520",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_shown",
+    "lines": "522-522",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = $e_g when $e_shown and not $e_obs because $e_g;",
+    "lines": "535-535",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified($e_g, d, doubted) when $e_shown and not $e_obs and $e_flag1",
+    "lines": "536-537",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j1_s + j1_c + j1_x when $e_shown and $e_obs and $e_page == 1",
+    "lines": "539-540",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j2_s + j2_c + j2_x when $e_shown and $e_obs and $e_page == 2",
+    "lines": "541-542",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j3_s + j3_c + j3_x when $e_shown and $e_obs and $e_page == 3",
+    "lines": "543-544",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j4_s + j4_c + j4_x when $e_shown and $e_obs and $e_page == 4",
+    "lines": "545-546",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j5_s + j5_c + j5_x when $e_shown and $e_obs and $e_page == 5",
+    "lines": "547-548",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = j6_s + j6_c + j6_x when $e_shown and $e_obs and $e_page == 6",
+    "lines": "549-550",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j1_s + j1_c + j1_x, d, doubted)",
+    "lines": "551-553",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j2_s + j2_c + j2_x, d, doubted)",
+    "lines": "554-556",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j3_s + j3_c + j3_x, d, doubted)",
+    "lines": "557-559",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j4_s + j4_c + j4_x, d, doubted)",
+    "lines": "560-562",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j5_s + j5_c + j5_x, d, doubted)",
+    "lines": "563-565",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_cites = qualified(j6_s + j6_c + j6_x, d, doubted)",
+    "lines": "566-568",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $e_trust_shown",
+    "lines": "570-570",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_trust_cites = $e_h when $e_trust_shown because $e_h;",
+    "lines": "573-573",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind journal.$e_trust_cites = qualified($e_h, d, doubted)",
+    "lines": "574-576",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt call write_entry();",
+    "lines": "581-581",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt set e6_n = 1700 + target;",
+    "lines": "582-582",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt set e6_g = note_g;",
+    "lines": "583-583",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt set e6_r = doubt_ref;",
+    "lines": "584-584",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt call write_entry();",
+    "lines": "585-585",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt set e6_n = 800 + target;",
+    "lines": "586-586",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt set e6_g = note_g;",
+    "lines": "587-587",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt set e6_r = doubt_ref;",
+    "lines": "588-588",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt set note_g = 0;",
+    "lines": "589-589",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt set note_g = 0;",
+    "lines": "590-590",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   }
+  ],
+  "count": 123
+ },
+ {
+  "program": "C3",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "25-68",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   }
+  ],
+  "count": 1
+ },
+ {
+  "program": "C3",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "translate",
+    "lines": "14-19",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g0",
+    "lines": "removed (was 36-36)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g1",
+    "lines": "removed (was 37-37)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g2",
+    "lines": "removed (was 38-38)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g3",
+    "lines": "removed (was 39-39)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g4",
+    "lines": "removed (was 40-40)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g5",
+    "lines": "removed (was 41-41)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state g6",
+    "lines": "removed (was 42-42)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d0",
+    "lines": "removed (was 43-43)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d1",
+    "lines": "removed (was 44-44)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d2",
+    "lines": "removed (was 45-45)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d3",
+    "lines": "removed (was 46-46)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d4",
+    "lines": "removed (was 47-47)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d5",
+    "lines": "removed (was 48-48)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state d6",
+    "lines": "removed (was 49-49)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define support",
+    "lines": "73-76",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define contradiction",
+    "lines": "77-80",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e0",
+    "lines": "50-50",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e1",
+    "lines": "51-51",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e2",
+    "lines": "52-52",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e3",
+    "lines": "53-53",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e4",
+    "lines": "54-54",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e5",
+    "lines": "55-55",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state e6",
+    "lines": "56-56",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j1",
+    "lines": "58-58",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j2",
+    "lines": "59-59",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j3",
+    "lines": "60-60",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j4",
+    "lines": "61-61",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j5",
+    "lines": "62-62",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state j6",
+    "lines": "63-63",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state doubts",
+    "lines": "64-64",
+    "feeds": "belief.supportedBy/contradictedBy (doubted slots), journal caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state marks",
+    "lines": "65-65",
+    "feeds": "journal[].because (trust entries)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn kind_of",
+    "lines": "67-67",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_glow",
+    "lines": "68-68",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_dusk",
+    "lines": "69-69",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn digit",
+    "lines": "70-70",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn counts",
+    "lines": "72-72",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define undoubted",
+    "lines": "83-85",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_witness_of",
+    "lines": "87-87",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc shift_journal",
+    "lines": "removed (was 81-89)",
+    "feeds": "belief slots and journal[].because"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn mark_at",
+    "lines": "removed (was 90-90)",
+    "feeds": "journal[].because (trust entries)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc shift_memory",
+    "lines": "103-118",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc saw",
+    "lines": "135-143",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_life",
+    "lines": "158-158",
+    "feeds": "evidence ids (life numbers) cited by explanations; doubt matching"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb call saw(absorb_$m, sort, $m_life * 100 + (0 + sort) * 10 + $index);",
+    "lines": "186-186",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste call saw(taste_$m, sort, $m_life * 100 + (2 + sort) * 10 + $index);",
+    "lines": "193-193",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness call saw(witness_$m, sort, $m_life * 100 + (4 + sort) * 10 + $index);",
+    "lines": "201-201",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_place",
+    "lines": "207-210",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_place == 0 reject \"The slime does not remember that witness.\";",
+    "lines": "211-211",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_place > 0 and digit(doubts, 2, $m_doubt_place) == 1 reject \"Already doubted.\";",
+    "lines": "212-212",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_place > 0 and undoubted <= 1 reject \"The slime must keep one undoubted observation.\";",
+    "lines": "213-213",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt set doubts = doubts + $m_doubt_place;",
+    "lines": "214-214",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_life == life qualify witness_$m with doubted;",
+    "lines": "216-216",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_life = $m_life + 1;",
+    "lines": "239-239",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc consider_trust",
+    "lines": "286-298",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when via != via.witness reject \"Only what a creature showed can be doubted.\";",
+    "lines": "299-299",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I trust glowing mushrooms now.\"",
+    "lines": "339-340",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "341-342",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "343-344",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I trust glowing mushrooms now.\"",
+    "lines": "348-349",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "350-351",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "352-353",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I trust glowing mushrooms now.\"",
+    "lines": "357-358",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "359-360",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "361-362",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I trust glowing mushrooms now.\"",
+    "lines": "366-367",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "368-369",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "370-371",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I trust glowing mushrooms now.\"",
+    "lines": "375-376",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "377-378",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "379-380",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I trust glowing mushrooms now.\"",
+    "lines": "384-385",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "386-387",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "388-389",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o1 = entry_text(j1) when j1 > 0 and e1 > 0 because e1;",
+    "lines": "337-337",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o2 = entry_text(j2) when j2 > 0 and e2 > 0 because e2;",
+    "lines": "346-346",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o3 = entry_text(j3) when j3 > 0 and e3 > 0 because e3;",
+    "lines": "355-355",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o4 = entry_text(j4) when j4 > 0 and e4 > 0 because e4;",
+    "lines": "364-364",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o5 = entry_text(j5) when j5 > 0 and e5 > 0 because e5;",
+    "lines": "373-373",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o6 = entry_text(j6) when j6 > 0 and e6 > 0 because e6;",
+    "lines": "382-382",
+    "feeds": "journal[].because, caveats"
+   }
+  ],
+  "count": 80
+ },
+ {
+  "program": "C3",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "28-71",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_glow",
+    "lines": "70-70",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_dusk",
+    "lines": "71-71",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_retasted",
+    "lines": "171-171",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when $m_out_of_reach reject \"Out of reach.\";",
+    "lines": "209-209",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when $m_eaten reject \"That mushroom is gone.\";",
+    "lines": "210-210",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when not $m_tasted reject \"Not tasted yet.\";",
+    "lines": "211-211",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when $m_retasted reject \"Already tasted again.\";",
+    "lines": "212-212",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when not carries(taste_$m, taste_faded) reject \"The taste has not faded yet.\";",
+    "lines": "213-213",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when $m_disagrees reject \"That is not what it tasted like.\";",
+    "lines": "214-214",
+    "feeds": "event acceptance, hence the evidence explanations cite"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste call saw(retaste_$m, sort, $m_life * 100 + (6 + sort) * 10 + $index);",
+    "lines": "215-215",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when glow == 0 qualify retaste_$m with tasted_in_dark;",
+    "lines": "216-216",
+    "feeds": "caveats (taste_faded / tasted_in_dark)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste set $m_tasted_at = elapsed();",
+    "lines": "217-217",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and not $m_retasted",
+    "lines": "248-249",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and $m_retasted",
+    "lines": "250-251",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows and $m_tasted_at >= 0 and not $m_retasted",
+    "lines": "254-255",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows and $m_tasted_at >= 0 and $m_retasted",
+    "lines": "256-257",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows renew retaste_$m;",
+    "lines": "262-262",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Glowcap\" when $m_sweet and $m_retasted because $m_retasted;",
+    "lines": "293-293",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Duskcap — avoid\" when $m_bitter and $m_retasted because $m_retasted;",
+    "lines": "294-294",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a glowcap (tasted in the dark)\" #2",
+    "lines": "295-296",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a duskcap (tasted in the dark)\" #2",
+    "lines": "297-298",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a glowcap (taste has faded)\" #2",
+    "lines": "299-300",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.label = \"Probably a duskcap (taste has faded)\" #2",
+    "lines": "301-302",
+    "feeds": "mushrooms.<id>.because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.whyAbsorb = \"Known duskcap\" when $m_bitter and $m_retasted because $m_retasted;",
+    "lines": "310-310",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.whyTaste = \"Already tasted\" when $m_retasted because $m_retasted;",
+    "lines": "316-316",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste when sort == sort.glowcap call consider_trust();",
+    "lines": "344-344",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   }
+  ],
+  "count": 27
+ },
+ {
+  "program": "C3",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "adapter.mjs",
+    "name": "translate",
+    "lines": "14-19",
+    "feeds": "events reaching the program, hence the evidence every explanation field cites"
+   },
+   {
+    "file": "adapter.mjs",
+    "name": "project",
+    "lines": "28-74",
+    "feeds": "all explanation fields (projects because, caveats, supportedBy, contradictedBy, why, basis, reopenedBy, history, journal)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state obs",
+    "lines": "55-55",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state doubts",
+    "lines": "69-69",
+    "feeds": "belief.supportedBy/contradictedBy (doubted slots), journal caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state marks",
+    "lines": "removed (was 67-67)",
+    "feeds": "journal[].because (trust entries)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_glow",
+    "lines": "74-74",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn is_dusk",
+    "lines": "75-75",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn counts",
+    "lines": "85-85",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define support",
+    "lines": "86-89",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define contradiction",
+    "lines": "90-93",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define undoubted",
+    "lines": "104-104",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn bit",
+    "lines": "77-82",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define glows",
+    "lines": "96-98",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define dusks",
+    "lines": "99-101",
+    "feeds": "belief.supportedBy/contradictedBy, caveats; journal; decision basis"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define plain_belief",
+    "lines": "111-111",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc shift_memory",
+    "lines": "164-180",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc saw",
+    "lines": "214-220",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state trust_code",
+    "lines": "122-122",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define standing",
+    "lines": "123-123",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define commits",
+    "lines": "124-124",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state ra",
+    "lines": "136-136",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rb",
+    "lines": "137-137",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r1",
+    "lines": "138-138",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r2",
+    "lines": "139-139",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r3",
+    "lines": "140-140",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r4",
+    "lines": "141-141",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r5",
+    "lines": "142-142",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define r6",
+    "lines": "143-143",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd1",
+    "lines": "144-144",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd2",
+    "lines": "145-145",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd3",
+    "lines": "146-146",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd4",
+    "lines": "147-147",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd5",
+    "lines": "148-148",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state rd6",
+    "lines": "149-149",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn mod100",
+    "lines": "150-150",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn rtype",
+    "lines": "152-152",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs1",
+    "lines": "154-154",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs2",
+    "lines": "155-155",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs3",
+    "lines": "156-156",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs4",
+    "lines": "157-157",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs5",
+    "lines": "158-158",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define rs6",
+    "lines": "159-159",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn single",
+    "lines": "160-160",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "fn rdoubted",
+    "lines": "161-161",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc shift_records",
+    "lines": "183-192",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc note",
+    "lines": "222-229",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc note_doubt",
+    "lines": "232-241",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb call saw(absorb_$m, sort);",
+    "lines": "290-290",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on absorb call note(sort, $m_life * 100 + (0 + sort) * 10 + $index);",
+    "lines": "291-291",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste call saw(taste_$m, sort);",
+    "lines": "298-298",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on taste call note(sort, $m_life * 100 + (2 + sort) * 10 + $index);",
+    "lines": "299-299",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_place",
+    "lines": "330-331",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_life == life qualify witness_$m with doubted;",
+    "lines": "removed (was 236-236)",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste call saw(retaste_$m, sort);",
+    "lines": "311-311",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on retaste call note(sort, $m_life * 100 + (6 + sort) * 10 + $index);",
+    "lines": "312-312",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness call saw(witness_$m, sort);",
+    "lines": "318-318",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on witness call note(sort, $m_life * 100 + (4 + sort) * 10 + $index);",
+    "lines": "319-319",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "define $m_doubt_slot",
+    "lines": "325-328",
+    "feeds": "doubt acceptance: belief.supportedBy/contradictedBy, caveats (doubted)"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "state $m_doubted",
+    "lines": "334-334",
+    "feeds": "mushrooms.<id>.why (doubted consumer), caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_slot == 0 reject \"The slime does not remember that witness.\";",
+    "lines": "335-335",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_slot > 0 and digit(doubts, 2, $m_doubt_place) == 1 reject \"Already doubted.\";",
+    "lines": "336-336",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_doubt_slot > 0 and undoubted <= 1 reject \"The slime must keep one undoubted observation.\";",
+    "lines": "337-337",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt call note_doubt(5, $m_doubt_slot, $index);",
+    "lines": "339-339",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on doubt when $m_life == life set $m_doubted = 1;",
+    "lines": "340-340",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $m_doubt_slot == 0 reject \"The slime does not remember that witness.\";",
+    "lines": "342-342",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $m_doubt_slot > 0 and digit(doubts, 2, $m_doubt_place) == 0 reject \"Not doubted.\";",
+    "lines": "343-343",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt set doubts = doubts - $m_doubt_place;",
+    "lines": "344-344",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt call note_doubt(6, $m_doubt_slot, $index);",
+    "lines": "345-345",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when $m_life == life set $m_doubted = 0;",
+    "lines": "346-346",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on tick when $m_regrows set $m_doubted = 0;",
+    "lines": "376-376",
+    "feeds": "belief, decision, journal and mushroom explanations via the observation"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.whyAbsorb = \"Already eaten\" when observed(witness_$m) and $m_doubted == 1",
+    "lines": "425-426",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind $m.whyTaste = \"Already eaten\" when observed(witness_$m) and $m_doubted == 1",
+    "lines": "433-434",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "proc consider_trust",
+    "lines": "440-454",
+    "feeds": "belief.supportedBy/contradictedBy, decision.basis/reopenedBy/history, journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "on undoubt when via != via.witness reject \"Only a doubted witness can be believed again.\";",
+    "lines": "456-456",
+    "feeds": "belief.supportedBy/contradictedBy, caveats (doubted), journal"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o1 = \"\" because nothing;",
+    "lines": "removed (was 376-376)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o1 = entry_text(j1) when j1 > 0 and e1 > 0 because e1;",
+    "lines": "removed (was 377-377)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"\" because nothing;",
+    "lines": "removed (was 378-378)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 379-380)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 381-382)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t1 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 383-384)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o2 = \"\" because nothing;",
+    "lines": "removed (was 385-385)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o2 = entry_text(j2) when j2 > 0 and e2 > 0 because e2;",
+    "lines": "removed (was 386-386)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"\" because nothing;",
+    "lines": "removed (was 387-387)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 388-389)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 390-391)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t2 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 392-393)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o3 = \"\" because nothing;",
+    "lines": "removed (was 394-394)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o3 = entry_text(j3) when j3 > 0 and e3 > 0 because e3;",
+    "lines": "removed (was 395-395)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"\" because nothing;",
+    "lines": "removed (was 396-396)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 397-398)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 399-400)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t3 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 401-402)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o4 = \"\" because nothing;",
+    "lines": "removed (was 403-403)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o4 = entry_text(j4) when j4 > 0 and e4 > 0 because e4;",
+    "lines": "removed (was 404-404)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"\" because nothing;",
+    "lines": "removed (was 405-405)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 406-407)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 408-409)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t4 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 410-411)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o5 = \"\" because nothing;",
+    "lines": "removed (was 412-412)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o5 = entry_text(j5) when j5 > 0 and e5 > 0 because e5;",
+    "lines": "removed (was 413-413)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"\" because nothing;",
+    "lines": "removed (was 414-414)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 415-416)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 417-418)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t5 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 419-420)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o6 = \"\" because nothing;",
+    "lines": "removed (was 421-421)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.o6 = entry_text(j6) when j6 > 0 and e6 > 0 because e6;",
+    "lines": "removed (was 422-422)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"\" because nothing;",
+    "lines": "removed (was 423-423)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I trust glowing mushrooms now.\"",
+    "lines": "removed (was 424-425)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I trust glowing mushrooms now.\" #2",
+    "lines": "removed (was 426-427)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.t6 = \"I no longer trust glowing mushrooms.\"",
+    "lines": "removed (was 428-429)",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 0 because nothing;",
+    "lines": "502-502",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 1 and e1 > 0 because e1;",
+    "lines": "503-503",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 2 and e2 > 0 because e2;",
+    "lines": "504-504",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 3 and e3 > 0 because e3;",
+    "lines": "505-505",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 4 and e4 > 0 because e4;",
+    "lines": "506-506",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 5 and e5 > 0 because e5;",
+    "lines": "507-507",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when single(r1) and rs1 == 6 and e6 > 0 because e6;",
+    "lines": "508-508",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "509-509",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "510-510",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "511-511",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "512-512",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "513-513",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "514-514",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c1 = 1 when rtype(r1) >= 5 and rd1 > 0 because rd1;",
+    "lines": "515-515",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d1 = 0 because nothing;",
+    "lines": "516-516",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d1 = 1 when rdoubted(r1, rs1, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "517-517",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 0 because nothing;",
+    "lines": "525-525",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 1 and e1 > 0 because e1;",
+    "lines": "526-526",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 2 and e2 > 0 because e2;",
+    "lines": "527-527",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 3 and e3 > 0 because e3;",
+    "lines": "528-528",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 4 and e4 > 0 because e4;",
+    "lines": "529-529",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 5 and e5 > 0 because e5;",
+    "lines": "530-530",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when single(r2) and rs2 == 6 and e6 > 0 because e6;",
+    "lines": "531-531",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "532-532",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "533-533",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "534-534",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "535-535",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "536-536",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "537-537",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c2 = 1 when rtype(r2) >= 5 and rd2 > 0 because rd2;",
+    "lines": "538-538",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d2 = 0 because nothing;",
+    "lines": "539-539",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d2 = 1 when rdoubted(r2, rs2, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "540-540",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 0 because nothing;",
+    "lines": "548-548",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 1 and e1 > 0 because e1;",
+    "lines": "549-549",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 2 and e2 > 0 because e2;",
+    "lines": "550-550",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 3 and e3 > 0 because e3;",
+    "lines": "551-551",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 4 and e4 > 0 because e4;",
+    "lines": "552-552",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 5 and e5 > 0 because e5;",
+    "lines": "553-553",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when single(r3) and rs3 == 6 and e6 > 0 because e6;",
+    "lines": "554-554",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "555-555",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "556-556",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "557-557",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "558-558",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "559-559",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "560-560",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c3 = 1 when rtype(r3) >= 5 and rd3 > 0 because rd3;",
+    "lines": "561-561",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d3 = 0 because nothing;",
+    "lines": "562-562",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d3 = 1 when rdoubted(r3, rs3, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "563-563",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 0 because nothing;",
+    "lines": "571-571",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 1 and e1 > 0 because e1;",
+    "lines": "572-572",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 2 and e2 > 0 because e2;",
+    "lines": "573-573",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 3 and e3 > 0 because e3;",
+    "lines": "574-574",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 4 and e4 > 0 because e4;",
+    "lines": "575-575",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 5 and e5 > 0 because e5;",
+    "lines": "576-576",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when single(r4) and rs4 == 6 and e6 > 0 because e6;",
+    "lines": "577-577",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "578-578",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "579-579",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "580-580",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "581-581",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "582-582",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "583-583",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c4 = 1 when rtype(r4) >= 5 and rd4 > 0 because rd4;",
+    "lines": "584-584",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d4 = 0 because nothing;",
+    "lines": "585-585",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d4 = 1 when rdoubted(r4, rs4, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "586-586",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 0 because nothing;",
+    "lines": "594-594",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 1 and e1 > 0 because e1;",
+    "lines": "595-595",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 2 and e2 > 0 because e2;",
+    "lines": "596-596",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 3 and e3 > 0 because e3;",
+    "lines": "597-597",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 4 and e4 > 0 because e4;",
+    "lines": "598-598",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 5 and e5 > 0 because e5;",
+    "lines": "599-599",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when single(r5) and rs5 == 6 and e6 > 0 because e6;",
+    "lines": "600-600",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "601-601",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "602-602",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "603-603",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "604-604",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "605-605",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "606-606",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c5 = 1 when rtype(r5) >= 5 and rd5 > 0 because rd5;",
+    "lines": "607-607",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d5 = 0 because nothing;",
+    "lines": "608-608",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d5 = 1 when rdoubted(r5, rs5, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "609-609",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 0 because nothing;",
+    "lines": "617-617",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 1 and e1 > 0 because e1;",
+    "lines": "618-618",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 2 and e2 > 0 because e2;",
+    "lines": "619-619",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 3 and e3 > 0 because e3;",
+    "lines": "620-620",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 4 and e4 > 0 because e4;",
+    "lines": "621-621",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 5 and e5 > 0 because e5;",
+    "lines": "622-622",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when single(r6) and rs6 == 6 and e6 > 0 because e6;",
+    "lines": "623-623",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 1 and e0 + e1 > 0 because e0, e1;",
+    "lines": "624-624",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 2 and e1 + e2 > 0 because e1, e2;",
+    "lines": "625-625",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 3 and e2 + e3 > 0 because e2, e3;",
+    "lines": "626-626",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 4 and e3 + e4 > 0 because e3, e4;",
+    "lines": "627-627",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 5 and e4 + e5 > 0 because e4, e5;",
+    "lines": "628-628",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 6 and e5 + e6 > 0 because e5, e6;",
+    "lines": "629-629",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.c6 = 1 when rtype(r6) >= 5 and rd6 > 0 because rd6;",
+    "lines": "630-630",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d6 = 0 because nothing;",
+    "lines": "631-631",
+    "feeds": "journal[].because, caveats"
+   },
+   {
+    "file": "glowcap.cav",
+    "name": "bind diary.d6 = 1 when rdoubted(r6, rs6, doubts) and (examined(doubted) or true) because examined(doubted);",
+    "lines": "632-632",
+    "feeds": "journal[].because, caveats"
+   }
+  ],
+  "count": 206
+ },
+ {
+  "program": "T1",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomView",
+    "lines": "171-191",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomRule",
+    "lines": "212-234",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "render",
+    "lines": "410-445",
+    "feeds": "all explanation fields (builds the view)"
+   }
+  ],
+  "count": 3
+ },
+ {
+  "program": "T1",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "supportedBy",
+    "lines": "133-135",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "contradictedBy",
+    "lines": "137-139",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "beliefState",
+    "lines": "141-149",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "isDoubted",
+    "lines": "124-126",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "counted",
+    "lines": "129-131",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "applyEvent",
+    "lines": "328-431",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "CAVEAT_CODE",
+    "lines": "477-477",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "CODE_CAVEAT",
+    "lines": "478-478",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 8
+ },
+ {
+  "program": "T1",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "initialState",
+    "lines": "108-122",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "evidenceId",
+    "lines": "175-177",
+    "feeds": "mushrooms.<id>.because, caveats, why; evidence ids"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "identifyingTaste",
+    "lines": "180-183",
+    "feeds": "mushrooms.<id>.because, caveats, why; evidence ids"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "canRetaste",
+    "lines": "185-189",
+    "feeds": "retaste acceptance, hence belief, decision, journal and mushroom because"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomView",
+    "lines": "202-223",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "whyNot",
+    "lines": "226-242",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomRule",
+    "lines": "244-266",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "observe",
+    "lines": "318-325",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "prune",
+    "lines": "329-342",
+    "feeds": "caveats kept for cited evidence"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "applyEvent",
+    "lines": "351-470",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "PREFIX_CODE",
+    "lines": "514-514",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "CODE_PREFIX",
+    "lines": "515-515",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encodeEv",
+    "lines": "534-539",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decodeEv",
+    "lines": "541-546",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encodeState",
+    "lines": "556-582",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decodeState",
+    "lines": "584-627",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 16
+ },
+ {
+  "program": "T1",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "applyEvent",
+    "lines": "352-482",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   }
+  ],
+  "count": 1
+ },
+ {
+  "program": "T2",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "row",
+    "lines": "187-200",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomRow",
+    "lines": "203-245",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "viewOf",
+    "lines": "247-283",
+    "feeds": "all explanation fields (builds the view)"
+   }
+  ],
+  "count": 3
+ },
+ {
+  "program": "T2",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "split",
+    "lines": "116-123",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "isDoubted",
+    "lines": "111-113",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "374-485",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "544-579",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decode",
+    "lines": "581-633",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 5
+ },
+ {
+  "program": "T2",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "initialState",
+    "lines": "72-85",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "evidenceId",
+    "lines": "98-101",
+    "feeds": "mushrooms.<id>.because, caveats, why; evidence ids"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "identifyingTaste",
+    "lines": "104-106",
+    "feeds": "mushrooms.<id>.because, caveats, why; evidence ids"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "canRetaste",
+    "lines": "191-196",
+    "feeds": "retaste acceptance, hence belief, decision, journal and mushroom because"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "row",
+    "lines": "211-225",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomRow",
+    "lines": "228-270",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "prune",
+    "lines": "340-349",
+    "feeds": "caveats kept for cited evidence"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "393-518",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "VERBS",
+    "lines": "536-536",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "parseId",
+    "lines": "553-557",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "idFromCode",
+    "lines": "571-575",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "577-613",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decode",
+    "lines": "615-668",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 13
+ },
+ {
+  "program": "T2",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "rememberedWitness",
+    "lines": "390-394",
+    "feeds": "journal[].because, caveats; belief via accepted doubts"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "journal",
+    "lines": "396-399",
+    "feeds": "journal[].because, caveats; belief via accepted doubts"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "409-538",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "612-648",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 4
+ },
+ {
+  "program": "T3",
+  "phase": "cr17",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomView",
+    "lines": "95-103",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "render",
+    "lines": "156-184",
+    "feeds": "all explanation fields (builds the view)"
+   }
+  ],
+  "count": 2
+ },
+ {
+  "program": "T3",
+  "phase": "cr18",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "sup",
+    "lines": "66-66",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "con",
+    "lines": "67-67",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "isDoubted",
+    "lines": "64-64",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "counted",
+    "lines": "65-65",
+    "feeds": "belief.supportedBy, contradictedBy, caveats (and labels' because)"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "286-372",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "fullToken",
+    "lines": "408-412",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "readToken",
+    "lines": "414-423",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "428-453",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "restore",
+    "lines": "463-474",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 9
+ },
+ {
+  "program": "T3",
+  "phase": "cr19",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "initial",
+    "lines": "55-62",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "idTaste",
+    "lines": "82-85",
+    "feeds": "mushrooms.<id>.because, caveats, why; evidence ids"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "canRetaste",
+    "lines": "88-92",
+    "feeds": "retaste acceptance, hence belief, decision, journal and mushroom because"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomView",
+    "lines": "113-121",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "whyNot",
+    "lines": "137-149",
+    "feeds": "mushrooms.<id>.why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "mushroomRow",
+    "lines": "151-167",
+    "feeds": "mushrooms.<id>.because, caveats, why"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "referenced",
+    "lines": "284-293",
+    "feeds": "caveats kept for cited evidence"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "302-399",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "parseEv",
+    "lines": "421-428",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "refToken",
+    "lines": "432-435",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "ACTION_LETTER",
+    "lines": "430-430",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "readToken",
+    "lines": "443-452",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "457-482",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "restore",
+    "lines": "492-503",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decode",
+    "lines": "484-556",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 15
+ },
+ {
+  "program": "T3",
+  "phase": "cr20",
+  "units": [
+   {
+    "file": "glowcap.ts",
+    "name": "apply",
+    "lines": "304-411",
+    "feeds": "belief, decision (basis, reopenedBy, history), journal and caveats via accepted events"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "journalToken",
+    "lines": "471-475",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "JOURNAL_PREFIX",
+    "lines": "477-477",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "encode",
+    "lines": "479-502",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   },
+   {
+    "file": "glowcap.ts",
+    "name": "decode",
+    "lines": "504-577",
+    "feeds": "save/resume: restored evidence, caveats, journal and decision explanations"
+   }
+  ],
+  "count": 5
+ }
+]

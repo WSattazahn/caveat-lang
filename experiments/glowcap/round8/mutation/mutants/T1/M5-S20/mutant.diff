@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -263,7 +263,7 @@
+   if (bs === 'probably_safe') return { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: [...sup] };
+   if (bs === 'probably_unsafe') return { present: true, label: 'Probably a duskcap', canAbsorb: true, canTaste: true, because: [...con] };
+   // CR4: cite the counterexample only.
+-  return { present: true, label: 'Could be a duskcap — taste first', canAbsorb: true, canTaste: true, because: [...con] };
++  return { present: true, label: 'Could be a duskcap — taste first', canAbsorb: true, canTaste: true, because: [...con, 'absorb_cave'] };
+ }
+ 
+ function pushBounded<T>(list: T[], item: T, max: number): void {

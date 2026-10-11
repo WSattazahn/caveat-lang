@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -259,7 +259,7 @@
+     // CR2: twice bitten (remembered contradictions only, CR13).
+     label = 'Too risky — taste first';
+     because = contradictedBy;
+-    absorb = absorb ?? { reason: 'Too risky untasted', because: contradictedBy };
++    absorb = absorb ?? { reason: 'Too risky untasted', because: [...contradictedBy, 'absorb_cave'] };
+   } else {
+     const bs = beliefState(supportedBy.length, contradictedBy.length);
+     if (bs === 'none') [label, because] = ['Glowing mushroom', []];

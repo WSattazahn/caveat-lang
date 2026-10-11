@@ -1,0 +1,132 @@
+{
+ "T1": {
+  "diverged": 0,
+  "classes": {},
+  "other": []
+ },
+ "T3": {
+  "diverged": 0,
+  "classes": {},
+  "other": []
+ },
+ "C1": {
+  "diverged": 40,
+  "classes": {
+   "order": 29,
+   "timer": 11
+  },
+  "other": []
+ },
+ "C2": {
+  "diverged": 29,
+  "classes": {
+   "order": 29
+  },
+  "other": []
+ },
+ "C3": {
+  "diverged": 184,
+  "classes": {
+   "timer": 13,
+   "other": 3,
+   "order": 11,
+   "session": 157
+  },
+  "other": [
+   {
+    "sequence": 1,
+    "at": "mushrooms.pool.because",
+    "first": [
+     "absorb_pool"
+    ],
+    "other": [],
+    "lastEvents": [
+     {
+      "type": "tick",
+      "dt": 0.2
+     },
+     {
+      "type": "taste",
+      "id": "nowhere",
+      "kind": "duskcap"
+     },
+     {
+      "type": "taste",
+      "id": "nowhere",
+      "kind": "glowcap"
+     },
+     {
+      "type": "tick",
+      "dt": -0.01
+     }
+    ]
+   },
+   {
+    "sequence": 48,
+    "at": "mushrooms.ruin.why.absorb.caveats",
+    "first": [
+     "secondhand"
+    ],
+    "other": [
+     "doubted",
+     "secondhand"
+    ],
+    "lastEvents": [
+     {
+      "type": "absorb",
+      "id": "nowhere",
+      "kind": "bluecap"
+     },
+     {
+      "type": "absorb",
+      "id": "grove",
+      "kind": "duskcap"
+     },
+     {
+      "type": "witness",
+      "id": "grove",
+      "kind": "bluecap"
+     },
+     {
+      "type": "witness",
+      "id": "ruin",
+      "kind": "glowcap"
+     }
+    ]
+   },
+   {
+    "sequence": 69,
+    "at": "mushrooms.ruin.why.absorb.caveats",
+    "first": [
+     "secondhand"
+    ],
+    "other": [
+     "doubted",
+     "secondhand"
+    ],
+    "lastEvents": [
+     {
+      "type": "absorb",
+      "id": "pit",
+      "kind": "bluecap"
+     },
+     {
+      "type": "taste",
+      "id": "grove",
+      "kind": "duskcap"
+     },
+     {
+      "type": "taste",
+      "id": "grove",
+      "kind": "duskcap"
+     },
+     {
+      "type": "witness",
+      "id": "ruin",
+      "kind": "glowcap"
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -633,7 +633,7 @@
+     basis: basis.map(decodeEv),
+     reopenedBy: reopenedBy.map(decodeEv),
+     caveats: decodeCaveats(cav),
+-    history: history.map(([c, b]) => ({ change: c === 1 ? 'committed' : 'reopened', because: b.map(decodeEv) })),
++    history: history.map(([c, b]) => ({ change: c === 1 ? 'committed' : 'reopened', because: b.map(decodeEv).reverse() })),
+   };
+   return s;
+ }

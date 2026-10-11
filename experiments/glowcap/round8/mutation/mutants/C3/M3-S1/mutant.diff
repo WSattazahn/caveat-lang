@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -216,7 +216,6 @@
+     when k == sort.duskcap reveal e opposes glow_is_safe;
+     call shift_memory();
+     set e6 = qualified(1, e);
+-    when k == sort.duskcap and standing >= 1 reopen trust because e;
+ };
+ # Its plain code and journal entries (arguments without evidence).
+ proc note(k, code) {

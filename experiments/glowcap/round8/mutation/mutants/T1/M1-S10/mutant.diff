@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -467,7 +467,7 @@
+       if (e.type === 'doubt') {
+         if (isDoubted(s, ev)) fail(`${ev} is already doubted`);
+         if (!s.memory.some((o) => o.ev !== ev && !isDoubted(s, o.ev))) fail('at least one undoubted observation must remain');
+-        s.evidenceCaveats[ev] = [...(s.evidenceCaveats[ev] ?? []), DOUBTED];
++        s.evidenceCaveats[ev] = [...(s.evidenceCaveats[ev] ?? [])];
+         pushBounded(s.journal, { text: `I doubt what I saw at the ${name} mushroom.`, because: [ev] }, JOURNAL_MEMORY);
+       } else {
+         if (!isDoubted(s, ev)) fail(`${ev} is not doubted`);

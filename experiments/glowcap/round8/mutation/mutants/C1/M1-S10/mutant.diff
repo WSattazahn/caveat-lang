@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -280,7 +280,7 @@
+     # 1 while this life was consumed by a witness that is now doubted.
+     state $m_doubted_consumer = 0 min 0 max 1;
+     # What "Already eaten" cites: the consuming evidence, and `doubted` with it.
+-    define $m_eaten_cite = $m_regrow + if($m_doubted_consumer == 1, doubt_mark, 0);
++    define $m_eaten_cite = $m_regrow;
+ 
+     define $m_unknown = not $m_consumed and $m_taste == 0;
+     define $m_in_dark = has_caveat($m_taste, tasted_in_dark);

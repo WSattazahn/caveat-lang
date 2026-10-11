@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -181,7 +181,7 @@
+     note: bs === 'probably_safe' ? note(supported.length) : bs === 'probably_unsafe' ? note(contra.length) : '',
+     supportedBy: supported,
+     contradictedBy: contra,
+-    caveats: caveatsOf(s, [...supported, ...contra]),
++    caveats: caveatsOf(s, [...supported, ...contra, 'absorb_cave']),
+   };
+   const mushrooms: Record<string, MushroomView> = {};
+   for (const id of LEVEL) mushrooms[id] = mushroomView(s, id);

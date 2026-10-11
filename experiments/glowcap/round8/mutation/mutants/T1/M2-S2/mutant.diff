@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -632,7 +632,7 @@
+     state: DECISION_CODES[state] ?? fail('bad decision state'),
+     basis: basis.map(decodeEv),
+     reopenedBy: reopenedBy.map(decodeEv),
+-    caveats: decodeCaveats(cav),
++    caveats: caveatsOf(s, basis.map(decodeEv)),
+     history: history.map(([c, b]) => ({ change: c === 1 ? 'committed' : 'reopened', because: b.map(decodeEv) })),
+   };
+   return s;

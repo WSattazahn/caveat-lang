@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -268,7 +268,7 @@
+ function commit(s: State, basis: string[]): void {
+   const d = s.decision;
+   d.state = 'committed';
+-  d.basis = basis;
++  d.basis = [...basis, 'absorb_cave'];
+   d.basisCaveats = caveatsOf(s, basis);
+   d.reopenedBy = [];
+   pushHistory(s, { change: 'committed', because: [...basis] });

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -252,7 +252,7 @@
+   const dark = tc.includes(DARK);
+   const faded = tc.includes(FADED);
+   const qual = faded ? ' (taste has faded)' : dark ? ' (tasted in the dark)' : '';
+-  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] };
++  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: ['absorb_cave'] };
+   if (m.tasted === 'glowcap')
+     return { present: true, label: qual ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv] };
+   if (m.tasted === 'duskcap')

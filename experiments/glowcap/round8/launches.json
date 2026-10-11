@@ -1,7 +1,9 @@
 {
   "registration": {
     "stage1": "d42b70e",
-    "stage2": "4fcbca7"
+    "stage2": "4fcbca7",
+    "stage3": "b23c0cc",
+    "stage4": "57686de"
   },
   "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with the directory filled in. Model revision is not exposed to the dispatcher; tokens and duration are recorded where the agent tool reports them. The owner chose 'Now' for the writer and reviewer at 21:59 UTC on 2026-10-10 (amendment 3).",
   "agents": [
@@ -25,6 +27,98 @@
       "note": "the writer context resumed with REVIEW.md copied into its directory; files before the revision: REQUESTS.md cad30ac98078e62ba20229a1ff0b1abfafe90850f68294d4dc711e2f8e2dafd1, scenarios-r8.mjs 82c6a5688cc7fb3fee30ed1bc475125b9143cd47b3447694c692ab613a27bf6d",
       "tokens": 133892,
       "durationSeconds": 19
+    },
+    {
+      "role": "author",
+      "id": "C1",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C1",
+      "prompt": "prompts/author-caveat.md",
+      "tokens": 102826,
+      "toolUses": 142,
+      "durationSeconds": 2242
+    },
+    {
+      "role": "author",
+      "id": "T1",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T1",
+      "prompt": "prompts/author-ts.md",
+      "tokens": 184401,
+      "toolUses": 68,
+      "durationSeconds": 712
+    },
+    {
+      "role": "author",
+      "id": "C2",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C2",
+      "prompt": "prompts/author-caveat.md",
+      "tokens": 200309,
+      "toolUses": 177,
+      "durationSeconds": 3226
+    },
+    {
+      "role": "author",
+      "id": "T2",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T2",
+      "prompt": "prompts/author-ts.md",
+      "tokens": 214212,
+      "toolUses": 88,
+      "durationSeconds": 854
+    },
+    {
+      "role": "author",
+      "id": "C3",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C3",
+      "prompt": "prompts/author-caveat.md",
+      "tokens": 148646,
+      "toolUses": 157,
+      "durationSeconds": 2553
+    },
+    {
+      "role": "author",
+      "id": "T3",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T3",
+      "prompt": "prompts/author-ts.md",
+      "tokens": 200432,
+      "toolUses": 79,
+      "durationSeconds": 820
+    },
+    {
+      "role": "mutator (step 1, sites)",
+      "dispatched": "2026-10-11T06:22Z",
+      "directory": "/home/claude/glowcap-r8/mutator",
+      "prompt": "prompts/mutator.md",
+      "tokens": 242437,
+      "toolUses": 19,
+      "durationSeconds": 495,
+      "sites": 485,
+      "sitesSha256": "f75c7ca9e058cbb6d8b8100efe6ca63e63799ce6440fe190c9be0be7bcf85650",
+      "note": "sites.json copied to mutation/sites.json and frozen before step 2; the mutator was told only to continue with step 2, keep sites.json unchanged, and record any rewrite choice in CHANGE.md, applied the same across programs"
+    },
+    {
+      "role": "drift counter",
+      "dispatched": "2026-10-11T06:22Z",
+      "directory": "/home/claude/glowcap-r8/drift",
+      "prompt": "prompts/drift.md",
+      "tokens": 273803,
+      "toolUses": 55,
+      "durationSeconds": 598
+    },
+    {
+      "role": "mutator (step 2, mutants; the same context resumed)",
+      "dispatched": "2026-10-11T06:31Z",
+      "tokens": 301085,
+      "toolUses": 33,
+      "durationSeconds": 883,
+      "mutants": 485,
+      "note": "as reported by the agent tool for the resumed run"
     }
-  ]
+  ],
+  "runNote": "The owner chose 'Full run' at 02:46 UTC on 2026-10-11 (amendment 7); the six authors were dispatched in parallel after stage 4 was registered (57686de) and the counted probe was committed (amendment 8).",
+  "isolationAudit": "Each author transcript was searched for tool calls naming another author directory, the private store, the mutator, drift, writer or reviewer directories, the task output folder, the session scratchpad, round 7 or the repository, or the package runtime, lib/*.mjs or examples/. None did, apart from C2 reading its own background command output. C1, T2 and T3 read run.mjs in their own directory, which README-author.md does not list but which holds no other author work. C2 saw harness notices that C1 and C3 had finished, naming their output files, and did not read them. No run is excluded under row 7."
 }

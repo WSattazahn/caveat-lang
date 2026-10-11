@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -570,7 +570,7 @@
+   d.reopenedBy = unrefs(sv.d.r);
+   d.history = sv.d.h === '' ? [] : sv.d.h.split(';').map((e) => ({
+     change: e[0] === 'c' ? 'committed' as const : 'reopened' as const,
+-    because: unrefs(e.slice(1).replace(/,/g, ' ')),
++    because: unrefs(e.slice(1).replace(/,/g, ' ')).reverse(),
+   }));
+   d.sinceContradiction = unrefs(sv.d.sc);
+   return s;

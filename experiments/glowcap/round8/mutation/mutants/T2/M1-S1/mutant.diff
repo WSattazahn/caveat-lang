@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -120,7 +120,7 @@
+ }
+ 
+ function isDoubted(e: Evidence): boolean {
+-  return e.caveats.includes(DOUBTED);
++  return false;
+ }
+ 
+ // The belief's evidence: remembered (CR13), undoubted (CR18) observations only.

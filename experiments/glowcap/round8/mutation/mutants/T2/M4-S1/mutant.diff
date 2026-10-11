@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -301,7 +301,7 @@
+     belief: { state: bs, text, note, supportedBy, contradictedBy, caveats: caveatsOf(s, all) },
+     decision: {
+       state: s.decision.state,
+-      basis: [...s.decision.basis],
++      basis: [...s.decision.basis].reverse(),
+       reopenedBy: [...s.decision.reopenedBy],
+       caveats: [...s.decision.caveats],
+       history: s.decision.history.map((h) => ({ change: h.change, because: [...h.because] })),

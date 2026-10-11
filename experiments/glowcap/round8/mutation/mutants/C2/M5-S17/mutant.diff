@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -328,7 +328,7 @@
+     bind $m.label = "Probably a glowcap (taste has faded)"
+         when $m_retasted and $m_taste == 1 and carries(r_$m, faded) because qualified(1, r_$m);
+     bind $m.label = "Probably a duskcap (taste has faded)"
+-        when $m_retasted and $m_taste == 2 and carries(r_$m, faded) because qualified(1, r_$m);
++        when $m_retasted and $m_taste == 2 and carries(r_$m, faded) because qualified(1, r_$m), observed(a_cave);
+     bind $m.label = "" when $m_consumed because nothing;
+     bind $m.regrows_in = ceil($m_regrow);
+     bind $m.fades_in = 0;

@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -71,7 +71,7 @@
+   const journal = [];
+   for (let k = 1; k <= 6; k += 1) {
+     if (b.journal?.[`text${k}`] === undefined) continue;
+-    journal.push({ text: b.journal[`text${k}`], because: evidence(ex, 'journal', `cites${k}`), caveats: caveats(ex, ['journal', `cites${k}`]) });
++    journal.push({ text: b.journal[`text${k}`], because: evidence(ex, 'journal', `cites${k}`).reverse(), caveats: caveats(ex, ['journal', `cites${k}`]) });
+   }
+   return {
+     journal,

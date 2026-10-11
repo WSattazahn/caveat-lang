@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -64,7 +64,7 @@
+ // CR18: a doubted observation carries the 'doubted' caveat and does not count in the belief.
+ const isDoubted = (s: State, ev: string): boolean => (s.caveats[ev] ?? []).includes('doubted');
+ const counted = (s: State): Observation[] => s.memory.filter((o) => !isDoubted(s, o.ev));
+-const sup = (s: State): string[] => counted(s).filter((o) => o.kind === 'glowcap').map((o) => o.ev);
++const sup = (s: State): string[] => counted(s).filter((o) => o.kind === 'glowcap').map((o) => o.ev).concat('absorb_cave');
+ const con = (s: State): string[] => counted(s).filter((o) => o.kind === 'duskcap').map((o) => o.ev);
+ 
+ function beliefState(s: State): 'none' | 'probably_safe' | 'probably_unsafe' | 'uncertain' {

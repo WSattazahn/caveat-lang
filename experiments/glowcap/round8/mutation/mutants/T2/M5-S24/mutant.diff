@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -378,7 +378,7 @@
+   } else if (e.kind === 'duskcap') {
+     d.state = 'reopened';
+     pushBounded(d.reopenedBy, e.id, DECISION_KEEP);
+-    pushBounded(d.history, { change: 'reopened', because: [e.id] }, DECISION_KEEP);
++    pushBounded(d.history, { change: 'reopened', because: [e.id, 'absorb_cave'] }, DECISION_KEEP);
+     return 'reopened';
+   } else if (d.state === 'reopened' && s.recovery.length >= RECOVERY_COUNT && s.recovery[RECOVERY_COUNT - 1] === e.id) {
+     // CR7: the second glowcap observation since the most recent contradiction recommits.

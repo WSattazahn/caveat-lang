@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -642,7 +642,7 @@
+     a,
+     w: s.window.map(idCode),
+     r: s.recovery.map(idCode),
+-    d: [d.state[0], d.basis.map(idCode), d.reopenedBy.map(idCode), [...d.caveats], d.history.map((h): [string, string[]] => [h.change[0], h.because.map(idCode)])],
++    d: [d.state[0], d.basis.map(idCode).reverse(), d.reopenedBy.map(idCode), [...d.caveats], d.history.map((h): [string, string[]] => [h.change[0], h.because.map(idCode)])],
+     j: s.journal.map((x): [string, string[]] => [JOURNAL_LETTERS[x.entry], x.because.map(idCode)]),
+   };
+ }

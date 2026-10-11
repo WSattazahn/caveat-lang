@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -117,7 +117,7 @@
+   if (current) {
+     const grounds = v.commitment_grounds[current];
+     out.decision.basis = names(grounds?.evidence ?? []);
+-    out.decision.caveats = caveatNames(grounds?.caveats ?? []);
++    out.decision.caveats = caveatNames([...new Set(Object.values(ex).flatMap((props) => Object.values(props)).filter((x) => (x.evidence ?? []).some((n) => (grounds?.evidence ?? []).includes(n))).flatMap((x) => x.caveats ?? []))]);
+     out.decision.reopenedBy = names(journal
+       .filter((j) => j.commitment === current && j.change === 'reopened')
+       .flatMap((j) => j.because));

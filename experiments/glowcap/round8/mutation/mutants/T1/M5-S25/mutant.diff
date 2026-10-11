@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -299,7 +299,7 @@
+     s.sinceContradiction = [];
+     if (s.decision.state !== 'none') {
+       s.decision.state = 'reopened';
+-      pushBounded(s.decision.reopenedBy, ev, DECISION_MEMORY);
++      pushBounded(s.decision.reopenedBy, ev, DECISION_MEMORY); pushBounded(s.decision.reopenedBy, 'absorb_cave', DECISION_MEMORY);
+       const entry: HistoryEntry = { change: 'reopened', because: [ev] };
+       pushBounded(s.decision.history, entry, DECISION_MEMORY);
+       return entry;

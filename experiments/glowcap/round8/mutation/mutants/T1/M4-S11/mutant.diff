@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -622,7 +622,7 @@
+       if (m.retasted) s.evidenceCaveats[evidenceId('retaste', id, m.life)] = [];
+     }
+   });
+-  s.journal = v.j.map(([text, because]) => ({ text, because: because.map(decodeEv) }));
++  s.journal = v.j.map(([text, because]) => ({ text, because: because.map(decodeEv).reverse() }));
+   for (const j of s.journal) for (const ev of j.because) s.evidenceCaveats[ev] ??= [];
+   for (const [code, cs] of Object.entries(v.c)) s.evidenceCaveats[decodeEv(code)] = decodeCaveats(cs);
+   for (const [code, age] of Object.entries(v.t)) s.tasteAge[decodeEv(code)] = age;

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -186,7 +186,7 @@
+ type Refusal = { reason: string; because: string[] } | null;
+ 
+ function why(s: State, r: Refusal): Why {
+-  if (r === null) return { reason: '', because: [], caveats: [] };
++  if (r === null) return { reason: '', because: ['absorb_cave'], caveats: [] };
+   return { reason: r.reason, because: [...r.because], caveats: caveatsOf(s, r.because) };
+ }
+ 

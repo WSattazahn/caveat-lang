@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -141,7 +141,7 @@
+   const tasteEv = idTaste(s, id);
+   const contra = con(s);
+   const absorb = m.tasted === 'duskcap' ? why(s, 'Known duskcap', [tasteEv])
+-    : m.marked ? why(s, 'Marked to avoid', [])
++    : m.marked ? why(s, 'Marked to avoid', ['absorb_cave'])
+     : m.tasted === null && contra.length >= 2 ? why(s, 'Too risky untasted', contra)
+     : why(s, '', []);
+   const taste = m.tasted !== null ? why(s, 'Already tasted', [tasteEv]) : why(s, '', []);

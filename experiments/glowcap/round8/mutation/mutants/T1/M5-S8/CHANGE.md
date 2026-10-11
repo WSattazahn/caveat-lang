@@ -1,0 +1,20 @@
+# T1 M5 S8
+
+Site: add an evidence id the value never reads to the explanation list: whyNot: "Known duskcap" because
+
+File: `glowcap.ts`
+Line: 238 (line numbers are those of the original file)
+
+Line 238, before:
+
+```
+  if (m.tasted === 'duskcap') absorb = mk('Known duskcap', [tasteEv]);
+```
+
+Line 238, after:
+
+```
+  if (m.tasted === 'duskcap') absorb = mk('Known duskcap', [tasteEv, 'absorb_cave']);
+```
+
+Choice: Choice (same in T1-T3): the added evidence id is the literal `'absorb_cave'` (the cave mushroom's first-life absorption, which the value is not about), appended to the list (by spread, `.concat`, an extra push or an extra element).

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -228,7 +228,7 @@
+   if (d.state === 'none') {
+     if (beliefState(s) === 'probably_safe') commit(s, [ev]);
+   } else if (d.state === 'reopened' && d.sinceContradiction.length >= 2) {
+-    commit(s, d.sinceContradiction.slice(0, 2));
++    commit(s, d.sinceContradiction.slice(0, 2).reverse());
+   } else if (kind === 'duskcap') {
+     d.state = 'reopened';
+     d.reopenedBy.push(ev);

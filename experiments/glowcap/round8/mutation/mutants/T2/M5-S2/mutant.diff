@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -129,7 +129,7 @@
+     .map((id) => find(s, id))
+     .filter((e): e is Evidence => e !== undefined && !isDoubted(e));
+   const supportedBy = counted.filter((e) => e.kind === 'glowcap').map((e) => e.id);
+-  const contradictedBy = counted.filter((e) => e.kind === 'duskcap').map((e) => e.id);
++  const contradictedBy = counted.filter((e) => e.kind === 'duskcap').map((e) => e.id).concat('absorb_cave');
+   return { supportedBy, contradictedBy, all: counted.map((e) => e.id) };
+ }
+ 

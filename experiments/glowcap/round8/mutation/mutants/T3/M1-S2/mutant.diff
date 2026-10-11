@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -88,7 +88,7 @@
+ function canRetaste(s: State, id: string): boolean {
+   const m = s.mushrooms[id];
+   return !OUT_OF_REACH.includes(id) && !m.consumed && m.tasted !== null && !m.retasted
+-    && (s.caveats[evId('taste', id, m.life)] ?? []).includes('taste_faded');
++    && false;
+ }
+ 
+ // Evidence id for an observation of a mushroom's given life: absorb_cave, absorb_cave_2, ...

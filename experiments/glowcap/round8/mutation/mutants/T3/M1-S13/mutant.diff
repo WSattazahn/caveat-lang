@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -512,7 +512,6 @@
+   const restore = (t: ReturnType<typeof readToken>) => {
+     const cav: string[] = [];
+     if (t.what === 'witness') cav.push('secondhand');
+-    if (t.dark) cav.push('tasted_in_dark');
+     if (t.what === 'taste' || t.what === 'retaste') {
+       const age = unfaded.get(t.ev);
+       if (age !== undefined) s.tasteAges[t.ev] = age;

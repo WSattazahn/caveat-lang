@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -688,7 +688,7 @@
+       state: states[st as keyof typeof states],
+       basis: basis.map(idFromCode),
+       reopenedBy: reopenedBy.map(idFromCode),
+-      caveats: [...caveats],
++      caveats: caveatsOf({ evidence } as State, basis.map(idFromCode)),
+       history: history.map(([c, because]) => ({
+         change: c === 'c' ? ('committed' as const) : ('reopened' as const),
+         because: because.map(idFromCode),

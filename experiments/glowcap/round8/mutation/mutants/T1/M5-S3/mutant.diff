@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -227,7 +227,7 @@
+ function whyNot(s: State, id: string): { absorb: WhyView; taste: WhyView } {
+   const m = s.mushrooms[id]!;
+   const mk = (reason: string, because: string[]): WhyView => ({ reason, because, caveats: caveatsOf(s, because) });
+-  const allowed = mk('', []);
++  const allowed = mk('', ['absorb_cave']);
+   const tasteEv = identifyingTaste(s, id);
+   if (m.consumed) {
+     const by = m.consumedBy !== null ? [m.consumedBy] : [];

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -449,7 +449,7 @@
+     when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 call shift_records();
+     when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 set rb = rb + (obs * 100 + 30) * 100000000;
+     when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64
+-        commit trust because enough using e5 + e6;
++        commit trust because enough using e6 + e5;
+     when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 set trust_code = trust_code - standing + 11;
+ };
+ on doubt when via != via.witness reject "Only what a creature showed can be doubted.";

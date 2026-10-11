@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -537,7 +537,7 @@
+         because qualified($e_g, d, doubted);
+     # An observation's entry rests on its page.
+     bind journal.$e_cites = j1_s + j1_c + j1_x when $e_shown and $e_obs and $e_page == 1
+-        because j1_s, j1_c, j1_x;
++        because j1_s, j1_c, j1_x, observed(a_cave);
+     bind journal.$e_cites = j2_s + j2_c + j2_x when $e_shown and $e_obs and $e_page == 2
+         because j2_s, j2_c, j2_x;
+     bind journal.$e_cites = j3_s + j3_c + j3_x when $e_shown and $e_obs and $e_page == 3

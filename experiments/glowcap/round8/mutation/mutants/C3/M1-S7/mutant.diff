@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -355,8 +355,6 @@
+     # Forty-five seconds after it is consumed, a stranger grows in its place.
+     # CR5: a minute after the taste (CR19: or the retaste), it fades. A
+     # regrowth before then leaves the old taste to fade on its own clock.
+-    on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and not $m_retasted
+-        qualify taste_$m with taste_faded;
+     on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and $m_retasted
+         qualify retaste_$m with taste_faded;
+     on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 set $m_tasted_at = -1;

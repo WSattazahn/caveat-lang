@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -389,7 +389,7 @@
+       if (m.tasted !== null) fail(`mushroom ${e.id} already tasted`);
+       m.tasted = e.kind as Kind;
+       const ev = evidenceId('taste', e.id, m.life);
+-      s.evidenceCaveats[ev] = s.glow > 0 ? [] : [DARK];
++      s.evidenceCaveats[ev] = s.glow > 0 ? [] : [];
+       s.tasteAge[ev] = 0;
+       observe(s, 'taste', e.id, ev, e.kind as Kind);
+       return;

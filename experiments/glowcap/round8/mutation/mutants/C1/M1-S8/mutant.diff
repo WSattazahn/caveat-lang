@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -199,7 +199,6 @@
+ proc observe(e evidence, found, dark, act, ident) {
+     when found == 1 reveal e supports glow_safe;
+     when found == 2 reveal e opposes glow_safe;
+-    when dark == 1 qualify e with tasted_in_dark;
+     call note(qualified(ident * 100 + 2 * act - 2 + found, e), 0);
+     # Remember it as the newest of six; the oldest is forgotten.
+     set g1 = g2;

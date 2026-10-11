@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -414,7 +414,7 @@
+     bind $m.label = "" when $m_eaten because nothing;
+ 
+     # CR11: why an action is not allowed.
+-    bind $m.whyAbsorb = "" because nothing;
++    bind $m.whyAbsorb = "" because observed(absorb_cave);
+     bind $m.whyAbsorb = "Too risky untasted" when $m_too_risky because contradiction;
+     bind $m.whyAbsorb = "Marked to avoid" when $m_marked == 1 because nothing;
+     bind $m.whyAbsorb = "Known duskcap" when $m_bitter because $m_tasted;

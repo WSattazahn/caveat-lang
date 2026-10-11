@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -130,7 +130,7 @@
+     .filter((e): e is Evidence => e !== undefined && !isDoubted(e));
+   const supportedBy = counted.filter((e) => e.kind === 'glowcap').map((e) => e.id);
+   const contradictedBy = counted.filter((e) => e.kind === 'duskcap').map((e) => e.id);
+-  return { supportedBy, contradictedBy, all: counted.map((e) => e.id) };
++  return { supportedBy, contradictedBy, all: counted.map((e) => e.id).concat('absorb_cave') };
+ }
+ 
+ // Union of the caveats carried by the cited evidence, in first-seen order.

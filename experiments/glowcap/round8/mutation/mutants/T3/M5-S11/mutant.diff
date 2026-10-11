@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -144,7 +144,7 @@
+     : m.marked ? why(s, 'Marked to avoid', [])
+     : m.tasted === null && contra.length >= 2 ? why(s, 'Too risky untasted', contra)
+     : why(s, '', []);
+-  const taste = m.tasted !== null ? why(s, 'Already tasted', [tasteEv]) : why(s, '', []);
++  const taste = m.tasted !== null ? why(s, 'Already tasted', [tasteEv, 'absorb_cave']) : why(s, '', []);
+   return { absorb, taste };
+ }
+ 

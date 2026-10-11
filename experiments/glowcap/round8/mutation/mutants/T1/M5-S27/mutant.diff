@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -318,7 +318,7 @@
+ 
+ function observe(s: State, source: Source, id: string, ev: string, kind: Kind): void {
+   const change = record(s, ev, kind);
+-  pushBounded(s.journal, { text: JOURNAL_TEXT[source]![kind].replace('<id>', id), because: [ev] }, JOURNAL_MEMORY);
++  pushBounded(s.journal, { text: JOURNAL_TEXT[source]![kind].replace('<id>', id), because: [ev, 'absorb_cave'] }, JOURNAL_MEMORY);
+   if (change !== null) {
+     const text = change.change === 'committed' ? 'I trust glowing mushrooms now.' : 'I no longer trust glowing mushrooms.';
+     pushBounded(s.journal, { text, because: [...change.because] }, JOURNAL_MEMORY);

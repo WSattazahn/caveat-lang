@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -398,7 +398,7 @@
+     bind $m.label = "Probably a duskcap (tasted in the dark)" when not $m_consumed and $m_taste == 2 and $m_in_dark because $m_taste;
+     bind $m.label = "Probably a glowcap (taste has faded)" when not $m_consumed and $m_taste == 1 and $m_faded because $m_taste;
+     bind $m.label = "Probably a duskcap (taste has faded)" when not $m_consumed and $m_taste == 2 and $m_faded because $m_taste;
+-    bind $m.label = "" when $m_consumed because nothing;
++    bind $m.label = "" when $m_consumed because observed(absorb_cave);
+ 
+     # Why an action is not available (first match wins, so it is written last).
+     bind $m.why_absorb = "" because nothing;

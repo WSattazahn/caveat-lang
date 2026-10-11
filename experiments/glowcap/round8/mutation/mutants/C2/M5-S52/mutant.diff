@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -570,7 +570,7 @@
+     define $e_trust_shown = $e_h > 0 and $e_after < 6;
+     bind journal.$e_trust = "I trust glowing mushrooms now." when $e_trust_shown and $e_h != 6;
+     bind journal.$e_trust = "I no longer trust glowing mushrooms." when $e_trust_shown and $e_h == 6;
+-    bind journal.$e_trust_cites = $e_h when $e_trust_shown because $e_h;
++    bind journal.$e_trust_cites = $e_h when $e_trust_shown because $e_h, observed(a_cave);
+     bind journal.$e_trust_cites = qualified($e_h, d, doubted)
+         when $e_trust_shown and ($e_flag1 or ($e_flag2 and $e_h == 7))
+         because qualified($e_h, d, doubted);

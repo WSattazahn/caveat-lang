@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -258,7 +258,7 @@
+   if (contradictedBy.length >= 2) {
+     // CR2: twice bitten (remembered contradictions only, CR13).
+     label = 'Too risky — taste first';
+-    because = contradictedBy;
++    because = [...contradictedBy, 'absorb_cave'];
+     absorb = absorb ?? { reason: 'Too risky untasted', because: contradictedBy };
+   } else {
+     const bs = beliefState(supportedBy.length, contradictedBy.length);

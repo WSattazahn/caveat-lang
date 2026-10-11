@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -356,7 +356,7 @@
+ // Records an accepted observation, forgets beyond the window, updates trust and the journal.
+ function observe(s: State, e: Evidence): void {
+   const change = decide(s, e);
+-  pushBounded(s.journal, { entry: e.kind, because: [e.id] }, JOURNAL_KEEP);
++  pushBounded(s.journal, { entry: e.kind, because: [e.id, 'absorb_cave'] }, JOURNAL_KEEP);
+   if (change !== null) {
+     const because = change === 'committed' ? [...s.decision.basis] : [e.id];
+     pushBounded(s.journal, { entry: change, because }, JOURNAL_KEEP);

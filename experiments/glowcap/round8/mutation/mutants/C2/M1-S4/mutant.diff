@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -248,7 +248,6 @@
+     on taste when not $m_can_taste reject "The slime cannot taste that mushroom.";
+     # The caveats go on first, so a decision this taste commits rests on them.
+     on taste reveal t_$m;
+-    on taste when glow == 0 qualify t_$m with dark;
+     on taste set $m_fade = 60;
+     on taste set life_now = $m_life;
+     on taste call observe(t_$m, sort, 2, $index);

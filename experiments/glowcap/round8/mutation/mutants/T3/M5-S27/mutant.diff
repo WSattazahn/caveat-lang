@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -241,7 +241,7 @@
+ function pushHistory(s: State, entry: HistoryEntry): void {
+   s.decision.history.push(entry);
+   keepLast(s.decision.history, DECISION_KEEP);
+-  pushJournal(s, { entry: entry.change, because: [...entry.because] });
++  pushJournal(s, { entry: entry.change, because: [...entry.because, 'absorb_cave'] });
+ }
+ 
+ function pushJournal(s: State, entry: JournalEntry): void {

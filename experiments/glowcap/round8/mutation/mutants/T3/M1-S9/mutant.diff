@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -386,7 +386,7 @@
+       for (const ev of Object.keys(s.tasteAges)) {
+         const age = s.tasteAges[ev] + dt;
+         if (age >= TASTE_FADE - EPS) {
+-          s.caveats[ev] = [...(s.caveats[ev] ?? []), 'taste_faded'];
++          s.caveats[ev] = [...(s.caveats[ev] ?? [])];
+           delete s.tasteAges[ev];
+         } else s.tasteAges[ev] = age;
+       }

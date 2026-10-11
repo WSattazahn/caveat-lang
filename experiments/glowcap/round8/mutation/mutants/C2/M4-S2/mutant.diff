@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -116,7 +116,7 @@
+   const current = v.decision_series.trust?.current;
+   if (current) {
+     const grounds = v.commitment_grounds[current];
+-    out.decision.basis = names(grounds?.evidence ?? []);
++    out.decision.basis = names(grounds?.evidence ?? []).reverse();
+     out.decision.caveats = caveatNames(grounds?.caveats ?? []);
+     out.decision.reopenedBy = names(journal
+       .filter((j) => j.commitment === current && j.change === 'reopened')

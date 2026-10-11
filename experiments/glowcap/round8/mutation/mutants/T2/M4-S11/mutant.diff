@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -686,7 +686,7 @@
+     recovery: sv.r.map(idFromCode),
+     decision: {
+       state: states[st as keyof typeof states],
+-      basis: basis.map(idFromCode),
++      basis: basis.map(idFromCode).reverse(),
+       reopenedBy: reopenedBy.map(idFromCode),
+       caveats: [...caveats],
+       history: history.map(([c, because]) => ({

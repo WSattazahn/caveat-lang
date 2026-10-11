@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -105,7 +105,7 @@
+   // The program's journal records e1..e6, oldest first: each shows an entry
+   // and, after it, the trust entry the same event wrote, when the program shows
+   // them. What an entry rests on is the explanation of its `cites` binding.
+-  const entry = (text, cites) => ({ text: b.journal[text], because: evidence(ex, 'journal', cites), caveats: caveats(ex, 'journal', cites) });
++  const entry = (text, cites) => ({ text: b.journal[text], because: evidence(ex, 'journal', cites).reverse(), caveats: caveats(ex, 'journal', cites) });
+   out.journal = ['e1', 'e2', 'e3', 'e4', 'e5', 'e6']
+     .flatMap((e) => [[`${e}_text`, `${e}_cites`], [`${e}_trust`, `${e}_trust_cites`]])
+     .filter(([text]) => b.journal?.[text] !== undefined)

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -320,7 +320,7 @@
+       if (m.tasted !== null && m.tasted !== kind) fail(`${id} kind contradicts its taste`);
+       const ev = evId('witness', id, m.life);
+       consume(m, ev);
+-      observe(s, ev, kind, ['secondhand']);
++      observe(s, ev, kind, []);
+       break;
+     }
+     case 'taste': {

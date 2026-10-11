@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -91,7 +91,7 @@
+       basis: names(grounds?.evidence ?? []),
+       caveats: [...(grounds?.caveats ?? [])],
+       reopenedBy: names(changes.filter((e) => e.commitment === current && e.change === 'reopened').flatMap((e) => e.because)),
+-      history: changes.map((e) => ({ change: e.change, because: names(e.because) })),
++      history: changes.map((e) => ({ change: e.change, because: names(e.because).reverse() })),
+     },
+   };
+ }

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -496,7 +496,7 @@
+       const e = rememberedWitness(s, event.evidence);
+       if (!isDoubted(e)) throw new Error(`${e.id} is not doubted`);
+       e.caveats = e.caveats.filter((c) => c !== DOUBTED);
+-      journal(s, { entry: 'undoubt', because: [e.id] });
++      journal(s, { entry: 'undoubt', because: [e.id, 'absorb_cave'] });
+       return;
+     }
+     case 'tick': {

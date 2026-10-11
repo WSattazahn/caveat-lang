@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -150,7 +150,7 @@
+ 
+ function mushroomRow(s: State, id: string) {
+   const m = s.mushrooms[id];
+-  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] as string[] };
++  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: ['absorb_cave'] as string[] };
+   const tasteEv = idTaste(s, id);
+   const tc = m.tasted !== null ? (s.caveats[tasteEv] ?? []) : [];
+   const qual = tc.includes('taste_faded') ? ' (taste has faded)' : tc.includes('tasted_in_dark') ? ' (tasted in the dark)' : null;
