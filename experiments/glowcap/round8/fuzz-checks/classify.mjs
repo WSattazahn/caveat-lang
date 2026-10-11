@@ -1,9 +1,8 @@
 // Post-hoc: sorts every divergence in an all-divergences.mjs dump into
 // classes. order: the same evidence in another order (a decision's basis, or
 // a journal entry's because). timer: a countdown one second off. session: the
-// program's policy could not be created or resumed, or its view threw.
-// Anything else is
-// listed as other, with both values.
+// program's policy could not be created or resumed, or its view threw. Anything
+// else is listed as other, with both values.
 //
 //   node fuzz-checks/classify.mjs DUMP.json > results/fuzz-classes.json
 import { readFileSync } from 'node:fs';

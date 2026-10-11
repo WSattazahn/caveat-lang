@@ -1,3 +1,9 @@
+// Post-hoc: opens one program's policy up to 400 times in one process, each
+// with 2,000 ticks, a view, a save and a resume, never calling free(), and
+// prints when creating a policy first throws. The fuzz runs synchronously, so
+// the runtime's finalizers cannot free the sessions in between.
+//
+//   node fuzz-checks/session-reuse.mjs /home/claude/glowcap-r8/authors/C3/impl/adapter.mjs
 import { pathToFileURL } from 'node:url';
 const m = await import(pathToFileURL(process.argv[2]).href);
 if (m.ready) await m.ready;
