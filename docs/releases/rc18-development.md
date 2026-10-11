@@ -1,10 +1,21 @@
 # CAVEAT 0.1.0-rc.18 development plan
 
-Status: **draft for the owner's approval.** This plan sorts what Glowcap
-round 8 and the first agent pilot found into work for rc.18 and questions
-for the owner. Approving it starts implementation threads. It does not
-approve any merge, tag, npm or registry publication, deployment or outreach;
-each of those still waits for the owner's words at its own step.
+Status: **approved by the owner on 2026-10-11 at 18:24 UTC**, with the four
+scope answers recorded under "Decisions" below. This plan sorts what Glowcap
+round 8 and the first agent pilot found into work for rc.18. Approving it
+starts implementation threads. It does not approve any merge, tag, npm or
+registry publication, deployment or outreach; each of those still waits for
+the owner's words at its own step.
+
+## Decisions
+
+| Decision | Answer | Notes that bind the implementation | Source |
+| --- | --- | --- | --- |
+| Q1. Qualifications that can be taken back, and on an earlier occurrence | **B.** Taking back in rc.18; the earlier-occurrence form in 1.1 | The take-back aims at the **qualification record**, the `C qualifies E@k` edges a `qualify` added, not at an occurrence named in source. Glowcap's sequence is doubt (CR18), retaste (CR19, a `renew`), undoubt (CR20), and a new occurrence does not carry a late `qualify` ([Renewal 0.1](../../spec/caveat-renewal-0.1.md) L42–44), so a take-back that reached only the current occurrence would not solve CR20. If the spec cannot keep item 2's design question out, the 2026-10-24 gate moves Q1 to 1.1 rather than stretching. The take-back is a recorded event that marks the edge, never a deletion; frozen bases, the journal and archives never change. P3 says whether `proofs/lean/Caveat/Late.lean` gains a take-back step or leaves it unmodeled, as [the proofs README](../../proofs/lean/README.md) L251–255 does for renewal. The owner notes that B's 6 days is optimistic if the take-back's reach has to be settled in P3 | Owner, 2026-10-11 18:24 UTC |
+| Q2. Observation order in binding explanations | **A.** Order them in View 0.2 before 1.0 | Caveats stay sorted (the 2026-10-10 decision stands). This extends [the design note](../design/view-0.2.md)'s grounds-only scope (L46–49) with the same first-observation mechanism on one more field. The delta gate reruns over the full discovered corpus; that is the standing rule, not optional. View 0.1 stays byte for byte | Owner, 2026-10-11 18:24 UTC |
+| Q3. A decision with grounds and no value | **B.** Document the idiom now; the form in 1.1 | The guide says outright that a hold's value is not a verdict | Owner, 2026-10-11 18:24 UTC |
+| Q4. `explain` names the event behind each grounds occurrence | **A.** In rc.18, kit only | An additive field on `caveat-explain/0.1`. In rc.17 a `renew` effect carries the new occurrence (`kit/lib/session.d.mts` L668–672) and a `reveal` effect names the evidence it observed (L636–642), and `explain` already replays each event with its payload; `kit/lib/explain.mjs` does not read effects yet, which is the whole job | Owner, 2026-10-11 18:24 UTC |
+| Merge of this plan | Merge commit, after the status and decisions above are recorded | | Owner, 2026-10-11 18:24 UTC |
 
 [Path to 1.0](path-to-1.0.md) stays the plan of record. This file covers the
 cycle between rc.17 and the feature freeze it names (2026-11-16, an
@@ -93,11 +104,11 @@ Probe for #198, on published rc.17: the issue's program with
 form. `explain` shows `hold@1 = null … based on nothing` for the first and
 `hold2@1 = 1 … based on build_check, ci_run` for the second.
 
-## Scope decisions for the owner
+## Scope decisions as put to the owner
 
-Each goes to the owner as a card through the coordinator. Work proceeds on
-the recommendation until an answer arrives, and stops at the spec PR, which
-needs the owner's merge in any case.
+The options and costs below are as the owner saw them on the cards. The
+answers, with their binding notes, are under "Decisions" at the top; each
+chose the recommended option.
 
 **Q1. Qualifications that can be taken back, and on an earlier occurrence
 (items 1 and 2).** These two decided round 8's gap: CR18 and CR20 cost
@@ -163,17 +174,17 @@ Regression cases are named after their finding (`round8_item1_…`,
 | PR | Content | Depends on | Effort | Proposed date |
 | --- | --- | --- | --- | --- |
 | P0 | This plan | — | 0.5 | 2026-10-11 |
-| P2 | Q2 if A: View 0.2 spec and implementation for ordered binding explanations; delta gate over the whole discovered corpus; View 0.1 bytes unchanged | P0, Q2 | 3 | 2026-10-16 |
-| P3 | Q1 spec PR (B: reversible qualification; A: both): syntax, record, effects, save field, restore rule, View and delta, interaction with frozen bases, withdrawal, departure and the collector; corpus sweep showing no accepted program changes | P0, Q1 | 2 | by 2026-10-24 (gate) |
-| P4 | Q1 implementation: runtime, save, View 0.2 delta, kit types; tests named after round 8 items 1 (and 2); the departure gate and save sweep | P3 merged | 4 (B) or 8 (A) | 2026-10-31 (B) |
+| P2 | Q2 (A): View 0.2 spec and implementation for ordered binding explanations; delta gate over the whole discovered corpus; View 0.1 bytes unchanged | P0 | 3 | 2026-10-16 |
+| P3 | Q1 (B) spec PR for a qualification that can be taken back, aimed at the qualification record (see "Decisions"): syntax, record, effects, save field, restore rule, View and delta, interaction with frozen bases, withdrawal, departure and the collector; corpus sweep showing no accepted program changes; whether `Late.lean` gains a take-back step | P0 | 2 | by 2026-10-24 (gate) |
+| P4 | Q1 implementation: runtime, save, View 0.2 delta, kit types; tests named after round 8 item 1, including CR20's doubt, renew, take-back sequence; the departure gate and save sweep | P3 merged | 4 | 2026-10-31 |
 | P5 | R8-7: find why an unfreed session traps, raise an error that names the cause, and document `free()` in the kit guides; regression `round8_item7_unfreed_sessions` | P0 | 1.5 | 2026-10-17 |
 
 ### Docs and kit thread (parallel)
 
 | PR | Content | Effort | Proposed date |
 | --- | --- | --- | --- |
-| P1 | #200 and #201 in the kit reference; R8-4 (the series cap idiom and its save cost), R8-8 (countdowns: point to integer clocks from the kit reference), R8-5 (say that `caveat test` prints check warnings and `check --strict` fails on them), the #198 idiom (and Q3 if A, after its spec) | 1 | 2026-10-15 |
-| P6 | Q4 if A: `explain` text and optional JSON field for the observing event of each grounds occurrence; tests on `examples/readiness` | 2 | 2026-10-21 |
+| P1 | #200 and #201 in the kit reference; R8-4 (the series cap idiom and its save cost), R8-8 (countdowns: point to integer clocks from the kit reference), R8-5 (say that `caveat test` prints check warnings and `check --strict` fails on them), the #198 idiom (Q3 B), saying outright that a hold's value is not a verdict | 1 | 2026-10-15 |
+| P6 | Q4 (A): `explain` text and an additive optional field in `caveat-explain/0.1` for the observing event of each grounds occurrence; tests on `examples/readiness` | 2 | 2026-10-21 |
 | P7 | R8-5 post-hoc note in round 8's record: the C006 warning count for every M5 mutant, labelled post hoc like the other `fuzz-checks/`. It changes no figure or verdict | 0.5 | 2026-10-15 |
 | P8 | R8-6 assessment: whether a round 8 program meets Member Symbols §11.6 (a second real program not written for it). Report only; #107 stays a draft unless the owner decides otherwise | 0.5 | 2026-10-17 |
 
@@ -185,9 +196,9 @@ Regression cases are named after their finding (`round8_item1_…`,
 | P10 | COMPATIBILITY preparation named there: each spec's status line matches its stable list; each promise row names a check that runs in CI; a checked-in rc.17 save restored by the candidate, as the first per-release fixture | 2 | 2026-11-04 |
 | P11 | rc.18 candidate: release notes and the release procedure. Tag and publication wait for the owner | 1 + owner | 2026-11-07 |
 
-With Q1 as option A, P4 ends about 2026-11-04 and P11 moves to about
-2026-11-11, still before the freeze. If the P3 gate is missed, P11 ships
-without Q1 and the freeze date does not move.
+The owner notes that P4's estimate is optimistic if the take-back's reach
+has to be settled in P3. If the P3 gate is missed, Q1 moves to 1.1, P11
+ships without it, and the freeze date does not move.
 
 ## Not in rc.18
 
@@ -200,16 +211,11 @@ without Q1 and the freeze date does not move.
   round 8.
 - Mr. Caveat's presentation pass (Path to 1.0, D4): its own review track.
 
-## Questions for the owner, in one batch
+## Answers
 
-1. Q1: qualifications that can be taken back and on an earlier occurrence.
-   Recommended: B.
-2. Q2: observation order in binding explanations. Recommended: A.
-3. Q3: a decision with no value. Recommended: B.
-4. Q4: `explain` names the event behind each occurrence. Recommended: A.
-
-None of them moves the freeze date or changes the 1.x surface beyond
-additions that COMPATIBILITY.md already allows.
+Q1 B, Q2 A, Q3 B, Q4 A (owner, 2026-10-11 18:24 UTC). None of them moves
+the freeze date or changes the 1.x surface beyond additions that
+COMPATIBILITY.md already allows.
 
 ## What this plan rests on
 
