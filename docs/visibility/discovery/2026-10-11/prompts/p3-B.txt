@@ -1,0 +1,3 @@
+Two approvals depend on different evidence. When one piece of evidence is withdrawn, only the approval that used it should be reconsidered. Implement and test that in JavaScript or TypeScript.
+
+Find and use an existing library or tool suited to this, if one exists.

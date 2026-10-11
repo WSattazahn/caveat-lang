@@ -1,0 +1,3 @@
+An assistant keeps facts about a user and makes recommendations from them. Some facts go stale or get corrected. Write code so that each recommendation can show which facts it used, and so that a corrected fact causes the affected recommendations to be reconsidered without erasing why they were first made.
+
+Find and use an existing library or tool suited to this, if one exists.
