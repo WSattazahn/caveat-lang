@@ -1,0 +1,23 @@
+{
+  "stage": 4,
+  "at": "2026-10-11T05:26:01.652Z",
+  "node": "22.22.0",
+  "files": {
+    "PROTOCOL.md": "a1fdf5780cee673202737ce9837b09b1debd775881c81bcdb34e8044d64131bb",
+    "register.mjs": "85ab8aa60cca1441ae7237d48a46fe7f36ef69ead736568e02f4e1b5b860dd1b",
+    "lib.mjs": "88fb7acb9af379a0adcffd536ef2074cc5cd1555888919130a909bd7eea2e62f",
+    "exec.mjs": "8861e8f579af67c5c78452af773361aa7958553005ddd4c8900010be89c5e287",
+    "fuzz.mjs": "e7b35631a5644753d3a15764085b319a51a88d483f9d1ea630f3425f9fc40a71",
+    "prepare.mjs": "b84002358394fa6d9fae8f09968201e4b5495fe1cc05112b3d4e95e106a78166",
+    "packet/manifest.json": "15885733f7ef26699e409d6d1d90b00fb08bc07b07c579b7916c937a3f18f3de",
+    "prompts/author-caveat.md": "6cede717b8281bb541a52657b283f3ebac88434885acf5e379787b106bd97ab5",
+    "prompts/author-ts.md": "60f398777a383da716d2b888d5f1a0094d90ee5cf4c30c5da73218a6227db2c3",
+    "prompts/mutator.md": "d09adefd6db2ed653f0967a013fb3be8d9e19192af775ad999617591b1d6f81e",
+    "prompts/drift.md": "5940ef7f4cfbd26c55fc73d771b5d65af17105aec29d995011222aaa9202964f",
+    "workspace/README-author.md": "7623e5a36313e05dcced4267d3dbdac9158fdac7208c38951d30c07493249213",
+    "workspace/run.mjs": "7a32bd48c6f42292458e9ccbe9d314b4dfabd9e8d472ae10d09a84127efbc4bf",
+    "workspace/README-mutator.md": "863dc76d5455cbf6a4d3333fda754336af6e2e180bfedfac41e25ca4c3526d33",
+    "workspace/README-drift.md": "9b59516ab031f9920284b723706f3c4c5f0e8e7476fa57908a15151859bd7575",
+    "../compare-views.mjs": "8abb507bbc45fa38c9fe135173f3cf451af872479da0d20f4832ce9e26d5852f"
+  }
+}
