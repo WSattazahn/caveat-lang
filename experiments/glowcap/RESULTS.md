@@ -1211,6 +1211,21 @@ nothing about how a mutant is judged.
   (`fuzz-checks/m5-bare-name.sh`, `results/m5-bare-name.txt`) makes all
   215 fail to load. So the score depends on which spelling a careless author
   reaches for, and `caveat check` does not catch the one this mutator chose.
+
+  *Post-hoc note, added 2026-10-11 after the record, not registered; it
+  changes no figure or verdict.* `caveat check` did report every one of
+  these mutants, as a warning rather than a load failure. `mutate.mjs`
+  counts a static catch only when the program fails to load (exit status 2),
+  so it stored each mutant's warning count (`checkWarnings` in
+  `results/mutation.json`) without counting it. Rerun on rc.17
+  (`fuzz-checks/m5-check-warnings.mjs`, `results/m5-check-warnings.json`),
+  all 215 Caveat M5 mutants load and each gets C006 `citation-unreachable`
+  and no other code: C1 30 of 30, C2 53 of 53, C3 132 of 132, with the same
+  counts `mutation.json` stored. The three authors' final programs get no
+  warning. `caveat test` prints these warnings with its run, and
+  `caveat check --strict` exits 1 on them; the round's harness used neither
+  as a gate. The sentence above holds for what the harness counted: the
+  check refused none of them at load.
 - **M1 in C2, drop a caveat.** Nine of C2's 27 M1 mutants survived. Seven drop
   the `d, doubted` arguments from the recovery commitment, a why citation or
   journal pages 1 to 5, the CR20 workaround above, which the suite exercises
@@ -1337,7 +1352,8 @@ observed, not a design.
    because the series cannot forget (long play).
 5. **Static coverage of `observed(E)` citations.** `caveat check` accepts a
    `because` that cites `observed(E)` the value never reads; it is refused
-   only at run time (mutation, M5).
+   only at run time (mutation, M5). (Post hoc: it loads with a C006 warning
+   in every case; see the note under "Mutation score".)
 6. **Text in events.** An event parameter cannot carry an evidence id;
    adapters parse it into numbers.
 7. **Sessions a host never frees.** A host that creates many sessions in one
@@ -1373,6 +1389,7 @@ node fuzz-checks/classify.mjs DUMP.json > results/fuzz-classes-seed7.json
 node mutate.mjs --programs=C1 > C1.json   # and C2,T1 / C3 / T2,T3; join in sites.json order
 bash fuzz-checks/survivors-release.sh > results/survivors-release-between.txt
 bash fuzz-checks/m5-bare-name.sh > results/m5-bare-name.txt
+node fuzz-checks/m5-check-warnings.mjs --caveat=$A/C1/node_modules/caveat-lang > results/m5-check-warnings.json   # post hoc, rc.17
 node fuzz-checks/first-failures.mjs C2   # each author
 ```
 

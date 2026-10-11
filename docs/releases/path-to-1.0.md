@@ -62,6 +62,24 @@ workstreams with different acceptance rules:
 | #179 | Open draft, 18 checks green, based on `9a2d1dd` (behind main) | PR #179 |
 | Visibility | Grok V1 report captured 2026-10-09T04:33:13Z (third-party; not reproduced by us) | to be archived unchanged, PR C3 below |
 
+### Baseline on 2026-10-11
+
+The table above stays as checked on 2026-10-10. These rows record what has
+changed since, checked against `main` = `ba9bf55` (merge of #202) on
+2026-10-11. The current cycle's plan is the
+[rc.18 development plan](rc18-development.md), approved by the owner on
+2026-10-11 at 18:24 UTC; it decides nothing this file decides.
+
+| Item | State on 2026-10-11 | Receipt |
+| --- | --- | --- |
+| Published package | `caveat-lang@0.1.0-rc.17`, published 2026-10-11 02:35:20 UTC with provenance: View 0.2 and its delta, the source digest in saves, the starter (A1 to A5, B1, B2) | [rc.17 record](v0.1.0-rc.17.md), tag `v0.1.0-rc.17` on `304a16d` |
+| npm channels | `latest` and `next` = rc.17 | rc.17 record, "Distribution closeout"; [distribution check](v0.1.0-rc.17-distribution.json) |
+| MCP Registry | rc.17 is active and latest, published 2026-10-11 04:30:21 UTC | same |
+| GitHub prerelease | rc.17, 2026-10-11 05:25 UTC, with the tested tarball, `SHA256SUMS` and the publication record | [release `v0.1.0-rc.17`](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.17) |
+| rc.16 closeout | Recorded: `next`, the registry entry and Socket | [#191](https://github.com/WSattazahn/caveat-lang/pull/191) |
+| B6, round 8 | **Met.** The record is committed; TypeScript won and neither rule was met, which this blocker does not require | [#195](https://github.com/WSattazahn/caveat-lang/pull/195) (`a8470e1`), [the "Round 8" section of RESULTS.md](../../experiments/glowcap/RESULTS.md#round-8-fresh-authors-blind-requests-rc17) |
+| B7, pilot | **Met.** The first agent pilot, a fresh session with only the published rc.17 package and its docs, worked on a real task on the owner's approved setup. Its four Caveat findings are filed and triaged into rc.18 | [#198](https://github.com/WSattazahn/caveat-lang/issues/198) to [#201](https://github.com/WSattazahn/caveat-lang/issues/201); [rc.18 plan, "The pilot's issues"](rc18-development.md#the-pilots-issues) |
+
 ### What exists and will not be rebuilt
 
 - Departure, lineage compaction, the archive and the collector: rc.16 runtime.

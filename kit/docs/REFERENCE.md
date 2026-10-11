@@ -19,9 +19,9 @@ installed.
 | Command | What it answers |
 | --- | --- |
 | `validate PROGRAM` | Does the program load? Lists its events, histories and displayed values. |
-| `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). |
+| `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). With `--strict` it exits 1 when there is a warning. |
 | `types PROGRAM` | What does a host send and read? TypeScript declarations for its events, payloads and displayed values, from its [interface](reference/spec/caveat-interface-0.1.md). |
-| `test SCENARIOS…` | Did each scenario get the outcomes and snapshot values it expects ([scenarios](reference/spec/caveat-scenarios-0.1.md))? |
+| `test SCENARIOS…` | Did each scenario get the outcomes and snapshot values it expects ([scenarios](reference/spec/caveat-scenarios-0.1.md))? An expected scalar must be equal, an array must have the same length and match element by element in order, and an object matches only the members it lists; `{"$set": [...]}` ignores order. It prints `check`'s warnings for each program and runs on. |
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, and why is each displayed value what it is? |
 | `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](reference/spec/caveat-dependents-0.1.md). |
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
@@ -86,10 +86,10 @@ end of the line; `--` is not a comment.
 | --- | --- |
 | `claim NAME;` | Something evidence bears on. |
 | `evidence NAME from "SOURCE";` | Evidence. The source is a label, not authentication. |
-| `caveat NAME consequence LEVEL;` | A caveat. LEVEL is `negligible`, `low`, `material`, `high` or `catastrophic`. |
+| `caveat NAME consequence LEVEL;` | A caveat. LEVEL is `negligible`, `low`, `material`, `high` or `catastrophic`. The level is reported in the snapshot's `symbols` and changes no outcome; a rule that reads the caveat, such as `when has_caveat(STATE, NAME) reject "…"`, makes it matter. |
 | `CAVEAT qualifies EVIDENCE;` | The caveat goes with that evidence and everything computed from it. |
 | `readings NAME from EVIDENCE limit N;` | A stream of up to N readings. |
-| `decisions NAME limit N [reopened by STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)). |
+| `decisions NAME limit N [reopened by STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)). A series has no `window`, so every revision stays in the save; cap recommits ([guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)). |
 | `state NAME = EXPRESSION [min A max B];` | A number. Bounds default to, and may not exceed, `-1e12..1e12`. |
 | `event NAME [PARAMETER, …];` | A parameter is `NAME min A max B`, `NAME in A B …`, `NAME kind KIND` or `NAME id` ([identifiers](reference/spec/caveat-identifiers-0.1.md)). |
 | `identifiers limit N;` | Required before any `id` parameter. |
@@ -97,7 +97,7 @@ end of the line; `--` is not a comment.
 | `fn NAME(A, B) = EXPRESSION;` | A pure function. It cannot read state or evidence. |
 | `proc NAME(PARAMETER, …) { STEP; … };` | Steps run by `call`. A parameter is a number, or `NAME readings`, `decisions`, `evidence`, `claim` or `caveat` ([procedures](reference/spec/caveat-procedure-symbols-0.1.md)). |
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |
-| `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). |
+| `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). A countdown from a fractional clock can show a second too many; one that must agree to the tick uses an [integer clock](reference/spec/caveat-elapsed-0.1.md#integer-clocks). |
 | `renewable EVIDENCE limit N;` | Evidence whose name can move to up to N distinct occurrences ([renewal](reference/spec/caveat-renewal-0.1.md)). |
 | `for KIND as $NAME { STATEMENT; … };` | The body once per member of KIND: each `entity NAME kind KIND at PLACE;`, in order, after `place PLACE kind KIND;`. `state $m_eaten = 0;` declares `cave_eaten`, `pool_eaten` and so on, and `when target == target.$m` selects the member an event parameter `target kind KIND` names. Every body statement ends with `;` ([repetition](reference/spec/caveat-repetition-0.1.md)). |
 
@@ -112,7 +112,7 @@ sees what the earlier ones did.
 | `set STATE = EXPRESSION [because CITATION, …]` | Sets a number. |
 | `sample STREAM = EXPRESSION supports\|opposes CLAIM` | Records a reading. |
 | `reveal EVIDENCE [supports\|opposes CLAIM]` | Observes evidence, optionally with a stance ([neutral reveal](reference/spec/caveat-neutral-reveal-0.1.md)). |
-| `commit SERIES because enough\|budget\|deadline [using EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, …]` | Makes a decision. GRANT is evidence or `latest(STREAM)`. `for X` requires the grant's value to equal X ([permission](reference/spec/caveat-permission-0.1.md)). |
+| `commit SERIES because enough\|budget\|deadline [using EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, …]` | Makes a decision. GRANT is evidence or `latest(STREAM)`. `for X` requires the grant's value to equal X ([permission](reference/spec/caveat-permission-0.1.md)). To keep "not ready" with its grounds, commit a second series whose value is not a verdict ([guide](reference/docs/AI_AUTHORING.md#record-not-ready-with-its-reasons)). |
 | `reopen SERIES because EVIDENCE\|latest(STREAM)\|caveated(STATE, CAVEAT)` | Reopens the current revision. |
 | `withdraw EVIDENCE\|latest(STREAM) because EVIDENCE` | Marks it wrong. Later reads carry a `withdrawn` caveat ([withdrawal](reference/spec/caveat-withdrawal-0.1.md)). |
 | `qualify EVIDENCE with CAVEAT [after SECONDS]` | Attaches a caveat now, or after that much session time. |

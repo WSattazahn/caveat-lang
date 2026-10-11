@@ -356,3 +356,8 @@ section 11.
   `define` reason correctly (a define can read event parameters); the
   section 8 advisory is C005; only `for`-block templates form families. Still
   a draft, not implemented.
+- 2026-10-11: Glowcap round 8's three Caveat programs checked against
+  section 11.6 ([report](../experiments/glowcap/round8/MEMBER-SYMBOLS.md)).
+  None qualifies: every event has one `kind` parameter, and round 8's need
+  to name evidence from an event is an earlier occurrence, which a reference
+  does not name. Still a draft, not implemented; the design is unchanged.
