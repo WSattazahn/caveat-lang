@@ -292,6 +292,17 @@ To recover, load again: `loadRuntimeFromDirectory()` always gives a fresh
 instance, and `loadRuntime()` given a module URL imports a fresh copy once the
 earlier instance has trapped.
 
+Close each session with `close()` once you no longer need it. A session holds
+runtime memory until it is closed, and the garbage collector frees an
+unclosed one only after its last reference is gone and only between
+synchronous runs, so a host that opens many sessions in one run (a test
+loop, a fuzzer, a batch of saves resumed and dropped) can exhaust the
+runtime's WebAssembly memory. The runtime then traps, and the `fatal` error
+says it ran out of memory and how many sessions were still open
+(`runtime.openSessions`). Load the runtime again to continue. Code that uses
+the runtime's `WebReactiveSession` directly frees a session with `free()`, and
+`WebReactiveSession.out_of_memory()` tells whether a trap came from memory.
+
 In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
 Serve the installed files over HTTP and load the runtime from URLs (adjust
 these paths to your server layout):

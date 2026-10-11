@@ -96,7 +96,10 @@ export class CaveatSession {
 
   #fail(error) {
     this.#state = 'fatal';
-    if (isTrap(error)) this.#runtime.markTrapped();
+    if (isTrap(error)) {
+      this.#runtime.markTrapped();
+      return new CaveatError('fatal', this.#runtime.trapMessage(error));
+    }
     return error instanceof CaveatError ? error : fatalFrom(error);
   }
 
@@ -240,6 +243,7 @@ export class CaveatSession {
   close() {
     if (this.#state === 'open' && !this.#runtime.trapped) {
       this.#state = 'closed';
+      this.#runtime.released(this);
       try { this.#inner.free(); } catch (error) { if (isTrap(error)) this.#runtime.markTrapped(); }
     }
     this.#state = 'closed';
@@ -253,7 +257,12 @@ const lifecycles = new WeakMap();
 function lifecycleOf(SessionClass) {
   let lifecycle = lifecycles.get(SessionClass);
   if (!lifecycle) {
-    lifecycle = { trapped: false };
+    // open counts the sessions made through this instance and not yet closed
+    // or collected: what a trap for lack of memory reports.
+    lifecycle = { trapped: false, open: 0 };
+    lifecycle.collected = typeof FinalizationRegistry === 'function'
+      ? new FinalizationRegistry(() => { lifecycle.open -= 1; })
+      : null;
     lifecycles.set(SessionClass, lifecycle);
   }
   return lifecycle;
@@ -269,16 +278,47 @@ function lifecycleOf(SessionClass) {
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
   const refuse = () => new CaveatError('fatal', 'this runtime instance trapped; load a fresh one');
+  // A session made through this runtime, counted until it is closed or
+  // collected.
+  const opened = inner => {
+    const session = new CaveatSession(inner, runtime);
+    lifecycle.open += 1;
+    lifecycle.collected?.register(session, undefined, session);
+    return session;
+  };
+  // The error for a call that trapped, kind as given unless it trapped.
+  const failure = (error, kind) => {
+    if (!isTrap(error)) return new CaveatError(kind, messageOf(error));
+    lifecycle.trapped = true;
+    return new CaveatError('fatal', runtime.trapMessage(error));
+  };
   const runtime = {
     identity: Object.freeze({ ...identity }),
     get trapped() { return lifecycle.trapped; },
     markTrapped() { lifecycle.trapped = true; },
+    // How many sessions made through this runtime instance are neither
+    // closed nor collected.
+    get openSessions() { return lifecycle.open; },
+    released(session) {
+      if (lifecycle.collected?.unregister(session) ?? true) lifecycle.open -= 1;
+    },
+    // What a trap means. A runtime that can say it ran out of memory
+    // (out_of_memory) is named as the cause, with the sessions still open:
+    // a host that never closes its sessions exhausts memory this way, and
+    // the bare trap says only "unreachable" (Glowcap round 8, item 7).
+    trapMessage(error) {
+      let outOfMemory = false;
+      try { outOfMemory = SessionClass.out_of_memory?.() === true; } catch { /* the trap stands as reported */ }
+      if (!outOfMemory) return messageOf(error);
+      return `the runtime ran out of WebAssembly memory with ${lifecycle.open} session(s) open `
+        + `(trap: ${messageOf(error)}). Close each session with close() once it is no longer needed. `
+        + 'This runtime instance is now unusable; load it again.';
+    },
     open(source) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
-      try { return new CaveatSession(new SessionClass(source), runtime); } catch (error) {
-        if (isTrap(error)) lifecycle.trapped = true;
-        throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
+      try { return opened(new SessionClass(source)); } catch (error) {
+        throw failure(error, 'load');
       }
     },
     // Advisory warnings for a program that loads (spec/caveat-check-0.1.md).
@@ -290,8 +330,7 @@ export function createRuntime(SessionClass, identity = {}) {
         throw new CaveatError('load', 'this runtime build has no check; it predates caveat check');
       }
       try { return JSON.parse(SessionClass.check(source)); } catch (error) {
-        if (isTrap(error)) lifecycle.trapped = true;
-        throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
+        throw failure(error, 'load');
       }
     },
     // The program's events, states, bindings and declared names
@@ -304,16 +343,14 @@ export function createRuntime(SessionClass, identity = {}) {
         throw new CaveatError('load', 'this runtime build has no interface; it predates caveat types');
       }
       try { return JSON.parse(SessionClass.interface(source)); } catch (error) {
-        if (isTrap(error)) lifecycle.trapped = true;
-        throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
+        throw failure(error, 'load');
       }
     },
     restore(source, saved) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string' || typeof saved !== 'string') throw new TypeError('source and save must be text');
-      try { return new CaveatSession(SessionClass.restore(source, saved), runtime); } catch (error) {
-        if (isTrap(error)) lifecycle.trapped = true;
-        throw new CaveatError(isTrap(error) ? 'fatal' : 'restore', messageOf(error));
+      try { return opened(SessionClass.restore(source, saved)); } catch (error) {
+        throw failure(error, 'restore');
       }
     },
   };
