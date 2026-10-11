@@ -1,0 +1,590 @@
+scene "Glowcap: the slime learns which glowing mushrooms are safe.";
+
+# Names are kept short because they are repeated throughout a save, which must
+# stay small. The adapter shows them by their view names:
+#   evidence a_<id> = absorb_<id>, t_<id> = taste_<id>, w_<id> = witness_<id>,
+#   r_<id> = retaste_<id>;
+#   caveats dark = tasted_in_dark, faded = taste_faded.
+
+# The level and its look-alike mushrooms.
+place level kind level;
+entity cave kind mushroom at level;
+entity pool kind mushroom at level;
+entity ruin kind mushroom at level;
+entity grove kind mushroom at level;
+entity pit kind mushroom at level;   # out of the slime's reach: only other creatures eat it
+
+# The decision: absorb glowing mushrooms without tasting. The runtime's journal
+# keeps its six most recent changes.
+decisions trust limit 256;
+journal window 6;
+
+# Effects on the slime, in seconds left.
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 30;
+
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+event retaste target kind mushroom, sort in glowcap duskcap;
+event witness target kind mushroom, sort in glowcap duskcap;
+event mark target kind mushroom;
+event unmark target kind mushroom;
+event tick dt min 0 max 0.1;
+# Doubt a remembered witness: act 3 (the adapter's reading of `witness_`) of
+# the mushroom's life `life` (1 for witness_<id>, n for witness_<id>_<n>).
+event doubt target kind mushroom, act min 0 max 4, life min 0 max 99999;
+event undoubt target kind mushroom, act min 0 max 4, life min 0 max 99999;
+
+caveat dark consequence material;        # tasted while the slime was not glowing
+caveat faded consequence material;       # the taste is more than a minute old
+caveat secondhand consequence material;  # seen happen to another creature
+caveat doubted consequence material;     # the player says the creature's reaction misled
+# The player's word that a witness misled. A doubt can be taken back, and a
+# caveat put on evidence cannot, so `doubted` is never put on the witness
+# itself: whatever cites a doubted witness cites it as
+# qualified(..., d, doubted) while it is doubted. (The adapter leaves `d` out
+# of the view's evidence lists.)
+evidence d from "the player's doubt";
+
+# ---------------------------------------------------------------- the journal
+# Each accepted observation (absorb, taste, witness, retaste) writes a page. Pages
+# j1..j6 hold the six most recent observations, oldest first, and they are
+# also everything the slime remembers: the belief is built from them.
+# A page jK holds (short names, as they repeat in every save):
+#   jK_n  life * 1000 + act * 100 + kind * 10 + mushroom (act 1 absorbed,
+#         2 tasted, 3 saw eaten, 4 tasted again; kind 1 glowcap, 2 duskcap;
+#         life 1, 2, ... of the mushroom), a plain number;
+#   jK_s  support: 1 grounded on the observation's evidence if it showed a
+#         glowcap, else 0;
+#   jK_c  contradiction: the same for a duskcap;
+#   jK_x  while the observation is doubted, its grounds moved out of jK_s/jK_c.
+# The journal the player reads is separate (entries e1..e6, below), since
+# doubts are written there too.
+entity j1 kind page at level;
+entity j2 kind page at level;
+entity j3 kind page at level;
+entity j4 kind page at level;
+entity j5 kind page at level;
+entity j6 kind page at level;
+
+# Turn the page: every page moves one older, the oldest is forgotten and j6 is
+# left blank for the event to write.
+proc turn_page() {
+    set j1_n = j2_n;
+    set j1_s = j2_s;
+    set j1_c = j2_c;
+    set j1_x = j2_x;
+    set j2_n = j3_n;
+    set j2_s = j3_s;
+    set j2_c = j3_c;
+    set j2_x = j3_x;
+    set j3_n = j4_n;
+    set j3_s = j4_s;
+    set j3_c = j4_c;
+    set j3_x = j4_x;
+    set j4_n = j5_n;
+    set j4_s = j5_s;
+    set j4_c = j5_c;
+    set j4_x = j5_x;
+    set j5_n = j6_n;
+    set j5_s = j6_s;
+    set j5_c = j6_c;
+    set j5_x = j6_x;
+    set j6_n = 0;
+    set j6_s = 0;
+    set j6_c = 0;
+    set j6_x = 0;
+};
+
+# The remembered belief: sums over the pages, so their grounds are exactly the
+# remembered observations of each kind.
+define support = j1_s + j2_s + j3_s + j4_s + j5_s + j6_s;
+define contradiction = j1_c + j2_c + j3_c + j4_c + j5_c + j6_c;
+define belief_none = support == 0 and contradiction == 0;
+define belief_safe = support > 0 and contradiction == 0;
+define belief_unsafe = support == 0 and contradiction > 0;
+define belief_uncertain = support > 0 and contradiction > 0;
+
+# ---------------------------------------------------------------- trust
+# 1 while this event is committing trust.
+state trusting = 0 min 0 max 1;
+# The life of the mushroom being observed, for observe.
+state life_now = 1 min 1 max 99999;
+
+# One accepted observation of evidence e, which showed kind s: act says how
+# (1 absorbed, 2 tasted, 3 saw eaten, 4 tasted again) and who is the mushroom.
+# (`0 * x` adds nothing to a number but grounds it on what x rests on.)
+# The mushroom's life is in life_now.
+proc observe(e evidence, s, act, who) {
+    reveal e;
+    call turn_page();
+    set j6_n = life_now * 1000 + act * 100 + s * 10 + who;
+    when s == sort.glowcap set j6_s = qualified(1, e);
+    when s == sort.duskcap set j6_c = qualified(1, e);
+    # The journal: a record for this observation, and the trust entry it
+    # writes, if any (e6_h). The record keeps the witnesses it cites (this
+    # page's, and page j5's for a recovery), and whether page j5 is doubted.
+    call write_entry();
+    set e6_n = 2000 * floor(j5_n / 100000000) + act * 100 + s * 10 + who;
+    set e6_r = j6_ref + 1000000 * j5_ref;
+    # Every contradiction after trust was committed reopens it.
+    when s == sort.duskcap and committed(trust) set trusting = 1;
+    when trusting == 1 reopen trust because e;
+    when trusting == 1 set e6_h = 6 + 0 * j6_c;
+    set trusting = 0;
+    # While trust has never been committed, the observation after which the
+    # belief is probably safe commits it, based on that one observation.
+    when not committed(trust) and support > 0 and contradiction == 0 set trusting = 1;
+    when trusting == 1 commit trust because enough using j6_s;
+    when trusting == 1 set e6_h = 5 + 0 * j6_s;
+    set trusting = 0;
+    # While trust is reopened, the second glowcap since the latest
+    # contradiction commits it again, based on those two observations. Only a
+    # contradiction reopens trust, and that second glowcap commits it, so while
+    # it is reopened every observation since the latest contradiction but the
+    # newest was a single glowcap at most: the second one is a glowcap whose
+    # previous observation (page j5) was a glowcap.
+    # (A doubted glowcap still counts here: page j5's code says what it was,
+    # and its grounds are then held in j5_x. A basis that rests on a doubted
+    # observation carries `doubted`.)
+    when s == sort.glowcap and reopened(trust) and j5_n > 0 and j5_glow and history_count(trust) < 256
+        set trusting = 1;
+    when trusting == 1 and j5_n < 100000000 commit trust because enough using j5_s + j6_s;
+    when trusting == 1 and j5_n >= 100000000 commit trust because enough using qualified(j5_x + j6_s, d, doubted);
+    when trusting == 1 set e6_h = 7 + 0 * (j5_s + j5_x + j6_s);
+    set trusting = 0;
+};
+
+# ---------------------------------------------------------------- doubt
+# A doubt names a remembered witness; it must not be doubted already, and some
+# other remembered observation must stay undoubted. An undoubt names a
+# remembered, doubted witness. Neither is an observation: no page turns, and
+# trust is not touched; each writes a journal entry (at the end of the file).
+define doubt_named = j1_named or j2_named or j3_named or j4_named or j5_named or j6_named;
+define doubt_named_open = (j1_named and j1_open) or (j2_named and j2_open) or (j3_named and j3_open)
+    or (j4_named and j4_open) or (j5_named and j5_open) or (j6_named and j6_open);
+define open_count = if(j1_open, 1, 0) + if(j2_open, 1, 0) + if(j3_open, 1, 0)
+    + if(j4_open, 1, 0) + if(j5_open, 1, 0) + if(j6_open, 1, 0);
+on doubt when not doubt_named reject "The slime does not remember seeing that.";
+on doubt when not doubt_named_open reject "The slime already doubts that.";
+on doubt when open_count < 2 reject "The slime must keep at least one observation it does not doubt.";
+define doubt_named_doubted = (j1_named and not j1_open) or (j2_named and not j2_open)
+    or (j3_named and not j3_open) or (j4_named and not j4_open) or (j5_named and not j5_open)
+    or (j6_named and not j6_open);
+on undoubt when not doubt_named_doubted reject "The slime does not doubt anything it remembers seeing there.";
+on doubt when not observed(d) reveal d;
+# Which witness: mushroom + 10 * life (as the journal entries hold it).
+define doubt_ref = target + 10 * life;
+# The doubted or undoubted witness's grounds, for its journal entry.
+state note_g = 0 min 0 max 1;
+
+# ---------------------------------------------------------------- mushrooms
+for mushroom as $m routed by target {
+    evidence a_$m from "absorbing $m";
+    evidence t_$m from "tasting $m";
+    evidence w_$m from "watching another creature eat $m";
+    evidence r_$m from "tasting $m again";
+    secondhand qualifies w_$m;
+    # Each life of the mushroom is a new occurrence of its evidence: a_cave@2, ...
+    # Only the current life's occurrence stays live; older ones stay cited while
+    # something (a page, a basis, the runtime's journal) still rests on them.
+    renewable a_$m window 1;
+    renewable t_$m window 1;
+    renewable w_$m window 1;
+    renewable r_$m window 1;
+    # Seconds until a consumed mushroom regrows; it is consumed while this is above 0.
+    state $m_regrow = 0 min 0 max 45;
+    define $m_consumed = $m_regrow > 0;
+    # Marked by the player to avoid (not evidence): 1 while marked.
+    state $m_marked = 0 min 0 max 1;
+    # This life's taste: 0 untasted, 1 sweet (glowcap), 2 bitter (duskcap).
+    state $m_taste = 0 min 0 max 2;
+    # Seconds until this life's taste fades (0 when untasted or faded).
+    state $m_fade = 0 min 0 max 60;
+    # Which life of the mushroom this is (its evidence occurrence: 1, 2, ...).
+    state $m_life = 1 min 1 max 99999;
+    # 1 while this life's witness is doubted.
+    state $m_doubted = 0 min 0 max 1;
+    define $m_tasted = observed(t_$m);
+    # Retasted in this life: from then on the retaste identifies the mushroom.
+    define $m_retasted = observed(r_$m);
+    # A retaste needs this life's taste to have faded, and only one per life.
+    define $m_can_retaste = not $m_consumed and $m_taste > 0 and carries(t_$m, faded)
+        and not $m_retasted and not $m_out_of_reach;
+    # Which evidence consumed the current life: the occurrence is renewed only
+    # when the mushroom regrows, so while it is consumed one of these is observed.
+    define $m_eaten_by_absorb = $m_consumed and observed(a_$m);
+    define $m_eaten_by_witness = $m_consumed and observed(w_$m);
+
+    # Twice bitten: after two remembered contradictions an unknown mushroom is
+    # too risky to absorb.
+    define $m_too_risky = not $m_consumed and $m_taste == 0 and contradiction >= 2;
+    define $m_out_of_reach = $index == target.pit;
+    define $m_can_absorb = not $m_consumed and $m_taste != 2 and not $m_too_risky
+        and $m_marked == 0 and not $m_out_of_reach;
+    define $m_can_taste = not $m_consumed and $m_taste == 0 and not $m_out_of_reach;
+
+    # Absorbing: consumes it, reveals its kind, and bears on the general belief.
+    on absorb when not $m_can_absorb reject "The slime will not absorb that mushroom.";
+    on absorb when $m_taste == 1 and sort == sort.duskcap reject "That mushroom tasted sweet; it is not a duskcap.";
+    on absorb set life_now = $m_life;
+    on absorb call observe(a_$m, sort, 1, $index);
+    on absorb set $m_regrow = 45;
+    on absorb set $m_marked = 0;
+
+    # Watching another creature eat it: consumed, teaches secondhand, no effect
+    # on the slime. Being too risky for the slime does not stop another creature.
+    on witness when $m_consumed reject "That mushroom is gone.";
+    on witness when $m_taste == 1 and sort == sort.duskcap reject "That mushroom tasted sweet; it is not a duskcap.";
+    on witness when $m_taste == 2 and sort == sort.glowcap reject "That mushroom tasted bitter; it is not a glowcap.";
+    on witness set life_now = $m_life;
+    on witness call observe(w_$m, sort, 3, $index);
+    on witness set $m_regrow = 45;
+    on witness set $m_marked = 0;
+
+    # Tasting identifies this one mushroom, and teaches like an absorption.
+    # A taste made in the dark carries `dark`; a minute later it has `faded`
+    # (below, on tick).
+    on taste when not $m_can_taste reject "The slime cannot taste that mushroom.";
+    # The caveats go on first, so a decision this taste commits rests on them.
+    on taste reveal t_$m;
+    on taste when glow == 0 qualify t_$m with dark;
+    on taste set $m_fade = 60;
+    on taste set life_now = $m_life;
+    on taste call observe(t_$m, sort, 2, $index);
+    on taste set $m_taste = sort;
+
+    # Tasting again, once the taste has faded: an observation like a taste.
+    on retaste when not $m_can_retaste reject "The slime cannot taste that mushroom again.";
+    on retaste when sort != $m_taste reject "That is not what the mushroom tasted like.";
+    on retaste reveal r_$m;
+    on retaste when glow == 0 qualify r_$m with dark;
+    on retaste set $m_fade = 60;
+    on retaste set life_now = $m_life;
+    on retaste call observe(r_$m, sort, 4, $index);
+
+    # The player's mark: the slime will not absorb a marked mushroom; nothing else changes.
+    on mark when $m_out_of_reach reject "That mushroom is out of reach.";
+    on mark when $m_consumed reject "That mushroom is gone.";
+    on mark when $m_marked == 1 reject "That mushroom is already marked.";
+    on mark set $m_marked = 1;
+    on unmark when $m_marked == 0 reject "That mushroom is not marked.";
+    on unmark set $m_marked = 0;
+
+    # Whether this life's witness is doubted (the rejects above came first).
+    on doubt when life == $m_life set $m_doubted = 1;
+    on undoubt when life == $m_life set $m_doubted = 0;
+
+    # A minute after the taste, it has faded.
+    define $m_fades = $m_fade > 0 and $m_fade <= dt;
+    on tick when $m_fades and not $m_retasted qualify t_$m with faded;
+    on tick when $m_fades and $m_retasted qualify r_$m with faded;
+
+    # Forty-five seconds after it is consumed a new, unknown mushroom grows in
+    # its place, without limit. Earlier lives' evidence stays as it was: a
+    # taste of the old life that has not faded yet is scheduled to fade on its
+    # own clock, since its name will mean the new life's taste.
+    define $m_regrows = $m_regrow > 0 and $m_regrow <= dt;
+    on tick when $m_regrows and $m_fade > dt and not $m_retasted
+        qualify t_$m with faded after $m_fade - dt;
+    on tick when $m_regrows and $m_fade > dt and $m_retasted
+        qualify r_$m with faded after $m_fade - dt;
+    on tick when $m_regrows renew r_$m;
+    on tick when $m_regrows renew a_$m;
+    on tick when $m_regrows renew t_$m;
+    on tick when $m_regrows renew w_$m;
+    on tick when $m_regrows set $m_taste = 0;
+    on tick when $m_regrows set $m_fade = 0;
+    on tick when $m_regrows set $m_life = min(99999, $m_life + 1);
+    on tick when $m_regrows set $m_doubted = 0;
+    on tick set $m_regrow = max(0, $m_regrow - dt);
+    on tick set $m_fade = max(0, $m_fade - dt);
+
+    # The HUD for this mushroom: the last matching binding wins.
+    bind $m.present = not $m_consumed;
+    bind $m.marked = $m_marked == 1;
+    bind $m.label = "Glowing mushroom" when belief_none because nothing;
+    bind $m.label = "Probably a glowcap" when belief_safe because support;
+    bind $m.label = "Probably a duskcap" when belief_unsafe because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when belief_uncertain because contradiction;
+    bind $m.label = "Too risky — taste first" when $m_too_risky because contradiction;
+    bind $m.label = "Glowcap" when $m_tasted and $m_taste == 1 because qualified(1, t_$m);
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_tasted and $m_taste == 1 and carries(t_$m, dark) because qualified(1, t_$m);
+    bind $m.label = "Duskcap — avoid" when $m_tasted and $m_taste == 2 because qualified(1, t_$m);
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_tasted and $m_taste == 2 and carries(t_$m, dark) because qualified(1, t_$m);
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_tasted and $m_taste == 1 and carries(t_$m, faded) because qualified(1, t_$m);
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_tasted and $m_taste == 2 and carries(t_$m, faded) because qualified(1, t_$m);
+    # A retaste replaces the taste, with its own caveats.
+    bind $m.label = "Glowcap" when $m_retasted and $m_taste == 1 because qualified(1, r_$m);
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_retasted and $m_taste == 1 and carries(r_$m, dark) because qualified(1, r_$m);
+    bind $m.label = "Duskcap — avoid" when $m_retasted and $m_taste == 2 because qualified(1, r_$m);
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_retasted and $m_taste == 2 and carries(r_$m, dark) because qualified(1, r_$m);
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_retasted and $m_taste == 1 and carries(r_$m, faded) because qualified(1, r_$m);
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_retasted and $m_taste == 2 and carries(r_$m, faded) because qualified(1, r_$m);
+    bind $m.label = "" when $m_consumed because nothing;
+    bind $m.regrows_in = ceil($m_regrow);
+    bind $m.fades_in = 0;
+    bind $m.fades_in = ceil($m_fade) when not $m_consumed;
+    bind $m.can_absorb = $m_can_absorb because nothing;
+    bind $m.can_taste = $m_can_taste because nothing;
+    bind $m.can_retaste = $m_can_retaste because nothing;
+    # Why an action is not allowed (first match wins, so it is written last).
+    bind $m.why_absorb = "" because nothing;
+    bind $m.why_absorb = "Too risky untasted" when $m_too_risky because contradiction;
+    bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because nothing;
+    bind $m.why_absorb = "Known duskcap" when $m_tasted and $m_taste == 2 because qualified(1, t_$m);
+    bind $m.why_absorb = "Known duskcap" when $m_retasted and $m_taste == 2 because qualified(1, r_$m);
+    bind $m.why_absorb = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.why_absorb = "Already eaten" when $m_eaten_by_absorb because qualified(1, a_$m);
+    bind $m.why_absorb = "Already eaten" when $m_eaten_by_witness because qualified(1, w_$m);
+    bind $m.why_absorb = "Already eaten" when $m_eaten_by_witness
+        and qualified($m_doubted, w_$m, doubted) == 1 because qualified(1, w_$m, doubted);
+    bind $m.why_taste = "" because nothing;
+    bind $m.why_taste = "Already tasted" when $m_tasted and $m_taste > 0 because qualified(1, t_$m);
+    bind $m.why_taste = "Already tasted" when $m_retasted and $m_taste > 0 because qualified(1, r_$m);
+    bind $m.why_taste = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.why_taste = "Already eaten" when $m_eaten_by_absorb because qualified(1, a_$m);
+    bind $m.why_taste = "Already eaten" when $m_eaten_by_witness because qualified(1, w_$m);
+    bind $m.why_taste = "Already eaten" when $m_eaten_by_witness
+        and qualified($m_doubted, w_$m, doubted) == 1 because qualified(1, w_$m, doubted);
+};
+
+# ---------------------------------------------------------------- the slime
+on absorb when sort == sort.glowcap set glow = 30;
+# Heaviness stacks: +20 s while heavy (20 s when not), up to 30 s.
+on absorb when sort == sort.duskcap set heavy = min(30, heavy + 20);
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+bind slime.heavy_seconds = ceil(heavy);
+bind slime.glow_seconds = ceil(glow);
+
+# ---------------------------------------------------------------- the belief
+bind belief.state = "none" when belief_none;
+bind belief.state = "probably_safe" when belief_safe;
+bind belief.state = "probably_unsafe" when belief_unsafe;
+bind belief.state = "uncertain" when belief_uncertain;
+
+bind belief.text = "" when belief_none;
+bind belief.text = "Glowing mushrooms give you light." when belief_safe;
+bind belief.text = "Glowing mushrooms make you heavy." when belief_unsafe;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief_uncertain;
+
+bind belief.note = "";
+bind belief.note = "Based on one observation." when belief_safe and support == 1;
+bind belief.note = "Based on " + number_text(support) + " observations." when belief_safe and support > 1;
+bind belief.note = "Based on one observation." when belief_unsafe and contradiction == 1;
+bind belief.note = "Based on " + number_text(contradiction) + " observations." when belief_unsafe and contradiction > 1;
+
+# The evidence lists, carried as the explanations of these values.
+bind belief.supported_by = support because support;
+bind belief.contradicted_by = contradiction because contradiction;
+bind belief.cited = support + contradiction because support, contradiction;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust) and not reopened(trust);
+bind decision.state = "reopened" when reopened(trust);
+
+# ---------------------------------------------------------------- pages
+for page as $j {
+    # (plus 100000000 while doubted)
+    state $j_n = 0 min 0 max 199999999;
+    state $j_s = 0 min 0 max 1;
+    state $j_c = 0 min 0 max 1;
+    state $j_x = 0 min 0 max 1;
+    define $j_act = floor($j_n / 100) - 10 * floor($j_n / 1000);
+    define $j_life = floor($j_n / 1000) - 100000 * floor($j_n / 100000000);
+    define $j_glow = floor($j_n / 10) - 10 * floor($j_n / 100) == sort.glowcap;
+    define $j_who = $j_n - 10 * floor($j_n / 10);
+    # A witness page's identity, mushroom + 10 * life (0 for other pages).
+    define $j_ref = if($j_act == 3, $j_who + 10 * $j_life, 0);
+    # The page a doubt or undoubt names: a remembered witness of that life.
+    define $j_named = $j_n > 0 and $j_act == 3 and act == 3 and $j_who == target and $j_life == life;
+    define $j_open = $j_n > 0 and $j_n < 100000000;
+    # (The rejects above ran first, so a named page is undoubted for a doubt
+    # and doubted for an undoubt.)
+    on doubt when $j_named set $j_x = $j_s + $j_c;
+    on doubt when $j_named set $j_s = 0;
+    on doubt when $j_named set $j_c = 0;
+    on doubt when $j_named set note_g = $j_x;
+    on doubt when $j_named set $j_n = $j_n + 100000000;
+    on undoubt when $j_named set note_g = $j_x;
+    on undoubt when $j_named and $j_glow set $j_s = $j_x;
+    on undoubt when $j_named and not $j_glow set $j_c = $j_x;
+    on undoubt when $j_named set $j_x = 0;
+    on undoubt when $j_named set $j_n = $j_n - 100000000;
+};
+
+# ---------------------------------------------------------------- journal
+# The journal: records e1..e6, oldest first. Each observation writes a record
+# holding its entry and the trust entry it wrote, if any; each doubt and
+# undoubt writes a record with its one entry. The journal shows its six newest
+# entries. A record eK holds:
+#   eK_n  flags * 1000 + type * 100 + kind * 10 + mushroom, a plain number:
+#         type 1 absorbed, 2 tasted, 3 saw eaten, 4 tasted again, 7 doubt,
+#         8 undoubt; flag 1: the witness it records is doubted now, flag 2:
+#         the observation before it (page j5 then) is a doubted witness now;
+#   eK_g  for a doubt or undoubt, what its entry rests on, without `doubted`
+#         (an observation's entry rests on its page, which is still
+#         remembered: an observation record is always among the six newest);
+#   eK_r  the witnesses it cites: its own + 1000000 * the one before it
+#         (mushroom + 10 * life each, 0 when not a witness);
+#   eK_h  its trust entry: 0 none, 5 committed, 6 reopened, 7 committed again
+#         (the recovery, citing the observation before it too), grounded on
+#         what that entry rests on, without `doubted`.
+entity e1 kind entry at level;
+entity e2 kind entry at level;
+entity e3 kind entry at level;
+entity e4 kind entry at level;
+entity e5 kind entry at level;
+entity e6 kind entry at level;
+
+proc write_entry() {
+    set e1_n = e2_n;
+    set e1_g = e2_g;
+    set e1_r = e2_r;
+    set e1_h = e2_h;
+    set e2_n = e3_n;
+    set e2_g = e3_g;
+    set e2_r = e3_r;
+    set e2_h = e3_h;
+    set e3_n = e4_n;
+    set e3_g = e4_g;
+    set e3_r = e4_r;
+    set e3_h = e4_h;
+    set e4_n = e5_n;
+    set e4_g = e5_g;
+    set e4_r = e5_r;
+    set e4_h = e5_h;
+    set e5_n = e6_n;
+    set e5_g = e6_g;
+    set e5_r = e6_r;
+    set e5_h = e6_h;
+    set e6_n = 0;
+    set e6_g = 0;
+    set e6_r = 0;
+    set e6_h = 0;
+};
+
+# How many entries each record holds, and how many newer records hold.
+define e1_count = if(e1_h > 0, 2, 1);
+define e2_count = if(e2_h > 0, 2, 1);
+define e3_count = if(e3_h > 0, 2, 1);
+define e4_count = if(e4_h > 0, 2, 1);
+define e5_count = if(e5_h > 0, 2, 1);
+define e6_count = if(e6_h > 0, 2, 1);
+define e6_after = 0;
+define e5_after = e6_count;
+define e4_after = e5_count + e5_after;
+define e3_after = e4_count + e4_after;
+define e2_after = e3_count + e3_after;
+define e1_after = e2_count + e2_after;
+# Which page holds an observation record's observation: pages turn only for
+# observations, so it is page 6 less the observation records newer than it.
+define e6_page = 6;
+define e5_page = e6_page - if(e6_obs, 1, 0);
+define e4_page = e5_page - if(e5_obs, 1, 0);
+define e3_page = e4_page - if(e4_obs, 1, 0);
+define e2_page = e3_page - if(e3_obs, 1, 0);
+define e1_page = e2_page - if(e2_obs, 1, 0);
+
+for entry as $e {
+    state $e_n = 0 min 0 max 3999;
+    state $e_g = 0 min 0 max 1;
+    state $e_r = 0 min 0 max 999999999999;
+    state $e_h = 0 min 0 max 7;
+    define $e_type = floor($e_n / 100) - 10 * floor($e_n / 1000);
+    define $e_glow = floor($e_n / 10) - 10 * floor($e_n / 100) == sort.glowcap;
+    define $e_who = $e_n - 10 * floor($e_n / 10);
+    define $e_obs = $e_type >= 1 and $e_type <= 4;
+    define $e_first = $e_r - 1000000 * floor($e_r / 1000000);
+    define $e_second = floor($e_r / 1000000);
+    define $e_flag1 = floor($e_n / 1000) - 2 * floor($e_n / 2000) == 1;
+    define $e_flag2 = floor($e_n / 2000) == 1;
+    define $e_name = if($e_who == target.cave, "cave", if($e_who == target.pool, "pool",
+        if($e_who == target.ruin, "ruin", if($e_who == target.grove, "grove", "pit"))));
+    # A doubt or undoubt of a witness this record cites.
+    on doubt when $e_n > 0 and $e_first == doubt_ref and not $e_flag1 set $e_n = $e_n + 1000;
+    on doubt when $e_n > 0 and $e_second == doubt_ref and not $e_flag2 set $e_n = $e_n + 2000;
+    on undoubt when $e_n > 0 and $e_first == doubt_ref and $e_flag1 set $e_n = $e_n - 1000;
+    on undoubt when $e_n > 0 and $e_second == doubt_ref and $e_flag2 set $e_n = $e_n - 2000;
+    # An entry is shown while no more than five newer entries follow it.
+    define $e_shown = $e_n > 0 and $e_after + $e_count <= 6;
+    bind journal.$e_text = "Absorbed the " + $e_name + " mushroom: " + if($e_glow, "it gave light.", "it made me heavy.")
+        when $e_shown and $e_type == 1;
+    bind journal.$e_text = "Tasted the " + $e_name + " mushroom: " + if($e_glow, "sweet.", "bitter.")
+        when $e_shown and $e_type == 2;
+    bind journal.$e_text = "Saw a creature eat the " + $e_name + " mushroom: " + if($e_glow, "it glowed.", "it grew heavy.")
+        when $e_shown and $e_type == 3;
+    bind journal.$e_text = "Tasted the " + $e_name + " mushroom again: " + if($e_glow, "sweet.", "bitter.")
+        when $e_shown and $e_type == 4;
+    bind journal.$e_text = "I doubt what I saw at the " + $e_name + " mushroom." when $e_shown and $e_type == 7;
+    bind journal.$e_text = "I believe what I saw at the " + $e_name + " mushroom again."
+        when $e_shown and $e_type == 8;
+    # What the entry rests on (its explanation gives the entry's because and caveats).
+    bind journal.$e_cites = $e_g when $e_shown and not $e_obs because $e_g;
+    bind journal.$e_cites = qualified($e_g, d, doubted) when $e_shown and not $e_obs and $e_flag1
+        because qualified($e_g, d, doubted);
+    # An observation's entry rests on its page.
+    bind journal.$e_cites = j1_s + j1_c + j1_x when $e_shown and $e_obs and $e_page == 1
+        because j1_s, j1_c, j1_x;
+    bind journal.$e_cites = j2_s + j2_c + j2_x when $e_shown and $e_obs and $e_page == 2
+        because j2_s, j2_c, j2_x;
+    bind journal.$e_cites = j3_s + j3_c + j3_x when $e_shown and $e_obs and $e_page == 3
+        because j3_s, j3_c, j3_x;
+    bind journal.$e_cites = j4_s + j4_c + j4_x when $e_shown and $e_obs and $e_page == 4
+        because j4_s, j4_c, j4_x;
+    bind journal.$e_cites = j5_s + j5_c + j5_x when $e_shown and $e_obs and $e_page == 5
+        because j5_s, j5_c, j5_x;
+    bind journal.$e_cites = j6_s + j6_c + j6_x when $e_shown and $e_obs and $e_page == 6
+        because j6_s, j6_c, j6_x;
+    bind journal.$e_cites = qualified(j1_s + j1_c + j1_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 1 and $e_flag1
+        because qualified(j1_s + j1_c + j1_x, d, doubted);
+    bind journal.$e_cites = qualified(j2_s + j2_c + j2_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 2 and $e_flag1
+        because qualified(j2_s + j2_c + j2_x, d, doubted);
+    bind journal.$e_cites = qualified(j3_s + j3_c + j3_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 3 and $e_flag1
+        because qualified(j3_s + j3_c + j3_x, d, doubted);
+    bind journal.$e_cites = qualified(j4_s + j4_c + j4_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 4 and $e_flag1
+        because qualified(j4_s + j4_c + j4_x, d, doubted);
+    bind journal.$e_cites = qualified(j5_s + j5_c + j5_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 5 and $e_flag1
+        because qualified(j5_s + j5_c + j5_x, d, doubted);
+    bind journal.$e_cites = qualified(j6_s + j6_c + j6_x, d, doubted)
+        when $e_shown and $e_obs and $e_page == 6 and $e_flag1
+        because qualified(j6_s + j6_c + j6_x, d, doubted);
+    # The trust entry, shown while no more than five newer entries follow it.
+    define $e_trust_shown = $e_h > 0 and $e_after < 6;
+    bind journal.$e_trust = "I trust glowing mushrooms now." when $e_trust_shown and $e_h != 6;
+    bind journal.$e_trust = "I no longer trust glowing mushrooms." when $e_trust_shown and $e_h == 6;
+    bind journal.$e_trust_cites = $e_h when $e_trust_shown because $e_h;
+    bind journal.$e_trust_cites = qualified($e_h, d, doubted)
+        when $e_trust_shown and ($e_flag1 or ($e_flag2 and $e_h == 7))
+        because qualified($e_h, d, doubted);
+};
+
+# The doubt's and undoubt's own records, written after the records above were
+# updated.
+on doubt call write_entry();
+on doubt set e6_n = 1700 + target;
+on doubt set e6_g = note_g;
+on doubt set e6_r = doubt_ref;
+on undoubt call write_entry();
+on undoubt set e6_n = 800 + target;
+on undoubt set e6_g = note_g;
+on undoubt set e6_r = doubt_ref;
+on doubt set note_g = 0;
+on undoubt set note_g = 0;

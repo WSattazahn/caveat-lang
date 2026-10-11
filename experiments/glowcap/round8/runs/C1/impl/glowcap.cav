@@ -1,0 +1,469 @@
+scene "Glowcap beat: the slime learns which glowing mushrooms are safe.";
+
+# What the slime reasons about.
+claim glow_safe;          # "Glowing mushrooms give you light."
+caveat tasted_in_dark consequence material;
+caveat taste_faded consequence material;
+caveat secondhand consequence material;
+caveat doubted consequence material;
+
+place level kind level;
+entity cave kind mushroom at level;
+entity pool kind mushroom at level;
+entity ruin kind mushroom at level;
+entity grove kind mushroom at level;
+# The pit grows out of the slime's reach: only other creatures can eat it.
+entity pit kind mushroom at level;
+
+# Events. The host sends the mushroom as `target` and its true kind as `sort`.
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+# Tasting a mushroom a second time, once its taste has faded.
+event retaste target kind mushroom, sort in glowcap duskcap;
+# Another creature is seen eating the mushroom, with the effect revealing its kind.
+event witness target kind mushroom, sort in glowcap duskcap;
+# The player marks a mushroom to avoid absorbing it, or removes the mark.
+event mark target kind mushroom;
+event unmark target kind mushroom;
+# The player says a creature's reaction was misleading. The host sends the
+# evidence id split into its action, mushroom and life (`witness_pool_2`).
+event doubt act in absorb taste witness, target kind mushroom, life min 1 max 1000000000000;
+# The player takes a doubt back; the evidence id is sent the same way.
+event undoubt act in absorb taste witness, target kind mushroom, life min 1 max 1000000000000;
+event tick dt min 0 max 0.1;
+
+# Timers, in seconds.
+state glow = 0 min 0 max 30;
+state heaviness = 0 min 0 max 30;
+
+# The general belief is built from the six most recent observations only.
+# Slot k (1 oldest .. 6 newest) holds, in g_k for a glowcap or in d_k for a
+# duskcap, the observation's code (see "Observation codes"), grounded on its
+# evidence (a doubted witness keeps its code; see x_k); an empty or other-kind slot holds a plain 0, which cites
+# nothing.
+state g1 = 0;
+state g2 = 0;
+state g3 = 0;
+state g4 = 0;
+state g5 = 0;
+state g6 = 0;
+state d1 = 0;
+state d2 = 0;
+state d3 = 0;
+state d4 = 0;
+state d5 = 0;
+state d6 = 0;
+# x_k is 1 while slot k's observation (a witness) is doubted.
+state x1 = 0 min 0 max 1;
+state x2 = 0 min 0 max 1;
+state x3 = 0 min 0 max 1;
+state x4 = 0 min 0 max 1;
+state x5 = 0 min 0 max 1;
+state x6 = 0 min 0 max 1;
+# Remembered, undoubted support and contradiction; their grounds are that
+# evidence (a doubted slot contributes a plain 0: only the taken branch counts).
+define support = if(x1 == 1, 0, min(1, g1)) + if(x2 == 1, 0, min(1, g2)) + if(x3 == 1, 0, min(1, g3))
+    + if(x4 == 1, 0, min(1, g4)) + if(x5 == 1, 0, min(1, g5)) + if(x6 == 1, 0, min(1, g6));
+define contradiction = if(x1 == 1, 0, min(1, d1)) + if(x2 == 1, 0, min(1, d2)) + if(x3 == 1, 0, min(1, d3))
+    + if(x4 == 1, 0, min(1, d4)) + if(x5 == 1, 0, min(1, d5)) + if(x6 == 1, 0, min(1, d6));
+
+# Doubting and undoubting. A doubt is reversible, so it is not put on the
+# evidence itself (a qualification cannot be removed). Instead every value that
+# cites a doubted witness also cites doubt_mark, a value carrying the caveat
+# `doubted` and no evidence: the belief slots (x_k), the journal entries (y_k)
+# and a consumed mushroom's `why` ($m_doubted_consumer) keep a flag for it.
+# (Reading examined(doubted) gives a value that carries the caveat `doubted`.)
+define doubt_mark = if(examined(doubted), 0, 0);
+# Whether slot (g, d, x) holds the witness with glowcap code wg / duskcap code
+# wd, with doubt flag `flag`.
+fn slot_is(g, d, x, wg, wd, flag) = if((g == wg or d == wd) and x == flag, 1, 0) == 1;
+# The witness with codes wg / wd goes from doubt flag `from` to `to`, and the
+# journal records it (kind 14 doubted, 15 believed again), citing the witness.
+proc set_doubt(wg, wd, from, to) {
+    when slot_is(g1, d1, x1, wg, wd, from) set x1 = to;
+    when slot_is(g2, d2, x2, wg, wd, from) set x2 = to;
+    when slot_is(g3, d3, x3, wg, wd, from) set x3 = to;
+    when slot_is(g4, d4, x4, wg, wd, from) set x4 = to;
+    when slot_is(g5, d5, x5, wg, wd, from) set x5 = to;
+    when slot_is(g6, d6, x6, wg, wd, from) set x6 = to;
+    when cites_witness(j1, wg) set y1 = to;
+    when cites_witness(j2, wg) set y2 = to;
+    when cites_witness(j3, wg) set y3 = to;
+    when cites_witness(j4, wg) set y4 = to;
+    when cites_witness(j5, wg) set y5 = to;
+    when cites_witness(j6, wg) set y6 = to;
+    # (0 * (g + d) grounds the entry on the witness, from its remembered slot.)
+    when g1 == wg or d1 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g1 + d1), to);
+    when g2 == wg or d2 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g2 + d2), to);
+    when g3 == wg or d3 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g3 + d3), to);
+    when g4 == wg or d4 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g4 + d4), to);
+    when g5 == wg or d5 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g5 + d5), to);
+    when g6 == wg or d6 == wd call note(floor(wg / 100) * 100 + if(to == 1, 14, 15) + 0 * (g6 + d6), to);
+};
+# Whether journal entry `code` is about the witness with glowcap code `w`
+# (same identity; a witness kind, a trust change caused by a witness, or a
+# doubt or undoubt of it).
+fn cites_witness(code, w) = if(floor(code / 100) == floor(w / 100)
+    and (code_kind(code) == 5 or code_kind(code) == 6 or code_kind(code) == 11 or code_kind(code) == 13
+         or code_kind(code) == 14 or code_kind(code) == 15), 1, 0) == 1;
+
+# trust = "absorb glowing mushrooms without tasting".
+# (A decision series cannot have a window in this runtime; 256 is the most it can hold.)
+decisions trust limit 256;
+# The decision journal keeps the six most recent changes.
+journal window 6;
+# Glowcap observations since the most recent contradiction while trust is reopened.
+state recovery = 0 min 0 max 1000;
+
+# A taste fades this long after it was made.
+define fade_seconds = 60;
+
+define belief_none = support == 0 and contradiction == 0;
+define probably_safe = support > 0 and contradiction == 0;
+define probably_unsafe = support == 0 and contradiction > 0;
+define uncertain = support > 0 and contradiction > 0;
+
+# Observation codes. An observation of mushroom number `who` (1 cave .. 5 pit)
+# in its life `life` has identity `life * 10 + who`, and code
+# `identity * 100 + kind`, kind = 2 * act - 2 + found:
+#   1 absorbed, it gave light      2 absorbed, it made me heavy
+#   3 tasted sweet                 4 tasted bitter
+#   5 a creature ate it, glowed    6 a creature ate it, grew heavy
+#   7 tasted again: sweet          8 tasted again: bitter
+# Journal entries about trust use the identity of the observation that caused
+# them, with kind 11 (trusted, caused by a witness), 10 (trusted, otherwise),
+# 13 (stopped trusting, caused by a witness) or 12 (stopped trusting, otherwise).
+# Doubting a witness writes kind 14, undoubting it kind 15, with its identity.
+fn code_kind(code) = code - 100 * floor(code / 100);
+fn code_who(code) = floor(code / 100) - 10 * floor(code / 1000);
+
+# The journal: its six most recent entries, j1 oldest .. j6 newest (0 = empty).
+# An entry's value is its code and its grounds are the evidence it is about,
+# so its caveats are that evidence's current ones.
+state j1 = 0;
+state j2 = 0;
+state j3 = 0;
+state j4 = 0;
+state j5 = 0;
+state j6 = 0;
+# y_k is 1 while entry k cites a doubted witness.
+state y1 = 0 min 0 max 1;
+state y2 = 0 min 0 max 1;
+state y3 = 0 min 0 max 1;
+state y4 = 0 min 0 max 1;
+state y5 = 0 min 0 max 1;
+state y6 = 0 min 0 max 1;
+proc note(entry, doubted) {
+    set j1 = j2;
+    set j2 = j3;
+    set j3 = j4;
+    set j4 = j5;
+    set j5 = j6;
+    set j6 = entry;
+    set y1 = y2;
+    set y2 = y3;
+    set y3 = y4;
+    set y4 = y5;
+    set y5 = y6;
+    set y6 = doubted;
+};
+# What entry k cites: its evidence, and `doubted` while that witness is doubted.
+define jcite1 = j1 + if(y1 == 1, doubt_mark, 0);
+define jcite2 = j2 + if(y2 == 1, doubt_mark, 0);
+define jcite3 = j3 + if(y3 == 1, doubt_mark, 0);
+define jcite4 = j4 + if(y4 == 1, doubt_mark, 0);
+define jcite5 = j5 + if(y5 == 1, doubt_mark, 0);
+define jcite6 = j6 + if(y6 == 1, doubt_mark, 0);
+
+fn mushroom_name(m) = if(m == 1, "cave", if(m == 2, "pool", if(m == 3, "ruin", if(m == 4, "grove", "pit"))));
+fn observation_text(kind, m) =
+    if(kind == 1, "Absorbed the " + mushroom_name(m) + " mushroom: it gave light.",
+    if(kind == 2, "Absorbed the " + mushroom_name(m) + " mushroom: it made me heavy.",
+    if(kind == 3, "Tasted the " + mushroom_name(m) + " mushroom: sweet.",
+    if(kind == 4, "Tasted the " + mushroom_name(m) + " mushroom: bitter.",
+    if(kind == 5, "Saw a creature eat the " + mushroom_name(m) + " mushroom: it glowed.",
+    if(kind == 6, "Saw a creature eat the " + mushroom_name(m) + " mushroom: it grew heavy.",
+    if(kind == 7, "Tasted the " + mushroom_name(m) + " mushroom again: sweet.",
+    "Tasted the " + mushroom_name(m) + " mushroom again: bitter.")))))));
+fn entry_text(code) =
+    if(code_kind(code) == 11 or code_kind(code) == 10, "I trust glowing mushrooms now.",
+    if(code_kind(code) == 13 or code_kind(code) == 12, "I no longer trust glowing mushrooms.",
+    if(code_kind(code) == 14, "I doubt what I saw at the " + mushroom_name(code_who(code)) + " mushroom.",
+    if(code_kind(code) == 15, "I believe what I saw at the " + mushroom_name(code_who(code)) + " mushroom again.",
+    observation_text(code_kind(code), code_who(code))))));
+
+# One observation bearing on the belief: an absorption (act 1), a taste (2),
+# a witness (3) or a retaste (4), whose identity is `ident`. `found` is 1 for a glowcap, 2 for a
+# duskcap; `dark` is 1 when the slime was not glowing, which qualifies the
+# observation with tasted_in_dark.
+proc observe(e evidence, found, dark, act, ident) {
+    when found == 1 reveal e supports glow_safe;
+    when found == 2 reveal e opposes glow_safe;
+    when dark == 1 qualify e with tasted_in_dark;
+    call note(qualified(ident * 100 + 2 * act - 2 + found, e), 0);
+    # Remember it as the newest of six; the oldest is forgotten.
+    set g1 = g2;
+    set g2 = g3;
+    set g3 = g4;
+    set g4 = g5;
+    set g5 = g6;
+    set d1 = d2;
+    set d2 = d3;
+    set d3 = d4;
+    set d4 = d5;
+    set d5 = d6;
+    set x1 = x2;
+    set x2 = x3;
+    set x3 = x4;
+    set x4 = x5;
+    set x5 = x6;
+    set x6 = 0;
+    when found == 1 set g6 = qualified(ident * 100 + 2 * act - 2 + found, e);
+    when found == 2 set g6 = 0;
+    when found == 2 set d6 = qualified(ident * 100 + 2 * act - 2 + found, e);
+    when found == 1 set d6 = 0;
+    # Commit to trust the first time the belief becomes probably safe.
+    when found == 1 and not committed(trust) and probably_safe
+        call note(qualified(ident * 100 + if(act == 3, 11, 10), e), 0);
+    when found == 1 and not committed(trust) and probably_safe
+        commit trust because enough using qualified(1, e);
+    # While trust is reopened, the second glowcap observation since the most
+    # recent contradiction commits it again, on those two observations.
+    when found == 1 and reopened(trust) set recovery = recovery + qualified(1, e);
+    # (0 * recovery grounds the journal entry on the new basis.)
+    when found == 1 and reopened(trust) and recovery >= 2
+        call note(ident * 100 + if(act == 3, 11, 10) + 0 * recovery, 0);
+    when found == 1 and reopened(trust) and recovery >= 2
+        commit trust because enough using recovery;
+    # Every contradiction after the first commitment reopens it, and restarts
+    # the count towards recovery.
+    when found == 2 and committed(trust) reopen trust because e;
+    when found == 2 and committed(trust) call note(qualified(ident * 100 + if(act == 3, 13, 12), e), 0);
+    when found == 2 set recovery = 0;
+};
+
+# A new life: fresh, unobserved occurrences of each kind of evidence.
+proc new_life(a evidence, t evidence, w evidence, r evidence) {
+    renew a;
+    renew t;
+    renew w;
+    renew r;
+};
+
+for mushroom as $m routed by target {
+    evidence absorb_$m from "the slime absorbed the $m mushroom";
+    evidence taste_$m from "the slime tasted the $m mushroom";
+    evidence witness_$m from "the slime saw another creature eat the $m mushroom";
+    evidence retaste_$m from "the slime tasted the $m mushroom a second time";
+    secondhand qualifies witness_$m;
+    # Each life of the mushroom is a new occurrence of its evidence
+    # (absorb_cave, absorb_cave@2, ...). Lives are unlimited: only this life's
+    # and the previous life's occurrences stay live (a taste fades 60 s after it
+    # is made, and two regrowths take at least 90 s).
+    renewable absorb_$m window 2;
+    renewable taste_$m window 2;
+    renewable witness_$m window 2;
+    renewable retaste_$m window 2;
+    # Seconds until a consumed mushroom regrows. Greater than 0 exactly while the
+    # mushroom is consumed, and grounded on the evidence that consumed this life.
+    state $m_regrow = 0 min 0 max 45;
+    # The current life's number: 1, 2, ...
+    state $m_life = 1 min 1 max 1000000000000;
+    define $m_consumed = $m_regrow > 0;
+    # 0 untasted, 1 tasted sweet (glowcap), 2 tasted bitter (duskcap), grounded
+    # on the taste that identifies this life: the retaste once there is one.
+    state $m_taste = 0 min 0 max 2;
+    # The session time of that taste: its fade is due 60 s later.
+    state $m_tasted_at = 0;
+    # 1 while the player has marked it to avoid. A mark is not evidence.
+    state $m_marked = 0 min 0 max 1;
+    # 1 while this life was consumed by a witness that is now doubted.
+    state $m_doubted_consumer = 0 min 0 max 1;
+    # What "Already eaten" cites: the consuming evidence, and `doubted` with it.
+    define $m_eaten_cite = $m_regrow + if($m_doubted_consumer == 1, doubt_mark, 0);
+
+    define $m_unknown = not $m_consumed and $m_taste == 0;
+    define $m_in_dark = has_caveat($m_taste, tasted_in_dark);
+    define $m_faded = has_caveat($m_taste, taste_faded);
+    # Twice bitten: after two contradictions an unknown mushroom must be tasted first.
+    define $m_too_risky = $m_unknown and contradiction >= 2;
+    define $m_out_of_reach = $index == target.pit;
+    define $m_can_absorb = not $m_consumed and $m_taste != 2 and not $m_too_risky and $m_marked == 0 and not $m_out_of_reach;
+    define $m_can_taste = not $m_consumed and $m_taste == 0 and not $m_out_of_reach;
+    # One retaste per life (this life's retaste occurrence is then observed),
+    # once the first taste has faded.
+    define $m_can_retaste = not $m_consumed and $m_taste != 0 and $m_faded
+        and not observed(retaste_$m) and not $m_out_of_reach;
+    # The reported kind (sort) disagrees with an earlier taste ($m_taste holds the tasted sort).
+    define $m_contradicts_taste = $m_taste != 0 and sort != $m_taste;
+
+    # Absorbing.
+    on absorb when not $m_can_absorb reject "The slime will not absorb that mushroom.";
+    on absorb when $m_contradicts_taste reject "That contradicts how the mushroom tasted.";
+    on absorb call observe(absorb_$m, sort, 0, 1, $m_life * 10 + $index);
+    on absorb set $m_regrow = qualified(45, absorb_$m);
+
+    # Tasting identifies this mushroom, and teaches like an absorption.
+    on taste when not $m_can_taste reject "The slime cannot taste that mushroom.";
+    on taste call observe(taste_$m, sort, if(glow > 0, 0, 1), 2, $m_life * 10 + $index);
+    on taste set $m_taste = qualified(sort, taste_$m);
+    on taste set $m_tasted_at = elapsed();
+    # A taste fades sixty seconds (of ticks) after it was made.
+    on taste qualify taste_$m with taste_faded after fade_seconds;
+
+    # Tasting again: an observation like a taste, which from now on identifies
+    # this life of the mushroom in place of the first taste.
+    on retaste when not $m_can_retaste reject "The slime cannot taste that mushroom again.";
+    on retaste when $m_contradicts_taste reject "That contradicts how the mushroom tasted.";
+    on retaste call observe(retaste_$m, sort, if(glow > 0, 0, 1), 4, $m_life * 10 + $index);
+    on retaste set $m_taste = qualified(sort, retaste_$m);
+    on retaste set $m_tasted_at = elapsed();
+    on retaste qualify retaste_$m with taste_faded after fade_seconds;
+
+    # Watching another creature eat it: consumed, teaches like an absorption,
+    # but the slime's own timers do not change. Risk to the slime is irrelevant.
+    on witness when $m_consumed reject "That mushroom is gone.";
+    on witness when $m_contradicts_taste reject "That contradicts how the mushroom tasted.";
+    on witness call observe(witness_$m, sort, 0, 3, $m_life * 10 + $index);
+    on witness set $m_regrow = qualified(45, witness_$m);
+    # Consuming clears the mark (absorbing a marked mushroom is refused above).
+    on witness set $m_marked = 0;
+
+    # Marking.
+    on mark when $m_out_of_reach reject "That mushroom is out of reach.";
+    on mark when $m_consumed reject "That mushroom is gone.";
+    on mark when $m_marked == 1 reject "That mushroom is already marked.";
+    on mark set $m_marked = 1;
+    on unmark when $m_marked == 0 reject "That mushroom is not marked.";
+    on unmark set $m_marked = 0;
+
+    # Regrowth: 45 s of ticks after it was consumed, a new mushroom of unknown
+    # kind grows in its place.
+    # A life that has run down while its evidence is still observed sprouts;
+    # renewing the evidence makes the new life's occurrences unobserved.
+    define $m_sprouts = $m_regrow == 0 and (observed(absorb_$m) or observed(witness_$m));
+    on tick when $m_consumed set $m_regrow = max(0, $m_regrow - dt);
+    on tick when $m_sprouts set $m_taste = 0;
+    on tick when $m_sprouts set $m_life = $m_life + 1;
+    on tick when $m_sprouts set $m_doubted_consumer = 0;
+    on tick when $m_sprouts call new_life(absorb_$m, taste_$m, witness_$m, retaste_$m);
+
+    # Doubting what a creature was seen to do: that witness must still be
+    # remembered and undoubted, and another undoubted observation must remain
+    # (checked below the block). Undoubting: it must be remembered and doubted.
+    define $m_doubt_glowcap = (life * 10 + $index) * 100 + 5;
+    define $m_doubt_duskcap = (life * 10 + $index) * 100 + 6;
+    define $m_doubt_found = slot_is(g1, d1, x1, $m_doubt_glowcap, $m_doubt_duskcap, 0)
+        or slot_is(g2, d2, x2, $m_doubt_glowcap, $m_doubt_duskcap, 0)
+        or slot_is(g3, d3, x3, $m_doubt_glowcap, $m_doubt_duskcap, 0)
+        or slot_is(g4, d4, x4, $m_doubt_glowcap, $m_doubt_duskcap, 0)
+        or slot_is(g5, d5, x5, $m_doubt_glowcap, $m_doubt_duskcap, 0)
+        or slot_is(g6, d6, x6, $m_doubt_glowcap, $m_doubt_duskcap, 0);
+    define $m_undoubt_found = slot_is(g1, d1, x1, $m_doubt_glowcap, $m_doubt_duskcap, 1)
+        or slot_is(g2, d2, x2, $m_doubt_glowcap, $m_doubt_duskcap, 1)
+        or slot_is(g3, d3, x3, $m_doubt_glowcap, $m_doubt_duskcap, 1)
+        or slot_is(g4, d4, x4, $m_doubt_glowcap, $m_doubt_duskcap, 1)
+        or slot_is(g5, d5, x5, $m_doubt_glowcap, $m_doubt_duskcap, 1)
+        or slot_is(g6, d6, x6, $m_doubt_glowcap, $m_doubt_duskcap, 1);
+    # This life's witness is what consumed it when the witness is observed.
+    define $m_doubt_consumer = life == $m_life and $m_consumed and observed(witness_$m);
+    on doubt when act != act.witness or not $m_doubt_found
+        reject "That is not a remembered, undoubted witness of the $m mushroom.";
+    on doubt when $m_doubt_consumer set $m_doubted_consumer = 1;
+    on doubt call set_doubt($m_doubt_glowcap, $m_doubt_duskcap, 0, 1);
+    on undoubt when act != act.witness or not $m_undoubt_found
+        reject "That is not a remembered, doubted witness of the $m mushroom.";
+    on undoubt when life == $m_life set $m_doubted_consumer = 0;
+    on undoubt call set_doubt($m_doubt_glowcap, $m_doubt_duskcap, 1, 0);
+
+    # The HUD for this mushroom.
+    bind $m.present = not $m_consumed because nothing;
+    bind $m.marked = $m_marked == 1 because nothing;
+    bind $m.can_retaste = $m_can_retaste because nothing;
+    # Countdowns in whole seconds, rounded up.
+    bind $m.regrows_in = ceil($m_regrow) because nothing;
+    bind $m.fades_in = 0 because nothing;
+    bind $m.fades_in = max(0, ceil(fade_seconds - (elapsed() - $m_tasted_at)))
+        when not $m_consumed and $m_taste != 0 and not $m_faded because nothing;
+    bind $m.can_absorb = $m_can_absorb because nothing;
+    bind $m.can_taste = $m_can_taste because nothing;
+    bind $m.label = "Glowing mushroom" when $m_unknown and belief_none because nothing;
+    bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
+    bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because contradiction;
+    bind $m.label = "Too risky — taste first" when $m_too_risky because contradiction;
+    bind $m.label = "Glowcap" when not $m_consumed and $m_taste == 1 because $m_taste;
+    bind $m.label = "Duskcap — avoid" when not $m_consumed and $m_taste == 2 because $m_taste;
+    bind $m.label = "Probably a glowcap (tasted in the dark)" when not $m_consumed and $m_taste == 1 and $m_in_dark because $m_taste;
+    bind $m.label = "Probably a duskcap (tasted in the dark)" when not $m_consumed and $m_taste == 2 and $m_in_dark because $m_taste;
+    bind $m.label = "Probably a glowcap (taste has faded)" when not $m_consumed and $m_taste == 1 and $m_faded because $m_taste;
+    bind $m.label = "Probably a duskcap (taste has faded)" when not $m_consumed and $m_taste == 2 and $m_faded because $m_taste;
+    bind $m.label = "" when $m_consumed because nothing;
+
+    # Why an action is not available (first match wins, so it is written last).
+    bind $m.why_absorb = "" because nothing;
+    bind $m.why_absorb = "Too risky untasted" when $m_too_risky because contradiction;
+    bind $m.why_absorb = "Marked to avoid" when not $m_consumed and $m_marked == 1 because nothing;
+    bind $m.why_absorb = "Known duskcap" when not $m_consumed and $m_taste == 2 because $m_taste;
+    bind $m.why_absorb = "Out of reach" when not $m_consumed and $m_out_of_reach because nothing;
+    bind $m.why_absorb = "Already eaten" when $m_eaten_cite > 0 because $m_eaten_cite;
+    bind $m.why_taste = "" because nothing;
+    bind $m.why_taste = "Already tasted" when not $m_consumed and $m_taste != 0 because $m_taste;
+    bind $m.why_taste = "Out of reach" when not $m_consumed and $m_out_of_reach because nothing;
+    bind $m.why_taste = "Already eaten" when $m_eaten_cite > 0 because $m_eaten_cite;
+};
+
+# A doubt must leave at least one undoubted remembered observation (this runs
+# after the doubted one has stopped counting). An undoubt needs no such check.
+on doubt when support + contradiction == 0 reject "The slime must keep one undoubted observation.";
+
+# Effects of absorbing, for whichever mushroom it was.
+on absorb when sort == sort.glowcap set glow = 30;
+# Heaviness stacks: +20 s while heavy, up to 30 s; otherwise 20 s.
+on absorb when sort == sort.duskcap set heaviness = if(heaviness > 0, min(30, heaviness + 20), 20);
+
+on tick set glow = max(0, glow - dt);
+on tick set heaviness = max(0, heaviness - dt);
+
+bind slime.glowing = glow > 0 because nothing;
+bind slime.heavy = heaviness > 0 because nothing;
+bind slime.heavy_seconds = ceil(heaviness) because nothing;
+bind slime.glow_seconds = ceil(glow) because nothing;
+
+bind belief.state = "none" because nothing;
+bind belief.state = "probably_safe" when probably_safe because support;
+bind belief.state = "probably_unsafe" when probably_unsafe because contradiction;
+bind belief.state = "uncertain" when uncertain because support, contradiction;
+
+bind belief.text = "" because nothing;
+bind belief.text = "Glowing mushrooms give you light." when probably_safe because support;
+bind belief.text = "Glowing mushrooms make you heavy." when probably_unsafe because contradiction;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when uncertain because support, contradiction;
+
+bind belief.note = "" because nothing;
+bind belief.note = "Based on one observation." when probably_safe and support == 1 because support;
+bind belief.note = "Based on " + number_text(support) + " observations." when probably_safe and support > 1 because support;
+bind belief.note = "Based on one observation." when probably_unsafe and contradiction == 1 because contradiction;
+bind belief.note = "Based on " + number_text(contradiction) + " observations." when probably_unsafe and contradiction > 1 because contradiction;
+
+# The evidence lists are these values' explanations: the remembered observations.
+bind belief.supported_by = support because support;
+bind belief.contradicted_by = contradiction because contradiction;
+
+bind decision.state = "none" because nothing;
+bind decision.state = "committed" when committed(trust) and not reopened(trust) because nothing;
+bind decision.state = "reopened" when reopened(trust) because nothing;
+
+# The journal, oldest first: each entry's text, and what it cites.
+bind journal.text1 = entry_text(j1) when j1 > 0 because nothing;
+bind journal.text2 = entry_text(j2) when j2 > 0 because nothing;
+bind journal.text3 = entry_text(j3) when j3 > 0 because nothing;
+bind journal.text4 = entry_text(j4) when j4 > 0 because nothing;
+bind journal.text5 = entry_text(j5) when j5 > 0 because nothing;
+bind journal.text6 = entry_text(j6) when j6 > 0 because nothing;
+bind journal.cites1 = jcite1 when j1 > 0 because jcite1;
+bind journal.cites2 = jcite2 when j2 > 0 because jcite2;
+bind journal.cites3 = jcite3 when j3 > 0 because jcite3;
+bind journal.cites4 = jcite4 when j4 > 0 because jcite4;
+bind journal.cites5 = jcite5 when j5 > 0 because jcite5;
+bind journal.cites6 = jcite6 when j6 > 0 because jcite6;

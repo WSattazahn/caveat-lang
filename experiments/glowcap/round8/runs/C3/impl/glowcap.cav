@@ -1,0 +1,632 @@
+scene "Glowcap beat: a slime learns which glowing mushrooms are safe to absorb.";
+
+# What the slime reasons about.
+claim glow_is_safe;
+# CR3: a taste made while the slime is not glowing.
+caveat tasted_in_dark consequence material;
+# CR5: a minute of play after a taste, it has faded.
+caveat taste_faded consequence material;
+# CR9: what another creature showed, not what the slime felt.
+caveat secondhand consequence material;
+# CR18: the player doubts what a creature's reaction showed.
+caveat doubted consequence material;
+
+# The level. Every mushroom looks alike until absorbed or tasted.
+place level kind level;
+entity cave kind mushroom at level;
+entity pool kind mushroom at level;
+entity ruin kind mushroom at level;
+entity grove kind mushroom at level;
+# CR15: only other creatures can reach the pit.
+entity pit kind mushroom at level;
+
+# What the host sends.
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+event witness target kind mushroom, sort in glowcap duskcap;
+event retaste target kind mushroom, sort in glowcap duskcap;
+event mark target kind mushroom;
+event unmark target kind mushroom;
+# CR18: the host's evidence id, `witness_pool_2`, arrives as its parts.
+event doubt via in absorb taste witness, target kind mushroom, life min 1 max 1000000000;
+# CR20: taking a doubt back; the same evidence id.
+event undoubt via in absorb taste witness, target kind mushroom, life min 1 max 1000000000;
+event tick dt min 0 max 0.1;
+
+# Effects on the slime, in seconds left.
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 30;
+
+# CR13: the slime remembers its six most recent observations, oldest in
+# slot 1 (slot 0 holds the one before them, for the journal). For slot N:
+#   e_N is 1 and carries the observation's evidence, and nothing once
+#       forgotten;
+#   j_N is a plain code: life * 100 + 10 * kind of observation + the
+#       mushroom's position (kinds: 1/2 absorbed glowcap/duskcap, 3/4 tasted
+#       sweet/bitter, 5/6 saw a glowcap/duskcap eaten, 7/8 tasted again
+#       sweet/bitter); 0 for none;
+#   bit N + 4 of `doubts` (CR18, place 32 for slot 1 .. 1024 for slot 6) says the player doubts it. The
+#       bits go on past forgetting, down to slot -4, and are frozen there
+#       (CR20: a forgotten doubt is permanent); a doubt entry still in the
+#       journal never refers further back than that.
+# `obs` counts observations, mod 100; the newest is number `obs`, in slot 6.
+# The plain codes carry no evidence, so conditions on them select memories
+# without citing them.
+state obs = 0 min 0 max 99;
+state e0 = 0 min 0 max 1;
+state e1 = 0 min 0 max 1;
+state e2 = 0 min 0 max 1;
+state e3 = 0 min 0 max 1;
+state e4 = 0 min 0 max 1;
+state e5 = 0 min 0 max 1;
+state e6 = 0 min 0 max 1;
+state j1 = 0;
+state j2 = 0;
+state j3 = 0;
+state j4 = 0;
+state j5 = 0;
+state j6 = 0;
+state doubts = 0 min 0 max 2047;
+
+fn kind_of(j) = floor(j / 10) - 10 * floor(j / 100);
+fn digit(m, base, place) = floor(m / place) - base * floor(m / (base * place));
+# Glowcap kinds are odd, duskcap kinds even (life * 100 adds an even ten count).
+fn is_glow(j) = j > 0 and digit(j, 2, 10) == 1;
+fn is_dusk(j) = j > 0 and digit(j, 2, 10) == 0;
+# Whether the bit of `doubts` for slot s (-4 .. 6) is set.
+fn bit(d, s) = (s == 6 and digit(d, 2, 1024) == 1) or (s == 5 and digit(d, 2, 512) == 1)
+    or (s == 4 and digit(d, 2, 256) == 1) or (s == 3 and digit(d, 2, 128) == 1)
+    or (s == 2 and digit(d, 2, 64) == 1) or (s == 1 and digit(d, 2, 32) == 1)
+    or (s == 0 and digit(d, 2, 16) == 1) or (s == -1 and digit(d, 2, 8) == 1)
+    or (s == -2 and digit(d, 2, 4) == 1) or (s == -3 and digit(d, 2, 2) == 1)
+    or (s == -4 and digit(d, 2, 1) == 1);
+# A remembered observation counts for the belief unless it is doubted.
+# `p` is the slot's place in `doubts`.
+fn counts(j, d, p) = j > 0 and digit(d, 2, p) == 0;
+define support =
+    if(is_glow(j1) and counts(j1, doubts, 32), e1, 0) + if(is_glow(j2) and counts(j2, doubts, 64), e2, 0)
+  + if(is_glow(j3) and counts(j3, doubts, 128), e3, 0) + if(is_glow(j4) and counts(j4, doubts, 256), e4, 0)
+  + if(is_glow(j5) and counts(j5, doubts, 512), e5, 0) + if(is_glow(j6) and counts(j6, doubts, 1024), e6, 0);
+define contradiction =
+    if(is_dusk(j1) and counts(j1, doubts, 32), e1, 0) + if(is_dusk(j2) and counts(j2, doubts, 64), e2, 0)
+  + if(is_dusk(j3) and counts(j3, doubts, 128), e3, 0) + if(is_dusk(j4) and counts(j4, doubts, 256), e4, 0)
+  + if(is_dusk(j5) and counts(j5, doubts, 512), e5, 0) + if(is_dusk(j6) and counts(j6, doubts, 1024), e6, 0);
+# The same counts read from the plain codes alone, for guards: a guard's
+# lineage enters what it guards, and these carry no evidence.
+define glows = if(is_glow(j1) and counts(j1, doubts, 32), 1, 0) + if(is_glow(j2) and counts(j2, doubts, 64), 1, 0)
+  + if(is_glow(j3) and counts(j3, doubts, 128), 1, 0) + if(is_glow(j4) and counts(j4, doubts, 256), 1, 0)
+  + if(is_glow(j5) and counts(j5, doubts, 512), 1, 0) + if(is_glow(j6) and counts(j6, doubts, 1024), 1, 0);
+define dusks = if(is_dusk(j1) and counts(j1, doubts, 32), 1, 0) + if(is_dusk(j2) and counts(j2, doubts, 64), 1, 0)
+  + if(is_dusk(j3) and counts(j3, doubts, 128), 1, 0) + if(is_dusk(j4) and counts(j4, doubts, 256), 1, 0)
+  + if(is_dusk(j5) and counts(j5, doubts, 512), 1, 0) + if(is_dusk(j6) and counts(j6, doubts, 1024), 1, 0);
+
+# CR18: remembered observations that still count.
+define undoubted = glows + dusks;
+# The code of a remembered witness of mushroom `w` in its life `life`.
+fn is_witness_of(j, life, w) = j == life * 100 + 50 + w or j == life * 100 + 60 + w;
+
+# 0 none, 1 probably safe, 2 probably unsafe, 3 uncertain.
+define belief = if(support > 0 and contradiction > 0, 3,
+                if(support > 0, 1, if(contradiction > 0, 2, 0)));
+define plain_belief = if(glows > 0 and dusks > 0, 3, if(glows > 0, 1, if(dusks > 0, 2, 0)));
+
+# CR2: twice bitten. Unknown mushrooms are too risky to absorb untasted.
+define twice_bitten = contradiction >= 2;
+
+# trust: absorb glowing mushrooms without tasting.
+decisions trust limit 64;
+# CR13: the journal keeps the six most recent changes.
+journal window 6;
+# Where trust stands, as a plain code for guards: ten times the number of
+# commits, plus 0 never committed, 1 committed, 2 reopened.
+state trust_code = 0 min 0 max 642;
+define standing = trust_code - 10 * floor(trust_code / 10);
+define commits = floor(trust_code / 10);
+
+# CR16/CR20: the journal, six records r1 (oldest) .. r6, each a plain code
+#   (observation number mod 100) * 100 + 10 * type + mushroom position,
+#   where type is 1 an observation, 2 committed on it, 3 committed on it and
+#   the one before, 4 reopened by it, 5 doubted it, 6 undoubted it (the
+#   mushroom position only for 5 and 6); 0 for none. Three records are packed
+#   in each of `ra` (r1 .. r3) and `rb` (r4 .. r6), four digits each, to keep
+#   the save small.
+# Entries cite the memory slots, which still hold every observation an entry
+# in the journal is about, except a doubted witness forgotten since: a doubt
+# record keeps its own carrier rd_N.
+state ra = 0;
+state rb = 0;
+define r1 = digit(ra, 10000, 1);
+define r2 = digit(ra, 10000, 10000);
+define r3 = digit(ra, 10000, 100000000);
+define r4 = digit(rb, 10000, 1);
+define r5 = digit(rb, 10000, 10000);
+define r6 = digit(rb, 10000, 100000000);
+state rd1 = 0 min 0 max 1;
+state rd2 = 0 min 0 max 1;
+state rd3 = 0 min 0 max 1;
+state rd4 = 0 min 0 max 1;
+state rd5 = 0 min 0 max 1;
+state rd6 = 0 min 0 max 1;
+fn mod100(n) = n - 100 * floor(n / 100);
+
+fn rtype(r) = digit(r, 10, 10);
+# rs_N: the memory slot of the observation record N is about.
+define rs1 = 6 - mod100(obs - floor(r1 / 100));
+define rs2 = 6 - mod100(obs - floor(r2 / 100));
+define rs3 = 6 - mod100(obs - floor(r3 / 100));
+define rs4 = 6 - mod100(obs - floor(r4 / 100));
+define rs5 = 6 - mod100(obs - floor(r5 / 100));
+define rs6 = 6 - mod100(obs - floor(r6 / 100));
+fn single(r) = rtype(r) == 1 or rtype(r) == 2 or rtype(r) == 4;
+fn rdoubted(r, s, d) = r > 0 and (bit(d, s) or (rtype(r) == 3 and bit(d, s - 1)));
+# Forget the oldest memory to make room for a new one in slot 6. A shift
+# takes no argument, so no evidence enters the lineage of what it moves.
+proc shift_memory() {
+    set obs = mod100(obs + 1);
+    set e0 = e1;
+    set e1 = e2;
+    set e2 = e3;
+    set e3 = e4;
+    set e4 = e5;
+    set e5 = e6;
+    set e6 = 0;
+    set j1 = j2;
+    set j2 = j3;
+    set j3 = j4;
+    set j4 = j5;
+    set j5 = j6;
+    set j6 = 0;
+    set doubts = floor(doubts / 2);
+};
+# Drop the oldest journal record to make room for a new one in r6
+# (added as `rb + code * 100000000`).
+proc shift_records() {
+    set ra = floor(ra / 10000) + digit(rb, 10000, 1) * 100000000;
+    set rb = floor(rb / 10000);
+    set rd1 = rd2;
+    set rd2 = rd3;
+    set rd3 = rd4;
+    set rd4 = rd5;
+    set rd5 = rd6;
+    set rd6 = 0;
+};
+
+# CR16: journal text. Positions follow the entity declarations above.
+fn mushroom_name(w) = if(w == 1, "cave", if(w == 2, "pool",
+    if(w == 3, "ruin", if(w == 4, "grove", "pit"))));
+fn observation_start(t) = if(t <= 2, "Absorbed the ", if(t <= 4, "Tasted the ",
+    if(t <= 6, "Saw a creature eat the ", "Tasted the ")));
+fn observation_end(t) = if(t == 1, " mushroom: it gave light.", if(t == 2, " mushroom: it made me heavy.",
+    if(t == 3, " mushroom: sweet.", if(t == 4, " mushroom: bitter.",
+    if(t == 5, " mushroom: it glowed.", if(t == 6, " mushroom: it grew heavy.",
+    if(t == 7, " mushroom again: sweet.", " mushroom again: bitter.")))))));
+fn entry_text(j) = observation_start(kind_of(j)) + mushroom_name(j - 10 * floor(j / 10)) + observation_end(kind_of(j));
+# A record's text, except an observation's (from its memory slot's code).
+fn record_text(r) = if(r == 0, "",
+    if(rtype(r) == 1, "",
+    if(rtype(r) == 2 or rtype(r) == 3, "I trust glowing mushrooms now.",
+    if(rtype(r) == 4, "I no longer trust glowing mushrooms.",
+    if(rtype(r) == 5, "I doubt what I saw at the " + mushroom_name(r - 10 * floor(r / 10)) + " mushroom.",
+    "I believe what I saw at the " + mushroom_name(r - 10 * floor(r / 10)) + " mushroom again.")))));
+
+# One observation `e` of a mushroom's kind `k` (an absorption, a taste or a
+# witness): the slime remembers it, forgetting its oldest memory. A duskcap reopens trust.
+proc saw(e evidence, k) {
+    when k == sort.glowcap reveal e supports glow_is_safe;
+    when k == sort.duskcap reveal e opposes glow_is_safe;
+    call shift_memory();
+    set e6 = qualified(1, e);
+    when k == sort.duskcap and standing >= 1 reopen trust because e;
+};
+# Its plain code and journal entries (arguments without evidence).
+proc note(k, code) {
+    set j6 = code;
+    call shift_records();
+    set rb = rb + (obs * 100 + 10) * 100000000;
+    when k == sort.duskcap and standing >= 1 call shift_records();
+    when k == sort.duskcap and standing >= 1 set rb = rb + (obs * 100 + 40) * 100000000;
+    when k == sort.duskcap and standing >= 1 set trust_code = trust_code - standing + 2;
+};
+# CR18/CR20: a doubt (type 5) or undoubt (type 6) of the witness in slot s
+# of mushroom w, with that witness as the record's own carrier.
+proc note_doubt(t, s, w) {
+    call shift_records();
+    set rb = rb + (mod100(obs - 6 + s) * 100 + t * 10 + w) * 100000000;
+    when s == 1 set rd6 = e1;
+    when s == 2 set rd6 = e2;
+    when s == 3 set rd6 = e3;
+    when s == 4 set rd6 = e4;
+    when s == 5 set rd6 = e5;
+    when s == 6 set rd6 = e6;
+};
+
+for mushroom as $m routed by target {
+    evidence absorb_$m from "absorbing the $m mushroom";
+    evidence taste_$m from "tasting the $m mushroom";
+    evidence witness_$m from "watching another creature eat the $m mushroom";
+    secondhand qualifies witness_$m;
+    # CR10: each regrowth is a new life with new occurrences of its evidence,
+    # without limit. Earlier occurrences stay while something remembers or
+    # cites them.
+    renewable absorb_$m window 2;
+    renewable taste_$m window 2;
+    renewable witness_$m window 2;
+    # CR19: a second taste, once the first has faded.
+    evidence retaste_$m from "tasting the $m mushroom again";
+    renewable retaste_$m window 2;
+
+    # The current life, counted from 1.
+    state $m_life = 1 min 1 max 1000000000;
+
+    # The current life is consumed once its absorption or witness is observed,
+    # and tasted once its taste is; a regrowth renews all three.
+    define $m_eaten = observed(absorb_$m) or observed(witness_$m);
+    define $m_tasted = observed(taste_$m);
+    define $m_retasted = observed(retaste_$m);
+    # What the taste said: 1 sweet (glowcap), 2 bitter (duskcap).
+    state $m_taste = 0 min 0 max 2;
+    define $m_sweet = $m_tasted and $m_taste == 1;
+    define $m_bitter = $m_tasted and $m_taste == 2;
+    define $m_too_risky = not $m_eaten and not $m_tasted and twice_bitten;
+    # CR14: the player's mark, not evidence; consuming the mushroom clears it.
+    state $m_marked = 0 min 0 max 1;
+    define $m_out_of_reach = $index == target.pit;
+    define $m_can_absorb = not $m_out_of_reach and not $m_eaten and not $m_bitter and not $m_too_risky and $m_marked == 0;
+    define $m_can_taste = not $m_out_of_reach and not $m_eaten and not $m_tasted;
+    define $m_can_retaste = not $m_out_of_reach and not $m_eaten and $m_tasted
+        and carries(taste_$m, taste_faded) and not $m_retasted;
+    define $m_disagrees = ($m_sweet and sort != sort.glowcap) or ($m_bitter and sort != sort.duskcap);
+    # When the current life was consumed; -1 while it is not.
+    state $m_gone_at = -1;
+    # When the current life was tasted, until its taste fades; -1 otherwise.
+    state $m_tasted_at = -1;
+
+    on absorb when $m_out_of_reach reject "Out of reach.";
+    on absorb when $m_eaten reject "That mushroom is gone.";
+    on absorb when $m_too_risky reject "Twice bitten: taste it first.";
+    on absorb when $m_marked == 1 reject "Marked to avoid.";
+    on absorb when not $m_can_absorb reject "It tasted bitter: the slime will not absorb it.";
+    on absorb when $m_disagrees reject "That is not what it tasted like.";
+    on absorb call saw(absorb_$m, sort);
+    on absorb call note(sort, $m_life * 100 + (0 + sort) * 10 + $index);
+    on absorb set $m_gone_at = elapsed();
+    on absorb set $m_marked = 0;
+
+    on taste when $m_out_of_reach reject "Out of reach.";
+    on taste when $m_eaten reject "That mushroom is gone.";
+    on taste when not $m_can_taste reject "That mushroom was already tasted.";
+    on taste call saw(taste_$m, sort);
+    on taste call note(sort, $m_life * 100 + (2 + sort) * 10 + $index);
+    on taste when glow == 0 qualify taste_$m with tasted_in_dark;
+    on taste set $m_tasted_at = elapsed();
+    on taste when sort == sort.glowcap set $m_taste = 1;
+    on taste when sort == sort.duskcap set $m_taste = 2;
+
+    on retaste when $m_out_of_reach reject "Out of reach.";
+    on retaste when $m_eaten reject "That mushroom is gone.";
+    on retaste when not $m_tasted reject "Not tasted yet.";
+    on retaste when $m_retasted reject "Already tasted again.";
+    on retaste when not carries(taste_$m, taste_faded) reject "The taste has not faded yet.";
+    on retaste when $m_disagrees reject "That is not what it tasted like.";
+    on retaste call saw(retaste_$m, sort);
+    on retaste call note(sort, $m_life * 100 + (6 + sort) * 10 + $index);
+    on retaste when glow == 0 qualify retaste_$m with tasted_in_dark;
+    on retaste set $m_tasted_at = elapsed();
+
+    on witness when $m_eaten reject "That mushroom is gone.";
+    on witness when $m_disagrees reject "That is not what it tasted like.";
+    on witness call saw(witness_$m, sort);
+    on witness call note(sort, $m_life * 100 + (4 + sort) * 10 + $index);
+    on witness set $m_gone_at = elapsed();
+    on witness set $m_marked = 0;
+
+    # CR18: doubting a remembered witness of this mushroom: its memory slot,
+    # or 0 when it is not remembered.
+    define $m_doubt_slot =
+        if(is_witness_of(j1, life, $index), 1, if(is_witness_of(j2, life, $index), 2,
+        if(is_witness_of(j3, life, $index), 3, if(is_witness_of(j4, life, $index), 4,
+        if(is_witness_of(j5, life, $index), 5, if(is_witness_of(j6, life, $index), 6, 0))))));
+    # Its bit in `doubts`.
+    define $m_doubt_place = if($m_doubt_slot == 0, 0, if($m_doubt_slot == 1, 32, if($m_doubt_slot == 2, 64,
+        if($m_doubt_slot == 3, 128, if($m_doubt_slot == 4, 256, if($m_doubt_slot == 5, 512, 1024))))));
+    # Whether the witness of the current life is doubted; frozen once it is
+    # forgotten, since only a remembered witness can be undoubted.
+    state $m_doubted = 0 min 0 max 1;
+    on doubt when $m_doubt_slot == 0 reject "The slime does not remember that witness.";
+    on doubt when $m_doubt_slot > 0 and digit(doubts, 2, $m_doubt_place) == 1 reject "Already doubted.";
+    on doubt when $m_doubt_slot > 0 and undoubted <= 1 reject "The slime must keep one undoubted observation.";
+    on doubt set doubts = doubts + $m_doubt_place;
+    on doubt call note_doubt(5, $m_doubt_slot, $index);
+    on doubt when $m_life == life set $m_doubted = 1;
+    # CR20: taking a doubt back.
+    on undoubt when $m_doubt_slot == 0 reject "The slime does not remember that witness.";
+    on undoubt when $m_doubt_slot > 0 and digit(doubts, 2, $m_doubt_place) == 0 reject "Not doubted.";
+    on undoubt set doubts = doubts - $m_doubt_place;
+    on undoubt call note_doubt(6, $m_doubt_slot, $index);
+    on undoubt when $m_life == life set $m_doubted = 0;
+
+    on mark when $m_out_of_reach reject "Out of reach.";
+    on mark when $m_eaten reject "That mushroom is gone.";
+    on mark when $m_marked == 1 reject "Already marked.";
+    on mark set $m_marked = 1;
+    on unmark when $m_marked == 0 reject "Not marked.";
+    on unmark set $m_marked = 0;
+
+    # Forty-five seconds after it is consumed, a stranger grows in its place.
+    # CR5: a minute after the taste (CR19: or the retaste), it fades. A
+    # regrowth before then leaves the old taste to fade on its own clock.
+    on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and not $m_retasted
+        qualify taste_$m with taste_faded;
+    on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and $m_retasted
+        qualify retaste_$m with taste_faded;
+    on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 set $m_tasted_at = -1;
+    define $m_regrows = $m_gone_at >= 0 and elapsed() - $m_gone_at >= 45;
+    on tick when $m_regrows and $m_tasted_at >= 0 and not $m_retasted
+        qualify taste_$m with taste_faded after 60 - (elapsed() - $m_tasted_at);
+    on tick when $m_regrows and $m_tasted_at >= 0 and $m_retasted
+        qualify retaste_$m with taste_faded after 60 - (elapsed() - $m_tasted_at);
+    on tick when $m_regrows set $m_tasted_at = -1;
+    on tick when $m_regrows renew absorb_$m;
+    on tick when $m_regrows renew taste_$m;
+    on tick when $m_regrows renew witness_$m;
+    on tick when $m_regrows renew retaste_$m;
+    on tick when $m_regrows set $m_taste = 0;
+    on tick when $m_regrows set $m_life = $m_life + 1;
+    on tick when $m_regrows set $m_gone_at = -1;
+    on tick when $m_regrows set $m_doubted = 0;
+
+    bind $m.present = not $m_eaten;
+    bind $m.canAbsorb = $m_can_absorb;
+    bind $m.canTaste = $m_can_taste;
+    bind $m.canRetaste = $m_can_retaste;
+    bind $m.marked = $m_marked == 1;
+    # CR17: countdowns, in whole seconds rounded up.
+    bind $m.regrowsIn = 0;
+    bind $m.regrowsIn = ceil(45 - (elapsed() - $m_gone_at)) when $m_gone_at >= 0;
+    bind $m.fadesIn = 0;
+    bind $m.fadesIn = ceil(60 - (elapsed() - $m_tasted_at)) when not $m_eaten and $m_tasted_at >= 0;
+    bind $m.label = "Glowing mushroom" because nothing;
+    bind $m.label = "Probably a glowcap" when belief == 1 because support;
+    bind $m.label = "Probably a duskcap" when belief == 2 because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when belief == 3 because contradiction;
+    bind $m.label = "Too risky — taste first" when $m_too_risky because contradiction;
+    bind $m.label = "Glowcap" when $m_sweet because $m_tasted;
+    bind $m.label = "Duskcap — avoid" when $m_bitter because $m_tasted;
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_sweet and carries(taste_$m, tasted_in_dark) because $m_tasted;
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_bitter and carries(taste_$m, tasted_in_dark) because $m_tasted;
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_sweet and carries(taste_$m, taste_faded) because $m_tasted;
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_bitter and carries(taste_$m, taste_faded) because $m_tasted;
+    # CR19: from a retaste on, it identifies the mushroom.
+    bind $m.label = "Glowcap" when $m_sweet and $m_retasted because $m_retasted;
+    bind $m.label = "Duskcap — avoid" when $m_bitter and $m_retasted because $m_retasted;
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_sweet and $m_retasted and carries(retaste_$m, tasted_in_dark) because $m_retasted;
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_bitter and $m_retasted and carries(retaste_$m, tasted_in_dark) because $m_retasted;
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_sweet and $m_retasted and carries(retaste_$m, taste_faded) because $m_retasted;
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_bitter and $m_retasted and carries(retaste_$m, taste_faded) because $m_retasted;
+    bind $m.label = "" when $m_eaten because nothing;
+
+    # CR11: why an action is not allowed.
+    bind $m.whyAbsorb = "" because nothing;
+    bind $m.whyAbsorb = "Too risky untasted" when $m_too_risky because contradiction;
+    bind $m.whyAbsorb = "Marked to avoid" when $m_marked == 1 because nothing;
+    bind $m.whyAbsorb = "Known duskcap" when $m_bitter because $m_tasted;
+    bind $m.whyAbsorb = "Known duskcap" when $m_bitter and $m_retasted because $m_retasted;
+    bind $m.whyAbsorb = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.whyAbsorb = "Already eaten" when observed(absorb_$m) because observed(absorb_$m);
+    bind $m.whyAbsorb = "Already eaten" when observed(witness_$m) because observed(witness_$m);
+    bind $m.whyAbsorb = "Already eaten" when observed(witness_$m) and $m_doubted == 1
+        and (examined(doubted) or true) because observed(witness_$m), examined(doubted);
+    bind $m.whyTaste = "" because nothing;
+    bind $m.whyTaste = "Already tasted" when $m_tasted because $m_tasted;
+    bind $m.whyTaste = "Already tasted" when $m_retasted because $m_retasted;
+    bind $m.whyTaste = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.whyTaste = "Already eaten" when observed(absorb_$m) because observed(absorb_$m);
+    bind $m.whyTaste = "Already eaten" when observed(witness_$m) because observed(witness_$m);
+    bind $m.whyTaste = "Already eaten" when observed(witness_$m) and $m_doubted == 1
+        and (examined(doubted) or true) because observed(witness_$m), examined(doubted);
+};
+
+on absorb when sort == sort.glowcap set glow = 30;
+# CR8: heaviness stacks, up to 30 s.
+on absorb when sort == sort.duskcap set heavy = if(heavy > 0, min(30, heavy + 20), 20);
+proc consider_trust() {
+    # The observation that made the belief safe is the newest memory.
+    when standing == 0 and plain_belief == 1 call shift_records();
+    when standing == 0 and plain_belief == 1 set rb = rb + (obs * 100 + 20) * 100000000;
+    when standing == 0 and plain_belief == 1 commit trust because enough using e6;
+    when standing == 0 and plain_belief == 1 set trust_code = trust_code - standing + 11;
+    # CR7: while reopened, the second glowcap since the contradiction that
+    # reopened it recommits, on those two (the newest two memories: the first
+    # glowcap after a contradiction cannot have recommitted).
+    when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 call shift_records();
+    when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 set rb = rb + (obs * 100 + 30) * 100000000;
+    when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64
+        commit trust because enough using e5 + e6;
+    when standing == 2 and is_glow(j5) and is_glow(j6) and commits < 64 set trust_code = trust_code - standing + 11;
+};
+on doubt when via != via.witness reject "Only what a creature showed can be doubted.";
+on undoubt when via != via.witness reject "Only a doubted witness can be believed again.";
+
+# Only a glowcap can make the belief safe or complete a recovery.
+on absorb when sort == sort.glowcap call consider_trust();
+on taste when sort == sort.glowcap call consider_trust();
+on witness when sort == sort.glowcap call consider_trust();
+on retaste when sort == sort.glowcap call consider_trust();
+
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+bind slime.heavySeconds = ceil(heavy);
+bind slime.glowSeconds = ceil(glow);
+
+bind belief.state = "none";
+bind belief.state = "probably_safe" when belief == 1;
+bind belief.state = "probably_unsafe" when belief == 2;
+bind belief.state = "uncertain" when belief == 3;
+bind belief.text = "";
+bind belief.text = "Glowing mushrooms give you light." when belief == 1;
+bind belief.text = "Glowing mushrooms make you heavy." when belief == 2;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief == 3;
+bind belief.note = "";
+bind belief.note = "Based on one observation." when belief == 1 and support == 1;
+bind belief.note = "Based on " + number_text(support) + " observations." when belief == 1 and support > 1;
+bind belief.note = "Based on one observation." when belief == 2 and contradiction == 1;
+bind belief.note = "Based on " + number_text(contradiction) + " observations." when belief == 2 and contradiction > 1;
+# The evidence lists are these bindings' citations.
+bind belief.supportedBy = support because support;
+bind belief.contradictedBy = contradiction because contradiction;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust);
+bind decision.state = "reopened" when reopened(trust);
+
+# CR16/CR20: the journal records. diary.rN is the text, diary.cN cites what the
+# entry is about, diary.dN adds `doubted` while that is a doubted witness.
+bind diary.r1 = record_text(r1);
+bind diary.r1 = entry_text(j1) when rtype(r1) == 1 and rs1 == 1;
+bind diary.r1 = entry_text(j2) when rtype(r1) == 1 and rs1 == 2;
+bind diary.r1 = entry_text(j3) when rtype(r1) == 1 and rs1 == 3;
+bind diary.r1 = entry_text(j4) when rtype(r1) == 1 and rs1 == 4;
+bind diary.r1 = entry_text(j5) when rtype(r1) == 1 and rs1 == 5;
+bind diary.r1 = entry_text(j6) when rtype(r1) == 1 and rs1 == 6;
+bind diary.c1 = 0 because nothing;
+bind diary.c1 = 1 when single(r1) and rs1 == 1 and e1 > 0 because e1;
+bind diary.c1 = 1 when single(r1) and rs1 == 2 and e2 > 0 because e2;
+bind diary.c1 = 1 when single(r1) and rs1 == 3 and e3 > 0 because e3;
+bind diary.c1 = 1 when single(r1) and rs1 == 4 and e4 > 0 because e4;
+bind diary.c1 = 1 when single(r1) and rs1 == 5 and e5 > 0 because e5;
+bind diary.c1 = 1 when single(r1) and rs1 == 6 and e6 > 0 because e6;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c1 = 1 when rtype(r1) == 3 and rs1 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c1 = 1 when rtype(r1) >= 5 and rd1 > 0 because rd1;
+bind diary.d1 = 0 because nothing;
+bind diary.d1 = 1 when rdoubted(r1, rs1, doubts) and (examined(doubted) or true) because examined(doubted);
+bind diary.r2 = record_text(r2);
+bind diary.r2 = entry_text(j1) when rtype(r2) == 1 and rs2 == 1;
+bind diary.r2 = entry_text(j2) when rtype(r2) == 1 and rs2 == 2;
+bind diary.r2 = entry_text(j3) when rtype(r2) == 1 and rs2 == 3;
+bind diary.r2 = entry_text(j4) when rtype(r2) == 1 and rs2 == 4;
+bind diary.r2 = entry_text(j5) when rtype(r2) == 1 and rs2 == 5;
+bind diary.r2 = entry_text(j6) when rtype(r2) == 1 and rs2 == 6;
+bind diary.c2 = 0 because nothing;
+bind diary.c2 = 1 when single(r2) and rs2 == 1 and e1 > 0 because e1;
+bind diary.c2 = 1 when single(r2) and rs2 == 2 and e2 > 0 because e2;
+bind diary.c2 = 1 when single(r2) and rs2 == 3 and e3 > 0 because e3;
+bind diary.c2 = 1 when single(r2) and rs2 == 4 and e4 > 0 because e4;
+bind diary.c2 = 1 when single(r2) and rs2 == 5 and e5 > 0 because e5;
+bind diary.c2 = 1 when single(r2) and rs2 == 6 and e6 > 0 because e6;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c2 = 1 when rtype(r2) == 3 and rs2 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c2 = 1 when rtype(r2) >= 5 and rd2 > 0 because rd2;
+bind diary.d2 = 0 because nothing;
+bind diary.d2 = 1 when rdoubted(r2, rs2, doubts) and (examined(doubted) or true) because examined(doubted);
+bind diary.r3 = record_text(r3);
+bind diary.r3 = entry_text(j1) when rtype(r3) == 1 and rs3 == 1;
+bind diary.r3 = entry_text(j2) when rtype(r3) == 1 and rs3 == 2;
+bind diary.r3 = entry_text(j3) when rtype(r3) == 1 and rs3 == 3;
+bind diary.r3 = entry_text(j4) when rtype(r3) == 1 and rs3 == 4;
+bind diary.r3 = entry_text(j5) when rtype(r3) == 1 and rs3 == 5;
+bind diary.r3 = entry_text(j6) when rtype(r3) == 1 and rs3 == 6;
+bind diary.c3 = 0 because nothing;
+bind diary.c3 = 1 when single(r3) and rs3 == 1 and e1 > 0 because e1;
+bind diary.c3 = 1 when single(r3) and rs3 == 2 and e2 > 0 because e2;
+bind diary.c3 = 1 when single(r3) and rs3 == 3 and e3 > 0 because e3;
+bind diary.c3 = 1 when single(r3) and rs3 == 4 and e4 > 0 because e4;
+bind diary.c3 = 1 when single(r3) and rs3 == 5 and e5 > 0 because e5;
+bind diary.c3 = 1 when single(r3) and rs3 == 6 and e6 > 0 because e6;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c3 = 1 when rtype(r3) == 3 and rs3 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c3 = 1 when rtype(r3) >= 5 and rd3 > 0 because rd3;
+bind diary.d3 = 0 because nothing;
+bind diary.d3 = 1 when rdoubted(r3, rs3, doubts) and (examined(doubted) or true) because examined(doubted);
+bind diary.r4 = record_text(r4);
+bind diary.r4 = entry_text(j1) when rtype(r4) == 1 and rs4 == 1;
+bind diary.r4 = entry_text(j2) when rtype(r4) == 1 and rs4 == 2;
+bind diary.r4 = entry_text(j3) when rtype(r4) == 1 and rs4 == 3;
+bind diary.r4 = entry_text(j4) when rtype(r4) == 1 and rs4 == 4;
+bind diary.r4 = entry_text(j5) when rtype(r4) == 1 and rs4 == 5;
+bind diary.r4 = entry_text(j6) when rtype(r4) == 1 and rs4 == 6;
+bind diary.c4 = 0 because nothing;
+bind diary.c4 = 1 when single(r4) and rs4 == 1 and e1 > 0 because e1;
+bind diary.c4 = 1 when single(r4) and rs4 == 2 and e2 > 0 because e2;
+bind diary.c4 = 1 when single(r4) and rs4 == 3 and e3 > 0 because e3;
+bind diary.c4 = 1 when single(r4) and rs4 == 4 and e4 > 0 because e4;
+bind diary.c4 = 1 when single(r4) and rs4 == 5 and e5 > 0 because e5;
+bind diary.c4 = 1 when single(r4) and rs4 == 6 and e6 > 0 because e6;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c4 = 1 when rtype(r4) == 3 and rs4 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c4 = 1 when rtype(r4) >= 5 and rd4 > 0 because rd4;
+bind diary.d4 = 0 because nothing;
+bind diary.d4 = 1 when rdoubted(r4, rs4, doubts) and (examined(doubted) or true) because examined(doubted);
+bind diary.r5 = record_text(r5);
+bind diary.r5 = entry_text(j1) when rtype(r5) == 1 and rs5 == 1;
+bind diary.r5 = entry_text(j2) when rtype(r5) == 1 and rs5 == 2;
+bind diary.r5 = entry_text(j3) when rtype(r5) == 1 and rs5 == 3;
+bind diary.r5 = entry_text(j4) when rtype(r5) == 1 and rs5 == 4;
+bind diary.r5 = entry_text(j5) when rtype(r5) == 1 and rs5 == 5;
+bind diary.r5 = entry_text(j6) when rtype(r5) == 1 and rs5 == 6;
+bind diary.c5 = 0 because nothing;
+bind diary.c5 = 1 when single(r5) and rs5 == 1 and e1 > 0 because e1;
+bind diary.c5 = 1 when single(r5) and rs5 == 2 and e2 > 0 because e2;
+bind diary.c5 = 1 when single(r5) and rs5 == 3 and e3 > 0 because e3;
+bind diary.c5 = 1 when single(r5) and rs5 == 4 and e4 > 0 because e4;
+bind diary.c5 = 1 when single(r5) and rs5 == 5 and e5 > 0 because e5;
+bind diary.c5 = 1 when single(r5) and rs5 == 6 and e6 > 0 because e6;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c5 = 1 when rtype(r5) == 3 and rs5 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c5 = 1 when rtype(r5) >= 5 and rd5 > 0 because rd5;
+bind diary.d5 = 0 because nothing;
+bind diary.d5 = 1 when rdoubted(r5, rs5, doubts) and (examined(doubted) or true) because examined(doubted);
+bind diary.r6 = record_text(r6);
+bind diary.r6 = entry_text(j1) when rtype(r6) == 1 and rs6 == 1;
+bind diary.r6 = entry_text(j2) when rtype(r6) == 1 and rs6 == 2;
+bind diary.r6 = entry_text(j3) when rtype(r6) == 1 and rs6 == 3;
+bind diary.r6 = entry_text(j4) when rtype(r6) == 1 and rs6 == 4;
+bind diary.r6 = entry_text(j5) when rtype(r6) == 1 and rs6 == 5;
+bind diary.r6 = entry_text(j6) when rtype(r6) == 1 and rs6 == 6;
+bind diary.c6 = 0 because nothing;
+bind diary.c6 = 1 when single(r6) and rs6 == 1 and e1 > 0 because e1;
+bind diary.c6 = 1 when single(r6) and rs6 == 2 and e2 > 0 because e2;
+bind diary.c6 = 1 when single(r6) and rs6 == 3 and e3 > 0 because e3;
+bind diary.c6 = 1 when single(r6) and rs6 == 4 and e4 > 0 because e4;
+bind diary.c6 = 1 when single(r6) and rs6 == 5 and e5 > 0 because e5;
+bind diary.c6 = 1 when single(r6) and rs6 == 6 and e6 > 0 because e6;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 1 and e0 + e1 > 0 because e0, e1;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 2 and e1 + e2 > 0 because e1, e2;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 3 and e2 + e3 > 0 because e2, e3;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 4 and e3 + e4 > 0 because e3, e4;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 5 and e4 + e5 > 0 because e4, e5;
+bind diary.c6 = 1 when rtype(r6) == 3 and rs6 == 6 and e5 + e6 > 0 because e5, e6;
+bind diary.c6 = 1 when rtype(r6) >= 5 and rd6 > 0 because rd6;
+bind diary.d6 = 0 because nothing;
+bind diary.d6 = 1 when rdoubted(r6, rs6, doubts) and (examined(doubted) or true) because examined(doubted);
