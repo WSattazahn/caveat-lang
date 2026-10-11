@@ -307,8 +307,9 @@ export function createRuntime(SessionClass, identity = {}) {
     // a host that never closes its sessions exhausts memory this way, and
     // the bare trap says only "unreachable" (Glowcap round 8, item 7).
     trapMessage(error) {
+      if (typeof SessionClass.out_of_memory !== 'function') return messageOf(error);
       let outOfMemory = false;
-      try { outOfMemory = SessionClass.out_of_memory?.() === true; } catch { /* the trap stands as reported */ }
+      try { outOfMemory = SessionClass.out_of_memory() === true; } catch { /* the trap stands as reported */ }
       if (!outOfMemory) return messageOf(error);
       return `the runtime ran out of WebAssembly memory with ${lifecycle.open} session(s) open `
         + `(trap: ${messageOf(error)}). Close each session with close() once it is no longer needed. `
