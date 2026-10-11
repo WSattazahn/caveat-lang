@@ -1,0 +1,6 @@
+300 sequences, 815501 events; each program against /home/claude/glowcap-r8/authors/T2/impl/glowcap.ts
+/home/claude/glowcap-r8/authors/T1/impl/glowcap.ts: 0 diverged {}
+/home/claude/glowcap-r8/authors/T3/impl/glowcap.ts: 0 diverged {}
+/home/claude/glowcap-r8/authors/C1/impl/adapter.mjs: 40 diverged {"journal":29,"mushrooms.grove.fadesIn":4,"mushrooms.pool.fadesIn":2,"mushrooms.cave.fadesIn":2,"mushrooms.ruin.fadesIn":3}
+/home/claude/glowcap-r8/authors/C2/impl/adapter.mjs: 29 diverged {"journal":29}
+/home/claude/glowcap-r8/authors/C3/impl/adapter.mjs: 184 diverged {"mushrooms.grove.regrowsIn":1,"mushrooms.pool.because":1,"mushrooms.pool.regrowsIn":2,"decision.basis":11,"mushrooms.grove.fadesIn":2,"mushrooms.ruin.regrowsIn":2,"mushrooms.cave.regrowsIn":3,"mushrooms.ruin.why.absorb.caveats":2,"mushrooms.cave.fadesIn":1,"mushrooms.ruin.fadesIn":1,"mushrooms.pool.fadesIn":1,"belief":13,"accept":144}

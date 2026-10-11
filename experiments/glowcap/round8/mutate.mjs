@@ -5,7 +5,10 @@
 // replayed against their unmutated program with the round-8 fuzz; a survivor
 // it cannot tell apart is labelled possibly equivalent.
 //
-//   node experiments/glowcap/round8/mutate.mjs [--root=DIR] [--fuzz-sequences=100] > results/mutation.json
+//   node experiments/glowcap/round8/mutate.mjs [--root=DIR] [--fuzz-sequences=100] [--programs=C1,T1] > results/mutation.json
+//
+// --programs runs only those programs' sites, so the work can be split across
+// processes; the shards' outputs are joined in sites.json order.
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,7 +19,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 const ROOT = arg('root', '/home/claude/glowcap-r8');
 const FUZZ = Number(arg('fuzz-sequences', 100));
-const sites = JSON.parse(readFileSync(path.join(ROOT, 'mutator', 'sites.json'), 'utf8'));
+const ONLY = arg('programs', '').split(',').filter(Boolean);
+const sites = JSON.parse(readFileSync(path.join(ROOT, 'mutator', 'sites.json'), 'utf8'))
+  .filter((s) => !ONLY.length || ONLY.includes(s.program));
 const scenarios = (await allScenarios()).filter((s) => applies(s, PHASES.at(-1)));
 const scenarioFile = path.join(ROOT, 'private', 'mutation-scenarios.json');
 writeFileSync(scenarioFile, JSON.stringify(scenarios));

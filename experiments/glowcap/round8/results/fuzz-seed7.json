@@ -1,0 +1,12936 @@
+[
+ {
+  "entry": "/home/claude/glowcap-r8/authors/T1/impl/glowcap.ts",
+  "diverged": 0,
+  "kinds": {},
+  "example": null
+ },
+ {
+  "entry": "/home/claude/glowcap-r8/authors/T3/impl/glowcap.ts",
+  "diverged": 0,
+  "kinds": {},
+  "example": null
+ },
+ {
+  "entry": "/home/claude/glowcap-r8/authors/C1/impl/adapter.mjs",
+  "diverged": 40,
+  "kinds": {
+   "journal": 29,
+   "mushrooms.grove.fadesIn": 4,
+   "mushrooms.pool.fadesIn": 2,
+   "mushrooms.cave.fadesIn": 2,
+   "mushrooms.ruin.fadesIn": 3
+  },
+  "example": {
+   "sequence": 0,
+   "difference": {
+    "at": "journal",
+    "first": [
+     {
+      "because": [
+       "taste_cave"
+      ],
+      "caveats": [
+       "taste_faded",
+       "tasted_in_dark"
+      ],
+      "text": "Tasted the cave mushroom: sweet."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "Saw a creature eat the pool mushroom: it grew heavy."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "I no longer trust glowing mushrooms."
+     },
+     {
+      "because": [
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "Absorbed the grove mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "Absorbed the cave mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_grove",
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "I trust glowing mushrooms now."
+     }
+    ],
+    "other": [
+     {
+      "because": [
+       "taste_cave"
+      ],
+      "caveats": [
+       "taste_faded",
+       "tasted_in_dark"
+      ],
+      "text": "Tasted the cave mushroom: sweet."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "Saw a creature eat the pool mushroom: it grew heavy."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "I no longer trust glowing mushrooms."
+     },
+     {
+      "because": [
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "Absorbed the grove mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "Absorbed the cave mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave",
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "I trust glowing mushrooms now."
+     }
+    ]
+   },
+   "history": [
+    {
+     "type": "resume"
+    },
+    {
+     "type": "witness",
+     "id": "nowhere",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "pit",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "taste",
+     "id": "ruin",
+     "kind": "glowcap"
+    },
+    {
+     "type": "taste",
+     "id": "cave",
+     "kind": "glowcap"
+    },
+    {
+     "type": "doubt",
+     "evidence": "witness_grove"
+    },
+    {
+     "type": "unmark",
+     "id": "ruin"
+    },
+    {
+     "type": "tick",
+     "dt": 0.05
+    },
+    {
+     "type": "witness",
+     "id": "pool",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "grove",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "taste",
+     "id": "ruin",
+     "kind": "bluecap"
+    },
+    {
+     "type": "taste",
+     "id": "nowhere",
+     "kind": "bluecap"
+    },
+    {
+     "type": "resume"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "absorb",
+     "id": "cave",
+     "kind": "glowcap"
+    }
+   ]
+  }
+ },
+ {
+  "entry": "/home/claude/glowcap-r8/authors/C2/impl/adapter.mjs",
+  "diverged": 29,
+  "kinds": {
+   "journal": 29
+  },
+  "example": {
+   "sequence": 0,
+   "difference": {
+    "at": "journal",
+    "first": [
+     {
+      "because": [
+       "taste_cave"
+      ],
+      "caveats": [
+       "taste_faded",
+       "tasted_in_dark"
+      ],
+      "text": "Tasted the cave mushroom: sweet."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "Saw a creature eat the pool mushroom: it grew heavy."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "I no longer trust glowing mushrooms."
+     },
+     {
+      "because": [
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "Absorbed the grove mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "Absorbed the cave mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_grove",
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "I trust glowing mushrooms now."
+     }
+    ],
+    "other": [
+     {
+      "because": [
+       "taste_cave"
+      ],
+      "caveats": [
+       "taste_faded",
+       "tasted_in_dark"
+      ],
+      "text": "Tasted the cave mushroom: sweet."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "Saw a creature eat the pool mushroom: it grew heavy."
+     },
+     {
+      "because": [
+       "witness_pool"
+      ],
+      "caveats": [
+       "secondhand"
+      ],
+      "text": "I no longer trust glowing mushrooms."
+     },
+     {
+      "because": [
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "Absorbed the grove mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave"
+      ],
+      "caveats": [],
+      "text": "Absorbed the cave mushroom: it gave light."
+     },
+     {
+      "because": [
+       "absorb_cave",
+       "absorb_grove"
+      ],
+      "caveats": [],
+      "text": "I trust glowing mushrooms now."
+     }
+    ]
+   },
+   "history": [
+    {
+     "type": "resume"
+    },
+    {
+     "type": "witness",
+     "id": "nowhere",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "pit",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "taste",
+     "id": "ruin",
+     "kind": "glowcap"
+    },
+    {
+     "type": "taste",
+     "id": "cave",
+     "kind": "glowcap"
+    },
+    {
+     "type": "doubt",
+     "evidence": "witness_grove"
+    },
+    {
+     "type": "unmark",
+     "id": "ruin"
+    },
+    {
+     "type": "tick",
+     "dt": 0.05
+    },
+    {
+     "type": "witness",
+     "id": "pool",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "grove",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "taste",
+     "id": "ruin",
+     "kind": "bluecap"
+    },
+    {
+     "type": "taste",
+     "id": "nowhere",
+     "kind": "bluecap"
+    },
+    {
+     "type": "resume"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "absorb",
+     "id": "cave",
+     "kind": "glowcap"
+    }
+   ]
+  }
+ },
+ {
+  "entry": "/home/claude/glowcap-r8/authors/C3/impl/adapter.mjs",
+  "diverged": 184,
+  "kinds": {
+   "mushrooms.grove.regrowsIn": 1,
+   "mushrooms.pool.because": 1,
+   "mushrooms.pool.regrowsIn": 2,
+   "decision.basis": 11,
+   "mushrooms.grove.fadesIn": 2,
+   "mushrooms.ruin.regrowsIn": 2,
+   "mushrooms.cave.regrowsIn": 3,
+   "mushrooms.ruin.why.absorb.caveats": 2,
+   "mushrooms.cave.fadesIn": 1,
+   "mushrooms.ruin.fadesIn": 1,
+   "mushrooms.pool.fadesIn": 1,
+   "belief": 13,
+   "accept": 144
+  },
+  "example": {
+   "sequence": 0,
+   "difference": {
+    "at": "mushrooms.grove.regrowsIn",
+    "first": 25,
+    "other": 26
+   },
+   "history": [
+    {
+     "type": "resume"
+    },
+    {
+     "type": "witness",
+     "id": "nowhere",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "pit",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "taste",
+     "id": "ruin",
+     "kind": "glowcap"
+    },
+    {
+     "type": "taste",
+     "id": "cave",
+     "kind": "glowcap"
+    },
+    {
+     "type": "doubt",
+     "evidence": "witness_grove"
+    },
+    {
+     "type": "unmark",
+     "id": "ruin"
+    },
+    {
+     "type": "tick",
+     "dt": 0.05
+    },
+    {
+     "type": "witness",
+     "id": "pool",
+     "kind": "duskcap"
+    },
+    {
+     "type": "absorb",
+     "id": "grove",
+     "kind": "glowcap"
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    },
+    {
+     "type": "tick",
+     "dt": 0.0625
+    }
+   ]
+  }
+ }
+]
