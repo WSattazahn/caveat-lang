@@ -115,7 +115,7 @@ sees what the earlier ones did.
 | `commit SERIES because enough\|budget\|deadline [using EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, …]` | Makes a decision. GRANT is evidence or `latest(STREAM)`. `for X` requires the grant's value to equal X ([permission](reference/spec/caveat-permission-0.1.md)). To keep "not ready" with its grounds, commit a second series whose value is not a verdict ([guide](reference/docs/AI_AUTHORING.md#record-not-ready-with-its-reasons)). |
 | `reopen SERIES because EVIDENCE\|latest(STREAM)\|caveated(STATE, CAVEAT)` | Reopens the current revision. |
 | `withdraw EVIDENCE\|latest(STREAM) because EVIDENCE` | Marks it wrong. Later reads carry a `withdrawn` caveat ([withdrawal](reference/spec/caveat-withdrawal-0.1.md)). |
-| `qualify EVIDENCE with CAVEAT [after SECONDS]` | Attaches a caveat now, or after that much session time. |
+| `qualify EVIDENCE with CAVEAT [after SECONDS]`, `unqualify EVIDENCE with CAVEAT` | `qualify` attaches a caveat now, or after that much session time. `unqualify` takes back what `qualify` added, on every held occurrence. The take-back is recorded, not erased, and decisions keep their basis ([take-back](reference/spec/caveat-take-back-0.1.md)). |
 | `renew EVIDENCE` | Moves the name to a new, **unobserved** occurrence. `observed(EVIDENCE)` is false again until a `reveal`. Earlier occurrences keep what they were about. |
 | `reject "MESSAGE"` | Refuses the whole event. |
 | `call PROCEDURE(ARGUMENT, …)` | Runs a procedure's steps. |
