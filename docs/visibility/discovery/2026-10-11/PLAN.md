@@ -127,3 +127,30 @@ rubric with their own code.
 three, and what each run chose instead. It generalizes nothing beyond this
 agent, these prompts and this day. It makes no README or site claim. Results
 land by pull request, which merges only on the owner's word.
+
+## Amendment 1 (21:45 UTC, before any counted run)
+
+The first attempt at run 1 (21:28 UTC) was stopped after a few minutes and is
+not counted. Its environment was not clean enough:
+
+- Its working directory sat under a path that contained `caveat-lang`, and
+  that path reached the agent in tool output ("Shell cwd was reset to …").
+- It inherited this session's identity and messaging channel, so it had
+  tools to message other sessions on the machine.
+
+Its transcript is kept as `runs/aborted-1/transcript.jsonl`. Before it was
+stopped it ran four `npm search` queries and began writing its own ledger.
+
+Changes for the counted runs:
+
+- Each run's directories are under `/tmp/discovery/runN/`, a path with no
+  project name in it.
+- The CLI starts with every `CLAUDE*`, `CCR_*` and `SESSION_INGRESS*`
+  variable removed except those it needs for its network proxy and web search.
+  A probe on this setup got a new session id, no scratchpad path naming the
+  project, and working web search.
+- `--disallowedTools SendMessage ListAgents RemoteTrigger Workflow CronCreate
+  PushNotification`, so a run cannot reach another session. Stdin is
+  `/dev/null`.
+
+The prompts, arms, order, budget, rubric and prediction are unchanged.
