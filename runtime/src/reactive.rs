@@ -3983,25 +3983,36 @@ impl ReactiveSession {
     /// Evidence names in first-observation order. Legacy sessions derive that
     /// order from their edges; neutral observations require an explicit ledger.
     fn in_observation_order<'a>(&self, evidence: impl Iterator<Item = &'a String>) -> Vec<String> {
+        let ranks = self.observation_ranks();
         let mut named = evidence
-            .map(|name| {
-                let rank = if self.observations.is_empty() {
-                    let id = self.symbols.get(name).copied();
-                    self.graph.edges.iter().position(|edge| {
-                        Some(edge.from) == id
-                            && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                    })
-                } else {
-                    self.observations
-                        .iter()
-                        .position(|observed| observed == name)
-                }
-                .unwrap_or(usize::MAX);
-                (rank, name.clone())
-            })
+            .map(|name| (ranks.rank(name), name.clone()))
             .collect::<Vec<_>>();
         named.sort();
         named.into_iter().map(|(_, name)| name).collect()
+    }
+
+    /// Where each name was first observed: its place in the observation
+    /// ledger, or, for a session without one, the place of its first
+    /// `supports` or `opposes` edge. Built once, read for many names.
+    pub(crate) fn observation_ranks(&self) -> ObservationRanks<'_> {
+        if self.observations.is_empty() {
+            let mut first = HashMap::new();
+            for (position, edge) in self.graph.edges.iter().enumerate() {
+                if matches!(edge.relation, Relation::Supports | Relation::Opposes) {
+                    first.entry(edge.from).or_insert(position);
+                }
+            }
+            ObservationRanks::Edges {
+                symbols: &self.symbols,
+                first,
+            }
+        } else {
+            let mut first = HashMap::new();
+            for (position, name) in self.observations.iter().enumerate() {
+                first.entry(name.as_str()).or_insert(position);
+            }
+            ObservationRanks::Ledger(first)
+        }
     }
 
     fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
@@ -6718,5 +6729,28 @@ impl<'de> serde::Deserialize<'de> for Payload {
             }
         }
         deserializer.deserialize_map(Visitor)
+    }
+}
+
+/// First-observation ranks; see `ReactiveSession::observation_ranks`. A name
+/// never observed ranks last, so a sort by `(rank, name)` puts it after the
+/// observed ones, in name order.
+pub(crate) enum ObservationRanks<'a> {
+    Ledger(HashMap<&'a str, usize>),
+    Edges {
+        symbols: &'a HashMap<String, NodeId>,
+        first: HashMap<NodeId, usize>,
+    },
+}
+
+impl ObservationRanks<'_> {
+    pub(crate) fn rank(&self, name: &str) -> usize {
+        match self {
+            Self::Ledger(first) => first.get(name).copied(),
+            Self::Edges { symbols, first } => {
+                symbols.get(name).and_then(|id| first.get(id).copied())
+            }
+        }
+        .unwrap_or(usize::MAX)
     }
 }
