@@ -1,0 +1,58 @@
+$ caveat-lang dependents ../001-departure-reason-mechanism/decision.cav thread_correction ../001-departure-reason-mechanism/events.jsonl
+What rests on thread_correction in decision.cav after 4 events (sequence 4)
+
+Withdrawals resting on this reason
+  mechanism_reopen withdrawn at #3 during owner_concedes because thread_correction
+
+Claims
+  thread_correction opposes reopen_strands
+
+Decisions
+  nothing
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  reading.withdrawn = true  cites thread_correction
+
+$ caveat-lang dependents ../001-departure-reason-mechanism/decision.cav mechanism_reopen ../001-departure-reason-mechanism/events.jsonl
+What rests on mechanism_reopen in decision.cav after 4 events (sequence 4)
+
+Withdrawals
+  mechanism_reopen withdrawn at #3 during owner_concedes because thread_correction
+
+Claims
+  mechanism_reopen supports reopen_strands
+
+Decisions
+  nothing
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  nothing
+
+$ caveat-lang dependents ../001-departure-reason-mechanism/decision.cav ci_pending ../001-departure-reason-mechanism/events.jsonl
+What rests on ci_pending in decision.cav after 4 events (sequence 4)
+
+Decisions
+  close_170@1 = 1  in force  retaining: ci_pending
+
+Decision changes
+  #4 owner_closes: close_170@1 committed retaining: caveat ci_pending
+
+Values
+  nothing
+
+Displayed
+  decision.revisions = 1  cites caveat ci_pending
+  decision.status = "closed for review at e655a87; CI on the head retained"  cites caveat ci_pending
+

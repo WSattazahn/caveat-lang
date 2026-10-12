@@ -1,0 +1,8 @@
+{
+  "name": "caveat-agent-decisions-003",
+  "private": true,
+  "description": "Dogfooding round 3, sample 003, against the published 0.1.0-rc.19.",
+  "dependencies": {
+    "caveat-lang": "0.1.0-rc.19"
+  }
+}

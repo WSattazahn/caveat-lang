@@ -1,0 +1,61 @@
+scene "Dogfooding round 3, sample 003: the owner defers the game presentation pass to after 1.0. Written after the fact, 2026-10-12 about 15:45 UTC, from the 03:21 UTC card as rc19-development.md records it.";
+
+# The conclusion others act on: no game thread this cycle.
+claim pass_can_wait;   # The presentation pass (Path to 1.0, D4) and draft #179 can wait until after 1.0.0.
+
+# Evidence, named by its source. The card itself is not in the repository;
+# its options and reason are, "as the owner saw them on the cards" (L69-70).
+evidence why_a from "docs/releases/rc19-development.md L90-92, Q2 'Why A' as shown on the 03:21 UTC card: the game does not gate 1.0, the 1.0 promise does not cover it, and one thread keeps the cycle bounded";
+evidence game_unstable from "docs/COMPATIBILITY.md L70-72 at 21594cc: web/ and game/ are not stable and may change in any release";
+evidence owner_tap from "the owner's tap on 'After 1.0', 03:21:06 UTC, recorded at docs/releases/rc19-development.md L14";
+evidence game_at_184 from "the game as #184 left it, with the likeness the owner approved (rc19-development.md L87); D4's list is framing, NPC and prop consistency, placeholder art, dialogue and controls (path-to-1.0.md L270)";
+evidence pr179_behind from "draft #179 is behind main, and option B brings it up first under D1 (rc19-development.md L88)";
+# Not observed in this record: the revisit trigger, used by scenario S03 only.
+evidence release_1_0 from "1.0.0 published (future; scenario S03 only)";
+
+# Caveats. A record of the card, not the card: [OBSERVED] of a record
+# (Archive Amendment 2), as in kit/examples/reviewer-decision/rely.cav.
+caveat secondhand consequence low;
+secondhand qualifies why_a;
+secondhand qualifies owner_tap;
+# The caveats chosen not to pursue now (skill step 3). Each is carried by the
+# evidence that shows it, not by the reason for leaving it.
+caveat presentation_gaps consequence low;
+caveat pr179_drift consequence low;
+presentation_gaps qualifies game_at_184;
+pr179_drift qualifies pr179_behind;
+
+decisions defer_pass limit 2;
+
+event plan_read;        # 02:52 UTC, the rc.19 plan thread's answer with the cards' text
+event owner_taps;       # 03:21:06 UTC
+event one_oh_ships;     # future; scenario S03 only
+
+on plan_read when not observed(why_a) reveal why_a supports pass_can_wait;
+on plan_read when not observed(game_unstable) reveal game_unstable supports pass_can_wait;
+on plan_read when not observed(game_at_184) reveal game_at_184;
+on plan_read when not observed(pr179_behind) reveal pr179_behind;
+
+# The deferral rests on the reason it was deferred for. The tap is the
+# permission. The caveats not pursued are retained by name; the reason they
+# were not pursued is the decision's own grounds (finding D006).
+on owner_taps when not observed(owner_tap) reveal owner_tap;
+on owner_taps when committed(defer_pass) and not reopened(defer_pass) reject "Already deferred.";
+on owner_taps commit defer_pass because enough
+  using qualified(1, why_a) + qualified(1, game_unstable)
+  permitted by owner_tap
+  retaining presentation_gaps, pr179_drift;
+
+# "After 1.0" names its own revisit point. Nothing reopens by itself
+# (AI_AUTHORING, "There is no fallback"), so the rule says it.
+on one_oh_ships when not observed(release_1_0) reveal release_1_0;
+on one_oh_ships when committed(defer_pass) and not reopened(defer_pass)
+  reopen defer_pass because release_1_0;
+
+bind deferral.status = "undecided";
+bind deferral.status = "after 1.0: no game thread this cycle" when committed(defer_pass) and not reopened(defer_pass);
+bind deferral.status = "due: 1.0.0 shipped, the pass is open again" when reopened(defer_pass);
+bind deferral.revisions = history_count(defer_pass);
+
+# Probe: the reason for not pursuing each caveat as a displayed binding.
+bind not_pursued.presentation_gaps = "not gating 1.0 (why_a)" when committed(defer_pass) and qualified(1, why_a) > 0;

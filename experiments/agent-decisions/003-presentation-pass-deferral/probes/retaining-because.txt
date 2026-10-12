@@ -1,0 +1,10 @@
+# Source (kept as text: it does not load, and repository .cav files are swept)
+claim c;
+evidence e from "x";
+caveat k consequence low;
+event go;
+on go reveal e supports c;
+on go commit d because enough using qualified(1, e) retaining k because e;
+
+$ caveat-lang validate retaining-because.cav
+probes/retaining-because.cav does not load: line 6, column 1: invalid reactive identifier k because e

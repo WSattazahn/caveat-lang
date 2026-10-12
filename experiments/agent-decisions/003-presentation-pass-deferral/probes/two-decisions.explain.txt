@@ -1,0 +1,33 @@
+two-decisions.cav after 1 event (sequence 1)
+
+Events
+    1  go  accepted
+
+Decisions
+  made under source sha256:82d23a940f3207f015f4946a73d9aa18b6191a304f9db6b4f53e4cd171a4e9fe
+  defer_179: 1 of at most 2
+    defer_179@1 = 1  in force
+      based on d1_only_for_b
+      d1_only_for_b: observed at #1 go
+      retaining: pr179_drift
+      permitted by owner_tap
+      could also have been influenced by owner_tap
+      #1 go: committed because d1_only_for_b; retaining: pr179_drift
+  defer_pass: 1 of at most 2
+    defer_pass@1 = 1  in force
+      based on why_a
+      why_a: observed at #1 go
+      retaining: presentation_gaps
+      permitted by owner_tap
+      could also have been influenced by owner_tap
+      #1 go: committed because why_a; retaining: presentation_gaps
+
+Evidence
+  why_a supports pass_can_wait
+  d1_only_for_b supports pass_can_wait
+  game_at_184 observed (no stance)  caveats: presentation_gaps
+  pr179_behind observed (no stance)  caveats: pr179_drift
+  owner_tap observed (no stance)
+
+Displayed
+  nothing bound

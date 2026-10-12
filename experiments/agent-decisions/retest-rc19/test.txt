@@ -1,0 +1,15 @@
+$ caveat-lang test ../001-departure-reason-mechanism/decision.scenarios.json
+PASS S01  The record in order: the reading is withdrawn with the correction as its reason; the close rests on L93 alone and nothing reopens  (5 events, 1 rejected, 0 resumes)
+PASS S02  Withdrawn after the close: the reading was never in the grounds, so nothing reopens  (4 events, 0 rejected, 0 resumes)
+PASS S03  Counterfactual: withdrawing L93 itself would reopen the close, so S02's quiet is the rule working  (5 events, 0 rejected, 0 resumes)
+PASS S04  Closing before the spec line is observed is refused and leaves nothing behind  (1 events, 1 rejected, 0 resumes)
+PASS S05  The correction cannot withdraw the reading before the correction is observed  (2 events, 1 rejected, 0 resumes)
+5 passed, 0 failed (../001-departure-reason-mechanism/decision.scenarios.json)
+
+$ caveat-lang test ../002-departure-continuation/decision.scenarios.json
+PASS S01  Observed continuation starts with unresolved checks retained; not ready  (6 events, 1 rejected, 0 resumes)
+PASS S02  Counterfactual full verification permits readiness; not an observed result  (7 events, 0 rejected, 0 resumes)
+PASS S03  Counterfactual correction withdraws the result without rewriting implementation grounds  (6 events, 0 rejected, 0 resumes)
+PASS S04  A grant is required; source declarations are not authority  (3 events, 1 rejected, 0 resumes)
+4 passed, 0 failed (../002-departure-continuation/decision.scenarios.json)
+

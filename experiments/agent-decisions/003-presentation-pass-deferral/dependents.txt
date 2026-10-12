@@ -1,0 +1,70 @@
+$ caveat-lang dependents decision.cav why_a events.jsonl
+What rests on why_a in decision.cav after 2 events (sequence 2)
+
+Claims
+  why_a supports pass_can_wait
+
+Decisions
+  defer_pass@1 = 2  in force  based on why_a
+
+Decision changes
+  #2 owner_taps: defer_pass@1 committed because why_a
+
+Values
+  nothing
+
+Displayed
+  deferral.revisions = 1  cites why_a
+  deferral.status = "after 1.0: no game thread this cycle"  cites why_a
+
+$ caveat-lang dependents decision.cav presentation_gaps events.jsonl
+What rests on presentation_gaps in decision.cav after 2 events (sequence 2)
+
+Decisions
+  defer_pass@1 = 2  in force  retaining: presentation_gaps
+
+Decision changes
+  #2 owner_taps: defer_pass@1 committed retaining: caveat presentation_gaps
+
+Values
+  nothing
+
+Displayed
+  deferral.revisions = 1  cites caveat presentation_gaps
+  deferral.status = "after 1.0: no game thread this cycle"  cites caveat presentation_gaps
+
+$ caveat-lang dependents decision.cav owner_tap events.jsonl
+What rests on owner_tap in decision.cav after 2 events (sequence 2)
+
+Decisions
+  defer_pass@1 = 2  in force  permitted by owner_tap
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  deferral.revisions = 1  cites owner_tap
+  deferral.status = "after 1.0: no game thread this cycle"  cites owner_tap
+
+$ caveat-lang dependents decision.cav secondhand events.jsonl
+What rests on secondhand in decision.cav after 2 events (sequence 2)
+
+Claims
+  why_a supports pass_can_wait
+
+Decisions
+  defer_pass@1 = 2  in force  retaining: secondhand
+
+Decision changes
+  #2 owner_taps: defer_pass@1 committed retaining: caveat secondhand
+
+Values
+  nothing
+
+Displayed
+  deferral.revisions = 1  cites caveat secondhand
+  deferral.status = "after 1.0: no game thread this cycle"  cites caveat secondhand
+

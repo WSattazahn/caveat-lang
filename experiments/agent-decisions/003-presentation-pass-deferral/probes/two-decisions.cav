@@ -1,0 +1,21 @@
+# Probe: one decision per deferred caveat, so each caveat is paired with its own reason.
+claim pass_can_wait;
+evidence why_a from "rc19-development.md L90-92: the game does not gate 1.0";
+evidence d1_only_for_b from "rc19-development.md L88: #179 is brought up to main only under option B (D1)";
+evidence game_at_184 from "the game as #184 left it";
+evidence pr179_behind from "draft #179 is behind main";
+evidence owner_tap from "the owner's tap, 03:21:06 UTC";
+caveat presentation_gaps consequence low;
+caveat pr179_drift consequence low;
+presentation_gaps qualifies game_at_184;
+pr179_drift qualifies pr179_behind;
+decisions defer_pass limit 2;
+decisions defer_179 limit 2;
+event go;
+on go reveal why_a supports pass_can_wait;
+on go reveal d1_only_for_b supports pass_can_wait;
+on go reveal game_at_184;
+on go reveal pr179_behind;
+on go reveal owner_tap;
+on go commit defer_pass because enough using qualified(1, why_a) permitted by owner_tap retaining presentation_gaps;
+on go commit defer_179 because enough using qualified(1, d1_only_for_b) permitted by owner_tap retaining pr179_drift;

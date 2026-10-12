@@ -1,0 +1,5 @@
+# Source (kept as text: it does not load, and repository .cav files are swept)
+caveat gaps consequence low because "not pursued: the game does not gate 1.0";
+
+$ caveat-lang validate caveat-reason.cav
+probes/caveat-reason.cav does not load: line 1, column 1: cannot parse statement: caveat gaps consequence low because "not pursued: the game does not gate 1.0"

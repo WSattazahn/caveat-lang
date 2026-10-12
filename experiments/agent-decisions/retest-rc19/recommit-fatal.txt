@@ -1,0 +1,41 @@
+$ cat recommit.cav
+claim ok;
+evidence a from "a";
+evidence b from "b";
+event decide; event correct;
+on decide when not observed(a) reveal a supports ok;
+on decide commit close because enough using qualified(1, a);
+on correct when not observed(b) reveal b opposes ok;
+on correct when committed(close) and not reopened(close) reopen close because b;
+
+$ cat events.jsonl
+{"event":"decide"}
+{"event":"correct"}
+{"event":"decide"}
+
+$ caveat-lang explain recommit.cav events.jsonl
+recommit.cav after 3 events (sequence 2)
+
+Events
+    1  decide  accepted
+    2  correct  accepted
+    3  decide  failed: unclassified: event decide, rule 2: commitment close already exists
+
+Decisions
+  made under source sha256:de18e53937923320146d41e2109fff60ee45f8528c8b0ff5821da44b910b2dcb
+  close: plain commitment
+    close = 1  reopened
+      based on a
+      a: observed at #1 decide
+      #1 decide: committed because a
+      #2 correct: reopened because b
+
+Evidence
+  a supports ok
+  b opposes ok
+
+Displayed
+  nothing bound
+
+Event 3 failed; the explanation above is of the session before it.
+(exit 1)
