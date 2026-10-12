@@ -1,0 +1,2006 @@
+[
+ {
+  "file": "runs/R-C1/files/ANSWERS.json",
+  "run": "R-C1",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 57,
+   "code": 6,
+   "run": 3,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 57,
+    "code": 6,
+    "run": 3,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ },
+ {
+  "file": "runs/R-C2/files/ANSWERS.json",
+  "run": "R-C2",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 58,
+   "code": 6,
+   "run": 2,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 58,
+    "code": 6,
+    "run": 2,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ },
+ {
+  "file": "runs/R-C3/files/ANSWERS.json",
+  "run": "R-C3",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 63,
+   "code": 0,
+   "run": 3,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 63,
+    "code": 0,
+    "run": 3,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ },
+ {
+  "file": "runs/R-T1/files/ANSWERS.json",
+  "run": "R-T1",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 60,
+   "code": 6,
+   "run": 0,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 60,
+    "code": 6,
+    "run": 0,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ },
+ {
+  "file": "runs/R-T2/files/ANSWERS.json",
+  "run": "R-T2",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 54,
+   "code": 0,
+   "run": 12,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 54,
+    "code": 0,
+    "run": 12,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ },
+ {
+  "file": "runs/R-T3/files/ANSWERS.json",
+  "run": "R-T3",
+  "q1": [
+   {
+    "history": "H1",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H2",
+    "decision": 3,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 1,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   },
+   {
+    "history": "H3",
+    "decision": 2,
+    "parts": {
+     "value": "correct",
+     "rests_on": "correct",
+     "caveats": "correct",
+     "retains": "correct",
+     "grant": "correct",
+     "state": "correct"
+    },
+    "core": true,
+    "caveats": true,
+    "strict": true
+   }
+  ],
+  "q2": [
+   {
+    "history": "H1",
+    "probe": 3,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 7,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H1",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 11,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 13,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H2",
+    "probe": 5,
+    "kind": "fourth",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 5,
+    "kind": "rests_on",
+    "expected": "yes",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 10,
+    "kind": "later",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 2,
+    "kind": "grant",
+    "expected": "no",
+    "result": "correct"
+   },
+   {
+    "history": "H3",
+    "probe": 4,
+    "kind": "fourth",
+    "expected": "yes",
+    "result": "correct"
+   }
+  ],
+  "q3": [
+   {
+    "history": "H1",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 4,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H1",
+    "statement": 5,
+    "verdict": "false",
+    "kind": "F1",
+    "given": "false"
+   },
+   {
+    "history": "H1",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 2,
+    "verdict": "false",
+    "kind": "F4",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 3,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F3",
+    "given": "false"
+   },
+   {
+    "history": "H2",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H2",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 1,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 2,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 3,
+    "verdict": "false",
+    "kind": "F2",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 4,
+    "verdict": "false",
+    "kind": "F5",
+    "given": "false"
+   },
+   {
+    "history": "H3",
+    "statement": 5,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   },
+   {
+    "history": "H3",
+    "statement": 6,
+    "verdict": "true",
+    "kind": null,
+    "given": "true"
+   }
+  ],
+  "receipts": {
+   "record": 66,
+   "code": 0,
+   "run": 0,
+   "none": 0,
+   "missing": 0
+  },
+  "summary": {
+   "q1_core": "6 of 6",
+   "q1_caveats": "6 of 6",
+   "q1_strict": "6 of 6",
+   "q2": "12 of 12",
+   "q2_grant": "3 of 3",
+   "q2_fourth": "3 of 3",
+   "q3_hits": "6 of 6",
+   "q3_false_alarms": "0 of 12",
+   "receipts": {
+    "record": 66,
+    "code": 0,
+    "run": 0,
+    "none": 0,
+    "missing": 0
+   }
+  }
+ }
+]

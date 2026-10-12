@@ -1,0 +1,249 @@
+{
+  "H1": {
+    "decisions": [
+      {
+        "decision": 1,
+        "value": 17,
+        "rests_on": [
+          3,
+          4,
+          5
+        ],
+        "caveats": [
+          "secondhand"
+        ],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "in_force",
+        "reopened_by": null,
+        "reopen_reason": null
+      }
+    ],
+    "probes": [
+      3,
+      7,
+      2,
+      4
+    ],
+    "q2": [
+      "yes",
+      "no",
+      "no",
+      "yes"
+    ],
+    "notes": [
+      {
+        "statement": 1,
+        "verdict": "true"
+      },
+      {
+        "statement": 2,
+        "verdict": "true"
+      },
+      {
+        "statement": 3,
+        "verdict": "false",
+        "kind": "F2",
+        "why": "the review at line 4 is relayed, so decision 1 was made with secondhand"
+      },
+      {
+        "statement": 4,
+        "verdict": "true"
+      },
+      {
+        "statement": 5,
+        "verdict": "false",
+        "kind": "F1",
+        "why": "decision 1 rests on lines 3, 4 and 5; line 7 came after it"
+      },
+      {
+        "statement": 6,
+        "verdict": "true"
+      }
+    ],
+    "refused": []
+  },
+  "H2": {
+    "decisions": [
+      {
+        "decision": 1,
+        "value": 31,
+        "rests_on": [
+          3,
+          4,
+          5
+        ],
+        "caveats": [],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "superseded",
+        "reopened_by": 7,
+        "reopen_reason": "scan found issues"
+      },
+      {
+        "decision": 2,
+        "value": 31,
+        "rests_on": [
+          3,
+          4,
+          8
+        ],
+        "caveats": [],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "superseded",
+        "reopened_by": 10,
+        "reopen_reason": "check withdrawn"
+      },
+      {
+        "decision": 3,
+        "value": 31,
+        "rests_on": [
+          4,
+          8,
+          11
+        ],
+        "caveats": [],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "in_force",
+        "reopened_by": null,
+        "reopen_reason": null
+      }
+    ],
+    "probes": [
+      11,
+      13,
+      2,
+      5
+    ],
+    "q2": [
+      "yes",
+      "no",
+      "no",
+      "no"
+    ],
+    "notes": [
+      {
+        "statement": 1,
+        "verdict": "true"
+      },
+      {
+        "statement": 2,
+        "verdict": "false",
+        "kind": "F4",
+        "why": "line 10, recheck, withdrew the check at line 3 that decision 2 rests on; reason check withdrawn"
+      },
+      {
+        "statement": 3,
+        "verdict": "true"
+      },
+      {
+        "statement": 4,
+        "verdict": "false",
+        "kind": "F3",
+        "why": "decisions 1 and 2 rest on the check at line 3, which line 10 withdrew"
+      },
+      {
+        "statement": 5,
+        "verdict": "true"
+      },
+      {
+        "statement": 6,
+        "verdict": "true"
+      }
+    ],
+    "refused": []
+  },
+  "H3": {
+    "decisions": [
+      {
+        "decision": 1,
+        "value": 42,
+        "rests_on": [
+          3,
+          4,
+          5
+        ],
+        "caveats": [],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "superseded",
+        "reopened_by": 7,
+        "reopen_reason": "scan database stale"
+      },
+      {
+        "decision": 2,
+        "value": 42,
+        "rests_on": [
+          3,
+          4,
+          5
+        ],
+        "caveats": [],
+        "retains": [
+          "deps_unreviewed"
+        ],
+        "grant": 2,
+        "state": "in_force",
+        "reopened_by": null,
+        "reopen_reason": null
+      }
+    ],
+    "probes": [
+      5,
+      10,
+      2,
+      4
+    ],
+    "q2": [
+      "yes",
+      "no",
+      "no",
+      "yes"
+    ],
+    "notes": [
+      {
+        "statement": 1,
+        "verdict": "true"
+      },
+      {
+        "statement": 2,
+        "verdict": "true"
+      },
+      {
+        "statement": 3,
+        "verdict": "false",
+        "kind": "F2",
+        "why": "line 8 took db_stale back before decision 2 at line 9"
+      },
+      {
+        "statement": 4,
+        "verdict": "false",
+        "kind": "F5",
+        "why": "the grant at line 2 permitted decision 2; line 12 came after it, for head 43"
+      },
+      {
+        "statement": 5,
+        "verdict": "true"
+      },
+      {
+        "statement": 6,
+        "verdict": "true"
+      }
+    ],
+    "refused": [
+      13
+    ]
+  }
+}

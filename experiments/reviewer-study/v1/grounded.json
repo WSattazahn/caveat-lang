@@ -1,0 +1,221 @@
+{
+ "scope": "Q1(c) and Q1(d) on the two decisions made after a reopening (H2 decision 3, H3 decision 2), the answers Known property 1 bears on; the other 372 answers are not judged (grounded: null)",
+ "judged": [
+  {
+   "run": "R-C1",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C1",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-C1",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "run",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C1",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-C2",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C2",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-C2",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "run",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C2",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-C3",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C3",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-C3",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-C3",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T1",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T1",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T1",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T1",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "code",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T2",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T2",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T2",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T2",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T3",
+   "history": "H2",
+   "decision": 3,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T3",
+   "history": "H2",
+   "decision": 3,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  },
+  {
+   "run": "R-T3",
+   "history": "H3",
+   "decision": 2,
+   "item": "caveats",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the decision's recorded grounds or journal entry (Caveat: replay/explain --json commitment grounds; TypeScript: the program's explain()/record()), which list only deps_unreviewed"
+  },
+  {
+   "run": "R-T3",
+   "history": "H3",
+   "decision": 2,
+   "item": "retains",
+   "receipt_kind": "record",
+   "grounded": true,
+   "reason": "cites the program's retaining clause and the recorded retained list"
+  }
+ ]
+}

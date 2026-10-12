@@ -1,0 +1,116 @@
+scene "Release gate: the investigator's reference program for reviewer study v1.";
+
+# Claims and evidence. Each check, review and scan is its own occurrence of
+# renewable evidence, so earlier ones keep what they recorded.
+claim ready;
+claim may_merge;
+evidence check from "a CI run's result";
+evidence review from "a reviewer's verdict";
+evidence scan from "the security scanner's result";
+evidence requeue from "the re-queue of a check run as flaky";
+evidence manager from "the release manager";
+renewable check limit 8;
+renewable review limit 4;
+renewable scan limit 4;
+renewable requeue limit 8;
+readings grants from manager limit 4;
+
+caveat secondhand consequence material;
+caveat db_stale consequence material;
+caveat deps_unreviewed consequence low;
+
+decisions merge limit 4;
+
+event propose head min 1 max 999;
+event check run min 1 max 999, passed min 0 max 1;
+event review approved min 0 max 1, relayed min 0 max 1;
+event scan findings min 0 max 99;
+event approve head min 1 max 999;
+event decide;
+event recheck;
+event db_aged;
+event db_refreshed;
+
+state current_head = 0 min 0 max 999;
+state check_ok = 0 min 0 max 1;
+state review_ok = 0 min 0 max 1;
+state scan_ok = 0 min 0 max 1;
+state scans_seen = 0 min 0 max 4;
+state decided_scan = 0 min 0 max 4;
+# Why the latest decision was reopened: 1 check failed, 2 scan found issues,
+# 3 check withdrawn, 4 scan database stale.
+state why = 0 min 0 max 4;
+
+# Whole numbers only.
+on propose when floor(head) != head reject "head must be a whole number";
+on check when floor(run) != run or floor(passed) != passed reject "run and passed must be whole numbers";
+on review when floor(approved) != approved or floor(relayed) != relayed reject "approved and relayed must be whole numbers";
+on scan when floor(findings) != findings reject "findings must be a whole number";
+on approve when floor(head) != head reject "head must be a whole number";
+
+on propose set current_head = head;
+
+on check when observed(check) renew check;
+on check when passed == 1 reveal check supports ready;
+on check when passed == 0 reveal check opposes ready;
+on check set check_ok = passed;
+on check when passed == 0 and committed(merge) and not reopened(merge) set why = 1;
+on check when passed == 0 and committed(merge) and not reopened(merge) reopen merge because check;
+
+on review when observed(review) renew review;
+on review when approved == 1 reveal review supports ready;
+on review when approved == 0 reveal review opposes ready;
+on review when relayed == 1 qualify review with secondhand;
+on review set review_ok = approved;
+
+on scan when observed(scan) renew scan;
+on scan when findings == 0 reveal scan supports ready;
+on scan when findings > 0 reveal scan opposes ready;
+on scan set scan_ok = if(findings == 0, 1, 0);
+on scan set scans_seen = scans_seen + 1;
+on scan when findings > 0 and committed(merge) and not reopened(merge) set why = 2;
+on scan when findings > 0 and committed(merge) and not reopened(merge) reopen merge because scan;
+
+on approve sample grants = head supports may_merge;
+
+# A merge decision rests on the latest check, review and scan, permitted by
+# the latest grant for the current head, and retains deps_unreviewed.
+on decide when not observed(check) or not observed(review) or not observed(scan) reject "a check, a review and a scan are needed";
+on decide when withdrawn(check) reject "the latest check was withdrawn";
+on decide when check_ok == 0 or review_ok == 0 or scan_ok == 0 reject "the latest check, review and scan must all support ready";
+on decide when committed(merge) and not reopened(merge) reject "a merge decision is in force";
+on decide set decided_scan = scans_seen;
+on decide commit merge because enough
+  using qualified(current_head, check) + qualified(0, review) + qualified(0, scan)
+  permitted by latest(grants) for current_head
+  retaining deps_unreviewed;
+
+# recheck withdraws the most recent check.
+on recheck when not observed(check) reject "no check has been recorded";
+on recheck when withdrawn(check) reject "that check is already withdrawn";
+on recheck when observed(requeue) renew requeue;
+on recheck reveal requeue;
+on recheck withdraw check because requeue;
+on recheck when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge) set why = 3;
+on recheck when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge) reopen merge because requeue;
+
+# db_aged qualifies the latest scan; db_refreshed takes it back from every scan.
+on db_aged when not observed(scan) reject "no scan has been recorded";
+on db_aged when carries(scan, db_stale) reject "the latest scan is already stale";
+on db_aged qualify scan with db_stale;
+on db_aged when committed(merge) and not reopened(merge) and decided_scan == scans_seen set why = 4;
+on db_aged when committed(merge) and not reopened(merge) and decided_scan == scans_seen reopen merge because scan;
+on db_refreshed when not observed(scan) or not carries(scan, db_stale) reject "the latest scan is not stale";
+on db_refreshed unqualify scan with db_stale;
+
+bind gate.status = "undecided";
+bind gate.status = "merge" when committed(merge) and not reopened(merge);
+bind gate.status = "reopened" when reopened(merge);
+bind gate.head = current_head;
+bind gate.revisions = history_count(merge);
+bind gate.reason = "";
+bind gate.reason = "ready" when committed(merge) and not reopened(merge);
+bind gate.reason = "check failed" when reopened(merge) and why == 1;
+bind gate.reason = "scan found issues" when reopened(merge) and why == 2;
+bind gate.reason = "check withdrawn" when reopened(merge) and why == 3;
+bind gate.reason = "scan database stale" when reopened(merge) and why == 4;

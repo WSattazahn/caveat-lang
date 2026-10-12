@@ -17,8 +17,9 @@ its Amendment 1 records what changed before registration.
 | `register.mjs` | Writes `registration.json` (stage 1) and `registration-2.json` (stage 2) |
 
 The sealed files (`model.mjs`, `expected.json`, `keys.json` and the
-investigator's two reference programs) are committed after phase two is
-frozen, and checked against the hashes in `registration.json`.
+investigator's two reference programs) were committed after phase two was
+frozen, and checked against the hashes in `registration.json`. They are in
+`sealed/`; [RESULTS.md](RESULTS.md) has the scores and the report.
 
 Nothing here is a claim that Caveat beats TypeScript
 (`experiments/glowcap/RESULTS.md` L1338–1339).

@@ -1,6 +1,6 @@
 # Reviewer study v1: what a reader can establish from the record
 
-Status: **registered (stage 1), not yet run.** The owner approved running it
+Status: **run 2026-10-12; results in [RESULTS.md](RESULTS.md).** The owner approved running it
 on rc.19 in the project thread on 2026-10-12 at 22:36 UTC ("run"), as C6-style
 studies require (`docs/releases/path-to-1.0.md` L258). What is fixed is in
 `registration.json`; Amendment 1 below records what changed between
