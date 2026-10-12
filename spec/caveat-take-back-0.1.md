@@ -20,9 +20,13 @@ another one.
 caveat doubted consequence material;
 evidence witness_pool from "the slime saw a creature eat it";
 renewable witness_pool limit 64;
+state memory = 0;
+event see;
 event doubt;
 event regrow;
 event undoubt;
+on see reveal witness_pool;
+on see set memory = qualified(1, witness_pool);
 on doubt qualify witness_pool with doubted;
 on regrow renew witness_pool;
 on undoubt unqualify witness_pool with doubted;
