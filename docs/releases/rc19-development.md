@@ -1,7 +1,8 @@
 # CAVEAT 0.1.0-rc.19 development plan
 
-Status: **draft for the owner's approval.** This plan proposes that rc.19 be
-the 1.0 feature-freeze candidate. Approving it starts the work below. It does
+Status: **draft for the owner's approval.** The owner answered both scope
+questions on 2026-10-12 (recorded under "Decisions"): rc.19 is the 1.0
+feature-freeze candidate. Approving the plan starts the work below. It does
 not approve any merge, tag, npm or registry publication, deployment or
 outreach; each of those still waits for the owner's words at its own step.
 
@@ -9,12 +10,12 @@ outreach; each of those still waits for the owner's words at its own step.
 
 | Decision | Answer | Notes that bind the implementation | Source |
 | --- | --- | --- | --- |
-| Q1. Freeze at rc.19 | Pending; recommended **freeze now** | | |
-| Q2. Game presentation pass alongside rc.19 | Pending; recommended **after 1.0** | | |
+| Q1. Freeze at rc.19 | **A. Freeze now** | rc.19 holds only items 1 to 5 under "What 1.0 still needs". The freeze moves up from 2026-11-16 to this plan's approval; the freeze review (S2) records it in Path to 1.0. rc.19 publishes to `next`. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | Owner card "Freeze rc.19 now as the 1.0 freeze candidate?", "Freeze now", 2026-10-12 03:21:04 UTC |
+| Q2. Game presentation pass | **A. After 1.0** | No game thread this cycle; the game stays as #184 left it. D4 and draft #179 wait until after 1.0.0 | Owner card "Run the game presentation pass now or after 1.0?", "After 1.0", 2026-10-12 03:21:06 UTC |
 
 [Path to 1.0](path-to-1.0.md) stays the plan of record. This file covers the
 cycle between rc.18 and the 1.0.0 candidate, and decides nothing that file
-decides except the freeze date, which Q1 puts to the owner.
+decides except the freeze date, which the owner moved on Q1.
 
 Inspected revision: `main` = `113bc9b47d0c3c1a83a6bcc41f8ec5f6b2b5a59c`
 (merge of #213), 2026-10-12 UTC, and the repository's open issues and pull
@@ -61,7 +62,10 @@ line ("proposed for 1.0.0", L3) becomes the promise, and the kit README's
 "Not yet" list drops "A stable release" (`kit/README.md` L471–472). Both are
 true only of 1.0.0.
 
-## Scope decisions to put to the owner
+## Scope decisions as put to the owner
+
+The options below are as the owner saw them on the cards. Each answer chose
+the recommended option; see "Decisions" at the top.
 
 **Q1. Make rc.19 the 1.0 freeze candidate.**
 
@@ -87,8 +91,7 @@ because COMPATIBILITY.md lists `web/` and `game/` as not stable.
 
 ## Ordered PRs
 
-Effort is working days for one thread, plus review; dates are estimates. Under
-Q1 B the dates are unchanged and the freeze review moves to 2026-11-16.
+Effort is working days for one thread, plus review; dates are estimates.
 
 | PR | Content | Depends on | Effort | Proposed date |
 | --- | --- | --- | --- | --- |
@@ -120,7 +123,7 @@ Each of these stays out unless the owner decides otherwise:
   L174).
 - Glowcap round 9, and any rerun or re-scoring of round 8.
 - Dogfooding round 3 samples 002 and 003, paused until the owner says.
-- Mr. Caveat's presentation pass and #179: Q2.
+- Mr. Caveat's presentation pass and #179: after 1.0 (Q2).
 - W3C PROV export and OpenTelemetry span events: post-1.0 ideas.
 - A weekly visibility protocol run: needs the owner's approval of a schedule.
 
