@@ -1,8 +1,8 @@
 # CAVEAT 0.1.0-rc.19 development plan
 
-Status: **draft for the owner's approval.** The owner answered both scope
-questions on 2026-10-12 (recorded under "Decisions"): rc.19 is the 1.0
-feature-freeze candidate. Approving the plan starts the work below. It does
+Status: **approved by the owner on 2026-10-12 at 04:39 UTC**, with both scope
+answers recorded under "Decisions" below: rc.19 is the 1.0 feature-freeze
+candidate. Approving the plan starts the work below. It does
 not approve any merge, tag, npm or registry publication, deployment or
 outreach; each of those still waits for the owner's words at its own step.
 
@@ -12,6 +12,7 @@ outreach; each of those still waits for the owner's words at its own step.
 | --- | --- | --- | --- |
 | Q1. Freeze at rc.19 | **A. Freeze now** | rc.19 holds only items 1 to 5 under "What 1.0 still needs". The freeze moves up from 2026-11-16 to this plan's approval; the freeze review (S2) records it in Path to 1.0. rc.19 publishes to `next`. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | Owner card "Freeze rc.19 now as the 1.0 freeze candidate?", "Freeze now", 2026-10-12 03:21:04 UTC |
 | Q2. Game presentation pass | **A. After 1.0** | No game thread this cycle; the game stays as #184 left it. D4 and draft #179 wait until after 1.0.0 | Owner card "Run the game presentation pass now or after 1.0?", "After 1.0", 2026-10-12 03:21:06 UTC |
+| Merge of this plan | Merge commit, after the status and decisions above are recorded | | Owner, 2026-10-12 04:39 UTC |
 
 [Path to 1.0](path-to-1.0.md) stays the plan of record. This file covers the
 cycle between rc.18 and the 1.0.0 candidate, and decides nothing that file
