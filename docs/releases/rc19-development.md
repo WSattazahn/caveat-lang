@@ -12,7 +12,7 @@ outreach; each of those still waits for the owner's words at its own step.
 | --- | --- | --- | --- |
 | Q1. Freeze at rc.19 | **A. Freeze now** | rc.19 holds only items 1 to 5 under "What 1.0 still needs". The freeze moves up from 2026-11-16 to this plan's approval; the freeze review (S2) records it in Path to 1.0. rc.19's npm channel is Q3. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | Owner card "Freeze rc.19 now as the 1.0 freeze candidate?", "Freeze now", 2026-10-12 03:21:04 UTC |
 | Q2. Game presentation pass | **A. After 1.0** | No game thread this cycle; the game stays as #184 left it. D4 and draft #179 wait until after 1.0.0 | Owner card "Run the game presentation pass now or after 1.0?", "After 1.0", 2026-10-12 03:21:06 UTC |
-| Q3. npm channel for rc.19 | **Latest** (recommended; owner's answer pending) | rc.19 publishes with `dist_tag` `latest`, and `next` moves to it afterwards as for rc.17 and rc.18. rc.18 has the restore defect rc.19 fixes, so `latest` should not stay on it. Earlier releases stay published and unchanged, as E2 asks | Owner card on rc.19's npm channel, 2026-10-12 05:19 UTC; work proceeds on the recommendation until the owner answers |
+| Q3. npm channel for rc.19 | **Latest** | rc.19 publishes with `dist_tag` `latest`, and `next` moves to it afterwards as for rc.17 and rc.18. rc.18 has the restore defect rc.19 fixes, so `latest` should not stay on it. Earlier releases stay published and unchanged, as E2 asks | Owner card on rc.19's npm channel (posted 05:19 UTC), "Latest", 2026-10-12 08:36 UTC |
 | Merge of this plan | Merge commit, after the status and decisions above are recorded | | Owner, 2026-10-12 04:39 UTC |
 
 [Path to 1.0](path-to-1.0.md) stays the plan of record. This file covers the
