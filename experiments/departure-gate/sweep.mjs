@@ -20,6 +20,7 @@ const originalWindows = [
 const newerThanBaseline = {
   'experiments/take-back-sweep/programs/round8.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/windowed.cav': /\bunqualify\b/,
+  'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,
 };
 
 function run(command, args, options = {}) {
