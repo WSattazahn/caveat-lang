@@ -1,0 +1,9 @@
+{"event":"propose","payload":{"head":5}}
+{"event":"approve","payload":{"head":5}}
+{"event":"check","payload":{"run":1,"passed":1}}
+{"event":"review","payload":{"approved":1,"relayed":0}}
+{"event":"scan","payload":{"findings":0}}
+{"event":"decide"}
+{"event":"check","payload":{"run":2,"passed":1}}
+{"event":"recheck"}
+{"event":"propose","payload":{"head":6}}

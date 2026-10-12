@@ -1,0 +1,5 @@
+{"event":"propose","payload":{"head":5}}
+{"event":"propose"}
+{"event":"check","payload":{"run":1}}
+{"event":"scan","payload":{"findings":0,"extra":1}}
+{"event":"decide","payload":{"now":1}}

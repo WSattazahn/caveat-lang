@@ -1,0 +1,5 @@
+{"event":"review","payload":{"approved":1,"relayed":0}}
+{"event":"review","payload":{"approved":1,"relayed":1}}
+{"event":"review","payload":{"approved":0,"relayed":0}}
+{"event":"review","payload":{"approved":1,"relayed":0}}
+{"event":"review","payload":{"approved":1,"relayed":0}}

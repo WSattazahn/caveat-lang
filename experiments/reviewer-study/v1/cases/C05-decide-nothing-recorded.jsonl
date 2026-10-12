@@ -1,0 +1,3 @@
+{"event":"propose","payload":{"head":5}}
+{"event":"approve","payload":{"head":5}}
+{"event":"decide"}

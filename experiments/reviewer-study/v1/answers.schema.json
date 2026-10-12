@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "caveat-reviewer-study/v1/answers",
+  "title": "Reviewer study v1 answers",
+  "type": "object",
+  "required": ["run", "histories"],
+  "additionalProperties": false,
+  "properties": {
+    "run": { "type": "string" },
+    "histories": {
+      "type": "object",
+      "required": ["H1", "H2", "H3"],
+      "additionalProperties": false,
+      "properties": {
+        "H1": { "$ref": "#/$defs/history" },
+        "H2": { "$ref": "#/$defs/history" },
+        "H3": { "$ref": "#/$defs/history" }
+      }
+    }
+  },
+  "$defs": {
+    "receipt": {
+      "type": "object",
+      "required": ["kind", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["record", "code", "run", "none"] },
+        "text": { "type": "string" }
+      }
+    },
+    "cannot": { "const": "cannot_determine" },
+    "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+    "names": { "type": "array", "items": { "type": "string" } },
+    "item": {
+      "type": "object",
+      "required": ["answer", "receipt"],
+      "additionalProperties": false,
+      "properties": { "answer": true, "receipt": { "$ref": "#/$defs/receipt" } }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["decision", "value", "rests_on", "caveats", "retains", "grant", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "type": "integer", "minimum": 1 },
+        "value": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [{ "type": "integer" }, { "$ref": "#/$defs/cannot" }] } } }] },
+        "rests_on": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [{ "$ref": "#/$defs/lines" }, { "$ref": "#/$defs/cannot" }] } } }] },
+        "caveats": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [{ "$ref": "#/$defs/names" }, { "$ref": "#/$defs/cannot" }] } } }] },
+        "retains": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [{ "$ref": "#/$defs/names" }, { "$ref": "#/$defs/cannot" }] } } }] },
+        "grant": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [{ "type": "integer" }, { "$ref": "#/$defs/cannot" }] } } }] },
+        "state": { "allOf": [{ "$ref": "#/$defs/item" }, { "properties": { "answer": { "anyOf": [
+          {
+            "type": "object",
+            "required": ["state", "reopened_by", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "state": { "enum": ["in_force", "reopened", "superseded"] },
+              "reopened_by": { "type": ["integer", "null"] },
+              "reason": { "type": ["string", "null"] }
+            }
+          },
+          { "$ref": "#/$defs/cannot" }
+        ] } } }] }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "required": ["probe", "answer", "receipt"],
+      "additionalProperties": false,
+      "properties": {
+        "probe": { "type": "integer", "minimum": 1 },
+        "answer": { "enum": ["yes", "no", "none_in_force", "cannot_determine"] },
+        "receipt": { "$ref": "#/$defs/receipt" }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "required": ["statement", "answer", "receipt"],
+      "additionalProperties": false,
+      "properties": {
+        "statement": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "answer": { "enum": ["true", "false", "cannot_determine"] },
+        "receipt": { "$ref": "#/$defs/receipt" }
+      }
+    },
+    "history": {
+      "type": "object",
+      "required": ["q1", "q2", "q3"],
+      "additionalProperties": false,
+      "properties": {
+        "q1": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
+        "q2": { "type": "array", "items": { "$ref": "#/$defs/probe" } },
+        "q3": { "type": "array", "items": { "$ref": "#/$defs/statement" } }
+      }
+    }
+  }
+}

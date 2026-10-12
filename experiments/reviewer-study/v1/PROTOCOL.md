@@ -1,8 +1,10 @@
 # Reviewer study v1: what a reader can establish from the record
 
-Status: **prepared, not registered or run.** No package identity, program,
-history, note, key or outcome is asserted here. Running it needs the owner's
-approval, as C6 does (`docs/releases/path-to-1.0.md` L258). It changes
+Status: **registered (stage 1), not yet run.** The owner approved running it
+on rc.19 in the project thread on 2026-10-12 at 22:36 UTC ("run"), as C6-style
+studies require (`docs/releases/path-to-1.0.md` L258). What is fixed is in
+`registration.json`; Amendment 1 below records what changed between
+preparation and registration. It changes
 nothing in `spec/`, `runtime/`, `kit/` or the skill, runs against a published
 package, and is outside the compatibility promise (`docs/COMPATIBILITY.md`
 L8–10). It is not Glowcap round 9 and re-scores no Glowcap round. The
@@ -546,4 +548,45 @@ amendment, and it is applied to every run.
 
 ## Amendments
 
-None at preparation.
+### Amendment 1 (2026-10-12, before registration)
+
+Made by the investigator thread that prepared stage 1, before any author or
+reviewer started. Nothing here changes the task, the questions or the
+scoring rules.
+
+1. **How the agents run.** Each author and reviewer is a subagent of the
+   investigator session, in that session's cloud container, as agent pilots
+   1 to 3 were. It receives only its filled prompt. Its packet is a directory
+   outside the repository checkout, and there are no packet branches: the
+   agent leaves its files in the directory, and the investigator copies them
+   into `runs/<id>/` with their SHA-256. The prompts in `prompts/` name the
+   directory and replace the git steps accordingly. The container also holds
+   the repository checkout and the project's files, so isolation is by
+   instruction, as *Limits* already says. The sealed files are kept
+   encrypted (AES-256, `openssl enc`) while any agent runs. Every agent runs
+   on the investigator session's model at its default effort, recorded in
+   `registration-2.json`. Collection keeps each agent's final reply, the
+   files it left, start and end times, and the transcript where the harness
+   stores one.
+2. **Pins at stage 1.** Both packages are pinned in `registration.json`:
+   `caveat-lang-0.1.0-rc.19.tgz` (SHA-256 `d7cae7dc…672f`, as
+   `docs/releases/v0.1.0-rc.19.md` L8 records) and `typescript-6.0.3.tgz`.
+   TypeScript 7 ships its compiler as per-platform packages, so it cannot be
+   installed from one tarball offline; 6.0.3 is the latest release that can.
+   Node is 22.22.0. Stage 2 registers the model, the effort and the filled
+   prompts.
+3. **Twenty-one cases.** `cases/C04-missing-and-extra.jsonl` is added for
+   the missing and extra parameters that *Inputs* refuses; the other twenty
+   are the list under *Cases*.
+4. **The case runner is public.** `run-cases.mjs` runs a program of either
+   arm through every history and case and prints each line's outcome and
+   view. It is in no packet. `score.mjs cases` compares its output with the
+   sealed expected views.
+5. **The budget is recorded, not enforced.** A subagent cannot be stopped at
+   40 minutes from outside. Each run's wall clock is recorded and an overrun
+   is reported; the run is scored as it stands.
+6. **The pinned package and main differ in one display.** Draft PR #226
+   changes how `explain`'s text shows a caveat a revision holds only through
+   its series history (D009 in `experiments/agent-decisions/README.md`). The
+   study runs on rc.19, so *Known properties* items 1 and 5 describe what
+   reviewers see.

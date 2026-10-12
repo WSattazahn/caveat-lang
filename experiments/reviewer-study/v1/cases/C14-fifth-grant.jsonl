@@ -1,0 +1,6 @@
+{"event":"approve","payload":{"head":1}}
+{"event":"approve","payload":{"head":2}}
+{"event":"approve","payload":{"head":3}}
+{"event":"approve","payload":{"head":4}}
+{"event":"approve","payload":{"head":5}}
+{"event":"propose","payload":{"head":4}}

@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "stage": 1,
+  "registeredAt": "2026-10-12T22:37:13.915Z",
+  "pins": {
+    "caveat": {
+      "tarball": "caveat-lang-0.1.0-rc.19.tgz",
+      "sha256": "d7cae7dc653a4c53de8d3f8e5b945cc324a14e931adcff004b805577d080672f"
+    },
+    "typescript": {
+      "tarball": "typescript-6.0.3.tgz",
+      "sha256": "33cd0ee1beaa8c9e9d15a9da836c62ddea4c34a42d7c2d349dbc80d94165d22a"
+    },
+    "node": "v22.22.0"
+  },
+  "public": {
+    "PROTOCOL.md": "8e5d5b8818bb26bbbcac82c37a0747112b8ba18c2e255a4c3269838c56648d57",
+    "README.md": "3d5ebed947469d956026b9959e4c5c111cb2a82fa06eebdbc995c3ad5c063465",
+    "TASK.md": "49ff6d5e6129dc6bd916585e66e8d33b9ed2c7df49acd3f5560aae521082c7fb",
+    "QUESTIONS.md": "743d494848863c3749dd91b6b30fd0032e52ad4f2e537d3ebbd8e90c3edf99af",
+    "answers.schema.json": "3f9faf50a96d5040d62fb5aa55e7525f5e518fd4ba7bf4ea77a6d0cfcc7a3720",
+    "probes.json": "509b2a7e4deddb6e67e402d5c96e95b4a178611ce55ff7904141464e18f8bf06",
+    "prompts/author.md": "eaadf7101bbbaa31d0339f66e320fb5e113ad047e506faf27bf6986366e63dec",
+    "prompts/reviewer.md": "5660b740bbc5bbf5538381c4640c0a3b298bb97761c5ebada99b314c45f270d2",
+    "run-cases.mjs": "a686989adbe7854c763083ca5a6a902f6affe267c6500cf46a9c0a652af02c36",
+    "score.mjs": "352df5cc5c7da63f6b0793ec0ed3ca2dcd3840ee21ceb7bfd657155e82ea29d0",
+    "register.mjs": "d3749e80fb581353f6c95e2f645b38d012d7ec199f5613e3529b18b46aab9251",
+    "histories/H1.jsonl": "bdbbf31d3da925c48223776922dbef4a63666d006a2047a873103c11a052f7da",
+    "histories/H2.jsonl": "2093cc75953939a90abbfbe11ae6e70ff25249b7b8549c655dc08e610d0781dd",
+    "histories/H3.jsonl": "6e19fa591a0b6b5bec8b46971ae8afe21eeda68b0a2a58a3f11b4b4eee1e0862",
+    "notes/H1.md": "0a7f40213a7ac4885bac9c7ec7a0dbcf5606e28478159e4d84617304266b5ed3",
+    "notes/H2.md": "f5d8bfa6bd0bb15ee65eaf06ff12cb6f5b272927b11398e83a1e78d004015435",
+    "notes/H3.md": "fa387ef96d565403102a51121988cea672cea7a441f4b5766e2347238695b320",
+    "cases/C01-unknown-event.jsonl": "808d782009ede0a9d42850ba741aeb90a5118cdaf24240154a12ad43430dc599",
+    "cases/C02-out-of-range.jsonl": "66eb820050f1a719d91a2799cb85500a392b2294f281ba302716268402ffeeb4",
+    "cases/C03-fraction.jsonl": "fd02bcd08c83a5ceee3921f5c041b44e683263c9ba9b2fea7680d960e4e14dcd",
+    "cases/C04-missing-and-extra.jsonl": "4a4535708909555898520b8b814708483e2721cb941abd5eefeef60c895feab9",
+    "cases/C05-decide-nothing-recorded.jsonl": "b7be263ee6c9788c5fa8b2d85c02bd7025f631d330d83dc2307917532d562385",
+    "cases/C06-decide-in-force.jsonl": "420cdce9241e3f2461d126354a429b7e0c0067596535b19ab0414994f4f93f09",
+    "cases/C07-review-opposing.jsonl": "6bf463f63b9950507222e60bf6dce9b6a439b753c1d99c4995bd838618b11601",
+    "cases/C08-scan-opposing.jsonl": "922d0009e233d5b587135f3f85c860705644f754d77920196053c2ee70a989da",
+    "cases/C09-grant-other-head.jsonl": "9d32910e12a1363f4abe5c250b5cd032e8fdcfa9a47f37552f562dbcdaf18429",
+    "cases/C10-no-grant.jsonl": "99840da0e89c98329192cd8e3fb695ccedc3ad3061a55e996af0af25fe73111c",
+    "cases/C11-fifth-review.jsonl": "6a8d04a9a53e1116ae7f5140d6dc5e4a7f27fb8e4d4acd0cfdfcd2842d66905e",
+    "cases/C12-ninth-check.jsonl": "42ae2e85af703360b78ff5f82019c8562e2b1ccf5f306436768e6be0410a653c",
+    "cases/C13-fifth-scan.jsonl": "571355b158abff4a67b98b689b922f2f62c3710e073ed8e812090584064e93e5",
+    "cases/C14-fifth-grant.jsonl": "176584523fd0263f25f81a202319b1039cfe6654a2a82d10ac4cb5db5b5ed2f1",
+    "cases/C15-recheck-twice.jsonl": "bc76cdabcf4380d71fe71ec6f0c2ce2c998ad2b100ba3a2186374d71f3d1de16",
+    "cases/C16-recheck-not-rested-on.jsonl": "316449bcffef91d092a1e4f0901121f99b7bfe7a1dab5c1882dabe3c29783d38",
+    "cases/C17-db-aged-twice.jsonl": "67bcfbb3c6f7f3670c4fe475a44b5389212f9cb7c74af95446d2e7efea5a7a6e",
+    "cases/C18-refreshed-before-aged.jsonl": "772526dc06b2b21d3003532976c7064fe70b97309f2d53d274189879df9ff7da",
+    "cases/C19-four-decisions.jsonl": "1cf43012c8ae075e053c8203d4d9779ba30f45d4dbe24b4539916cfa5f338f3b",
+    "cases/C20-all-checks-withdrawn.jsonl": "16dfa017b2b256c4bb040d0e7091011ed8ba2f7f6308fa65e5dd823b141a650d",
+    "cases/C21-second-correction-while-reopened.jsonl": "f8d6342bca50d5376224c9b0a22292560622279158b21720cc6711d48a06110b"
+  },
+  "sealed": {
+    "model.mjs": "f6bf16675b0b67156f13367e6f834c1da1cd1d35d9b0f413ca0417bde62eb8db",
+    "expected.json": "8f71befce2caba9ed7ef358967983de78070d6636218d7f23319886318c88dac",
+    "keys.json": "448cf2aba0b7e0f40319b16d048226a5487aac0fb14181447f2286781a7dc305",
+    "references/gate.cav": "d1f760f2677feb0ee72bd1dde11308f85ae8a4576e9c70c238c384348719771e",
+    "references/gate.ts": "2a27819ffe0810df0cf8b4add025bada9b71dd10b6b2f4b2ea728d9f4ecafa7e"
+  },
+  "runs": {
+    "A-C": {
+      "phase": 1,
+      "arm": "caveat",
+      "program": "gate.cav"
+    },
+    "A-T": {
+      "phase": 1,
+      "arm": "ts",
+      "program": "gate.ts"
+    },
+    "R-C1": {
+      "phase": 2,
+      "arm": "caveat",
+      "reviews": "A-C"
+    },
+    "R-C2": {
+      "phase": 2,
+      "arm": "caveat",
+      "reviews": "A-C"
+    },
+    "R-C3": {
+      "phase": 2,
+      "arm": "caveat",
+      "reviews": "A-C"
+    },
+    "R-T1": {
+      "phase": 2,
+      "arm": "ts",
+      "reviews": "A-T"
+    },
+    "R-T2": {
+      "phase": 2,
+      "arm": "ts",
+      "reviews": "A-T"
+    },
+    "R-T3": {
+      "phase": 2,
+      "arm": "ts",
+      "reviews": "A-T"
+    }
+  }
+}

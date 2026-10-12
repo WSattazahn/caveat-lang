@@ -1,0 +1,9 @@
+{"event":"check","payload":{"run":1,"passed":1}}
+{"event":"check","payload":{"run":2,"passed":1}}
+{"event":"check","payload":{"run":3,"passed":0}}
+{"event":"check","payload":{"run":4,"passed":1}}
+{"event":"check","payload":{"run":5,"passed":1}}
+{"event":"check","payload":{"run":6,"passed":1}}
+{"event":"check","payload":{"run":7,"passed":1}}
+{"event":"check","payload":{"run":8,"passed":1}}
+{"event":"check","payload":{"run":9,"passed":1}}
