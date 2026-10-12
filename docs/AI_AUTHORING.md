@@ -157,6 +157,13 @@ while 4,096 qualifications are already waiting as
 errors, such as a type error in an expression, are deliberately unclassified:
 they are fatal, and a fatal outcome never matches an expected rejection.
 
+One of them is easy to reach. A plain `commit`, made without a `decisions`
+declaration, can be made only once: committing it again, even after it was
+reopened, is fatal ("commitment NAME already exists"), and the host loses the
+session. Declare a decision series (`decisions NAME limit N;`) when a decision
+may be made again after it is reopened, or guard the rule with
+`on EVENT when committed(NAME) reject "…";` so the event is refused instead.
+
 To see what a program does after each event, open a session from a script:
 
 ```js
