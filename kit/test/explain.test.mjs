@@ -56,8 +56,10 @@ test('explain reports what the snapshot records, decision by decision', () => {
   assert.deepEqual(shown['temperature.text'].cites, snapshot.binding_explanations.temperature.text);
 
   const text = formatExplanation(report, 'thermostat');
-  assert.match(text, /heating@3 = 1 {2}in force\n {6}based on temperature@3\n {6}retaining: calibration_offset\n {6}could also have been influenced by temperature@1, temperature@2/);
+  assert.match(text, /heating@3 = 1 {2}in force\n {6}based on temperature@3 \(caveats: calibration_offset\)\n {6}could also have been influenced by temperature@1, temperature@2/);
   assert.match(text, /#2 read: reopened because temperature@2 \(caveats: calibration_offset\)/);
+  // D007: the reading carries calibration_offset, so the author did not retain it.
+  assert.doesNotMatch(text, /retaining: calibration_offset/);
 });
 
 test('a session with no decisions, evidence or bindings says so', () => {

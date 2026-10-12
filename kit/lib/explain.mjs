@@ -237,6 +237,14 @@ const withCaveats = ({ evidence, caveats, departed = [] }) => {
   return `${list(names)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
 };
 const show = value => (typeof value === 'string' ? JSON.stringify(value) : String(value));
+// The caveats in `names` that a qualification edge places on one of the
+// `evidence` observations. A caveat both carried and authored is shown as
+// carried; one whose edge was taken back after the commit is shown as retained.
+const carriedBy = (report, evidence, names) => {
+  const qualifying = new Set(report.evidence.filter(item => evidence.includes(item.id))
+    .flatMap(item => item.caveats ?? []));
+  return names.filter(name => qualifying.has(name));
+};
 
 function formatArchive(lines, archive) {
   if (!archive) return;
@@ -287,14 +295,20 @@ export function formatExplanation(report, title = 'the program') {
       : `  ${series.name}: ${series.revisions.length} of at most ${series.limit}`);
     for (const revision of series.revisions) {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
-      lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: [] })}`);
+      // The commit record unions the caveats its grounds carried with those the
+      // author retained (spec/caveat-reactive-0.3.md). Show a caveat that a
+      // grounds observation carries beside the grounds, and list under
+      // `retaining:` only the caveats no grounds observation carries.
+      const retained = revision.retained ?? revision.grounds.caveats;
+      const carried = carriedBy(report, revision.grounds.evidence, retained);
+      lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: carried })}`);
       for (const item of revision.observed_by ?? []) {
         if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
         lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${payload}`);
       }
-      const retained = revision.retained ?? revision.grounds.caveats;
-      if (retained.length) lines.push(`      retaining: ${list(retained)}`);
+      const authored = retained.filter(name => !carried.includes(name));
+      if (authored.length) lines.push(`      retaining: ${list(authored)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
       if (revision.permission) {
         const { grant, scope, caveats } = revision.permission;
@@ -312,8 +326,10 @@ export function formatExplanation(report, title = 'the program') {
         lines.push(`      could also have been influenced by ${list([...also, ...alsoDeparted.map(markerText)])}`);
       }
       for (const entry of revision.history) {
-        const caveats = entry.change === 'committed' ? [] : entry.caveats;
-        const retaining = entry.change === 'committed' && entry.caveats.length ? `; retaining: ${list(entry.caveats)}` : '';
+        const committed = entry.change === 'committed';
+        const caveats = committed ? carriedBy(report, entry.because, entry.caveats) : entry.caveats;
+        const kept = committed ? entry.caveats.filter(name => !caveats.includes(name)) : [];
+        const retaining = kept.length ? `; retaining: ${list(kept)}` : '';
         const unrecorded = entry.source_sha256 === null ? '  (source not recorded)' : '';
         lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${unrecorded}`);
       }
