@@ -291,6 +291,58 @@ fn round8_item1_save_and_restore_keep_the_records() {
     );
 }
 
+/// Found by the rc.19 stabilization trial: a reopening recorded because of a
+/// caveat, then that caveat taken back, left a save that restore refused
+/// ("reopening cites caveats unrelated to its witnesses"). The journal entry
+/// is left alone (Take-back 0.1), so the save must restore.
+const REOPENED: &str = r#"
+claim build_green;
+evidence ci_run from "a CI run";
+caveat flaky_runner consequence material;
+renewable ci_run window 4;
+state ci_passed = 0;
+decisions deploy limit 8;
+event ci_reported passed min 0 max 1;
+event runner_flaky;
+event runner_cleared;
+event deploy;
+on ci_reported when observed(ci_run) renew ci_run;
+on ci_reported reveal ci_run supports build_green;
+on ci_reported set ci_passed = qualified(passed, ci_run);
+on runner_flaky qualify ci_run with flaky_runner;
+on runner_flaky when committed(deploy) and not reopened(deploy)
+    reopen deploy because caveated(ci_passed, flaky_runner);
+on runner_cleared unqualify ci_run with flaky_runner;
+on deploy when has_caveat(ci_passed, flaky_runner) reject "in doubt";
+on deploy commit deploy because enough using ci_passed;
+"#;
+
+#[test]
+fn stabilization_trial_a_take_back_after_a_caveated_reopening_restores() {
+    let mut game = ReactiveSession::from_source(REOPENED).unwrap();
+    for (event, payload) in [
+        ("ci_reported", r#"{"passed":1}"#),
+        ("deploy", "{}"),
+        ("runner_flaky", "{}"),
+        ("runner_cleared", "{}"),
+        ("deploy", "{}"),
+        ("ci_reported", r#"{"passed":1}"#),
+    ] {
+        game.dispatch_json(event, payload).unwrap();
+    }
+    let journal = &snapshot(&game)["decision_journal"];
+    let reopening = journal
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["change"] == json!("reopened"))
+        .unwrap();
+    assert_eq!(reopening["caveats"], json!(["flaky_runner"]));
+    let saved = game.save_json().unwrap();
+    let restored = ReactiveSession::restore_json(REOPENED, &saved).unwrap();
+    assert_eq!(restored.snapshot(), game.snapshot());
+}
+
 fn refused(save: &Value) -> String {
     ReactiveSession::restore_json(ROUND8, &save.to_string())
         .err()

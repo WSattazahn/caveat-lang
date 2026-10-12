@@ -2856,17 +2856,19 @@ impl ReactiveSession {
                     return Err(fail("reopening has no cause or preceding commitment"));
                 }
                 let seen = reopened.entry(&entry.commitment).or_default();
-                let mut live_caveats = BTreeSet::new();
+                let mut related_caveats = BTreeSet::new();
                 for evidence in &entry.because {
                     if seen.contains(&evidence.as_str()) {
                         return Err(fail("reopening repeats an existing cause"));
                     }
                     seen.push(evidence);
-                    live_caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+                    related_caveats.extend(self.qualify_core_before_take_back(evidence)?.caveats);
                 }
-                // Qualification only adds caveats. Historical caveats may be a
-                // strict subset of today's caveats; equality would rewrite time.
-                if !provenance.caveats.is_subset(&live_caveats) {
+                // Qualification only adds relations, and a take-back marks one
+                // without removing it (Take-back 0.1), so a reopening's
+                // caveats are a subset of what its witnesses' relations,
+                // marked or not, carry today; equality would rewrite time.
+                if !provenance.caveats.is_subset(&related_caveats) {
                     return Err(fail("reopening cites caveats unrelated to its witnesses"));
                 }
             }

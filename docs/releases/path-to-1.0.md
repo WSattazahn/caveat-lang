@@ -80,6 +80,45 @@ changed since, checked against `main` = `ba9bf55` (merge of #202) on
 | B6, round 8 | **Met.** The record is committed; TypeScript won and neither rule was met, which this blocker does not require | [#195](https://github.com/WSattazahn/caveat-lang/pull/195) (`a8470e1`), [the "Round 8" section of RESULTS.md](../../experiments/glowcap/RESULTS.md#round-8-fresh-authors-blind-requests-rc17) |
 | B7, pilot | **Met.** The first agent pilot, a fresh session with only the published rc.17 package and its docs, worked on a real task on the owner's approved setup. Its four Caveat findings are filed and triaged into rc.18 | [#198](https://github.com/WSattazahn/caveat-lang/issues/198) to [#201](https://github.com/WSattazahn/caveat-lang/issues/201); [rc.18 plan, "The pilot's issues"](rc18-development.md#the-pilots-issues) |
 
+### Freeze review (E1), 2026-10-12
+
+The owner moved the feature freeze up from 2026-11-16 to the approval of the
+[rc.19 development plan](rc19-development.md), on 2026-10-12 at 04:39 UTC
+(cards "Freeze now" at 03:21:04 UTC and the plan's merge, #214). Checked
+against `main` = `17a4ea7` (merge of #214).
+
+| Blocker | State | Closed by |
+| --- | --- | --- |
+| B1 collector contract | Closed | [#185](https://github.com/WSattazahn/caveat-lang/pull/185), [Withdrawal Collection 0.1](../../spec/caveat-withdrawal-collection-0.1.md) |
+| B2 compatibility commitment | Closed | [#187](https://github.com/WSattazahn/caveat-lang/pull/187), prepared in [#208](https://github.com/WSattazahn/caveat-lang/pull/208); [COMPATIBILITY.md](../COMPATIBILITY.md) |
+| B3 source of past decisions | Closed | [#189](https://github.com/WSattazahn/caveat-lang/pull/189), in rc.17 |
+| B4 View 0.2 | Closed | [#190](https://github.com/WSattazahn/caveat-lang/pull/190), [#192](https://github.com/WSattazahn/caveat-lang/pull/192), in rc.17; the delta gate rerun over the whole corpus in [#205](https://github.com/WSattazahn/caveat-lang/pull/205) |
+| B5 starter | Closed | [#183](https://github.com/WSattazahn/caveat-lang/pull/183), in rc.17 |
+| B6 round 8 | Met | [#195](https://github.com/WSattazahn/caveat-lang/pull/195) |
+| B7 pilot | Met | Issues [#198](https://github.com/WSattazahn/caveat-lang/issues/198) to [#201](https://github.com/WSattazahn/caveat-lang/issues/201), triaged in the [rc.18 plan](rc18-development.md); #200 and #201 answered by [#204](https://github.com/WSattazahn/caveat-lang/pull/204); #198's new form is a 1.1 addition |
+| B8 final artifact | Open | The 1.0.0 candidate through the release procedure, then the owner's approval (E3) |
+
+**Frozen surface.** The stable surface is [COMPATIBILITY.md](../COMPATIBILITY.md)
+as it stands at `17a4ea7`. From here until 1.0.0, only fixes that make
+behavior match a documented promise, compatibility evidence and documentation
+corrections merge. New syntax, schemas, operations, fields, CLI flags or
+exports wait for 1.1, where COMPATIBILITY.md allows them as additions.
+COMPATIBILITY.md's status line and the kit README's "Not yet" entry for a
+stable release change only in the 1.0.0 candidate.
+
+**Stabilization (E2)** runs on rc.19, published to `next`, with the trial the
+rc.19 plan describes (S3,
+[experiments/stabilization-trial](../../experiments/stabilization-trial/README.md)).
+The 1.0.0 target stays on or before 2026-11-30.
+
+The trial's first run, against the published rc.18, found a defect in a
+supported promise: a session that reopened a decision because of a caveat,
+then took that caveat back, wrote a save that restore refused ("reopening
+cites caveats unrelated to its witnesses"), so a starter host could not
+resume. The fix is in the restore check, with the regression
+`stabilization_trial_a_take_back_after_a_caveated_reopening_restores`; it
+ships in rc.19.
+
 ### What exists and will not be rebuilt
 
 - Departure, lineage compaction, the archive and the collector: rc.16 runtime.
@@ -234,7 +273,7 @@ schedule; none is set up by this plan.
 
 | Step | Content | Proposed date |
 | --- | --- | --- |
-| E1 | Feature freeze review: B1–B7 closed or explicitly waived by the owner; surface frozen in `COMPATIBILITY.md` | 2026-11-16 |
+| E1 | Feature freeze review: B1–B7 closed or explicitly waived by the owner; surface frozen in `COMPATIBILITY.md` | 2026-11-16; held on 2026-10-12 (see "Freeze review (E1)" above) |
 | E2 | Stabilization: fixes, compatibility evidence and doc corrections only. Candidates on explicit channels (`next`), earlier releases untouched. A representative installed integration runs a predefined trial: decisions, corrections, refusals, save/resume, archive persistence, explicit resource budgets | 2026-11-16 to 2026-11-30 |
 | E3 | Exact 1.0.0 candidate through the release procedure; owner approves tag and publication (B8) | 2026-11-30 target |
 

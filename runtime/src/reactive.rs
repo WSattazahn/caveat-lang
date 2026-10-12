@@ -3978,10 +3978,25 @@ impl ReactiveSession {
     }
 
     fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
+        self.caveats_reaching(roots, true)
+    }
+
+    /// Caveats reaching `roots` through `qualifies` relations. With
+    /// `honor_take_back` false, a taken-back relation still counts: what a
+    /// recorded entry could have carried when it was made.
+    fn caveats_reaching(
+        &self,
+        roots: impl IntoIterator<Item = NodeId>,
+        honor_take_back: bool,
+    ) -> Vec<String> {
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
         let mut visited = HashSet::new();
         let mut caveats = HashSet::new();
-        let marked = self.marked_relations();
+        let marked = if honor_take_back {
+            self.marked_relations()
+        } else {
+            HashMap::new()
+        };
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
@@ -4124,6 +4139,25 @@ impl ReactiveSession {
     /// and any explicit extras: what a qualified value is *about*, without the
     /// guard that revealed the evidence.
     fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+        self.qualify_core_with(evidence, extras, true)
+    }
+
+    /// `qualify_core` with taken-back relations still counted: the caveats
+    /// the evidence carried before any take-back, which a decision journal
+    /// entry made then may cite.
+    pub(crate) fn qualify_core_before_take_back(
+        &self,
+        evidence: &str,
+    ) -> Result<Provenance, String> {
+        self.qualify_core_with(evidence, &[], false)
+    }
+
+    fn qualify_core_with(
+        &self,
+        evidence: &str,
+        extras: &[String],
+        honor_take_back: bool,
+    ) -> Result<Provenance, String> {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
@@ -4150,7 +4184,7 @@ impl ReactiveSession {
                 .map(|edge| edge.to),
         );
         let caveats = self
-            .incoming_caveats(roots)
+            .caveats_reaching(roots, honor_take_back)
             .into_iter()
             .chain(extras.iter().cloned());
         Provenance::from_names([evidence.into()], caveats)

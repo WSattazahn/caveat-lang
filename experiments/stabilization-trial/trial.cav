@@ -1,0 +1,52 @@
+scene "Stabilization trial: a deploy gate driven through an installed starter host, with a doubt placed and taken back.";
+
+# Sources describe evidence; they do not authenticate it.
+claim build_green;
+evidence ci_run from "a CI run reported for the build";
+caveat flaky_runner consequence material;
+
+# Each reported run is its own occurrence; the four most recent stay live.
+renewable ci_run window 4;
+
+identifiers limit 2;
+state build = 0;
+state ci_passed = 0;
+state retries = 0 min 0 max 2;
+
+decisions deploy limit 8;
+
+event propose revision id;
+event ci_reported passed min 0 max 1;
+event runner_flaky;
+event runner_cleared;
+event deploy;
+event retry;
+
+on propose set build = revision;
+
+on ci_reported when observed(ci_run) renew ci_run;
+on ci_reported when passed == 1 reveal ci_run supports build_green;
+on ci_reported when passed == 0 reveal ci_run opposes build_green;
+on ci_reported set ci_passed = qualified(passed, ci_run);
+
+# A doubt on the runner, and its take-back. The authored policy reopens a
+# deploy in force that rests on a doubted run.
+on runner_flaky when not observed(ci_run) reject "No CI run to doubt.";
+on runner_flaky qualify ci_run with flaky_runner;
+on runner_flaky when committed(deploy) and not reopened(deploy)
+    reopen deploy because caveated(ci_passed, flaky_runner);
+on runner_cleared unqualify ci_run with flaky_runner;
+
+# No guard against a deploy in force: a second deploy is refused by the
+# runtime (evaluation/decision_in_force), not by a rule.
+on deploy when build == 0 reject "No build proposed.";
+on deploy when ci_passed < 1 reject "No passing CI run.";
+on deploy when has_caveat(ci_passed, flaky_runner) reject "The CI run is in doubt.";
+on deploy commit deploy because enough using ci_passed;
+
+# retries is bounded: a third retry fails the state's range.
+on retry set retries = retries + 1;
+
+bind deploy.status = "none";
+bind deploy.status = "deployed" when committed(deploy) and not reopened(deploy);
+bind deploy.status = "reopened" when reopened(deploy);

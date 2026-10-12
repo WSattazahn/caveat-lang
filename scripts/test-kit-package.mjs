@@ -432,6 +432,20 @@ assert.deepEqual(readinessReport.steps.map(step => step.step),
   ['approve', 'unrelated', 'restart', 'reopen', 'unchanged', 'refusal', 'storage_failure', 'new_approval', 'history']);
 report.checks.readiness = { scenarios: 4, departed: readinessReport.steps.at(-1).departed };
 
+// The stabilization trial (Path to 1.0, E2): the installed package drives a
+// deploy gate through the starter, with a refusal from each origin, a doubt
+// taken back, restarts, the archive and a refused edited-source resume,
+// inside the trial's own host budgets.
+const trialRun = node([path.join(root, 'experiments', 'stabilization-trial', 'run.mjs'), `--package=${installed}`,
+  `--directory=${path.join(consumer, 'trial-store')}`, '--json'], consumer);
+assert.equal(trialRun.status, 0, trialRun.stdout + trialRun.stderr);
+const trialReport = JSON.parse(trialRun.stdout);
+assert.deepEqual(trialReport.steps.map(step => step.step),
+  ['policy', 'input_unknown_event', 'input_payload_invalid', 'input_bound_exceeded', 'decision', 'evaluation_decision_in_force',
+    'evaluation_bound_exceeded', 'limit_identifier_limit', 'restart', 'doubt', 'policy_in_doubt', 'take_back', 'history', 'edited_source']);
+report.checks.stabilizationTrial = { sends: trialReport.sends, maxSendMs: trialReport.maxSendMs,
+  checkpointBytes: trialReport.checkpointBytes, archiveBytes: trialReport.archiveBytes };
+
 // Findings 123, 188-191 through the installed runtime: a genuine examination
 // restores and plays on; an examination the budget never paid for is refused.
 await writeFile(path.join(consumer, 'attention.mjs'), `
