@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "stage": 2,
+  "registeredAt": "2026-10-12T22:38:08.432Z",
+  "model": "claude-opus-5-5 (inherited from the investigator session)",
+  "effort": "default",
+  "prompts": {
+    "A-C": "84aceb1b788d61b406d697f93026dd783b80ea1013a2857100576e057e00ed64",
+    "A-T": "c3f44aa978cef410c9af1776555066444c47fd0956db72dbfb03a2ff790f41eb",
+    "R-C1": "6e93fdc35b1d7a364f755c8dd442482e40972fc4e18ac214c75aeca59af28879",
+    "R-C2": "02a09b4be99ca88c92746a9bc088a40a8c22a59329ef8946fc39cc5f017f9bbf",
+    "R-C3": "50e224df2e0efc48cac48a47b9671057e4c90f6c1ee5cf1da65e1cb880d74021",
+    "R-T1": "b6801ef698f3790b4f1945f92438e8eea5c29fcadb0dbb09ff8932f47f3da13a",
+    "R-T2": "f06036e835881989ad530a754c9b8e0103719ec24b474021f262aef5a2d366f3",
+    "R-T3": "99fab04b39513a7028ddc14c2a90405242c0593507ec9e40a53ff185f81ece25"
+  }
+}
