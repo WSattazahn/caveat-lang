@@ -20,7 +20,9 @@ fixtures are that promise's per-release check, starting with rc.17.
 `kit/test/save-fixtures.test.mjs` restores every save with the runtime under
 test and requires the same outcomes (origin and code, not message text), the
 same View 0.1 and View 0.2 bytes, and an explanation that contains the
-recorded one. One exception is View 0.2 in releases before rc.18, which sorted
+recorded one. With the drained archive, `dependents` of every evidence name
+and departed record must give the report the same events give when played
+live. One exception is View 0.2 in releases before rc.18, which sorted
 the evidence in binding explanations. rc.18 lists that evidence in
 first-observed order instead. For those releases, View 0.2 is compared with
 the evidence lists sorted, so every other byte must still match that release.

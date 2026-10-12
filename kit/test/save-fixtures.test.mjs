@@ -10,7 +10,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { real } from './helpers.mjs';
-import { explain } from '../lib/explain.mjs';
+import { dependents, explain } from '../lib/explain.mjs';
 
 const fixtures = fileURLToPath(new URL('./fixtures/saves/', import.meta.url));
 const releases = readdirSync(fixtures).filter(name => /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/.test(name)).sort();
@@ -90,6 +90,26 @@ for (const release of releases) {
           }
         } else assert.equal(JSON.stringify(viewV2), fixture.view_v2, 'View 0.2 after the last event');
         contains(explain(session.snapshot(), [], { archive }), fixture.explain, 'explain');
+        // The archive that release drained stays readable by `dependents`: with
+        // it, every evidence name and departed record gives the report the same
+        // events give when played live, without a save, by this runtime.
+        const live = real.open(source);
+        try {
+          const liveArchive = [];
+          for (const { event, payload } of [...before, ...after]) {
+            live.dispatch(event, payload);
+            liveArchive.push(...live.drainArchive());
+          }
+          const subjects = new Set([...fixture.explain.evidence.map(item => item.id), ...fixture.archive.flatMap(item => item.record ?? [])]);
+          const report = (snapshot, subject, items) => {
+            try { return dependents(snapshot, subject, { archive: items }); } catch (error) { return { error: error.message }; }
+          };
+          for (const subject of subjects) {
+            assert.deepEqual(report(session.snapshot(), subject, archive), report(live.snapshot(), subject, liveArchive), `dependents of ${subject}`);
+          }
+        } finally {
+          live.close();
+        }
         // The continued session saves and restores in this runtime.
         const again = real.restore(source, session.save());
         assert.equal(again.save(), session.save());

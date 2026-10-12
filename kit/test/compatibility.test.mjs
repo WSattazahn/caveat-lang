@@ -1,6 +1,6 @@
 // docs/COMPATIBILITY.md against the repository: the specifications it calls
-// stable say so, the codes and schemas it promises exist, and every promise
-// names CI steps that run.
+// stable say so, the codes, schemas, library exports and MCP tools it promises
+// exist, and every promise names CI steps that run.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
@@ -68,4 +68,19 @@ test('every promise names CI steps that the runtime workflow runs', async () => 
     assert.ok(named.length, `"${cells[0].slice(2)}" names no CI step`);
     for (const step of named) assert.ok(steps.has(step), `"${step}" is not a step of the runtime workflow`);
   }
+});
+
+test('the stable library exports are the package\'s exports, apart from the runtime\'s paths', async () => {
+  const row = section('## What is stable').split('\n').find(line => line.startsWith('| Library |'));
+  assert.ok(row, 'COMPATIBILITY.md has no Library row');
+  const promised = ticked(row.split(' | ')[1]).filter(name => name.startsWith('./'));
+  const manifest = JSON.parse(await readFile(path.join(repo, 'kit', 'package.json'), 'utf8'));
+  assert.deepEqual(sorted(promised), sorted(Object.keys(manifest.exports).filter(entry => entry !== './runtime/*')));
+});
+
+test('the stable MCP tools are the tools the MCP server lists', async () => {
+  const row = section('## What is stable').split('\n').find(line => line.startsWith('| MCP tools |'));
+  assert.ok(row, 'COMPATIBILITY.md has no MCP tools row');
+  const { MCP_TOOLS } = await import('../lib/mcp.mjs');
+  assert.deepEqual(ticked(row.split(' | ')[1]), MCP_TOOLS.map(tool => tool.name));
 });
