@@ -1,0 +1,601 @@
+{
+  "run": "R-T2",
+  "histories": {
+    "H1": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 17,
+            "receipt": {
+              "kind": "record",
+              "text": "H1 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 17; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H1 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 17; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "caveats": {
+            "answer": [
+              "secondhand"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H1 explain(): \"caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice)\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H1 record() decision 1: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H1 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 17; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H1 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 17; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 3,
+          "answer": "yes",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H1 \"--- probes\": probe #3 (check): yes; decision in force: 1 (rests on check #3). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 7,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H1 \"--- probes\": probe #7 (check): no; decision in force: 1 (#7 recorded after decision at line 6). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H1 \"--- probes\": probe #2 (grant): no; grant is permittedBy, never in restsOn. Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 4,
+          "answer": "yes",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H1 \"--- probes\": probe #4 (review): yes; decision in force: 1 (rests on review #4). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 explain(): \"Decision 1 (line 6): merge head 17; claim ready.\""
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 explain(): \"rests on: check #3, review #4, scan #5\""
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 record(): \"#4 review {\\\"approved\\\":1,\\\"relayed\\\":1} ... caveats=[secondhand, addedAtLine 4]\"; explain(): \"caveats at decision: secondhand (material) on #4, deps_unreviewed ...\". The review was relayed (secondhand), and decision 1 carried secondhand."
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 explain(): \"permitted by grant #2 (not rested on)\"; rests on #3,#4,#5 only."
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 explain(): \"rests on: check #3, review #4, scan #5\"; #7 was recorded at line 7 after the decision at line 6 and the basis is frozen."
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H1 view after line 7: {\"status\":\"merge\",\"head\":17,\"revisions\":1,\"reason\":\"ready\"}; explain(): \"in force\""
+          }
+        }
+      ]
+    },
+    "H2": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 31; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan found issues, citing #7 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 31; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan found issues, citing #7 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain(): \"caveats at decision: deps_unreviewed (low) on (retained by choice)\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 record() decision 1: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 31; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan found issues, citing #7 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 7,
+              "reason": "scan found issues"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 31; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan found issues, citing #7 | (Decision 2 made at line 9, so superseded)"
+            }
+          }
+        },
+        {
+          "decision": 2,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 31; claim ready. | rests on: check #3, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 10: check withdrawn, citing #3 | (Decision 3 made at line 12, so superseded)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              8
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 31; claim ready. | rests on: check #3, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 10: check withdrawn, citing #3 | (Decision 3 made at line 12, so superseded)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain(): \"caveats at decision: deps_unreviewed (low) on (retained by choice)\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 record() decision 2: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 31; claim ready. | rests on: check #3, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 10: check withdrawn, citing #3 | (Decision 3 made at line 12, so superseded)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 10,
+              "reason": "check withdrawn"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 31; claim ready. | rests on: check #3, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 10: check withdrawn, citing #3 | (Decision 3 made at line 12, so superseded)"
+            }
+          }
+        },
+        {
+          "decision": 3,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 3 (line 12): merge head 31; claim ready. | rests on: check #11, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              11,
+              4,
+              8
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 3 (line 12): merge head 31; claim ready. | rests on: check #11, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain(): \"caveats at decision: deps_unreviewed (low) on (retained by choice)\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H2 record() decision 3: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 3 (line 12): merge head 31; claim ready. | rests on: check #11, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H2 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 3 (line 12): merge head 31; claim ready. | rests on: check #11, review #4, scan #8 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 11,
+          "answer": "yes",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H2 \"--- probes\": probe #11 (check): yes; decision in force: 3 (rests on check #11). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 13,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H2 \"--- probes\": probe #13 (check): no; decision in force: 3 (#13 recorded after decision 3). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H2 \"--- probes\": probe #2 (grant): no; grants are never rested on. Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 5,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H2 \"--- probes\": probe #5 (scan): no; decision in force 3 rests on scan #8, not #5. Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 explain(): \"Decision 1 ... reopened at line 7: scan found issues, citing #7\""
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 explain(): \"Decision 2 ... reopened at line 10: check withdrawn, citing #3\"; no db_aged event in H2."
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 explain(): \"Decision 2 (line 9) ... rests on: check #3, review #4, scan #8\""
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 record(): \"#3 check ... withdrawn={atLine:10,...}\"; explain(): decisions 1 and 2 both \"rests on: check #3\"."
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 explain(): \"Decision 3 (line 12) ... rests on: check #11, review #4, scan #8\""
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H2 explain(): Decision 3 \"in force\", \"rests on: check #11, review #4, scan #8\"; view after line 13: {\"status\":\"merge\",\"revisions\":3,\"reason\":\"ready\"}"
+          }
+        }
+      ]
+    },
+    "H3": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 42,
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan database stale, citing #5 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan database stale, citing #5 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain(): \"caveats at decision: deps_unreviewed (low) on (retained by choice)\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 record() decision 1: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan database stale, citing #5 | (Decision 2 made at line 9, so superseded)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 7,
+              "reason": "scan database stale"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 1 (line 6): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | reopened at line 7: scan database stale, citing #5 | (Decision 2 made at line 9, so superseded)"
+            }
+          }
+        },
+        {
+          "decision": 2,
+          "value": {
+            "answer": 42,
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain(): \"caveats at decision: deps_unreviewed (low) on (retained by choice); db_stale on #5 was added at line 7 and removed at line 8 (record(): addedAtLine 7, removedAtLine 8), before the decide at line 9\". deps_unreviewed is reported here but is the caveat retained by choice (on \"(retained by choice)\"), not one carried by an observation, so it is excluded from (c)."
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "H3 record() decision 2: \"retained\":[\"deps_unreviewed\"]; set unconditionally at gate.ts:241"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "H3 explain() via work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt: Decision 2 (line 9): merge head 42; claim ready. | rests on: check #3, review #4, scan #5 | caveats at decision: deps_unreviewed (low) on (retained by choice) | permitted by grant #2 (not rested on) | in force"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 5,
+          "answer": "yes",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H3 \"--- probes\": probe #5 (scan): yes; decision in force: 2 (rests on scan #5). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 10,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H3 \"--- probes\": probe #10 (check): no; #10 recorded after decision 2 (line 9). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H3 \"--- probes\": probe #2 (grant): no; grants are never rested on. Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        },
+        {
+          "probe": 4,
+          "answer": "yes",
+          "receipt": {
+            "kind": "run",
+            "text": "work/run.mjs (replays the history through a tsc-compiled copy of gate.ts and prints view(), explain() and record()); output in work/run-output.txt, H3 \"--- probes\": probe #4 (review): yes; decision in force: 2 (rests on review #4). Rule applied is the program's own reopen condition for a withdrawal (gate.ts:252, reopenIfInForce only if the decision in force has the id in restsOn)."
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 explain(): Decision 1 \"caveats at decision: deps_unreviewed (low) on (retained by choice)\"; record(): \"retained\":[\"deps_unreviewed\"]"
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 explain(): \"Decision 1 ... rests on: check #3, review #4, scan #5 ... reopened at line 7: scan database stale, citing #5\""
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 record(): \"#5 scan ... caveats=[{name:db_stale, addedAtLine:7, removedAtLine:8}]\"; decision 2 made at line 9 with \"caveats at decision: deps_unreviewed (low) on (retained by choice)\" only."
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 explain(): Decision 2 \"permitted by grant #2 (not rested on)\"; grant #12 was recorded at line 12, after decision 2 (line 9)."
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 explain(): \"Decision 2 (line 9) ... rests on: check #3, review #4, scan #5\""
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "H3 run: \"line 13 {\\\"event\\\":\\\"decide\\\"} -> REFUSED: decide: decision 2 is in force and has not been reopened | view {status:merge, head:43, revisions:2, reason:ready}\" (view identical to after line 12); explain(): Decision 2 \"merge head 42\", \"in force\"."
+          }
+        }
+      ]
+    }
+  }
+}

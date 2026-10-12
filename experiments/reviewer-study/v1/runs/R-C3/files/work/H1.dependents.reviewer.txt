@@ -1,0 +1,17 @@
+What rests on reviewer in gate.cav after 7 events (sequence 7)
+
+Claims
+  reviewer supports ready
+
+Decisions
+  merge@1 = 17  in force  based on reviewer
+
+Decision changes
+  #6 decide: merge@1 committed because reviewer
+
+Values
+  nothing
+
+Displayed
+  gate.revisions = 1  cites reviewer
+  gate.status = "merge"  cites reviewer

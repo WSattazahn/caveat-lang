@@ -1,0 +1,20 @@
+What rests on scanner in gate.cav after 13 events (sequence 12)
+
+Claims
+  scanner supports ready
+
+Decisions
+  merge@1 = 42  superseded  based on scanner
+  merge@2 = 42  in force  based on scanner
+
+Decision changes
+  #6 decide: merge@1 committed because scanner
+  #7 db_aged: merge@1 reopened because scanner
+  #9 decide: merge@2 committed because scanner
+
+Values
+  nothing
+
+Displayed
+  gate.revisions = 2  cites scanner
+  gate.status = "merge"  cites scanner

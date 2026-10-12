@@ -1,0 +1,14 @@
+{"event":"propose","payload":{"head":42}}
+{"event":"approve","payload":{"head":42}}
+{"event":"check","payload":{"run":301,"passed":1}}
+{"event":"review","payload":{"approved":1,"relayed":0}}
+{"event":"scan","payload":{"findings":0}}
+{"event":"decide"}
+{"event":"db_aged"}
+{"event":"db_refreshed"}
+{"event":"decide"}
+{"event":"check","payload":{"run":302,"passed":1}}
+{"event":"propose","payload":{"head":43}}
+{"event":"approve","payload":{"head":43}}
+{"event":"decide"}
+{"event":"db_refreshed"}

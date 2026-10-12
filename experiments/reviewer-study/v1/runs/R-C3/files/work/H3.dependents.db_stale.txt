@@ -1,0 +1,17 @@
+What rests on db_stale in gate.cav after 13 events (sequence 12)
+
+Claims
+  scanner supports ready
+
+Decisions
+  merge@2 = 42  in force  retaining: db_stale
+
+Decision changes
+  #7 db_aged: merge@1 reopened because caveat db_stale
+
+Values
+  nothing
+
+Displayed
+  gate.revisions = 2  cites caveat db_stale
+  gate.status = "merge"  cites caveat db_stale

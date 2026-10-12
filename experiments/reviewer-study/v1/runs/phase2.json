@@ -1,0 +1,46 @@
+{
+  "frozen_at": "2026-10-12T22:55Z",
+  "note": "Each reviewer's ANSWERS.json, NOTES.md and work/ (node_modules and the tarball excluded), hashed in files.sha256. tool-log.jsonl is derived from the transcript; raw transcripts are private (Amendment 2). Every reviewer's program file was unchanged at freeze.",
+  "program_sha256_prefix": {
+    "caveat": "de7e3c457ba6be18",
+    "ts": "0a4d94db19435254"
+  },
+  "runs": {
+    "R-C1": {
+      "arm": "caveat",
+      "start": "2026-10-12T22:45:58Z",
+      "end": "2026-10-12T22:49:49Z",
+      "tool_calls": 21
+    },
+    "R-C2": {
+      "arm": "caveat",
+      "start": "2026-10-12T22:46:02Z",
+      "end": "2026-10-12T22:50:06Z",
+      "tool_calls": 22
+    },
+    "R-C3": {
+      "arm": "caveat",
+      "start": "2026-10-12T22:46:06Z",
+      "end": "2026-10-12T22:49:32Z",
+      "tool_calls": 16
+    },
+    "R-T1": {
+      "arm": "ts",
+      "start": "2026-10-12T22:46:10Z",
+      "end": "2026-10-12T22:47:33Z",
+      "tool_calls": 7
+    },
+    "R-T2": {
+      "arm": "ts",
+      "start": "2026-10-12T22:46:13Z",
+      "end": "2026-10-12T22:47:51Z",
+      "tool_calls": 7
+    },
+    "R-T3": {
+      "arm": "ts",
+      "start": "2026-10-12T22:46:17Z",
+      "end": "2026-10-12T22:47:46Z",
+      "tool_calls": 8
+    }
+  }
+}

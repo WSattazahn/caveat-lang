@@ -1,0 +1,601 @@
+{
+  "run": "R-T1",
+  "histories": {
+    "H1": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 17,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "caveats": {
+            "answer": [
+              "secondhand"
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force' (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 3,
+          "answer": "yes",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 1 in force, 'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; #3 is its check"
+          }
+        },
+        {
+          "probe": 7,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 1 rests on #3,#4,#5 only ('Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'); #7 is a later check not rested on"
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "#2 is a grant: 'permitted by grant #2 (not rested on)'; TASK says withdrawing a grant reopens nothing"
+          }
+        },
+        {
+          "probe": 4,
+          "answer": "yes",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 1 in force rests on 'review #4'"
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 1 (line 6): merge head 17; claim ready. / rests on: check #3, review #4, scan #5 / caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "Line 4 review has relayed 1; record shows obs #4 caveats secondhand (material) addedAtLine 4; explain: 'caveats at decision: secondhand (material) on #4, deps_unreviewed ...'"
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "explain: 'permitted by grant #2 (not rested on)'"
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "explain: 'rests on: check #3, review #4, scan #5'; #7 recorded after decision at line 6 and rests-on is frozen (gate.ts:239)"
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "view after line 7: {\"status\":\"merge\",\"head\":17,\"revisions\":1,\"reason\":\"ready\"}; explain: 'in force'"
+          }
+        }
+      ]
+    },
+    "H2": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9) (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 7,
+              "reason": "scan found issues"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9)"
+            }
+          }
+        },
+        {
+          "decision": 2,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              8
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12) (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 10,
+              "reason": "check withdrawn"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12)"
+            }
+          }
+        },
+        {
+          "decision": 3,
+          "value": {
+            "answer": 31,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              11,
+              4,
+              8
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force' (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 11,
+          "answer": "yes",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 3 in force: 'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+          }
+        },
+        {
+          "probe": 13,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 3 rests on #11,#4,#8 ('Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'); #13 not among them"
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "#2 is a grant: 'permitted by grant #2 (not rested on)'; withdrawing a grant reopens nothing"
+          }
+        },
+        {
+          "probe": 5,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 3 rests on scan #8, not #5 ('Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force')"
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 1 (line 6): merge head 31 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan found issues, citing #7'; superseded by Decision 2 (line 9); view after line 7 status reopened reason 'scan found issues'"
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12); no db_aged in H2"
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 2 (line 9): merge head 31 / rests on: check #3, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 10: check withdrawn, citing #3'; superseded by Decision 3 (line 12)"
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "record: obs #3 withdrawn atLine 10; decisions 1 and 2 'rests on: check #3'"
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'"
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 3 (line 12): merge head 31 / rests on: check #11, review #4, scan #8 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; view after line 13 status merge revisions 3"
+          }
+        }
+      ]
+    },
+    "H3": {
+      "q1": [
+        {
+          "decision": 1,
+          "value": {
+            "answer": 42,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9) (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "superseded",
+              "reopened_by": 7,
+              "reason": "scan database stale"
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+            }
+          }
+        },
+        {
+          "decision": 2,
+          "value": {
+            "answer": 42,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+            }
+          },
+          "rests_on": {
+            "answer": [
+              3,
+              4,
+              5
+            ],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+            }
+          },
+          "caveats": {
+            "answer": [],
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened' (caveats on rested-on observations only; deps_unreviewed is listed separately as retained)"
+            }
+          },
+          "retains": {
+            "answer": [
+              "deps_unreviewed"
+            ],
+            "receipt": {
+              "kind": "code",
+              "text": "gate.ts:241 retained: [\"deps_unreviewed\"]; explain lists 'deps_unreviewed (low) on (retained by choice)'"
+            }
+          },
+          "grant": {
+            "answer": 2,
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+            }
+          },
+          "state": {
+            "answer": {
+              "state": "in_force",
+              "reopened_by": null,
+              "reason": null
+            },
+            "receipt": {
+              "kind": "record",
+              "text": "explain() via work/run.mjs (compiled copy work/gate.mjs of gate.ts, all lines replayed into one fresh createPolicy(); output in work/replay-output.txt): 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+            }
+          }
+        }
+      ],
+      "q2": [
+        {
+          "probe": 5,
+          "answer": "yes",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 2 in force: 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+          }
+        },
+        {
+          "probe": 10,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 2 rests on #3,#4,#5 ('Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'); #10 is later"
+          }
+        },
+        {
+          "probe": 2,
+          "answer": "no",
+          "receipt": {
+            "kind": "record",
+            "text": "#2 is a grant: 'permitted by grant #2 (not rested on)'; withdrawing a grant reopens nothing"
+          }
+        },
+        {
+          "probe": 4,
+          "answer": "yes",
+          "receipt": {
+            "kind": "record",
+            "text": "Decision 2 in force rests on 'review #4'"
+          }
+        }
+      ],
+      "q3": [
+        {
+          "statement": 1,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+          }
+        },
+        {
+          "statement": 2,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 1 (line 6): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / reopened at line 7: scan database stale, citing #5'; superseded by Decision 2 (line 9)"
+          }
+        },
+        {
+          "statement": 3,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "record: obs #5 db_stale addedAtLine 7 removedAtLine 8; decision 2 at line 9: 'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+          }
+        },
+        {
+          "statement": 4,
+          "answer": "false",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'; grant #12 recorded after decision 2"
+          }
+        },
+        {
+          "statement": 5,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'"
+          }
+        },
+        {
+          "statement": 6,
+          "answer": "true",
+          "receipt": {
+            "kind": "record",
+            "text": "'Decision 2 (line 9): merge head 42 / rests on: check #3, review #4, scan #5 / caveats at decision: deps_unreviewed (low) on (retained by choice) / permitted by grant #2 (not rested on) / in force'; line 13 decide REFUSED: 'decide: decision 2 is in force and has not been reopened'; view after lines 12 and 13 identical {\"status\":\"merge\",\"head\":43,\"revisions\":2,\"reason\":\"ready\"} (head 43 came from line 11, not 13); decision 2 value 42"
+          }
+        }
+      ]
+    }
+  }
+}

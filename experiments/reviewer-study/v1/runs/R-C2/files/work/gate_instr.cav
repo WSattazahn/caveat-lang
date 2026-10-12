@@ -1,0 +1,177 @@
+scene "The release gate: decide whether to merge the current head.";
+
+# ---------------------------------------------------------------------------
+# What the program reasons about
+# ---------------------------------------------------------------------------
+claim ready;            # the current head is ready to merge
+claim may_merge;        # the release manager allows merging a head
+claim check_flaky;      # a CI run was re-queued as flaky
+
+evidence ci from "a CI run's result";
+evidence reviewer from "a reviewer's verdict";
+evidence scanner from "the security scanner's result";
+evidence release_manager from "the release manager's grant to merge a head";
+evidence requeue from "a CI run re-queued as flaky";
+
+caveat secondhand consequence material;       # review posted by a bot on the reviewer's behalf
+caveat db_stale consequence material;         # scanner database found stale
+caveat deps_unreviewed consequence low;       # carried by no observation; retained by choice
+
+# Every check, review, scan and grant is a distinct, retained observation.
+#   checks:  a reading stream, checks@1..checks@8 (value = passed, 1 or 0)
+#   reviews: renewable evidence, reviewer, reviewer@2..reviewer@4
+#   scans:   renewable evidence, scanner, scanner@2..scanner@4
+#   grants:  a reading stream, grants@1..grants@4 (value = the granted head)
+#   requeue: renewable evidence, one occurrence per accepted recheck
+# Reviews and scans are renewable evidence (not streams) because their caveats
+# are applied to one occurrence (`qualify`) and db_stale is taken back from
+# every occurrence (`unqualify`), which a reading stream does not allow.
+readings checks from ci limit 8;
+readings grants from release_manager limit 4;
+renewable reviewer limit 4;
+renewable scanner limit 4;
+renewable requeue limit 8;
+
+decisions merge limit 4;
+
+# Bookkeeping (plain numbers, no evidence of their own).
+state current_head = 0 min 0 max 999;
+state n_checks = 0 min 0 max 8;
+state n_reviews = 0 min 0 max 4;
+state n_scans = 0 min 0 max 4;
+state n_grants = 0 min 0 max 4;
+state n_requeues = 0 min 0 max 8;
+# Indices (1-based) of the checks that are not withdrawn, as a base-16 stack.
+# A recheck can only withdraw the most recent check, so the non-withdrawn
+# checks always form a stack; its top is "the latest check".
+state live_checks = 0 min 0 max 5000000000;
+state latest_check = 0 min 0 max 8;      # 1-based index of the latest non-withdrawn check, 0 = none
+state review_ok = 0 min 0 max 1;         # the latest review supports ready
+state scan_ok = 0 min 0 max 1;           # the latest scan supports ready
+state decided_on_scan = 0 min 0 max 4;   # which scan (1-based) the decision in force rests on
+# Reason shown in the view: 0 "", 1 ready, 2 check failed, 3 scan found issues,
+# 4 check withdrawn, 5 scan database stale.
+state reason_code = 0 min 0 max 5;
+
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
+event propose head min 1 max 999;
+event check run min 1 max 999, passed min 0 max 1;
+event review approved min 0 max 1, relayed min 0 max 1;
+event scan findings min 0 max 99;
+event approve head min 1 max 999;
+event decide;
+event recheck;
+event db_aged;
+event db_refreshed;
+
+define in_force = committed(merge) and not reopened(merge);
+
+# --- propose ---------------------------------------------------------------
+on propose when head != floor(head) reject "head must be an integer";
+on propose set current_head = head;
+
+# --- check -----------------------------------------------------------------
+on check when run != floor(run) or passed != floor(passed) reject "run and passed must be integers";
+on check when n_checks >= 8 reject "at most eight checks";
+on check when passed == 1 sample checks = passed supports ready;
+on check when passed == 0 sample checks = passed opposes ready;
+on check set n_checks = n_checks + 1;
+on check set live_checks = live_checks * 16 + n_checks;
+on check set latest_check = n_checks;
+on check when passed == 0 and in_force set reason_code = 2;
+on check when passed == 0 and in_force reopen merge because latest(checks);
+
+# --- review ----------------------------------------------------------------
+on review when approved != floor(approved) or relayed != floor(relayed) reject "approved and relayed must be integers";
+on review when n_reviews >= 4 reject "at most four reviews";
+on review when n_reviews >= 1 renew reviewer;
+on review when approved == 1 reveal reviewer supports ready;
+on review when approved == 0 reveal reviewer opposes ready;
+on review when relayed == 1 qualify reviewer with secondhand;
+on review set n_reviews = n_reviews + 1;
+on review set review_ok = approved;
+
+# --- scan ------------------------------------------------------------------
+on scan when findings != floor(findings) reject "findings must be an integer";
+on scan when n_scans >= 4 reject "at most four scans";
+on scan when n_scans >= 1 renew scanner;
+on scan when findings == 0 reveal scanner supports ready;
+on scan when findings > 0 reveal scanner opposes ready;
+on scan set n_scans = n_scans + 1;
+on scan set scan_ok = if(findings == 0, 1, 0);
+on scan when findings > 0 and in_force set reason_code = 3;
+on scan when findings > 0 and in_force reopen merge because scanner;
+
+# --- approve (a grant; never part of what a decision rests on) -------------
+on approve when head != floor(head) reject "head must be an integer";
+on approve when n_grants >= 4 reject "at most four grants";
+on approve sample grants = head supports may_merge;
+on approve set n_grants = n_grants + 1;
+
+# --- recheck: withdraw the most recently recorded check --------------------
+on recheck when n_checks == 0 reject "no check has been recorded";
+on recheck when withdrawn(latest(checks)) reject "the most recent check is already withdrawn";
+on recheck when n_requeues >= 1 renew requeue;
+on recheck reveal requeue supports check_flaky;
+on recheck set n_requeues = n_requeues + 1;
+on recheck withdraw latest(checks) because requeue;
+on recheck set live_checks = floor(live_checks / 16);
+on recheck set latest_check = live_checks - floor(live_checks / 16) * 16;
+on recheck when in_force and rests_on_withdrawn(merge) set reason_code = 4;
+on recheck when in_force and rests_on_withdrawn(merge) reopen merge because requeue;
+
+# --- db_aged: the latest scan's database is stale --------------------------
+on db_aged when n_scans == 0 reject "no scan has been recorded";
+on db_aged when carries(scanner, db_stale) reject "the latest scan already carries db_stale";
+on db_aged qualify scanner with db_stale;
+on db_aged when in_force and decided_on_scan == n_scans set reason_code = 5;
+on db_aged when in_force and decided_on_scan == n_scans reopen merge because scanner;
+
+# --- db_refreshed: take db_stale back from every scan ----------------------
+on db_refreshed when n_scans == 0 reject "no scan has been recorded";
+on db_refreshed when not carries(scanner, db_stale) reject "the latest scan does not carry db_stale";
+on db_refreshed unqualify scanner with db_stale;
+
+# --- decide ----------------------------------------------------------------
+on decide when n_checks == 0 reject "no check has been recorded";
+on decide when n_reviews == 0 reject "no review has been recorded";
+on decide when n_scans == 0 reject "no scan has been recorded";
+on decide when latest_check == 0 reject "every check has been withdrawn";
+on decide when history_at(checks, latest_check - 1) != 1 reject "the latest check does not support ready";
+on decide when review_ok != 1 reject "the latest review does not support ready";
+on decide when scan_ok != 1 reject "the latest scan does not support ready";
+on decide when in_force reject "a merge decision is in force";
+on decide when history_count(merge) >= 4 reject "four merge decisions have been made";
+on decide when n_grants == 0 reject "no grant has been recorded";
+on decide when latest(grants) != current_head reject "the latest grant is not for the current head";
+# The value is the current head. The `0 *` terms add no value; they make the
+# decision rest on exactly the latest check, the latest review and the latest
+# scan. The grant is recorded apart, as what permitted the decision.
+on decide commit merge because enough
+    using current_head
+        + 0 * history_at(checks, latest_check - 1)
+        + 0 * qualified(0, reviewer)
+        + 0 * qualified(0, scanner)
+    permitted by latest(grants) for current_head
+    retaining deps_unreviewed;
+on decide set decided_on_scan = n_scans;
+on decide set reason_code = 1;
+
+# ---------------------------------------------------------------------------
+# The view
+# ---------------------------------------------------------------------------
+bind gate.status = "undecided";
+bind gate.status = "merge" when committed(merge) and not reopened(merge);
+bind gate.status = "reopened" when reopened(merge);
+bind gate.head = current_head;
+bind gate.revisions = history_count(merge);
+bind gate.reason = "";
+bind gate.reason = "ready" when reason_code == 1;
+bind gate.reason = "check failed" when reason_code == 2;
+bind gate.reason = "scan found issues" when reason_code == 3;
+bind gate.reason = "check withdrawn" when reason_code == 4;
+bind gate.reason = "scan database stale" when reason_code == 5;
+bind probe.scan_carries_stale = 0;
+bind probe.scan_carries_stale = 1 when carries(scanner, db_stale);

@@ -1,0 +1,32 @@
+What rests on checks in gate.cav after 13 events (sequence 13)
+
+Withdrawals
+  checks@1 withdrawn at #10 during recheck because requeue
+
+Claims
+  checks@1 supports ready
+  checks@2 supports ready
+  checks@3 supports ready
+
+Decisions
+  merge@1 = 31  superseded  based on checks@1
+    checks@1 withdrawn at #10 during recheck because requeue
+  merge@2 = 31  superseded  based on checks@1
+    checks@1 withdrawn at #10 during recheck because requeue
+  merge@3 = 31  in force  based on checks@2
+
+Decision changes
+  #6 decide: merge@1 committed because checks@1
+    checks@1 withdrawn at #10 during recheck because requeue
+  #9 decide: merge@2 committed because checks@1
+    checks@1 withdrawn at #10 during recheck because requeue
+  #12 decide: merge@3 committed because checks@2
+
+Values
+  nothing
+
+Displayed
+  gate.revisions = 3  cites checks@1, checks@2
+    checks@1 withdrawn at #10 during recheck because requeue
+  gate.status = "merge"  cites checks@1, checks@2
+    checks@1 withdrawn at #10 during recheck because requeue

@@ -1,0 +1,68 @@
+gate.cav after 13 events (sequence 13)
+
+Events
+    1  propose {"head":31}  accepted
+    2  approve {"head":31}  accepted
+    3  check {"run":201,"passed":1}  accepted
+    4  review {"approved":1,"relayed":0}  accepted
+    5  scan {"findings":0}  accepted
+    6  decide  accepted
+    7  scan {"findings":2}  accepted
+    8  scan {"findings":0}  accepted
+    9  decide  accepted
+   10  recheck  accepted
+   11  check {"run":202,"passed":1}  accepted
+   12  decide  accepted
+   13  check {"run":203,"passed":1}  accepted
+
+Decisions
+  made under source sha256:de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea
+  merge: 3 of at most 4
+    merge@1 = 31  superseded
+      based on checks@1, reviewer, scanner
+      checks@1: observed at #3 check {"run":201,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":0}
+      scanner: observed at #5 scan {"findings":0}
+      retaining: deps_unreviewed
+      checks@1 has since been withdrawn at #10 because requeue
+      permitted by grants@1 for 31
+      could also have been influenced by grants@1
+      #6 decide: committed because checks@1, reviewer, scanner; retaining: deps_unreviewed
+      #7 scan: reopened because scanner@2
+    merge@2 = 31  superseded
+      based on checks@1, reviewer, scanner@3
+      checks@1: observed at #3 check {"run":201,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":0}
+      scanner@3: observed at #8 scan {"findings":0}
+      retaining: deps_unreviewed
+      checks@1 has since been withdrawn at #10 because requeue
+      permitted by grants@1 for 31
+      could also have been influenced by grants@1, scanner, scanner@2
+      #9 decide: committed because checks@1, reviewer, scanner@3; retaining: deps_unreviewed
+      #10 recheck: reopened because requeue
+    merge@3 = 31  in force
+      based on checks@2, reviewer, scanner@3
+      checks@2: observed at #11 check {"run":202,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":0}
+      scanner@3: observed at #8 scan {"findings":0}
+      retaining: deps_unreviewed
+      permitted by grants@1 for 31
+      could also have been influenced by checks@1, grants@1, requeue, scanner, scanner@2
+      #12 decide: committed because reviewer, scanner@3, checks@2; retaining: deps_unreviewed
+
+Evidence
+  grants@1 = 31 supports may_merge  (#2 approve)
+  checks@1 = 1 supports ready  (#3 check)  caveats: withdrawn  withdrawn at #10 because requeue
+  reviewer supports ready
+  scanner supports ready
+  scanner@2 opposes ready
+  scanner@3 supports ready
+  requeue supports check_flaky
+  checks@2 = 1 supports ready  (#11 check)
+  checks@3 = 1 supports ready  (#13 check)
+
+Displayed
+  gate.head = 31
+  gate.reason = "ready"
+  gate.revisions = 3  because checks@1, checks@2, grants@1, requeue, reviewer, scanner, scanner@2, scanner@3 (caveats: deps_unreviewed, withdrawn)
+  gate.status = "merge"  because checks@1, checks@2, grants@1, requeue, reviewer, scanner, scanner@2, scanner@3 (caveats: deps_unreviewed)

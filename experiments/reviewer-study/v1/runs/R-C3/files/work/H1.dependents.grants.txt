@@ -1,0 +1,17 @@
+What rests on grants in gate.cav after 7 events (sequence 7)
+
+Claims
+  grants@1 supports may_merge
+
+Decisions
+  merge@1 = 17  in force  permitted by grants@1
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  gate.revisions = 1  cites grants@1
+  gate.status = "merge"  cites grants@1

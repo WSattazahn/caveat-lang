@@ -1,0 +1,85 @@
+===== H1
+line 1 {"event":"propose","payload":{"head":17}} -> accepted view={"status":"undecided","head":17,"revisions":0,"reason":""}
+line 2 {"event":"approve","payload":{"head":17}} -> accepted view={"status":"undecided","head":17,"revisions":0,"reason":""}
+line 3 {"event":"check","payload":{"run":101,"passed":1}} -> accepted view={"status":"undecided","head":17,"revisions":0,"reason":""}
+line 4 {"event":"review","payload":{"approved":1,"relayed":1}} -> accepted view={"status":"undecided","head":17,"revisions":0,"reason":""}
+line 5 {"event":"scan","payload":{"findings":0}} -> accepted view={"status":"undecided","head":17,"revisions":0,"reason":""}
+line 6 {"event":"decide"} -> accepted view={"status":"merge","head":17,"revisions":1,"reason":"ready"}
+line 7 {"event":"check","payload":{"run":102,"passed":1}} -> accepted view={"status":"merge","head":17,"revisions":1,"reason":"ready"}
+Decision 1 (line 6): merge head 17; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+obs #2 grant {"head":17} caveats=[] withdrawn=null
+obs #3 check {"run":101,"passed":1} caveats=[] withdrawn=null
+obs #4 review {"approved":1,"relayed":1} caveats=[{"name":"secondhand","consequence":"material","addedAtLine":4,"removedAtLine":null}] withdrawn=null
+obs #5 scan {"findings":0} caveats=[] withdrawn=null
+obs #7 check {"run":102,"passed":1} caveats=[] withdrawn=null
+===== H2
+line 1 {"event":"propose","payload":{"head":31}} -> accepted view={"status":"undecided","head":31,"revisions":0,"reason":""}
+line 2 {"event":"approve","payload":{"head":31}} -> accepted view={"status":"undecided","head":31,"revisions":0,"reason":""}
+line 3 {"event":"check","payload":{"run":201,"passed":1}} -> accepted view={"status":"undecided","head":31,"revisions":0,"reason":""}
+line 4 {"event":"review","payload":{"approved":1,"relayed":0}} -> accepted view={"status":"undecided","head":31,"revisions":0,"reason":""}
+line 5 {"event":"scan","payload":{"findings":0}} -> accepted view={"status":"undecided","head":31,"revisions":0,"reason":""}
+line 6 {"event":"decide"} -> accepted view={"status":"merge","head":31,"revisions":1,"reason":"ready"}
+line 7 {"event":"scan","payload":{"findings":2}} -> accepted view={"status":"reopened","head":31,"revisions":1,"reason":"scan found issues"}
+line 8 {"event":"scan","payload":{"findings":0}} -> accepted view={"status":"reopened","head":31,"revisions":1,"reason":"scan found issues"}
+line 9 {"event":"decide"} -> accepted view={"status":"merge","head":31,"revisions":2,"reason":"ready"}
+line 10 {"event":"recheck"} -> accepted view={"status":"reopened","head":31,"revisions":2,"reason":"check withdrawn"}
+line 11 {"event":"check","payload":{"run":202,"passed":1}} -> accepted view={"status":"reopened","head":31,"revisions":2,"reason":"check withdrawn"}
+line 12 {"event":"decide"} -> accepted view={"status":"merge","head":31,"revisions":3,"reason":"ready"}
+line 13 {"event":"check","payload":{"run":203,"passed":1}} -> accepted view={"status":"merge","head":31,"revisions":3,"reason":"ready"}
+Decision 1 (line 6): merge head 31; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: scan found issues, citing #7
+Decision 2 (line 9): merge head 31; claim ready.
+  rests on: check #3, review #4, scan #8
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 10: check withdrawn, citing #3
+Decision 3 (line 12): merge head 31; claim ready.
+  rests on: check #11, review #4, scan #8
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+obs #2 grant {"head":31} caveats=[] withdrawn=null
+obs #3 check {"run":201,"passed":1} caveats=[] withdrawn={"atLine":10,"reason":"run 201 re-queued as flaky (recheck at line 10)"}
+obs #4 review {"approved":1,"relayed":0} caveats=[] withdrawn=null
+obs #5 scan {"findings":0} caveats=[] withdrawn=null
+obs #7 scan {"findings":2} caveats=[] withdrawn=null
+obs #8 scan {"findings":0} caveats=[] withdrawn=null
+obs #11 check {"run":202,"passed":1} caveats=[] withdrawn=null
+obs #13 check {"run":203,"passed":1} caveats=[] withdrawn=null
+===== H3
+line 1 {"event":"propose","payload":{"head":42}} -> accepted view={"status":"undecided","head":42,"revisions":0,"reason":""}
+line 2 {"event":"approve","payload":{"head":42}} -> accepted view={"status":"undecided","head":42,"revisions":0,"reason":""}
+line 3 {"event":"check","payload":{"run":301,"passed":1}} -> accepted view={"status":"undecided","head":42,"revisions":0,"reason":""}
+line 4 {"event":"review","payload":{"approved":1,"relayed":0}} -> accepted view={"status":"undecided","head":42,"revisions":0,"reason":""}
+line 5 {"event":"scan","payload":{"findings":0}} -> accepted view={"status":"undecided","head":42,"revisions":0,"reason":""}
+line 6 {"event":"decide"} -> accepted view={"status":"merge","head":42,"revisions":1,"reason":"ready"}
+line 7 {"event":"db_aged"} -> accepted view={"status":"reopened","head":42,"revisions":1,"reason":"scan database stale"}
+line 8 {"event":"db_refreshed"} -> accepted view={"status":"reopened","head":42,"revisions":1,"reason":"scan database stale"}
+line 9 {"event":"decide"} -> accepted view={"status":"merge","head":42,"revisions":2,"reason":"ready"}
+line 10 {"event":"check","payload":{"run":302,"passed":1}} -> accepted view={"status":"merge","head":42,"revisions":2,"reason":"ready"}
+line 11 {"event":"propose","payload":{"head":43}} -> accepted view={"status":"merge","head":43,"revisions":2,"reason":"ready"}
+line 12 {"event":"approve","payload":{"head":43}} -> accepted view={"status":"merge","head":43,"revisions":2,"reason":"ready"}
+line 13 {"event":"decide"} -> REFUSED: decide: decision 2 is in force and has not been reopened view={"status":"merge","head":43,"revisions":2,"reason":"ready"}
+Decision 1 (line 6): merge head 42; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: scan database stale, citing #5
+Decision 2 (line 9): merge head 42; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+obs #2 grant {"head":42} caveats=[] withdrawn=null
+obs #3 check {"run":301,"passed":1} caveats=[] withdrawn=null
+obs #4 review {"approved":1,"relayed":0} caveats=[] withdrawn=null
+obs #5 scan {"findings":0} caveats=[{"name":"db_stale","consequence":"material","addedAtLine":7,"removedAtLine":8}] withdrawn=null
+obs #10 check {"run":302,"passed":1} caveats=[] withdrawn=null
+obs #12 grant {"head":43} caveats=[] withdrawn=null

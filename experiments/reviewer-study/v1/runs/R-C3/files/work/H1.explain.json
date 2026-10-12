@@ -1,0 +1,281 @@
+{
+  "program": "gate.cav",
+  "schema": "caveat-explain/0.1",
+  "sequence": 7,
+  "elapsed": 0,
+  "source": {
+    "sha256": "de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea",
+    "unrecorded_through": 0
+  },
+  "events": [
+    {
+      "event": "propose",
+      "payload": {
+        "head": 17
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "approve",
+      "payload": {
+        "head": 17
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "check",
+      "payload": {
+        "run": 101,
+        "passed": 1
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "review",
+      "payload": {
+        "approved": 1,
+        "relayed": 1
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "scan",
+      "payload": {
+        "findings": 0
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "decide",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "check",
+      "payload": {
+        "run": 102,
+        "passed": 1
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "name": "merge",
+      "limit": 4,
+      "current": "merge@1",
+      "revisions": [
+        {
+          "id": "merge@1",
+          "value": 17,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "checks@1",
+              "reviewer",
+              "scanner"
+            ],
+            "caveats": [
+              "deps_unreviewed",
+              "secondhand"
+            ]
+          },
+          "lineage": {
+            "evidence": [
+              "checks@1",
+              "grants@1",
+              "reviewer",
+              "scanner"
+            ],
+            "caveats": [
+              "deps_unreviewed",
+              "secondhand"
+            ]
+          },
+          "retained": [
+            "deps_unreviewed",
+            "secondhand"
+          ],
+          "permission": {
+            "grant": "grants@1",
+            "scope": {
+              "granted": 17,
+              "required": 17
+            }
+          },
+          "withdrawn": [],
+          "observed_by": [
+            {
+              "evidence": "checks@1",
+              "sequence": 3,
+              "event": "check",
+              "payload": {
+                "run": 101,
+                "passed": 1
+              }
+            },
+            {
+              "evidence": "reviewer",
+              "sequence": 4,
+              "event": "review",
+              "payload": {
+                "approved": 1,
+                "relayed": 1
+              }
+            },
+            {
+              "evidence": "scanner",
+              "sequence": 5,
+              "event": "scan",
+              "payload": {
+                "findings": 0
+              }
+            }
+          ],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 6,
+              "event": "decide",
+              "because": [
+                "checks@1",
+                "reviewer",
+                "scanner"
+              ],
+              "caveats": [
+                "deps_unreviewed",
+                "secondhand"
+              ],
+              "source_sha256": "de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "grants@1",
+      "relation": "supports",
+      "claim": "may_merge",
+      "value": 17,
+      "sequence": 2,
+      "event": "approve",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "checks@1",
+      "relation": "supports",
+      "claim": "ready",
+      "value": 1,
+      "sequence": 3,
+      "event": "check",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "reviewer",
+      "relation": "supports",
+      "claim": "ready",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "secondhand"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "scanner",
+      "relation": "supports",
+      "claim": "ready",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "checks@2",
+      "relation": "supports",
+      "claim": "ready",
+      "value": 1,
+      "sequence": 7,
+      "event": "check",
+      "caveats": [],
+      "withdrawn": null
+    }
+  ],
+  "displayed": [
+    {
+      "name": "gate.head",
+      "value": 17,
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "gate.reason",
+      "value": "ready",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "gate.revisions",
+      "value": 1,
+      "cites": {
+        "evidence": [
+          "checks@1",
+          "grants@1",
+          "reviewer",
+          "scanner"
+        ],
+        "caveats": [
+          "deps_unreviewed",
+          "secondhand"
+        ]
+      }
+    },
+    {
+      "name": "gate.status",
+      "value": "merge",
+      "cites": {
+        "evidence": [
+          "checks@1",
+          "grants@1",
+          "reviewer",
+          "scanner"
+        ],
+        "caveats": [
+          "deps_unreviewed",
+          "secondhand"
+        ]
+      }
+    }
+  ]
+}
