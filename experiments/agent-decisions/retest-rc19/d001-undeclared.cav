@@ -52,6 +52,8 @@ on l93_rechecked when committed(close_170) and not reopened(close_170) and rests
 # permission, not the grounds. CI on the head is the caveat carried.
 on owner_closes when not observed(owner_acceptance) reveal owner_acceptance;
 on owner_closes when committed(close_170) and not reopened(close_170) reject "#170 is already closed for review.";
+# Without a decision series a reopened close cannot be committed again, so refuse it.
+on owner_closes when reopened(close_170) reject "#170 was reopened; this plain commitment cannot be made again.";
 on owner_closes commit close_170 because enough
   using qualified(1, withdrawal_L93)
   permitted by owner_acceptance

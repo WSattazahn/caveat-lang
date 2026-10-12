@@ -29,3 +29,11 @@ npx --no-install caveat-lang test ../001-departure-reason-mechanism/decision.sce
 
 All five are fixed in the published package. The skill is not part of the npm
 package, so D004's receipt is the repository text, not rc.19.
+
+The repository's departure sweep (8 runs of 150 random events per program)
+then found D008 in `d001-undeclared.cav`: once `close_170` is reopened,
+committing it again is fatal `unclassified` ("commitment close_170 already
+exists"), so the host loses the session. `recommit-fatal.txt` reproduces it on
+rc.19 in eight lines. The probe now refuses that event itself
+(`when reopened(close_170) reject …`), and `d001.txt` was regenerated; only its
+source digest changed.
