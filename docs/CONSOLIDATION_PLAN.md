@@ -349,12 +349,12 @@ There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
 
-## Current release procedure addendum — 2026-10-11 UTC
+## Current release procedure addendum — 2026-10-12 UTC
 
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.17 verified release record](releases/v0.1.0-rc.17.md) for the current
+Use the [rc.18 verified release record](releases/v0.1.0-rc.18.md) for the current
 published candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
@@ -376,6 +376,7 @@ rc.14 is the third (see the [rc.14 release record](releases/v0.1.0-rc.14.md)).
 rc.15 is the fourth (see the [rc.15 release record](releases/v0.1.0-rc.15.md)).
 rc.16 is the fifth (see the [rc.16 release record](releases/v0.1.0-rc.16.md)).
 rc.17 is the sixth (see the [rc.17 release record](releases/v0.1.0-rc.17.md)).
+rc.18 is the seventh (see the [rc.18 release record](releases/v0.1.0-rc.18.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
@@ -429,6 +430,11 @@ For rc.17, publication verification at `2026-10-11T02:41:12.760Z` recorded
 attempt; the first ran about 12 seconds after publication and failed with
 `ETARGET` before the registry served the new version. The owner then moved
 `next` to rc.17, recorded in the rc.17 release record's distribution closeout.
+
+For rc.18, publication verification at `2026-10-12T01:35:33.034Z` recorded
+`latest` = rc.18 and `next` = rc.17. The candidate check, publish and
+verification each passed on their first attempt. The owner then moved `next`
+to rc.18, recorded in the rc.18 release record's distribution closeout.
 
 One-time setup, done by the owner before the first run:
 
