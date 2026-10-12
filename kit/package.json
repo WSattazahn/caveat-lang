@@ -12,7 +12,16 @@
     "decisions",
     "explainability",
     "webassembly",
-    "dsl"
+    "dsl",
+    "decision-ledger",
+    "decision-provenance",
+    "audit-trail",
+    "truth-maintenance",
+    "reason-maintenance",
+    "belief-revision",
+    "agent",
+    "ai-agents",
+    "mcp"
   ],
   "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/kit#readme",
   "bugs": {
