@@ -1,0 +1,318 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "../gate.cav",
+ "scenarios": [
+  {
+   "id": "H1",
+   "title": "H1: one decision on #3,#4,#5 with secondhand, still in force",
+   "steps": [
+    {
+     "send": "propose",
+     "payload": {
+      "head": 17
+     }
+    },
+    {
+     "send": "approve",
+     "payload": {
+      "head": 17
+     }
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 101,
+      "passed": 1
+     }
+    },
+    {
+     "send": "review",
+     "payload": {
+      "approved": 1,
+      "relayed": 1
+     }
+    },
+    {
+     "send": "scan",
+     "payload": {
+      "findings": 0
+     }
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 102,
+      "passed": 1
+     }
+    },
+    {
+     "expect": {
+      "/bindings/gate": {
+       "status": "merge",
+       "head": 17,
+       "revisions": 1,
+       "reason": "ready"
+      },
+      "/commitment_grounds/merge@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "reviewer",
+         "scanner"
+        ]
+       },
+       "caveats": {
+        "$set": [
+         "deps_unreviewed",
+         "secondhand"
+        ]
+       }
+      },
+      "/commitment_permissions/merge@1": {
+       "grant": "grants@1"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H2",
+   "title": "H2: three decisions; reopened by scan #7 and by the recheck at #10",
+   "steps": [
+    {
+     "send": "propose",
+     "payload": {
+      "head": 31
+     }
+    },
+    {
+     "send": "approve",
+     "payload": {
+      "head": 31
+     }
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 201,
+      "passed": 1
+     }
+    },
+    {
+     "send": "review",
+     "payload": {
+      "approved": 1,
+      "relayed": 0
+     }
+    },
+    {
+     "send": "scan",
+     "payload": {
+      "findings": 0
+     }
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "scan",
+     "payload": {
+      "findings": 2
+     }
+    },
+    {
+     "send": "scan",
+     "payload": {
+      "findings": 0
+     }
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "recheck"
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 202,
+      "passed": 1
+     }
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 203,
+      "passed": 1
+     }
+    },
+    {
+     "expect": {
+      "/bindings/gate": {
+       "status": "merge",
+       "head": 31,
+       "revisions": 3,
+       "reason": "ready"
+      },
+      "/commitment_grounds/merge@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "reviewer",
+         "scanner"
+        ]
+       },
+       "caveats": [
+        "deps_unreviewed"
+       ]
+      },
+      "/commitment_grounds/merge@2": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "reviewer",
+         "scanner@3"
+        ]
+       },
+       "caveats": [
+        "deps_unreviewed"
+       ]
+      },
+      "/commitment_grounds/merge@3": {
+       "evidence": {
+        "$set": [
+         "checks@2",
+         "reviewer",
+         "scanner@3"
+        ]
+       },
+       "caveats": [
+        "deps_unreviewed"
+       ]
+      },
+      "/withdrawals/0": {
+       "evidence": "checks@1",
+       "because": "requeue"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H3",
+   "title": "H3: reopened by db_aged, re-decided on the refreshed scan without db_stale; last decide refused",
+   "steps": [
+    {
+     "send": "propose",
+     "payload": {
+      "head": 42
+     }
+    },
+    {
+     "send": "approve",
+     "payload": {
+      "head": 42
+     }
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 301,
+      "passed": 1
+     }
+    },
+    {
+     "send": "review",
+     "payload": {
+      "approved": 1,
+      "relayed": 0
+     }
+    },
+    {
+     "send": "scan",
+     "payload": {
+      "findings": 0
+     }
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "db_aged"
+    },
+    {
+     "send": "db_refreshed"
+    },
+    {
+     "send": "decide"
+    },
+    {
+     "send": "check",
+     "payload": {
+      "run": 302,
+      "passed": 1
+     }
+    },
+    {
+     "send": "propose",
+     "payload": {
+      "head": 43
+     }
+    },
+    {
+     "send": "approve",
+     "payload": {
+      "head": 43
+     }
+    },
+    {
+     "send": "decide",
+     "rejected": {
+      "origin": "policy",
+      "code": "reject"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/gate": {
+       "status": "merge",
+       "head": 43,
+       "revisions": 2,
+       "reason": "ready"
+      },
+      "/commitment_grounds/merge@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "reviewer",
+         "scanner"
+        ]
+       },
+       "caveats": [
+        "deps_unreviewed"
+       ]
+      },
+      "/commitment_grounds/merge@2": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "reviewer",
+         "scanner"
+        ]
+       },
+       "caveats": [
+        "deps_unreviewed"
+       ]
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

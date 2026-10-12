@@ -1,0 +1,541 @@
+== histories/H1.jsonl
+ 1 {"event":"propose","payload":{"head":17}}
+   -> accepted; view {"status":"undecided","head":17,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":17}}
+   -> accepted; view {"status":"undecided","head":17,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":101,"passed":1}}
+   -> accepted; view {"status":"undecided","head":17,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":1}}
+   -> accepted; view {"status":"undecided","head":17,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":17,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":17,"revisions":1,"reason":"ready"}
+ 7 {"event":"check","payload":{"run":102,"passed":1}}
+   -> accepted; view {"status":"merge","head":17,"revisions":1,"reason":"ready"}
+Decision 1 (line 6): merge head 17; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: secondhand (material) on #4, deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== histories/H2.jsonl
+ 1 {"event":"propose","payload":{"head":31}}
+   -> accepted; view {"status":"undecided","head":31,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":31}}
+   -> accepted; view {"status":"undecided","head":31,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":201,"passed":1}}
+   -> accepted; view {"status":"undecided","head":31,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":31,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":31,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":31,"revisions":1,"reason":"ready"}
+ 7 {"event":"scan","payload":{"findings":2}}
+   -> accepted; view {"status":"reopened","head":31,"revisions":1,"reason":"scan found issues"}
+ 8 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"reopened","head":31,"revisions":1,"reason":"scan found issues"}
+ 9 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":31,"revisions":2,"reason":"ready"}
+10 {"event":"recheck"}
+   -> accepted; view {"status":"reopened","head":31,"revisions":2,"reason":"check withdrawn"}
+11 {"event":"check","payload":{"run":202,"passed":1}}
+   -> accepted; view {"status":"reopened","head":31,"revisions":2,"reason":"check withdrawn"}
+12 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":31,"revisions":3,"reason":"ready"}
+13 {"event":"check","payload":{"run":203,"passed":1}}
+   -> accepted; view {"status":"merge","head":31,"revisions":3,"reason":"ready"}
+Decision 1 (line 6): merge head 31; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: scan found issues, citing #7
+Decision 2 (line 9): merge head 31; claim ready.
+  rests on: check #3, review #4, scan #8
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 10: check withdrawn, citing #3
+Decision 3 (line 12): merge head 31; claim ready.
+  rests on: check #11, review #4, scan #8
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== histories/H3.jsonl
+ 1 {"event":"propose","payload":{"head":42}}
+   -> accepted; view {"status":"undecided","head":42,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":42}}
+   -> accepted; view {"status":"undecided","head":42,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":301,"passed":1}}
+   -> accepted; view {"status":"undecided","head":42,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":42,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":42,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":42,"revisions":1,"reason":"ready"}
+ 7 {"event":"db_aged"}
+   -> accepted; view {"status":"reopened","head":42,"revisions":1,"reason":"scan database stale"}
+ 8 {"event":"db_refreshed"}
+   -> accepted; view {"status":"reopened","head":42,"revisions":1,"reason":"scan database stale"}
+ 9 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":42,"revisions":2,"reason":"ready"}
+10 {"event":"check","payload":{"run":302,"passed":1}}
+   -> accepted; view {"status":"merge","head":42,"revisions":2,"reason":"ready"}
+11 {"event":"propose","payload":{"head":43}}
+   -> accepted; view {"status":"merge","head":43,"revisions":2,"reason":"ready"}
+12 {"event":"approve","payload":{"head":43}}
+   -> accepted; view {"status":"merge","head":43,"revisions":2,"reason":"ready"}
+13 {"event":"decide"}
+   -> REFUSED (decide: decision 2 is in force and has not been reopened); view {"status":"merge","head":43,"revisions":2,"reason":"ready"}
+Decision 1 (line 6): merge head 42; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: scan database stale, citing #5
+Decision 2 (line 9): merge head 42; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C01-unknown-event.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"merge"}
+   -> REFUSED (unknown event "merge"); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C02-out-of-range.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"propose","payload":{"head":1000}}
+   -> REFUSED (propose: "head" = 1000 is outside 1..999); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":2}}
+   -> REFUSED (check: "passed" = 2 is outside 0..1); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"scan","payload":{"findings":100}}
+   -> REFUSED (scan: "findings" = 100 is outside 0..99); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"review","payload":{"approved":1,"relayed":-1}}
+   -> REFUSED (review: "relayed" = -1 is outside 0..1); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C03-fraction.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"propose","payload":{"head":5.5}}
+   -> REFUSED (propose: "head" is not an integer); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1.5,"passed":1}}
+   -> REFUSED (check: "run" is not an integer); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"scan","payload":{"findings":0.5}}
+   -> REFUSED (scan: "findings" is not an integer); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C04-missing-and-extra.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"propose"}
+   -> REFUSED (propose: missing parameter "head"); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1}}
+   -> REFUSED (check: missing parameter "passed"); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"scan","payload":{"findings":0,"extra":1}}
+   -> REFUSED (scan: extra parameter "extra"); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"decide","payload":{"now":1}}
+   -> REFUSED (decide: extra parameter "now"); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C05-decide-nothing-recorded.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"decide"}
+   -> REFUSED (decide: needs at least one check, one review and one scan); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C06-decide-in-force.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"decide"}
+   -> REFUSED (decide: decision 1 is in force and has not been reopened); view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C07-review-opposing.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"review","payload":{"approved":0,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 7 {"event":"decide"}
+   -> REFUSED (decide: latest review #5 opposes ready); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 8 {"event":"review","payload":{"approved":1,"relayed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 9 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 9): merge head 5; claim ready.
+  rests on: check #3, review #8, scan #6
+  caveats at decision: secondhand (material) on #8, deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C08-scan-opposing.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":3}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> REFUSED (decide: latest scan #5 opposes ready); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 7 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 8 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 8): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #7
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C09-grant-other-head.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":6}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> REFUSED (decide: latest grant #2 is for head 6, not current head 5); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 7 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 8 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 8): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #7 (not rested on)
+  in force
+== cases/C10-no-grant.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"decide"}
+   -> REFUSED (decide: no grant has been recorded); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C11-fifth-review.jsonl
+ 1 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 2 {"event":"review","payload":{"approved":1,"relayed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 3 {"event":"review","payload":{"approved":0,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 5 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> REFUSED (review: at most 4 may be recorded); view {"status":"undecided","head":0,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C12-ninth-check.jsonl
+ 1 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 2 {"event":"check","payload":{"run":2,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":3,"passed":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 4 {"event":"check","payload":{"run":4,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 5 {"event":"check","payload":{"run":5,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 6 {"event":"check","payload":{"run":6,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 7 {"event":"check","payload":{"run":7,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 8 {"event":"check","payload":{"run":8,"passed":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 9 {"event":"check","payload":{"run":9,"passed":1}}
+   -> REFUSED (check: at most 8 may be recorded); view {"status":"undecided","head":0,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C13-fifth-scan.jsonl
+ 1 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 2 {"event":"scan","payload":{"findings":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 3 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 4 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> REFUSED (scan: at most 4 may be recorded); view {"status":"undecided","head":0,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C14-fifth-grant.jsonl
+ 1 {"event":"approve","payload":{"head":1}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":2}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 3 {"event":"approve","payload":{"head":3}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 4 {"event":"approve","payload":{"head":4}}
+   -> accepted; view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 5 {"event":"approve","payload":{"head":5}}
+   -> REFUSED (grant: at most 4 may be recorded); view {"status":"undecided","head":0,"revisions":0,"reason":""}
+ 6 {"event":"propose","payload":{"head":4}}
+   -> accepted; view {"status":"undecided","head":4,"revisions":0,"reason":""}
+No merge decision has been made.
+== cases/C15-recheck-twice.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"recheck"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check withdrawn"}
+ 8 {"event":"recheck"}
+   -> REFUSED (recheck: latest recorded check #3 is already withdrawn); view {"status":"reopened","head":5,"revisions":1,"reason":"check withdrawn"}
+ 9 {"event":"check","payload":{"run":2,"passed":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check withdrawn"}
+10 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":2,"reason":"ready"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: check withdrawn, citing #3
+Decision 2 (line 10): merge head 5; claim ready.
+  rests on: check #9, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C16-recheck-not-rested-on.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"check","payload":{"run":2,"passed":1}}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 8 {"event":"recheck"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 9 {"event":"propose","payload":{"head":6}}
+   -> accepted; view {"status":"merge","head":6,"revisions":1,"reason":"ready"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C17-db-aged-twice.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"db_aged"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"scan database stale"}
+ 8 {"event":"db_aged"}
+   -> REFUSED (db_aged: latest scan #5 already carries db_stale); view {"status":"reopened","head":5,"revisions":1,"reason":"scan database stale"}
+ 9 {"event":"db_refreshed"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"scan database stale"}
+10 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":2,"reason":"ready"}
+11 {"event":"db_aged"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":2,"reason":"scan database stale"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: scan database stale, citing #5
+Decision 2 (line 10): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 11: scan database stale, citing #5
+== cases/C18-refreshed-before-aged.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"db_refreshed"}
+   -> REFUSED (db_refreshed: latest scan does not carry db_stale); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 7 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 8 {"event":"db_refreshed"}
+   -> REFUSED (db_refreshed: latest scan does not carry db_stale); view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 7): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C19-four-decisions.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"check","payload":{"run":2,"passed":0}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+ 8 {"event":"check","payload":{"run":3,"passed":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+ 9 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":2,"reason":"ready"}
+10 {"event":"scan","payload":{"findings":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":2,"reason":"scan found issues"}
+11 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":2,"reason":"scan found issues"}
+12 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":3,"reason":"ready"}
+13 {"event":"recheck"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":3,"reason":"check withdrawn"}
+14 {"event":"check","payload":{"run":4,"passed":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":3,"reason":"check withdrawn"}
+15 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":4,"reason":"ready"}
+16 {"event":"check","payload":{"run":5,"passed":0}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":4,"reason":"check failed"}
+17 {"event":"check","payload":{"run":6,"passed":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":4,"reason":"check failed"}
+18 {"event":"decide"}
+   -> REFUSED (decide: 4 decisions already made); view {"status":"reopened","head":5,"revisions":4,"reason":"check failed"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: check failed, citing #7
+Decision 2 (line 9): merge head 5; claim ready.
+  rests on: check #8, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 10: scan found issues, citing #10
+Decision 3 (line 12): merge head 5; claim ready.
+  rests on: check #8, review #4, scan #11
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 13: check withdrawn, citing #8
+Decision 4 (line 15): merge head 5; claim ready.
+  rests on: check #14, review #4, scan #11
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 16: check failed, citing #16
+== cases/C20-all-checks-withdrawn.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"recheck"}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 7 {"event":"decide"}
+   -> REFUSED (decide: every recorded check is withdrawn; there is no latest check); view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 8 {"event":"check","payload":{"run":2,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 9 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+Decision 1 (line 9): merge head 5; claim ready.
+  rests on: check #8, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force
+== cases/C21-second-correction-while-reopened.jsonl
+ 1 {"event":"propose","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 2 {"event":"approve","payload":{"head":5}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 3 {"event":"check","payload":{"run":1,"passed":1}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 4 {"event":"review","payload":{"approved":1,"relayed":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 5 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"undecided","head":5,"revisions":0,"reason":""}
+ 6 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":1,"reason":"ready"}
+ 7 {"event":"check","payload":{"run":2,"passed":0}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+ 8 {"event":"scan","payload":{"findings":4}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+ 9 {"event":"db_aged"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+10 {"event":"recheck"}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+11 {"event":"check","payload":{"run":3,"passed":1}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+12 {"event":"scan","payload":{"findings":0}}
+   -> accepted; view {"status":"reopened","head":5,"revisions":1,"reason":"check failed"}
+13 {"event":"decide"}
+   -> accepted; view {"status":"merge","head":5,"revisions":2,"reason":"ready"}
+Decision 1 (line 6): merge head 5; claim ready.
+  rests on: check #3, review #4, scan #5
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  reopened at line 7: check failed, citing #7
+Decision 2 (line 13): merge head 5; claim ready.
+  rests on: check #11, review #4, scan #12
+  caveats at decision: deps_unreviewed (low) on (retained by choice)
+  permitted by grant #2 (not rested on)
+  in force

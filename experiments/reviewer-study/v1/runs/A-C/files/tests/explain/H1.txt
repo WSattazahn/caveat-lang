@@ -1,0 +1,36 @@
+gate.cav after 7 events (sequence 7)
+
+Events
+    1  propose {"head":17}  accepted
+    2  approve {"head":17}  accepted
+    3  check {"run":101,"passed":1}  accepted
+    4  review {"approved":1,"relayed":1}  accepted
+    5  scan {"findings":0}  accepted
+    6  decide  accepted
+    7  check {"run":102,"passed":1}  accepted
+
+Decisions
+  made under source sha256:de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea
+  merge: 1 of at most 4
+    merge@1 = 17  in force
+      based on checks@1, reviewer, scanner
+      checks@1: observed at #3 check {"run":101,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":1}
+      scanner: observed at #5 scan {"findings":0}
+      retaining: deps_unreviewed, secondhand
+      permitted by grants@1 for 17
+      could also have been influenced by grants@1
+      #6 decide: committed because checks@1, reviewer, scanner; retaining: deps_unreviewed, secondhand
+
+Evidence
+  grants@1 = 17 supports may_merge  (#2 approve)
+  checks@1 = 1 supports ready  (#3 check)
+  reviewer supports ready  caveats: secondhand
+  scanner supports ready
+  checks@2 = 1 supports ready  (#7 check)
+
+Displayed
+  gate.head = 17
+  gate.reason = "ready"
+  gate.revisions = 1  because checks@1, grants@1, reviewer, scanner (caveats: deps_unreviewed, secondhand)
+  gate.status = "merge"  because checks@1, grants@1, reviewer, scanner (caveats: deps_unreviewed, secondhand)

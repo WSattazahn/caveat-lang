@@ -1,0 +1,53 @@
+gate.cav after 13 events (sequence 12)
+
+Events
+    1  propose {"head":42}  accepted
+    2  approve {"head":42}  accepted
+    3  check {"run":301,"passed":1}  accepted
+    4  review {"approved":1,"relayed":0}  accepted
+    5  scan {"findings":0}  accepted
+    6  decide  accepted
+    7  db_aged  accepted
+    8  db_refreshed  accepted
+    9  decide  accepted
+   10  check {"run":302,"passed":1}  accepted
+   11  propose {"head":43}  accepted
+   12  approve {"head":43}  accepted
+   13  decide  refused (policy): a merge decision is in force
+
+Decisions
+  made under source sha256:de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea
+  merge: 2 of at most 4
+    merge@1 = 42  superseded
+      based on checks@1, reviewer, scanner
+      checks@1: observed at #3 check {"run":301,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":0}
+      scanner: observed at #5 scan {"findings":0}
+      retaining: deps_unreviewed
+      permitted by grants@1 for 42
+      could also have been influenced by grants@1
+      #6 decide: committed because checks@1, reviewer, scanner; retaining: deps_unreviewed
+      #7 db_aged: reopened because scanner (caveats: db_stale)
+    merge@2 = 42  in force
+      based on checks@1, reviewer, scanner
+      checks@1: observed at #3 check {"run":301,"passed":1}
+      reviewer: observed at #4 review {"approved":1,"relayed":0}
+      scanner: observed at #5 scan {"findings":0}
+      retaining: deps_unreviewed, db_stale
+      permitted by grants@1 for 42
+      could also have been influenced by grants@1
+      #9 decide: committed because checks@1, reviewer, scanner; retaining: deps_unreviewed
+
+Evidence
+  grants@1 = 42 supports may_merge  (#2 approve)
+  checks@1 = 1 supports ready  (#3 check)
+  reviewer supports ready
+  scanner supports ready  caveats: db_stale
+  checks@2 = 1 supports ready  (#10 check)
+  grants@2 = 43 supports may_merge  (#12 approve)
+
+Displayed
+  gate.head = 43
+  gate.reason = "ready"
+  gate.revisions = 2  because checks@1, grants@1, reviewer, scanner (caveats: db_stale, deps_unreviewed)
+  gate.status = "merge"  because checks@1, grants@1, reviewer, scanner (caveats: db_stale, deps_unreviewed)

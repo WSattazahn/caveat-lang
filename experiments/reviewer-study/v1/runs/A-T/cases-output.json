@@ -1,0 +1,2010 @@
+{
+ "histories/H1.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 17,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 17,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 17,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 17,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 17,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 17,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 17,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "histories/H2.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 31,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 31,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 31,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 31,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 31,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 31,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 31,
+    "revisions": 1,
+    "reason": "scan found issues"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 31,
+    "revisions": 1,
+    "reason": "scan found issues"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 31,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 31,
+    "revisions": 2,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 11,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 31,
+    "revisions": 2,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 12,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 31,
+    "revisions": 3,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 13,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 31,
+    "revisions": 3,
+    "reason": "ready"
+   }
+  }
+ ],
+ "histories/H3.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 42,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 42,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 42,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 42,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 42,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 42,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 42,
+    "revisions": 1,
+    "reason": "scan database stale"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 42,
+    "revisions": 1,
+    "reason": "scan database stale"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 42,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 42,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 11,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 43,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 12,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 43,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 13,
+   "accepted": false,
+   "view": {
+    "status": "merge",
+    "head": 43,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C01-unknown-event.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C02-out-of-range.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C03-fraction.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C04-missing-and-extra.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C05-decide-nothing-recorded.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C06-decide-in-force.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": false,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C07-review-opposing.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C08-scan-opposing.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C09-grant-other-head.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C10-no-grant.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C11-fifth-review.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C12-ninth-check.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 9,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C13-fifth-scan.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C14-fifth-grant.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 0,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 4,
+    "revisions": 0,
+    "reason": ""
+   }
+  }
+ ],
+ "cases/C15-recheck-twice.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": false,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C16-recheck-not-rested-on.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 6,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C17-db-aged-twice.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "scan database stale"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": false,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "scan database stale"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "scan database stale"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 11,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 2,
+    "reason": "scan database stale"
+   }
+  }
+ ],
+ "cases/C18-refreshed-before-aged.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": false,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C19-four-decisions.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 2,
+    "reason": "scan found issues"
+   }
+  },
+  {
+   "line": 11,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 2,
+    "reason": "scan found issues"
+   }
+  },
+  {
+   "line": 12,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 3,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 13,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 3,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 14,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 3,
+    "reason": "check withdrawn"
+   }
+  },
+  {
+   "line": 15,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 4,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 16,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 4,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 17,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 4,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 18,
+   "accepted": false,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 4,
+    "reason": "check failed"
+   }
+  }
+ ],
+ "cases/C20-all-checks-withdrawn.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 7,
+   "accepted": false,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  }
+ ],
+ "cases/C21-second-correction-while-reopened.jsonl": [
+  {
+   "line": 1,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 2,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 3,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 4,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 5,
+   "accepted": true,
+   "view": {
+    "status": "undecided",
+    "head": 5,
+    "revisions": 0,
+    "reason": ""
+   }
+  },
+  {
+   "line": 6,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 1,
+    "reason": "ready"
+   }
+  },
+  {
+   "line": 7,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 8,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 9,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 10,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 11,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 12,
+   "accepted": true,
+   "view": {
+    "status": "reopened",
+    "head": 5,
+    "revisions": 1,
+    "reason": "check failed"
+   }
+  },
+  {
+   "line": 13,
+   "accepted": true,
+   "view": {
+    "status": "merge",
+    "head": 5,
+    "revisions": 2,
+    "reason": "ready"
+   }
+  }
+ ]
+}

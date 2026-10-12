@@ -590,3 +590,18 @@ scoring rules.
    its series history (D009 in `experiments/agent-decisions/README.md`). The
    study runs on rc.19, so *Known properties* items 1 and 5 describe what
    reviewers see.
+
+### Amendment 2 (2026-10-12, after phase one froze, before phase two)
+
+1. **Project instructions reached the agents.** The harness gave each
+   subagent the repository's `AGENTS.md` as standing context, because the
+   investigator session runs in the repository checkout. A-C reported it as
+   a departure; A-T's transcript shows the same context. It describes Caveat
+   and its documentation and contains nothing about this task, its keys or
+   its notes. Reviewers of both arms receive it too, so it is reported here
+   rather than corrected; it bears on *Isolation by instruction* and on the
+   TypeScript arm, whose reviewers are told what Caveat is.
+2. **Transcripts.** The harness transcripts carry account context, so the
+   repository keeps a derived `tool-log.jsonl` per run (each tool call with
+   the start of its result); the raw transcripts stay in the project's
+   private files.

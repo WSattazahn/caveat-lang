@@ -1,0 +1,12 @@
+{"event":"propose","payload":{"head":999}}
+{"event":"propose","payload":{"head":0}}
+{"event":"check","payload":{"run":999,"passed":0.5}}
+{"event":"review","payload":{"approved":0.5,"relayed":0}}
+{"event":"review","payload":{"approved":1,"relayed":0.5}}
+{"event":"approve","payload":{"head":2.5}}
+{"event":"scan","payload":{"findings":99}}
+{"event":"scan","payload":{"findings":"0"}}
+{"event":"recheck","payload":{}}
+{"event":"db_aged"}
+{"event":"approve","payload":{"head":999}}
+{"event":"check","payload":{"run":1,"passed":true}}

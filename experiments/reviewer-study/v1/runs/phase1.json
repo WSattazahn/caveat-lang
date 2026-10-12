@@ -1,0 +1,27 @@
+{
+  "frozenAt": "2026-10-12T22:47:00Z",
+  "runs": {
+    "A-C": {
+      "program": "gate.cav",
+      "sha256": "de7e3c457ba6be1847b6450906fd7bf4a31a8a7fbef5aebf2891d54cb138f8ea",
+      "firstToolCall": "2026-10-12T22:38:19.388Z",
+      "lastToolCall": "2026-10-12T22:43:54.744Z",
+      "toolCalls": 25,
+      "cases": "24 of 24 files pass (score.mjs cases against the sealed expected views)",
+      "recordCheck": "pass: on H1 to H3, explain --json gives every decision's grounds as the observations at the key's lines, the permitting grant as grants@1 (line 2), and the journal's reopenings at the key's lines",
+      "usedInPhaseTwo": true
+    },
+    "A-T": {
+      "program": "gate.ts",
+      "sha256": "0a4d94db194352540e991dfb3bcd844031e7c42ccee977db5c94e4d50922ff74",
+      "firstToolCall": "2026-10-12T22:38:22.053Z",
+      "lastToolCall": "2026-10-12T22:41:19.153Z",
+      "toolCalls": 11,
+      "cases": "24 of 24 files pass (score.mjs cases against the sealed expected views)",
+      "recordCheck": "not applicable (protocol: nothing checks what a TypeScript program keeps inside)",
+      "usedInPhaseTwo": true
+    }
+  },
+  "P7": "did not hold: neither author's program failed a registered case",
+  "notes": "files/ holds what each author left, without node_modules and the packet's inputs; files.sha256 lists them. tool-log.jsonl is each run's tool calls with the first 400 characters of each result, derived from the harness transcript; the raw transcripts carry account context and stay in the project's private files."
+}
