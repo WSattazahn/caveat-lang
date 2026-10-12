@@ -90,6 +90,31 @@ on decide commit defer because enough using qualified(1, why) retaining gaps;
   }, program);
 });
 
+test('D009: a revision after a reopening shows its predecessor\'s caveats as lineage, not grounds', () => {
+  const program = `claim ready;
+evidence check from "check"; evidence scan from "scan";
+caveat deps_unreviewed consequence low; caveat db_stale consequence material;
+decisions merge limit 4;
+event decide; event db_aged; event db_refreshed;
+on decide when not observed(check) reveal check supports ready;
+on decide when not observed(scan) reveal scan supports ready;
+on decide commit merge because enough using qualified(1, check) + qualified(1, scan) retaining deps_unreviewed;
+on db_aged qualify scan with db_stale;
+on db_aged when committed(merge) and not reopened(merge) reopen merge because scan;
+on db_refreshed unqualify scan with db_stale;
+`;
+  withSession(['decide', 'db_aged', 'db_refreshed', 'decide'], snapshot => {
+    const second = explain(snapshot).decisions[0].revisions[1];
+    // The series basis holds merge@1's reopening witness (spec/caveat-reactive-0.5.md);
+    // the grounds exclude it (spec/caveat-explanations-0.2.md). The record is unchanged.
+    assert.deepEqual(second.grounds.caveats, ['deps_unreviewed']);
+    assert.deepEqual(second.retained, ['deps_unreviewed', 'db_stale']);
+    const text = formatExplanation(explain(snapshot));
+    assert.match(text, /merge@2 = 2 {2}in force\n {6}based on check, scan\n(?: {6}[a-z]+: observed[^\n]*\n)* {6}retaining: deps_unreviewed\n {6}also carrying, through its lineage: db_stale\n/);
+    assert.doesNotMatch(text, /based on check, scan \(caveats: db_stale\)/);
+  }, program);
+});
+
 test('D005: report actual supporting and opposing relations without interpreting them as truth', () => {
   withSession(['decide', 'correct'], snapshot => {
     assert.deepEqual(dependents(snapshot, 'check').claims, [{ evidence: 'check', relation: 'supports', claim: 'safe' }]);

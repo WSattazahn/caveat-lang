@@ -298,17 +298,23 @@ export function formatExplanation(report, title = 'the program') {
       // The commit record unions the caveats its grounds carried with those the
       // author retained (spec/caveat-reactive-0.3.md). Show a caveat that a
       // grounds observation carries beside the grounds, and list under
-      // `retaining:` only the caveats no grounds observation carries.
+      // `retaining:` only the grounds caveats no grounds observation carries.
+      // A revision after a reopening also holds its predecessor's basis and
+      // reopening witness, which its grounds exclude (spec/caveat-reactive-0.5.md,
+      // spec/caveat-explanations-0.2.md "Grounds of a commitment"); show those
+      // caveats apart, as lineage.
       const retained = revision.retained ?? revision.grounds.caveats;
-      const carried = carriedBy(report, revision.grounds.evidence, retained);
+      const carried = carriedBy(report, revision.grounds.evidence, revision.grounds.caveats);
       lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: carried })}`);
       for (const item of revision.observed_by ?? []) {
         if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
         lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${payload}`);
       }
-      const authored = retained.filter(name => !carried.includes(name));
+      const authored = revision.grounds.caveats.filter(name => !carried.includes(name));
       if (authored.length) lines.push(`      retaining: ${list(authored)}`);
+      const inherited = retained.filter(name => !revision.grounds.caveats.includes(name));
+      if (inherited.length) lines.push(`      also carrying, through its lineage: ${list(inherited)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
       if (revision.permission) {
         const { grant, scope, caveats } = revision.permission;
