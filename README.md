@@ -7,13 +7,13 @@ tracks evidence through computations, preserves the grounds of recorded
 decisions, and supports reconsideration under authored policies when evidence
 changes.
 
-The published preview is **0.1.0-rc.18**. See the
-[rc.18 release record](docs/releases/v0.1.0-rc.18.md) for what it changes.
+The published preview is **0.1.0-rc.19**. See the
+[rc.19 release record](docs/releases/v0.1.0-rc.19.md) for what it changes.
 
-> npm publication verified 2026-10-12T01:35:33.034Z: exact **caveat-lang@0.1.0-rc.18**,
-> tested Linux artifact SHA256 `dc000fc7c521f6cc62d1f91b533196db0173f8284b2731e716047662de913495`.
-> At verification, `latest` names rc.18 and `next` remains rc.17; the owner moved `next` to rc.18 at about 01:44 UTC. Published by `publish-npm.yml` from tag `v0.1.0-rc.18` with an npm provenance attestation.
-> [Publication record](docs/releases/v0.1.0-rc.18-npm-publication.json).
+> npm publication verified 2026-10-12T14:57:45.221Z: exact **caveat-lang@0.1.0-rc.19**,
+> tested Linux artifact SHA256 `d7cae7dc653a4c53de8d3f8e5b945cc324a14e931adcff004b805577d080672f`.
+> At verification, `latest` names rc.19 and `next` remains rc.18; the owner moved `next` to rc.19 at about 15:01 UTC. Published by `publish-npm.yml` from tag `v0.1.0-rc.19` with an npm provenance attestation.
+> [Publication record](docs/releases/v0.1.0-rc.19-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -21,12 +21,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.18**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.19**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.18
+npm install caveat-lang@0.1.0-rc.19
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -38,8 +38,13 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.18 verified publication record](docs/releases/v0.1.0-rc.18.md) identifies
-the exact tested npm artifact. rc.18 adds `unqualify`, which takes back a caveat
+The [rc.19 verified publication record](docs/releases/v0.1.0-rc.19.md) identifies
+the exact tested npm artifact. rc.19 is the 1.0 feature-freeze candidate: it adds
+no language, schema, operation, field, CLI flag or export. It fixes restore of a
+session that reopened a decision because of a caveat and then took that caveat
+back; saves written by rc.18 in that state restore in rc.19.
+
+rc.18 added `unqualify`, which takes back a caveat
 that `qualify` added, on every held occurrence of the evidence. The take-back is
 recorded, not erased, and decisions keep their basis. A save of a program that
 uses `unqualify` does not restore in rc.17 or earlier; other saves do. View 0.2
@@ -58,7 +63,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With rc.18 installed, use `npx --no-install caveat-lang doctor` to check it and
+With rc.19 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.

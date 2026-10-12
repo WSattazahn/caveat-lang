@@ -354,7 +354,7 @@ consolidation, not a side effect of merging the language stack.
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.18 verified release record](releases/v0.1.0-rc.18.md) for the current
+Use the [rc.19 verified release record](releases/v0.1.0-rc.19.md) for the current
 published candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
@@ -377,6 +377,7 @@ rc.15 is the fourth (see the [rc.15 release record](releases/v0.1.0-rc.15.md)).
 rc.16 is the fifth (see the [rc.16 release record](releases/v0.1.0-rc.16.md)).
 rc.17 is the sixth (see the [rc.17 release record](releases/v0.1.0-rc.17.md)).
 rc.18 is the seventh (see the [rc.18 release record](releases/v0.1.0-rc.18.md)).
+rc.19 is the eighth (see the [rc.19 release record](releases/v0.1.0-rc.19.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
@@ -435,6 +436,13 @@ For rc.18, publication verification at `2026-10-12T01:35:33.034Z` recorded
 `latest` = rc.18 and `next` = rc.17. The candidate check, publish and
 verification each passed on their first attempt. The owner then moved `next`
 to rc.18, recorded in the rc.18 release record's distribution closeout.
+
+For rc.19, publication verification at `2026-10-12T14:57:45.221Z` recorded
+`latest` = rc.19 and `next` = rc.18. The candidate check and publish passed on
+their first attempt. The first verification ran before the registry served the
+version and failed with HTTP 404; re-running only that job passed. The owner
+then moved `next` to rc.19, recorded in the rc.19 release record's distribution
+closeout.
 
 One-time setup, done by the owner before the first run:
 
