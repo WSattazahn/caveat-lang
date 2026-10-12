@@ -1,0 +1,53 @@
+$ caveat-lang check d001-undeclared.cav
+d001-undeclared.cav: no warnings.
+
+$ caveat-lang explain d001-undeclared.cav ../001-departure-reason-mechanism/events.jsonl
+d001-undeclared.cav after 4 events (sequence 4)
+
+Events
+    1  reviewer_reads  accepted
+    2  thread_checks  accepted
+    3  owner_concedes  accepted
+    4  owner_closes  accepted
+
+Decisions
+  made under source sha256:3854c7bf18483802e188dc0d60a9e75fd3b2bce2d71e256069b081cfd79ad90a
+  close_170: plain commitment
+    close_170 = 1  in force
+      based on withdrawal_L93
+      withdrawal_L93: observed at #1 reviewer_reads
+      retaining: ci_pending
+      permitted by owner_acceptance
+      could also have been influenced by owner_acceptance
+      #4 owner_closes: committed because withdrawal_L93; retaining: ci_pending
+
+Evidence
+  mechanism_reopen supports reopen_strands  caveats: proposed, withdrawn  withdrawn at #3 because thread_correction
+  withdrawal_L93 supports reason_must_pin
+  thread_correction opposes reopen_strands
+  ci_e655a87 observed (no stance)  caveats: ci_pending
+  owner_acceptance observed (no stance)
+
+Displayed
+  decision.rests_on_withdrawn = false
+  decision.status = "closed for review at e655a87; CI on the head retained"  because owner_acceptance, withdrawal_L93 (caveats: ci_pending)
+  reading.withdrawn = true  because thread_correction
+
+$ caveat-lang dependents d001-undeclared.cav withdrawal_L93 ../001-departure-reason-mechanism/events.jsonl
+What rests on withdrawal_L93 in d001-undeclared.cav after 4 events (sequence 4)
+
+Claims
+  withdrawal_L93 supports reason_must_pin
+
+Decisions
+  close_170 = 1  in force  based on withdrawal_L93
+
+Decision changes
+  #4 owner_closes: close_170 committed because withdrawal_L93
+
+Values
+  nothing
+
+Displayed
+  decision.status = "closed for review at e655a87; CI on the head retained"  cites withdrawal_L93
+

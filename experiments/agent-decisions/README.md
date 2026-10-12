@@ -92,6 +92,9 @@ signal.
 
 ## Earlier items re-tested
 
+- D001 to D005 on the published rc.19 (2026-10-12): **all fixed**; 001 and
+  002 scenarios still pass. Receipts in [retest-rc19](retest-rc19/README.md).
+
 - Ledger item 4, withdrawing a wrong observation (`../agent-ledger/README.md`
   L100): **resolved on rc.15** by Withdrawal 0.1, for named evidence and for a
   reading. Receipts in [001's notes](001-departure-reason-mechanism/NOTES.md#ledger-item-4-re-tested).
