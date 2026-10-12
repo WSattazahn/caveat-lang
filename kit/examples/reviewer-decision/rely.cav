@@ -35,9 +35,10 @@ on fetch_npm when not observed(npm_view) reveal npm_view supports rc14_on_npm;
 on read_record when not observed(publication_record) reveal publication_record supports rc14_on_npm;
 on see_socket when not observed(socket_page) reveal socket_page supports rc14_on_npm;
 
-# The decision rests on the two readings and the record; the screenshot stays
-# in lineage only (it bears on the alerts, not on the listing). It retains
-# the snapshot caveat, which is the one a later fetch can resolve.
+# The decision rests on the two readings and the record. The screenshot is
+# observed but read by no rule after that, so it is in neither the decision's
+# grounds nor its lineage (it bears on the alerts, not on the listing). It
+# retains the snapshot caveat, which is the one a later fetch can resolve.
 on decide when committed(rely) and not reopened(rely) reject "Already decided; reopen it with evidence first.";
 on decide commit rely because enough
   using qualified(1, registry_api) + qualified(1, npm_view) + qualified(1, publication_record)
