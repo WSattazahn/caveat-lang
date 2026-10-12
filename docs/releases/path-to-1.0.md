@@ -106,7 +106,7 @@ exports wait for 1.1, where COMPATIBILITY.md allows them as additions.
 COMPATIBILITY.md's status line and the kit README's "Not yet" entry for a
 stable release change only in the 1.0.0 candidate.
 
-**Stabilization (E2)** runs on rc.19, published to `next`, with the trial the
+**Stabilization (E2)** runs on rc.19, published to `latest` (rc.19 plan, Q3) because rc.18 carries the defect below, with the trial the
 rc.19 plan describes (S3,
 [experiments/stabilization-trial](../../experiments/stabilization-trial/README.md)).
 The 1.0.0 target stays on or before 2026-11-30.

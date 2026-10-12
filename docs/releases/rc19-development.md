@@ -10,8 +10,9 @@ outreach; each of those still waits for the owner's words at its own step.
 
 | Decision | Answer | Notes that bind the implementation | Source |
 | --- | --- | --- | --- |
-| Q1. Freeze at rc.19 | **A. Freeze now** | rc.19 holds only items 1 to 5 under "What 1.0 still needs". The freeze moves up from 2026-11-16 to this plan's approval; the freeze review (S2) records it in Path to 1.0. rc.19 publishes to `next`. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | Owner card "Freeze rc.19 now as the 1.0 freeze candidate?", "Freeze now", 2026-10-12 03:21:04 UTC |
+| Q1. Freeze at rc.19 | **A. Freeze now** | rc.19 holds only items 1 to 5 under "What 1.0 still needs". The freeze moves up from 2026-11-16 to this plan's approval; the freeze review (S2) records it in Path to 1.0. rc.19's npm channel is Q3. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | Owner card "Freeze rc.19 now as the 1.0 freeze candidate?", "Freeze now", 2026-10-12 03:21:04 UTC |
 | Q2. Game presentation pass | **A. After 1.0** | No game thread this cycle; the game stays as #184 left it. D4 and draft #179 wait until after 1.0.0 | Owner card "Run the game presentation pass now or after 1.0?", "After 1.0", 2026-10-12 03:21:06 UTC |
+| Q3. npm channel for rc.19 | **Latest** (recommended; owner's answer pending) | rc.19 publishes with `dist_tag` `latest`, and `next` moves to it afterwards as for rc.17 and rc.18. rc.18 has the restore defect rc.19 fixes, so `latest` should not stay on it. Earlier releases stay published and unchanged, as E2 asks | Owner card on rc.19's npm channel, 2026-10-12 05:19 UTC; work proceeds on the recommendation until the owner answers |
 | Merge of this plan | Merge commit, after the status and decisions above are recorded | | Owner, 2026-10-12 04:39 UTC |
 
 [Path to 1.0](path-to-1.0.md) stays the plan of record. This file covers the
@@ -56,7 +57,7 @@ surface frozen in COMPATIBILITY.md; the table above closes B1 to B7.
 | 2 | The freeze review: B1 to B7 recorded as closed, and the stable surface frozen | [Path to 1.0](path-to-1.0.md) L237 | Release gate E1 | S2 |
 | 3 | The stabilization trial: "a representative installed integration runs a predefined trial: decisions, corrections, refusals, save/resume, archive persistence, explicit resource budgets". No trial is defined in the repository yet | [Path to 1.0](path-to-1.0.md) L238 | Release gate E2 | S3 |
 | 4 | Issues #200 and #201 are still open although [#204](https://github.com/WSattazahn/caveat-lang/pull/204) answered both and rc.18 shipped it | [rc.18 record](v0.1.0-rc.18.md), "Documentation" | Housekeeping | S2 |
-| 5 | The candidate on the `next` channel. E2 says candidates go on explicit channels, earlier releases untouched; rc.17 and rc.18 went to `latest` | [Path to 1.0](path-to-1.0.md) L238 | Release gate E2 | S4 |
+| 5 | The candidate on an explicit npm channel, earlier releases untouched (E2). E2 names `next`; rc.17 and rc.18 went to `latest`, and Q3 puts rc.19 there too | [Path to 1.0](path-to-1.0.md) L238 | Release gate E2 | S4 |
 
 Left for the 1.0.0 candidate itself, not rc.19: COMPATIBILITY.md's status
 line ("proposed for 1.0.0", L3) becomes the promise, and the kit README's
@@ -72,7 +73,7 @@ the recommended option; see "Decisions" at the top.
 
 | Option | What happens | Cost |
 | --- | --- | --- |
-| **A. Freeze now (recommended)** | rc.19 holds only items 1 to 5. The freeze review (E1) happens with this plan, and stabilization (E2) runs on rc.19 published to `next`. 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | About 4 days to rc.19's candidate |
+| **A. Freeze now (recommended)** | rc.19 holds only items 1 to 5. The freeze review (E1) happens with this plan, and stabilization (E2) runs on rc.19 as published (channel per Q3). 1.0.0 follows after two weeks of fixes only, on or before 2026-11-30 | About 4 days to rc.19's candidate |
 | B. Keep the 2026-11-16 freeze | rc.19 stays a pre-freeze release. The only work left to fill it is the 1.1 additions (a caveat on an earlier occurrence, the no-value `using` form), which reverses the rc.18 decisions Q1 and Q3 | The same 4 days, plus whatever goes in; 1.0 stays at 2026-11-30 |
 
 Why A: nothing in the 1.0 scope is left to build, and the owner's brief asks
@@ -100,7 +101,7 @@ Effort is working days for one thread, plus review; dates are estimates.
 | S1 | rc.18 save fixtures: `scripts/save-fixture.mjs --package=DIR` against the published `caveat-lang@0.1.0-rc.18` writes `kit/test/fixtures/saves/0.1.0-rc.18/`; `kit/test/save-fixtures.test.mjs` restores them. No fixture is edited by hand | S0 | 0.5 | 2026-10-13 |
 | S2 | Freeze review (E1) in Path to 1.0: a dated baseline, B1 to B7 with their closing PRs as above, the frozen surface named as COMPATIBILITY.md at that revision, and the rule that from here until 1.0.0 only fixes, compatibility evidence and doc corrections merge. Close #200 and #201 as completed by #204 | S0 | 0.5 | 2026-10-13 |
 | S3 | The stabilization trial (E2): one script, run against the packed tarball from a fresh install, driving the integration starter over `kit/examples/readiness` and the agent-evidence example. It covers decisions, a correction (withdrawal and take-back), each rejection origin, save and resume under the same source, a refused restore under edited source, archive drain and restart, and a recorded resource budget per step (event time, save and archive size). Budgets are recorded as measured on the candidate; they are host budgets, not new promises. Runs in CI on every PR from then on | S1 | 2 | 2026-10-15 |
-| S4 | rc.19 candidate: release notes and the release procedure, with `dist_tag` `next` (E2). Tag and publication wait for the owner | S1–S3 | 1 + owner | 2026-10-16 |
+| S4 | rc.19 candidate: release notes and the release procedure, with `dist_tag` `latest` (Q3). Tag and publication wait for the owner | S1–S3 | 1 + owner | 2026-10-16 |
 
 After rc.19 is published, its own save fixture follows (the same S1 step), and
 the trial runs against the published package. Defects found then are fixed on
