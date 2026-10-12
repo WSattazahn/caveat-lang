@@ -1,0 +1,34 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "decision.cav",
+  "scenarios": [
+    {"id": "S01", "title": "The record in order: the deferral rests on its reason, is permitted by the tap, and retains the caveats not pursued",
+     "steps": [
+       {"send": "plan_read"},
+       {"expect": {"/bindings/deferral/status": "undecided", "/bindings/deferral/revisions": 0}},
+       {"send": "owner_taps"},
+       {"expect": {"/bindings/deferral/status": "after 1.0: no game thread this cycle",
+                   "/bindings/deferral/revisions": 1,
+                   "/decision_journal/0/because": ["why_a", "game_unstable"],
+                   "/decision_journal/0/caveats": ["pr179_drift", "presentation_gaps", "secondhand"]}},
+       {"send": "owner_taps", "rejected": {"origin": "policy", "code": "reject"}}
+     ]},
+    {"id": "S02", "title": "A tap before the reason is observed is refused and leaves nothing behind",
+     "steps": [
+       {"send": "owner_taps", "rejected": {"origin": "evaluation", "code": "unobserved_evidence"}},
+       {"expect": {"/bindings/deferral/status": "undecided", "/bindings/deferral/revisions": 0}}
+     ]},
+    {"id": "S03", "title": "1.0.0 shipping reopens the deferral; it keeps its original grounds",
+     "steps": [
+       {"send": "plan_read"}, {"send": "owner_taps"}, {"send": "one_oh_ships"},
+       {"expect": {"/bindings/deferral/status": "due: 1.0.0 shipped, the pass is open again",
+                   "/bindings/deferral/revisions": 1,
+                   "/decision_journal/0/because": ["why_a", "game_unstable"]}}
+     ]},
+    {"id": "S04", "title": "1.0.0 shipping before any deferral reopens nothing",
+     "steps": [
+       {"send": "plan_read"}, {"send": "one_oh_ships"},
+       {"expect": {"/bindings/deferral/status": "undecided", "/bindings/deferral/revisions": 0}}
+     ]}
+  ]
+}

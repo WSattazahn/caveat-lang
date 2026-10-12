@@ -1,0 +1,29 @@
+bind-reason.cav after 2 events (sequence 2)
+
+Events
+    1  plan_read  accepted
+    2  owner_taps  accepted
+
+Decisions
+  made under source sha256:a35dd9c2e5f415054f3ab792d0e24954c2ecb43c5d467c2ee710f5ba6c1c4e71
+  defer_pass: 1 of at most 2
+    defer_pass@1 = 2  in force
+      based on game_unstable, why_a
+      game_unstable: observed at #1 plan_read
+      why_a: observed at #1 plan_read
+      retaining: presentation_gaps, pr179_drift, secondhand
+      permitted by owner_tap (caveats: secondhand)
+      could also have been influenced by owner_tap
+      #2 owner_taps: committed because why_a, game_unstable; retaining: pr179_drift, presentation_gaps, secondhand
+
+Evidence
+  why_a supports pass_can_wait  caveats: secondhand
+  game_unstable supports pass_can_wait
+  game_at_184 observed (no stance)  caveats: presentation_gaps
+  pr179_behind observed (no stance)  caveats: pr179_drift
+  owner_tap observed (no stance)  caveats: secondhand
+
+Displayed
+  deferral.revisions = 1  because game_unstable, owner_tap, why_a (caveats: pr179_drift, presentation_gaps, secondhand)
+  deferral.status = "after 1.0: no game thread this cycle"  because game_unstable, owner_tap, why_a (caveats: pr179_drift, presentation_gaps, secondhand)
+  not_pursued.presentation_gaps = "not gating 1.0 (why_a)"  because game_unstable, owner_tap, why_a (caveats: pr179_drift, presentation_gaps, secondhand)
