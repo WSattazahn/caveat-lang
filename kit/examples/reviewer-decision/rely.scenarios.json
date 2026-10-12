@@ -7,7 +7,7 @@
        {"send": "decide", "rejected": {"origin": "evaluation", "code": "unobserved_evidence"}},
        {"expect": {"/bindings/decision/status": "undecided", "/bindings/decision/revisions": 0}}
      ]},
-    {"id": "R02", "title": "The decision rests on the readings and the record, caveats attached; the screenshot is lineage only",
+    {"id": "R02", "title": "The decision rests on the readings and the record, caveats attached; the screenshot is in neither its grounds nor its lineage",
      "steps": [
        {"send": "fetch_registry"}, {"send": "fetch_npm"}, {"send": "read_record"}, {"send": "see_socket"},
        {"send": "decide"},
