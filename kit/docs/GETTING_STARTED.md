@@ -275,10 +275,9 @@ Decisions
   made under source sha256:daa89b2abadde3e5c8dd2e0691f0c0dcb8d74a6b3ac73393e875b87fe1325bdd
   umbrella: 1 of at most 4
     umbrella@1 = 70  reopened
-      based on rain_chance@1
+      based on rain_chance@1 (caveats: forecast_is_old)
       rain_chance@1: observed at #1 read_forecast {"chance":70}
-      retaining: forecast_is_old
-      #1 read_forecast: committed because rain_chance@1; retaining: forecast_is_old
+      #1 read_forecast: committed because rain_chance@1 (caveats: forecast_is_old)
       #2 clear_sky: reopened because sky
 
 Evidence
@@ -293,7 +292,9 @@ The first line under Decisions names the source the decisions were made under,
 by its SHA-256; editing `umbrella.cav` changes it. Each decision shows its
 value, whether it is still in force, what it is based on and the event, with
 its payload, that observed each of those, and every time it was committed or
-reopened and why. The refused `leave`
+reopened and why. A caveat that came with the evidence, like `forecast_is_old`
+here, is shown in parentheses beside it; a `retaining:` line lists only caveats
+the program kept with the decision that its evidence did not carry. The refused `leave`
 is listed but changed nothing. Add `--json` to get the same explanation as
 data, for a program or an agent to read.
 

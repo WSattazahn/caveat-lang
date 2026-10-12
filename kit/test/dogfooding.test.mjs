@@ -69,6 +69,27 @@ test('D003: retaining an uncarried caveat never invents evidence carrying it', (
   });
 });
 
+test('D007: explain separates caveats the grounds carried from caveats the author retained', () => {
+  const program = `claim wait;
+evidence why from "why";
+caveat secondhand consequence low; caveat gaps consequence material;
+secondhand qualifies why;
+event decide;
+on decide reveal why supports wait;
+on decide commit defer because enough using qualified(1, why) retaining gaps;
+`;
+  withSession(['decide'], snapshot => {
+    const report = explain(snapshot);
+    // The record keeps the union (spec/caveat-reactive-0.3.md); only the text splits it.
+    assert.deepEqual(report.decisions[0].revisions[0].retained, ['gaps', 'secondhand']);
+    const text = formatExplanation(report);
+    assert.match(text, /based on why \(caveats: secondhand\)\n {6}retaining: gaps\n/);
+    assert.match(text, /#1 decide: committed because why \(caveats: secondhand\); retaining: gaps/);
+    assert.doesNotMatch(text, /retaining: [^\n]*secondhand/);
+    assert.match(formatDependents(dependents(snapshot, 'secondhand')), /retaining: secondhand/);
+  }, program);
+});
+
 test('D005: report actual supporting and opposing relations without interpreting them as truth', () => {
   withSession(['decide', 'correct'], snapshot => {
     assert.deepEqual(dependents(snapshot, 'check').claims, [{ evidence: 'check', relation: 'supports', claim: 'safe' }]);

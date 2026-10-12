@@ -157,6 +157,13 @@ while 4,096 qualifications are already waiting as
 errors, such as a type error in an expression, are deliberately unclassified:
 they are fatal, and a fatal outcome never matches an expected rejection.
 
+One of them is easy to reach. A plain `commit`, made without a `decisions`
+declaration, can be made only once: committing it again, even after it was
+reopened, is fatal ("commitment NAME already exists"), and the host loses the
+session. Declare a decision series (`decisions NAME limit N;`) when a decision
+may be made again after it is reopened, or guard the rule with
+`on EVENT when committed(NAME) reject "…";` so the event is refused instead.
+
 To see what a program does after each event, open a session from a script:
 
 ```js
@@ -542,6 +549,32 @@ value, and say in the program that its value means nothing. A commit with
 `because` and no `using` has no grounds at all: `explain` prints "based on
 nothing". A decision with grounds and no value is planned as a 1.x addition
 ([#198](https://github.com/WSattazahn/caveat-lang/issues/198)).
+
+## Record a caveat you chose not to pursue
+
+A caveat declaration and a `retaining` list take names only, so neither can
+hold the reason a caveat was left alone. Give the reason its own evidence and
+make it the grounds of a decision that retains the caveat. When caveats are
+left for different reasons, use one decision per caveat so each keeps its own
+reason:
+
+```caveat
+evidence scope_note from "the release plan: the game does not gate 1.0";
+caveat presentation_gaps consequence low;
+decisions defer_polish limit 2;
+on triage reveal scope_note supports can_wait;
+on triage commit defer_polish because enough
+  using qualified(1, scope_note) retaining presentation_gaps;
+```
+
+`explain` then prints `based on scope_note` and `retaining: presentation_gaps`
+for `defer_polish@1`, and `dependents PROGRAM presentation_gaps` finds the
+decision. `because` takes only `enough`, `budget` or `deadline`, which are
+stopping rules, so "out of scope for now" is written `because enough`. A
+`retaining` line lists only caveats that no grounds observation carries; a
+caveat the evidence brought with it is shown beside that evidence instead.
+Nothing yet marks a caveat as deliberately not pursued rather than still
+waiting; that would be a language addition after 1.0.
 
 ## Evidence from fresh authors
 
