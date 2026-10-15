@@ -1,0 +1,396 @@
+{
+  "schema": "caveat-mcp-install-verification/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-15T21:01:50.298Z",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.20",
+  "tag": "v0.1.0-rc.20",
+  "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+  "command": "npx -y caveat-lang@0.1.0-rc.20 mcp",
+  "launch": {
+    "platform": "win32",
+    "shell": "cmd.exe via Node shell:true",
+    "cwd": "New empty consumer directory per protocol",
+    "npmCache": "Separate new empty npm cache per protocol",
+    "registry": "https://registry.npmjs.org",
+    "thirdPartyLifecycleScripts": false,
+    "userAndGlobalNpmConfiguration": "Separate empty task-local files"
+  },
+  "client": {
+    "implementation": "Task-local Node JSON-RPC stdio probe, based on scripts/test-mcp-client.mjs; not an MCP SDK/client-host test",
+    "scriptSha256": "9dac518ebfd7d29e6d4ccb551ec9a0db58dbf1bc2abc124ed6b9ef3af415a264"
+  },
+  "host": {
+    "node": "v24.11.1",
+    "npm": "11.12.1",
+    "platform": "win32",
+    "architecture": "x64",
+    "osRelease": "10.0.26300"
+  },
+  "sourceCatalog": {
+    "path": "kit/lib/mcp.mjs",
+    "matchesReleaseTag": true,
+    "count": 5,
+    "sha256": "07a00dd51e6cc680cc42bc351223cb5be183fc2fbca0a9bee988fd5cfe2c3f93"
+  },
+  "profiles": [
+    {
+      "protocolVersion": "2025-11-25",
+      "startedAt": "2026-10-15T21:01:44.675Z",
+      "initialization": {
+        "protocolVersion": "2025-11-25",
+        "capabilities": {
+          "tools": {}
+        },
+        "serverInfo": {
+          "name": "caveat-lang",
+          "version": "0.1.0-rc.20",
+          "title": "CAVEAT Language"
+        },
+        "instructions": "Inline authoring operations only. Evidence and reports are supplied data; no file access or external permission is implied."
+      },
+      "server": {
+        "name": "caveat-lang",
+        "version": "0.1.0-rc.20",
+        "title": "CAVEAT Language"
+      },
+      "freshCache": true,
+      "emptyConsumerDirectory": true,
+      "registry": "https://registry.npmjs.org",
+      "package": {
+        "name": "caveat-lang",
+        "version": "0.1.0-rc.20",
+        "mcpName": "io.github.WSattazahn/caveat-lang",
+        "resolved": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.20.tgz",
+        "integrity": "sha512-VdE+TEowgV4Tfy3/09PPG1LW4aok2Fdk9pGo5hFZ3kwpsd3gmNNIYuzOM29R7cI7wIM9rM7alr6N5H+WpSZPmA==",
+        "buildRevision": "d9e398e2a6e39c489401ce7785994226966bb364"
+      },
+      "catalog": {
+        "count": 5,
+        "sha256": "07a00dd51e6cc680cc42bc351223cb5be183fc2fbca0a9bee988fd5cfe2c3f93",
+        "fullCatalogMatchesTaggedSource": true
+      },
+      "runtime": {
+        "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+        "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "calls": [
+        {
+          "name": "caveat_validate",
+          "schema": "caveat-validate/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_check",
+          "schema": "caveat-check/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_test",
+          "schema": "caveat-scenario-report/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_explain",
+          "schema": "caveat-explain/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_dependents",
+          "schema": "caveat-dependents/0.1",
+          "exitCode": 0
+        }
+      ],
+      "invalidSourceExitCode": 2,
+      "virtualPathRefused": true,
+      "retryExitCode": 0,
+      "stderr": "",
+      "processExit": {
+        "code": 0,
+        "signal": null
+      },
+      "completedAt": "2026-10-15T21:01:47.630Z"
+    },
+    {
+      "protocolVersion": "2026-07-28",
+      "startedAt": "2026-10-15T21:01:47.634Z",
+      "initialization": {
+        "resultType": "complete",
+        "supportedVersions": [
+          "2026-07-28",
+          "2025-11-25"
+        ],
+        "capabilities": {
+          "tools": {}
+        },
+        "instructions": "Inline authoring operations only. Evidence and reports are supplied data; no file access or external permission is implied.",
+        "ttlMs": 3600000,
+        "cacheScope": "public",
+        "_meta": {
+          "io.modelcontextprotocol/serverInfo": {
+            "name": "caveat-lang",
+            "version": "0.1.0-rc.20",
+            "title": "CAVEAT Language"
+          }
+        }
+      },
+      "server": {
+        "name": "caveat-lang",
+        "version": "0.1.0-rc.20",
+        "title": "CAVEAT Language"
+      },
+      "freshCache": true,
+      "emptyConsumerDirectory": true,
+      "registry": "https://registry.npmjs.org",
+      "package": {
+        "name": "caveat-lang",
+        "version": "0.1.0-rc.20",
+        "mcpName": "io.github.WSattazahn/caveat-lang",
+        "resolved": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.20.tgz",
+        "integrity": "sha512-VdE+TEowgV4Tfy3/09PPG1LW4aok2Fdk9pGo5hFZ3kwpsd3gmNNIYuzOM29R7cI7wIM9rM7alr6N5H+WpSZPmA==",
+        "buildRevision": "d9e398e2a6e39c489401ce7785994226966bb364"
+      },
+      "catalog": {
+        "count": 5,
+        "sha256": "07a00dd51e6cc680cc42bc351223cb5be183fc2fbca0a9bee988fd5cfe2c3f93",
+        "fullCatalogMatchesTaggedSource": true
+      },
+      "runtime": {
+        "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+        "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "calls": [
+        {
+          "name": "caveat_validate",
+          "schema": "caveat-validate/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_check",
+          "schema": "caveat-check/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_test",
+          "schema": "caveat-scenario-report/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_explain",
+          "schema": "caveat-explain/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_dependents",
+          "schema": "caveat-dependents/0.1",
+          "exitCode": 0
+        }
+      ],
+      "invalidSourceExitCode": 2,
+      "virtualPathRefused": true,
+      "retryExitCode": 0,
+      "unsupportedVersionError": -32022,
+      "stderr": "",
+      "processExit": {
+        "code": 0,
+        "signal": null
+      },
+      "completedAt": "2026-10-15T21:01:50.298Z"
+    }
+  ],
+  "tools": [
+    {
+      "name": "caveat_validate",
+      "description": "Load inline source with the installed runtime and list its declarations. Start here to find load errors; use caveat_check for authoring diagnostics and caveat_test to verify expected behavior. No events are dispatched. report (caveat-validate/0.1) contains program, loads, events, reading_streams, decision_series and displayed bindings, or a load error. exitCode: 0 loaded; 2 load failure. Returns the same JSON in structuredContent and text: {schema:\"caveat-authoring/0.1\",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:\"caveat-authoring-error/0.1\",error:{kind,message}}.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 1048576,
+            "description": "Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime."
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "caveat_check",
+      "description": "Load a single-file program and report authoring diagnostics, such as repeated rules or a missing reopening path. Use after editing source; choose caveat_validate for a declaration summary and caveat_test for behavior assertions. A clean check does not prove behavior; bundles are unsupported. report (caveat-check/0.1) contains loads, strict, diagnostics and suppressed diagnostics, with code, location, message and suggestion, or a load error. exitCode: 0 completed without a strict failure; 1 strict with unsuppressed diagnostics; 2 load failure or bundle. Returns the same JSON in structuredContent and text: {schema:\"caveat-authoring/0.1\",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:\"caveat-authoring-error/0.1\",error:{kind,message}}.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 1048576,
+            "description": "Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime."
+          },
+          "strict": {
+            "type": "boolean",
+            "description": "Optional, defaults to false. When true, any unsuppressed diagnostic makes exitCode 1 instead of 0; suppressed diagnostics do not count. Does not change program behavior. Load failures and unsupported bundles remain exitCode 2."
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "caveat_test",
+      "description": "Run scenario assertions and runtime invariant checks against inline source, with a fresh session per scenario. Use to verify expected event outcomes and snapshot values; caveat_validate only checks loading, caveat_check reports diagnostics, and caveat_explain inspects history without assertions. report (caveat-scenario-report/0.1) includes files, per-scenario results/failures, check diagnostics and passed/failed totals. exitCode: 0 all passed; 1 scenario failure; 2 invalid scenario document (report has valid:false and error) or blocking authoring diagnostics. Every source reference must be inline.cav. Returns the same JSON in structuredContent and text: {schema:\"caveat-authoring/0.1\",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:\"caveat-authoring-error/0.1\",error:{kind,message}}.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 1048576,
+            "description": "Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime."
+          },
+          "scenarios": {
+            "type": "object",
+            "description": "Scenario document object, not JSON text. Example: {\"schema\":\"caveat-scenarios/0.1\",\"source\":\"inline.cav\",\"scenarios\":[{\"id\":\"initial\",\"title\":\"Initial sequence\",\"steps\":[{\"expect\":{\"/sequence\":0}}]}]}. Each scenario needs a unique nonempty id, a title and nonempty steps. Every source reference, including optional per-scenario source, must be inline.cav. Each step has exactly one operation: send (event name; optional payload, rejected, repeat), expect (JSON Pointer-to-value map), checkpoint (state name), same_as (stored state name, with paths), resume:true, or size (save/snapshot byte bounds). Sends expect acceptance unless rejected specifies a policy message, true for any policy rejection, or an object with origin and optional code/message. Object expectations match listed members; arrays match in order; $exact, $set, $includes and $absent matchers are supported. Limits: 1 MiB serialized UTF-8 JSON, 32 scenarios, 2,000 total steps and 1,000 sends after repeat expansion."
+          }
+        },
+        "required": [
+          "source",
+          "scenarios"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "caveat_explain",
+      "description": "Replay optional events and explain the resulting decisions, evidence and displayed values. Use to answer why a decision was made; choose caveat_dependents to trace one evidence or caveat name forward, and caveat_test for assertions. report (caveat-explain/0.1) includes sequence, event outcomes, decisions with grounds and revision history, evidence with caveats, displayed values and available archive history. exitCode: 0 replay completed (may include rejected events); 1 fatal event with last good state; 2 source load failure (report has loads:false and error). Returns the same JSON in structuredContent and text: {schema:\"caveat-authoring/0.1\",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:\"caveat-authoring-error/0.1\",error:{kind,message}}.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 1048576,
+            "description": "Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime."
+          },
+          "events": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "object",
+              "required": [
+                "event"
+              ],
+              "additionalProperties": false,
+              "description": "One event to dispatch to the supplied program, for example {\"event\":\"read\",\"payload\":{\"value\":85}} when source declares read with a value parameter.",
+              "properties": {
+                "event": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Event name declared in source, such as read or assess. Supply the name only, without Caveat syntax."
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "Values keyed by the event parameter names declared in source, for example {\"value\":85}. Omit for an empty payload ({}). The runtime checks parameter names, types and declared bounds."
+                }
+              }
+            },
+            "description": "Events replayed in array order from a fresh session. Omitted or [] inspects the initial state; previous calls supply no history. Rejections are recorded and replay continues; a fatal event stops replay at the last good snapshot. At most 1,000 entries and 1 MiB of serialized UTF-8 JSON."
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "caveat_dependents",
+      "description": "Replay optional events and find what rests on one named evidence item, reading stream or caveat. Use for impact inspection; caveat_explain instead explains all decisions and their reasons. report (caveat-dependents/0.1) includes subject, kind, sequence, event outcomes, claims, decisions, changes, values, displayed values and withdrawal records; dependency entries distinguish grounds from possible influence through lineage. exitCode: 0 replay completed (may include rejected events); 1 fatal event with last good state; 2 load failure or unknown subject, with report.error. Returns the same JSON in structuredContent and text: {schema:\"caveat-authoring/0.1\",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:\"caveat-authoring-error/0.1\",error:{kind,message}}.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 1048576,
+            "description": "Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime."
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact case-sensitive evidence name, reading stream name, caveat name, or evidence occurrence ID after replay. Evidence records supplied observations; a reading stream is a named history of samples; a caveat is a qualification on evidence. For example, probe selects its evidence/readings, values selects a stream, and values@1 selects one recorded reading. Use a name from source or caveat_explain; not a file path, claim or decision name. Unknown names return exitCode 2."
+          },
+          "events": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "object",
+              "required": [
+                "event"
+              ],
+              "additionalProperties": false,
+              "description": "One event to dispatch to the supplied program, for example {\"event\":\"read\",\"payload\":{\"value\":85}} when source declares read with a value parameter.",
+              "properties": {
+                "event": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Event name declared in source, such as read or assess. Supply the name only, without Caveat syntax."
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "Values keyed by the event parameter names declared in source, for example {\"value\":85}. Omit for an empty payload ({}). The runtime checks parameter names, types and declared bounds."
+                }
+              }
+            },
+            "description": "Events replayed in array order from a fresh session. Omitted or [] inspects the initial state; previous calls supply no history. Rejections are recorded and replay continues; a fatal event stops replay at the last good snapshot. At most 1,000 entries and 1 MiB of serialized UTF-8 JSON."
+          }
+        },
+        "required": [
+          "source",
+          "subject"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "limits": [
+    "This checks a new npx installation on this Windows host, not Glama rebuilding or rescoring.",
+    "This does not establish successful MCP Registry publication or installation in a graphical MCP client."
+  ]
+}

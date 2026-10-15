@@ -7,13 +7,13 @@ tracks evidence through computations, preserves the grounds of recorded
 decisions, and supports reconsideration under authored policies when evidence
 changes.
 
-The published preview is **0.1.0-rc.19**. See the
-[rc.19 release record](docs/releases/v0.1.0-rc.19.md) for what it changes.
+The published preview is **0.1.0-rc.20**. See the
+[rc.20 release record](docs/releases/v0.1.0-rc.20.md) for what it changes.
 
-> npm publication verified 2026-10-12T14:57:45.221Z: exact **caveat-lang@0.1.0-rc.19**,
-> tested Linux artifact SHA256 `d7cae7dc653a4c53de8d3f8e5b945cc324a14e931adcff004b805577d080672f`.
-> At verification, `latest` names rc.19 and `next` remains rc.18; the owner moved `next` to rc.19 at about 15:01 UTC. Published by `publish-npm.yml` from tag `v0.1.0-rc.19` with an npm provenance attestation.
-> [Publication record](docs/releases/v0.1.0-rc.19-npm-publication.json).
+> npm publication verified 2026-10-15T20:51:15.212Z: exact **caveat-lang@0.1.0-rc.20**,
+> tested Linux artifact SHA256 `8b4e6b4855e822c824f854f36d4bda1b83c7792e784e00ed25505ecec9d4465a`.
+> Published by `publish-npm.yml` from tag `v0.1.0-rc.20` with an npm provenance attestation. After the owner's channel update, both `latest` and `next` were verified at rc.20 on 2026-10-15.
+> [Publication record](docs/releases/v0.1.0-rc.20-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -21,12 +21,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.19**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.20**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.19
+npm install caveat-lang@0.1.0-rc.20
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -38,9 +38,14 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.19 verified publication record](docs/releases/v0.1.0-rc.19.md) identifies
-the exact tested npm artifact. rc.19 is the 1.0 feature-freeze candidate: it adds
-no language, schema, operation, field, CLI flag or export. It fixes restore of a
+The [rc.20 verified publication record](docs/releases/v0.1.0-rc.20.md) identifies
+the exact tested npm artifact. rc.20 clarifies when to use each MCP tool, its
+inputs and its results. It also fixes human-readable explanations of caveats
+carried by a decision's grounds, retained in its frozen basis, or present only
+in its wider lineage. It changes no Rust runtime, language or save format.
+
+rc.19 began the 1.0 feature freeze: it added no language, schema, operation,
+field, CLI flag or export. It fixed restore of a
 session that reopened a decision because of a caveat and then took that caveat
 back; saves written by rc.18 in that state restore in rc.19.
 
@@ -63,7 +68,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With rc.19 installed, use `npx --no-install caveat-lang doctor` to check it and
+With rc.20 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -237,7 +242,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@0.1.0-rc.19", "mcp"]
+      "args": ["-y", "caveat-lang@0.1.0-rc.20", "mcp"]
     }
   }
 }

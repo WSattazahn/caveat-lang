@@ -349,12 +349,12 @@ There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
 
-## Current release procedure addendum — 2026-10-12 UTC
+## Current release procedure addendum — 2026-10-15 UTC
 
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.19 verified release record](releases/v0.1.0-rc.19.md) for the current
+Use the [rc.20 verified release record](releases/v0.1.0-rc.20.md) for the current
 published candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
@@ -378,6 +378,7 @@ rc.16 is the fifth (see the [rc.16 release record](releases/v0.1.0-rc.16.md)).
 rc.17 is the sixth (see the [rc.17 release record](releases/v0.1.0-rc.17.md)).
 rc.18 is the seventh (see the [rc.18 release record](releases/v0.1.0-rc.18.md)).
 rc.19 is the eighth (see the [rc.19 release record](releases/v0.1.0-rc.19.md)).
+rc.20 is the ninth (see the [rc.20 release record](releases/v0.1.0-rc.20.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
@@ -443,6 +444,16 @@ their first attempt. The first verification ran before the registry served the
 version and failed with HTTP 404; re-running only that job passed. The owner
 then moved `next` to rc.19, recorded in the rc.19 release record's distribution
 closeout.
+
+For rc.20, publication verification at `2026-10-15T20:51:15.212Z` recorded
+`latest` = rc.20 and `next` = rc.19. Candidate selection, publication and
+verification passed on their first workflow attempts. The owner approved the
+`npm-publish` environment through their authenticated GitHub CLI and later
+moved `next` to rc.20; both npm channels were then independently verified.
+The [rc.20 lineage record](releases/rc20-lineage.json) keeps the tagged package,
+tested main artifact, publication and later documentation changes distinct.
+This maintenance release does not reset the dated rc.19 feature-freeze or
+stabilization observations.
 
 One-time setup, done by the owner before the first run:
 
