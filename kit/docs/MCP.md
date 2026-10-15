@@ -47,11 +47,59 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
 
+Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
+authoring diagnostics, and `caveat_test` to assert behavior after events. A
+successful load or a clean check does not establish that a scenario passes.
+Use `caveat_explain` to understand the resulting decisions and their reasons;
+use `caveat_dependents` to trace the impact of one named evidence item, reading
+stream, reading record or caveat. Each call starts fresh, so supply the event
+history again when moving from an explanation to a dependency query.
+
+`strict` defaults to `false`. With `true`, any unsuppressed diagnostic makes
+`caveat_check` return `exitCode: 1`; suppressed diagnostics do not count. The
+check does not send events. `caveat_test` checks the program first and stops
+before scenarios if it finds an error-severity diagnostic; advisory diagnostics
+are included in its report and do not stop the scenarios.
+
 `source` is inline program text. Events are objects with `event` and optional
 `payload`. `scenarios` is a [scenario document](reference/spec/caveat-scenarios-0.1.md)
 whose source, including per-scenario overrides, must be `inline.cav`. The bridge
 has no user-file lookup: the supplied text is its only virtual source file.
 Unknown argument fields are rejected.
+
+For example, this tool name and arguments check an event's effect. Wrap them
+in your protocol's `tools/call` request; for 2026-07-28, also add the required
+`_meta` fields inside the request's `params` as described above:
+
+```json
+{
+  "name": "caveat_test",
+  "arguments": {
+    "source": "state count = 0; event increment; on increment set count = count + 1;",
+    "scenarios": {
+      "schema": "caveat-scenarios/0.1",
+      "source": "inline.cav",
+      "scenarios": [{
+        "id": "increments",
+        "title": "An event increments the count",
+        "steps": [
+          { "send": "increment" },
+          { "expect": { "/values/count": 1 } }
+        ]
+      }]
+    }
+  }
+}
+```
+
+For `caveat_explain` or `caveat_dependents`, `events` defaults to `[]` (the
+initial state). Entries run in order; `event` names a declared event and
+`payload` supplies its declared parameters, defaulting to `{}`. A rejected
+event is recorded and replay continues; a fatal event ends replay at the last
+good snapshot. Inspect each reported outcome. For `caveat_dependents`,
+`subject` is an evidence name such as `probe`, a stream such as `readings`, a
+record ID such as `readings@1`, or a caveat name; an unknown subject returns
+`exitCode: 2`.
 
 Every completed operation returns `caveat-authoring/0.1` with operation,
 sourceSha256, runtime identity, exitCode and the existing report. Both the JSON

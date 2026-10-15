@@ -29,23 +29,43 @@ const WORKER = fileURLToPath(new URL('./authoring-worker.mjs', import.meta.url))
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const idValid = id => typeof id === 'string' || Number.isSafeInteger(id);
 const keyOf = id => createHash('sha256').update(JSON.stringify(id)).digest('hex');
-const sourceSchema = { type: 'string', maxLength: 1024 * 1024, description: 'Inline Caveat source; no file or URL lookup.' };
+const sourceSchema = {
+  type: 'string', maxLength: 1024 * 1024,
+  description: 'Complete inline Caveat program text, available as the virtual file inline.cav. No file path or URL lookup. At most 1 MiB of UTF-8 source; each call uses a fresh runtime.',
+};
 const eventSchema = {
   type: 'object', required: ['event'], additionalProperties: false,
-  properties: { event: { type: 'string', minLength: 1 }, payload: { type: 'object' } },
+  description: 'One event to dispatch to the supplied program, for example {"event":"read","payload":{"value":85}} when source declares read with a value parameter.',
+  properties: {
+    event: { type: 'string', minLength: 1, description: 'Event name declared in source, such as read or assess. Supply the name only, without Caveat syntax.' },
+    payload: { type: 'object', description: 'Values keyed by the event parameter names declared in source, for example {"value":85}. Omit for an empty payload ({}). The runtime checks parameter names, types and declared bounds.' },
+  },
 };
-const eventsSchema = { type: 'array', maxItems: 1000, items: eventSchema };
+const eventsSchema = {
+  type: 'array', maxItems: 1000, items: eventSchema,
+  description: 'Events replayed in array order from a fresh session. Omitted or [] inspects the initial state; previous calls supply no history. Rejections are recorded and replay continues; a fatal event stops replay at the last good snapshot. At most 1,000 entries and 1 MiB of serialized UTF-8 JSON.',
+};
+const resultDescription = 'Returns the same JSON in structuredContent and text: {schema:"caveat-authoring/0.1",operation,sourceSha256,runtime,exitCode,report}. Read exitCode even when isError is false. Bridge failures instead set isError:true with {schema:"caveat-authoring-error/0.1",error:{kind,message}}.';
+const scenariosSchema = {
+  type: 'object',
+  description: 'Scenario document object, not JSON text. Example: {"schema":"caveat-scenarios/0.1","source":"inline.cav","scenarios":[{"id":"initial","title":"Initial sequence","steps":[{"expect":{"/sequence":0}}]}]}. Each scenario needs a unique nonempty id, a title and nonempty steps. Every source reference, including optional per-scenario source, must be inline.cav. Each step has exactly one operation: send (event name; optional payload, rejected, repeat), expect (JSON Pointer-to-value map), checkpoint (state name), same_as (stored state name, with paths), resume:true, or size (save/snapshot byte bounds). Sends expect acceptance unless rejected specifies a policy message, true for any policy rejection, or an object with origin and optional code/message. Object expectations match listed members; arrays match in order; $exact, $set, $includes and $absent matchers are supported. Limits: 1 MiB serialized UTF-8 JSON, 32 scenarios, 2,000 total steps and 1,000 sends after repeat expansion.',
+};
 const tool = (name, description, properties, required = ['source']) => ({
-  name, description,
+  name, description: `${description} ${resultDescription}`,
   inputSchema: { type: 'object', additionalProperties: false, properties: { source: sourceSchema, ...properties }, required },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 });
 export const MCP_TOOLS = Object.freeze([
-  tool('caveat_validate', 'Validate inline Caveat source using the installed runtime.', {}),
-  tool('caveat_check', 'Check inline Caveat source for authoring diagnostics.', { strict: { type: 'boolean' } }),
-  tool('caveat_test', 'Run scenarios against inline source. Every source reference must be inline.cav.', { scenarios: { type: 'object' } }, ['source', 'scenarios']),
-  tool('caveat_explain', 'Explain supplied events and their evidence/decision history.', { events: eventsSchema }),
-  tool('caveat_dependents', 'Inspect what depends on evidence, a reading stream, or a caveat.', { subject: { type: 'string', minLength: 1 }, events: eventsSchema }, ['source', 'subject']),
+  tool('caveat_validate', 'Load inline source with the installed runtime and list its declarations. Start here to find load errors; use caveat_check for authoring diagnostics and caveat_test to verify expected behavior. No events are dispatched. report (caveat-validate/0.1) contains program, loads, events, reading_streams, decision_series and displayed bindings, or a load error. exitCode: 0 loaded; 2 load failure.', {}),
+  tool('caveat_check', 'Load a single-file program and report authoring diagnostics, such as repeated rules or a missing reopening path. Use after editing source; choose caveat_validate for a declaration summary and caveat_test for behavior assertions. A clean check does not prove behavior; bundles are unsupported. report (caveat-check/0.1) contains loads, strict, diagnostics and suppressed diagnostics, with code, location, message and suggestion, or a load error. exitCode: 0 completed without a strict failure; 1 strict with unsuppressed diagnostics; 2 load failure or bundle.', {
+    strict: { type: 'boolean', description: 'Optional, defaults to false. When true, any unsuppressed diagnostic makes exitCode 1 instead of 0; suppressed diagnostics do not count. Does not change program behavior. Load failures and unsupported bundles remain exitCode 2.' },
+  }),
+  tool('caveat_test', 'Run scenario assertions and runtime invariant checks against inline source, with a fresh session per scenario. Use to verify expected event outcomes and snapshot values; caveat_validate only checks loading, caveat_check reports diagnostics, and caveat_explain inspects history without assertions. report (caveat-scenario-report/0.1) includes files, per-scenario results/failures, check diagnostics and passed/failed totals. exitCode: 0 all passed; 1 scenario failure; 2 invalid scenario document (report has valid:false and error) or blocking authoring diagnostics. Every source reference must be inline.cav.', { scenarios: scenariosSchema }, ['source', 'scenarios']),
+  tool('caveat_explain', 'Replay optional events and explain the resulting decisions, evidence and displayed values. Use to answer why a decision was made; choose caveat_dependents to trace one evidence or caveat name forward, and caveat_test for assertions. report (caveat-explain/0.1) includes sequence, event outcomes, decisions with grounds and revision history, evidence with caveats, displayed values and available archive history. exitCode: 0 replay completed (may include rejected events); 1 fatal event with last good state; 2 source load failure (report has loads:false and error).', { events: eventsSchema }),
+  tool('caveat_dependents', 'Replay optional events and find what rests on one named evidence item, reading stream or caveat. Use for impact inspection; caveat_explain instead explains all decisions and their reasons. report (caveat-dependents/0.1) includes subject, kind, sequence, event outcomes, claims, decisions, changes, values, displayed values and withdrawal records; dependency entries distinguish grounds from possible influence through lineage. exitCode: 0 replay completed (may include rejected events); 1 fatal event with last good state; 2 load failure or unknown subject, with report.error.', {
+    subject: { type: 'string', minLength: 1, description: 'Exact case-sensitive evidence name, reading stream name, caveat name, or evidence occurrence ID after replay. Evidence records supplied observations; a reading stream is a named history of samples; a caveat is a qualification on evidence. For example, probe selects its evidence/readings, values selects a stream, and values@1 selects one recorded reading. Use a name from source or caveat_explain; not a file path, claim or decision name. Unknown names return exitCode 2.' },
+    events: eventsSchema,
+  }, ['source', 'subject']),
 ]);
 const toolNames = new Set(MCP_TOOLS.map(item => item.name));
 
