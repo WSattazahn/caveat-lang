@@ -224,6 +224,40 @@ for mushroom as $m {
 
 Read [Why Caveat](docs/WHY_CAVEAT.md) for side-by-side code and the Caveatist way of working. To write your first program, start from the [authoring guide](docs/AI_AUTHORING.md).
 
+## MCP server
+
+The package includes a local MCP server, `caveat-lang mcp`, that gives an agent
+Caveat's authoring operations as tools. It runs over stdio, needs Node 20 or
+later and no Rust, and is listed in the MCP Registry as
+`io.github.WSattazahn/caveat-lang` ([server.json](server.json)). Add it to an
+MCP client's configuration:
+
+```json
+{
+  "mcpServers": {
+    "caveat-language": {
+      "command": "npx",
+      "args": ["-y", "caveat-lang@0.1.0-rc.19", "mcp"]
+    }
+  }
+}
+```
+
+| Tool | Inputs | Result |
+| --- | --- | --- |
+| `caveat_validate` | source | Whether the program loads and what it declares |
+| `caveat_check` | source, optional strict | Authoring diagnostics and suppressed warnings |
+| `caveat_test` | source, scenarios | Scenario results, invariant checks and check warnings |
+| `caveat_explain` | source, optional events | Decisions, their exact grounds, caveats and history |
+| `caveat_dependents` | source, subject, optional events | What depends on the named evidence, stream or caveat |
+
+Every tool works on inline source text and supplied events. The server has no
+file, network or persistent-session tools, and it runs each call in a fresh
+subprocess with a 10-second limit. It speaks MCP 2026-07-28 and the
+2025-11-25 profile. [MCP setup and limits](kit/docs/MCP.md) covers the protocol,
+result format, limits and a configuration for an installed copy. A tool's
+report does not authorize an external action or authenticate its evidence.
+
 ## Status
 
 CAVEAT 0.3 is executable, and the **0.4 game profile** adds executable knowledge requirements, evidence-dependent outcomes, and source-authored spatial presentation. The Rust reference runtime parses source, evaluates the epistemic graph, exposes the CAVEAT Map, and runs the same game program in a terminal or a WebAssembly browser session. The new features are specified in [Draft 0.4](spec/caveat-0.4-draft.md).
