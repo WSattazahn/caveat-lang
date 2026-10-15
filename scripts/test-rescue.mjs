@@ -43,43 +43,127 @@ const screenshot = async (page, name) => {
 };
 const fits = page => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
-async function fresh(browser, options = {}, renderFps = Number(process.env.RENDER_FPS || 10), preparePage) {
+async function fresh(browser, options = {}, renderFps = Number(process.env.RENDER_FPS || 10), preparePage, diagnosticCase = 'default') {
   const context = await browser.newContext({
     viewport: { width: 1200, height: 800 }, reducedMotion: 'reduce', ...options, deviceScaleFactor: 1,
   });
-  const page = await context.newPage();
-  page.setDefaultTimeout(20000);
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  if (preparePage) await preparePage(page);
-  const response = await page.goto(url);
-  assert(response?.ok(), `Game failed to load: HTTP ${response?.status()}`);
-  // WebKit on a CI runner has taken longer than the 20-second default to show
-  // the opening screen (runtime run 37236869595), so the first load gets more
-  // time; every later step keeps the default.
-  await page.getByRole('button', { name: /^Start rescue\b/i }).waitFor({ timeout: 60000 });
-  await page.waitForFunction(() => window.__rescue?.rendered);
-  assert.equal(await page.evaluate(() => Object.isFrozen(window.__rescue)), true, 'Browser diagnostics must be read-only');
-  assert.equal(await page.locator('#world').evaluate(canvas => canvas.width > 250 && canvas.height > 250), true);
-  assert.equal(await fits(page), true, 'The game must fit without horizontal scrolling');
-  const introductoryWords = (await page.locator('body').innerText()).trim().split(/\s+/).length;
-  assert(introductoryWords < 110, `Opening asks the player to read ${introductoryWords} words`);
-  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
-  // install() starts a running virtual clock. Pause before starting the game so
-  // software-GPU screenshots and input transport cannot add uncontrolled ticks.
-  await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
-  if (renderFps > 0) {
-    // Keep every real 30 Hz Caveat simulation tick, but avoid rendering thousands
-    // of expensive software-GPU frames during the complete-route checks. The
-    // normal-cadence keyboard test below independently checks the ordinary RAF
-    // path. No game event, state value, input, or outcome is replaced here.
-    await page.evaluate(milliseconds => {
-      window.requestAnimationFrame = callback => window.setTimeout(() => callback(performance.now()), milliseconds);
-      window.cancelAnimationFrame = handle => window.clearTimeout(handle);
-    }, 1000 / renderFps);
+  let page, stage = 'new page';
+  const errors = [], pageErrors = [], consoleErrors = [], consoleMessages = [], failedRequests = [];
+  try {
+    page = await context.newPage();
+    page.setDefaultTimeout(20000);
+    page.on('pageerror', error => { errors.push(error.message); pageErrors.push(error.stack || error.message); });
+    page.on('console', message => {
+      consoleMessages.push({ type: message.type(), text: message.text(), location: message.location() });
+      if (message.type() === 'error') { errors.push(message.text()); consoleErrors.push(message.text()); }
+    });
+    page.on('requestfailed', request => failedRequests.push({
+      url: request.url(), method: request.method(), resourceType: request.resourceType(),
+      failure: request.failure()?.errorText ?? null,
+    }));
+    stage = 'prepare page';
+    if (preparePage) await preparePage(page);
+    stage = 'navigation';
+    const response = await page.goto(url);
+    assert(response?.ok(), `Game failed to load: HTTP ${response?.status()}`);
+    stage = 'start screen';
+    // Keep the existing startup allowance, but report an explicit boot error
+    // immediately. The bootstrap's "blocked" timeout can recover, so it is
+    // diagnostic information rather than a terminal failure here.
+    const start = page.getByRole('button', { name: /^Start rescue\b/i });
+    const bootError = page.locator('#app[data-screen="error"]');
+    await start.or(bootError).first().waitFor({ timeout: 60000 });
+    if (await bootError.isVisible()) {
+      const message = await page.locator('#start-actions').innerText({ timeout: 1000 });
+      throw new Error(`Game reported a startup error: ${message}`);
+    }
+    stage = 'runtime readiness';
+    await page.waitForFunction(() => window.__rescue?.rendered);
+    assert.equal(await page.evaluate(() => Object.isFrozen(window.__rescue)), true, 'Browser diagnostics must be read-only');
+    assert.equal(await page.locator('#world').evaluate(canvas => canvas.width > 250 && canvas.height > 250), true);
+    assert.equal(await fits(page), true, 'The game must fit without horizontal scrolling');
+    const introductoryWords = (await page.locator('body').innerText()).trim().split(/\s+/).length;
+    assert(introductoryWords < 110, `Opening asks the player to read ${introductoryWords} words`);
+    stage = 'clock setup';
+    await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+    // install() starts a running virtual clock. Pause before starting the game so
+    // software-GPU screenshots and input transport cannot add uncontrolled ticks.
+    await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
+    if (renderFps > 0) {
+      // Keep every real 30 Hz Caveat simulation tick, but avoid rendering thousands
+      // of expensive software-GPU frames during the complete-route checks. The
+      // normal-cadence keyboard test below independently checks the ordinary RAF
+      // path. No game event, state value, input, or outcome is replaced here.
+      await page.evaluate(milliseconds => {
+        window.requestAnimationFrame = callback => window.setTimeout(() => callback(performance.now()), milliseconds);
+        window.cancelAnimationFrame = handle => window.clearTimeout(handle);
+      }, 1000 / renderFps);
+    }
+    return { context, page, errors };
+  } catch (error) {
+    const name = `rescue-startup-${browser.browserType().name()}-${options.isMobile ? 'mobile' : 'desktop'}-${diagnosticCase}`;
+    const diagnostics = {
+      browser: browser.browserType().name(), profile: options.isMobile ? 'mobile' : 'desktop', stage,
+      url: page?.url() ?? url, error: { message: error.message, stack: error.stack },
+      pageErrors, consoleErrors, consoleMessages, failedRequests, captureErrors: [],
+    };
+    try {
+      await mkdir(results, { recursive: true });
+      if (page && !page.isClosed()) {
+        const captures = await Promise.allSettled([
+          page.locator('#app').getAttribute('data-screen', { timeout: 1000 }),
+          page.locator('#app').getAttribute('data-launch-status', { timeout: 1000 }),
+          page.locator('body').innerText({ timeout: 1000 }),
+          // The normal screenshot helper needs __rescue; boot may never define it.
+          page.screenshot({ path: path.join(results, `${name}.png`), fullPage: true, timeout: 5000 }),
+        ]);
+        for (const [index, field] of ['screen', 'launchStatus', 'body', 'screenshot'].entries()) {
+          const capture = captures[index];
+          if (capture.status === 'rejected') diagnostics.captureErrors.push(`${field}: ${capture.reason?.message ?? capture.reason}`);
+          else diagnostics[field] = field === 'screenshot' ? `${name}.png` : capture.value;
+        }
+      }
+      await writeFile(path.join(results, `${name}.json`), `${JSON.stringify(diagnostics, null, 2)}\n`);
+      console.error(`Startup diagnostics: test-results/${name}.json; screen=${diagnostics.screen ?? 'unavailable'}, launchStatus=${diagnostics.launchStatus ?? 'unset'}`);
+      for (const detail of pageErrors) console.error(detail);
+      for (const message of consoleMessages) console.error(`Browser ${message.type}: ${message.text}`);
+      for (const request of failedRequests) console.error(`Request failed: ${request.method} ${request.url}: ${request.failure}`);
+    } catch (captureError) {
+      console.error(`Could not retain startup diagnostics: ${captureError.message}`);
+    } finally {
+      await context.close().catch(closeError => console.error(`Could not close failed startup context: ${closeError.message}`));
+    }
+    throw error;
   }
-  return { context, page, errors };
+}
+
+async function startupFailureDiagnostics(browser, name) {
+  const contexts = browser.contexts().length;
+  const diagnosticCase = `source-load-failure-${process.pid}-${Date.now()}`;
+  // Exercise the real boot error screen and failure capture before __rescue
+  // exists. This is an expected, injected HTTP failure, not a game regression.
+  console.log(`Checking ${name}: expected source-load failure diagnostics`);
+  let failure;
+  try {
+    const opened = await fresh(browser, {}, 0, async page => {
+      await page.route('**/light_the_way.cav', route => route.fulfill({
+        status: 503, contentType: 'text/plain', body: 'Injected startup diagnostic check',
+      }));
+    }, diagnosticCase);
+    await opened.context.close();
+  } catch (error) { failure = error; }
+  assert(failure, 'An unavailable source must fail startup');
+  assert.match(failure.message, /Game reported a startup error:.*The game source could not load\./s);
+  assert.equal(browser.contexts().length, contexts, 'Failed startup leaked its browser context');
+  const diagnosticName = `rescue-startup-${name}-desktop-${diagnosticCase}`;
+  const diagnostic = JSON.parse(await readFile(path.join(results, `${diagnosticName}.json`), 'utf8'));
+  assert.equal(diagnostic.screen, 'error');
+  assert.match(diagnostic.body, /The game source could not load\./);
+  assert(diagnostic.pageErrors.length || diagnostic.consoleErrors.length, 'Startup discarded the browser error');
+  assert.equal(diagnostic.screenshot, `${diagnosticName}.png`);
+  assert((await readFile(path.join(results, diagnostic.screenshot))).length > 0, 'Startup screenshot is empty');
+  report.checks.push(`${name}: injected source-load failure retains startup diagnostics and closes its context`);
+  console.log(`PASS ${name}: expected source-load failure retained diagnostics and released its context`);
 }
 
 async function begin(page) {
@@ -655,6 +739,7 @@ try {
     const browser = await engine.launch({ headless: true, ...(name === 'chromium' ? { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } : {}) });
     browsers.push(browser);
     report.browsers[name] = browser.version();
+    await startupFailureDiagnostics(browser, name);
     await historyComputation(browser, name);
     await pointerRoute(browser, {}, name);
     await pointerRoute(browser, { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } }, `${name}-mobile`);
