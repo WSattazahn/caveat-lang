@@ -1,0 +1,44 @@
+{
+  "schema": "caveat-glama-inspection/0.1",
+  "observedAt": "2026-10-15T21:01:28.111Z",
+  "package": "caveat-lang@0.1.0-rc.20",
+  "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+  "build": {
+    "id": "01a1415a-d5ad-7b5d-9afc-84ade7992f2a",
+    "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/admin/dockerfile/tests/01a1415a-d5ad-7b5d-9afc-84ade7992f2a",
+    "status": "success",
+    "startedAt": "2026-10-15T20:57:14Z",
+    "initializeAt": "2026-10-15T20:57:24Z",
+    "toolsListAt": "2026-10-15T20:57:25Z",
+    "install": "npm install --global caveat-lang",
+    "command": ["mcp-proxy", "--", "caveat-lang", "mcp"],
+    "serverInfo": {"name": "caveat-lang", "version": "0.1.0-rc.20", "title": "CAVEAT Language"},
+    "protocolVersion": "2025-11-25",
+    "glamaRelease": "0.1.1",
+    "note": "Glama's release label is its own identifier, not the npm package version. The instance initialize response identifies rc.20. Existing Dockerfile configuration was rebuilt after repository sync; no configuration change was needed."
+  },
+  "publicSchema": {
+    "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/schema",
+    "observedAt": "2026-10-15T21:00:17.814Z",
+    "toolCount": 5,
+    "descriptionsMatchSource": true,
+    "note": "All five complete descriptions in the rendered public schema were compared with kit/lib/mcp.mjs. This description comparison does not independently validate every schema field; full catalog delivery is separately checked by the installed-package probes."
+  },
+  "tdqs": {
+    "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/admin/tdqs",
+    "selectedRelease": "v0.1.1 (latest)",
+    "releaseDate": "2026-10-15",
+    "evaluatedTools": 5,
+    "average": 4.6,
+    "maximum": 5,
+    "tools": [
+      {"name": "caveat_check", "grade": "A", "score": 4.6},
+      {"name": "caveat_dependents", "grade": "A", "score": 4.6},
+      {"name": "caveat_explain", "grade": "A", "score": 4.6},
+      {"name": "caveat_test", "grade": "A", "score": 4.6},
+      {"name": "caveat_validate", "grade": "A", "score": 4.6}
+    ],
+    "note": "Observed in the authenticated TDQS page after the successful rc.20 inspection. Older public aggregates may lag this per-release evaluation. This is an external tool-definition rating, not proof of runtime correctness."
+  },
+  "method": "Read the authenticated build and instance logs, public schema and per-release TDQS UI after the owner-authorized Build & Release. Retained local visible-text and screenshot evidence. No API response or score was fabricated."
+}

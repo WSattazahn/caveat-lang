@@ -119,6 +119,30 @@ resume. The fix is in the restore check, with the regression
 `stabilization_trial_a_take_back_after_a_caveated_reopening_restores`; it
 ships in rc.19.
 
+### Maintenance follow-up, 2026-10-15
+
+[rc.20](v0.1.0-rc.20.md) continues stabilization with fixes, documentation
+and compatibility evidence. It improves MCP tool guidance and corrects
+human-readable explanations of authored, evidence-carried and inherited
+caveats. It also carries rc.19 save fixtures, installed MCP catalog checks,
+and Rescue startup diagnostics and context cleanup. The Rust runtime,
+dependencies and pinned toolchain are unchanged from rc.19; the frozen
+surface gains no syntax, schema, operation, field, CLI flag or export.
+
+The owner approved rc.20 publication and its distribution closeout on
+2026-10-15. The [release lineage](rc20-lineage.json) traces the preserved
+reviews from rc.19 to the annotated rc.20 tag at
+`d9e398e2a6e39c489401ce7785994226966bb364`. The
+[publication record](v0.1.0-rc.20-npm-publication.json) identifies the exact
+tested package; channel and listing observations belong to the dated release
+record. Later documentation and Pages revisions retain their own identities.
+
+The October 12 freeze remains in force. This maintenance release continues
+E2 without resetting its chronology; the original decision and observations
+above remain as dated. B8 stays open for the exact 1.0.0 artifact and the
+owner's release decision through E3. This update does not establish that
+stabilization has finished or change the 1.0 target.
+
 ### What exists and will not be rebuilt
 
 - Departure, lineage compaction, the archive and the collector: rc.16 runtime.

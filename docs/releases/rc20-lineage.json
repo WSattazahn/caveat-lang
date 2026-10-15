@@ -1,0 +1,123 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "0.1.0-rc.20",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v0.1.0-rc.20",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/230",
+  "integrationBranch": "codex/mcp-guidance-release",
+  "integrationIdentity": "PR #230 merged the reviewed release candidate without squashing, preserving the earlier reviewed commits. The annotated release tag identifies the exact tested main revision. Later publication records, compatibility fixtures and site documentation do not move the tag or replace the published package.",
+  "stages": [
+    {
+      "id": "published-rc19",
+      "version": "0.1.0-rc.19",
+      "revision": "21594cc115c02c570c7f517428836e84f490445b",
+      "tag": "v0.1.0-rc.19",
+      "published": true,
+      "record": "v0.1.0-rc.19-npm-publication.json"
+    },
+    {
+      "id": "rc19-publication-records",
+      "revision": "701bccdc613099a8c757e5f4f1bd735f469145e5",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/216"
+    },
+    {
+      "id": "rc19-agent-decision-evidence",
+      "revision": "b977950205b975eb982e594ffc87d790ac838b45",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/217"
+    },
+    {
+      "id": "carried-versus-retained-caveats-and-authoring-guidance",
+      "revision": "f172eaed372cc76cc2405e1fd7e4507bd4e1dfed",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/221"
+    },
+    {
+      "id": "rc19-save-fixtures-and-compatibility-evidence",
+      "revision": "0b995733744f48454af2471dac57e78f6ba8827c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/225"
+    },
+    {
+      "id": "inherited-caveat-formatting-and-reviewer-example",
+      "revision": "285ede4f965ef48a866fcac0ef93744852d1c94f",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/226"
+    },
+    {
+      "id": "mcp-overview",
+      "revision": "85edca2f7d3addf947712894cf4271384b4ba86f",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/227"
+    },
+    {
+      "id": "glama-maintainer-metadata",
+      "revision": "59eb2950b4b774824ec4e3782cfabf693c74e22a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/228"
+    },
+    {
+      "id": "mcp-tool-guidance",
+      "revision": "3e1e11b886aacc9c633d53a53dc5077e733721a3",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/229"
+    },
+    {
+      "id": "rescue-startup-diagnostics-and-context-cleanup",
+      "revision": "42753d744e10eed02f8b20bcdbd87e4ea4c4d659",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/229"
+    },
+    {
+      "id": "mcp-guidance-and-rescue-harness-integration",
+      "revision": "5d69402bbfd1098da354aa41556d62c9bb0cf00d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/229"
+    },
+    {
+      "id": "reviewed-rc20-candidate",
+      "revision": "78ef1f133f4cd72297a60d12c1163c1762bcb3bf",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/230"
+    },
+    {
+      "id": "published-rc20",
+      "version": "0.1.0-rc.20",
+      "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+      "tag": "v0.1.0-rc.20",
+      "published": true,
+      "record": "v0.1.0-rc.20-npm-publication.json"
+    }
+  ],
+  "scope": "Maintenance during the 1.0 feature freeze: clearer MCP tool definitions and guidance; human-readable explain formatting that distinguishes authored, evidence-carried and inherited caveats; documentation and examples; compatibility and installed-package evidence; Rescue startup diagnostics and failed-context cleanup. The Rust runtime, package runtime dependencies and pinned toolchain are unchanged from rc.19. No language syntax, runtime operation, save format, MCP tool or tool argument is added.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "d9e398e2a6e39c489401ce7785994226966bb364",
+  "publicationRecord": "v0.1.0-rc.20-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-15T21:02:59.932Z",
+    "record": "v0.1.0-rc.20-distribution.json",
+    "channels": ["npm-latest", "npm-next", "registry"],
+    "version": "0.1.0-rc.20",
+    "mcpRegistryPublishedAt": "2026-10-15T21:02:17.694814Z",
+    "installPathRecord": "v0.1.0-rc.20-mcp-install.json",
+    "glamaRecord": "v0.1.0-rc.20-glama.json"
+  },
+  "publicationVerifiedAt": "2026-10-15T20:51:15.212Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/38802364577",
+  "publicationAttempt": 1,
+  "publicationArtifact": {
+    "id": 12005023848,
+    "name": "npm-publication-verification",
+    "digest": "sha256:37a31342b319e7bdc3b5b650a44103b6cdeb53fcc660778a3f1ee42c0141fd1a"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/38793778662",
+  "runtimeArtifact": {
+    "id": 12003502520,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38793778662/artifacts/12003502520"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.20.tgz",
+    "bytes": 1214722,
+    "sha256": "8b4e6b4855e822c824f854f36d4bda1b83c7792e784e00ed25505ecec9d4465a",
+    "sha512": "55d13e4c4a30815e137f2dffd3d3cf1b52d6e1aa24d85764f691a8e61159de4c29b1dde098d34862ecce336f51edc23bc0833dacceda96be8de47f96a5264f98",
+    "integrity": "sha512-VdE+TEowgV4Tfy3/09PPG1LW4aok2Fdk9pGo5hFZ3kwpsd3gmNNIYuzOM29R7cI7wIM9rM7alr6N5H+WpSZPmA=="
+  },
+  "stabilization": {
+    "record": "path-to-1.0.md#maintenance-follow-up-2026-10-15",
+    "freezeRecord": "path-to-1.0.md#freeze-review-e1-2026-10-12",
+    "status": "Maintenance continues within the existing freeze. rc.20 does not reset the stabilization chronology or close the final 1.0 artifact gate, B8."
+  }
+}

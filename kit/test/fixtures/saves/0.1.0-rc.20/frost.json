@@ -1,0 +1,303 @@
+{
+ "note": "Written by scripts/save-fixture.mjs from the installed release named here. Do not edit; regenerate from that release.",
+ "package": "caveat-lang@0.1.0-rc.20",
+ "program": "programs/frost.cav",
+ "events": "events/frost.json",
+ "before": [
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  }
+ ],
+ "save": "{\"schema\":\"caveat-reactive-save/0.1\",\"source_id\":\"fnv1a64:fbe0b1e76af6e4ab:2457\",\"source_sha256\":\"e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f\",\"sequence\":4,\"last_event\":\"drone_read\",\"elapsed\":0.0,\"states\":{},\"graph\":{\"nodes\":[{\"kind\":\"occurrence\",\"name\":\"soil@1\"},{\"kind\":\"occurrence\",\"name\":\"approvals@1\"},{\"kind\":\"commitment\",\"name\":\"cover@1\",\"reason\":\"enough\"},{\"kind\":\"occurrence\",\"name\":\"aerial@1\"}],\"relations\":[[\"soil@1\",\"supports\",\"frost_risk\"],[\"approvals@1\",\"supports\",\"cover_approved\"],[\"cover@1\",\"relies_on\",\"approvals@1\"],[\"cover@1\",\"relies_on\",\"soil@1\"],[\"aerial@1\",\"supports\",\"frost_risk\"],[\"uncalibrated\",\"qualifies\",\"aerial@1\"]]},\"commitment_bases\":{\"cover@1\":{\"value\":1.0,\"provenance\":{\"evidence\":[\"approvals@1\",\"soil@1\"],\"caveats\":[]}}},\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"]}},\"reading_streams\":{\"aerial\":{\"template\":\"drone\",\"limit\":12,\"current\":\"aerial@1\",\"occurrences\":[{\"id\":\"aerial@1\",\"ordinal\":1,\"sequence\":4,\"event\":\"drone_read\",\"value\":0.0,\"provenance\":{\"evidence\":[\"aerial@1\"],\"caveats\":[\"uncalibrated\"]},\"relation\":\"supports\",\"claim\":\"frost_risk\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"approvals\":{\"template\":\"grower\",\"limit\":4,\"current\":\"approvals@1\",\"occurrences\":[{\"id\":\"approvals@1\",\"ordinal\":1,\"sequence\":2,\"event\":\"approve\",\"value\":1.0,\"provenance\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"relation\":\"supports\",\"claim\":\"cover_approved\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"soil\":{\"template\":\"probe\",\"limit\":12,\"current\":\"soil@1\",\"occurrences\":[{\"id\":\"soil@1\",\"ordinal\":1,\"sequence\":1,\"event\":\"probe_read\",\"value\":1.0,\"provenance\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"relation\":\"supports\",\"claim\":\"frost_risk\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@1\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"identifiers\":[\"sam\"],\"commitment_permissions\":{\"cover@1\":{\"grant\":\"approvals@1\"}},\"observation_qualifications\":{\"aerial@1\":{},\"approvals@1\":{},\"soil@1\":{}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0.0,\"value\":1.0,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"}],\"effects\":[{\"kind\":\"sample\",\"stream\":\"aerial\",\"id\":\"aerial@1\",\"value\":0.0,\"relation\":\"supports\",\"target\":\"frost_risk\"}]}",
+ "after": [
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":5,\"last_event\":\"probe_read\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"6 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@2\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\"],\"caveats\":[]}}},\"cues\":[],\"effects\":[{\"kind\":\"sample\",\"stream\":\"soil\",\"id\":\"soil@2\",\"value\":6,\"relation\":\"opposes\",\"target\":\"frost_risk\"},{\"kind\":\"reopen\",\"action\":\"cover@1\",\"because\":\"soil@2\"}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@1\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":6,\"last_event\":\"misread\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"6 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@2\"],\"caveats\":[\"withdrawn\"]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"reveal\",\"evidence\":\"recheck\",\"relation\":\"supports\",\"target\":\"misreading\"},{\"kind\":\"withdraw\",\"evidence\":\"soil@2\",\"because\":\"recheck\"}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@1\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":7,\"last_event\":\"decide\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"6 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@2\"],\"caveats\":[\"withdrawn\"]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@1\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[\"soil@2\"],\"caveats\":[\"withdrawn\"]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":8,\"last_event\":\"probe_read\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"1 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"sample\",\"stream\":\"soil\",\"id\":\"soil@3\",\"value\":1,\"relation\":\"supports\",\"target\":\"frost_risk\"}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@1\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[\"soil@2\"],\"caveats\":[\"withdrawn\"]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":9,\"last_event\":\"decide\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"1 C\",\"text\":\"Cover the seedlings\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"commit\",\"action\":\"cover@2\",\"retained\":[\"withdrawn\"]}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"open\":false,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":10,\"last_event\":\"lay_cover\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"1 C\",\"text\":\"Cover the seedlings\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"open\":false,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "input",
+   "code": "bound_exceeded",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":10,\"last_event\":\"lay_cover\",\"bindings\":{\"advice\":{\"approved_by\":\"sam\",\"soil\":\"1 C\",\"text\":\"Cover the seedlings\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@1\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"open\":false,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":11,\"last_event\":\"approve\",\"bindings\":{\"advice\":{\"approved_by\":\"ana\",\"soil\":\"1 C\",\"text\":\"Cover the seedlings\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@2\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[]},\"text\":{\"evidence\":[\"approvals@1\",\"soil@1\",\"soil@2\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"sample\",\"stream\":\"approvals\",\"id\":\"approvals@2\",\"value\":2,\"relation\":\"supports\",\"target\":\"cover_approved\"}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"open\":false,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"},{\"from\":\"approvals@2\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":12,\"last_event\":\"misread\",\"bindings\":{\"advice\":{\"approved_by\":\"ana\",\"soil\":\"1 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@2\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[\"withdrawn\"]},\"text\":{\"evidence\":[\"approvals@1\",\"recheck\",\"soil@1\",\"soil@2\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"withdraw\",\"evidence\":\"soil@3\",\"because\":\"recheck\"},{\"kind\":\"reopen\",\"action\":\"cover@2\",\"because\":\"recheck\"}],\"commitments\":[{\"action\":\"cover@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"open\":true,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[\"recheck\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"reopened\",\"sequence\":12,\"event\":\"misread\",\"elapsed\":0,\"value\":1,\"because\":[\"recheck\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"},{\"from\":\"approvals@2\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@3\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"reopens\",\"to\":\"cover@2\",\"origin\":\"live\"}]}"
+  }
+ ],
+ "archive": [],
+ "view_v2": "{\"schema\":\"caveat-reactive-view/0.2\",\"sequence\":12,\"last_event\":\"misread\",\"bindings\":{\"advice\":{\"approved_by\":\"ana\",\"soil\":\"1 C\",\"text\":\"Think again\"}},\"binding_explanations\":{\"advice\":{\"approved_by\":{\"evidence\":[\"approvals@2\"],\"caveats\":[]},\"soil\":{\"evidence\":[\"soil@3\"],\"caveats\":[\"withdrawn\"]},\"text\":{\"evidence\":[\"soil@1\",\"approvals@1\",\"soil@2\",\"recheck\",\"soil@3\"],\"caveats\":[\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"withdraw\",\"evidence\":\"soil@3\",\"because\":\"recheck\"},{\"kind\":\"reopen\",\"action\":\"cover@2\",\"because\":\"recheck\"}],\"commitments\":[{\"action\":\"cover@1\",\"reopened\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"soil@2\"]},{\"action\":\"cover@2\",\"reopened\":true,\"retained\":[\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[\"recheck\"]}],\"commitment_grounds\":{\"cover@1\":{\"evidence\":[\"soil@1\"],\"caveats\":[]},\"cover@2\":{\"evidence\":[\"soil@3\"],\"caveats\":[]}},\"decision_series\":{\"cover\":{\"limit\":4,\"current\":\"cover@2\",\"revisions\":[{\"id\":\"cover@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"cover@2\",\"previous\":\"cover@1\",\"ordinal\":2,\"sequence\":9,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@1\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@1\",\"change\":\"reopened\",\"sequence\":5,\"event\":\"probe_read\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@2\"],\"caveats\":[]},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"committed\",\"sequence\":9,\"event\":\"decide\",\"elapsed\":0,\"value\":1,\"because\":[\"soil@3\"],\"caveats\":[],\"permitted_by\":\"approvals@1\"},{\"decision\":\"cover\",\"commitment\":\"cover@2\",\"change\":\"reopened\",\"sequence\":12,\"event\":\"misread\",\"elapsed\":0,\"value\":1,\"because\":[\"recheck\"],\"caveats\":[]}],\"relations\":[{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"drone\",\"origin\":\"live\"},{\"from\":\"soil@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"approvals@1\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@1\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"aerial@1\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"uncalibrated\",\"relation\":\"qualifies\",\"to\":\"aerial@1\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"opposes\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"soil@2\",\"relation\":\"reopens\",\"to\":\"cover@1\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"supports\",\"to\":\"misreading\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"soil@3\",\"relation\":\"supports\",\"to\":\"frost_risk\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"approvals@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@1\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@2\",\"origin\":\"live\"},{\"from\":\"cover@2\",\"relation\":\"relies_on\",\"to\":\"soil@3\",\"origin\":\"live\"},{\"from\":\"approvals@2\",\"relation\":\"supports\",\"to\":\"cover_approved\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"soil@3\",\"origin\":\"live\"},{\"from\":\"recheck\",\"relation\":\"reopens\",\"to\":\"cover@2\",\"origin\":\"live\"}]}",
+ "explain": {
+  "decisions": [
+   {
+    "name": "cover",
+    "limit": 4,
+    "current": "cover@2",
+    "revisions": [
+     {
+      "id": "cover@1",
+      "value": 1,
+      "status": "superseded",
+      "grounds": {
+       "evidence": [
+        "soil@1"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "approvals@1",
+        "soil@1"
+       ],
+       "caveats": []
+      },
+      "retained": [],
+      "permission": {
+       "grant": "approvals@1"
+      },
+      "withdrawn": [],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 3,
+        "event": "decide",
+        "because": [
+         "soil@1"
+        ],
+        "caveats": [],
+        "source_sha256": "e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f"
+       },
+       {
+        "change": "reopened",
+        "sequence": 5,
+        "event": "probe_read",
+        "because": [
+         "soil@2"
+        ],
+        "caveats": [],
+        "source_sha256": "e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f"
+       }
+      ]
+     },
+     {
+      "id": "cover@2",
+      "value": 1,
+      "status": "reopened",
+      "grounds": {
+       "evidence": [
+        "soil@3"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "approvals@1",
+        "soil@1",
+        "soil@2",
+        "soil@3"
+       ],
+       "caveats": [
+        "withdrawn"
+       ]
+      },
+      "retained": [
+       "withdrawn"
+      ],
+      "permission": {
+       "grant": "approvals@1"
+      },
+      "withdrawn": [
+       {
+        "evidence": "soil@3",
+        "because": "recheck",
+        "sequence": 12,
+        "event": "misread"
+       }
+      ],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 9,
+        "event": "decide",
+        "because": [
+         "soil@3"
+        ],
+        "caveats": [],
+        "source_sha256": "e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f"
+       },
+       {
+        "change": "reopened",
+        "sequence": 12,
+        "event": "misread",
+        "because": [
+         "recheck"
+        ],
+        "caveats": [],
+        "source_sha256": "e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "evidence": [
+   {
+    "id": "soil@1",
+    "relation": "supports",
+    "claim": "frost_risk",
+    "value": 1,
+    "sequence": 1,
+    "event": "probe_read",
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "approvals@1",
+    "relation": "supports",
+    "claim": "cover_approved",
+    "value": 1,
+    "sequence": 2,
+    "event": "approve",
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "aerial@1",
+    "relation": "supports",
+    "claim": "frost_risk",
+    "value": 0,
+    "sequence": 4,
+    "event": "drone_read",
+    "caveats": [
+     "uncalibrated"
+    ],
+    "withdrawn": null
+   },
+   {
+    "id": "soil@2",
+    "relation": "opposes",
+    "claim": "frost_risk",
+    "value": 6,
+    "sequence": 5,
+    "event": "probe_read",
+    "caveats": [
+     "withdrawn"
+    ],
+    "withdrawn": {
+     "because": "recheck",
+     "sequence": 6,
+     "event": "misread"
+    }
+   },
+   {
+    "id": "recheck",
+    "relation": "supports",
+    "claim": "misreading",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "soil@3",
+    "relation": "supports",
+    "claim": "frost_risk",
+    "value": 1,
+    "sequence": 8,
+    "event": "probe_read",
+    "caveats": [
+     "withdrawn"
+    ],
+    "withdrawn": {
+     "because": "recheck",
+     "sequence": 12,
+     "event": "misread"
+    }
+   },
+   {
+    "id": "approvals@2",
+    "relation": "supports",
+    "claim": "cover_approved",
+    "value": 2,
+    "sequence": 11,
+    "event": "approve",
+    "caveats": [],
+    "withdrawn": null
+   }
+  ],
+  "displayed": [
+   {
+    "name": "advice.approved_by",
+    "value": "ana",
+    "cites": {
+     "evidence": [
+      "approvals@2"
+     ],
+     "caveats": []
+    }
+   },
+   {
+    "name": "advice.soil",
+    "value": "1 C",
+    "cites": {
+     "evidence": [
+      "soil@3"
+     ],
+     "caveats": [
+      "withdrawn"
+     ]
+    }
+   },
+   {
+    "name": "advice.text",
+    "value": "Think again",
+    "cites": {
+     "evidence": [
+      "approvals@1",
+      "recheck",
+      "soil@1",
+      "soil@2",
+      "soil@3"
+     ],
+     "caveats": [
+      "withdrawn"
+     ]
+    }
+   }
+  ]
+ }
+}
