@@ -2,12 +2,21 @@
 // Client dependencies are test-only; nothing is added to the shipped package.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { copyFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { MCP_TOOLS } from '../kit/lib/mcp.mjs';
 
 const fixture = fileURLToPath(new URL('./fixtures/mcp-client/', import.meta.url));
+const manifest = JSON.parse(await readFile(new URL('../kit/package.json', import.meta.url), 'utf8'));
+function checkCatalog(tools, server) {
+  assert.equal(server.name, manifest.name);
+  assert.equal(server.version, manifest.version, 'installed MCP server advertises the candidate version');
+  assert.deepEqual(tools, MCP_TOOLS, 'packed MCP catalog preserves current descriptions, schemas and annotations');
+  return { count: tools.length, sha256: createHash('sha256').update(JSON.stringify(tools)).digest('hex') };
+}
 export async function checkMcpClient({ installed, directory }) {
   await mkdir(directory, { recursive: true });
   for (const file of ['package.json', 'package-lock.json']) await copyFile(path.join(fixture, file), path.join(directory, file));
@@ -33,6 +42,7 @@ export async function checkMcpClient({ installed, directory }) {
     await client.connect(transport, { timeout: 15000 });
     const listed = await client.listTools();
     assert.deepEqual(listed.tools.map(tool => tool.name).sort(), [...names].sort());
+    const catalog = checkCatalog(listed.tools, client.getServerVersion());
     assert.deepEqual(client.getServerCapabilities(), { tools: {} });
     for (const [name, args] of [
       ['caveat_validate', { source }], ['caveat_check', { source }],
@@ -62,7 +72,7 @@ export async function checkMcpClient({ installed, directory }) {
     assert.equal(retry.structuredContent.exitCode, 0);
     const metadata = JSON.parse(await readFile(path.join(sdk, 'package.json'), 'utf8'));
     return { client: `${metadata.name}@${metadata.version}`, server: client.getServerVersion(),
-      calls, invalidSource: true, virtualPathRefused: true, retry: true, stderr };
+      catalog, calls, invalidSource: true, virtualPathRefused: true, retry: true, stderr };
   } finally { await client.close(); }
 }
 
@@ -104,6 +114,7 @@ export async function checkMcpStatelessProbe({ installed, directory }) {
     assert.deepEqual(discovered.capabilities, { tools: {} });
     const listed = (await rpc(2, 'tools/list', meta)).result;
     assert.deepEqual(serverInfo(listed), server);
+    const catalog = checkCatalog(listed.tools, server);
     assert.deepEqual(listed.tools.map(tool => tool.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents']);
     assert.ok(Number.isInteger(listed.ttlMs) && listed.ttlMs >= 0 && ['public', 'private'].includes(listed.cacheScope));
     const source = await readFile(path.join(installed, 'templates', 'umbrella.cav'), 'utf8');
@@ -113,7 +124,7 @@ export async function checkMcpStatelessProbe({ installed, directory }) {
     assert.equal(called.structuredContent.exitCode, 0);
     const unsupported = (await rpc(4, 'tools/list', { _meta: { ...meta._meta, 'io.modelcontextprotocol/protocolVersion': '2099-01-01' } })).error;
     assert.equal(unsupported.code, -32022);
-    return { protocolVersion: '2026-07-28', server, discover: true, toolsCall: called.structuredContent.operation, unsupportedVersion: unsupported.code };
+    return { protocolVersion: '2026-07-28', server, catalog, discover: true, toolsCall: called.structuredContent.operation, unsupportedVersion: unsupported.code };
   } finally {
     child.stdin.end();
     if (child.exitCode === null) await once(child, 'close');
