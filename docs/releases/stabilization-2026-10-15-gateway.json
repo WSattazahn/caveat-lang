@@ -1,0 +1,436 @@
+{
+  "schema": "caveat-stabilization-gateway-observation/0.1",
+  "status": "observed-success",
+  "capturedAt": "2026-10-16T04:16:00.000Z",
+  "localDate": "2026-10-15",
+  "timeZone": "America/Los_Angeles",
+  "capturedAtLocal": "2026-10-15T21:16:00-07:00",
+  "transport": "Connected Caveat Gateway tools in this Codex chat",
+  "scope": "One observed call per tool using the corrected published authoring example. No claim of continuous availability or of fixing the separate Glama Inspector transport failures.",
+  "runtime": {
+    "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+    "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-unknown-linux-gnu",
+    "packageIdentityMatched": {
+      "name": "caveat-lang",
+      "version": "0.1.0-rc.20",
+      "evidence": "docs/releases/v0.1.0-rc.20-mcp-install.json"
+    }
+  },
+  "inputs": {
+    "source": {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "bytes": 9293,
+      "sha256": "df920a79d46bd802f836443bbbc6f71cae298032d80dfdec373dbbb9ab94f65b"
+    },
+    "scenarios": {
+      "path": "experiments/release-readiness/release-readiness.scenarios.json",
+      "bytes": 35619,
+      "sha256": "6b24010eb09bdca8c3816fbf7b2dd9d6b30e5b85ec9ca709dae8ee6b19984e03"
+    },
+    "events": {
+      "path": "experiments/release-readiness/observed-2026-10-15.events.jsonl",
+      "bytes": 233,
+      "sha256": "817efb7f63efaaa03b839e90d3d53461b869a78c0e5f48b08071868885e38dbf"
+    },
+    "transportAdaptation": "Full multiline source supplied inline. Scenario source references were changed to inline.cav; scenario steps and event payloads matched the tracked fixtures.",
+    "checkStrict": true,
+    "dependentsSubject": "preview_publication"
+  },
+  "calls": [
+    {
+      "tool": "caveat_validate",
+      "operation": "validate",
+      "startedAt": "2026-10-16T04:15:08.000Z",
+      "isError": false,
+      "exitCode": 0,
+      "reportSchema": "caveat-validate/0.1"
+    },
+    {
+      "tool": "caveat_check",
+      "operation": "check",
+      "startedAt": "2026-10-16T04:15:20.000Z",
+      "isError": false,
+      "exitCode": 0,
+      "reportSchema": "caveat-check/0.1"
+    },
+    {
+      "tool": "caveat_test",
+      "operation": "test",
+      "startedAt": "2026-10-16T04:15:22.000Z",
+      "isError": false,
+      "exitCode": 0,
+      "reportSchema": "caveat-scenario-report/0.1"
+    },
+    {
+      "tool": "caveat_explain",
+      "operation": "explain",
+      "startedAt": "2026-10-16T04:15:33.000Z",
+      "isError": false,
+      "exitCode": 0,
+      "reportSchema": "caveat-explain/0.1"
+    },
+    {
+      "tool": "caveat_dependents",
+      "operation": "dependents",
+      "startedAt": "2026-10-16T04:15:34.000Z",
+      "isError": false,
+      "exitCode": 0,
+      "reportSchema": "caveat-dependents/0.1"
+    }
+  ],
+  "results": {
+    "validate": {
+      "loads": true,
+      "eventCount": 11,
+      "readingStreamCount": 5,
+      "decisionSeriesCount": 2
+    },
+    "check": {
+      "loads": true,
+      "strict": true,
+      "diagnostics": [],
+      "suppressed": []
+    },
+    "test": {
+      "passed": 13,
+      "failed": 0,
+      "scenarios": [
+        {
+          "id": "RR01",
+          "title": "Actual October 15 preview observations do not approve a future stable release",
+          "pass": true,
+          "events": 6,
+          "rejected": 3,
+          "resumes": 1
+        },
+        {
+          "id": "RR02",
+          "title": "Preview identity, wrong exact artifact, and candidate changes cannot borrow stable evidence",
+          "pass": true,
+          "events": 7,
+          "rejected": 6,
+          "resumes": 0
+        },
+        {
+          "id": "RR03",
+          "title": "Every missing evidence category and missing owner grant blocks stable assessment",
+          "pass": true,
+          "events": 14,
+          "rejected": 7,
+          "resumes": 0
+        },
+        {
+          "id": "RR04",
+          "title": "Recorded failures and an incomplete observation period each block approval despite an owner grant",
+          "pass": true,
+          "events": 15,
+          "rejected": 4,
+          "resumes": 0
+        },
+        {
+          "id": "RR05",
+          "title": "Polling the current receipt is refused atomically, even if the caller changes its reported value",
+          "pass": true,
+          "events": 10,
+          "rejected": 3,
+          "resumes": 0
+        },
+        {
+          "id": "RR06",
+          "title": "A genuinely new green receipt reopens the assessment without rewriting its old basis",
+          "pass": true,
+          "events": 9,
+          "rejected": 0,
+          "resumes": 1
+        },
+        {
+          "id": "RR07",
+          "title": "A correction withdraws checks, reopens only stable readiness, and replacement evidence earns a new revision",
+          "pass": true,
+          "events": 14,
+          "rejected": 2,
+          "resumes": 1
+        },
+        {
+          "id": "RR08",
+          "title": "Revoking the recorded grant reopens approval while check evidence stays unchanged",
+          "pass": true,
+          "events": 12,
+          "rejected": 2,
+          "resumes": 1
+        },
+        {
+          "id": "RR09",
+          "title": "A new failed check supersedes current readiness, but never erases the previous approval's grounds",
+          "pass": true,
+          "events": 11,
+          "rejected": 1,
+          "resumes": 0
+        },
+        {
+          "id": "RR10",
+          "title": "The ninth check observation reaches the declared capacity without partially recording its receipt",
+          "pass": true,
+          "events": 10,
+          "rejected": 1,
+          "resumes": 1
+        },
+        {
+          "id": "RR11",
+          "title": "Four decision revisions are the supported cap; a fifth assessment refuses and preserves the reopen",
+          "pass": true,
+          "events": 15,
+          "rejected": 1,
+          "resumes": 1
+        },
+        {
+          "id": "RR12",
+          "title": "Invalid payloads and corrections without observations refuse without inventing evidence",
+          "pass": true,
+          "events": 6,
+          "rejected": 5,
+          "resumes": 0
+        },
+        {
+          "id": "RR13",
+          "title": "Fractional report values are refused before receipt or evidence state changes",
+          "pass": true,
+          "events": 13,
+          "rejected": 4,
+          "resumes": 0
+        }
+      ],
+      "totals": {
+        "events": 142,
+        "rejected": 39,
+        "resumes": 6
+      },
+      "rejectionMeaning": "These are expected authored or runtime refusals exercised by passing scenarios, not failed tool calls."
+    },
+    "observedHistory": {
+      "sequence": 3,
+      "events": [
+        {
+          "event": "record_preview",
+          "payload": {},
+          "outcome": {
+            "schema": "caveat-dispatch/0.1",
+            "outcome": "accepted"
+          }
+        },
+        {
+          "event": "review_preview",
+          "payload": {},
+          "outcome": {
+            "schema": "caveat-dispatch/0.1",
+            "outcome": "accepted"
+          }
+        },
+        {
+          "event": "window_reported",
+          "payload": {
+            "receipt": "2026-10-15:Oct12-freeze-review:Oct26-not-reached",
+            "complete": 0
+          },
+          "outcome": {
+            "schema": "caveat-dispatch/0.1",
+            "outcome": "accepted"
+          }
+        },
+        {
+          "event": "assess_stable",
+          "payload": {},
+          "outcome": {
+            "schema": "caveat-dispatch/0.1",
+            "outcome": "rejected",
+            "origin": "policy",
+            "code": "reject",
+            "message": "No stable candidate selected."
+          }
+        }
+      ],
+      "bindings": {
+        "preview.status": "verified rc.20 observations",
+        "stable.artifact": "",
+        "stable.check_observations": 0,
+        "stable.revisions": 0,
+        "stable.status": "missing candidate"
+      },
+      "stabilization": {
+        "name": "stabilization",
+        "limit": 1,
+        "current": "stabilization@1",
+        "revisions": [
+          {
+            "id": "stabilization@1",
+            "value": 3,
+            "status": "in force",
+            "grounds": {
+              "evidence": [
+                "preview_ci",
+                "preview_listings",
+                "preview_publication"
+              ],
+              "caveats": []
+            },
+            "lineage": {
+              "evidence": [
+                "preview_ci",
+                "preview_listings",
+                "preview_publication"
+              ],
+              "caveats": []
+            },
+            "retained": [],
+            "permission": null,
+            "withdrawn": [],
+            "observed_by": [
+              {
+                "evidence": "preview_ci",
+                "sequence": 1,
+                "event": "record_preview",
+                "payload": {}
+              },
+              {
+                "evidence": "preview_listings",
+                "sequence": 1,
+                "event": "record_preview",
+                "payload": {}
+              },
+              {
+                "evidence": "preview_publication",
+                "sequence": 1,
+                "event": "record_preview",
+                "payload": {}
+              }
+            ],
+            "history": [
+              {
+                "change": "committed",
+                "sequence": 2,
+                "event": "review_preview",
+                "because": [
+                  "preview_publication",
+                  "preview_ci",
+                  "preview_listings"
+                ],
+                "caveats": [],
+                "source_sha256": "df920a79d46bd802f836443bbbc6f71cae298032d80dfdec373dbbb9ab94f65b"
+              }
+            ]
+          }
+        ]
+      },
+      "stableRelease": {
+        "name": "stable_release",
+        "limit": 4,
+        "current": null,
+        "revisions": []
+      }
+    },
+    "dependents": {
+      "subject": "preview_publication",
+      "kind": "evidence",
+      "sequence": 3,
+      "claims": [
+        {
+          "evidence": "preview_publication",
+          "relation": "supports",
+          "claim": "preview_verified"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "stabilization@1",
+          "value": 3,
+          "status": "in force",
+          "basis": "grounds",
+          "via": [
+            "preview_publication"
+          ],
+          "withdrawn": []
+        }
+      ],
+      "displayed": [
+        {
+          "name": "preview.status",
+          "value": "verified rc.20 observations",
+          "basis": "cites",
+          "via": [
+            "preview_publication"
+          ],
+          "withdrawn": []
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "rawObservation": {
+      "path": "test-results/gateway-authoring/observation.json",
+      "bytes": 89117,
+      "sha256": "f5de5cb324a1d20bbb0c1f9befd64f5e4417cb0c5dc6e6760bd151a4f4a364a8",
+      "availability": "Task-local ignored artifact; summarized here without duplicated source or tool text."
+    },
+    "verifier": {
+      "path": "test-results/gateway-authoring/verify.mjs",
+      "bytes": 3286,
+      "sha256": "e77afbba32077017ec70038ff264692ed6235091025ab79572f409e2a41e7ce9"
+    },
+    "verificationPlan": {
+      "path": "test-results/gateway-authoring/verification.plan.json",
+      "bytes": 1314,
+      "sha256": "cbd8f09d76bc3531854c91e52853f519869a51dde2b456dcddf279eb10d176ed"
+    },
+    "publishedRuntimeEvidence": {
+      "path": "docs/releases/v0.1.0-rc.20-mcp-install.json",
+      "bytes": 19324,
+      "sha256": "af72917858202bbbc2f79a6ade7bae1af06b45c84de470037083b32e1ef20ad5"
+    },
+    "savedObservationAudit": {
+      "artifact": "gateway-authoring-audit.json",
+      "availability": "Task-local artifact outside the checkout.",
+      "sha256": "e1c9a807de24e5be1e8c17daf288cc4c65cd5c452308bddb46f524373f2293eb",
+      "schema": "caveat-receipts/1",
+      "accepted": true,
+      "asOf": "2026-10-16T04:17:54.203Z",
+      "verdict": "SUPPORTED (bounded tested readiness)",
+      "problems": [],
+      "check": {
+        "id": "saved-gateway-observations",
+        "receiptSha256": "439cdbc453d863fdfffffa244dc7c0bbd5ec97dccd11c2a7c1fdd3852f605ce1",
+        "command": [
+          "node",
+          "test-results/gateway-authoring/verify.mjs"
+        ],
+        "startedAt": "2026-10-16T04:17:36.708Z",
+        "finishedAt": "2026-10-16T04:17:36.794Z",
+        "exitCode": 0,
+        "complete": true
+      },
+      "scope": "Read-only comparison of saved actual host tool inputs/results with exact source, scenarios, events and published runtime identity. Confirms five exit-zero results, strict diagnostics,13passed scenarios, ordered actual-history outcomes and no stable approval. Does not replay network calls or independently authenticate the supplied observations.",
+      "limitation": "Acceptance covers verification of saved observations. It does not replay the connected calls, authenticate supplied facts or grant release permission."
+    }
+  },
+  "earlierInspectorObservation": {
+    "path": "experiments/release-readiness/receipts/mcp-verification.json",
+    "bytes": 7265,
+    "sha256": "db5e138111c6a53fe8f15770f98fe1877edb19912366182c47778ce3536c0445",
+    "recordedAt": "2026-10-16T02:23:31.769Z",
+    "localDate": "2026-10-15",
+    "transport": "Glama authenticated MCP Inspector for existing deployment",
+    "successfulCalls": 4,
+    "transportFailures": 2,
+    "status": "Preserved as a separate historical observation; its failures and then-unverified host-connector status remain unchanged."
+  },
+  "releaseEffect": {
+    "freezeDate": "2026-10-12",
+    "freezeChronology": "unchanged",
+    "E2": "open",
+    "B8": "open",
+    "stableReleaseAuthorized": false,
+    "limitation": "This run adds representative authoring evidence for stabilization. It does not establish continuous reliability, repair of the separate Glama Inspector transport, completion of the observation period, an exact 1.0.0 candidate or owner release approval."
+  }
+}

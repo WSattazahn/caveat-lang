@@ -1,0 +1,627 @@
+{
+  "schema": "caveat-1.0-readiness-audit/1",
+  "observedAt": "2026-10-16T04:23:40.352Z",
+  "localDate": "2026-10-15",
+  "localTimezone": "America/Los_Angeles",
+  "status": "preparation-only; E2 and B8 remain open",
+  "scope": "Dated review of recorded stabilization evidence, current open GitHub items, exact-main CI and existing release tooling. Does not select or authorize a stable candidate.",
+  "repository": "https://github.com/WSattazahn/caveat-lang",
+  "inspectedMain": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+  "authoringTrialMerge": {
+    "pullRequest": 232,
+    "url": "https://github.com/WSattazahn/caveat-lang/pull/232",
+    "mergeCommit": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+    "mergedAt": "2026-10-16T03:18:18Z",
+    "reviewedHead": "7c922fd47224c0667d85c011f196099a321b1187",
+    "parents": [
+      "6704c0a9fb827a066760493aec25349b0ffb2703",
+      "7c922fd47224c0667d85c011f196099a321b1187"
+    ],
+    "changedFiles": [
+      "experiments/release-readiness/README.md",
+      "experiments/release-readiness/observed-2026-10-15.events.jsonl",
+      "experiments/release-readiness/receipts/fractional-before-fix.json",
+      "experiments/release-readiness/receipts/local-preflight.json",
+      "experiments/release-readiness/receipts/local-scenarios.json",
+      "experiments/release-readiness/receipts/mcp-verification.json",
+      "experiments/release-readiness/release-readiness.cav",
+      "experiments/release-readiness/release-readiness.scenarios.json"
+    ]
+  },
+  "githubObservation": {
+    "startedAt": "2026-10-16T04:23:37.856Z",
+    "completedAt": "2026-10-16T04:23:40.352Z",
+    "rawObservationSha256": "be2ef6a2bd2f87575bae44ee1a68c417994c5c0c63f134091f0b58a65b49120b",
+    "issueState": "open",
+    "issueQueryLimit": 1000,
+    "openIssueCount": 7,
+    "pullRequestState": "open",
+    "pullRequestQueryLimit": 1000,
+    "openPullRequestCount": 1,
+    "workflowRunTotal": 5,
+    "checkRunTotal": 28
+  },
+  "currentMainCI": {
+    "workflows": [
+      {
+        "id": 38849192008,
+        "name": "deploy-pages",
+        "event": "workflow_run",
+        "headSha": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008"
+      },
+      {
+        "id": 38844841913,
+        "name": "format-check",
+        "event": "push",
+        "headSha": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841913"
+      },
+      {
+        "id": 38844842039,
+        "name": "rc7 publication helper recovery",
+        "event": "push",
+        "headSha": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844842039"
+      },
+      {
+        "id": 38844841910,
+        "name": "Lean scaffold",
+        "event": "push",
+        "headSha": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841910"
+      },
+      {
+        "id": 38844841994,
+        "name": "runtime",
+        "event": "push",
+        "headSha": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+        "attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994"
+      }
+    ],
+    "checks": [
+      {
+        "id": 116806700937,
+        "name": "live legacy Door QA",
+        "status": "completed",
+        "conclusion": "skipped",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806700937"
+      },
+      {
+        "id": 116806699883,
+        "name": "live Moon Garden 2D QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806699883"
+      },
+      {
+        "id": 116806699851,
+        "name": "live Moon Garden 3D QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806699851"
+      },
+      {
+        "id": 116806699769,
+        "name": "live Mr. Caveat QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806699769"
+      },
+      {
+        "id": 116806699738,
+        "name": "live evidence games QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806699738"
+      },
+      {
+        "id": 116806541116,
+        "name": "deploy",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806541116"
+      },
+      {
+        "id": 116806454348,
+        "name": "Prepare the tested Pages artifact",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806454348"
+      },
+      {
+        "id": 116806407030,
+        "name": "Select tested main artifact",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38849192008/job/116806407030"
+      },
+      {
+        "id": 116804876838,
+        "name": "packed kit dependency security",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804876838"
+      },
+      {
+        "id": 116804263258,
+        "name": "Legacy Door 3D QA",
+        "status": "completed",
+        "conclusion": "skipped",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804263258"
+      },
+      {
+        "id": 116804262070,
+        "name": "The Last Beacon browser QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262070"
+      },
+      {
+        "id": 116804262064,
+        "name": "Light the Way (chromium)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262064"
+      },
+      {
+        "id": 116804262038,
+        "name": "MCP worker / windows-latest",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262038"
+      },
+      {
+        "id": 116804262024,
+        "name": "Light the Way (webkit)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262024"
+      },
+      {
+        "id": 116804262015,
+        "name": "Evidence games browser QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262015"
+      },
+      {
+        "id": 116804262008,
+        "name": "MCP worker / ubuntu-24.04",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804262008"
+      },
+      {
+        "id": 116804261999,
+        "name": "Moon Garden 3D QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804261999"
+      },
+      {
+        "id": 116804261994,
+        "name": "Mr. Caveat iPhone QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804261994"
+      },
+      {
+        "id": 116804261980,
+        "name": "Moon Garden 2D QA",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804261980"
+      },
+      {
+        "id": 116804261979,
+        "name": "reproducible WebAssembly",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804261979"
+      },
+      {
+        "id": 116804261961,
+        "name": "Lean runtime comparison",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116804261961"
+      },
+      {
+        "id": 116792908274,
+        "name": "core semantics",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116792908274"
+      },
+      {
+        "id": 116792908227,
+        "name": "VS Code extension",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116792908227"
+      },
+      {
+        "id": 116792908220,
+        "name": "deterministic-windows",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844842039/job/116792908220"
+      },
+      {
+        "id": 116792908060,
+        "name": "independent-registry",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844842039/job/116792908060"
+      },
+      {
+        "id": 116792907991,
+        "name": "regression scope",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841994/job/116792907991"
+      },
+      {
+        "id": 116792907388,
+        "name": "proofs",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841910/job/116792907388"
+      },
+      {
+        "id": 116792907334,
+        "name": "rustfmt",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/38844841913/job/116792907334"
+      }
+    ],
+    "scopeSkips": {
+      "names": [
+        "Legacy Door 3D QA",
+        "live legacy Door QA"
+      ],
+      "basis": "All eight merged files are under experiments/release-readiness; no runtime/, game/the_door_round2.cav, web/3d.html or web/the_door_round2.cav change. Runtime regression scope and the Pages selector retain the path-scoped Legacy Door policy."
+    },
+    "limit": "These successful runs cover the existing rc.20/example documentation main. They do not verify future 1.0 bytes or future checklist commits."
+  },
+  "openIssues": [
+    {
+      "number": 224,
+      "title": "No guidance on revising a program while keeping which source made the earlier decisions",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/224",
+      "updatedAt": "2026-10-12T17:51:40Z",
+      "bodySha256": "8ea8244729490f5e6afcfb198ce73414fd2cddf97baf9ebe5e9e7f102a875ee7",
+      "classification": "deferred source-version guidance",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Marked for after 1.0; source-bound restore refusal and replay under edited source behave as documented, while cross-source record guidance is requested."
+    },
+    {
+      "number": 223,
+      "title": "`reopened by` reopens on a re-reading with an unchanged value, so the journal names a routine re-check as the cause",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/223",
+      "updatedAt": "2026-10-12T17:51:34Z",
+      "bodySha256": "7af11333930e2f79d32cc8a6e730a28a06d454bd8ce50f13c92dd1c7839fe5c9",
+      "classification": "deferred reopening semantics addition",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Marked for after 1.0 as a feature request; report occurrence is the documented trigger even if the numerical value is unchanged."
+    },
+    {
+      "number": 222,
+      "title": "Kit docs: one reading stream per candidate doesn't point to `for KIND` repetition",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/222",
+      "updatedAt": "2026-10-12T17:51:29Z",
+      "bodySha256": "e04e6eda272c8f58f23bcf0dcb35a9d2e71da4162b28acb6705cfbeb266cd499",
+      "classification": "deferred documentation discoverability",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Marked for after 1.0; existing for KIND repetition supports the request, but kit guidance does not lead the author to it."
+    },
+    {
+      "number": 220,
+      "title": "Versions and other non-numeric values have to be encoded as integers",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/220",
+      "updatedAt": "2026-10-12T15:39:37Z",
+      "bodySha256": "fad95e8dc84775e3c3420d0b15d0434aa7a6447bf4698dfc95b1da601334e259",
+      "classification": "deferred language scope",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Proposed after 1.0; structured/non-numeric domain values currently need authored encodings."
+    },
+    {
+      "number": 219,
+      "title": "`caveat check` doesn't warn about an unused claim",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/219",
+      "updatedAt": "2026-10-12T15:39:32Z",
+      "bodySha256": "d6be48234f515e613951a03263140c9664acc4af24715b039d0821d65379182f",
+      "classification": "deferred diagnostic addition",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Proposed after 1.0; unused-claim diagnostics are not currently promised by caveat check."
+    },
+    {
+      "number": 218,
+      "title": "A reading can't be recorded without a stance, though `reveal` can",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/218",
+      "updatedAt": "2026-10-12T15:39:28Z",
+      "bodySha256": "8181abc6a6bf126f8350b05663390c6a5fa4ceb340ebf54d1edffeaadf102f06",
+      "classification": "deferred language ergonomics",
+      "basis": [
+        "issue body"
+      ],
+      "reason": "Proposed after 1.0; making stance-less reading analogous to reveal adds behavior not currently promised."
+    },
+    {
+      "number": 198,
+      "title": "A decision that records \"not ready\" needs a value it doesn't have",
+      "url": "https://github.com/WSattazahn/caveat-lang/issues/198",
+      "updatedAt": "2026-10-11T04:45:14Z",
+      "bodySha256": "47849aea13af632e3a365e373173bef0948b90a2be5278198a9d869a52e70eab",
+      "classification": "deferred language addition",
+      "basis": [
+        "docs/releases/rc18-development.md",
+        "docs/releases/path-to-1.0.md"
+      ],
+      "reason": "No-value decision/using form was explicitly deferred to 1.1; the original issue remains open."
+    }
+  ],
+  "openPullRequests": [
+    {
+      "number": 179,
+      "title": "fix: keep mobile notes clear of the objective",
+      "url": "https://github.com/WSattazahn/caveat-lang/pull/179",
+      "updatedAt": "2026-10-08T22:58:07Z",
+      "isDraft": true,
+      "headRefName": "codex/mr-caveat-mobile-help",
+      "baseRefName": "main",
+      "bodySha256": "85040016206cdeb68630e1e42dfa2010951660b0d32b15573db70af87c362de6",
+      "classification": "deferred game presentation",
+      "basis": "Owner-approved rc19-development.md Q2 places draft #179 and game presentation after 1.0; outside the frozen language/kit contract."
+    }
+  ],
+  "triageConclusion": "No currently reported supported-contract defect was identified in these seven open issues and one open PR. This is a bounded classification of visible reports, not proof that no defects exist; no item was closed, waived or reprioritized.",
+  "completedEvidence": {
+    "freezeAndPrerequisites": {
+      "status": "E1 held; B1-B5 closed and B6-B7 met",
+      "record": "docs/releases/path-to-1.0.md#freeze-review-e1-2026-10-12",
+      "ownerApproval": "2026-10-12T04:39:00Z"
+    },
+    "installedPersistenceTrial": {
+      "version": "0.1.0-rc.20",
+      "releaseRevision": "d9e398e2a6e39c489401ce7785994226966bb364",
+      "tarballSha256": "8b4e6b4855e822c824f854f36d4bda1b83c7792e784e00ed25505ecec9d4465a",
+      "tarballBytes": 1214722,
+      "sourceRuntimeRun": 38793778662,
+      "sourceArtifactId": 12003502520,
+      "sourceRunUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/38793778662",
+      "savedReportSha256": "a00e1ec2bb6602f51a0c66aaa384294aab71f81a57a8a3ad23fe5df27f6342f8",
+      "measurements": {
+        "sends": 23,
+        "maxSendMs": 67.8,
+        "checkpointBytes": 6239,
+        "archiveBytes": 2028
+      },
+      "budgets": {
+        "maxSendMs": 250,
+        "checkpointBytes": 65536,
+        "archiveBytes": 262144
+      },
+      "coverage": [
+        "decisions",
+        "corrections",
+        "refusal origins",
+        "save/resume",
+        "archive persistence",
+        "edited-source refusal"
+      ],
+      "limit": "One fresh-installed exact rc.20 Linux artifact trial; not continuous observation over two weeks or a universal performance guarantee."
+    },
+    "connectedGateway": {
+      "record": "docs/releases/stabilization-2026-10-15-gateway.json",
+      "toolsPassed": 5,
+      "scenariosPassed": 13,
+      "scenariosFailed": 0,
+      "stableApproved": false,
+      "limit": "One observed connected Gateway run; earlier separate Glama Inspector intermittent transport failures remain recorded and are not established as repaired."
+    }
+  },
+  "remaining": [
+    {
+      "id": "E2",
+      "status": "open",
+      "work": "Complete and record the agreed two-week fixes-only stabilization review, actual usage/findings and refreshed defect audit.",
+      "reviewCheckpoint": "2026-10-26",
+      "basis": "October 12 freeze + owner-approved rc.19 Q1 two-week period.",
+      "limit": "Checkpoint is not automatic release permission; earlier November schedule remains historical. A schedule change needs an explicit owner decision."
+    },
+    {
+      "id": "stable-github-release-path",
+      "status": "open preparation",
+      "work": "Review a stable-capable GitHub release path preserving annotated tag, same-byte tarball and publication-record checks.",
+      "observed": ".github/workflows/release-prerelease.yml accepts stable tags but unconditionally invokes gh release create --prerelease.",
+      "limit": "npm release-publish and verify-npm-publication parsers already support stable versions; no runtime defect is inferred."
+    },
+    {
+      "id": "candidate-metadata-and-promise",
+      "status": "not prepared",
+      "work": "Prepare exact 1.0.0 kit/server versions, generated document blocks, compatibility commitment and truthful candidate notes. Audit explicit prerelease wording. Keep private game/Rust and independent plugin versions separate."
+    },
+    {
+      "id": "B8/E3",
+      "status": "open",
+      "work": "Verify the exact committed 1.0 candidate, its newest successful Runtime and unique unexpired artifact, security/build/install results and owner tag/publication decision.",
+      "candidateRevision": null,
+      "tarballSha256": null,
+      "ownerReleaseApproval": null
+    },
+    {
+      "id": "publication-and-closeout",
+      "status": "future; conditional on approval",
+      "work": "Publish exact approved bytes with the npm environment owner gate; verify registry provenance and installs; complete stable GitHub assets, authentic save fixtures, channels/Registry, documentation, Pages and listing checks.",
+      "checklist": "docs/releases/v1.0.0-checklist.md"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "docs/releases/path-to-1.0.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 30382,
+      "sha256": "a08846d825fcd17b1d75b20a129568499444ed889bcaf36f6cfaf2e069b00c4a"
+    },
+    {
+      "path": "docs/releases/rc19-development.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 11048,
+      "sha256": "6b534dfd971afee69518573c624b9e332ded178527b408dfcb69d1fd582ac355"
+    },
+    {
+      "path": "docs/releases/rc18-development.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 18703,
+      "sha256": "d232993350a08f5d411cfd2351933c4317f8d59a7d139c5c63d54046894f6049"
+    },
+    {
+      "path": "docs/COMPATIBILITY.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 11132,
+      "sha256": "e38ac19ac184b001d50112670e117220ab6005279b9d77aa20c93530afb9c599"
+    },
+    {
+      "path": "docs/CONSOLIDATION_PLAN.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 30594,
+      "sha256": "75a17d84ac0b6f40cf8856f8e7d295f96abcfbb9b183798b48feccdeac34c08f"
+    },
+    {
+      "path": "kit/README.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 25545,
+      "sha256": "b0178acc0a8b3b7e849faa64ab66f7b080740208f56130217d11fb9b2f03d62c"
+    },
+    {
+      "path": "kit/package.json",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 2495,
+      "sha256": "ead4420f22c2a0db1293a4288b8f7f91b9551eeb5c3bba45693684cec253c60a"
+    },
+    {
+      "path": "server.json",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 729,
+      "sha256": "08fb1704887a210f858dd3795c6f4771ebe5f52242250a32fd14f9a8d23b7040"
+    },
+    {
+      "path": "package.json",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 2643,
+      "sha256": "b7e6beec9bb5a1861a1739a6f8fc3e2b4dd355b49c00f690b1827f1709ad00f5"
+    },
+    {
+      "path": ".github/workflows/release-prerelease.yml",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 3811,
+      "sha256": "132ec785cc577087e612c34af78e4736ebdaab78f852cb7a4f03c9fc692d4675"
+    },
+    {
+      "path": ".github/workflows/publish-npm.yml",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 6187,
+      "sha256": "d0918bc21e432ef1cb1fcd65ac9033cba2a544bfb09c4ec5921b29bb8b3381c3"
+    },
+    {
+      "path": ".github/workflows/runtime.yml",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 36209,
+      "sha256": "7679abc5b45647ca545ab4930456ce7a84ffe92bfe5754aab8a8ab7451a588ce"
+    },
+    {
+      "path": ".github/workflows/pages.yml",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 15205,
+      "sha256": "00220ca0bfe9ec797e2b4bb8c571980eea863df9be659b50165e959097b669e8"
+    },
+    {
+      "path": "scripts/release-publish.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 10232,
+      "sha256": "d0ad99cee0fefecf3fb2f77035558530444d8882430d2276b65af977719bb0ae"
+    },
+    {
+      "path": "scripts/verify-npm-publication.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 10750,
+      "sha256": "996a87889feaf895cca554ca3cf1c584e52fa711d410b79207ba21e88cdf1776"
+    },
+    {
+      "path": "scripts/kit-docs.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 10246,
+      "sha256": "d14d72b1d9d10d7c0d1eb674b029855143beb38aa2c42652b46cd9f328ca6621"
+    },
+    {
+      "path": "scripts/save-fixture.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 3704,
+      "sha256": "ca822f2ab29fee67fe8ab6bf51aaf396f99c6438f1ac86ea6ea8e20e411f6ff4"
+    },
+    {
+      "path": "scripts/test-kit-package.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 37465,
+      "sha256": "ba6df0482aabd0cdff5eec8e5c6b92660f34ca3eb7189a6cd83f9935bfc608b1"
+    },
+    {
+      "path": "experiments/stabilization-trial/README.md",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 2229,
+      "sha256": "e26af435b134b2ce6d09c33f2bd05745f42b28a5792a500d615a2a59c8fba9cd"
+    },
+    {
+      "path": "experiments/stabilization-trial/run.mjs",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 9233,
+      "sha256": "b4ae853e2df240a95d679d1ea7931d90751938d4e56ff7b8a19e9d1907435175"
+    },
+    {
+      "path": "experiments/release-readiness/receipts/mcp-verification.json",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 7265,
+      "sha256": "db5e138111c6a53fe8f15770f98fe1877edb19912366182c47778ce3536c0445"
+    },
+    {
+      "path": "docs/releases/v0.1.0-rc.20-npm-publication.json",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "bytes": 10353,
+      "sha256": "6213ea44d8225fb0aa568c522e847c0963416c15d4848f9350b3518cbd5c6c0c"
+    }
+  ],
+  "limits": [
+    "GitHub state was read at the recorded time and can change; repeat triage before the release decision.",
+    "Raw GitHub/tool observations and local verification stores are retained in the task workspace; this portable summary carries selected result details and hashes, not independent attestation.",
+    "No new runtime tests, package build, release, tag, Glama deployment, issue mutation or stable approval was performed by this audit.",
+    "The passing Gateway run does not identify its backing service URL or prove the earlier Glama Inspector transport path repaired."
+  ]
+}
