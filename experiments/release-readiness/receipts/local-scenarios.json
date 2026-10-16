@@ -1,0 +1,135 @@
+{
+  "schema": "caveat-scenario-report/0.1",
+  "dispatchSchema": "caveat-dispatch/0.1",
+  "runtime": {
+    "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+    "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-unknown-linux-gnu"
+  },
+  "files": [
+    {
+      "file": "experiments/release-readiness/release-readiness.scenarios.json",
+      "sources": {
+        "release-readiness.cav": "df920a79d46bd802f836443bbbc6f71cae298032d80dfdec373dbbb9ab94f65b"
+      },
+      "scenarios": [
+        {
+          "id": "RR01",
+          "title": "Actual October 15 preview observations do not approve a future stable release",
+          "pass": true,
+          "events": 6,
+          "rejected": 3,
+          "resumes": 1
+        },
+        {
+          "id": "RR02",
+          "title": "Preview identity, wrong exact artifact, and candidate changes cannot borrow stable evidence",
+          "pass": true,
+          "events": 7,
+          "rejected": 6,
+          "resumes": 0
+        },
+        {
+          "id": "RR03",
+          "title": "Every missing evidence category and missing owner grant blocks stable assessment",
+          "pass": true,
+          "events": 14,
+          "rejected": 7,
+          "resumes": 0
+        },
+        {
+          "id": "RR04",
+          "title": "Recorded failures and an incomplete observation period each block approval despite an owner grant",
+          "pass": true,
+          "events": 15,
+          "rejected": 4,
+          "resumes": 0
+        },
+        {
+          "id": "RR05",
+          "title": "Polling the current receipt is refused atomically, even if the caller changes its reported value",
+          "pass": true,
+          "events": 10,
+          "rejected": 3,
+          "resumes": 0
+        },
+        {
+          "id": "RR06",
+          "title": "A genuinely new green receipt reopens the assessment without rewriting its old basis",
+          "pass": true,
+          "events": 9,
+          "rejected": 0,
+          "resumes": 1
+        },
+        {
+          "id": "RR07",
+          "title": "A correction withdraws checks, reopens only stable readiness, and replacement evidence earns a new revision",
+          "pass": true,
+          "events": 14,
+          "rejected": 2,
+          "resumes": 1
+        },
+        {
+          "id": "RR08",
+          "title": "Revoking the recorded grant reopens approval while check evidence stays unchanged",
+          "pass": true,
+          "events": 12,
+          "rejected": 2,
+          "resumes": 1
+        },
+        {
+          "id": "RR09",
+          "title": "A new failed check supersedes current readiness, but never erases the previous approval's grounds",
+          "pass": true,
+          "events": 11,
+          "rejected": 1,
+          "resumes": 0
+        },
+        {
+          "id": "RR10",
+          "title": "The ninth check observation reaches the declared capacity without partially recording its receipt",
+          "pass": true,
+          "events": 10,
+          "rejected": 1,
+          "resumes": 1
+        },
+        {
+          "id": "RR11",
+          "title": "Four decision revisions are the supported cap; a fifth assessment refuses and preserves the reopen",
+          "pass": true,
+          "events": 15,
+          "rejected": 1,
+          "resumes": 1
+        },
+        {
+          "id": "RR12",
+          "title": "Invalid payloads and corrections without observations refuse without inventing evidence",
+          "pass": true,
+          "events": 6,
+          "rejected": 5,
+          "resumes": 0
+        },
+        {
+          "id": "RR13",
+          "title": "Fractional report values are refused before receipt or evidence state changes",
+          "pass": true,
+          "events": 13,
+          "rejected": 4,
+          "resumes": 0
+        }
+      ],
+      "passed": 13,
+      "failed": 0,
+      "check": {
+        "release-readiness.cav": {
+          "diagnostics": [],
+          "suppressed": []
+        }
+      }
+    }
+  ],
+  "passed": 13,
+  "failed": 0
+}

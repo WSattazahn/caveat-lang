@@ -1,0 +1,167 @@
+{
+  "schema": "caveat-release-readiness-authoring-finding/0.1",
+  "observedAt": "2026-10-16T02:17:12.680Z",
+  "classification": "Application policy defect, not a runtime defect",
+  "execution": "Local published rc.20 CLI library; no Glama call",
+  "preFixSourceSha256": "092530bc555290c74b544279df28edda808ec76a69026e7b6cc895c749bae544",
+  "packageVersion": "0.1.0-rc.20",
+  "runtimeRevision": "d9e398e2a6e39c489401ce7785994226966bb364",
+  "finding": "A 0..1 numeric range includes fractions. The handlers updated receipt identity but only sampled evidence for exactly 0 or 1, accepting a fractional report without reconsidering the prior eligible decision.",
+  "findings": [
+    {
+      "event": "checks_reported",
+      "payload": {
+        "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+        "receipt": "fractional-checks_reported",
+        "passed": 0.5
+      },
+      "expected": "Refuse a non-binary report atomically.",
+      "actualOutcome": "accepted",
+      "before": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 2
+      },
+      "after": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 7
+      },
+      "defectReproduced": true
+    },
+    {
+      "event": "compatibility_reported",
+      "payload": {
+        "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+        "receipt": "fractional-compatibility_reported",
+        "passed": 0.5
+      },
+      "expected": "Refuse a non-binary report atomically.",
+      "actualOutcome": "accepted",
+      "before": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 3
+      },
+      "after": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 7
+      },
+      "defectReproduced": true
+    },
+    {
+      "event": "triage_reported",
+      "payload": {
+        "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+        "receipt": "fractional-triage_reported",
+        "passed": 0.5
+      },
+      "expected": "Refuse a non-binary report atomically.",
+      "actualOutcome": "accepted",
+      "before": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 4
+      },
+      "after": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 7
+      },
+      "defectReproduced": true
+    },
+    {
+      "event": "window_reported",
+      "payload": {
+        "receipt": "fractional-window",
+        "complete": 0.5
+      },
+      "expected": "Refuse a non-binary report atomically.",
+      "actualOutcome": "accepted",
+      "before": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 5
+      },
+      "after": {
+        "bindings": {
+          "preview": {
+            "status": "not observed"
+          },
+          "stable": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "check_observations": 1,
+            "revisions": 1,
+            "status": "recorded eligible; host authorization still required"
+          }
+        },
+        "receipt": 7
+      },
+      "defectReproduced": true
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schema": "caveat-release-readiness-mcp-verification/0.1",
+  "recordedAt": "2026-10-16T02:23:31.769Z",
+  "status": "local-passed-remote-partial",
+  "sourceSha256": "df920a79d46bd802f836443bbbc6f71cae298032d80dfdec373dbbb9ab94f65b",
+  "inspectorSourceSha256": "83e17dfdcb776cefd0fc5a49ec388ceede44ae868024c821cc6e783bcc7efbc0",
+  "scenariosSha256": "6b24010eb09bdca8c3816fbf7b2dd9d6b30e5b85ec9ca709dae8ee6b19984e03",
+  "eventsSha256": "817efb7f63efaaa03b839e90d3d53461b869a78c0e5f48b08071868885e38dbf",
+  "runtime": {
+    "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+    "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-unknown-linux-gnu"
+  },
+  "local": {
+    "transport": "Actual local stdio JSON-RPC MCP, not plain CLI authoring commands",
+    "package": "caveat-lang@0.1.0-rc.20",
+    "protocolProfiles": [
+      "2025-11-25",
+      "2026-07-28"
+    ],
+    "sourceForms": [
+      "original multiline",
+      "comment-free single-line Inspector form"
+    ],
+    "tools": [
+      "caveat_validate",
+      "caveat_check",
+      "caveat_test",
+      "caveat_explain",
+      "caveat_dependents"
+    ],
+    "toolCallsPerProfilePerSource": 7,
+    "scenariosPassed": 13,
+    "scenariosFailed": 0,
+    "strictDiagnostics": [],
+    "allExitCodes": 0,
+    "allIsError": false,
+    "fullCatalogMatchesRelease": true,
+    "sourceFormsAndProfilesEquivalentExceptSourceHash": true,
+    "actualHistory": {
+      "accepted": 3,
+      "rejected": 1,
+      "refusal": "No stable candidate selected.",
+      "previewStatus": "verified rc.20 observations",
+      "stableStatus": "missing candidate",
+      "stableRevisions": 0
+    },
+    "syntheticCorrection": {
+      "scenario": "RR07",
+      "accepted": 12,
+      "rejected": 2,
+      "current": "stable_release@2",
+      "oldGroundsPreserved": true,
+      "checks1Withdrawn": true,
+      "previewDecisionUnchanged": true
+    },
+    "fractionalRegression": {
+      "scenario": "RR13",
+      "rejectedReports": 4,
+      "rollbackAndCorrectedReceiptReusePassed": true
+    },
+    "runs": [
+      {
+        "directory": "test-results/release-readiness-mcp/2026-10-16T02-18-52-117Z",
+        "summarySha256": "19b33045f6eba4ab0f5e93580af7a5c0f9c89e890dc259ac24c7d98d2d4100a4"
+      },
+      {
+        "directory": "test-results/release-readiness-mcp/2026-10-16T02-18-55-412Z",
+        "summarySha256": "9e01242e0f44849ef0a0effdb647800b35bde4076bf3282bb29a69121667f7be"
+      }
+    ]
+  },
+  "remote": {
+    "transport": "Glama authenticated MCP Inspector for existing deployment",
+    "scope": "Observed browser tool calls, not a host-connected Codex tool. Failed transport calls retained. Does not authenticate supplied facts or approve a release.",
+    "successfulCalls": 4,
+    "transportFailures": 2,
+    "correctedHostedScenarioSuiteVerified": false,
+    "codexHostConnectorVerified": false,
+    "calls": [
+      {
+        "tool": "caveat_validate",
+        "observedAt": "2026-10-16T02:13:27.335Z",
+        "submittedSourceSha256": "0a89f43cadd476728ab1eceff22b189198b12b0d6e1eba0b1c35ba305c10700c",
+        "sourceStage": "before fractional guards",
+        "status": "operation completed",
+        "exitCode": 0,
+        "reportSchema": "caveat-validate/0.1"
+      },
+      {
+        "tool": "caveat_check",
+        "observedAt": "2026-10-16T02:13:52.857Z",
+        "submittedSourceSha256": "0a89f43cadd476728ab1eceff22b189198b12b0d6e1eba0b1c35ba305c10700c",
+        "sourceStage": "before fractional guards",
+        "status": "operation completed",
+        "exitCode": 0,
+        "reportSchema": "caveat-check/0.1"
+      },
+      {
+        "tool": "caveat_test",
+        "observedAt": "2026-10-16T02:16:35.772Z",
+        "submittedSourceSha256": "0a89f43cadd476728ab1eceff22b189198b12b0d6e1eba0b1c35ba305c10700c",
+        "sourceStage": "before fractional guards",
+        "status": "transport failure",
+        "result": null,
+        "transportError": "Streamable HTTP error: Unexpected content type: null"
+      },
+      {
+        "tool": "caveat_explain",
+        "observedAt": "2026-10-16T02:17:31.760Z",
+        "submittedSourceSha256": "0a89f43cadd476728ab1eceff22b189198b12b0d6e1eba0b1c35ba305c10700c",
+        "sourceStage": "before fractional guards",
+        "status": "operation completed",
+        "exitCode": 0,
+        "reportSchema": "caveat-explain/0.1"
+      },
+      {
+        "tool": "caveat_dependents",
+        "observedAt": "2026-10-16T02:19:17.923Z",
+        "submittedSourceSha256": "83e17dfdcb776cefd0fc5a49ec388ceede44ae868024c821cc6e783bcc7efbc0",
+        "sourceStage": "corrected",
+        "status": "operation completed",
+        "exitCode": 0,
+        "reportSchema": "caveat-dependents/0.1"
+      },
+      {
+        "tool": "caveat_validate",
+        "observedAt": "2026-10-16T02:19:39.546Z",
+        "submittedSourceSha256": "83e17dfdcb776cefd0fc5a49ec388ceede44ae868024c821cc6e783bcc7efbc0",
+        "sourceStage": "corrected",
+        "status": "transport failure",
+        "result": null,
+        "transportError": "Result\nStreamable HTTP error: Unexpected content type: null"
+      }
+    ],
+    "correctedDependentsMatchesLocal": true,
+    "correctedValidation": "transport failure; no tool result",
+    "rawReceipt": "test-results/release-readiness-mcp/remote-observations.json",
+    "rawReceiptSha256": "2933e394772d13bc96f2ad038d72d0259155b52cd25f47fa158aeaf4d9066db6",
+    "correctedDependentsComparedEvents": 3,
+    "correctedDependentsLocalReplayReceipt": "test-results/release-readiness-mcp/remote-replay.json",
+    "correctedDependentsComparisonScope": "Exact three-event Inspector history: record_preview, review_preview, assess_stable. The separate four-event observed-history file also records an incomplete window review."
+  },
+  "inspectorTransformation": {
+    "reason": "Inspector input is single-line; inline # comments would otherwise consume the remaining program",
+    "expression": "source.replace(/^\\s*#.*$/gm, '').replace(/\\r?\\n/g, ' '); no trim",
+    "semanticCheck": "Complete local structured reports equal except exact source-hash values for both source forms/profiles and all seven calls."
+  },
+  "preservedFailures": [
+    "Earlier MCP harness expected acquisition order in grounds.evidence; corrected exact expectations distinguish lexically ordered grounds from acquisition-ordered journal because. Raw failed receipt retained task-locally.",
+    "The initial 12 cases missed a four-channel fractional-value authoring bug. receipts/fractional-before-fix.json preserves the reproduction; four binary guards and RR13 correct it."
+  ],
+  "evidenceLocation": "Compact summary is tracked; full timestamped requests, responses, source snapshots and mixed remote observations remain in ignored test-results/release-readiness-mcp. No bearer-token Inspector URL is recorded.",
+  "limits": [
+    "Saved remote observations are supplied browser records, not independent authentication.",
+    "Local 13-case success does not establish a complete hosted run of the corrected suite or a connected Codex host tool.",
+    "Observed rc.20 history does not approve a future stable candidate; synthetic stable scenarios grant no release permission."
+  ]
+}

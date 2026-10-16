@@ -1,0 +1,84 @@
+{
+  "schema": "caveat-release-readiness-local-preflight/0.1",
+  "observedAt": "2026-10-16T02:18:33.918Z",
+  "execution": {
+    "transport": "local CLI; not MCP and not Glama",
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.11.1"
+  },
+  "package": {
+    "name": "caveat-lang",
+    "version": "0.1.0-rc.20",
+    "buildRevision": "d9e398e2a6e39c489401ce7785994226966bb364",
+    "clean": true,
+    "compiled": true,
+    "buildHost": "x86_64-unknown-linux-gnu",
+    "reactiveWasmSha256": "3c894023941efebe2367b97c5f5890eb3fc523d73e03d322cf3daecece88fdc6",
+    "buildWasmMatches": true,
+    "lockIntegrity": "sha512-VdE+TEowgV4Tfy3/09PPG1LW4aok2Fdk9pGo5hFZ3kwpsd3gmNNIYuzOM29R7cI7wIM9rM7alr6N5H+WpSZPmA==",
+    "publicationIntegrityMatches": true,
+    "publicationRevisionMatches": true,
+    "expectedTarballSha256": "8b4e6b4855e822c824f854f36d4bda1b83c7792e784e00ed25505ecec9d4465a"
+  },
+  "files": {
+    "release-readiness.cav": {
+      "bytes": 9293,
+      "sha256": "df920a79d46bd802f836443bbbc6f71cae298032d80dfdec373dbbb9ab94f65b"
+    },
+    "release-readiness.scenarios.json": {
+      "bytes": 35619,
+      "sha256": "6b24010eb09bdca8c3816fbf7b2dd9d6b30e5b85ec9ca709dae8ee6b19984e03"
+    },
+    "observed-2026-10-15.events.jsonl": {
+      "bytes": 233,
+      "sha256": "817efb7f63efaaa03b839e90d3d53461b869a78c0e5f48b08071868885e38dbf"
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "node",
+        "test-results/rc20-published-consumer/node_modules/caveat-lang/bin/caveat.mjs",
+        "validate",
+        "experiments/release-readiness/release-readiness.cav"
+      ],
+      "exitCode": 0,
+      "stdout": "release-readiness.cav loads.\n  events: assess_stable, checks_reported (artifact id, receipt id, passed 0..1), compatibility_reported (artifact id, receipt id, passed 0..1), correct_checks, owner_approved (artifact id, receipt id), record_preview, review_preview, revoke_approval, select_candidate (artifact id, kind in preview stable), triage_reported (artifact id, receipt id, passed 0..1), window_reported (receipt id, complete 0..1)\n  reading streams: approvals from owner_source, limit 8, checks from check_source, limit 8, compatibility from compatibility_source, limit 8, triage from triage_source, limit 8, window_reviews from window_source, limit 8\n  decision series: stabilization, limit 1, stable_release, limit 4\n  displayed: preview.status, stable.artifact, stable.check_observations, stable.revisions, stable.status\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "test-results/rc20-published-consumer/node_modules/caveat-lang/bin/caveat.mjs",
+        "check",
+        "experiments/release-readiness/release-readiness.cav",
+        "--strict"
+      ],
+      "exitCode": 0,
+      "stdout": "release-readiness.cav: no warnings.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "test-results/rc20-published-consumer/node_modules/caveat-lang/bin/caveat.mjs",
+        "test",
+        "experiments/release-readiness/release-readiness.scenarios.json",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stderr": "",
+      "report": "local-scenarios.json",
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "pass": true,
+  "scope": "Local preflight of this authored policy on the already installed published rc.20 package. Synthetic stable scenarios grant no authorization and prove nothing about a future stable artifact. No Glama execution is claimed.",
+  "authoringRegression": {
+    "finding": "fractional-before-fix.json",
+    "fixedBy": "Explicit binary guards before recording receipt identity or evidence.",
+    "case": "RR13"
+  }
+}
