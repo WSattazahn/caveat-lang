@@ -1,0 +1,138 @@
+scene "Release readiness: verified rc.20 observations remain distinct from a future exact stable candidate and its scoped permission.";
+
+# These source labels describe receipts. They do not authenticate them.
+claim preview_verified;
+claim candidate_ready;
+claim may_release;
+evidence preview_publication from "docs/releases/v0.1.0-rc.20-npm-publication.json: rc.20 publication and exact package identity";
+evidence preview_ci from "Runtime 38813800644 and Pages 38819733092: main 6704c0a9fb827a066760493aec25349b0ffb2703";
+evidence preview_listings from "docs/releases/v0.1.0-rc.20-distribution.json: dated distribution observations";
+evidence candidate_description from "host-verified stable version, revision and SHA-256, encoded together as one exact artifact identifier";
+evidence check_source from "host-verified checks for the selected exact stable artifact";
+evidence compatibility_source from "review of the frozen compatibility promises for the selected exact stable artifact";
+evidence triage_source from "review of supported-contract defects for the selected exact stable artifact";
+evidence window_source from "dated review of the October 12 two-week fixes-only period; rc.20 does not reset it";
+evidence owner_source from "reported owner approval for one exact stable artifact; this record grants no external permission";
+evidence check_correction from "a host-verified reason the current check receipt was wrong";
+evidence approval_correction from "a host-verified revocation of the current owner approval";
+
+readings checks from check_source limit 8;
+readings compatibility from compatibility_source limit 8;
+readings triage from triage_source limit 8;
+readings window_reviews from window_source limit 8;
+readings approvals from owner_source limit 8;
+renewable check_correction limit 8;
+renewable approval_correction limit 8;
+identifiers limit 48;
+state candidate = 0;
+state check_receipt = 0;
+state compatibility_receipt = 0;
+state triage_receipt = 0;
+state window_receipt = 0;
+state approval_receipt = 0;
+
+decisions stabilization limit 1;
+decisions stable_release limit 4 reopened by checks, compatibility, triage, window_reviews, approvals;
+
+event record_preview;
+event review_preview;
+event select_candidate artifact id, kind in preview stable;
+event checks_reported artifact id, receipt id, passed min 0 max 1;
+event compatibility_reported artifact id, receipt id, passed min 0 max 1;
+event triage_reported artifact id, receipt id, passed min 0 max 1;
+event window_reported receipt id, complete min 0 max 1;
+event owner_approved artifact id, receipt id;
+event correct_checks;
+event revoke_approval;
+event assess_stable;
+
+# A dated observation of the released preview, never a stable-candidate check.
+on record_preview when observed(preview_publication) reject "Preview receipts already recorded.";
+on record_preview reveal preview_publication supports preview_verified;
+on record_preview reveal preview_ci supports preview_verified;
+on record_preview reveal preview_listings supports preview_verified;
+on review_preview when not observed(preview_publication) reject "Missing preview receipts.";
+on review_preview when committed(stabilization) reject "Preview already reviewed.";
+on review_preview commit stabilization because enough
+    using qualified(1, preview_publication) + qualified(1, preview_ci) + qualified(1, preview_listings);
+
+# Exactly one stable candidate per session. The host verifies kind and identity.
+on select_candidate when kind != kind.stable reject "A preview is not a stable candidate.";
+on select_candidate when candidate != 0 reject "Use a fresh session for another candidate.";
+on select_candidate reveal candidate_description;
+on select_candidate set candidate = qualified(artifact, candidate_description);
+
+# Each channel rejects a repeated CURRENT receipt. The host must also reject
+# stale replays and verify that a changed receipt identifies a real observation.
+on checks_reported when candidate == 0 or artifact != candidate reject "Checks are not for the selected stable artifact.";
+on checks_reported when passed != 0 and passed != 1 reject "Check result must be 0 or 1.";
+on checks_reported when receipt == check_receipt reject "Check receipt already current.";
+on checks_reported when passed == 1 sample checks = passed supports candidate_ready;
+on checks_reported when passed == 0 sample checks = passed opposes candidate_ready;
+on checks_reported set check_receipt = receipt;
+
+on compatibility_reported when candidate == 0 or artifact != candidate reject "Compatibility review is not for the selected stable artifact.";
+on compatibility_reported when passed != 0 and passed != 1 reject "Compatibility result must be 0 or 1.";
+on compatibility_reported when receipt == compatibility_receipt reject "Compatibility receipt already current.";
+on compatibility_reported when passed == 1 sample compatibility = passed supports candidate_ready;
+on compatibility_reported when passed == 0 sample compatibility = passed opposes candidate_ready;
+on compatibility_reported set compatibility_receipt = receipt;
+
+on triage_reported when candidate == 0 or artifact != candidate reject "Triage is not for the selected stable artifact.";
+on triage_reported when passed != 0 and passed != 1 reject "Triage result must be 0 or 1.";
+on triage_reported when receipt == triage_receipt reject "Triage receipt already current.";
+on triage_reported when passed == 1 sample triage = passed supports candidate_ready;
+on triage_reported when passed == 0 sample triage = passed opposes candidate_ready;
+on triage_reported set triage_receipt = receipt;
+
+on window_reported when complete != 0 and complete != 1 reject "Window completion must be 0 or 1.";
+on window_reported when receipt == window_receipt reject "Window receipt already current.";
+on window_reported when complete == 1 sample window_reviews = complete supports candidate_ready;
+on window_reported when complete == 0 sample window_reviews = complete opposes candidate_ready;
+on window_reported set window_receipt = receipt;
+
+on owner_approved when candidate == 0 or artifact != candidate reject "Approval is not for the selected stable artifact.";
+on owner_approved when receipt == approval_receipt reject "Approval receipt already current.";
+on owner_approved sample approvals = artifact supports may_release;
+on owner_approved set approval_receipt = receipt;
+
+on correct_checks when not has_sample(checks) reject "No check receipt to correct.";
+on correct_checks when withdrawn(latest(checks)) reject "Current check receipt already withdrawn.";
+on correct_checks when observed(check_correction) renew check_correction;
+on correct_checks reveal check_correction;
+on correct_checks withdraw latest(checks) because check_correction;
+on correct_checks when committed(stable_release) and not reopened(stable_release) and rests_on_withdrawn(stable_release)
+    reopen stable_release because check_correction;
+
+on revoke_approval when not has_sample(approvals) reject "No approval to revoke.";
+on revoke_approval when withdrawn(latest(approvals)) reject "Current approval already withdrawn.";
+on revoke_approval when observed(approval_correction) renew approval_correction;
+on revoke_approval reveal approval_correction;
+on revoke_approval withdraw latest(approvals) because approval_correction;
+on revoke_approval when committed(stable_release) and not reopened(stable_release) and permission_withdrawn(stable_release)
+    reopen stable_release because approval_correction;
+
+on assess_stable when candidate == 0 reject "No stable candidate selected.";
+on assess_stable when not has_sample(checks) reject "Missing stable-candidate checks.";
+on assess_stable when not has_sample(compatibility) reject "Missing compatibility review.";
+on assess_stable when not has_sample(triage) reject "Missing supported-contract defect triage.";
+on assess_stable when not has_sample(window_reviews) reject "Missing dated stabilization review.";
+on assess_stable when withdrawn(latest(checks)) reject "Stable-candidate check receipt was withdrawn.";
+on assess_stable when latest(checks) != 1 reject "Stable-candidate checks failed.";
+on assess_stable when latest(compatibility) != 1 reject "Compatibility review failed.";
+on assess_stable when latest(triage) != 1 reject "Supported-contract defects remain.";
+on assess_stable when latest(window_reviews) != 1 reject "The agreed observation period is incomplete.";
+on assess_stable when committed(stable_release) and not reopened(stable_release) reject "Stable candidate already assessed.";
+on assess_stable commit stable_release because enough
+    using latest(checks) + latest(compatibility) + latest(triage) + latest(window_reviews)
+    permitted by latest(approvals) for candidate;
+
+bind preview.status = "not observed";
+bind preview.status = "verified rc.20 observations" when committed(stabilization);
+bind stable.artifact = id_text(candidate);
+bind stable.status = "missing candidate";
+bind stable.status = "awaiting assessment" when candidate != 0;
+bind stable.status = "recorded eligible; host authorization still required" when committed(stable_release) and not reopened(stable_release);
+bind stable.status = "reopened" when reopened(stable_release);
+bind stable.revisions = history_count(stable_release);
+bind stable.check_observations = history_count(checks);

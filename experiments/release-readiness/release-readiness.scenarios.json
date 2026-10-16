@@ -1,0 +1,1289 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "release-readiness.cav",
+  "scenarios": [
+    {
+      "id": "RR01",
+      "title": "Actual October 15 preview observations do not approve a future stable release",
+      "steps": [
+        {
+          "send": "record_preview"
+        },
+        {
+          "send": "review_preview"
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "2026-10-15:Oct12-freeze-review:Oct26-not-reached",
+            "complete": 0
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "No stable candidate selected."
+        },
+        {
+          "expect": {
+            "/bindings/preview/status": "verified rc.20 observations",
+            "/bindings/stable/status": "missing candidate",
+            "/bindings/stable/revisions": 0,
+            "/decision_journal/0/commitment": "stabilization@1",
+            "/commitment_grounds/stable_release@1": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "record_preview",
+          "rejected": "Preview receipts already recorded."
+        },
+        {
+          "send": "review_preview",
+          "rejected": "Preview already reviewed."
+        }
+      ]
+    },
+    {
+      "id": "RR02",
+      "title": "Preview identity, wrong exact artifact, and candidate changes cannot borrow stable evidence",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "0.1.0-rc.20:d9e398e:8b4e6b48",
+            "kind": "preview"
+          },
+          "rejected": "A preview is not a stable candidate."
+        },
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "other-stable-artifact",
+            "kind": "stable"
+          },
+          "rejected": "Use a fresh session for another candidate."
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "wrong-hash",
+            "receipt": "wrong-check",
+            "passed": 1
+          },
+          "rejected": "Checks are not for the selected stable artifact."
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "wrong-revision",
+            "receipt": "wrong-compatibility",
+            "passed": 1
+          },
+          "rejected": "Compatibility review is not for the selected stable artifact."
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "wrong-version",
+            "receipt": "wrong-triage",
+            "passed": 1
+          },
+          "rejected": "Triage is not for the selected stable artifact."
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "old-approved-artifact",
+            "receipt": "wrong-approval"
+          },
+          "rejected": "Approval is not for the selected stable artifact."
+        },
+        {
+          "expect": {
+            "/bindings/stable/artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "/bindings/stable/check_observations": 0,
+            "/identifiers": [
+              "hypothetical:1.0.0:revision-a:sha256-artifact-a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR03",
+      "title": "Every missing evidence category and missing owner grant blocks stable assessment",
+      "steps": [
+        {
+          "send": "assess_stable",
+          "rejected": "No stable candidate selected."
+        },
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Missing stable-candidate checks."
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Missing compatibility review."
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Missing supported-contract defect triage."
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Missing dated stabilization review."
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 1,
+            "/decision_journal/0/permitted_by": "approvals@1",
+            "/decision_journal/0/value": 4
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Stable candidate already assessed."
+        }
+      ]
+    },
+    {
+      "id": "RR04",
+      "title": "Recorded failures and an incomplete observation period each block approval despite an owner grant",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-failed",
+            "passed": 0
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-failed",
+            "passed": 0
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-failed",
+            "passed": 0
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-incomplete",
+            "complete": 0
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Stable-candidate checks failed."
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-correct",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Compatibility review failed."
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-correct",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Supported-contract defects remain."
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-correct",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "The agreed observation period is incomplete."
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-complete",
+            "complete": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR05",
+      "title": "Polling the current receipt is refused atomically, even if the caller changes its reported value",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "approved"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          },
+          "rejected": "Check receipt already current."
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 0
+          },
+          "rejected": "Check receipt already current."
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          },
+          "rejected": "Approval receipt already current."
+        },
+        {
+          "same_as": "approved",
+          "paths": [
+            "/decision_journal",
+            "/reading_streams",
+            "/identifiers",
+            "/bindings"
+          ]
+        },
+        {
+          "expect": {
+            "/bindings/stable/check_observations": 1,
+            "/bindings/stable/revisions": 1,
+            "/bindings/stable/status": "recorded eligible; host authorization still required"
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR06",
+      "title": "A genuinely new green receipt reopens the assessment without rewriting its old basis",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-2",
+            "passed": 1
+          }
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "reopened",
+            "/bindings/stable/check_observations": 2,
+            "/decision_journal/1/change": "reopened"
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/commitment_bases/stable_release@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 2,
+            "/decision_journal/2/commitment": "stable_release@2",
+            "/decision_journal/2/because": [
+              "compatibility@1",
+              "triage@1",
+              "window_reviews@1",
+              "checks@2"
+            ]
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/commitment_bases/stable_release@1",
+            "/decision_journal/0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RR07",
+      "title": "A correction withdraws checks, reopens only stable readiness, and replacement evidence earns a new revision",
+      "steps": [
+        {
+          "send": "record_preview"
+        },
+        {
+          "send": "review_preview"
+        },
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "correct_checks"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "reopened",
+            "/bindings/preview/status": "verified rc.20 observations",
+            "/decision_journal/2/change": "reopened"
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/commitment_bases/stable_release@1",
+            "/commitment_grounds/stabilization@1",
+            "/decision_journal/0",
+            "/decision_journal/1"
+          ]
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Stable-candidate check receipt was withdrawn."
+        },
+        {
+          "send": "correct_checks",
+          "rejected": "Current check receipt already withdrawn."
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-replacement",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 2,
+            "/decision_journal/3/commitment": "stable_release@2",
+            "/decision_journal/3/because": [
+              "compatibility@1",
+              "triage@1",
+              "window_reviews@1",
+              "checks@2"
+            ]
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/commitment_grounds/stabilization@1",
+            "/decision_journal/0",
+            "/decision_journal/1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RR08",
+      "title": "Revoking the recorded grant reopens approval while check evidence stays unchanged",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "revoke_approval"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "reopened",
+            "/decision_journal/1/change": "reopened"
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/reading_streams/checks",
+            "/commitment_grounds/stable_release@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "assess_stable",
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "revoke_approval",
+          "rejected": "Current approval already withdrawn."
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-2"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 2,
+            "/decision_journal/2/permitted_by": "approvals@2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR09",
+      "title": "A new failed check supersedes current readiness, but never erases the previous approval's grounds",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-failed",
+            "passed": 0
+          }
+        },
+        {
+          "send": "assess_stable",
+          "rejected": "Stable-candidate checks failed."
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "reopened",
+            "/bindings/stable/revisions": 1
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/commitment_bases/stable_release@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-recovered",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR10",
+      "title": "The ninth check observation reaches the declared capacity without partially recording its receipt",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-2",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-3",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-4",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-5",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-6",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-7",
+            "passed": 1
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-8",
+            "passed": 1
+          }
+        },
+        {
+          "checkpoint": "full"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "check-9",
+            "passed": 1
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "history_limit"
+          }
+        },
+        {
+          "same_as": "full",
+          "paths": [
+            "/reading_streams",
+            "/identifiers",
+            "/bindings"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "expect": {
+            "/bindings/stable/check_observations": 8,
+            "/bindings/stable/revisions": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR11",
+      "title": "Four decision revisions are the supported cap; a fifth assessment refuses and preserves the reopen",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-2",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-3",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-4",
+            "passed": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-5",
+            "passed": 1
+          }
+        },
+        {
+          "checkpoint": "reopened-at-cap"
+        },
+        {
+          "send": "assess_stable",
+          "rejected": {
+            "origin": "limit",
+            "code": "history_limit"
+          }
+        },
+        {
+          "same_as": "reopened-at-cap",
+          "paths": [
+            "/decision_journal",
+            "/commitment_grounds",
+            "/bindings"
+          ]
+        },
+        {
+          "expect": {
+            "/bindings/stable/revisions": 4,
+            "/bindings/stable/status": "reopened"
+          }
+        },
+        {
+          "resume": true
+        }
+      ]
+    },
+    {
+      "id": "RR12",
+      "title": "Invalid payloads and corrections without observations refuse without inventing evidence",
+      "steps": [
+        {
+          "send": "correct_checks",
+          "rejected": "No check receipt to correct."
+        },
+        {
+          "send": "revoke_approval",
+          "rejected": "No approval to revoke."
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "no-candidate",
+            "passed": 1
+          },
+          "rejected": "Checks are not for the selected stable artifact."
+        },
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "out-of-range",
+            "passed": 2
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": 7,
+            "passed": 1
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "payload_invalid"
+          }
+        },
+        {
+          "expect": {
+            "/identifiers": [
+              "hypothetical:1.0.0:revision-a:sha256-artifact-a"
+            ],
+            "/bindings/stable/check_observations": 0,
+            "/bindings/stable/revisions": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "RR13",
+      "title": "Fractional report values are refused before receipt or evidence state changes",
+      "steps": [
+        {
+          "send": "select_candidate",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "kind": "stable"
+          }
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "checks-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "compatibility-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "triage-1",
+            "passed": 1
+          }
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "window-1",
+            "complete": 1
+          }
+        },
+        {
+          "send": "owner_approved",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "approval-1"
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "checkpoint": "approved"
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "fractional-check",
+            "passed": 0.5
+          },
+          "rejected": "Check result must be 0 or 1."
+        },
+        {
+          "send": "compatibility_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "fractional-compatibility",
+            "passed": 0.5
+          },
+          "rejected": "Compatibility result must be 0 or 1."
+        },
+        {
+          "send": "triage_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "fractional-triage",
+            "passed": 0.5
+          },
+          "rejected": "Triage result must be 0 or 1."
+        },
+        {
+          "send": "window_reported",
+          "payload": {
+            "receipt": "fractional-window",
+            "complete": 0.5
+          },
+          "rejected": "Window completion must be 0 or 1."
+        },
+        {
+          "same_as": "approved",
+          "paths": [
+            "/qualified_values",
+            "/reading_streams",
+            "/decision_journal",
+            "/identifiers",
+            "/bindings"
+          ]
+        },
+        {
+          "send": "checks_reported",
+          "payload": {
+            "artifact": "hypothetical:1.0.0:revision-a:sha256-artifact-a",
+            "receipt": "fractional-check",
+            "passed": 1
+          }
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "reopened",
+            "/bindings/stable/check_observations": 2,
+            "/bindings/stable/revisions": 1
+          }
+        },
+        {
+          "send": "assess_stable"
+        },
+        {
+          "expect": {
+            "/bindings/stable/status": "recorded eligible; host authorization still required",
+            "/bindings/stable/revisions": 2
+          }
+        },
+        {
+          "same_as": "approved",
+          "paths": [
+            "/commitment_grounds/stable_release@1",
+            "/decision_journal/0"
+          ]
+        }
+      ]
+    }
+  ]
+}
