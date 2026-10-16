@@ -143,6 +143,31 @@ above remain as dated. B8 stays open for the exact 1.0.0 artifact and the
 owner's release decision through E3. This update does not establish that
 stabilization has finished or change the 1.0 target.
 
+### Connected authoring observation, 2026-10-15 PDT
+
+The [dated Gateway receipt](stabilization-2026-10-15-gateway.json) records a
+successful run through the connected Caveat Gateway tools in the Codex chat at
+2026-10-16 04:15 UTC (October 15, 21:15 PDT). All five authoring operations
+returned exit code 0 on the corrected release-readiness example, using the
+runtime identity verified for rc.20. Strict checking reported no diagnostics;
+all 13 scenarios passed, including 39 expected refusals and six save/resume
+checks. Replaying the four observed events accepted the preview observations
+and incomplete window report, then refused stable assessment because no stable
+candidate was selected. No stable decision or release permission was created.
+
+This is a separate successful connected-tool observation. The earlier
+[Inspector receipt](../../experiments/release-readiness/receipts/mcp-verification.json)
+retains its four successful calls and two transport failures from the same PDT
+date. The new run does not establish that the Inspector transport was repaired
+or that either route is continuously reliable. The accepted CAVEAT audit checks
+the saved Gateway observations against the selected files and runtime identity;
+it does not replay the network calls or authenticate their supplied facts.
+
+This adds evidence to E2 without closing E2 or B8, resetting the October 12
+freeze, or changing the agreed observation period. The
+[1.0.0 checklist](v1.0.0-checklist.md) tracks the remaining stabilization review,
+exact stable-candidate verification and separate owner release decision.
+
 ### What exists and will not be rebuilt
 
 - Departure, lineage compaction, the archive and the collector: rc.16 runtime.
