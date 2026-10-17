@@ -99,7 +99,7 @@ end of the line; `--` is not a comment.
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |
 | `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). A countdown from a fractional clock can show a second too many; one that must agree to the tick uses an [integer clock](reference/spec/caveat-elapsed-0.1.md#integer-clocks). |
 | `renewable EVIDENCE limit N;` | Evidence whose name can move to up to N distinct occurrences ([renewal](reference/spec/caveat-renewal-0.1.md)). |
-| `for KIND as $NAME { STATEMENT; … };` | The body once per member of KIND: each `entity NAME kind KIND at PLACE;`, in order, after `place PLACE kind KIND;`. `state $m_eaten = 0;` declares `cave_eaten`, `pool_eaten` and so on, and `when target == target.$m` selects the member an event parameter `target kind KIND` names. Every body statement ends with `;` ([repetition](reference/spec/caveat-repetition-0.1.md)). |
+| `for KIND as $NAME { STATEMENT; … };` | The body once per member of KIND: each `entity NAME kind KIND at PLACE;`, in order, after `place PLACE kind KIND;`. `state $m_eaten = 0;` declares `cave_eaten`, `pool_eaten` and so on, and `when target == target.$m` selects the member an event parameter `target kind KIND` names. Every body statement ends with `;` ([repetition](reference/spec/caveat-repetition-0.1.md)). It also serves candidates that get the same readings, such as hosts or packages: one stream and one routing rule per member ([guide](reference/docs/AI_AUTHORING.md#compare-several-candidates)). |
 
 ### Rules
 
