@@ -1,0 +1,326 @@
+{
+  "note": "Citing 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-citing-0.1.md, \"Corpus sweep\".",
+  "revision": "746375cdab42d2a74666417b868fa382dc5218e2",
+  "programs": 191,
+  "programs_using_the_word_citing": [],
+  "commits_writing_citing": [],
+  "programs_with_commits": 146,
+  "commits": 204,
+  "commits_with_using": 191,
+  "commits_without_using": 13,
+  "using_commits_whose_value_no_expression_reads": 117,
+  "decisions_with_unread_using_values": [
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon"
+    },
+    {
+      "path": "examples/modules/glow.cav",
+      "action": "keep_glow"
+    },
+    {
+      "path": "examples/slime_glow_ability.cav",
+      "action": "keep_glow"
+    },
+    {
+      "path": "examples/squeeze_affordance.cav",
+      "action": "traversal"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/evaluator/gold-tracker.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/first.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/tracker.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/first.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/tracker.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/first.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/tracker.cav",
+      "action": "answer"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/final/task.cav",
+      "action": "assessment"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/first/task.cav",
+      "action": "assessment"
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/decision.cav",
+      "action": "close_170"
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/ledger-item4.cav",
+      "action": "merge"
+    },
+    {
+      "path": "experiments/agent-decisions/002-departure-continuation/decision.cav",
+      "action": "implementation"
+    },
+    {
+      "path": "experiments/agent-decisions/002-departure-continuation/decision.cav",
+      "action": "readiness"
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/decision.cav",
+      "action": "defer_pass"
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/bind-reason.cav",
+      "action": "defer_pass"
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_179"
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_pass"
+    },
+    {
+      "path": "experiments/agent-decisions/retest-rc19/d001-undeclared.cav",
+      "action": "close_170"
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-approved-head.cav",
+      "action": "$p_merge"
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-identifiers.cav",
+      "action": "$p_merge"
+    },
+    {
+      "path": "experiments/agent-ledger/ledger.cav",
+      "action": "$p_merge"
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "action": "provenance_record"
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "action": "publish"
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "action": "ready"
+    },
+    {
+      "path": "experiments/departure-gate/c3-windows.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/departure-gate/guarded-skip.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/departure-gate/kit-explain-window.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/departure-gate/kit-types-window.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/departure-gate/runtime-windows-world.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/caveat/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/caveat2/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/caveat3/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/caveat4/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/caveat5/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C1.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C2.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C3.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C4.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C4/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "action": "stabilization"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "action": "stable_release"
+    },
+    {
+      "path": "experiments/stabilization-trial/trial.cav",
+      "action": "deploy"
+    },
+    {
+      "path": "experiments/take-back-sweep/programs/round8.cav",
+      "action": "trust"
+    },
+    {
+      "path": "experiments/take-back-sweep/programs/windowed.cav",
+      "action": "trust"
+    },
+    {
+      "path": "game/before_the_rain.cav",
+      "action": "hold"
+    },
+    {
+      "path": "game/before_the_rain.cav",
+      "action": "ruling"
+    },
+    {
+      "path": "game/glowcap.cav",
+      "action": "trust"
+    },
+    {
+      "path": "game/trail_rescue.cav",
+      "action": "route"
+    },
+    {
+      "path": "kit/examples/agent-evidence/assessment.cav",
+      "action": "assessment"
+    },
+    {
+      "path": "kit/examples/agent-evidence/grounded_assessment.cav",
+      "action": "assessment"
+    },
+    {
+      "path": "kit/examples/agent-evidence/qualification.cav",
+      "action": "strategy"
+    },
+    {
+      "path": "kit/examples/readiness/readiness.cav",
+      "action": "dependency_signoff"
+    },
+    {
+      "path": "kit/examples/readiness/readiness.cav",
+      "action": "release"
+    },
+    {
+      "path": "kit/examples/reviewer-decision/rely.cav",
+      "action": "rely"
+    },
+    {
+      "path": "kit/templates/umbrella.cav",
+      "action": "umbrella"
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/marker-journal.cav",
+      "action": "trust"
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/post-collection.cav",
+      "action": "trust"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "action": "cover"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/ordered.cav",
+      "action": "verdict"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/readiness.cav",
+      "action": "dependency_signoff"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/readiness.cav",
+      "action": "release"
+    },
+    {
+      "path": "kit/test/fixtures/starter/assessment.cav",
+      "action": "assessment"
+    },
+    {
+      "path": "kit/type-tests/gauge.cav",
+      "action": "cover"
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+      "action": "trust"
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+      "action": "trust"
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "action": "trust"
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "action": "trust"
+    },
+    {
+      "path": "runtime/tests/fixtures/f268-rc11-wide-grounds.cav",
+      "action": "d"
+    }
+  ]
+}
