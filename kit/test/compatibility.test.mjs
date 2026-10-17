@@ -27,7 +27,7 @@ test('every specification\'s status line says whether the compatibility commitme
     const status = (await readFile(path.join(repo, 'spec', name), 'utf8')).split('\n')[2] ?? '';
     assert.match(status, /^\*\*Status:\*\* /, `spec/${name}: the line under its title is not its status`);
     if (notStable.has(name)) assert.match(status, /not part of the \[compatibility commitment\]/, `spec/${name} is listed as not stable`);
-    else assert.match(status, /stable from 1\.0\.0 under the \[compatibility commitment\]/, `spec/${name} is stable by COMPATIBILITY.md`);
+    else assert.match(status, /stable from 1\.\d+\.\d+ under the \[compatibility commitment\]/, `spec/${name} is stable by COMPATIBILITY.md`);
   }
 });
 

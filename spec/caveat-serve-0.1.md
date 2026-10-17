@@ -34,7 +34,7 @@ are skipped.
 | `undrained` | | `undrained`: the number of pending archive items (records plus provenance nodes) |
 | `explain` | optional `archive`: array of archive item objects | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
 | `dependents` | `of`: evidence, a reading stream or a caveat; optional `archive`: array of archive item objects | `report`: the `caveat-dependents/0.1` report of what rests on it |
-| `save` | | `save`: the text of the session's save |
+| `save` | optional `compact: true` | `save`: the text of the session's save; with `compact: true`, its compact save ([Replay Save 0.1](caveat-replay-save-0.1.md)) |
 | `restore` | `save`: text from `save` | `sequence`. The restored session replaces the current one. |
 | `close` | | none. The server then exits with status 0. |
 

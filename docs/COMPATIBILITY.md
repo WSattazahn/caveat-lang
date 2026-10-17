@@ -20,13 +20,13 @@ material or anything else that shares the repository.
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
-| Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Departure 0.1](../spec/caveat-departure-0.1.md) |
+| Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
 
 ### Schemas
 
 `caveat-dispatch/0.1`, `caveat-reactive-view/0.1`, `caveat-reactive-view/0.2`,
 `caveat-reactive-view-delta/0.2`,
-`caveat-reactive-save/0.1`, `caveat-explain/0.1`, `caveat-dependents/0.1`,
+`caveat-reactive-save/0.1`, `caveat-replay-save/0.1` (from 1.1.0), `caveat-explain/0.1`, `caveat-dependents/0.1`,
 `caveat-check/0.1`, `caveat-interface/0.1`, `caveat-archive-provenance/0.1`.
 Package 1.0 does not rename them. A schema changes its version only by a new
 name beside the old one.
@@ -111,6 +111,11 @@ profiles define what the package does with it.
 - With that same source and any later 1.x runtime, a save written by an
   earlier 1.x runtime restores, and later events give the outcomes the earlier
   runtime would have given.
+- A compact save (`save({ compact: true })`, from 1.1.0) is a replay save
+  while the session's accepted events fit in 4,096 bytes and that is smaller,
+  and otherwise the same state save `save()` writes. Later 1.x runtimes
+  restore it like any save. A runtime before 1.1.0 does not, so a host that
+  may move saves back to one keeps using `save()`, which is unchanged.
 - A save is not a promise across edited source. A host that changes its
   program starts new sessions, or migrates its own data outside Caveat.
 - Archives drained from a 1.x session stay readable by `explain` and
@@ -165,6 +170,7 @@ each named step exists.
 | Schemas | `kit/test/compatibility.test.mjs`: each schema named above is written by the kit or the runtime | "Developer kit session library and scenario runner" |
 | View 0.2 and its delta | the delta gate over every tracked program | "View 0.2 delta gate over the whole corpus" |
 | Saves across versions | the published rc.15 C3 save restore (`experiments/departure-gate/cross-restore.mjs`); a fixture per release from rc.17 (`kit/test/fixtures/saves/`, written by `scripts/save-fixture.mjs` from the published package): this runtime restores each save, and the events after it give the outcomes, View 0.1 and View 0.2 that release gave, except that rc.18 lists binding-explanation evidence in first-observed order, which is held instead to the same events played live; with each fixture's drained archive, `dependents` gives the reports the same events played live give (`kit/test/save-fixtures.test.mjs`) | "Departure save bound, exact rc.15 compatibility, and restore continuation"; "Developer kit session library and scenario runner" |
+| Replay saves | `runtime/tests/replay_save.rs`, and the kit's compact-save tests in `kit/test/session.test.mjs`: a compact save restores the session that wrote it, with the same snapshot, state save and later outcomes, and each malformed or unreplayable save is refused | "Test the reactive-only runtime"; "Developer kit session library and scenario runner" |
 | Browsers | the kit's session library and runner in Chromium | "Developer kit session library and runner in Chromium" |
 
 A promise without a check is not yet a promise. Each release from rc.17 on

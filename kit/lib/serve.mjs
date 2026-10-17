@@ -15,7 +15,7 @@ const FIELDS = {
   undrained: [],
   explain: ['archive'],
   dependents: ['of', 'archive'],
-  save: [],
+  save: ['compact'],
   restore: ['save'],
   close: [],
 };
@@ -85,7 +85,10 @@ export function createServer({ runtime, source, program = null }) {
         throw new RequestError(error.message);
       }
     }
-    if (op === 'save') return { save: session.save() };
+    if (op === 'save') {
+      if (request.compact !== undefined && typeof request.compact !== 'boolean') throw new RequestError('"compact" must be true or false');
+      return { save: session.save({ compact: request.compact === true }) };
+    }
     if (op === 'restore') {
       if (typeof request.save !== 'string') throw new RequestError('restore needs "save", the text a save returned');
       let restored;

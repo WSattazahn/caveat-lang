@@ -312,3 +312,74 @@ test('runtimes created from the same session class share one lifecycle', () => {
   assert.equal(runtime.trapped, true);
   assert.throws(() => b.open(thermostat), error => error.kind === 'fatal');
 });
+
+test('a compact save is smaller and restores the same session', () => {
+  const first = real.open(thermostat);
+  for (const value of [17, 21, 25]) first.dispatch('read', { value });
+  const compact = first.save({ compact: true });
+  assert.equal(JSON.parse(compact).schema, 'caveat-replay-save/0.1');
+  assert.ok(compact.length < first.save().length);
+  const second = real.restore(thermostat, compact);
+  try {
+    assert.deepEqual(second.snapshot(), first.snapshot());
+    assert.equal(second.save(), first.save());
+    assert.deepEqual(second.dispatch('read', { value: 30 }), first.dispatch('read', { value: 30 }));
+    // A session restored from a state save holds no replay save.
+    const third = real.restore(thermostat, first.save());
+    assert.equal(third.save({ compact: true }), third.save());
+    third.close();
+  } finally { first.close(); second.close(); }
+});
+
+test('a compact save on a runtime build that predates it throws a load error and changes nothing', () => {
+  const { runtime } = faulty();
+  const session = runtime.open(thermostat);
+  session.dispatch('read', { value: 17 });
+  assert.throws(() => session.save({ compact: true }), error => error.kind === 'load' && /predates/.test(error.message));
+  assert.equal(session.state, 'open');
+  assert.equal(typeof session.save(), 'string');
+  session.close();
+});
+
+test('an accepted snapshot is the one the event produced, however late it is read', () => {
+  const lazy = real.open(thermostat);
+  const eager = real.open(thermostat);
+  try {
+    const first = lazy.dispatch('read', { value: 17 });
+    const expected = eager.dispatch('read', { value: 17 }).snapshot;
+    lazy.dispatch('read', { value: 25 });
+    assert.deepEqual(first.snapshot, expected);
+    assert.equal(first.snapshot, first.snapshot, 'parsed once');
+    assert.deepEqual(JSON.parse(JSON.stringify(first)), { schema: 'caveat-dispatch/0.1', outcome: 'accepted', snapshot: expected });
+    eager.dispatch('read', { value: 25 });
+    assert.deepEqual({ ...lazy.dispatch('read', { value: 20 }) }.snapshot, eager.dispatch('read', { value: 20 }).snapshot);
+    first.snapshot = 1;
+    assert.equal(first.snapshot, 1);
+  } finally { lazy.close(); eager.close(); }
+});
+
+test('snapshot() after dispatch reuses the event\'s snapshot until the session changes', () => {
+  const { runtime, sessions } = faulty();
+  const session = runtime.open(thermostat);
+  const outcome = session.dispatch('read', { value: 17 });
+  assert.deepEqual(session.snapshot(), outcome.snapshot);
+  assert.notEqual(session.snapshot(), session.snapshot(), 'a fresh object each time');
+  assert.equal(sessions[0].calls.includes('snapshot'), false);
+  session.dispatchView('read', { value: 18 });
+  assert.equal(session.snapshot().sequence, 2);
+  assert.equal(sessions[0].calls.filter(call => call === 'snapshot').length, 1);
+  session.close();
+});
+
+test('a rejected event keeps the snapshot the session had', () => {
+  const session = real.open(thermostat);
+  try {
+    session.dispatch('read', { value: 17 });
+    assert.equal(session.dispatch('read', { value: 41 }).outcome, 'rejected');
+    assert.deepEqual(session.snapshot(), JSON.parse(session.snapshotText()));
+    session.dispatchView('read', { value: 18 });
+    assert.equal(session.dispatch('warm').outcome, 'rejected');
+    assert.deepEqual(session.snapshot(), JSON.parse(session.snapshotText()));
+    assert.equal(session.snapshot().sequence, 2);
+  } finally { session.close(); }
+});
