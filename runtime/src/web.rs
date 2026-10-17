@@ -98,6 +98,14 @@ impl WebReactiveSession {
         to_json_pretty(&report).map_err(|error| error.to_string())
     }
 
+    /// `check`, with the checks asked for as well: `unused` adds C007
+    /// `unused-declaration`.
+    pub fn check_with(source: &str, unused: bool) -> Result<String, String> {
+        let options = crate::reactive::CheckOptions { unused };
+        let report = crate::reactive::check_source_with(source, options)?;
+        to_json_pretty(&report).map_err(|error| error.to_string())
+    }
+
     /// The program's events, states, bindings and declared names, as JSON
     /// (spec/caveat-interface-0.1.md). Errors as `new` does when it does not load.
     pub fn interface(source: &str) -> Result<String, String> {
