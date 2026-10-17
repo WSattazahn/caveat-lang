@@ -296,8 +296,11 @@ pub enum Effect {
         action: String,
         reason: StopReason,
         using: Option<Expr>,
+        /// `citing X, Y`: grounds without a value. See spec/caveat-citing-0.1.md.
+        citing: Vec<Expr>,
         /// `permitted by GRANT [for X]`. See spec/caveat-permission-0.1.md.
-        permission: Option<PermissionClause>,
+        /// Boxed so that adding `citing` leaves `Effect` smaller than before.
+        permission: Option<Box<PermissionClause>>,
         retaining: Vec<String>,
     },
     Reopen {
@@ -400,10 +403,13 @@ fn expand_effect(
             **index = reactive_expr::expand_with(index, functions, defines)?;
         }
         Effect::Commit {
-            using, permission, ..
+            using,
+            citing,
+            permission,
+            ..
         } => {
             let scope = permission.as_mut().and_then(|clause| clause.scope.as_mut());
-            for value in using.iter_mut().chain(scope) {
+            for value in using.iter_mut().chain(citing.iter_mut()).chain(scope) {
                 *value = reactive_expr::expand_with(value, functions, defines)?;
             }
         }
@@ -934,9 +940,13 @@ impl<'a> OrderStep<'a> {
             }
             Effect::Sample { value, .. } => expressions.push(value),
             Effect::Commit {
-                using, permission, ..
+                using,
+                citing,
+                permission,
+                ..
             } => {
                 expressions.extend(using);
+                expressions.extend(citing);
                 if let Some(clause) = permission {
                     if let EvidenceSelector::Named(grant) = &clause.grant {
                         uses.push((
@@ -2726,6 +2736,7 @@ impl ReactiveSession {
                 }
                 Effect::Commit {
                     using,
+                    citing,
                     permission,
                     retaining,
                     ..
@@ -2734,6 +2745,9 @@ impl ReactiveSession {
                         if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                             return Err("commit using requires a numeric expression".into());
                         }
+                    }
+                    for citation in citing {
+                        citation.validate(&numeric, &validate_predicate)?;
                     }
                     if let Some(clause) = permission {
                         match &clause.grant {
@@ -4880,6 +4894,7 @@ impl ReactiveSession {
                 action,
                 reason,
                 using,
+                citing,
                 permission,
                 retaining,
             } => {
@@ -4941,6 +4956,12 @@ impl ReactiveSession {
                 } else {
                     None
                 };
+                // `citing`: grounds and lineage as for `using`, with no value.
+                // See spec/caveat-citing-0.1.md.
+                for citation in citing {
+                    provenance.merge(&self.evaluate(citation, parameters)?.provenance)?;
+                    grounds.merge(&self.evaluate_grounds(citation, parameters)?.provenance)?;
+                }
                 if let Some(previous) = &previous {
                     let released = self.commitment_grounds[previous]
                         .own_evidence()
@@ -6163,22 +6184,31 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             action,
             reason,
             using,
+            citing,
             permission,
             retaining,
         } => Effect::Commit {
             action: rename(action),
             reason: reason.clone(),
             using: using.as_ref().map(|value| value.rename_symbols(names)),
-            permission: permission.as_ref().map(|clause| PermissionClause {
-                grant: match &clause.grant {
-                    EvidenceSelector::Named(grant) => EvidenceSelector::Named(rename(grant)),
-                    EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
-                    selector => selector.clone(),
-                },
-                scope: clause
-                    .scope
-                    .as_ref()
-                    .map(|scope| scope.rename_symbols(names)),
+            citing: citing
+                .iter()
+                .map(|value| value.rename_symbols(names))
+                .collect(),
+            permission: permission.as_ref().map(|clause| {
+                Box::new(PermissionClause {
+                    grant: match &clause.grant {
+                        EvidenceSelector::Named(grant) => EvidenceSelector::Named(rename(grant)),
+                        EvidenceSelector::Latest(stream) => {
+                            EvidenceSelector::Latest(rename(stream))
+                        }
+                        selector => selector.clone(),
+                    },
+                    scope: clause
+                        .scope
+                        .as_ref()
+                        .map(|scope| scope.rename_symbols(names)),
+                })
             }),
             retaining: retaining.iter().map(rename).collect(),
         },
@@ -7185,7 +7215,8 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .map(|name| identifier(name.trim()))
                     .collect()
             };
-            // Clauses, in order: using, permitted by … [for …], retaining. Their
+            // Clauses, in order: using or citing, permitted by … [for …],
+            // retaining. Their
             // keywords count only outside parentheses.
             let mut depth = 0_i64;
             let (mut permitted, mut retained_at) = (None, None);
@@ -7203,14 +7234,24 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 depth += expression_depth_delta(token);
             }
             let usage = &rest[..permitted.or(retained_at).unwrap_or(rest.len())];
-            let using = match usage {
-                [] => None,
-                ["using", expression @ ..] if !expression.is_empty() => {
-                    Some(reactive_expr::parse_unresolved(&expression.join(" "))?)
+            let (using, citing) = match usage {
+                [] => (None, Vec::new()),
+                ["using", expression @ ..] if !expression.is_empty() => (
+                    Some(reactive_expr::parse_unresolved(&expression.join(" "))?),
+                    Vec::new(),
+                ),
+                ["citing", citations @ ..] if !citations.is_empty() => {
+                    let citations = citations.join(" ");
+                    if citations == "nothing" {
+                        return Err("commit citing expects expressions separated by commas; without grounds, leave citing out".into());
+                    }
+                    (None, parse_citations(&citations).map_err(|_| {
+                        "commit citing expects expressions separated by commas"
+                    })?)
                 }
                 _ => {
                     return Err(
-                        "commit expects [using NUMERIC_EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, CAVEAT]"
+                        "commit expects [using NUMERIC_EXPRESSION | citing EXPRESSION, …] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, CAVEAT]"
                             .into(),
                     )
                 }
@@ -7253,7 +7294,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                         ),
                         Some(_) => return Err("permitted by … for needs an expression".into()),
                     };
-                    Some(PermissionClause { grant, scope })
+                    Some(Box::new(PermissionClause { grant, scope }))
                 }
             };
             let retaining = retained_at
@@ -7264,6 +7305,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 action: identifier(action)?,
                 reason,
                 using,
+                citing,
                 permission,
                 retaining,
             })

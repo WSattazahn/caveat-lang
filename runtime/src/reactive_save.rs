@@ -1552,11 +1552,12 @@ impl ReactiveSession {
                 }
                 Effect::Commit {
                     using,
+                    citing,
                     permission,
                     retaining,
                     ..
                 } => {
-                    using.iter().for_each(&mut read);
+                    using.iter().chain(citing).for_each(&mut read);
                     if let Some(scope) =
                         permission.as_ref().and_then(|clause| clause.scope.as_ref())
                     {

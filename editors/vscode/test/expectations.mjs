@@ -102,7 +102,7 @@ export const groups = [
   { name: 'booleans', words: ['true', 'false'], probe: 'x = @;', scope: 'constant.language.boolean' },
   {
     name: 'clauses',
-    words: ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to',
+    words: ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to',
       'via', 'through', 'toward'],
     probe: 'x @ y;',
     scope: 'keyword.other',
