@@ -116,7 +116,7 @@ sees what the earlier ones did.
 | `reopen SERIES because EVIDENCE\|latest(STREAM)\|caveated(STATE, CAVEAT)` | Reopens the current revision. |
 | `withdraw EVIDENCE\|latest(STREAM) because EVIDENCE` | Marks it wrong. Later reads carry a `withdrawn` caveat ([withdrawal](reference/spec/caveat-withdrawal-0.1.md)). |
 | `qualify EVIDENCE with CAVEAT [after SECONDS]`, `unqualify EVIDENCE with CAVEAT` | `qualify` attaches a caveat now, or after that much session time. `unqualify` takes back what `qualify` added, on every held occurrence. The take-back is recorded, not erased, and decisions keep their basis ([take-back](reference/spec/caveat-take-back-0.1.md)). |
-| `renew EVIDENCE` | Moves the name to a new, **unobserved** occurrence. `observed(EVIDENCE)` is false again until a `reveal`. Earlier occurrences keep what they were about. |
+| `renew EVIDENCE` | Moves the name to a new, **unobserved** occurrence. `observed(EVIDENCE)` is false again until a `reveal`. Earlier occurrences keep what they were about. `occurrence(EVIDENCE, N)` names the Nth, from 1, in `withdraw`, `qualify`, `unqualify`, `reopen … because`, `observed`, `withdrawn` and `carries`; an N that names no held occurrence refuses an effect as `expression` and makes a predicate false ([earlier occurrence](reference/spec/caveat-earlier-occurrence-0.1.md)). |
 | `reject "MESSAGE"` | Refuses the whole event. |
 | `call PROCEDURE(ARGUMENT, …)` | Runs a procedure's steps. |
 

@@ -95,6 +95,12 @@ pub enum HistoryRead {
     At(usize),
 }
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
+
+/// The prefix of a predicate kind asked of `occurrence(EVIDENCE, INDEX)`; the
+/// host receives the target as `EVIDENCE#INDEX`. See
+/// spec/caveat-earlier-occurrence-0.1.md.
+pub const AT_OCCURRENCE: &str = "occurrence:";
+
 pub const MAX_PROVENANCE_BYTES: usize = 65_536;
 pub const MAX_TEXT_BYTES: usize = 65_536;
 
@@ -481,6 +487,10 @@ enum Node {
     // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
     ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
+    /// `observed`, `withdrawn` or `carries` asked of `occurrence(EVIDENCE,
+    /// INDEX)`: the predicate's kind, the renewable evidence and the index.
+    /// See spec/caveat-earlier-occurrence-0.1.md.
+    AtOccurrence(String, String, Box<Expr>),
     Latest(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
@@ -653,7 +663,9 @@ impl Expr {
             bytes += child_bytes;
         };
         match &self.node {
-            Node::Unary(_, child) | Node::HistoryAt(_, child) => visit(child),
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
+                visit(child)
+            }
             Node::Binary(_, left, right) | Node::Require(left, right) => {
                 visit(left);
                 visit(right);
@@ -691,9 +703,9 @@ impl Expr {
             | Node::UserCall(text, _)
             | Node::HistoryAt(text, _)
             | Node::ExpandedFold(text, _, _) => bytes += text.len(),
-            Node::Predicate(kind, name) | Node::Fold(kind, _, name) => {
-                bytes += kind.len() + name.len()
-            }
+            Node::Predicate(kind, name)
+            | Node::Fold(kind, _, name)
+            | Node::AtOccurrence(kind, name, _) => bytes += kind.len() + name.len(),
             Node::Qualified(_, evidence, caveats) => {
                 bytes += evidence.len() + caveats.iter().map(String::len).sum::<usize>();
             }
@@ -727,7 +739,9 @@ impl Expr {
                 }
             }
             Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
-            Node::HistoryAt(_, index) => {
+            // Not an observation of the current occurrence, so it guards
+            // nothing that names the evidence.
+            Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => {
                 reads.graph = true;
                 index.collect_reads(reads);
             }
@@ -794,7 +808,7 @@ impl Expr {
             | Node::HistoryCount(name) => {
                 sources.insert(name.clone());
             }
-            Node::HistoryAt(name, index) => {
+            Node::HistoryAt(name, index) | Node::AtOccurrence(_, name, index) => {
                 sources.insert(name.clone());
                 index.collect_sources(sources);
             }
@@ -857,6 +871,7 @@ impl Expr {
                 histories.insert(name.clone());
                 index.collect_histories(histories);
             }
+            Node::AtOccurrence(_, _, index) => index.collect_histories(histories),
             Node::Fold(_, initial, name) => {
                 histories.insert(name.clone());
                 initial.collect_histories(histories);
@@ -934,6 +949,14 @@ impl Expr {
                     None => Node::Predicate(kind.clone(), rename(target)),
                 }
             }
+            Node::AtOccurrence(kind, evidence, index) => Node::AtOccurrence(
+                match kind.strip_prefix("carries:") {
+                    Some(caveat) => format!("carries:{}", rename(&caveat.to_string())),
+                    None => kind.clone(),
+                },
+                rename(evidence),
+                child(index),
+            ),
             Node::Qualified(value, evidence, caveats) => Node::Qualified(
                 child(value),
                 rename(evidence),
@@ -1035,6 +1058,9 @@ impl Expr {
             }
             Node::If(condition, yes, no) => child(condition) || child(yes) || child(no),
             Node::HistoryAt(history, index) => history.contains(word) || child(index),
+            Node::AtOccurrence(kind, evidence, index) => {
+                kind.contains(word) || evidence.contains(word) || child(index)
+            }
             Node::Fold(history, initial, reducer) => {
                 history.contains(word) || child(initial) || reducer.contains(word)
             }
@@ -1070,9 +1096,10 @@ impl Expr {
                 }
                 value.collect_caveat_reads(examined, extras);
             }
-            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
-                child.collect_caveat_reads(examined, extras)
-            }
+            Node::Unary(_, child)
+            | Node::HistoryAt(_, child)
+            | Node::Fold(_, child, _)
+            | Node::AtOccurrence(_, _, child) => child.collect_caveat_reads(examined, extras),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
             | Node::ExpandedFold(_, left, right) => {
@@ -1121,7 +1148,7 @@ impl Expr {
                 left.qualified_unconditionally(evidence);
                 right.qualified_unconditionally(evidence);
             }
-            Node::Unary(_, child) | Node::HistoryAt(_, child) => {
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
                 child.qualified_unconditionally(evidence)
             }
             Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
@@ -1154,6 +1181,7 @@ impl Expr {
             Node::Unary(_, child)
             | Node::Qualified(child, _, _)
             | Node::HistoryAt(_, child)
+            | Node::AtOccurrence(_, _, child)
             | Node::Fold(_, child, _) => child.depth + 1,
             Node::ExpandedFold(_, initial, body) => initial.depth.max(body.depth) + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
@@ -1216,6 +1244,13 @@ impl Expr {
             }
             Node::Predicate(name, target) => {
                 predicate(name, target)?;
+                Ok(ValueType::Bool)
+            }
+            Node::AtOccurrence(kind, evidence, index) => {
+                predicate(&format!("{AT_OCCURRENCE}{kind}"), evidence)?;
+                index
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
                 Ok(ValueType::Bool)
             }
             Node::Latest(name) => {
@@ -1494,6 +1529,17 @@ impl Expr {
                 Ok(Value::Number(finite(value)?))
             }
             Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
+            // The host resolves `EVIDENCE#INDEX` to a held occurrence, or
+            // answers false when the index names none.
+            Node::AtOccurrence(kind, evidence, index) => {
+                let index = index
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .number()?;
+                Ok(Value::Bool(predicate(
+                    &format!("{AT_OCCURRENCE}{kind}"),
+                    &format!("{evidence}#{index}"),
+                )?))
+            }
             Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
             Node::HistoryCount(name) => {
                 Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
@@ -2067,6 +2113,28 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
         }
+        // `observed`, `withdrawn` or `carries` of `occurrence(EVIDENCE, INDEX)`:
+        // the predicate asked of a held occurrence of renewable evidence. See
+        // spec/caveat-earlier-occurrence-0.1.md.
+        if matches!(name.as_str(), "observed" | "withdrawn" | "carries")
+            && self.peek() == Some(&TokenKind::Identifier("occurrence".into()))
+            && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                == Some(&TokenKind::LeftParen)
+        {
+            self.cursor += 2;
+            let evidence = self.graph_identifier("occurrence evidence")?;
+            self.expect(TokenKind::Comma, "',' after the occurrence's evidence")?;
+            let index = self.expression(0, nesting)?;
+            self.expect(TokenKind::RightParen, "')' after the occurrence index")?;
+            let kind = if name == "carries" {
+                self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+                format!("carries:{}", self.graph_identifier("carries caveat")?)
+            } else {
+                name.clone()
+            };
+            self.expect(TokenKind::RightParen, "')' after the predicate target")?;
+            return Ok(Node::AtOccurrence(kind, evidence, Box::new(index)));
+        }
         // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
         // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
         if name == "carries" {
@@ -2347,9 +2415,10 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
 
 fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
     match &expression.node {
-        Node::Unary(_, child) | Node::Qualified(child, _, _) | Node::HistoryAt(_, child) => {
-            collect_calls(child, calls)
-        }
+        Node::Unary(_, child)
+        | Node::Qualified(child, _, _)
+        | Node::HistoryAt(_, child)
+        | Node::AtOccurrence(_, _, child) => collect_calls(child, calls),
         Node::Fold(_, initial, reducer) => {
             calls.push(reducer);
             collect_calls(initial, calls);
@@ -2512,6 +2581,16 @@ impl Expander<'_> {
                     return Err("pure source functions cannot capture numeric history".into());
                 }
                 Node::HistoryAt(name.clone(), Box::new(self.walk(index, None)?))
+            }
+            Node::AtOccurrence(kind, evidence, index) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                Node::AtOccurrence(
+                    kind.clone(),
+                    evidence.clone(),
+                    Box::new(self.walk(index, None)?),
+                )
             }
             Node::Fold(name, initial, reducer) => {
                 if parameters.is_some() {

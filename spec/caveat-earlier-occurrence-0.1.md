@@ -1,6 +1,6 @@
 # CAVEAT Earlier Occurrence 0.1 (draft) — naming an earlier occurrence of renewable evidence
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft, specified for 1.1 and not implemented yet ([#238](https://github.com/WSattazahn/caveat-lang/issues/238)). Nothing in the runtime, kit, editor or `caveat check` reads this profile. It becomes stable when a 1.x release implements it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#238](https://github.com/WSattazahn/caveat-lang/issues/238)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
 [Renewal 0.1](caveat-renewal-0.1.md),
 [Withdrawal 0.1](caveat-withdrawal-0.1.md),
 [Late Qualification 0.1](caveat-late-qualification-0.1.md) and
@@ -110,9 +110,10 @@ predicate false; it never refuses. That lets a rule check a host's index
 with its own `reject`, as the example does. Otherwise each predicate answers
 for that occurrence as it answers today for the current one.
 
-**Lineage.** `INDEX`'s lineage joins the effect's or the predicate's lineage,
-as a guard's does. It never joins grounds: which report a rule picked is not
-what a decision rests on.
+**Lineage.** In an effect, `INDEX`'s lineage joins the effect's lineage, as
+its guard's does, and never its grounds: which report a rule picked is not
+what a decision rests on. In a predicate, the index is read like any other
+operand of the expression, as `history_at`'s index is.
 
 **What follows.** An earlier occurrence is ordinary evidence once named, so
 everything downstream already works on it:
@@ -121,7 +122,10 @@ everything downstream already works on it:
    `withdrawn` or the caveat, as Withdrawal 0.1 and Late Qualification 0.1
    say for any target, and loses a taken-back caveat as Take-back 0.1 says.
    Values that hold only other occurrences are untouched: a value made from
-   `tests@2` does not gain a caveat put on `tests`.
+   `tests@2` alone does not gain a caveat put on `tests`. A `renew` guarded
+   by `observed(tests)` puts `tests` into `tests@2`'s lineage
+   ([Renewal 0.1](caveat-renewal-0.1.md)), so there a value made from
+   `tests@2` holds `tests` too, and does gain it.
 2. `rests_on_withdrawn(D)` is true when the decision's current revision is
    grounded on the withdrawn occurrence, read from its frozen grounds as
    today.
@@ -227,18 +231,23 @@ reads source text only and runs no program. At this profile's revision:
 No accepted program changes. The implementation reruns the save sweep, the
 departure gate and the View 0.2 delta gate over the whole corpus.
 
-## Implementation plan
+## Implementation
 
-1. Parser and load checks: the selector in the five effect and predicate
-   positions, with an `Occurrence` variant beside `Named` and `Latest`.
-2. Resolution at run time, the `evaluation/expression` refusal, and lineage.
-3. Restore's reach checks count the selector as its evidence.
-4. Kit: `caveat check`, types, the language reference and the authoring
-   guide; a scenario that withdraws an earlier report and reopens on it.
-5. Tests: `runtime/tests/earlier_occurrence.rs` (each form, each refusal, a
-   windowed retirement, save and restore round trip, take-back of one
-   occurrence) and a kit scenario.
+- The runtime resolves the selector when an effect runs
+  (`EvidenceSelector::Occurrence`, and an index on `qualify` and
+  `unqualify`), and a predicate on it through `occurrence:KIND` with the
+  target `EVIDENCE#INDEX`. Restore's reach checks count the selector as its
+  evidence.
+- `runtime/tests/earlier_occurrence.rs` covers each form, each refusal, an
+  unobserved earlier occurrence, a retired one, the index's lineage, a
+  procedure's evidence parameter, a take-back of one occurrence and a save
+  and restore round trip.
+- The language reference lists the selector, and the editor grammar
+  highlights `occurrence`.
 
 ## Changes
 
 - 2026-10-17: specified for 1.1 (#238).
+- 2026-10-17: implemented. "Lineage" now separates an effect's index from a
+  predicate's, and "What follows" notes that a guarded `renew` puts an
+  earlier occurrence into a later one's lineage.

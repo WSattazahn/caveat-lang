@@ -51,6 +51,7 @@
     "spec/caveat-departure-0.1.md",
     "spec/caveat-withdrawal-collection-0.1.md",
     "spec/caveat-take-back-0.1.md",
+    "spec/caveat-earlier-occurrence-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]
