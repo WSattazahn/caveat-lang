@@ -191,6 +191,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
         archivedNames),
       retained: record?.retained ?? grounds.caveats,
       permission: snapshot.commitment_permissions?.[id] ?? null,
+      ...(snapshot.retention_reasons?.[id] ? { retention_reasons: snapshot.retention_reasons[id] } : {}),
       withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
         .map(name => ({ evidence: name, ...withdrawals.get(name) })),
       ...(observedBy ? { observed_by: grounds.evidence.map(name => ({ evidence: name, ...(observedBy.get(name) ?? unobserved) })) } : {}),
@@ -311,8 +312,13 @@ export function formatExplanation(report, title = 'the program') {
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
         lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${payload}`);
       }
-      const authored = revision.grounds.caveats.filter(name => !carried.includes(name));
-      if (authored.length) lines.push(`      retaining: ${list(authored)}`);
+      // A caveat retained with a reason is listed with it even when grounds
+      // evidence also carries it (spec/caveat-retention-reasons-0.1.md).
+      const reasons = revision.retention_reasons ?? {};
+      const authored = revision.grounds.caveats.filter(name => !carried.includes(name) || reasons[name]);
+      if (authored.length) {
+        lines.push(`      retaining: ${list(authored.map(name => (reasons[name] ? `${name} because ${reasons[name]}` : name)))}`);
+      }
       const inherited = retained.filter(name => !revision.grounds.caveats.includes(name));
       if (inherited.length) lines.push(`      also carrying, through its lineage: ${list(inherited)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);

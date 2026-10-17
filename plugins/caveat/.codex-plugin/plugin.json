@@ -1,6 +1,6 @@
 {
   "name": "caveat",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "The Caveatist practice for agents: keep claims with their grounds and caveats, decide with the caveat attached, withdraw rather than erase. Optional culture around the Caveat language; it changes how you work, not what any runtime does.",
   "author": {
     "name": "Walt Sattazahn",

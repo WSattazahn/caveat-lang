@@ -217,6 +217,37 @@ test('runtime.check returns the report and throws a load error as open does', ()
   assert.throws(() => createRuntime(Older).check(FROST), /this runtime build has no check/);
 });
 
+// Issue #219: a rewrite left `b` behind. C007 is reported only when asked
+// for, so a program that checked clean on 1.0 still does.
+const LEFTOVER = `claim a;
+claim b;
+evidence e from "x";
+event go;
+on go reveal e supports a;
+`;
+
+test('--unused reports a declaration nothing else names; plain check does not', async () => {
+  await withProgram(LEFTOVER, async program => {
+    const plain = caveat(['check', '--strict', program]);
+    assert.equal(plain.status, 0, plain.stdout);
+    assert.equal(plain.stdout.trim(), 'frost.cav: no warnings.');
+    const unused = caveat(['check', '--unused', program]);
+    assert.equal(unused.status, 0, unused.stderr);
+    const lines = unused.stdout.trim().split('\n');
+    assert.match(lines[0], /^frost\.cav:2:1: warning C007 unused-declaration: the claim `b` is declared, and nothing else in the program names it/);
+    assert.equal(lines.at(-1), '1 warning. A warning points at a pattern worth a second look; it is not an error.');
+    const json = caveat(['check', '--json', '--strict', '--unused', program]);
+    assert.equal(json.status, 1);
+    assert.deepEqual(JSON.parse(json.stdout).diagnostics.map(warning => [warning.code, warning.name, warning.line]),
+      [['C007', 'unused-declaration', 2]]);
+  });
+  assert.deepEqual(real.check(LEFTOVER).diagnostics, []);
+  assert.deepEqual(real.check(LEFTOVER, { unused: true }).diagnostics.map(warning => warning.code), ['C007']);
+  class Older { constructor(source) { this.inner = new Real(source); } static check(source) { return Real.check(source); } }
+  assert.deepEqual(createRuntime(Older).check(LEFTOVER).diagnostics, []);
+  assert.throws(() => createRuntime(Older).check(LEFTOVER, { unused: true }), /predates caveat check --unused/);
+});
+
 // caveat test checks each program first (rc.15): round 7's C2 and C3 authors
 // met this binding only when it won at dispatch, as ungrounded_citation.
 test('caveat test prints check warnings with the run and still runs', async () => {

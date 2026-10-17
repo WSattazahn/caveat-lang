@@ -162,6 +162,7 @@ const RENEWAL = `claim safe; evidence bite from "a bite"; caveat faded consequen
 const TAKE_BACK = `claim safe; evidence taste from "a taste"; caveat doubted consequence low;
   event sip; event doubt; event undoubt;
   on sip reveal taste supports safe; on doubt qualify taste with doubted; on undoubt unqualify taste with doubted;`;
+const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
 const WINDOWED = `claim seen; evidence glimpse from "a glimpse";
@@ -183,6 +184,8 @@ function sessionsOf() {
     ['evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 3;', [['go']]],
     [WINDOWED, WINDOWED_EVENTS],
     [TAKE_BACK, [['sip'], ['doubt'], ['undoubt']]],
+    // A retained caveat's reason (spec/caveat-retention-reasons-0.1.md).
+    [RETENTION_REASON, [['go']]],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];
@@ -489,6 +492,7 @@ test('explain, dependents and check reports have the declared fields', () => {
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']], 'approvals'],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
+    [RETENTION_REASON, [['go']], 'doubt'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).
     [WINDOWED, WINDOWED_EVENTS.slice(0, 4), 'sighting'],

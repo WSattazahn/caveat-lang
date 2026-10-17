@@ -54,6 +54,7 @@
     "spec/caveat-take-back-0.1.md",
     "spec/caveat-earlier-occurrence-0.1.md",
     "spec/caveat-citing-0.1.md",
+    "spec/caveat-retention-reasons-0.1.md",
     "spec/caveat-neutral-sample-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
