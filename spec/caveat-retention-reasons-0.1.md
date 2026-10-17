@@ -1,6 +1,6 @@
 # CAVEAT Retention Reasons 0.1 (draft) — a caveat kept on purpose, with its reason
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 (finding D006 in [agent decisions](../experiments/agent-decisions/README.md)). It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 (finding D006 in [agent decisions](../experiments/agent-decisions/README.md)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.3](caveat-reactive-0.3.md) and
 [Explanations 0.2](caveat-explanations-0.2.md); it changes no program that
 loads today.
@@ -139,6 +139,22 @@ source text only and runs no program. At this profile's revision:
 
 No accepted program changes.
 
+## Implementation
+
+- The runtime parses each `CAVEAT because EVIDENCE` into the commit effect
+  with a `qualified(1, EVIDENCE)` reading, evaluates it where `using` is
+  evaluated, and records the pairing. The reason is pinned as a permission's
+  grant is, so it never departs while the record holds it.
+- `runtime/tests/retention_reasons.rs` covers D006's two caveats with two
+  reasons, a program with no reason (no new field in its snapshot or save),
+  withdrawal of a reason reopening the decision, an unobserved reason, a save
+  and restore round trip with restore's checks, the load rules and a
+  procedure's evidence parameter.
+- `explain` reports `retention_reasons` per revision and prints each reason
+  after its caveat. The kit's types, the language reference and the authoring
+  guide describe the clause, and the package ships this profile.
+
 ## Changes
 
 - 2026-10-17: specified for 1.1 (D006).
+- 2026-10-17: implemented.

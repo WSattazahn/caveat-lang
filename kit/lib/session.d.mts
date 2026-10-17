@@ -438,6 +438,11 @@ export interface Snapshot {
   taken_back?: TakeBack[];
   /** What each permitted commitment was permitted by; absent when there are none. */
   commitment_permissions?: Record<string, PermissionRecord>;
+  /**
+   * By commitment, each retained caveat that named a reason, with the reason's
+   * occurrence; absent when there are none (spec/caveat-retention-reasons-0.1.md).
+   */
+  retention_reasons?: Record<string, Record<string, string>>;
   scheduled_qualifications: ScheduledQualification[];
   last_event: string | null;
   values: Record<string, number>;

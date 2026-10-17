@@ -602,29 +602,38 @@ have to be told to ignore it.
 
 ## Record a caveat you chose not to pursue
 
-A caveat declaration and a `retaining` list take names only, so neither can
-hold the reason a caveat was left alone. Give the reason its own evidence and
-make it the grounds of a decision that retains the caveat. When caveats are
-left for different reasons, use one decision per caveat so each keeps its own
-reason:
+Give the reason its own evidence, and name it after the caveat in
+`retaining` ([Retention Reasons 0.1](../spec/caveat-retention-reasons-0.1.md)).
+Each caveat keeps its own reason, so one decision can leave several caveats
+for different reasons:
 
 ```caveat
 evidence scope_note from "the release plan: the game does not gate 1.0";
+evidence d1_only from "draft 179 only matters for option B";
 caveat presentation_gaps consequence low;
+caveat pr179_drift consequence low;
 decisions defer_polish limit 2;
 on triage reveal scope_note supports can_wait;
+on triage reveal d1_only supports can_wait;
 on triage commit defer_polish because enough
-  using qualified(1, scope_note) retaining presentation_gaps;
+  retaining presentation_gaps because scope_note, pr179_drift because d1_only;
 ```
 
-`explain` then prints `based on scope_note` and `retaining: presentation_gaps`
+`explain` then prints `based on d1_only, scope_note` and
+`retaining: pr179_drift because d1_only, presentation_gaps because scope_note`
 for `defer_polish@1`, and `dependents PROGRAM presentation_gaps` finds the
-decision. `because` takes only `enough`, `budget` or `deadline`, which are
-stopping rules, so "out of scope for now" is written `because enough`. A
-`retaining` line lists only caveats that no grounds observation carries; a
-caveat the evidence brought with it is shown beside that evidence instead.
-Nothing yet marks a caveat as deliberately not pursued rather than still
-waiting; that would be a language addition after 1.0.
+decision. A reason must be observed when the commit runs, and it joins the
+decision's grounds: withdrawing it makes `rests_on_withdrawn(defer_polish)`
+true. `because` after the series takes only `enough`, `budget` or `deadline`,
+which are stopping rules, so "out of scope for now" is written
+`because enough`. A caveat retained without a reason is listed only when no
+grounds observation carries it; a caveat the evidence brought with it is
+shown beside that evidence instead.
+
+Before 1.1, the reason went into the grounds with
+`using qualified(1, scope_note)`, and two caveats left for two reasons needed
+two decisions. That still works, but nothing in the record pairs a caveat with
+its reason.
 
 ## Evidence from fresh authors
 
