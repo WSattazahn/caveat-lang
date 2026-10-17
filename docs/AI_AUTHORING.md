@@ -255,6 +255,9 @@ The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quo
    which exits 1 when there is one. Glowcap round 8's mutation harness
    counted only programs that failed to load, so a C006 warning on each of
    its 215 M5 mutants went uncounted.
+   After a rewrite, run `caveat check --unused` too: it reports a claim,
+   evidence, caveat or state that nothing else in the program names, which
+   the plain check does not.
 4. Exercise missing observations, contradictory readings, repeated equal
    readings, reopened decisions, and failures late in an event.
 5. Change one policy and run the same scenarios. Check both the changed

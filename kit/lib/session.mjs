@@ -273,7 +273,8 @@ function lifecycleOf(SessionClass) {
 // dispatch_outcome, snapshot, view, save and free, and optionally
 // dispatch_view_outcome (for dispatchView), view_v2 and
 // dispatch_view_delta_outcome (for View 0.2), drain_archive and undrained (for
-// drainArchive and undrained), SessionClass.check(source) and
+// drainArchive and undrained), SessionClass.check(source), optionally
+// SessionClass.check_with(source, unused) (for check's options) and
 // SessionClass.interface(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
@@ -323,14 +324,19 @@ export function createRuntime(SessionClass, identity = {}) {
       }
     },
     // Advisory warnings for a program that loads (spec/caveat-check-0.1.md).
-    // A program that does not load throws as open does.
-    check(source) {
+    // A program that does not load throws as open does. `{ unused: true }`
+    // adds C007, which is reported only when asked for.
+    check(source, options = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
       if (typeof SessionClass.check !== 'function') {
         throw new CaveatError('load', 'this runtime build has no check; it predates caveat check');
       }
-      try { return JSON.parse(SessionClass.check(source)); } catch (error) {
+      const unused = options?.unused === true;
+      if (unused && typeof SessionClass.check_with !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no unused-declaration check; it predates caveat check --unused');
+      }
+      try { return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source)); } catch (error) {
         throw failure(error, 'load');
       }
     },

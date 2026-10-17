@@ -3,7 +3,7 @@
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -32,7 +32,7 @@ Usage:
   caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
-  caveat-lang check [--runtime <dir>] [--json] [--strict] <program.cav>
+  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] <program.cav>
@@ -71,7 +71,9 @@ check loads a program and reports patterns worth a second look, each with a
 code, a line and a suggestion (spec/caveat-check-0.1.md). Warnings are advice,
 not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
-1 with --strict when there is a warning; 2 it does not load.
+1 with --strict when there is a warning; 2 it does not load. --unused also
+reports a claim, evidence, caveat or state that nothing else names (C007), such
+as one left behind by a rewrite.
 
 types prints TypeScript declarations for a program: each event's payload, the
 displayed values and their types, and its state, cue, decision, stream,
@@ -109,6 +111,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
   --json           print the machine report instead of text
   --strict         (check) exit 1 when there is a warning
+  --unused         (check) also report claims, evidence, caveats and states
+                   that nothing else in the program names
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -133,11 +137,12 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, strict: false, runtime: null, from: null };
+  const options = { command, files: [], json: false, strict: false, unused: false, runtime: null, from: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
+    else if (argument === '--unused' && command === 'check') options.unused = true;
     else if (argument === '--from' && command === 'types') {
       options.from = rest[++index];
       if (!options.from) return { error: '--from needs a module specifier' };
@@ -298,7 +303,7 @@ async function checkProgram(options) {
   const runtime = await loadRuntime(options);
   if (!runtime) return 2;
   let report;
-  try { report = runtime.check(inputs.source); } catch (error) { return refuse(`does not load: ${error.message}`); }
+  try { report = runtime.check(inputs.source, { unused: options.unused }); } catch (error) { return refuse(`does not load: ${error.message}`); }
   if (options.json) {
     const { schema, diagnostics, suppressed } = report;
     console.log(JSON.stringify({ schema, program, loads: true, strict: options.strict, diagnostics, suppressed }, null, 2));

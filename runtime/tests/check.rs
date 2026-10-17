@@ -1,6 +1,8 @@
 //! `caveat check`: when each warning appears, and when it must stay quiet.
 //! See spec/caveat-check-0.1.md.
-use caveat_runtime::reactive::{check_source, CheckReport, ReactiveSession};
+use caveat_runtime::reactive::{
+    check_source, check_source_with, CheckOptions, CheckReport, ReactiveSession,
+};
 
 const DECLARATIONS: &str = r#"claim frost_risk;
 evidence probe from "a soil probe";
@@ -2084,4 +2086,123 @@ fn no_repository_program_reports_c006() {
         "checked {checked} of {} programs",
         programs.len()
     );
+}
+
+fn check_unused(source: &str) -> CheckReport {
+    check_source_with(source, CheckOptions { unused: true })
+        .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
+}
+
+/// Issue #219: after a rewrite, a claim nothing named was left behind.
+const LEFTOVERS: &str = r#"claim a;
+claim b;
+evidence e from "x";
+evidence spare from "y";
+caveat stale consequence low;
+caveat unread consequence low;
+stale qualifies e;
+state s = 0;
+state shown = 0;
+event go;
+on go reveal e supports a;
+bind panel.value = shown;
+"#;
+
+#[test]
+fn a_declaration_nothing_names_is_reported_only_when_asked() {
+    // The default check is as it was in 1.0.
+    assert_eq!(codes(&check(LEFTOVERS)), []);
+    let report = check_unused(LEFTOVERS);
+    assert_eq!(
+        codes(&report),
+        [
+            ("C007", line_of(LEFTOVERS, "claim b")),
+            ("C007", line_of(LEFTOVERS, "evidence spare")),
+            ("C007", line_of(LEFTOVERS, "caveat unread")),
+            ("C007", line_of(LEFTOVERS, "state s ")),
+        ]
+    );
+    assert!(report.diagnostics[0].message.contains("the claim `b`"));
+    assert_eq!(report.diagnostics[0].name, "unused-declaration");
+}
+
+#[test]
+fn a_name_in_a_message_or_comment_is_not_a_use_but_any_other_mention_is() {
+    let source = r#"claim a;
+claim b; # b was the old verdict
+evidence e from "b";
+state s = 0;
+state t = s + 1;
+define d = t;
+event go;
+on go when false reject "about b";
+on go reveal e supports a;
+"#;
+    // `s` is read by `t`'s initial value and `t` by a define nothing reads:
+    // each counts as named, so the check misses such a chain rather than
+    // reporting a name that is read.
+    assert_eq!(
+        codes(&check_unused(source)),
+        [("C007", line_of(source, "claim b"))]
+    );
+}
+
+#[test]
+fn a_declaration_in_a_for_block_is_reported_for_each_member_at_the_template() {
+    let source = r#"place field kind plot;
+entity north kind plot at field;
+entity south kind plot at field;
+claim wet;
+evidence probe from "p";
+event read target kind plot;
+for plot as $p {
+    state $p_count = 0;
+    state $p_spare = 0;
+    on read when target == target.$p set $p_count = $p_count + 1;
+};
+on read reveal probe supports wet;
+"#;
+    let spare = line_of(source, "state $p_spare");
+    assert_eq!(
+        codes(&check_unused(source)),
+        [("C007", spare), ("C007", spare)]
+    );
+}
+
+#[test]
+fn an_unused_declaration_can_be_allowed_on_purpose() {
+    let source = LEFTOVERS.replace(
+        "state s = 0;",
+        "# caveat check: allow unused-declaration\nstate s = 0;",
+    );
+    let report = check_unused(&source);
+    assert_eq!(report.diagnostics.len(), 3);
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [("C007", line_of(&source, "state s "))]
+    );
+}
+
+#[test]
+fn the_shipped_examples_name_everything_they_declare() {
+    for file in [
+        "../examples/thermostat_history.cav",
+        "../kit/templates/umbrella.cav",
+        "../experiments/agent-ledger/ledger.cav",
+        "../experiments/agent-ledger/release.cav",
+        "../game/glowcap.cav",
+        "../game/trail_rescue.cav",
+    ] {
+        let report = check_unused(&read(file));
+        let unused = report
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.code == "C007")
+            .collect::<Vec<_>>();
+        assert!(unused.is_empty(), "{file}: {unused:#?}");
+    }
 }

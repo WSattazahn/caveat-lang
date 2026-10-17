@@ -211,7 +211,7 @@ export interface CaveatRuntime {
   /** Throws `CaveatError("load")` when the source does not load. */
   open(source: string): CaveatSession;
   /** Advisory warnings for a program that loads; throws as `open` does when it does not. */
-  check(source: string): CheckReport;
+  check(source: string, options?: CheckOptions): CheckReport;
   /** The program's interface (spec/caveat-interface-0.1.md); throws as `open` does when it does not load. */
   interface(source: string): ProgramInterface;
   /** Throws `CaveatError("restore")` when the save does not restore with this source. */
@@ -237,6 +237,7 @@ export interface RuntimeSessionClass {
   new (source: string): RuntimeSessionHandle;
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
+  check_with?(source: string, unused: boolean): string;
   interface?(source: string): string;
   /** True once the instance has failed to allocate memory; safe to read after a trap. */
   out_of_memory?(): boolean;
@@ -331,6 +332,12 @@ export interface InterfaceReadings {
 }
 
 // ------------------------------------------------------------- check report
+
+/** Checks reported only when asked for, so a program that checked clean before still does. */
+export interface CheckOptions {
+  /** Also report C007 `unused-declaration`: a claim, evidence, caveat or state nothing else names. */
+  unused?: boolean;
+}
 
 export interface CheckReport {
   schema: 'caveat-check/0.1';

@@ -50,12 +50,26 @@ const NO_REOPENING_PATH: (&str, &str) = ("C002", "no-reopening-path");
 const UNROUTED_MEMBER_RULE: (&str, &str) = ("C003", "unrouted-member-rule");
 const SHIFTED_MEMBER_INDEX: (&str, &str) = ("C004", "shifted-member-index");
 const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
+const UNUSED_DECLARATION: (&str, &str) = ("C007", "unused-declaration");
 const ALLOW: &str = "caveat check: allow";
+
+/// Which checks run beyond the default ones. Each is asked for, so a program
+/// that checked clean before still does (docs/COMPATIBILITY.md).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CheckOptions {
+    /// C007 `unused-declaration`.
+    pub unused: bool,
+}
 
 /// Loads the program, then looks for the patterns in
 /// spec/caveat-check-0.1.md. A program that does not load is an error, as for
 /// `ReactiveSession::from_source`.
 pub fn check_source(source: &str) -> Result<CheckReport, String> {
+    check_source_with(source, CheckOptions::default())
+}
+
+/// `check_source`, with the checks `options` asks for as well.
+pub fn check_source_with(source: &str, options: CheckOptions) -> Result<CheckReport, String> {
     if source.starts_with(crate::link::BUNDLE_MARKER) {
         return Err("caveat check reads a single-file program, not a bundle".into());
     }
@@ -65,6 +79,9 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
     found.extend(unreopened_decisions(&session, &statements));
     found.extend(member_rules(&session, &statements, &blocks, source));
     found.extend(unreachable_citations(&session, &statements));
+    if options.unused {
+        found.extend(unused_declarations(&statements));
+    }
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
     let lines = source.lines().collect::<Vec<_>>();
@@ -468,6 +485,88 @@ fn unreachable_citations(session: &ReactiveSession, statements: &[Statement]) ->
         }
     }
     found
+}
+
+/// C007. A claim, evidence, caveat or state that no statement names but its
+/// own declaration. Names are compared as written, after `for` blocks are
+/// expanded, so a name read only in an unused `define` or never-called `proc`
+/// still counts as named: the check can miss a leftover, never invent one.
+fn unused_declarations(statements: &[Statement]) -> Vec<Diagnostic> {
+    let mut named: HashMap<String, usize> = HashMap::new();
+    let mut declared = Vec::new();
+    for statement in statements {
+        let tokens = tokens(&statement.text);
+        for token in &tokens {
+            if let Token::Name(name) = token {
+                for part in name.split('.') {
+                    *named.entry(part.to_string()).or_default() += 1;
+                }
+            }
+        }
+        let kind = match tokens.as_slice() {
+            [Token::Name(word), Token::Name(_), ..] if word == "claim" => "claim",
+            [Token::Name(word), Token::Name(_), Token::Name(from), ..]
+                if word == "evidence" && from == "from" =>
+            {
+                "evidence"
+            }
+            [Token::Name(word), Token::Name(_), Token::Name(consequence), ..]
+                if word == "caveat" && consequence == "consequence" =>
+            {
+                "caveat"
+            }
+            [Token::Name(word), Token::Name(_), Token::Other(equals), ..]
+                if word == "state" && equals == "=" =>
+            {
+                "state"
+            }
+            _ => continue,
+        };
+        let Token::Name(name) = &tokens[1] else {
+            continue;
+        };
+        declared.push((kind, name.clone(), statement.at));
+    }
+    declared
+        .into_iter()
+        // Named once: by its own declaration.
+        .filter(|(_, name, _)| named.get(name).copied().unwrap_or_default() <= 1)
+        .map(|(kind, name, at)| {
+            let (what, effect) = match kind {
+                "state" => (
+                    "state",
+                    "no rule sets or reads it and no binding shows it, so it keeps its initial value",
+                ),
+                "evidence" => (
+                    "evidence",
+                    "no rule reveals, withdraws or cites it and no stream reads from it",
+                ),
+                "caveat" => (
+                    "caveat",
+                    "nothing qualifies evidence with it and no rule reads it",
+                ),
+                _ => (
+                    "claim",
+                    "no evidence or reading supports or opposes it and no trigger names it",
+                ),
+            };
+            Diagnostic {
+                code: UNUSED_DECLARATION.0,
+                name: UNUSED_DECLARATION.1,
+                severity: "warning",
+                line: at.line,
+                column: at.column,
+                message: format!(
+                    "the {what} `{name}` is declared, and nothing else in the program names it: {effect}"
+                ),
+                suggestion: format!(
+                    "If it is left over from an earlier version, remove it, so readers do not take it for part of the policy. If a host reads it on purpose, put `# {ALLOW} {}` on the line above.",
+                    UNUSED_DECLARATION.1
+                ),
+                related: Vec::new(),
+            }
+        })
+        .collect()
 }
 
 /// C002. A decision series committed on readings that nothing reopens: no

@@ -190,7 +190,9 @@ npx --no-install caveat-lang init my-project
   exits with 0 whatever it finds, 1 with `--strict` when there is a warning,
   and 2 if the program does not load. A comment
   `# caveat check: allow CODE` on the line above silences a pattern that is
-  intended. `--json` prints the report.
+  intended. `--json` prints the report. `--unused` also reports a claim,
+  evidence, caveat or state that nothing else names, such as one a rewrite
+  left behind.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
