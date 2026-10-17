@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>CAVEAT Language — A decision ledger for agents.</title>
-  <meta name="description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta name="description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="CAVEAT Language — A decision ledger for agents.">
-  <meta property="og:description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta property="og:description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -37,9 +37,9 @@
 <header>
   <h1>CAVEAT Language</h1>
   <p class="lede"><strong>A decision ledger for agents.</strong> An embeddable
-  decision runtime with a small rules language: its decisions record what they
-  rest on, the evidence they used, what permitted them, and why they were
-  reopened.</p>
+  decision runtime with a small rules language. When a piece of evidence turns
+  out to be wrong, withdraw it: the decisions that rested on it reopen, and
+  each one keeps the grounds it was originally made on.</p>
   <p class="status"><strong>Available now: CAVEAT 0.1.0-rc.20.</strong>
   Run CAVEAT in Node.js or the browser.
   <a href="#run">Get started</a> ·
@@ -47,47 +47,55 @@
 </header>
 
 <main>
-<h2 id="problem">The problem</h2>
-<p>A program, or an agent, decides to act: cover the seedlings tonight, merge
-a change, send a crew. Later someone asks:</p>
-<ol>
-  <li>What was the decision based on?</li>
-  <li>What allowed it to go ahead?</li>
-  <li>One of its inputs turned out to be wrong. What rested on it, and does the
-  decision still stand?</li>
-</ol>
-<p>You can record these answers in ordinary code, and the project's own
-TypeScript comparison records what a decision was based on and when it was
-reopened. But you write and maintain that bookkeeping
-yourself, and nothing checks it against the logic that made the decision
-unless you write that check too. A go-ahead folded into the decided value also
-blurs why the action was safe with who allowed it.</p>
-<p>In Caveat the program declares these answers, and the runtime records them
-as it runs:</p>
+<h2 id="what">What it gives you that plain code doesn't</h2>
+<p>An agent or a program decides to act: ship a release, pin a dependency,
+send a crew. Later one of the readings it used turns out to be wrong. Three
+questions follow: what did the decision rest on when it was made, what else
+rests on that reading, and does the decision still stand?</p>
+<p>In TypeScript, or any ordinary language, a decision is a variable. You can
+store its reasons beside it, but the language does not know what the value was
+computed from, so keeping those reasons accurate is code you write, test and
+maintain yourself. In Caveat it is the runtime's job:</p>
 <ul>
-  <li><strong>Grounds.</strong> A decision records the evidence its value was
-  computed from, with the caveats attached to that evidence. Its grounds are
-  fixed when it is made; a later reading never changes them.</li>
-  <li><strong>Permission.</strong> A <code>permitted by</code> clause
-  designates which evidence counts as the go-ahead. The decision records the
-  grant it found, apart from its grounds, and is refused unless that grant has
-  been observed and not withdrawn and, with <code>for X</code>, has the value
-  X.</li>
-  <li><strong>Reopening.</strong> A decision can declare which readings reopen
-  it, for example any new reading in a named stream that opposes a named
-  claim. Withdrawing a reading records that it is no longer stood behind. That
-  erases nothing and does not establish the opposite claim, and a rule can then
-  reopen the decisions that rested on it. A journal lists every decision and
-  every reopening, with its reasons.</li>
-  <li><strong>Explanations.</strong> The command <code>caveat explain</code>
-  prints each decision's grounds, permission and history, and
-  <code>caveat dependents</code> answers the reverse question: what rests on
-  this piece of evidence?</li>
+  <li><strong>Withdraw evidence without losing the past.</strong> Withdrawing
+  a reading records that it is no longer stood behind; nothing is erased, and
+  the opposite claim is not established. A rule you wrote can then reopen the
+  decisions that rested on it, and each one keeps the grounds it was made on,
+  readable afterwards.</li>
+  <li><strong>Ask what rests on a reading.</strong> Every value carries the
+  evidence it was computed from, and its caveats, through every sum,
+  comparison and label. <code>caveat dependents</code> answers "what rests on
+  this?" and <code>caveat explain</code> prints each decision's grounds,
+  permission and history.</li>
+  <li><strong>Reasons the runtime checks.</strong> A <code>because</code> that
+  cites evidence the value never read is refused, as
+  <code>evaluation/ungrounded_citation</code>. A type checker tells you a value
+  has the right shape; it cannot tell you a stated reason is one the value
+  actually depended on.</li>
+  <li><strong>Permission kept apart from grounds.</strong> A
+  <code>permitted by</code> clause names which evidence counts as the
+  go-ahead. The decision is refused, as <code>policy/not_permitted</code>,
+  unless that grant has been observed and not withdrawn, and it records the
+  grant separately from what the decision was computed from.</li>
+  <li><strong>A refusal changes nothing.</strong> An event the program
+  refuses leaves no partial trace; your host checks each outcome before
+  acting. A journal lists every decision and every reopening, with its
+  reasons.</li>
 </ul>
 <p>Caveat is not an agent framework: it does not call models or tools. Your
 code, or your agent's harness, sends a Caveat program events through the Node
-or browser library, or as JSON lines with <code>caveat serve</code>, and acts
-on what the program decides.</p>
+or browser library, as JSON lines with <code>caveat serve</code> from any
+language, or through the MCP server, and acts on what the program decides.</p>
+
+<h2 id="when">When it pays off</h2>
+<p>For decisions that get revisited: release and deploy gates, dependency and
+runtime choices, accepted-risk exceptions, agent memory that gets corrected.
+Those are the cases where "what did this rest on?" and "what changes if that
+reading was wrong?" come up, and where Caveat answers them without extra
+bookkeeping.</p>
+<p>It is not worth it for a one-off call nobody will look at again, for hot
+inner loops, or for a program where no one will ever ask why. Plain code is
+simpler there.</p>
 
 <p><strong>Integrating Caveat with an agent?</strong> Start with the
 <a href="https://github.com/WSattazahn/caveat-lang/tree/main/kit/examples/agent-evidence">Python
@@ -173,26 +181,11 @@ follow the worked example the same way.</p>
   Required reasons remain: their dependency chains can grow, so windows do not
   bound the complete save. Archive storage is additional. State is numbers,
   and a program does no input or output of its own.</li>
-  <li>The evidence that it is useful is small: the project's own games, one
-  benchmark game compared against TypeScript (by a single author, then in a
-  seventh round by seven fresh AI agents), authoring
-  trials in which AI agents wrote programs for specified tasks, and one replay
-  of a day of an AI agent's pull-request decisions in this repository. All three blind
-  comparison rounds, where the change requests were fixed before either side
-  changed, went to TypeScript. The rounds in which Caveat did better were
-  written knowing the requests. Whether it helps real decision systems is still
-  a hypothesis.</li>
-  <li>It costs speed and size. In that one benchmark game, measured on a
-  development runtime from before rc.3, the latest Caveat version of the game
-  took about 20 times as long per event as the project's TypeScript version of
-  it (51.6&nbsp;µs against 2.5&nbsp;µs median, dispatch plus view); the
-  blind-round Caveat version, measured earlier, took 1.1&nbsp;ms. That
-  TypeScript implementation shipped 3.5&nbsp;KB gzipped. The rc.4 runtime alone
-  is about 583&nbsp;KB gzipped, measured on rc.4's published package; the
-  benchmark recorded 483&nbsp;KB for its whole Caveat build on the older
-  runtime. The
-  <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/experiments/glowcap/RESULTS.md#round-6-replay-the-language-the-work-list-produced">benchmark
-  report</a> gives the workloads, every round and its own limits.</li>
+  <li>The evidence that it helps is still small: the project's own games,
+  authoring trials by AI agents and a benchmark game. Whether Caveat helps
+  real decision systems is still a hypothesis.</li>
+  <li>It costs speed and size: an event takes tens to hundreds of microseconds, and the runtime is hundreds of kilobytes gzipped. That is fine at
+  event boundaries and not suited to per-frame work.</li>
   <li>The registered agent examples have host-policy checks; these do not establish conformance for arbitrary integrations or a security sandbox.</li>
 </ul>
 <p><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/VERIFICATION.md">What
@@ -200,33 +193,21 @@ is checked, and how</a> separates the Lean model theorems, sampled native and
 WebAssembly conformance with mutation controls, runtime tests and the
 boundaries nothing proves.</p>
 
+<h2 id="releases">Recent releases</h2>
 <p>rc.20 clarifies when to use each MCP tool, its inputs and its results. It
 also fixes human-readable explanations of caveats carried by a decision's
 grounds, retained in its frozen basis, or present only in its wider lineage.
-It changes no Rust runtime, language or save format.</p>
-<p>rc.19 began the 1.0 feature freeze: it added no language,
-schema, operation, field, CLI flag or export. It fixed restore of a session
-that reopened a decision because of a caveat and then took that caveat back;
-saves written by rc.18 in that state restore in rc.19.</p>
-<p>rc.18 added <code>unqualify</code>, which takes back a caveat that
-<code>qualify</code> added, on every held occurrence of the evidence. The
-take-back is recorded, not erased, and decisions keep their basis. A save of a
-program that uses <code>unqualify</code> does not restore in rc.17 or earlier;
-other saves do. View 0.2 lists a binding's evidence in the order it was first
-observed, and <code>explain</code> names the event and payload that observed
-each ground.</p>
-<p>rc.17 introduced View 0.2, source digests in saves and an integration starter;
-the digest identifies the source and does not authenticate a save. rc.16 introduced departure of eligible retired history, host-drained archives
-and collection of unreachable withdrawal groups. Exact departed-history
-reconstruction needs the complete matching archive. See the
+It changes no Rust runtime, language or save format. rc.19 began the 1.0
+feature freeze: it added no language, schema, operation, field, CLI flag or
+export. rc.18 added <code>unqualify</code>, which takes back a caveat that
+<code>qualify</code> added; the take-back is recorded, not erased, and
+decisions keep their basis. Earlier changes are in each
+<a href="https://github.com/WSattazahn/caveat-lang/tree/main/docs/releases">release
+record</a>, and the
 <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.20/kit/docs/HISTORY.md">history
-integration guide</a> for the API and workload limits.
-rc.15 introduced integer clocks, history windows and <code>caveat test</code>
-checking each program first. rc.14 corrected the package's MCP server name to
-<code>io.github.WSattazahn/caveat-lang</code>. Restoring a save still does not
-authenticate its history, and hosts must handle rejected outcomes explicitly.
-Existing Lean proofs cover their documented model, not the entire Rust runtime.
-No npm runtime dependency is added. The
+integration guide</a> covers windows, departure and archives.</p>
+<p>Existing Lean proofs cover their documented model, not the entire Rust
+runtime. No npm runtime dependency is added. The
 <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.20.md">rc.20
 verified release record</a> identifies the exact tested Linux tarball. Publication
 used the repository's workflow with npm provenance; registry bytes, provenance,
