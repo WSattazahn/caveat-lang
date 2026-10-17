@@ -244,7 +244,10 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
       const reading = entry.reading;
       if (!object(reading) || reading.id !== entry.record || reading.ordinal !== entry.number
         || !integer(reading.sequence) || reading.sequence > entry.retired_at || typeof reading.event !== 'string'
-        || !Number.isFinite(reading.value) || typeof reading.relation !== 'string' || typeof reading.claim !== 'string') row.unresolved.add(entry.record);
+        || !Number.isFinite(reading.value)
+        // Both absent for a neutral reading (spec/caveat-neutral-sample-0.1.md).
+        || (reading.relation === undefined) !== (reading.claim === undefined)
+        || (reading.relation !== undefined && (typeof reading.relation !== 'string' || typeof reading.claim !== 'string'))) row.unresolved.add(entry.record);
       else { provenance(reading.provenance, reading.sequence); if (reading.claim) need(reading.claim, reading.sequence); }
     }
     if (entry.withdrawal !== undefined) {

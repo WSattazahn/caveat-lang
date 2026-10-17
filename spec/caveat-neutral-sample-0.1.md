@@ -1,6 +1,6 @@
 # CAVEAT Neutral Sample 0.1 (draft) — a reading without a stance
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#218](https://github.com/WSattazahn/caveat-lang/issues/218)): not yet implemented. It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#218](https://github.com/WSattazahn/caveat-lang/issues/218)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.3](caveat-reactive-0.3.md),
 [Neutral Reveal 0.1](caveat-neutral-reveal-0.1.md) and
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md); it changes no
@@ -132,8 +132,22 @@ No accepted program changes.
 
 ## Implementation
 
-To be filled in by the runtime change.
+- The runtime parses the stance as optional, records a neutral reading as
+  observed without a stance relation, and runs only unfiltered reopening
+  triggers for it. Its snapshot, save, archive and effect records leave out
+  `relation` and `claim` (or `target`). Restore checks a neutral reading
+  against the observation ledger, which already requires a reachable neutral
+  effect, now a neutral reveal or a neutral sample of the reading's stream.
+- `runtime/tests/neutral_sample.rs` covers #218's inventory, the effect
+  report, triggers with and without a claim filter, a save and restore round
+  trip with restore's checks, a stance sample's unchanged record, the load
+  rules and a procedure's `readings` parameter.
+- The kit's types make `relation` and `claim` optional on a reading and
+  `relation` and `target` optional on a sample effect; its archive reader
+  accepts a reading with neither. The language reference, the authoring
+  guide and the package describe the form.
 
 ## Changes
 
 - 2026-10-17: specified for 1.1 (#218).
+- 2026-10-17: implemented.

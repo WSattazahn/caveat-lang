@@ -180,6 +180,7 @@ function sessionsOf() {
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']]],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']]],
     ['evidence memory from "lookup"; event consult; on consult reveal memory;', [['consult']]],
+    ['evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 3;', [['go']]],
     [WINDOWED, WINDOWED_EVENTS],
     [TAKE_BACK, [['sip'], ['doubt'], ['undoubt']]],
     // Last: the checks below read its scheduled qualification and renewal.

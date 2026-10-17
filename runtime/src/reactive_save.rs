@@ -1518,14 +1518,11 @@ impl ReactiveSession {
                 Effect::Sample {
                     stream,
                     value,
-                    claim,
-                    ..
+                    stance,
                 } => {
                     read(value);
-                    bears
-                        .entry(stream.clone())
-                        .or_default()
-                        .insert(claim.clone());
+                    let claims = bears.entry(stream.clone()).or_default();
+                    claims.extend(stance.iter().map(|(_, claim)| claim.clone()));
                 }
                 Effect::Reveal {
                     evidence, claim, ..
@@ -1828,7 +1825,8 @@ impl ReactiveSession {
         Ok(observed)
     }
 
-    /// Source-reachable neutral effects, including symbol-instantiated procedures.
+    /// Source-reachable neutral effects, including symbol-instantiated
+    /// procedures: neutral reveals' evidence and neutral samples' streams.
     fn neutral_targets(&self) -> HashSet<&str> {
         let mut pending = self
             .rules
@@ -1841,6 +1839,13 @@ impl ReactiveSession {
             match effect {
                 Effect::Observe { evidence } => {
                     targets.insert(evidence.as_str());
+                }
+                Effect::Sample {
+                    stream,
+                    stance: None,
+                    ..
+                } => {
+                    targets.insert(stream.as_str());
                 }
                 Effect::Call { name, .. } if visited.insert(name) => {
                     if let Some(procedure) = self.procedures.get(name) {
@@ -1863,14 +1868,15 @@ impl ReactiveSession {
         let targets = self.neutral_targets();
         if targets.is_empty() || save.sequence == 0 {
             return Err(
-                "observations require a source-reachable neutral reveal in an accepted event"
+                "observations require a source-reachable neutral reveal or sample in an accepted event"
                     .into(),
             );
         }
         let neutral_target = |name: &str| {
             targets.contains(name)
                 || occurrence_parts(name).is_some_and(|(base, _)| {
-                    self.renewals.contains_key(base) && targets.contains(base)
+                    (self.renewals.contains_key(base) || self.reading_streams.contains_key(base))
+                        && targets.contains(base)
                 })
         };
         let mut seen = HashSet::new();
@@ -1881,7 +1887,7 @@ impl ReactiveSession {
             }
             if !self.predicate("observed", name)? && !neutral_target(name) {
                 return Err(format!(
-                    "observations names {name}, which no reachable neutral reveal observes"
+                    "observations names {name}, which no reachable neutral reveal or sample observes"
                 ));
             }
         }
@@ -2222,6 +2228,7 @@ impl ReactiveSession {
                     observed,
                     Some(caveats),
                 )?;
+                self.check_reading_stance(save, occurrence)?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
             {
@@ -2530,7 +2537,10 @@ impl ReactiveSession {
         }
         for effect in &save.effects {
             let names: Vec<&str> = match effect {
-                EffectReport::Sample { id, target, .. } => vec![id, target],
+                EffectReport::Sample { id, target, .. } => std::iter::once(id)
+                    .chain(target)
+                    .map(String::as_str)
+                    .collect(),
                 EffectReport::Reveal {
                     evidence,
                     relation,
@@ -2945,6 +2955,38 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// A reading has both `relation` and `claim`, or, taken by a neutral
+    /// sample, neither. A neutral reading has no stance relation and is in
+    /// the observation ledger; `restore_observations` checks that a neutral
+    /// `sample` of its stream could have observed it. See
+    /// spec/caveat-neutral-sample-0.1.md.
+    fn check_reading_stance(
+        &self,
+        save: &ReactiveSave,
+        reading: &ReadingOccurrence,
+    ) -> Result<(), String> {
+        let id = &reading.id;
+        match (&reading.relation, &reading.claim) {
+            (Some(_), Some(_)) => Ok(()),
+            (None, None) => {
+                if save.graph.relations.iter().any(|[from, relation, _]| {
+                    from == id && (relation == "supports" || relation == "opposes")
+                }) {
+                    return Err(format!("neutral reading {id} has a stance relation"));
+                }
+                if !save
+                    .observations
+                    .as_ref()
+                    .is_some_and(|observations| observations.contains(id))
+                {
+                    return Err(format!("neutral reading {id} is not in observations"));
+                }
+                Ok(())
+            }
+            _ => Err(format!("reading {id} needs relation and claim together")),
+        }
+    }
+
     /// Every effect a rule of `event` reaches, or with `None` of any event,
     /// directly or through the procedures it calls, as the source compiled
     /// them. Conditions are ignored: their historical values are unavailable,
@@ -3020,7 +3062,9 @@ impl ReactiveSession {
                 target,
                 ..
             } => {
-                named(self.require_kind(target, "claim"))?;
+                if let Some(target) = target {
+                    named(self.require_kind(target, "claim"))?;
+                }
                 let listed = save.reading_streams.get(stream).is_some_and(|readings| {
                     readings
                         .occurrences
@@ -3034,13 +3078,20 @@ impl ReactiveSession {
                 if !departed {
                     named(self.require_observed(id, observed))?;
                 }
-                let stance = match relation.as_str() {
-                    "supports" => Relation::Supports,
-                    "opposes" => Relation::Opposes,
-                    _ => return Err(fail("relation must be supports or opposes")),
-                };
-                if !departed && !related(id, stance, target) {
-                    return Err(fail("has no matching graph relation"));
+                // A neutral reading has neither: spec/caveat-neutral-sample-0.1.md.
+                match (relation, target) {
+                    (None, None) => {}
+                    (Some(relation), Some(target)) => {
+                        let stance = match relation.as_str() {
+                            "supports" => Relation::Supports,
+                            "opposes" => Relation::Opposes,
+                            _ => return Err(fail("relation must be supports or opposes")),
+                        };
+                        if !departed && !related(id, stance, target) {
+                            return Err(fail("has no matching graph relation"));
+                        }
+                    }
+                    _ => return Err(fail("requires relation and target together")),
                 }
             }
             // Checked with the other reveals' semantics in restore_records.
@@ -3213,15 +3264,19 @@ impl ReactiveSession {
                 },
                 Effect::Sample {
                     stream: source,
-                    relation: stance,
-                    claim,
+                    stance,
                     ..
                 },
             ) => {
                 stream == source
                     && named(id, source)
-                    && relation == relation_name(*stance)
-                    && target == claim
+                    && match (relation, target, stance) {
+                        (None, None, None) => true,
+                        (Some(relation), Some(target), Some((stance, claim))) => {
+                            relation == relation_name(*stance) && target == claim
+                        }
+                        _ => false,
+                    }
             }
             (
                 EffectReport::Reveal {
@@ -3260,21 +3315,13 @@ impl ReactiveSession {
                     because: selector,
                 },
             ) => named(action, source) && selects(because, selector),
-            (
-                EffectReport::Reopen { action, because },
-                Effect::Sample {
-                    stream,
-                    relation,
-                    claim,
-                    ..
-                },
-            ) => {
+            (EffectReport::Reopen { action, because }, Effect::Sample { stream, stance, .. }) => {
                 named(because, stream)
                     && self.reopening_triggers.iter().any(|(series, triggers, _)| {
                         named(action, series)
                             && triggers
                                 .iter()
-                                .any(|trigger| trigger.matches(stream, *relation, claim))
+                                .any(|trigger| trigger.matches(stream, stance.as_ref()))
                     })
             }
             (
@@ -3362,18 +3409,14 @@ impl ReactiveSession {
                 }
                 // A declared trigger reopens it when this sample's stream,
                 // relation and claim match (spec/caveat-reopening-triggers-0.1.md).
-                Effect::Sample {
-                    stream,
-                    relation,
-                    claim,
-                    ..
-                } if change == "reopened"
-                    && self.reopening_triggers.iter().any(|(series, triggers, _)| {
-                        series == decision
-                            && triggers
-                                .iter()
-                                .any(|trigger| trigger.matches(stream, *relation, claim))
-                    }) =>
+                Effect::Sample { stream, stance, .. }
+                    if change == "reopened"
+                        && self.reopening_triggers.iter().any(|(series, triggers, _)| {
+                            series == decision
+                                && triggers
+                                    .iter()
+                                    .any(|trigger| trigger.matches(stream, stance.as_ref()))
+                        }) =>
                 {
                     return true
                 }

@@ -554,6 +554,21 @@ Existing stance-bearing reveals remain supported. The
 idempotence, guard provenance, renewal and old-save compatibility. Explanations
 show neutral evidence as observed with no stance, rather than inventing a claim.
 
+A reading that bears on no claim, such as a tool's version number, is a
+neutral sample (from 1.1.0, [Neutral Sample 0.1](../spec/caveat-neutral-sample-0.1.md)):
+
+```caveat
+evidence node_version from "node --version on the build machine";
+readings node from node_version limit 8;
+event inventory major min 0 max 99;
+on inventory sample node = major;
+```
+
+`node@1` is observed and can be read, qualified, withdrawn and cited like any
+reading, without a claim declared only to give it something to support. A
+`reopened by node` trigger fires on it; a trigger filtered by
+`supporting|opposing CLAIM` does not.
+
 ## Repeated assessments and late qualifications
 
 The [agent-evidence starter](../kit/examples/agent-evidence/README.md#assessing-again)

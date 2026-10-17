@@ -540,8 +540,9 @@ export interface ReadingOccurrence {
   event: string;
   value: number;
   provenance: Provenance;
-  relation: string;
-  claim: string;
+  /** Relation and claim are both absent for a neutral reading, otherwise both present. */
+  relation?: 'supports' | 'opposes';
+  claim?: string;
 }
 
 export interface ReadingStream {
@@ -675,8 +676,9 @@ export interface EffectSample {
   stream: string;
   id: string;
   value: number;
-  relation: string;
-  target: string;
+  /** Relation and target are both absent for a neutral sample, otherwise both present. */
+  relation?: 'supports' | 'opposes';
+  target?: string;
 }
 
 export interface EffectReveal {
