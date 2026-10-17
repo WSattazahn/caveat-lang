@@ -151,32 +151,6 @@ npx --no-install caveat explain frost.cav events.jsonl</code></pre>
 the explanation is the one in the worked example. The package's own tests
 follow the worked example the same way.</p>
 
-<h2 id="typescript">Compared with TypeScript</h2>
-<p>We measure Caveat against plain TypeScript in pre-registered rounds with
-fresh authors and change requests written before either side starts, and we
-publish the losses. All three blind rounds went to TypeScript; the rounds
-in which Caveat did better were written knowing the requests. In round 8, on
-rc.17, Caveat kept pace on the inherited requests and was cheaper on one new
-one, but over the four new requests it changed 484 lines against 148, got 2
-of 4 phases green on the first run against 4, and caught 62% of mutants
-against 95%. Two of those requests needed a caveat that can be taken back,
-which rc.18 then added as <code>unqualify</code>; no round has been run
-since. So this page makes no claim that Caveat beats TypeScript.</p>
-<p>Those rounds build a game, where tracking evidence is one requirement among
-many. A round where correcting and withdrawing evidence is the task itself,
-the case Caveat is built for, is planned but has not been run. Whether
-Caveat helps real decision systems is still a hypothesis, and we know of no
-outside program using it yet.</p>
-<p>It also costs speed and size. In the benchmark game, measured on a
-development runtime from before rc.3, the latest Caveat version took about 20
-times as long per event as the TypeScript version (51.6&nbsp;µs against
-2.5&nbsp;µs median, dispatch plus view), and that TypeScript implementation
-shipped 3.5&nbsp;KB gzipped against about 583&nbsp;KB for the rc.4 runtime
-alone. That is comfortable at event boundaries and not suited to per-frame
-work. The
-<a href="https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md">benchmark
-record</a> gives every round, its workloads and its own limits.</p>
-
 <h2 id="limitations">Limitations</h2>
 <ul>
   <li>0.1.0-rc.20 is a release candidate, not a stable release. After the owner's
@@ -207,6 +181,15 @@ record</a> gives every round, its workloads and its own limits.</p>
   Required reasons remain: their dependency chains can grow, so windows do not
   bound the complete save. Archive storage is additional. State is numbers,
   and a program does no input or output of its own.</li>
+  <li>The evidence so far is small: the project's own games, authoring trials
+  by AI agents, and a benchmark game built both in Caveat and in plain
+  TypeScript, where TypeScript did better in the blind rounds. Whether Caveat
+  helps real decision systems is still a hypothesis. The
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md">benchmark
+  record</a> has every round.</li>
+  <li>It costs speed and size: in the benchmark an event took roughly 50 to 150
+  microseconds against a few for plain code, and the runtime is hundreds of kilobytes gzipped. That is fine at
+  event boundaries and not suited to per-frame work.</li>
   <li>The registered agent examples have host-policy checks; these do not establish conformance for arbitrary integrations or a security sandbox.</li>
 </ul>
 <p><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/VERIFICATION.md">What
