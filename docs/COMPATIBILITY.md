@@ -1,9 +1,8 @@
 # Caveat compatibility commitment
 
-Status: **proposed for 1.0.0**, written under [Path to 1.0](releases/path-to-1.0.md)
-(PR A2, blocker B2). Until 1.0.0 is released, prereleases may still change any
-of this. From 1.0.0 on, this file is the promise, and changing it follows the
-policy below.
+Status: **the promise for 1.0.0 and every 1.x release**, written under
+[Path to 1.0](releases/path-to-1.0.md) (PR A2, blocker B2). Changing it follows
+the policy below. The 0.1.0 release candidates came before this promise.
 
 The promise covers the `caveat-lang` npm package and the runtime it carries.
 It does not cover the games, the 3D profiles, the experiments, the Caveatist

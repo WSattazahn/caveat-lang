@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.20`**.
+Package: **`caveat-lang@1.0.0`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -25,7 +25,7 @@ run its installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.20
+npm install caveat-lang@1.0.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -460,7 +460,7 @@ artifact from the intended release commit. Before publication, the
 [packed dependency security gate](https://github.com/WSattazahn/caveat-lang/blob/main/docs/PACKAGE_SECURITY.md) must
 pass against that exact tarball and retain its npm/Rust advisory receipts.
 A release publishes that one tested
-tarball twice, unchanged: to npm and attached to the GitHub pre-release. No
+tarball twice, unchanged: to npm and attached to the GitHub release. No
 second build is made for the registry. Each release record names the npm
 dist-tags its version was published under. See the
 [consolidation plan](https://github.com/WSattazahn/caveat-lang/blob/main/docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)
@@ -468,7 +468,5 @@ for the release gates.
 
 ## Not yet
 
-- A stable release. This package version is a release candidate; its API may
-  change before 1.0.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.

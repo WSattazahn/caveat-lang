@@ -3,8 +3,8 @@
 `caveat-lang/starter` puts one program's session behind a host that an
 application can call, persist and restart. It is for Node and browsers.
 `caveat-lang/starter/node` adds a store in a directory, and the browser store
-uses IndexedDB. The starter is new in this candidate, and its interface may
-change before 1.0.
+uses IndexedDB. The starter's exports are part of the
+[1.x compatibility promise](https://github.com/WSattazahn/caveat-lang/blob/main/docs/COMPATIBILITY.md).
 
 It does four things the session alone leaves to you:
 

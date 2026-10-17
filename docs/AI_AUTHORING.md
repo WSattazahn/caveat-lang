@@ -326,6 +326,35 @@ one refuses the whole event. When a change adds another instrument, it adds
 declarations and a call, not another copy of the rules. See
 [procedure symbols](../spec/caveat-procedure-symbols-0.1.md).
 
+## Compare several candidates
+
+When a decision compares several candidates, such as hosts, packages or
+runtimes, that each get the same readings, declare the candidates once and let
+`for KIND as $NAME` write a stream and a routing rule for each. One event then
+carries the candidate's name and lands in that candidate's stream:
+
+```caveat
+claim fit;
+evidence probe from "a version probe";
+place machine kind host;
+entity n20 kind runtime at machine;
+entity n22 kind runtime at machine;
+event observe_present which kind runtime, value min 0 max 1;
+
+for runtime as $r {
+  readings $r_present from probe limit 4;
+  on observe_present when which == which.$r sample $r_present = value supports fit;
+};
+```
+
+This declares `n20_present` and `n22_present`, and
+`{"event":"observe_present","payload":{"which":"n22","value":1}}` records
+`n22_present@1`. A new candidate is one more `entity` line, not another copy of
+the rules. The `place` line only gives the entities somewhere to be; outside a
+game it has no other meaning. Use a procedure, as above, when the inputs are
+different events rather than one event naming its subject. See
+[repetition](../spec/caveat-repetition-0.1.md).
+
 ## Read the session clock
 
 ```caveat
@@ -616,3 +645,26 @@ new task and eight agents on separate machines, using two models; all eight
 passed. Neither trial estimates how often an agent succeeds. The procedure
 section above was added after v4, in which every author wrote parallel
 instruments' rules out by hand.
+
+## Revise a program while the record continues
+
+A program is the policy, and an event history is the record. When the policy
+changes and the record goes on, keep both versions of the program. A replay
+uses one program for every event, so `explain` under the revised program
+reports that program's source hash for every decision, including those first
+made under the earlier one. The events still give the same grounds when the
+revision leaves those rules alone; a `same_as` scenario can confirm it.
+
+Keep each program version beside the range of events it governed, for example
+`policy/v1.cav` for events 1 to 13 and `policy/v2.cav` from event 14, and
+record that boundary next to the event file. To show what the earlier program
+decided, replay the earlier range under it:
+
+```sh
+head -n 13 events.jsonl > v1.events.jsonl
+npx --no-install caveat-lang explain policy/v1.cav v1.events.jsonl
+```
+
+A save binds the exact source it was made under, and restore refuses any other
+([save](../spec/caveat-save-0.1.md)), so a save cannot carry a session across a
+revision. Replay the event history under the new program instead.

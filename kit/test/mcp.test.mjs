@@ -2,6 +2,7 @@
 // they do not claim naturally occurring WASM traps or operating-system sandboxing.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { once } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -13,6 +14,7 @@ import { MCP_PROTOCOL_VERSION, MCP_STATELESS_PROTOCOL_VERSION, MCP_SUPPORTED_VER
 // must hold the durable build path, not capture that transient staging folder.
 // Installed-package tests separately verify the bundled-runtime default.
 const RUNTIME = fileURLToPath(new URL('../../dist/pkg-reactive/', import.meta.url));
+const PACKAGE_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const SOURCE = 'evidence memory from "lookup"; event consult; on consult reveal memory;';
 const request = (id, method, params) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
 const notification = (method, params) => ({ jsonrpc: '2.0', method, ...(params === undefined ? {} : { params }) });
@@ -27,7 +29,7 @@ const assertStateless = result => {
   assert.equal(result.resultType, 'complete');
   assert.deepEqual(Object.keys(result._meta), ['io.modelcontextprotocol/serverInfo']);
   assert.equal(result._meta['io.modelcontextprotocol/serverInfo'].name, 'caveat-lang');
-  assert.match(result._meta['io.modelcontextprotocol/serverInfo'].version, /^0\.1\.0/);
+  assert.equal(result._meta['io.modelcontextprotocol/serverInfo'].version, PACKAGE_VERSION);
 };
 function connection(options = {}) {
   const { outputHighWaterMark, ...serverOptions } = options;

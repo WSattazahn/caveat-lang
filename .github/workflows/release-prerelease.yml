@@ -1,7 +1,8 @@
-name: create GitHub prerelease
+name: create GitHub release
 
-# Creates the GitHub prerelease for a published release candidate after its
-# record has merged to main. It downloads the tarball from the public npm
+# Creates the GitHub release for a published version after its record has
+# merged to main. A release candidate tag (vX.Y.Z-rc.N) becomes a prerelease;
+# a stable tag (vX.Y.Z) becomes a full release. It downloads the tarball from the public npm
 # registry, refuses bytes whose SHA256 differs from the tested tarball, and
 # attaches that tarball, its SHA256SUMS and the npm publication record. The
 # release notes are docs/releases/<tag>.md. It never publishes to npm or moves
@@ -10,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, such as v0.1.0-rc.11 (already on origin, annotated)
+        description: Release tag, such as v1.0.0 or v0.1.0-rc.11 (already on origin, annotated)
         required: true
         type: string
       tarball_sha256:
@@ -27,7 +28,7 @@ concurrency:
 
 jobs:
   prerelease:
-    name: Create the prerelease from the published tarball
+    name: Create the release from the published tarball
     if: github.repository == 'WSattazahn/caveat-lang' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -45,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "tag must look like v0.1.0-rc.11"; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "tag must look like v1.0.0 or v0.1.0-rc.11"; exit 1; }
           [[ "$RELEASE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "tarball_sha256 must be 64 lowercase hex characters"; exit 1; }
           git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
           [[ "$(git cat-file -t "refs/tags/$RELEASE_TAG")" == tag ]] || { echo "$RELEASE_TAG is not an annotated tag"; exit 1; }
@@ -66,11 +67,14 @@ jobs:
           (cd release && sha256sum "caveat-lang-$version.tgz" > SHA256SUMS)
           echo "$RELEASE_SHA256  release/caveat-lang-$version.tgz" | sha256sum -c -
           cp "docs/releases/$RELEASE_TAG-npm-publication.json" release/
-      - name: Create the prerelease
+      - name: Create the release
         shell: bash
         run: |
           set -euo pipefail
           version="${RELEASE_TAG#v}"
-          gh release create "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+          # Only a release candidate is a prerelease; a stable tag is not.
+          kind=()
+          [[ "$RELEASE_TAG" == *-rc.* ]] && kind=(--prerelease)
+          gh release create "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --verify-tag "${kind[@]}" \
             --title "CAVEAT Language $version" --notes-file "docs/releases/$RELEASE_TAG.md" \
             "release/caveat-lang-$version.tgz" release/SHA256SUMS "release/$RELEASE_TAG-npm-publication.json"
