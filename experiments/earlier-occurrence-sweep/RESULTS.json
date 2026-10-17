@@ -1,0 +1,1179 @@
+{
+  "note": "Earlier Occurrence 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-earlier-occurrence-0.1.md, \"Corpus sweep\".",
+  "revision": "a8870aebe549c4802d2039392b6eea1d741eeac4",
+  "programs": 191,
+  "programs_using_the_word_occurrence": [],
+  "programs_writing_occurrence_call": [],
+  "targets_with_a_parenthesis_other_than_latest_or_caveated": [],
+  "programs_with_renewable_evidence": 72,
+  "renewable_evidence_names": 167,
+  "programs_reaching_renewable_evidence": 67,
+  "rows": [
+    {
+      "path": "experiments/agent-authoring/v1/runs/A1/candidate.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A1/final.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A1/versions/01.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A1/versions/02.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A1/versions/03.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A2/candidate.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A2/final.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A2/versions/01.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/A2/versions/02.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "evidence": "bearing_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "evidence": "failure",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "evidence": "motor_check",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A1/candidate.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A1/final.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A1/versions/01.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A2/candidate.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A2/final.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v2/runs/A2/versions/01.cav",
+      "evidence": "sensor_reading",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-approved-head.cav",
+      "evidence": "$p_go",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-approved-head.cav",
+      "evidence": "$p_push",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-identifiers.cav",
+      "evidence": "$p_push",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/ledger.cav",
+      "evidence": "$p_go",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/ledger.cav",
+      "evidence": "$p_push",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "evidence": "$p_ci",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "evidence": "disproof",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "evidence": "main_moved",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/c3-windows.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/departure-gate/c3-windows.cav",
+      "evidence": "taste_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/departure-gate/c3-windows.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s00",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s01",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s02",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s03",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s04",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s05",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s06",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s07",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s08",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s09",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s10",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s11",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s12",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s13",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s14",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "s15",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "evidence": "zreason",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s00",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s01",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s02",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s03",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s04",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s05",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s06",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s07",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s08",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s09",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s10",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s11",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s12",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s13",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s14",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "s15",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "evidence": "zreason",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/mutual.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/mutual.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/reachable-chain.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/reachable-chain.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/self.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/runtime-windows-world.cav",
+      "evidence": "taste",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/acyclic.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/later-history-read.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/mutual.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/mutual.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/permission-root.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/departure-gate/withdrawal-fixtures/self.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/caveat5/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/caveat5/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "carries",
+        "qualify",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/caveat5/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C1.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C1.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C1.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C2.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C2.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C2.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C3.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C3.cav",
+      "evidence": "taste_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C3.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C4.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C4.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/clock/C4.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C4/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C4/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "carries",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round7/runs/C4/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "evidence": "retaste_$m",
+      "reachedBy": [
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "evidence": "a_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "evidence": "r_$m",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "evidence": "t_$m",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "evidence": "w_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+      "evidence": "retaste_$m",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+      "evidence": "witness_$m",
+      "reachedBy": [
+        "predicate"
+      ]
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "evidence": "approval_correction",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "evidence": "check_correction",
+      "reachedBy": [
+        "predicate",
+        "reopen because"
+      ]
+    },
+    {
+      "path": "experiments/stabilization-trial/trial.cav",
+      "evidence": "ci_run",
+      "reachedBy": [
+        "predicate",
+        "qualify",
+        "unqualify"
+      ]
+    },
+    {
+      "path": "experiments/take-back-sweep/programs/round8.cav",
+      "evidence": "witness_pool",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify",
+        "unqualify"
+      ]
+    },
+    {
+      "path": "experiments/take-back-sweep/programs/windowed.cav",
+      "evidence": "witness_pool",
+      "reachedBy": [
+        "carries",
+        "predicate",
+        "qualify",
+        "unqualify"
+      ]
+    },
+    {
+      "path": "kit/examples/boss-stance/boss.cav",
+      "evidence": "attack_rhythm",
+      "reachedBy": [
+        "predicate",
+        "reopen because",
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/examples/readiness/readiness.cav",
+      "evidence": "test_result",
+      "reachedBy": [
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/nested-withdrawal.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "predicate",
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/post-collection.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/post-collection.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/withdrawal-history.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "qualify",
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/withdrawal-own-grounds.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/withdrawal-reason-chain.cav",
+      "evidence": "a",
+      "reachedBy": [
+        "qualify",
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/withdrawal-reason-chain.cav",
+      "evidence": "b",
+      "reachedBy": [
+        "predicate",
+        "withdraw"
+      ]
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/readiness.cav",
+      "evidence": "test_result",
+      "reachedBy": [
+        "predicate",
+        "qualify"
+      ]
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+      "evidence": "taste_$m",
+      "reachedBy": [
+        "qualify"
+      ]
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "evidence": "taste_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "evidence": "absorb_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "evidence": "taste_$m",
+      "reachedBy": []
+    },
+    {
+      "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "evidence": "witness_$m",
+      "reachedBy": []
+    }
+  ]
+}
