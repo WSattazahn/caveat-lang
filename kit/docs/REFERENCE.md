@@ -89,7 +89,7 @@ end of the line; `--` is not a comment.
 | `caveat NAME consequence LEVEL;` | A caveat. LEVEL is `negligible`, `low`, `material`, `high` or `catastrophic`. The level is reported in the snapshot's `symbols` and changes no outcome; a rule that reads the caveat, such as `when has_caveat(STATE, NAME) reject "…"`, makes it matter. |
 | `CAVEAT qualifies EVIDENCE;` | The caveat goes with that evidence and everything computed from it. |
 | `readings NAME from EVIDENCE limit N;` | A stream of up to N readings. |
-| `decisions NAME limit N [reopened by STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)). A series has no `window`, so every revision stays in the save; cap recommits ([guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)). |
+| `decisions NAME limit N [reopened by [changed] STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)); `changed` fires only on a reading whose value differs from the stream's previous one (from 1.1.0, [changed triggers](reference/spec/caveat-changed-triggers-0.1.md)). A series has no `window`, so every revision stays in the save; cap recommits ([guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)). |
 | `state NAME = EXPRESSION [min A max B];` | A number. Bounds default to, and may not exceed, `-1e12..1e12`. |
 | `event NAME [PARAMETER, …];` | A parameter is `NAME min A max B`, `NAME in A B …`, `NAME kind KIND` or `NAME id` ([identifiers](reference/spec/caveat-identifiers-0.1.md)). |
 | `identifiers limit N;` | Required before any `id` parameter. |

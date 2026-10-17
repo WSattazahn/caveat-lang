@@ -1,6 +1,6 @@
 # CAVEAT Changed Triggers 0.1 (draft) — reopen only when a reading changes
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#223](https://github.com/WSattazahn/caveat-lang/issues/223)): not yet implemented. It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#223](https://github.com/WSattazahn/caveat-lang/issues/223)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md); it changes no
 program that loads today.
 
@@ -37,7 +37,8 @@ TRIGGER := [changed] STREAM [supporting CLAIM | opposing CLAIM]
 `changed` comes first. A trigger without it keeps today's meaning.
 `reopened by changed n20_present` refuses to load today ("reopened by takes
 STREAM or STREAM supporting|opposing CLAIM"), so no program that loads
-changes. A stream named `changed` stays a stream when it stands alone.
+changes. `changed` leads only before a stream: a stream named `changed`
+keeps both of its forms, `changed` and `changed supporting CLAIM`.
 
 ## Meaning
 
@@ -114,8 +115,18 @@ The pilot 3 program is not in the repository. No accepted program changes.
 
 ## Implementation
 
-To be filled in by the runtime change.
+- The runtime parses `changed` into the trigger, notes the stream's previous
+  value before a sample retires anything, and runs a `changed` trigger only
+  when the new value differs. Restore is unchanged.
+- `runtime/tests/changed_triggers.rs` covers #223's re-check (a repeated
+  value does not reopen; a plain trigger beside it still does), a changed
+  reading named in the journal, a first reading, the claim filter with the
+  stream's previous value, a window of one, a save and restore round trip,
+  and the load rules, including a stream named `changed`.
+- The language reference, the authoring guide and the package describe the
+  form.
 
 ## Changes
 
 - 2026-10-17: specified for 1.1 (#223).
+- 2026-10-17: implemented.
