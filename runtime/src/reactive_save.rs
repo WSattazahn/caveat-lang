@@ -729,13 +729,18 @@ impl ReactiveSession {
     /// same outcome for every later event, as the session that was saved.
     pub fn restore(source: &str, save: &ReactiveSave) -> Result<Self, String> {
         let mut session = Self::from_source(source)?;
+        session.replay = None;
         session
             .apply_save(save)
             .map_err(|error| format!("cannot restore save: {error}"))?;
         Ok(session)
     }
 
+    /// A state save, or a replay save (spec/caveat-replay-save-0.1.md).
     pub fn restore_json(source: &str, save: &str) -> Result<Self, String> {
+        if Self::is_replay_save(save) {
+            return Self::restore_replay_json(source, save);
+        }
         if save.len() > MAX_SAVE_BYTES {
             return Err(format!(
                 "cannot restore save: larger than {MAX_SAVE_BYTES} bytes"

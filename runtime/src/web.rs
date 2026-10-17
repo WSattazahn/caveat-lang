@@ -74,6 +74,12 @@ impl WebReactiveSession {
         to_json_pretty(&self.inner.snapshot()).expect("finite reactive snapshot")
     }
 
+    /// The same snapshot as compact JSON, for a host that parses it rather
+    /// than shows the text.
+    pub fn snapshot_compact(&self) -> String {
+        serde_json::to_string(&self.inner.snapshot()).expect("finite reactive snapshot")
+    }
+
     /// Whether this runtime instance has failed to allocate memory. After a
     /// trap, true means the instance ran out of WebAssembly memory, most
     /// often because sessions were never freed. Reading it is safe after a
@@ -169,6 +175,13 @@ impl WebReactiveSession {
         self.inner.save_json()
     }
 
+    /// The replay save while the session's accepted events fit in one and it
+    /// is smaller, otherwise the state save `save` returns. `restore` takes
+    /// either. See spec/caveat-replay-save-0.1.md.
+    pub fn save_compact(&self) -> Result<String, String> {
+        self.inner.save_compact_json()
+    }
+
     /// The records departed since the last drain, as a JSON array, and an
     /// empty archive. See spec/caveat-departure-0.1.md, "The archive".
     pub fn drain_archive(&mut self) -> String {
@@ -180,7 +193,8 @@ impl WebReactiveSession {
         self.inner.undrained()
     }
 
-    /// A session of `source` resumed from a save, without replaying events.
+    /// A session of `source` resumed from a state save, without replaying
+    /// events, or from a replay save, by dispatching its events again.
     pub fn restore(source: &str, saved: &str) -> Result<WebReactiveSession, String> {
         Ok(Self {
             inner: ReactiveSession::restore_json(source, saved)?,
