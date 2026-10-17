@@ -1,6 +1,6 @@
 # CAVEAT Citing 0.1 (draft) — a decision with grounds and no value
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#198](https://github.com/WSattazahn/caveat-lang/issues/198)). It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#198](https://github.com/WSattazahn/caveat-lang/issues/198)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.3](caveat-reactive-0.3.md) and
 [Permission 0.1](caveat-permission-0.1.md); it changes no program that loads
 today.
@@ -140,6 +140,22 @@ reads source text only and runs no program. At this profile's revision:
 
 No accepted program changes.
 
+## Implementation
+
+- The runtime parses `citing` into the commit effect beside `using`, and
+  evaluates each citation's value and grounds where it evaluates `using`'s.
+  Restore, the check that a decision series is read, and procedure expansion
+  read citations wherever they read `using`.
+- `runtime/tests/citing.rs` covers #198's gate, withdrawal and reopening
+  through cited grounds, the refusal to read a citing decision's value,
+  refusals inside a citation, a save and restore round trip, citations of any
+  type with `permitted by` and `retaining`, the load rules, and `citing` as a
+  state name.
+- The language reference and the authoring guide use `citing` for "not
+  ready", the package ships this profile, and the editor grammar highlights
+  `citing`.
+
 ## Changes
 
 - 2026-10-17: specified for 1.1 (#198).
+- 2026-10-17: implemented.

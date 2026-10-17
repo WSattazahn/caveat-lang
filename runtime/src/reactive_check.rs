@@ -501,13 +501,17 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
             Effect::Reopen { action, .. } => {
                 reopened.insert(action.clone());
             }
-            Effect::Commit { action, using, .. }
-                if session.decision_series.contains_key(action) =>
-            {
+            Effect::Commit {
+                action,
+                using,
+                citing,
+                ..
+            } if session.decision_series.contains_key(action) => {
                 let mut histories = BTreeSet::new();
                 condition.collect_histories(&mut histories);
                 using
                     .iter()
+                    .chain(citing)
                     .for_each(|using: &Expr| using.collect_histories(&mut histories));
                 read_by.entry(action.clone()).or_default().extend(
                     histories

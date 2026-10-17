@@ -1106,7 +1106,7 @@
         },
         {
           "name": "keyword.other.caveat",
-          "match": "(?<![.\\w$])(?:from|limit|because|using|retaining|after|with|cost|consequence|kind|id|permitted|by|supporting|opposing|at|to|via|through|toward)\\b"
+          "match": "(?<![.\\w$])(?:from|limit|because|using|citing|retaining|after|with|cost|consequence|kind|id|permitted|by|supporting|opposing|at|to|via|through|toward)\\b"
         }
       ]
     },

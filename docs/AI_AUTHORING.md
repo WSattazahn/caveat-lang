@@ -574,28 +574,28 @@ A second session sharing a WASM instance cannot isolate a trap.
 ## Record "not ready" with its reasons
 
 A gate whose honest answer is "not ready" can keep that answer with its
-grounds as a decision of its own. A commit needs a value, and its grounds
-are what that value read
-([Reactive 0.3](../spec/caveat-reactive-0.3.md)), so `using` reads the
-evidence the refusal rests on:
+grounds as a decision of its own. `citing` gives a decision grounds without a
+value ([Citing 0.1](../spec/caveat-citing-0.1.md)): its grounds are what each
+citation reads, and its value is `null`.
 
 ```caveat
 decisions ship limit 4;
 decisions hold limit 4;
 on assess when ci == 1 and build == 1 commit ship because enough using ci + build;
-on assess when not (ci == 1 and build == 1) commit hold because enough using ci + build;
+on assess when not (ci == 1 and build == 1) commit hold because enough citing ci, build;
 ```
 
 Here `ci` and `build` hold `qualified(…)` readings of the `ci_run` and
 `build_check` evidence. After a failed CI run and a passing build, `explain`
-prints `hold@1 = 1` and `based on build_check, ci_run`. **A hold's value is
-not a verdict.** The `1` is only the sum `using` computed to read both
-readings; the verdict is which series is committed, here `hold` and not
-`ship`. Bind what a reader sees to `committed(hold)`, not to the hold's
-value, and say in the program that its value means nothing. A commit with
-`because` and no `using` has no grounds at all: `explain` prints "based on
-nothing". A decision with grounds and no value is planned as a 1.x addition
-([#198](https://github.com/WSattazahn/caveat-lang/issues/198)).
+prints `hold@1 = null` and `based on build_check, ci_run`. The verdict is which
+series is committed, here `hold` and not `ship`: bind what a reader sees to
+`committed(hold)`. A citing decision has no value to read, so `latest(hold)`
+refuses as `evaluation/expression`. A commit with neither `using` nor `citing`
+has no grounds at all: `explain` prints "based on nothing".
+
+Before 1.1, the same hold was written `using ci + build`, a sum that only read
+both readings. That still works, but its value is not a verdict and readers
+have to be told to ignore it.
 
 ## Record a caveat you chose not to pursue
 
