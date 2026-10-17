@@ -24,7 +24,10 @@ stdio; `test/handler.test.mjs` checks that side by side, and
   replaces the isolate.
 - Limits: 4 MiB per request and response, the package's argument limits, and
   60 requests a minute per IP address in each Cloudflare location (a rate
-  limiting binding, best effort). Cloudflare stops a call that runs out of CPU.
+  limiting binding, best effort). `caveat_test` runs at most 16 scenario steps
+  per call, counting repeated sends (`testSteps` in `src/worker.mjs`), to stay
+  within the free plan's CPU; larger files get a `limit` error naming the local
+  server. Cloudflare stops a call that runs out of CPU.
 - Nothing is stored or logged; see `web/plugin-privacy.html` and
   `web/plugin-terms.html`.
 

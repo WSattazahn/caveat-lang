@@ -60,17 +60,33 @@ const json = (status, value) => respond(status, JSON.stringify(value), { 'conten
 const rpcError = (status, id, code, message, data) =>
   json(status, { jsonrpc: '2.0', id, error: { code, message, ...(data === undefined ? {} : { data }) } });
 
+// Scenario steps in a caveat_test call, counting each repeated send.
+function scenarioSteps(scenarios) {
+  let steps = 0;
+  for (const scenario of Array.isArray(scenarios?.scenarios) ? scenarios.scenarios : []) {
+    for (const step of Array.isArray(scenario?.steps) ? scenario.steps : []) {
+      steps += object(step) && 'send' in step && Number.isInteger(step.repeat) && step.repeat > 1 ? step.repeat : 1;
+    }
+  }
+  return steps;
+}
+
 /**
  * run(toolName, args) performs one authoring operation, as runAuthoringOperation
- * does. limiter, when given, is a Workers rate limiting binding.
+ * does. limiter, when given, is a Workers rate limiting binding. testSteps, when
+ * given, bounds the scenario steps one caveat_test call may run, so a call stays
+ * within a CPU budget; larger files belong to a local `caveat-lang mcp`.
  */
-export function createMcpHandler({ run, serverInfo, limiter = null, path = '/mcp', home = '' }) {
+export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = null, path = '/mcp', home = '' }) {
   const stateless = value => ({ resultType: 'complete', ...value, _meta: { [META_SERVER]: serverInfo } });
   const legacy = value => value;
 
   async function call(name, args) {
     try { validateAuthoringArguments(name, args); }
     catch (error) { return toolResult(bridgeError(error.kind === 'limit' ? 'limit' : 'input', error.message), true); }
+    if (name === 'caveat_test' && testSteps !== null && scenarioSteps(args.scenarios) > testSteps) {
+      return toolResult(bridgeError('limit', `the hosted server runs at most ${testSteps} scenario steps per caveat_test call, counting repeated sends; run npx caveat-lang mcp locally for larger scenario files`), true);
+    }
     try {
       const value = await run(name, args);
       if (byteLength(JSON.stringify(value)) > AUTHORING_LIMITS.outputBytes) throw new AuthoringError('limit', 'worker result exceeds 4 MiB UTF-8');

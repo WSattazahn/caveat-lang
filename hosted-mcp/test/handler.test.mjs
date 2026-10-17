@@ -126,6 +126,20 @@ test('bridge failures are tool errors and protocol failures are JSON-RPC errors'
   assert.equal((await post(fetch, { jsonrpc: '2.0', id: 6, result: {} })).status, 202);
 });
 
+test('a step budget bounds caveat_test only', async () => {
+  const fetch = handler({ testSteps: 12 });
+  const fits = await (await post(fetch, call(1, 'caveat_test', { source: SOURCE, scenarios: SCENARIOS }))).json();
+  assert.equal(fits.result.structuredContent.exitCode, 0);
+  const repeated = structuredClone(SCENARIOS);
+  repeated.scenarios[1].steps.unshift({ send: 'leave', repeat: 2 });
+  const over = await (await post(fetch, call(2, 'caveat_test', { source: SOURCE, scenarios: repeated }))).json();
+  assert.equal(over.result.isError, true);
+  assert.equal(over.result.structuredContent.error.kind, 'limit');
+  assert.match(over.result.structuredContent.error.message, /at most 12 scenario steps/);
+  const explain = await (await post(fetch, call(3, 'caveat_explain', { source: SOURCE, events: Array.from({ length: 40 }, () => ({ event: 'leave' })) }))).json();
+  assert.equal(explain.result.isError, false);
+});
+
 test('HTTP edges: methods, paths, headers, size and rate limit', async () => {
   const fetch = handler();
   const get = await fetch(new Request('https://caveat.example/mcp'));
