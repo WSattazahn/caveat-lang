@@ -1,9 +1,7 @@
 {
   "mcpServers": {
     "caveat-lang": {
-      "type": "http",
-      "url": "https://caveat-mcp.waltersattazahn.workers.dev/mcp",
-      "note": "The caveat-lang authoring tools: validate, check, test, explain and dependents. Inline source only; nothing is stored."
+      "url": "https://caveat-mcp.waltersattazahn.workers.dev/mcp"
     }
   }
 }
