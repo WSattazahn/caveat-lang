@@ -82,6 +82,10 @@ pub struct ReactiveSave {
     /// before spec/caveat-permission-0.1.md have none.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub commitment_permissions: BTreeMap<String, PermissionRecord>,
+    /// Each retained caveat's reason, by commitment. Saves made before
+    /// spec/caveat-retention-reasons-0.1.md have none.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub retention_reasons: BTreeMap<String, BTreeMap<String, String>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -690,6 +694,7 @@ impl ReactiveSession {
             withdrawals: (*self.withdrawals).clone(),
             taken_back: (*self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
+            retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             observation_qualifications: compact_map(&self.observation_qualifications),
             examination_qualifications: compact_map(&self.examination_qualifications),
@@ -814,6 +819,7 @@ impl ReactiveSession {
         self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_retired(save)?;
         self.restore_permissions(save, &observed)?;
+        self.restore_retention_reasons(save, &observed)?;
         self.restore_departures(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
@@ -1284,6 +1290,47 @@ impl ReactiveSession {
             }
         }
         self.taken_back = Arc::new(save.taken_back.clone());
+        Ok(())
+    }
+
+    /// Retention reasons must name restored commitments, caveats their grounds
+    /// hold, and observed evidence in those grounds. See
+    /// spec/caveat-retention-reasons-0.1.md.
+    fn restore_retention_reasons(
+        &mut self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
+        for (commitment, reasons) in &save.retention_reasons {
+            let Some(grounds) = self.commitment_grounds.get(commitment) else {
+                return Err(format!(
+                    "a retention reason names unknown commitment {commitment}"
+                ));
+            };
+            if reasons.is_empty() {
+                return Err(format!("the retention reasons of {commitment} are empty"));
+            }
+            for (caveat, evidence) in reasons {
+                if !grounds.caveats.contains(caveat) {
+                    return Err(format!(
+                        "{commitment} gives a reason for {caveat}, which its grounds do not retain"
+                    ));
+                }
+                self.require_kind(evidence, "evidence").map_err(|_| {
+                    format!(
+                        "the reason for {caveat} on {commitment} names unknown evidence {evidence}"
+                    )
+                })?;
+                if self.require_observed(evidence, observed).is_err()
+                    || !grounds.evidence.contains(evidence)
+                {
+                    return Err(format!(
+                        "the reason for {caveat} on {commitment}, {evidence}, is not observed evidence in its grounds"
+                    ));
+                }
+            }
+        }
+        self.retention_reasons = Arc::new(save.retention_reasons.clone());
         Ok(())
     }
 

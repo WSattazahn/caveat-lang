@@ -519,6 +519,11 @@ impl ReactiveSession {
         for record in self.commitment_permissions.values() {
             pin(&record.grant, "permission");
         }
+        for reasons in self.retention_reasons.values() {
+            for evidence in reasons.values() {
+                pin(evidence, "retention reason");
+            }
+        }
         for withdrawal in self.withdrawals.iter() {
             pin(&withdrawal.because, "withdrawal reason");
         }
