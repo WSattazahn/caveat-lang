@@ -68,7 +68,8 @@
       "registry"
     ],
     "version": "1.0.0",
-    "installPathRecord": "v1.0.0-mcp-install.json"
+    "installPathRecord": "v1.0.0-mcp-install.json",
+    "glamaRecord": "v1.0.0-glama.json"
   },
   "publicationVerifiedAt": "2026-10-17T17:16:14.980Z",
   "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39051918431",

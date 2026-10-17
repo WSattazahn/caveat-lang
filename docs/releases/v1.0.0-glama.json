@@ -1,0 +1,22 @@
+{
+  "schema": "caveat-glama-inspection/0.1",
+  "observedAt": "2026-10-17T18:15:55Z",
+  "package": "caveat-lang@1.0.0",
+  "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+  "build": {
+    "id": "01a14b12-074b-7409-9930-fef2bedb9f0b",
+    "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/admin/dockerfile/tests/01a14b12-074b-7409-9930-fef2bedb9f0b",
+    "status": "success",
+    "duration": "10.7s",
+    "startedAt": "2026-10-17T18:13:55Z",
+    "initializeAt": "2026-10-17T18:14:04Z",
+    "toolsListAt": "2026-10-17T18:14:05Z",
+    "install": "npm install --global caveat-lang",
+    "command": ["mcp-proxy", "--", "caveat-lang", "mcp"],
+    "serverInfo": {"name": "caveat-lang", "version": "1.0.0", "title": "CAVEAT Language"},
+    "protocolVersion": "2025-11-25",
+    "glamaRelease": "0.1.2",
+    "note": "Glama's release label is its own identifier, not the npm package version. The build also cloned the repository at 53cb90f, but the server it runs comes from npm install of the latest caveat-lang, and the instance initialize response identifies 1.0.0. The tools/list response carries the five tools, including the 1.0.0 caveat_dependents description. The existing Dockerfile configuration was rebuilt; no configuration change was needed."
+  },
+  "method": "Copied from the owner's paste of the authenticated build page (status, duration, build spec, Docker build log and instance log) after the owner clicked Build & Release. Glama was not reachable from the cloud session that wrote this record. No public schema or TDQS score was observed for 1.0.0, and none is inferred."
+}
