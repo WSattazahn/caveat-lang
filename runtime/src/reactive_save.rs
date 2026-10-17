@@ -1238,7 +1238,7 @@ impl ReactiveSession {
                     .reached_effects(Some(&record.event))
                     .iter()
                     .any(|effect| {
-                        matches!(effect, Effect::Unqualify { evidence, caveat }
+                        matches!(effect, Effect::Unqualify { evidence, caveat, .. }
                             if evidence == source && *caveat == record.caveat)
                     })
             {
@@ -1393,6 +1393,7 @@ impl ReactiveSession {
                     evidence,
                     caveat,
                     after,
+                    ..
                 } => {
                     let pair = (caveat.clone(), evidence.clone());
                     if after.is_some() {
@@ -1401,7 +1402,10 @@ impl ReactiveSession {
                     possible.insert(pair);
                 }
                 Effect::Withdraw {
-                    target: EvidenceSelector::Named(evidence) | EvidenceSelector::Latest(evidence),
+                    target:
+                        EvidenceSelector::Named(evidence)
+                        | EvidenceSelector::Latest(evidence)
+                        | EvidenceSelector::Occurrence { evidence, .. },
                     ..
                 } => {
                     possible.insert((WITHDRAWN.to_string(), evidence.clone()));
@@ -1526,9 +1530,22 @@ impl ReactiveSession {
                         .or_default()
                         .insert(claim.clone());
                 }
-                Effect::Qualify {
-                    after: Some(after), ..
-                } => read(after),
+                Effect::Qualify { after, index, .. } => {
+                    after.iter().chain(index.as_deref()).for_each(&mut read)
+                }
+                // An occurrence's index joins the effect's lineage. See
+                // spec/caveat-earlier-occurrence-0.1.md.
+                Effect::Unqualify {
+                    index: Some(index), ..
+                }
+                | Effect::Withdraw {
+                    target: EvidenceSelector::Occurrence { index, .. },
+                    ..
+                }
+                | Effect::Reopen {
+                    because: EvidenceSelector::Occurrence { index, .. },
+                    ..
+                } => read(index),
                 Effect::Set { value, because, .. } => {
                     read(value);
                     because.iter().flatten().for_each(&mut read);
@@ -3172,9 +3189,11 @@ impl ReactiveSession {
             reported == source || occurrence_parts(reported).is_some_and(|(base, _)| base == source)
         };
         let selects = |reported: &str, selector: &EvidenceSelector| match selector {
-            EvidenceSelector::Named(source) | EvidenceSelector::Latest(source) => {
-                named(reported, source)
-            }
+            EvidenceSelector::Named(source)
+            | EvidenceSelector::Latest(source)
+            | EvidenceSelector::Occurrence {
+                evidence: source, ..
+            } => named(reported, source),
             EvidenceSelector::Caveated { .. } => true,
         };
         reached.iter().any(|rule| match (effect, rule) {
@@ -3258,6 +3277,7 @@ impl ReactiveSession {
                     evidence: source,
                     caveat: added,
                     after: None,
+                    ..
                 },
             ) => named(evidence, source) && caveat == added,
             (
@@ -3267,6 +3287,7 @@ impl ReactiveSession {
                 Effect::Unqualify {
                     evidence: source,
                     caveat: taken,
+                    ..
                 },
             ) => evidence == source && caveat == taken,
             (
@@ -3310,6 +3331,7 @@ impl ReactiveSession {
                         evidence: source,
                         caveat: added,
                         after: Some(_),
+                        ..
                     } if named(evidence, source) && caveat == added)
                 }))
     }

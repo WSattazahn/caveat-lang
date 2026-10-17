@@ -245,6 +245,10 @@ pub enum Effect {
         /// `after SECONDS`: apply once that much time has passed, to the
         /// occurrence current now. See spec/caveat-renewal-0.1.md.
         after: Option<Expr>,
+        /// `qualify occurrence(EVIDENCE, INDEX) …`: the held occurrence the
+        /// index names instead of the current one. See
+        /// spec/caveat-earlier-occurrence-0.1.md.
+        index: Option<Box<Expr>>,
     },
     /// Record that the live qualifications of every held occurrence of the
     /// evidence by the caveat no longer stand. See
@@ -252,6 +256,9 @@ pub enum Effect {
     Unqualify {
         evidence: String,
         caveat: String,
+        /// `unqualify occurrence(EVIDENCE, INDEX) …`: only the held occurrence
+        /// the index names. See spec/caveat-earlier-occurrence-0.1.md.
+        index: Option<Box<Expr>>,
     },
     /// Give renewable evidence a new occurrence: from now on its name means a
     /// new, unobserved piece of evidence. See spec/caveat-renewal-0.1.md.
@@ -308,6 +315,12 @@ pub enum EvidenceSelector {
         state: String,
         caveat: String,
     },
+    /// `occurrence(EVIDENCE, INDEX)`: a held occurrence of renewable evidence,
+    /// chosen when the effect runs. See spec/caveat-earlier-occurrence-0.1.md.
+    Occurrence {
+        evidence: String,
+        index: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -362,11 +375,29 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, .. }
-        | Effect::Qualify {
-            after: Some(value), ..
-        } => {
+        Effect::Sample { value, .. } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
+        }
+        Effect::Qualify { after, index, .. } => {
+            for value in after
+                .iter_mut()
+                .chain(index.iter_mut().map(|index| &mut **index))
+            {
+                *value = reactive_expr::expand_with(value, functions, defines)?;
+            }
+        }
+        Effect::Unqualify {
+            index: Some(index), ..
+        }
+        | Effect::Withdraw {
+            target: EvidenceSelector::Occurrence { index, .. },
+            ..
+        }
+        | Effect::Reopen {
+            because: EvidenceSelector::Occurrence { index, .. },
+            ..
+        } => {
+            **index = reactive_expr::expand_with(index, functions, defines)?;
         }
         Effect::Commit {
             using, permission, ..
@@ -919,13 +950,19 @@ impl<'a> OrderStep<'a> {
             }
             Effect::Call { arguments, .. } => expressions.extend(arguments),
             Effect::Qualify {
-                evidence, after, ..
+                evidence,
+                after,
+                index,
+                ..
             } => {
-                uses.push((
-                    evidence.clone(),
-                    guard.clone(),
-                    format!("qualify {evidence}"),
-                ));
+                // An earlier occurrence is checked when the effect runs.
+                if index.is_none() {
+                    uses.push((
+                        evidence.clone(),
+                        guard.clone(),
+                        format!("qualify {evidence}"),
+                    ));
+                }
                 expressions.extend(after);
             }
             Effect::Reopen {
@@ -2474,6 +2511,13 @@ impl ReactiveSession {
             }
         }
         let validate_predicate = |kind: &str, symbol: &str| -> Result<(), String> {
+            if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
+                self.require_renewable_occurrence(symbol)?;
+                return match kind.strip_prefix(CARRIES) {
+                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    None => Ok(()),
+                };
+            }
             match kind {
                 "runtime_clock" => Ok(()),
                 "observed" => self.require_kind(symbol, "evidence"),
@@ -2584,8 +2628,12 @@ impl ReactiveSession {
                     evidence,
                     caveat,
                     after,
+                    index,
                 } => {
                     self.require_kind(evidence, "evidence")?;
+                    if let Some(index) = index {
+                        self.validate_occurrence(evidence, index, &numeric, &validate_predicate)?;
+                    }
                     self.require_kind(caveat, "caveat")?;
                     self.not_the_withdrawal_caveat(caveat, "qualify")?;
                     if let Some(after) = after {
@@ -2606,9 +2654,16 @@ impl ReactiveSession {
                         }
                     }
                 }
-                Effect::Unqualify { evidence, caveat } => {
+                Effect::Unqualify {
+                    evidence,
+                    caveat,
+                    index,
+                } => {
                     self.require_kind(evidence, "evidence")?;
                     self.require_kind(caveat, "caveat")?;
+                    if let Some(index) = index {
+                        self.validate_occurrence(evidence, index, &numeric, &validate_predicate)?;
+                    }
                 }
                 Effect::Renew { evidence } => {
                     if !self.renewals.contains_key(evidence) {
@@ -2623,6 +2678,8 @@ impl ReactiveSession {
                             self.require_kind(evidence, "evidence")?
                         }
                         EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                        EvidenceSelector::Occurrence { evidence, index } => self
+                            .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
                         EvidenceSelector::Caveated { .. } => {
                             return Err("withdraw names evidence or latest(STREAM)".into())
                         }
@@ -2684,7 +2741,8 @@ impl ReactiveSession {
                                 self.require_kind(grant, "evidence")?
                             }
                             EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
-                            EvidenceSelector::Caveated { .. } => {
+                            EvidenceSelector::Caveated { .. }
+                            | EvidenceSelector::Occurrence { .. } => {
                                 return Err("permitted by names evidence or latest(STREAM)".into())
                             }
                         }
@@ -2719,6 +2777,8 @@ impl ReactiveSession {
                         EvidenceSelector::Caveated { state, caveat } => {
                             self.state_with_caveat(state, caveat)?;
                         }
+                        EvidenceSelector::Occurrence { evidence, index } => self
+                            .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
                     }
                 }
             }
@@ -3042,6 +3102,36 @@ impl ReactiveSession {
             .ok_or_else(|| format!("unknown reactive state {name}"))?;
         self.require_kind(caveat, "caveat")?;
         Ok(state)
+    }
+
+    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence: see
+    /// spec/caveat-earlier-occurrence-0.1.md.
+    fn require_renewable_occurrence(&self, evidence: &str) -> Result<(), String> {
+        if self.renewals.contains_key(evidence) {
+            Ok(())
+        } else {
+            Err(format!(
+                "occurrence({evidence}, …) names renewable evidence; declare renewable {evidence} limit N"
+            ))
+        }
+    }
+
+    /// `occurrence(EVIDENCE, INDEX)` in an effect: renewable evidence and a
+    /// numeric index.
+    fn validate_occurrence(
+        &self,
+        evidence: &str,
+        index: &Expr,
+        numeric: &HashSet<String>,
+        predicate: &impl Fn(&str, &str) -> Result<(), String>,
+    ) -> Result<(), String> {
+        self.require_renewable_occurrence(evidence)?;
+        if index.validate(numeric, predicate)? != ValueType::Number {
+            return Err(format!(
+                "occurrence({evidence}, …) requires a numeric index"
+            ));
+        }
+        Ok(())
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -3826,7 +3916,11 @@ impl ReactiveSession {
                         .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
                 }))
             },
-            &|kind, name| self.predicate_tracked(kind, self.predicate_target(kind, name)),
+            &|kind, name| match self.at_occurrence(kind, name) {
+                Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
+                Some((_, None)) => Ok(Tracked::plain(false)),
+                None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
+            },
             &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
@@ -3866,7 +3960,11 @@ impl ReactiveSession {
                     .cloned()
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
-            &|kind, name| self.predicate_grounds(kind, self.predicate_target(kind, name)),
+            &|kind, name| match self.at_occurrence(kind, name) {
+                Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
+                Some((_, None)) => Ok(Tracked::plain(false)),
+                None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
+            },
             &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, true),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
@@ -4476,8 +4574,17 @@ impl ReactiveSession {
                 evidence,
                 caveat,
                 after,
+                index,
             } => {
-                let occurrence = self.occurrence(evidence).to_string();
+                let (occurrence, guard) = match index {
+                    Some(index) => {
+                        let (occurrence, lineage) =
+                            self.resolve_occurrence(evidence, index, parameters)?;
+                        (occurrence, guard.union(&lineage)?)
+                    }
+                    None => (self.occurrence(evidence).to_string(), guard.clone()),
+                };
+                let guard = &guard;
                 if !self.predicate("observed", &occurrence)? {
                     return Err(DispatchFailure::rejected(
                         RejectionOrigin::Evaluation,
@@ -4530,7 +4637,17 @@ impl ReactiveSession {
                     }
                 }
             }
-            Effect::Unqualify { evidence, caveat } => self.take_back(evidence, caveat)?,
+            Effect::Unqualify {
+                evidence,
+                caveat,
+                index,
+            } => {
+                let only = match index {
+                    Some(index) => Some(self.resolve_occurrence(evidence, index, parameters)?.0),
+                    None => None,
+                };
+                self.take_back(evidence, caveat, only.as_deref())?
+            }
             Effect::Withdraw { target, because } => {
                 let unobserved = |message: String| {
                     DispatchFailure::rejected(
@@ -4539,7 +4656,16 @@ impl ReactiveSession {
                         message,
                     )
                 };
-                let evidence = self.withdrawal_target(target).ok_or_else(|| {
+                let (evidence, guard) = match target {
+                    EvidenceSelector::Occurrence { evidence, index } => {
+                        let (occurrence, lineage) =
+                            self.resolve_occurrence(evidence, index, parameters)?;
+                        (Some(occurrence), guard.union(&lineage)?)
+                    }
+                    _ => (self.withdrawal_target(target), guard.clone()),
+                };
+                let guard = &guard;
+                let evidence = evidence.ok_or_else(|| {
                     unobserved(format!(
                         "cannot withdraw {target:?}: its stream has no reading"
                     ))
@@ -4953,6 +5079,22 @@ impl ReactiveSession {
                         let cause = self.qualify(&name, &[])?;
                         (vec![name], cause)
                     }
+                    EvidenceSelector::Occurrence { evidence, index } => {
+                        let (name, lineage) =
+                            self.resolve_occurrence(evidence, index, parameters)?;
+                        if !self.predicate("observed", &name)? {
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::UnobservedEvidence,
+                                format!(
+                                    "cannot reopen {action} because unobserved evidence {name}"
+                                ),
+                            ));
+                        }
+                        let mut cause = self.qualify(&name, &[])?;
+                        cause.merge(&lineage)?;
+                        (vec![name], cause)
+                    }
                     EvidenceSelector::Latest(stream) => {
                         if self.reading_streams[stream].current.is_none() {
                             return Err(DispatchFailure::rejected(
@@ -5113,7 +5255,12 @@ impl ReactiveSession {
     /// occurrence, then take the caveat from each current value that no
     /// longer has it live and does not keep it. See
     /// spec/caveat-take-back-0.1.md, "Meaning".
-    fn take_back(&mut self, evidence: &str, caveat: &str) -> Result<(), String> {
+    fn take_back(
+        &mut self,
+        evidence: &str,
+        caveat: &str,
+        only: Option<&str>,
+    ) -> Result<(), String> {
         let from = self.symbols[caveat];
         let occurrences = match self.renewals.get(evidence) {
             Some(renewal) => renewal.occurrences.clone(),
@@ -5122,7 +5269,8 @@ impl ReactiveSession {
         let marked = occurrences
             .into_iter()
             .filter(|occurrence| {
-                !self.is_retired(occurrence)
+                only.is_none_or(|only| only == occurrence)
+                    && !self.is_retired(occurrence)
                     && self
                         .symbols
                         .get(occurrence)
@@ -5295,9 +5443,9 @@ impl ReactiveSession {
                     .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
             )
             .filter_map(|effect| match effect {
-                Effect::Unqualify { evidence, caveat } => {
-                    Some((evidence.as_str(), caveat.as_str()))
-                }
+                Effect::Unqualify {
+                    evidence, caveat, ..
+                } => Some((evidence.as_str(), caveat.as_str())),
                 _ => None,
             })
     }
@@ -5400,7 +5548,8 @@ impl ReactiveSession {
         match target {
             EvidenceSelector::Named(evidence) => Some(self.occurrence(evidence).to_string()),
             EvidenceSelector::Latest(stream) => self.reading_streams[stream].current.clone(),
-            EvidenceSelector::Caveated { .. } => None,
+            // Resolved when the effect runs; see `resolve_occurrence`.
+            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => None,
         }
     }
 
@@ -5469,7 +5618,7 @@ impl ReactiveSession {
                 let reading = self.latest(stream)?;
                 (grant, Some(reading.value), reading.provenance)
             }
-            EvidenceSelector::Caveated { .. } => {
+            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
@@ -5710,6 +5859,61 @@ impl ReactiveSession {
         Tracked::new(!withdrawn.is_empty(), provenance).map(Some)
     }
 
+    /// A predicate asked of `occurrence(EVIDENCE, INDEX)` arrives as kind
+    /// `occurrence:KIND` and target `EVIDENCE#INDEX`. Returns `None` for any
+    /// other predicate, and otherwise the plain kind with the held occurrence
+    /// the index names, or `None` when it names none: the predicate is then
+    /// false. See spec/caveat-earlier-occurrence-0.1.md.
+    fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
+        let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
+        let held = name
+            .rsplit_once('#')
+            .and_then(|(evidence, index)| Some((evidence, index.parse::<f64>().ok()?)))
+            .and_then(|(evidence, index)| self.held_occurrence(evidence, index));
+        Some((kind, held))
+    }
+
+    /// The held occurrence of renewable evidence that a 1-based index names:
+    /// 1 is the declared evidence, `k` is `EVIDENCE@k`. `None` when the index
+    /// is not a whole number naming an occurrence that exists and has not
+    /// retired.
+    fn held_occurrence(&self, evidence: &str, index: f64) -> Option<String> {
+        let renewal = self.renewals.get(evidence)?;
+        if index < 1.0 || index.fract() != 0.0 {
+            return None;
+        }
+        let name = if index == 1.0 {
+            evidence.to_string()
+        } else {
+            format!("{evidence}@{index}")
+        };
+        (renewal.occurrences.contains(&name) && !self.is_retired(&name)).then_some(name)
+    }
+
+    /// `occurrence(EVIDENCE, INDEX)` in an effect: the held occurrence the
+    /// index names, and the index's lineage. An index that names none refuses
+    /// the event as `evaluation/expression`, as `history_at` does.
+    fn resolve_occurrence(
+        &mut self,
+        evidence: &str,
+        index: &Expr,
+        parameters: &Parameters,
+    ) -> Result<(String, Provenance), DispatchFailure> {
+        let tracked = self.evaluate(index, parameters)?;
+        let Value::Number(number) = tracked.value else {
+            return Err(format!("occurrence({evidence}, …) requires a numeric index").into());
+        };
+        let Some(occurrence) = self.held_occurrence(evidence, number) else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("occurrence({evidence}, {number}) names no held occurrence of {evidence}"),
+            )
+            .into());
+        };
+        self.collector_dirty(CollectorOwner::Record(occurrence.clone()));
+        Ok((occurrence, tracked.provenance))
+    }
+
     fn predicate_target<'a>(&'a self, kind: &str, name: &'a str) -> &'a str {
         if kind == "observed" || kind == WITHDRAWN || kind.starts_with(CARRIES) {
             self.occurrence(name)
@@ -5890,22 +6094,37 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             evidence,
             caveat,
             after,
+            index,
         } => Effect::Qualify {
             evidence: rename(evidence),
             caveat: rename(caveat),
             after: after.as_ref().map(|after| after.rename_symbols(names)),
+            index: index
+                .as_ref()
+                .map(|index| Box::new(index.rename_symbols(names))),
         },
         Effect::Withdraw { target, because } => Effect::Withdraw {
             target: match target {
                 EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
                 EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
+                EvidenceSelector::Occurrence { evidence, index } => EvidenceSelector::Occurrence {
+                    evidence: rename(evidence),
+                    index: Box::new(index.rename_symbols(names)),
+                },
                 selector => selector.clone(),
             },
             because: rename(because),
         },
-        Effect::Unqualify { evidence, caveat } => Effect::Unqualify {
+        Effect::Unqualify {
+            evidence,
+            caveat,
+            index,
+        } => Effect::Unqualify {
             evidence: rename(evidence),
             caveat: rename(caveat),
+            index: index
+                .as_ref()
+                .map(|index| Box::new(index.rename_symbols(names))),
         },
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
@@ -5971,6 +6190,10 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                 EvidenceSelector::Caveated { state, caveat } => EvidenceSelector::Caveated {
                     state: state.clone(),
                     caveat: rename(caveat),
+                },
+                EvidenceSelector::Occurrence { evidence, index } => EvidenceSelector::Occurrence {
+                    evidence: rename(evidence),
+                    index: Box::new(index.rename_symbols(names)),
                 },
             },
         },
@@ -6767,23 +6990,85 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
     Ok(Directive::Cue(cue))
 }
 
+/// `occurrence(EVIDENCE, INDEX)` as an effect's target or reason, or `None`
+/// for any other text. See spec/caveat-earlier-occurrence-0.1.md.
+fn occurrence_selector(text: &str) -> Result<Option<(String, Box<Expr>)>, String> {
+    let Some(arguments) = text
+        .strip_prefix("occurrence")
+        .map(str::trim_start)
+        .and_then(|rest| rest.strip_prefix('('))
+    else {
+        return Ok(None);
+    };
+    let arguments = arguments
+        .trim_end()
+        .strip_suffix(')')
+        .ok_or("occurrence selector requires a closing parenthesis")?;
+    let (evidence, index) = arguments
+        .split_once(',')
+        .ok_or("occurrence selector requires EVIDENCE, INDEX")?;
+    Ok(Some((
+        identifier(evidence.trim())?,
+        Box::new(reactive_expr::parse_unresolved(index.trim())?),
+    )))
+}
+
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
+    let invalid = || format!("invalid reactive effect: {}", words.join(" "));
     match words {
+        [verb @ ("qualify" | "unqualify"), rest @ ..]
+            if rest
+                .join(" ")
+                .strip_prefix("occurrence")
+                .is_some_and(|rest| rest.trim_start().starts_with('(')) =>
+        {
+            let split = rest
+                .iter()
+                .position(|word| *word == "with")
+                .ok_or_else(invalid)?;
+            let (evidence, index) =
+                occurrence_selector(&rest[..split].join(" "))?.ok_or_else(invalid)?;
+            match (*verb, &rest[split + 1..]) {
+                ("qualify", [caveat]) => Ok(Effect::Qualify {
+                    evidence,
+                    caveat: identifier(caveat)?,
+                    after: None,
+                    index: Some(index),
+                }),
+                ("qualify", [caveat, "after", delay @ ..]) if !delay.is_empty() => {
+                    Ok(Effect::Qualify {
+                        evidence,
+                        caveat: identifier(caveat)?,
+                        after: Some(reactive_expr::parse_unresolved(&delay.join(" "))?),
+                        index: Some(index),
+                    })
+                }
+                ("unqualify", [caveat]) => Ok(Effect::Unqualify {
+                    evidence,
+                    caveat: identifier(caveat)?,
+                    index: Some(index),
+                }),
+                _ => Err(invalid()),
+            }
+        }
         ["qualify", evidence, "with", caveat] => Ok(Effect::Qualify {
             evidence: identifier(evidence)?,
             caveat: identifier(caveat)?,
             after: None,
+            index: None,
         }),
         ["qualify", evidence, "with", caveat, "after", rest @ ..] if !rest.is_empty() => {
             Ok(Effect::Qualify {
                 evidence: identifier(evidence)?,
                 caveat: identifier(caveat)?,
                 after: Some(reactive_expr::parse_unresolved(&rest.join(" "))?),
+                index: None,
             })
         }
         ["unqualify", evidence, "with", caveat] => Ok(Effect::Unqualify {
             evidence: identifier(evidence)?,
             caveat: identifier(caveat)?,
+            index: None,
         }),
         ["renew", evidence] => Ok(Effect::Renew {
             evidence: identifier(evidence)?,
@@ -6806,7 +7091,10 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                         .ok_or("withdraw latest requires a closing parenthesis")?
                         .trim(),
                 )?),
-                None => EvidenceSelector::Named(identifier(&target)?),
+                None => match occurrence_selector(&target)? {
+                    Some((evidence, index)) => EvidenceSelector::Occurrence { evidence, index },
+                    None => EvidenceSelector::Named(identifier(&target)?),
+                },
             };
             Ok(Effect::Withdraw {
                 target,
@@ -7008,6 +7296,8 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     state: identifier(state.trim())?,
                     caveat: identifier(caveat.trim())?,
                 }
+            } else if let Some((evidence, index)) = occurrence_selector(&selector)? {
+                EvidenceSelector::Occurrence { evidence, index }
             } else {
                 EvidenceSelector::Named(identifier(&selector)?)
             };
@@ -7016,7 +7306,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 because,
             })
         }
-        _ => Err(format!("invalid reactive effect: {}", words.join(" "))),
+        _ => Err(invalid()),
     }
 }
 
