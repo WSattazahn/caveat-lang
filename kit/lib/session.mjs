@@ -74,10 +74,47 @@ function validOutcome(outcome, accepted = 'snapshot') {
   return false;
 }
 
+// An accepted dispatch outcome as the runtime writes it: these fields in this
+// order, the snapshot last. The snapshot's text, or null for any other text,
+// which is parsed and checked in full.
+const ACCEPTED_PREFIX = `{"schema":"${DISPATCH_SCHEMA}","outcome":"accepted","snapshot":{`;
+function acceptedSnapshotText(raw) {
+  if (typeof raw !== 'string' || !raw.startsWith(ACCEPTED_PREFIX) || !raw.endsWith('}}')) return null;
+  return raw.slice(ACCEPTED_PREFIX.length - 1, -1);
+}
+
+// Whether raw is a rejected outcome as the runtime writes it.
+const REJECTED_PREFIX = `{"schema":"${DISPATCH_SCHEMA}","outcome":"rejected",`;
+const rejectedOutcome = raw => typeof raw === 'string' && raw.startsWith(REJECTED_PREFIX);
+
+// {schema, outcome: "accepted", snapshot}, the snapshot parsed when first
+// read. Malformed text is fatal when it is read.
+function lazyAccepted(text, malformed) {
+  const outcome = { schema: DISPATCH_SCHEMA, outcome: 'accepted' };
+  Object.defineProperty(outcome, 'snapshot', {
+    enumerable: true,
+    configurable: true,
+    get() {
+      let snapshot;
+      try { snapshot = JSON.parse(text); } catch { throw malformed(); }
+      if (!isPlainObject(snapshot)) throw malformed();
+      Object.defineProperty(outcome, 'snapshot', { value: snapshot, enumerable: true, configurable: true, writable: true });
+      return snapshot;
+    },
+    set(value) {
+      Object.defineProperty(outcome, 'snapshot', { value, enumerable: true, configurable: true, writable: true });
+    },
+  });
+  return outcome;
+}
+
 export class CaveatSession {
   #inner;
   #runtime;
   #state = 'open';
+  // The snapshot text the last accepted dispatch() or snapshot() read, while
+  // no call can have changed the session since.
+  #lastSnapshot = null;
 
   constructor(inner, runtime) {
     this.#inner = inner;
@@ -120,14 +157,23 @@ export class CaveatSession {
   }
 
   // Returns {outcome: "accepted", snapshot} or {outcome: "rejected", origin,
-  // code, message}. Throws CaveatError("fatal") for everything else.
+  // code, message}. Throws CaveatError("fatal") for everything else. An
+  // accepted snapshot is parsed when it is first read, and snapshot() reuses
+  // it until the session changes rather than building it again.
   dispatch(event, payload = {}) {
     this.#usable();
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     let raw;
-    try { raw = this.#inner.dispatch_outcome(event, text); } catch (error) { throw this.#fail(error); }
+    try { raw = this.#inner.dispatch_outcome(event, text); } catch (error) { this.#lastSnapshot = null; throw this.#fail(error); }
+    const accepted = acceptedSnapshotText(raw);
+    if (accepted !== null) {
+      this.#lastSnapshot = accepted;
+      return lazyAccepted(accepted, () => this.#fail(new CaveatError('fatal', 'dispatch returned text that is not JSON')));
+    }
     let outcome;
+    // A rejected event leaves the session as it was, and its snapshot with it.
+    if (!rejectedOutcome(raw)) this.#lastSnapshot = null;
     try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatch returned text that is not JSON')); }
     if (!validOutcome(outcome)) {
       // Not a fatal report either: keep what arrived for diagnostics only.
@@ -150,6 +196,7 @@ export class CaveatSession {
     }
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
+    this.#lastSnapshot = null;
     let raw;
     try { raw = this.#inner.dispatch_view_outcome(event, text); } catch (error) { throw this.#fail(error); }
     let outcome;
@@ -164,7 +211,22 @@ export class CaveatSession {
   }
 
   snapshotText() { return this.#json(() => this.#inner.snapshot(), 'snapshot').text; }
-  snapshot() { return this.#json(() => this.#inner.snapshot(), 'snapshot').value; }
+  // A fresh object each call, from the snapshot text kept until the session
+  // changes. Compact text, where the runtime has it, parses faster than the
+  // pretty text snapshotText() returns.
+  snapshot() {
+    this.#usable();
+    if (this.#lastSnapshot === null) {
+      const pretty = typeof this.#inner.snapshot_compact !== 'function';
+      this.#lastSnapshot = this.#call(() => (pretty ? this.#inner.snapshot() : this.#inner.snapshot_compact()));
+    }
+    try {
+      return JSON.parse(this.#lastSnapshot);
+    } catch {
+      this.#lastSnapshot = null;
+      throw this.#fail(new CaveatError('fatal', 'snapshot() returned text that is not JSON'));
+    }
+  }
   // view() is View 0.1; view({ schema: '0.2' }) is View 0.2
   // (spec/caveat-view-0.2.md). A runtime build that predates View 0.2 throws
   // CaveatError("load") for 0.2.
@@ -197,6 +259,7 @@ export class CaveatSession {
     }
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
+    this.#lastSnapshot = null;
     let raw;
     try { raw = this.#inner.dispatch_view_delta_outcome(event, text); } catch (error) { throw this.#fail(error); }
     let outcome;
@@ -211,7 +274,18 @@ export class CaveatSession {
   }
 
   // The save is JSON text; restore it with the exact source it came from.
-  save() { return this.#json(() => this.#inner.save(), 'save').text; }
+  // save({ compact: true }) is the replay save while the session's accepted
+  // events fit in one and it is smaller, otherwise the same state save
+  // (spec/caveat-replay-save-0.1.md). A runtime build that predates it throws
+  // CaveatError("load") and the session is untouched.
+  save(options = {}) {
+    if (options?.compact !== true) return this.#json(() => this.#inner.save(), 'save').text;
+    this.#usable();
+    if (typeof this.#inner.save_compact !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no save_compact; it predates compact saves');
+    }
+    return this.#json(() => this.#inner.save_compact(), 'save').text;
+  }
 
   // The archive items produced since the last drain, and an empty
   // archive (spec/caveat-departure-0.1.md). The archive is not saved: a host
@@ -219,6 +293,7 @@ export class CaveatSession {
   // together beside its saves. A runtime that predates departure departs
   // nothing, so its archive is empty.
   drainArchive() {
+    this.#lastSnapshot = null;
     if (typeof this.#inner.drain_archive !== 'function') {
       this.#usable();
       return [];
@@ -241,6 +316,7 @@ export class CaveatSession {
   // abandoned without calling into the runtime, including free(). A trap
   // during free() marks the runtime trapped for every other session.
   close() {
+    this.#lastSnapshot = null;
     if (this.#state === 'open' && !this.#runtime.trapped) {
       this.#state = 'closed';
       this.#runtime.released(this);
@@ -273,8 +349,9 @@ function lifecycleOf(SessionClass) {
 // dispatch_outcome, snapshot, view, save and free, and optionally
 // dispatch_view_outcome (for dispatchView), view_v2 and
 // dispatch_view_delta_outcome (for View 0.2), drain_archive and undrained (for
-// drainArchive and undrained), SessionClass.check(source), optionally
-// SessionClass.check_with(source, unused) (for check's options) and
+// drainArchive and undrained), save_compact (for save({ compact: true })),
+// snapshot_compact (a faster snapshot()), SessionClass.check(source),
+// optionally SessionClass.check_with(source, unused) (for check's options) and
 // SessionClass.interface(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);

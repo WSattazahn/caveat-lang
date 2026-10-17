@@ -47,6 +47,10 @@ pub use save::{
     Compact, ReactiveSave, SavedGraph, SavedNode, SavedResources, SavedState, REACTIVE_SAVE_SCHEMA,
 };
 
+#[path = "reactive_replay_save.rs"]
+mod replay_save;
+pub use replay_save::{REPLAY_SAVE_MAX_BYTES, REPLAY_SAVE_SCHEMA};
+
 #[path = "reactive_outcome.rs"]
 mod outcome;
 
@@ -1443,6 +1447,9 @@ pub struct ReactiveSession {
     labels: Arc<BTreeMap<String, String>>,
     scenes: Arc<Vec<String>>,
     effects: Vec<EffectReport>,
+    /// The events accepted since the program loaded, for a replay save: none
+    /// once they outgrow one, or in a session restored from a state save.
+    replay: Option<Arc<replay_save::ReplayLog>>,
 }
 
 impl ReactiveSession {
@@ -1628,6 +1635,7 @@ impl ReactiveSession {
             labels: Arc::new(evaluation.display.into_iter().collect()),
             scenes: Arc::new(map.scenes),
             effects: Vec::new(),
+            replay: Some(Arc::default()),
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -3681,6 +3689,7 @@ impl ReactiveSession {
                 archive.append(&mut next.archive);
                 *self = next;
                 self.archive = archive;
+                self.record_replay(event, parameters);
                 Ok(())
             }
             Err(error) => {

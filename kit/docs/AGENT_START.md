@@ -105,6 +105,13 @@ const session = typed(runtime.open(source));
 session.dispatch('read', { celsius: 17 }); // a misspelled event or field fails the check
 ```
 
+A host that only shows the view after each event should send it with
+`session.dispatchView(event, payload)`, which returns the view and does not
+build the full snapshot `dispatch` returns. Use `dispatch` when the host needs
+the snapshot's journal, grounds or graph. For a small store, save with
+`session.save({ compact: true })`: a short session's compact save is its
+accepted events, and `runtime.restore` takes it like any save.
+
 The declarations only add checks. A value with a condition is optional,
 because a view shows it only while one of its conditions holds. An entity or
 member is typed by name, though the runtime also accepts its position.

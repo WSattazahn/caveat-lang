@@ -147,3 +147,16 @@ test('the serve command speaks the protocol on standard input and output', async
     assert.deepEqual([announced.schema, announced.ready, announced.error.kind], [SERVE_SCHEMA, false, 'load']);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test('a compact save restores like any save, and a non-boolean compact is a request error', () => {
+  const { send } = serve();
+  send({ op: 'dispatch', event: 'read', payload: { value: 17 } });
+  const state = send({ op: 'save' }).response.save;
+  const compact = send({ op: 'save', compact: true }).response.save;
+  assert.equal(JSON.parse(compact).schema, 'caveat-replay-save/0.1');
+  assert.ok(compact.length < state.length);
+  assert.equal(send({ op: 'save', compact: false }).response.save, state);
+  assert.equal(send({ id: 3, op: 'save', compact: 'yes' }).response.ok, false);
+  assert.deepEqual(send({ id: 4, op: 'restore', save: compact }).response, { id: 4, ok: true, sequence: 1 });
+  assert.equal(send({ op: 'save' }).response.save, state);
+});

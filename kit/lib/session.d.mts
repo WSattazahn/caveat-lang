@@ -107,6 +107,12 @@ export declare function payloadText(payload: unknown): string;
 
 export type SessionState = 'open' | 'closed' | 'fatal';
 
+/** Options for `CaveatSession.save`. */
+export interface SaveOptions {
+  /** The replay save when it is smaller. Default false: the state save. */
+  compact?: boolean;
+}
+
 /** One program's session. Made by `runtime.open` or `runtime.restore`. */
 export declare class CaveatSession {
   #private;
@@ -130,8 +136,14 @@ export declare class CaveatSession {
   viewText(options?: { schema?: '0.1' | '0.2' }): string;
   view(options?: { schema?: '0.1' }): View;
   view(options: { schema: '0.2' }): ViewV2;
-  /** JSON text. Restore it with the exact source it came from. */
-  save(): string;
+  /**
+   * JSON text. Restore it with the exact source it came from. With
+   * `{ compact: true }`, the replay save while the session's accepted events
+   * fit in one (at most 4,096 bytes) and it is smaller, otherwise the same
+   * state save; `restore` takes either. A runtime build that predates compact
+   * saves throws `CaveatError("load")`. See spec/caveat-replay-save-0.1.md.
+   */
+  save(options?: SaveOptions): string;
   /**
    * Drain departed record entries and provenance nodes accumulated since the
    * last drain. Record entries retain departure order; proof nodes may refer
@@ -224,9 +236,11 @@ export interface RuntimeSessionHandle {
   dispatch_view_outcome?(event: string, payload: string): string;
   dispatch_view_delta_outcome?(event: string, payload: string): string;
   snapshot(): string;
+  snapshot_compact?(): string;
   view(): string;
   view_v2?(): string;
   save(): string;
+  save_compact?(): string;
   drain_archive?(): string;
   undrained?(): number;
   free(): void;

@@ -60,6 +60,14 @@ archive storage are separate costs. See the
 [history integration guide](../kit/docs/HISTORY.md) for draining, exact versus
 conservative explanations and save/restore responsibilities.
 
+A save names everything it holds, so a small program's state save can be
+several times the size of its events. `session.save({ compact: true })` writes
+a [replay save](../spec/caveat-replay-save-0.1.md), the session's accepted
+events, while they fit in 4,096 bytes and that is smaller, and otherwise the
+state save; `runtime.restore` takes either. Restoring a replay save dispatches
+its events again, so it costs more as they grow. A runtime before 1.1.0 cannot
+restore one.
+
 A decision series cannot have a window: `decisions NAME window N` is refused
 when the program loads, and series windows wait until after 1.0
 ([Windows 0.1](../spec/caveat-windows-0.1.md#decision-series-not-in-rc15)).
@@ -182,7 +190,17 @@ session.close();
 diagnostic when a program does not load. `dispatch` returns
 `{outcome: "accepted", snapshot}` or `{outcome: "rejected", origin, code,
 message}`; anything else throws, and the session must then be discarded.
-`session.save()` returns text that `runtime.restore(source, saved)` resumes.
+`session.save()` returns text that `runtime.restore(source, saved)` resumes,
+and `session.save({ compact: true })` a smaller save for a short session (see
+[What grows the save](#what-grows-the-save)).
+
+Choose the call by what the host reads after each event. `dispatchView`
+returns the view (displayed values, decisions and cues) and is the cheapest:
+the runtime does not build the snapshot. `dispatchViewDelta` returns what
+changed in a View 0.2. `dispatch` builds the full snapshot, the largest thing
+the runtime returns; use it when the host needs the journal, grounds or graph.
+`session.snapshot()` straight after `dispatch` reuses that snapshot instead of
+building another.
 
 ## Replay with the native command line (repository checkout)
 
