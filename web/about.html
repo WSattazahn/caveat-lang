@@ -181,14 +181,10 @@ follow the worked example the same way.</p>
   Required reasons remain: their dependency chains can grow, so windows do not
   bound the complete save. Archive storage is additional. State is numbers,
   and a program does no input or output of its own.</li>
-  <li>The evidence so far is small: the project's own games, authoring trials
-  by AI agents, and a benchmark game built both in Caveat and in plain
-  TypeScript, where TypeScript did better in the blind rounds. Whether Caveat
-  helps real decision systems is still a hypothesis. The
-  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md">benchmark
-  record</a> has every round.</li>
-  <li>It costs speed and size: in the benchmark an event took roughly 50 to 150
-  microseconds against a few for plain code, and the runtime is hundreds of kilobytes gzipped. That is fine at
+  <li>The evidence that it helps is still small: the project's own games,
+  authoring trials by AI agents and a benchmark game. Whether Caveat helps
+  real decision systems is still a hypothesis.</li>
+  <li>It costs speed and size: an event takes tens to hundreds of microseconds, and the runtime is hundreds of kilobytes gzipped. That is fine at
   event boundaries and not suited to per-frame work.</li>
   <li>The registered agent examples have host-policy checks; these do not establish conformance for arbitrary integrations or a security sandbox.</li>
 </ul>
