@@ -60,35 +60,6 @@ jobs:
         with:
           path: ~/.cargo/bin/wasm-bindgen
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-      - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
-      - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
-      # The maximum supported call depth needs more stack in unoptimized tests.
-      # Keep the optimized runtime independently checked with the default stack.
-      - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
-        env:
-          RUST_MIN_STACK: 16777216
-      - name: Lint the reactive-only runtime
-        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
-      - name: Test the reactive-only runtime
-        run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
-        env:
-          RUST_MIN_STACK: 16777216
-      - name: Maximum supported call depth on the optimized default stack
-        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
-      - name: Withdrawal collector diagnostics and paired retention cases
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection --test collector_index_compaction --test withdrawal_batch_extraction
-        env:
-          RUST_MIN_STACK: 16777216
-      - name: Native withdrawal-extraction diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features withdrawal-extraction-profile --lib withdrawal_profile
-      - name: Native renewal-removal diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features renewal-removal-profile --lib renewal_profile
-      - name: Native event-phase diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
-      - name: Native event-phase allocation-origin mode
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
-      - name: Withdrawal collector at the real storage capacity
-        run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
       - name: Third-party notices match the locked crates
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
@@ -139,6 +110,100 @@ jobs:
           --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
+      - name: Adoption scorer mutation controls (no trial agents)
+        run: node --test experiments/agent-adoption/v1/checks.test.mjs
+      - name: Adoption runner capture failure controls (no trial agents)
+        run: python3 -B experiments/agent-adoption/v1/runner-capture.test.py
+      - name: Converted Trail Rescue and Glowcap scenarios
+        run: npm run test:scenario-conversion
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: slime-glow-wasm-report
+          overwrite: true
+          path: test-results/slime-glow-wasm.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: trail-rescue-policy-report
+          overwrite: true
+          path: test-results/trail-rescue.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: browser-dist
+          overwrite: true
+          path: dist
+          retention-days: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 90 || 7 }}
+
+  # The native runtime checks need no browser build, and nothing downstream
+  # waits on them, so they run beside core instead of ahead of it.
+  native:
+    name: native runtime
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
+      # The maximum supported call depth needs more stack in unoptimized tests.
+      # Keep the optimized runtime independently checked with the default stack.
+      - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Lint the reactive-only runtime
+        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
+      - name: Test the reactive-only runtime
+        run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Maximum supported call depth on the optimized default stack
+        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
+      - name: Withdrawal collector diagnostics and paired retention cases
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection --test collector_index_compaction --test withdrawal_batch_extraction
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Native withdrawal-extraction diagnostic recorder
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features withdrawal-extraction-profile --lib withdrawal_profile
+      - name: Native renewal-removal diagnostic recorder
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features renewal-removal-profile --lib renewal_profile
+      - name: Native event-phase diagnostic recorder
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
+      - name: Native event-phase allocation-origin mode
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
+      - name: Withdrawal collector at the real storage capacity
+        run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
+      - name: CLI and CAVEAT Map playthroughs
+        run: |
+          printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+
+  # The rc.15 compatibility and departure gates build their own browser
+  # distribution so they can run beside core; core's browser-dist stays the
+  # one artifact the browser jobs and Pages use.
+  compatibility:
+    name: rc.15 compatibility and departure gates
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build browser distribution
+        run: npm run build
       - name: Departure save bound, exact rc.15 compatibility, and restore continuation
         run: node experiments/departure-gate/run.mjs
       - uses: actions/upload-artifact@v7
@@ -163,38 +228,6 @@ jobs:
             test-results/view-delta-gate.json
             test-results/view-delta-sweep.txt
           if-no-files-found: warn
-      - name: Adoption scorer mutation controls (no trial agents)
-        run: node --test experiments/agent-adoption/v1/checks.test.mjs
-      - name: Adoption runner capture failure controls (no trial agents)
-        run: python3 -B experiments/agent-adoption/v1/runner-capture.test.py
-      - name: Converted Trail Rescue and Glowcap scenarios
-        run: npm run test:scenario-conversion
-      - name: CLI and CAVEAT Map playthroughs
-        run: |
-          printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: slime-glow-wasm-report
-          overwrite: true
-          path: test-results/slime-glow-wasm.json
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: trail-rescue-policy-report
-          overwrite: true
-          path: test-results/trail-rescue.json
-      - uses: actions/upload-artifact@v7
-        with:
-          name: browser-dist
-          overwrite: true
-          path: dist
-          retention-days: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 90 || 7 }}
 
   mcp-platforms:
     name: MCP worker / ${{ matrix.os }}

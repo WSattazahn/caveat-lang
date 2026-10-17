@@ -3,9 +3,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { copyFileSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -37,6 +37,42 @@ function logged(command, args, log, cwd = root) {
   finally { closeSync(fd); }
 }
 
+// The asynchronous form of run, so independent builds and sweep shards can
+// share the host's cores. Each result is checked exactly as run checks it.
+function runAsync(command, args, { input, cwd = root, stdio } = {}) {
+  return new Promise((resolveRun, reject) => {
+    const child = spawn(command, args, { cwd, stdio: stdio ?? ['pipe', 'pipe', 'pipe'] });
+    const stdout = [], stderr = [];
+    child.stdout?.on('data', chunk => stdout.push(chunk));
+    child.stderr?.on('data', chunk => stderr.push(chunk));
+    child.on('error', reject);
+    child.on('close', (status, signal) => {
+      const result = { status, signal, stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8') };
+      try {
+        assert.equal(status, 0, `${command} ${args.join(' ')} failed (${signal ?? 'exit'}):\n${result.stderr}`);
+        resolveRun(result);
+      } catch (error) { reject(error); }
+    });
+    if (child.stdin) child.stdin.end(input ?? '');
+  });
+}
+
+async function loggedAsync(command, args, log, cwd = root) {
+  console.error(`${command} ${args.join(' ')} (log: ${log})`);
+  const fd = openSync(join(output, log), 'w');
+  try { await runAsync(command, args, { cwd, stdio: ['ignore', fd, fd] }); }
+  finally { closeSync(fd); }
+}
+
+// Run at most `limit` tasks at once; results keep the order of `tasks`.
+async function pool(tasks, limit) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => { while (next < tasks.length) { const index = next++; results[index] = await tasks[index](); } };
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+}
+
 function hasWindow(source) {
   // Ignore comments and strings, so prose saying "window" does not omit a
   // program. Windows belong only to readings, renewables and the journal.
@@ -47,12 +83,18 @@ function hasWindow(source) {
 function lines(text) { return text.trim().split(/\r?\n/).filter(Boolean); }
 function digest(text) { return createHash('sha256').update(text).digest('hex'); }
 
-function sweep(binary, programs, args, name) {
+// The sweep examples handle each program independently, in input order, so
+// every program is a separate task: running them on all cores and joining
+// the output in program order gives the same bytes as one sequential process.
+function sweepTasks(binary, programs, args, name) {
   console.error(`${name}: ${programs.length} programs, ${args[0]} runs, ${args[1]} events per run`);
-  const result = run(binary, args.map(String), { input: programs.join('\n') + '\n', encoding: 'utf8' });
-  const rows = lines(result.stdout);
+  return programs.map(program => () => runAsync(binary, args.map(String), { input: program + '\n' }));
+}
+
+function record(name, results) {
+  const rows = lines(results.map(result => result.stdout).join(''));
   writeFileSync(join(output, `${name}.txt`), rows.join('\n') + '\n');
-  writeFileSync(join(output, `${name}-stderr.txt`), result.stderr);
+  writeFileSync(join(output, `${name}-stderr.txt`), results.map(result => result.stderr).join(''));
   assert.ok(rows.every(row => !row.includes(' unreadable ')), `${name}: unreadable source`);
   return rows;
 }
@@ -99,18 +141,32 @@ for (const example of ['save_sweep', 'outcome_sweep']) {
   copyFileSync(join(root, `runtime/examples/${example}.rs`), join(baseline, `runtime/examples/${example}.rs`));
 }
 const buildArgs = ['build', '--locked', '--release', '--manifest-path', 'runtime/Cargo.toml', '--example', 'save_sweep', '--example', 'outcome_sweep'];
-logged('cargo', buildArgs, 'compatibility-rc15-build.log', baseline);
-logged('cargo', buildArgs, 'compatibility-rc16-build.log');
+// The two builds are independent, and each spends most of its time in one
+// single-codegen-unit LTO step, so they run side by side.
+await Promise.all([
+  loggedAsync('cargo', buildArgs, 'compatibility-rc15-build.log', baseline),
+  loggedAsync('cargo', buildArgs, 'compatibility-rc16-build.log'),
+]);
 const extension = process.platform === 'win32' ? '.exe' : '';
 const executable = (directory, example) => join(directory, `runtime/target/release/examples/${example}${extension}`);
-const oldSave = sweep(executable(baseline, 'save_sweep'), noWindow, [8, 150], 'rc15-save-sweep');
-const newSave = sweep(executable(root, 'save_sweep'), noWindow, [8, 150], 'rc16-save-sweep');
+const sweeps = [
+  ['rc15-save-sweep', executable(baseline, 'save_sweep'), noWindow, [8, 150]],
+  ['rc16-save-sweep', executable(root, 'save_sweep'), noWindow, [8, 150]],
+  ['rc15-outcome-sweep', executable(baseline, 'outcome_sweep'), windowed, [32, 400]],
+  ['rc16-outcome-sweep', executable(root, 'outcome_sweep'), windowed, [32, 400]],
+];
+const tasks = sweeps.map(([name, binary, programs, args]) => sweepTasks(binary, programs, args, name));
+const results = await pool(tasks.flat(), availableParallelism());
+let offset = 0;
+const [oldSave, newSave, oldOutcome, newOutcome] = sweeps.map(([name], index) => {
+  const own = results.slice(offset, offset + tasks[index].length);
+  offset += tasks[index].length;
+  return record(name, own);
+});
 assert.equal(newSave.length, noWindow.length);
 assert.ok(newSave.every((row, index) => row.startsWith(`${noWindow[index]} `)));
 assert.ok(newSave.every(row => row.endsWith(' skipped') || row.endsWith(' fatal=0')));
 assert.deepEqual(newSave, oldSave, 'no-window outcome, save and restore digests differ');
-const oldOutcome = sweep(executable(baseline, 'outcome_sweep'), windowed, [32, 400], 'rc15-outcome-sweep');
-const newOutcome = sweep(executable(root, 'outcome_sweep'), windowed, [32, 400], 'rc16-outcome-sweep');
 assert.equal(newOutcome.length, windowed.length * 32);
 assert.ok(newOutcome.every((row, index) => row.startsWith(`${windowed[Math.floor(index / 32)]} run=${index % 32} `)));
 assert.ok(newOutcome.every(row => row.includes('fatal=false')));
