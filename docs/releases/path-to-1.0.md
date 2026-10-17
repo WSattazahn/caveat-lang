@@ -168,6 +168,23 @@ freeze, or changing the agreed observation period. The
 [1.0.0 checklist](v1.0.0-checklist.md) tracks the remaining stabilization review,
 exact stable-candidate verification and separate owner release decision.
 
+### Stable release, 2026-10-17
+
+The owner released [1.0.0](v1.0.0.md) on 2026-10-17, ahead of the October 26
+review checkpoint: they approved merging the candidate (PR #235), created the
+annotated tag `v1.0.0` at the tested revision
+`e2a1350024352ca707e74491d9405507b166ca23`, and approved the `npm-publish`
+environment. The [publication record](v1.0.0-npm-publication.json) identifies
+the exact tested package, and the [lineage record](v1.0.0-lineage.json)
+traces the reviews from rc.20 to the tag. 1.0.0 adds no syntax, schema,
+operation, field, CLI flag, export or MCP tool over rc.20, and its Rust
+runtime is unchanged.
+
+This closes B8 and E3 for the exact 1.0.0 artifact. The October 12 freeze
+decision, the rc.20 maintenance follow-up and the open issues triaged in the
+[readiness audit](v1.0.0-readiness-audit.json) stay as dated. From here,
+changes follow [COMPATIBILITY.md](../COMPATIBILITY.md): a 1.x minor only adds.
+
 ### What exists and will not be rebuilt
 
 - Departure, lineage compaction, the archive and the collector: rc.16 runtime.

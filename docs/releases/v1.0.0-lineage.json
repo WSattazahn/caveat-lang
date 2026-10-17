@@ -1,0 +1,99 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.0.0",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.0.0",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/235",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "integrationIdentity": "PR #235 merged the reviewed 1.0.0 candidate without squashing. The annotated tag v1.0.0 (object e25f3cf78237fab6ac3050d34afc153f3d355e43) peels to the exact tested main revision. v0.1.0-rc.20 still peels to d9e398e2a6e39c489401ce7785994226966bb364, an ancestor of the 1.0.0 revision. Later publication records, compatibility fixtures and site documentation do not move the tag or replace the published package.",
+  "stages": [
+    {
+      "id": "published-rc20",
+      "version": "0.1.0-rc.20",
+      "revision": "d9e398e2a6e39c489401ce7785994226966bb364",
+      "tag": "v0.1.0-rc.20",
+      "published": true,
+      "record": "v0.1.0-rc.20-npm-publication.json"
+    },
+    {
+      "id": "rc20-publication-records",
+      "revision": "6704c0a9fb827a066760493aec25349b0ffb2703",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/231"
+    },
+    {
+      "id": "stable-authoring-trial",
+      "revision": "816d468b82927de0d0b03b5e0952e22ae9cd4f26",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/232"
+    },
+    {
+      "id": "stable-release-checklist-and-readiness-audit",
+      "revision": "53cb90f9d8e7bedfbd5861dc6400463333549306",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/233"
+    },
+    {
+      "id": "about-page-rewrite",
+      "revision": "dc7f364f0c7296b0a133910d5aed58d3a8de4057",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/234"
+    },
+    {
+      "id": "reviewed-1.0.0-candidate",
+      "revision": "07da470727825c51cfddff2429395b672daee076",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/235"
+    },
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "parents": [
+        "dc7f364f0c7296b0a133910d5aed58d3a8de4057",
+        "07da470727825c51cfddff2429395b672daee076"
+      ],
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    }
+  ],
+  "scope": "The first stable release: docs/COMPATIBILITY.md becomes the 1.x promise; the release workflow marks only release-candidate tags as prereleases; the caveat_dependents description states that subjects are causes only; the authoring guide covers comparing several candidates (#222) and revising a program while the record continues (#224). The Rust runtime, package runtime dependencies and pinned toolchain are unchanged from rc.20. No language syntax, runtime operation, save format, MCP tool or tool argument is added.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "e2a1350024352ca707e74491d9405507b166ca23",
+  "publicationRecord": "v1.0.0-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-17T17:40:50.637Z",
+    "record": "v1.0.0-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.0.0",
+    "installPathRecord": "v1.0.0-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-17T17:16:14.980Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39051918431",
+  "publicationAttempt": 2,
+  "publicationArtifact": {
+    "id": 12107519221,
+    "name": "npm-publication-verification",
+    "digest": "sha256:d8dc47526dc20130ee4973e360c3a77dfeeba972b29d82470cd23781d3781f4d"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39047844333",
+  "runtimeArtifact": {
+    "id": 12107147540,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/39047844333/artifacts/12107147540"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.0.0.tgz",
+    "bytes": 1215669,
+    "sha256": "56860ea8a712c7eed052811d910fff239c1e5da06f4581d7b428aeb281dccddf",
+    "sha512": "169d0a2481403f319c68ce483cf42db5aeec0de4479241aa5a29432dc416d58f41cb3a437cad94bcfdf250c500636d85bdb32a5358cc0d8cd295337d06e9a653",
+    "integrity": "sha512-Fp0KJIFAPzGcaM5IPPQtta7sDeRHkkGqWilDLcQW1Y9ByzpDfK2UvP3yUMUAY22FvbMqU1jMDYzSlTN9BummUw=="
+  },
+  "stabilization": {
+    "record": "path-to-1.0.md#stable-release-2026-10-17",
+    "freezeRecord": "path-to-1.0.md#freeze-review-e1-2026-10-12",
+    "status": "The owner released 1.0.0 on 2026-10-17, ahead of the October 26 review checkpoint, by approving the merge, tagging, and approving publication. The October 12 freeze and its dated observations stay as recorded."
+  }
+}
