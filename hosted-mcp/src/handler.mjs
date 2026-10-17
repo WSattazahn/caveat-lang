@@ -75,9 +75,13 @@ function scenarioSteps(scenarios) {
  * run(toolName, args) performs one authoring operation, as runAuthoringOperation
  * does. limiter, when given, is a Workers rate limiting binding. testSteps, when
  * given, bounds the scenario steps one caveat_test call may run, so a call stays
- * within a CPU budget; larger files belong to a local `caveat-lang mcp`.
+ * within a CPU budget, and caveat_test's description says so. challenge, when
+ * given, is the token served for OpenAI's domain verification.
  */
-export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = null, path = '/mcp', home = '' }) {
+export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = null, challenge = null, path = '/mcp', home = '' }) {
+  const toolList = testSteps === null ? MCP_TOOLS : MCP_TOOLS.map(item => item.name !== 'caveat_test' ? item : {
+    ...item, description: `${item.description} This hosted server runs at most ${testSteps} scenario steps per call, counting repeated sends; split larger scenario files across calls.`,
+  });
   const stateless = value => ({ resultType: 'complete', ...value, _meta: { [META_SERVER]: serverInfo } });
   const legacy = value => value;
 
@@ -100,7 +104,7 @@ export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = 
     if (method === 'tools/list') {
       if (!paramsEmpty(params)) return rpcError(200, id, -32602, 'tools/list takes no cursor or other parameters');
       return json(200, { jsonrpc: '2.0', id, result: finish === stateless
-        ? stateless({ tools: MCP_TOOLS, ttlMs: TOOLS_TTL_MS, cacheScope: 'public' }) : { tools: MCP_TOOLS } });
+        ? stateless({ tools: toolList, ttlMs: TOOLS_TTL_MS, cacheScope: 'public' }) : { tools: toolList } });
     }
     if (!hasOnly(params, ['name', 'arguments', '_meta']) || !toolNames.has(params.name) || !object(params.arguments)) {
       return rpcError(200, id, -32602, 'tools/call requires a supported name and arguments object');
@@ -198,6 +202,9 @@ export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = 
     const url = new URL(request.url);
     if (url.pathname === '/' && request.method === 'GET' && home) {
       return respond(200, home, { 'content-type': 'text/plain; charset=utf-8' });
+    }
+    if (url.pathname === '/.well-known/openai-apps-challenge' && request.method === 'GET' && challenge) {
+      return respond(200, challenge, { 'content-type': 'text/plain; charset=utf-8' });
     }
     if (url.pathname !== path) return respond(404, 'Not found', { 'content-type': 'text/plain; charset=utf-8' });
     if (request.method === 'OPTIONS') return respond(204, null);
