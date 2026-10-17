@@ -26,8 +26,8 @@ stdio; `test/handler.test.mjs` checks that side by side, and
   60 requests a minute per IP address in each Cloudflare location (a rate
   limiting binding, best effort). `caveat_test` runs at most 16 scenario steps
   per call, counting repeated sends (`testSteps` in `src/worker.mjs`), to stay
-  within the free plan's CPU; larger files get a `limit` error naming the local
-  server. Cloudflare stops a call that runs out of CPU.
+  within the free plan's CPU; a larger call gets a `limit` error suggesting
+  smaller calls, `caveat_explain` for long histories, or the local server. Cloudflare stops a call that runs out of CPU.
 - Nothing is stored or logged; see `web/plugin-privacy.html` and
   `web/plugin-terms.html`.
 

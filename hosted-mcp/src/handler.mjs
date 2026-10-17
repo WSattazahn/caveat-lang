@@ -85,7 +85,7 @@ export function createMcpHandler({ run, serverInfo, limiter = null, testSteps = 
     try { validateAuthoringArguments(name, args); }
     catch (error) { return toolResult(bridgeError(error.kind === 'limit' ? 'limit' : 'input', error.message), true); }
     if (name === 'caveat_test' && testSteps !== null && scenarioSteps(args.scenarios) > testSteps) {
-      return toolResult(bridgeError('limit', `the hosted server runs at most ${testSteps} scenario steps per caveat_test call, counting repeated sends; run npx caveat-lang mcp locally for larger scenario files`), true);
+      return toolResult(bridgeError('limit', `the hosted server runs at most ${testSteps} scenario steps per caveat_test call, counting repeated sends; split the scenarios across calls, replay long histories with caveat_explain, or run npx caveat-lang mcp locally`), true);
     }
     try {
       const value = await run(name, args);
