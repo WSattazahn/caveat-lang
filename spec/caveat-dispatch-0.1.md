@@ -116,6 +116,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
+| `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a `qualify … after` delay under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
@@ -298,6 +299,18 @@ from an outcome schema match; the save contract governs restoration.
   because the series may have room; a full series is still
   `limit/history_limit`. The check comes before a `permitted by` clause's, so
   it is never reported as `not_permitted`.
+- `evaluation/already_committed` (from 1.1.0) classifies a second `commit`
+  of a plain commitment, one made without a `decisions` declaration, whether
+  the first is still in force or was reopened. Before it, such an event was
+  fatal `unclassified` ("commitment NAME already exists"): a host lost the
+  session, although the runtime had already rolled the event back. Finding
+  D008 reached it by reopening a plain commitment and committing it again
+  ([repro](../experiments/agent-decisions/retest-rc19/recommit-fatal.txt)).
+  The rollback and the diagnostic text are unchanged. It has its own code,
+  not `decision_in_force`, because reopening does not make room: a plain
+  commitment has no second revision, and the fix is to declare a series. Its
+  origin is `evaluation`, as for `decision_in_force`, and the check comes
+  before a `permitted by` clause's.
 - `evaluation/ungrounded_citation` classifies an event on which a `because`
   citation, on a binding or on a `set`, cites evidence or a caveat that what
   it explains never read. Explanations 0.1 already rejected such an event

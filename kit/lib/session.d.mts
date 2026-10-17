@@ -35,7 +35,8 @@ export type KnownRejectionCode =
   | 'expression'
   | 'requirement_failed'
   | 'scheduled_limit'
-  | 'not_committed';
+  | 'not_committed'
+  | 'already_committed';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */

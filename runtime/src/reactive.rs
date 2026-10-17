@@ -4941,7 +4941,17 @@ impl ReactiveSession {
                     .get(action)
                     .and_then(|series| series.current.clone());
                 if self.symbols.contains_key(action) {
-                    return Err(format!("commitment {action} already exists").into());
+                    let message = format!("commitment {action} already exists");
+                    // A plain commitment is made once, reopened or not. See
+                    // spec/caveat-dispatch-0.1.md, `already_committed`.
+                    if self.commitment_bases.contains_key(action) {
+                        return Err(DispatchFailure::rejected(
+                            RejectionOrigin::Evaluation,
+                            RejectionCode::AlreadyCommitted,
+                            message,
+                        ));
+                    }
+                    return Err(message.into());
                 }
                 let mut provenance = guard.clone();
                 let mut ordinal = None;
