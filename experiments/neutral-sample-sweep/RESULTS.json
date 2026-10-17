@@ -1,0 +1,157 @@
+{
+  "note": "Neutral Sample 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-neutral-sample-0.1.md, \"Corpus sweep\".",
+  "revision": "12d1b353437b2330d9a240ffa3021bc20e0485eb",
+  "programs": 191,
+  "sample_effects": 202,
+  "programs_with_sample": 63,
+  "neutral_samples": [],
+  "claims_samples_point_at": 69,
+  "claims_only_samples_point_at": [
+    {
+      "path": "examples/squeeze_affordance.cav",
+      "claim": "passage_reported"
+    },
+    {
+      "path": "examples/squeeze_affordance.cav",
+      "claim": "probe_reported"
+    },
+    {
+      "path": "examples/thermostat_history.cav",
+      "claim": "warm_enough"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/evaluator/gold-tracker.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/first.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/tracker.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/first.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/tracker.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/first.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/tracker.cav",
+      "claim": "ready"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/final/task.cav",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/first/task.cav",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/ledger-item4.cav",
+      "claim": "checks_pass"
+    },
+    {
+      "path": "experiments/agent-ledger/ledger-identifiers.cav",
+      "claim": "$p_ready"
+    },
+    {
+      "path": "experiments/departure-gate/guarded-skip.cav",
+      "claim": "seen"
+    },
+    {
+      "path": "experiments/departure-gate/kit-explain-window.cav",
+      "claim": "seen"
+    },
+    {
+      "path": "experiments/departure-gate/kit-types-window.cav",
+      "claim": "seen"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "claim": "candidate_ready"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "claim": "may_release"
+    },
+    {
+      "path": "game/before_the_rain.cav",
+      "claim": "may_rule"
+    },
+    {
+      "path": "game/light_the_way.cav",
+      "claim": "current_eastward"
+    },
+    {
+      "path": "kit/examples/agent-evidence/assessment.cav",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "kit/examples/agent-evidence/grounded_assessment.cav",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "kit/examples/agent-evidence/qualification.cav",
+      "claim": "memory_fresh"
+    },
+    {
+      "path": "kit/test/fixtures/adversarial/marker-journal.cav",
+      "claim": "seen"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "claim": "cover_approved"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "claim": "frost_risk"
+    },
+    {
+      "path": "kit/test/fixtures/starter/assessment.cav",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "kit/type-tests/gauge.cav",
+      "claim": "frost_risk"
+    },
+    {
+      "path": "runtime/tests/fixtures/rc2-thermostat.cav",
+      "claim": "warm_enough"
+    }
+  ],
+  "reopening_filters": [
+    {
+      "path": "kit/examples/agent-evidence/assessment.cav",
+      "stream": "observations",
+      "relation": "opposing",
+      "claim": "answer_supported"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "stream": "soil",
+      "relation": "opposing",
+      "claim": "frost_risk"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "stream": "aerial",
+      "relation": "opposing",
+      "claim": "frost_risk"
+    },
+    {
+      "path": "kit/test/fixtures/starter/assessment.cav",
+      "stream": "observations",
+      "relation": "opposing",
+      "claim": "answer_supported"
+    }
+  ]
+}
