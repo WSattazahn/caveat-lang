@@ -152,9 +152,8 @@ rejection, and the session must be discarded
 ([dispatch](reference/spec/caveat-dispatch-0.1.md)). From code,
 `session.dispatch(event, payload)` returns an accepted event's snapshot, and
 `session.dispatchView(event, payload)` the same outcome with the view in
-place of the snapshot, which it does not build. In a scenario, a bare
-`"rejected": true` matches any `policy` refusal. Name the code to tell the
-program's own `reject` from `not_permitted`.
+place of the snapshot, which it does not build: use it when the host reads only the view. `session.save({ compact: true })` writes a small [replay save](reference/spec/caveat-replay-save-0.1.md). In a scenario, a bare
+`"rejected": true` matches any `policy` refusal; name the code to tell the program's own `reject` from `not_permitted`.
 
 ## Common mistakes
 

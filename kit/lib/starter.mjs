@@ -5,7 +5,7 @@
 // send. External actions stay with the application.
 //
 // Persistence goes through a store. Every accepted event is checkpointed: the
-// save, the source digest and any archive items not yet appended. An archive
+// compact save, the source digest and any archive items not yet appended. An archive
 // chunk is appended only after a checkpoint that holds it is durable, so the
 // archive never runs ahead of the checkpoint, and a chunk is retried, never
 // dropped, until an append succeeds. A store is only as durable as its own
@@ -30,6 +30,17 @@ export class StarterError extends Error {
 }
 
 const chunkDigest = entries => archiveSha256(JSON.stringify(entries));
+
+// The session's compact save (spec/caveat-replay-save-0.1.md), or its state
+// save on a runtime build that predates compact saves.
+function compactSave(session) {
+  try {
+    return session.save({ compact: true });
+  } catch (error) {
+    if (error instanceof CaveatError && error.kind === 'load') return session.save();
+    throw error;
+  }
+}
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function validChunk(chunk) {
@@ -155,7 +166,7 @@ class Host {
         source_sha256: this.#digest,
         runtime: this.#runtime.identity,
         sequence,
-        save: this.#session.save(),
+        save: compactSave(this.#session),
         next_chunk: this.#nextChunk,
         pending: this.#pending,
       };
