@@ -28,6 +28,45 @@ A practice for working with caveats, drawn from the Caveatist Archive. Culture, 
 
 6. **Keep objecting and halting separate.** [PROPOSED] Raise objections freely; halt work only with explicit authority. In a multi-agent setting, name who may do which.
 
+## Output format
+
+[PROPOSED] When you use this skill for a decision, review or report, end with a record in this shape. Write "none" for an empty line rather than dropping it.
+
+```
+Decision:    what is decided, or "not decided" and why
+Grounds:     each piece of evidence the decision rests on, with its marker
+Retaining:   each unresolved caveat, with what changes if it is true
+Not pursued: caveats set aside, with the reason
+Withdrawn:   anything withdrawn, its reason, and what rested on it
+Reopen if:   the observation that would reopen this decision
+```
+
+## Worked example
+
+[ANALOGY] An illustration, not a record of a real deployment.
+
+Task: "Should we run the orders migration tonight?" The staging run passed. A reviewer worried the backfill could lock the orders table. The load test from last week used half of today's traffic.
+
+```
+Decision:    Run tonight after 22:00, backfilling in batches of 1,000 rows.
+Grounds:     [OBSERVED] Staging migration completed without errors (CI log).
+             [TESTED] 1,000-row batches held locks under 200 ms on a production copy.
+Retaining:   [UNRESOLVED] Load test used half of today's traffic. If true load
+             doubles lock time, checkout slows during the backfill; hence after 22:00.
+Not pursued: Full rehearsal on a production clone: costs a day, and the batch
+             test covers the lock risk.
+Withdrawn:   none
+Reopen if:   a batch holds a lock over 500 ms, or checkout errors rise above baseline.
+```
+
+Two hours later, the batch test turns out to have run on a table without its index. Do not edit the record above. Add:
+
+```
+Withdrawn:   [REJECTED] "1,000-row batches held locks under 200 ms": the test
+             table had no index. Rested on it: the decision to run tonight.
+Decision:    reopened; the original record and its grounds stay as written.
+```
+
 ## With the caveat-lang runtime
 
 If `caveat-lang` is installed, do steps 2–5 in a program rather than prose: declare the claims, reveal evidence for and against them, attach caveats to the evidence that carries them, `commit … retaining …` to decide, `withdraw … because …` to correct, and let `reopen` follow. Then:
