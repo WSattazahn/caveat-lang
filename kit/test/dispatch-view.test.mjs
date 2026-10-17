@@ -101,6 +101,7 @@ const REFUSALS = [
   ['input', 'bound_exceeded', thermostat, [['read', { value: 17 }]], ['read', { value: 41 }]],
   ['evaluation', 'bound_exceeded', 'state output = 0 min 0 max 1; event set_value value min 0 max 2; on set_value set output = value; bind hud.value = output;', [['set_value', { value: 0.5 }]], ['set_value', { value: 2 }]],
   ['evaluation', 'decision_in_force', DECISIONS, [['read', { value: 1 }], ['decide']], ['decide']],
+  ['evaluation', 'already_committed', 'claim ok; evidence a from "a"; event decide; on decide reveal a supports ok; on decide commit close because enough;', [['decide']], ['decide']],
   ['evaluation', 'ungrounded_citation', LATE_FADE, [['chart'], ['eat'], tick, ['regrow'], ['eat'], tick], tick],
   ['limit', 'work_limit', `state output = 0; event run; proc many() { ${'set output = output + 1;'.repeat(2048)} }; on run call many(); on run call many();`, [], ['run']],
   ['limit', 'history_limit', 'claim safe; evidence gauge from "a gauge"; readings depth from gauge limit 1; event read value min 0 max 9; on read sample depth = value supports safe;', [['read', { value: 1 }]], ['read', { value: 2 }]],

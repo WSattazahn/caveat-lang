@@ -20,8 +20,11 @@ for (const [name, first] of names) {
     try {
       assert.equal(session.dispatch(first).outcome, 'accepted');
       assert.equal(session.dispatch('decide').outcome, 'accepted');
-      assert.throws(() => session.dispatch('decide'), error => error.kind === 'fatal'
-        && /commitment trust already exists/.test(error.message));
+      // Fatal before 1.1; refused since (finding D008, spec/caveat-dispatch-0.1.md).
+      const refused = session.dispatch('decide');
+      assert.equal(refused.outcome, 'rejected');
+      assert.equal(refused.code, 'already_committed');
+      assert.match(refused.message, /commitment trust already exists/);
     } finally { session.close(); }
   });
 
