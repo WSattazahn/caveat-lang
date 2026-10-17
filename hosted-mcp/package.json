@@ -1,0 +1,18 @@
+{
+  "name": "caveat-hosted-mcp",
+  "private": true,
+  "type": "module",
+  "description": "The caveat-lang MCP tools over Streamable HTTP, as a Cloudflare Worker.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "measure": "node scripts/measure.mjs",
+    "check": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "caveat-lang": "1.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.1"
+  }
+}
