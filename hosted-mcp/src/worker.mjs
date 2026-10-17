@@ -20,6 +20,9 @@ export default {
       // About 6 ms of CPU for the starter's 12 steps once warm; the free plan
       // allows 10 ms a request (README.md).
       testSteps: 16,
+      // Set with `npx wrangler secret put OPENAI_APPS_CHALLENGE` when OpenAI's
+      // portal asks to verify the domain.
+      challenge: typeof env?.OPENAI_APPS_CHALLENGE === 'string' && env.OPENAI_APPS_CHALLENGE.trim() ? env.OPENAI_APPS_CHALLENGE.trim() : null,
       // Feature-detected: without the binding the server runs unlimited.
       limiter: typeof env?.LIMITER?.limit === 'function' ? env.LIMITER : null,
     });

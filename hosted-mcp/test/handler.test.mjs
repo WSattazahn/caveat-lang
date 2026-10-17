@@ -136,8 +136,22 @@ test('a step budget bounds caveat_test only', async () => {
   assert.equal(over.result.isError, true);
   assert.equal(over.result.structuredContent.error.kind, 'limit');
   assert.match(over.result.structuredContent.error.message, /at most 12 scenario steps/);
+  const { result } = await (await post(fetch, { jsonrpc: '2.0', id: 4, method: 'tools/list' })).json();
+  for (const [index, item] of result.tools.entries()) {
+    if (item.name === 'caveat_test') assert.equal(item.description, `${MCP_TOOLS[index].description} This hosted server runs at most 12 scenario steps per call, counting repeated sends; split larger scenario files across calls.`);
+    else assert.deepEqual(item, MCP_TOOLS[index]);
+  }
   const explain = await (await post(fetch, call(3, 'caveat_explain', { source: SOURCE, events: Array.from({ length: 40 }, () => ({ event: 'leave' })) }))).json();
   assert.equal(explain.result.isError, false);
+});
+
+test('the OpenAI domain challenge is served only when set', async () => {
+  const url = 'https://caveat.example/.well-known/openai-apps-challenge';
+  assert.equal((await handler()(new Request(url))).status, 404);
+  const response = await handler({ challenge: 'token-123' })(new Request(url));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'text/plain; charset=utf-8');
+  assert.equal(await response.text(), 'token-123');
 });
 
 test('HTTP edges: methods, paths, headers, size and rate limit', async () => {

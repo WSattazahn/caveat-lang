@@ -27,7 +27,13 @@ stdio; `test/handler.test.mjs` checks that side by side, and
   limiting binding, best effort). `caveat_test` runs at most 16 scenario steps
   per call, counting repeated sends (`testSteps` in `src/worker.mjs`), to stay
   within the free plan's CPU; a larger call gets a `limit` error suggesting
-  smaller calls, `caveat_explain` for long histories, or the local server. Cloudflare stops a call that runs out of CPU.
+  smaller calls, `caveat_explain` for long histories, or the local server, and
+  the hosted `caveat_test` description states the cap. Cloudflare stops a call
+  that runs out of CPU.
+- OpenAI's portal verifies the domain by fetching
+  `/.well-known/openai-apps-challenge`. The Worker serves the token from the
+  `OPENAI_APPS_CHALLENGE` secret (`npx wrangler secret put OPENAI_APPS_CHALLENGE`)
+  and answers 404 while it is unset.
 - Nothing is stored or logged; see `web/plugin-privacy.html` and
   `web/plugin-terms.html`.
 
