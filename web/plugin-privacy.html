@@ -8,8 +8,10 @@
 </head>
 <body>
 <h1>Caveat plugin: privacy</h1>
-<p>The <code>caveat</code> plugin is a text skill. It contains instructions an agent reads and nothing else: no code that runs, no server, no network calls, no storage. It collects, stores and transmits no data. What you type stays with the agent and host you are using, under their policies, not ours.</p>
-<p>If you also install the <code>caveat-lang</code> runtime, it runs locally on your machine; it makes no network connections and records only what your own program tells it to record.</p>
-<p>Questions: <a href="https://github.com/WSattazahn/caveat-lang/issues">github.com/WSattazahn/caveat-lang/issues</a>.</p>
+<p>The <code>caveat</code> skill is text: instructions an agent reads, with no code that runs, no network calls and no storage. What you type stays with the agent and host you are using, under their policies, not ours.</p>
+<p>The hosted Caveat MCP server, <code>caveat-mcp.waltersattazahn.workers.dev</code>, receives the program text, events and scenarios an agent sends with each tool call, runs the tool and returns the report. It keeps nothing between requests: no accounts, no database, no record of what was sent. The server writes no logs of request contents.</p>
+<p>The server runs on Cloudflare Workers. Cloudflare handles each connection, including your IP address, under the <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</a>. The server's rate limit counts requests per IP address for a minute at a time; those counts are not stored with anything else.</p>
+<p>If you install the <code>caveat-lang</code> runtime instead, it runs locally on your machine, makes no network connections and records only what your own program tells it to record.</p>
+<p>The <a href="plugin-terms.html">terms of service</a> cover use of the server. Questions: <a href="https://github.com/WSattazahn/caveat-lang/issues">github.com/WSattazahn/caveat-lang/issues</a>.</p>
 </body>
 </html>

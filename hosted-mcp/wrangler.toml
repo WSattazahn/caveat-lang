@@ -1,0 +1,27 @@
+# Hosted Caveat MCP server: https://caveat-mcp.waltersattazahn.workers.dev/mcp
+name = "caveat-mcp"
+main = "src/worker.mjs"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+# The package's lib/node.mjs reads the runtime from disk; the Worker bundles it.
+[alias]
+"./node.mjs" = "./src/bundled-node.mjs"
+
+# lib/mcp.mjs resolves a sibling file at load; a bundle has no file URL.
+[define]
+"import.meta.url" = '"file:///bundle/caveat-lang/lib/mcp.mjs"'
+
+# Per address, per Cloudflare location; eventually consistent.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "4021"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+# The server writes no logs of request contents (web/plugin-privacy.html).
+[observability]
+enabled = false

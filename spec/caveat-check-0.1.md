@@ -14,8 +14,11 @@ session is in the state it is in. A clean check proves none of those.
 ## Running it
 
 ```sh
-npx --no-install caveat check [--json] [--strict] PROGRAM
+npx --no-install caveat check [--json] [--strict] [--unused] PROGRAM
 ```
+
+`--unused` adds C007 `unused-declaration`, which is reported only when asked
+for. Every other check always runs.
 
 | Exit status | When |
 | --- | --- |
@@ -356,6 +359,49 @@ two of four authors wrote this shape at CR16. Each first run was refused as
 refused, and neither of the versions that passed. No other program in the
 repository reports it.
 
+### C007 `unused-declaration`
+
+Reported only with `--unused`, or `runtime.check(source, { unused: true })`
+from a script. Without it, a program that checked clean under 1.0 still
+checks clean, and `caveat test` prints what it did
+([compatibility](../docs/COMPATIBILITY.md)).
+
+It reports a `claim`, `evidence`, `caveat` or `state` that no statement names
+except its own declaration. Such a name is often left over from an earlier
+version of the program, and a reader can take it for part of the policy.
+
+```caveat
+claim a;
+claim b;
+evidence e from "x";
+event go;
+on go reveal e supports a;
+```
+
+`b` is reported. A name counts as named wherever it is written outside quoted
+text and comments: in a rule, a procedure, a binding, a `define`, a function,
+another declaration such as `stale qualifies e` or `readings r from e`, or a
+state's initial value. Statements in `for` blocks are read once expanded, so
+a declaration in a block gets one warning per member, at the template, as for
+C006. Text in quotes, such as a `reject` message or an evidence source, does
+not count.
+
+The comparison is by name, so it can miss a leftover, but it never reports a
+name that is written somewhere else. A state read only by a `define` that
+nothing reads, or evidence named only by a procedure that nothing calls,
+counts as named. A name used for two things, such as a claim and an event
+parameter, counts as named.
+
+The warning is at the declaration. The suggestion is to remove the
+declaration if it is left over. A state that no rule sets keeps its initial
+value; a host that reads it from the view on purpose, or a declaration kept
+for a later version, is allowed with
+`# caveat check: allow unused-declaration` on the line above.
+
+Of the 161 tracked `.cav` files that load, it reports 3 declarations, in 3
+files, each a name nothing reads: an unused claim in two agent-adoption
+submissions, and an unused caveat in an adversarial test fixture.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -405,11 +451,17 @@ load gives `{"schema": "caveat-check/0.1", "program": …, "loads": false,
 "error": …}`. Messages and suggestions are text for people and may change;
 codes, names, locations and the fields above are stable. From a script,
 `runtime.check(source)` in `caveat-lang/session` returns the same report
-without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
+without `program`, `loads` and `strict`, and
+`runtime.check(source, { unused: true })` the report with C007. It throws a `CaveatError` of kind
 `load` for a program that does not load.
 
 ## Changes
 
+- 2026-10-17 (1.1): C007 `unused-declaration`, reported only with `--unused`
+  or `{ unused: true }` (issue #219). An agent's program kept a claim after a
+  rewrite that nothing revealed, sampled or cited, and `check` printed "no
+  warnings". Since C007 is asked for, every program checks, tests and exits
+  exactly as it did under 1.0.
 - 2026-10-05 (rc.15): C006 `citation-unreachable`, advisory. Round 7's C2 and
   C3 authors each wrote, at CR16, a journal binding that cites a state its
   text never reads, and each first run was refused at dispatch as

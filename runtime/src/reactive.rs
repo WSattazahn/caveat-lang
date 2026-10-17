@@ -93,7 +93,9 @@ mod identifiers;
 
 #[path = "reactive_check.rs"]
 mod check;
-pub use check::{check_source, CheckReport, Diagnostic, Related, CHECK_SCHEMA};
+pub use check::{
+    check_source, check_source_with, CheckOptions, CheckReport, Diagnostic, Related, CHECK_SCHEMA,
+};
 
 #[path = "reactive_interface.rs"]
 mod interface;

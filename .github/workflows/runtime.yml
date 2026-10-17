@@ -96,7 +96,7 @@ jobs:
         run: |
           cmp caveatism/skills/caveatist/SKILL.md skills/caveatist/SKILL.md
           cmp caveatism/skills/caveatist/SKILL.md plugins/caveat/skills/caveatist/SKILL.md
-          node -e 'for (const f of ["plugins/caveat/.claude-plugin/plugin.json", "plugins/caveat/.codex-plugin/plugin.json", ".claude-plugin/marketplace.json", "server.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
+          node -e 'for (const f of ["plugins/caveat/.claude-plugin/plugin.json", "plugins/caveat/.codex-plugin/plugin.json", "plugins/caveat/.codex-plugin/mcp.json", ".claude-plugin/marketplace.json", "server.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
           node -e 'const c = JSON.parse(require("fs").readFileSync("plugins/caveat/.codex-plugin/plugin.json", "utf8")).interface.capabilities; if (!Array.isArray(c) || !c.every(x => typeof x === "string")) throw new Error("plugins/caveat/.codex-plugin/plugin.json: interface.capabilities must be a list of strings")'
       - name: TypeScript formatter compatibility
         run: >-
@@ -137,6 +137,25 @@ jobs:
 
   # The native runtime checks need no browser build, and nothing downstream
   # waits on them, so they run beside core instead of ahead of it.
+  hosted-mcp:
+    name: hosted MCP server
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci --prefix hosted-mcp
+      - name: HTTP answers match the published stdio server, in Node and in local workerd
+        run: npm test --prefix hosted-mcp
+      - name: Worker bundles within the free plan's 3 MB compressed limit
+        working-directory: hosted-mcp
+        run: |
+          npx wrangler deploy --dry-run --outdir .wrangler/dry-run | tee dry-run.txt
+          node -e 'const m = /gzip: ([0-9.]+) KiB/.exec(require("fs").readFileSync("dry-run.txt", "utf8")); if (!m || Number(m[1]) > 3072) throw new Error("bundle over 3 MB compressed: " + (m && m[1]))'
+      - name: Codex plugin connects the server this Worker deploys
+        run: node -e 'const fs = require("fs"); const name = /^name = "(.+)"/m.exec(fs.readFileSync("hosted-mcp/wrangler.toml", "utf8"))[1]; const url = JSON.parse(fs.readFileSync("plugins/caveat/.codex-plugin/mcp.json", "utf8")).mcpServers["caveat-lang"].url; if (url !== `https://${name}.waltersattazahn.workers.dev/mcp`) throw new Error(url)'
+
   native:
     name: native runtime
     runs-on: ubuntu-24.04

@@ -1,6 +1,6 @@
 {
   "name": "caveat",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "The Caveatist practice for agents: keep claims with their grounds and caveats, decide with the caveat attached, withdraw rather than erase. Optional culture around the Caveat language; it changes how you work, not what any runtime does.",
   "author": {
     "name": "Walt Sattazahn",
@@ -9,18 +9,20 @@
   "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/caveatism",
   "repository": "https://github.com/WSattazahn/caveat-lang",
   "license": "CC-BY-SA-4.0",
-  "keywords": ["caveat", "caveatism", "evidence", "grounds", "decisions", "agents", "skill"],
+  "keywords": ["caveat", "caveatism", "evidence", "grounds", "decisions", "agents", "skill", "mcp"],
   "skills": "./skills/",
+  "mcpServers": "./.codex-plugin/mcp.json",
   "interface": {
     "displayName": "Caveat",
     "shortDescription": "Decide with caveats attached",
-    "longDescription": "A practice for working with caveats, drawn from the Caveatist Archive. Mark what kind of statement you are adding (observed, tested, proposed, analogy, mythological, rejected, unresolved); state grounds separately from everything that influenced you; ask what changes if a caveat is true; decide with the unresolved caveats written into the decision; withdraw rather than erase. Each decision or review ends with a fixed record: the decision, its grounds, the caveats it retains, those not pursued, any withdrawals and what would reopen it; the skill includes a worked example. It works in prose. When the caveat-lang runtime is installed, it records the decision in a Caveat program instead, where explain prints what each decision rests on and dependents answers what changes if evidence is wrong. Culture, not contract: it changes how you work, not what any runtime does, and it is corrigible. Mr. Caveat, the mechanical fortune teller on the icon, is not an authority.",
+    "longDescription": "A practice for working with caveats, drawn from the Caveatist Archive. Mark what kind of statement you are adding (observed, tested, proposed, analogy, mythological, rejected, unresolved); state grounds separately from everything that influenced you; ask what changes if a caveat is true; decide with the unresolved caveats written into the decision; withdraw rather than erase. Each decision or review ends with a fixed record: the decision, its grounds, the caveats it retains, those not pursued, any withdrawals and what would reopen it; the skill includes a worked example. It works in prose. The plugin also connects the hosted Caveat MCP server, whose five read-only tools validate, check, test, explain and trace Caveat programs sent inline; it keeps nothing between requests. When the caveat-lang runtime is installed, it records the decision in a Caveat program instead, where explain prints what each decision rests on and dependents answers what changes if evidence is wrong. Culture, not contract: it changes how you work, not what any runtime does, and it is corrigible. Mr. Caveat, the mechanical fortune teller on the icon, is not an authority.",
     "developerName": "Walt Sattazahn",
     "category": "Productivity",
     "capabilities": [],
     "websiteURL": "https://wsattazahn.github.io/caveat-lang/mr-caveat.html",
     "supportURL": "https://github.com/WSattazahn/caveat-lang/issues",
     "privacyPolicyURL": "https://wsattazahn.github.io/caveat-lang/plugin-privacy.html",
+    "termsOfServiceURL": "https://wsattazahn.github.io/caveat-lang/plugin-terms.html",
     "defaultPrompt": [
       "Review this plan the Caveatist way: grounds, markers, what changes if each caveat is true.",
       "Decide this with the unresolved caveats written into the decision.",
