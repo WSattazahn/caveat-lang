@@ -1,7 +1,7 @@
 # Working with Caveat
 
 Caveat is a decision ledger for agents: an embeddable decision runtime with a
-small rules language, still a release candidate. Its values carry evidence and
+small rules language, stable since 1.0.0. Its values carry evidence and
 caveats, and its decisions retain their reasons. Agents can use the same
 source, runtime and tests as human authors. [What is checked, and how](docs/VERIFICATION.md)
 says what the proofs and tests cover and where they stop.
@@ -20,9 +20,9 @@ says what the proofs and tests cover and where they stop.
   and `caveat test` against the program, and use `explain` or `dependents` to
   inspect what its decisions rest on.
 
-Identify the package version before following commands. The published rc.20 candidate provides `caveat-lang`
+Identify the package version before following commands. The published 1.0.0 release provides `caveat-lang`
 (with `caveat` supported shorthand), `doctor` and `demo agent`.
-The [verified publication record](docs/releases/v0.1.0-rc.20.md) identifies its exact
+The [verified publication record](docs/releases/v1.0.0.md) identifies its exact
 tested artifact. Do not infer publication from a checkout's version.
 In a checkout with doctor support, after building, `node kit/bin/caveat.mjs doctor --json`
 checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the

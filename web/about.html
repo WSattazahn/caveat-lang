@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>CAVEAT Language — A decision ledger for agents.</title>
-  <meta name="description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
+  <meta name="description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm 1.0.0). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="CAVEAT Language — A decision ledger for agents.">
-  <meta property="og:description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.20). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
+  <meta property="og:description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm 1.0.0). Withdraw a piece of evidence and the decisions that rested on it reopen, while each keeps the grounds it was made on.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -40,10 +40,10 @@
   decision runtime with a small rules language. When a piece of evidence turns
   out to be wrong, withdraw it: the decisions that rested on it reopen, and
   each one keeps the grounds it was originally made on.</p>
-  <p class="status"><strong>Available now: CAVEAT 0.1.0-rc.20.</strong>
+  <p class="status"><strong>Available now: CAVEAT 1.0.0, the first stable release.</strong>
   Run CAVEAT in Node.js or the browser.
   <a href="#run">Get started</a> ·
-  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.20.md">Release notes</a>.</p>
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.0.0.md">Release notes</a>.</p>
 </header>
 
 <main>
@@ -107,7 +107,7 @@ issues and include the exact version, a small reproduction, and expected versus
 actual behavior.</p>
 
 <h2 id="example">One example: covering seedlings</h2>
-<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.20/kit/docs/WORKED_EXAMPLE.md">worked
+<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v1.0.0/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> is one program of about 60 lines. Two instruments read the soil
 temperature: a probe, and a survey drone whose readings carry the caveat
 <code>uncalibrated</code>. When the probe reads 2&nbsp;°C or colder and the
@@ -141,8 +141,8 @@ change nothing.</p>
 <h2 id="run">Run it</h2>
 <p>You need Node 20 or later. In an empty directory:</p>
 <pre><code>npm init -y
-npm install caveat-lang@0.1.0-rc.20</code></pre>
-<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.20/kit/docs/WORKED_EXAMPLE.md">worked
+npm install caveat-lang@1.0.0</code></pre>
+<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v1.0.0/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> as <code>frost.cav</code>, <code>frost.scenarios.json</code> and
 <code>events.jsonl</code>. Then:</p>
 <pre><code>npx --no-install caveat test frost.scenarios.json
@@ -153,10 +153,12 @@ follow the worked example the same way.</p>
 
 <h2 id="limitations">Limitations</h2>
 <ul>
-  <li>0.1.0-rc.20 is a release candidate, not a stable release. After the owner's
-  channel update on 2026-10-15, npm's <code>latest</code> and
-  <code>next</code> were both verified at rc.20;
-  <code>latest</code> does not mean stable. The bundled guides identify their exact package
+  <li>1.0.0 is stable under the
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/COMPATIBILITY.md">compatibility
+  promise</a>, which says what every 1.x release keeps and what is not covered,
+  such as the games, message wording and timing. After the owner's channel
+  update on 2026-10-17, npm's <code>latest</code> and <code>next</code> were
+  both verified at 1.0.0. The bundled guides identify their exact package
   version; this page and the dated release record track publication.</li>
   <li>Caveat records what a decision rests on. It does not authenticate
   evidence, inspect a model's internal reasoning, or authorize actions outside
@@ -194,38 +196,40 @@ WebAssembly conformance with mutation controls, runtime tests and the
 boundaries nothing proves.</p>
 
 <h2 id="releases">Recent releases</h2>
-<p>rc.20 clarifies when to use each MCP tool, its inputs and its results. It
-also fixes human-readable explanations of caveats carried by a decision's
-grounds, retained in its frozen basis, or present only in its wider lineage.
-It changes no Rust runtime, language or save format. rc.19 began the 1.0
+<p>1.0.0 makes the compatibility commitment the promise for every 1.x
+release: 1.x minors only add, and only 2.0 removes or changes what is stable.
+It adds no language, schema, operation, field, CLI flag, export or MCP tool
+over rc.20, and its Rust runtime is unchanged. rc.20 clarified when to use
+each MCP tool, its inputs and its results, and fixed human-readable
+explanations of caveats. rc.19 began the 1.0
 feature freeze: it added no language, schema, operation, field, CLI flag or
 export. rc.18 added <code>unqualify</code>, which takes back a caveat that
 <code>qualify</code> added; the take-back is recorded, not erased, and
 decisions keep their basis. Earlier changes are in each
 <a href="https://github.com/WSattazahn/caveat-lang/tree/main/docs/releases">release
 record</a>, and the
-<a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.20/kit/docs/HISTORY.md">history
+<a href="https://github.com/WSattazahn/caveat-lang/blob/v1.0.0/kit/docs/HISTORY.md">history
 integration guide</a> covers windows, departure and archives.</p>
 <p>Existing Lean proofs cover their documented model, not the entire Rust
 runtime. No npm runtime dependency is added. The
-<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.20.md">rc.20
+<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.0.0.md">1.0.0
 verified release record</a> identifies the exact tested Linux tarball. Publication
 used the repository's workflow with npm provenance; registry bytes, provenance,
 signatures and a fresh exact-version installation were verified.</p>
 
 <h2 id="links">Links</h2>
 <ul>
-  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.20">caveat-lang on npm</a>,
-  version 0.1.0-rc.20.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.20-npm-publication.json">Verified
+  <li><a href="https://www.npmjs.com/package/caveat-lang/v/1.0.0">caveat-lang on npm</a>,
+  version 1.0.0.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.0.0-npm-publication.json">Verified
   publication record</a>: exact package identity, checksums and provenance.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.20/kit/docs/REFERENCE.md">Caveat
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v1.0.0/kit/docs/REFERENCE.md">Caveat
   on one page</a>: the language in brief. Its links to the specifications work
   in the installed package, under <code>node_modules/caveat-lang/docs/</code>;
   on GitHub, use the specifications link below.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.20.md">Release
-  notes for 0.1.0-rc.20</a>.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.20/spec">The
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.0.0.md">Release
+  notes for 1.0.0</a>.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v1.0.0/spec">The
   specifications</a>, including drafts, earlier versions and profiles used only
   by the games.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang">Source code and
@@ -254,7 +258,7 @@ demonstrations, not part of the package.</p>
 </main>
 
 <footer>
-  <p>Published npm example: caveat-lang 0.1.0-rc.20. The verified publication record identifies its exact tested artifact.</p>
+  <p>Published npm release: caveat-lang 1.0.0. The verified publication record identifies its exact tested artifact.</p>
 </footer>
 </body>
 </html>

@@ -1,0 +1,234 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-17T17:16:14.980Z",
+  "name": "caveat-lang",
+  "version": "1.0.0",
+  "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+  "tag": "v1.0.0",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.0.0.tgz",
+    "bytes": 1215669,
+    "sha256": "56860ea8a712c7eed052811d910fff239c1e5da06f4581d7b428aeb281dccddf",
+    "sha512": "169d0a2481403f319c68ce483cf42db5aeec0de4479241aa5a29432dc416d58f41cb3a437cad94bcfdf250c500636d85bdb32a5358cc0d8cd295337d06e9a653",
+    "integrity": "sha512-Fp0KJIFAPzGcaM5IPPQtta7sDeRHkkGqWilDLcQW1Y9ByzpDfK2UvP3yUMUAY22FvbMqU1jMDYzSlTN9BummUw=="
+  },
+  "channelsAtVerification": {
+    "latest": "1.0.0",
+    "next": "0.1.0-rc.20"
+  },
+  "publication": {
+    "method": "workflow",
+    "workflow": ".github/workflows/publish-npm.yml",
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/39051918431",
+    "runAttempt": 2,
+    "command": "npm publish candidate/2026-10-17T16-40-28-771Z/caveat-lang-1.0.0.tgz --provenance --access public --tag latest --registry https://registry.npmjs.org",
+    "authentication": "npm trusted publishing (OIDC), environment npm-publish",
+    "approval": "npm-publish environment approved by WSattazahn using the GitHub deployment review API (deployment 7142876676); approval comment: Owner approves publishing caveat-lang 1.0.0 to npm latest",
+    "registryPublishedAt": "2026-10-17T17:04:52.348Z",
+    "provenance": true,
+    "attestation": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/caveat-lang@1.0.0",
+      "predicateType": "https://slsa.dev/provenance/v1"
+    },
+    "provenanceStatement": {
+      "workflow": {
+        "ref": "refs/tags/v1.0.0",
+        "repository": "https://github.com/WSattazahn/caveat-lang",
+        "path": ".github/workflows/publish-npm.yml"
+      },
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "builder": "https://github.com/actions/runner/github-hosted"
+    },
+    "testedArtifact": {
+      "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39047844333",
+      "artifact": "kit-package-candidate",
+      "artifactId": 12107147540,
+      "sha256": "56860ea8a712c7eed052811d910fff239c1e5da06f4581d7b428aeb281dccddf",
+      "bytes": 1215669,
+      "workflowChecksumCheck": true
+    },
+    "note": "Candidate validation and publication passed on attempt 1 (jobs 117452067302 and 117452109887). The first verification job (117452572639) failed because npm audit signatures got HTTP 404 from the attestations endpoint shortly after publication; the endpoint then returned 200, and re-running only that job passed on attempt 2 (job 117455202276). Attempt 2 carries the attempt 1 candidate and publish results forward. The workflow updated latest; next still named rc.20 at verification. The owner subsequently moved next to 1.0.0, and the dated observation below confirms both channels. GitHub release creation and Pages deployment are separate closeout steps; they do not move the annotated release tag or replace the published package."
+  },
+  "verificationArtifact": {
+    "name": "npm-publication-verification",
+    "id": 12107519221,
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/39051918431",
+    "runAttempt": 2,
+    "digest": "sha256:d8dc47526dc20130ee4973e360c3a77dfeeba972b29d82470cd23781d3781f4d",
+    "file": "1.0.0/npm-publication-verification.json",
+    "fileSha256": "963d4e6356160dc841041f28576b700261b9627a04d6645c61cfc2810f767749",
+    "attestationsFile": "1.0.0/attestations.json",
+    "attestationsFileSha256": "c853f5cd40ce2556a113c60d4e7f9cc1ab59931a70a7472415d05a82d6e160bf",
+    "supersededArtifact": {
+      "id": 12108062693,
+      "runAttempt": 1,
+      "note": "From the failed first verification attempt; not a verification receipt."
+    }
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "provenanceAttested": true,
+    "signaturesVerified": true,
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenarios": true,
+    "umbrellaExplanation": true,
+    "successfulCommands": 10
+  },
+  "tools": {
+    "node": "v24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "npm": "11.19.0"
+  },
+  "commands": [
+    {
+      "id": "10",
+      "executable": "caveat-lang",
+      "args": [
+        "explain",
+        "umbrella.cav",
+        "events.jsonl"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d2b557200e490022cdcb9eb539daf73ec1deaac90e2f25f88d8c4592d7605e64",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "01",
+      "executable": "npm",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "005206ab803f8881d8227540b7980b37e723b69a8849edb31734a90b7e7964e2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "02",
+      "executable": "npm",
+      "args": [
+        "install",
+        "caveat-lang@1.0.0",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "ee5f249ee3b63851369b7e6e8930e02732b3c2144b357069f6fd58aeb830d7e7",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "03",
+      "executable": "npm",
+      "args": [
+        "audit",
+        "signatures",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d6c98d41303a1d4376e2bcaae38fbf34cdd05591f0902f99a4f485ac18f70c70",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "04",
+      "executable": "caveat",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "8ce193a65a3abcd04c6867aeea5fb09a91bda1d29e26d2b399526d74019daead",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "05",
+      "executable": "caveat-lang",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "8ce193a65a3abcd04c6867aeea5fb09a91bda1d29e26d2b399526d74019daead",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "06",
+      "executable": "caveat-lang",
+      "args": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "3a29cf79db979dd8bd6af3a40da6264b8eac5283e0feadf5242aa8f39b98a237",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "07",
+      "executable": "caveat-lang",
+      "args": [
+        "demo",
+        "agent",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "14895b4883838c15bfe7a8443ef58d0b3cd7699507df03b03d863074cd6a8676",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "08",
+      "executable": "caveat-lang",
+      "args": [
+        "init"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "7e7fbf91fa9eaacd811e2c9ebb9259f5788e88e00c413b723abf07d4967c0078",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "09",
+      "executable": "caveat-lang",
+      "args": [
+        "test",
+        "umbrella.scenarios.json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "e046464220ae4e5280a7a31c823652e57e44e173e79347485e7d547620f3fcff",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "independentVerification": {
+    "checkedAt": "2026-10-17T17:40:50.637Z",
+    "tools": {
+      "node": "v22.22.0",
+      "platform": "linux",
+      "architecture": "x64"
+    },
+    "registryPublishedAt": "2026-10-17T17:04:52.348Z",
+    "channels": {
+      "next": "1.0.0",
+      "latest": "1.0.0"
+    },
+    "registryTarballMatchesTestedBytes": true,
+    "registryTarballSha256": "56860ea8a712c7eed052811d910fff239c1e5da06f4581d7b428aeb281dccddf",
+    "freshInstallLockIntegrityMatches": true,
+    "installedBuildRevision": "e2a1350024352ca707e74491d9405507b166ca23",
+    "registryAttestationsMatchSavedJson": true
+  },
+  "method": "Fields copied from the successful publish-npm.yml npm-publication-verification artifact (attempt 2, artifact 12107519221), as printed by the owner after downloading it by artifact ID. The owner's sha256sum of the downloaded archive matches the digest GitHub reports, and fileSha256 and attestationsFileSha256 are the owner's hashes of the extracted files. The raw stdout/stderr receipt files were not re-hashed for this record; their hashes are copied as the artifact states them. Separately, from a cloud session on 2026-10-17: a fresh registry download (npm pack caveat-lang@1.0.0) matched the tested tarball's size and SHA-256; a fresh-cache install recorded the same integrity and build revision e2a1350; and the live attestation bundle, serialized as the verifier writes it, hashed to attestationsFileSha256. Temporary consumer paths in command arguments are normalized to <consumer>. channelsAtVerification preserves the original observation; independentVerification.channels is the later dated observation after next moved.",
+  "scope": "Verification of the exact CI-tested 1.0.0 package, the first stable release, published with npm provenance. It makes docs/COMPATIBILITY.md the promise for 1.x, marks stable tags as full GitHub releases, states what caveat_dependents accepts as a subject, and adds authoring guidance. The Rust runtime, package runtime dependencies and pinned toolchain are unchanged from rc.20. No language syntax, runtime operation, save format, MCP tool or tool argument is added. This record does not establish a later GitHub release, Pages deployment or directory listing."
+}
