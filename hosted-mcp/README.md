@@ -34,11 +34,14 @@ The free plan allows 3 MB compressed script and 10 ms CPU per request.
 
 - Bundle: 3,247 KiB, 866 KiB gzip (`npm run check`).
 - CPU (`npm run measure`, Node, one runtime per process as in the Worker):
-  validate, check, explain and dependents take about 1 ms each for the
-  starter program; `caveat_test` with the starter's scenario file takes about
-  17 to 19 ms, over the free limit. The runtime is instantiated when the
-  isolate starts, which is not counted against a request. The deployed
-  Worker's real CPU times are in the Cloudflare dashboard.
+  once warm, validate, check, explain and dependents take under 1 ms each for
+  the starter program, and `caveat_test` with the starter's two scenarios
+  (12 steps) about 6 ms, 7.4 ms at the 95th percentile. The first call of a
+  kind in a new isolate is slower (about 40 ms for `caveat_test`, under 10 ms
+  for the rest) and can exceed the free limit, as can larger scenario files.
+  The runtime is instantiated when the isolate starts, which is not counted
+  against a request. The deployed Worker's real CPU times are in the
+  Cloudflare dashboard.
 
 ## Commands
 

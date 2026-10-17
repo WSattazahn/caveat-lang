@@ -1,6 +1,7 @@
-// CPU time per tool call for the starter program, with one runtime kept per
+// Time per tool call for the starter program, with one runtime kept per
 // process as the Worker keeps one per isolate:   npm run measure
 // Workers bill CPU, not wall time; the free plan allows 10 ms per request.
+// A call does no I/O, so its main-thread wall time approximates its CPU.
 // Node and workerd share V8, so this estimates the Worker; the deployed
 // Worker's own CPU figures are in the Cloudflare dashboard.
 import { register } from 'node:module';
@@ -19,11 +20,14 @@ const calls = [
   ['caveat_explain', { source, events }],
   ['caveat_dependents', { source, subject: 'forecast', events }],
 ];
-const cpu = async fn => { const start = process.cpuUsage(); await fn(); const { user, system } = process.cpuUsage(start); return (user + system) / 1000; };
-console.log(`loading the runtime (once per isolate): ${(await cpu(() => runAuthoringOperation('caveat_validate', { source }))).toFixed(1)} ms CPU`);
+const time = async fn => { const start = performance.now(); await fn(); return performance.now() - start; };
+console.log(`loading the runtime (at isolate start in the Worker): ${(await time(() => runAuthoringOperation('caveat_validate', { source }))).toFixed(1)} ms`);
 for (const [name, args] of calls) {
+  // The first call of each kind runs before the JIT has warmed up.
+  const first = await time(() => runAuthoringOperation(name, args));
+  for (let index = 0; index < 200; index++) await runAuthoringOperation(name, args);
   const runs = [];
-  for (let index = 0; index < 101; index++) runs.push(await cpu(() => runAuthoringOperation(name, args)));
+  for (let index = 0; index < 101; index++) runs.push(await time(() => runAuthoringOperation(name, args)));
   runs.sort((a, b) => a - b);
-  console.log(`${name}: median ${runs[50].toFixed(2)} ms, 95th percentile ${runs[95].toFixed(2)} ms CPU`);
+  console.log(`${name}: first ${first.toFixed(1)} ms; warm median ${runs[50].toFixed(2)} ms, 95th percentile ${runs[95].toFixed(2)} ms`);
 }
