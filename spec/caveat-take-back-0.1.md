@@ -155,7 +155,11 @@ current values, so a later read of the occurrence does not bring it back
 (step 3). Without this, a renewal guarded on `observed(EVIDENCE)` would copy
 a doubt into the new occurrence's record for good: after the take-back
 neither occurrence would carry it, while every value read from the new one
-would ([D012](../experiments/agent-decisions/README.md)).
+would ([D012](../experiments/agent-decisions/README.md)). In the same way, a
+`qualify` of evidence a record lists adds the caveat to the record, as it does
+to a current value ([Late Qualification 0.1](caveat-late-qualification-0.1.md)
+step 2), so a value read through the record after the `qualify` carries what a
+value read before it does ([D014](../experiments/agent-decisions/README.md)).
 
 ### Qualifying again
 
