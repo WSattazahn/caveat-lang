@@ -478,6 +478,29 @@ fn d012_a_decision_made_while_flagged_keeps_the_flag() {
     assert_eq!(caveats(&game, "held"), json!(["flaky"]));
 }
 
+/// D019: `examine` stores its guard as the attention decision's record. A
+/// guard that read flagged evidence stores the flag through the live
+/// relation, so a take-back reaches it there as it does in any other guard
+/// record, and a value read through `examined(...)` after the unflag carries
+/// no flag. A late qualify reaches the record the same way (D014).
+#[test]
+fn d019_unflag_reaches_a_flag_an_examine_guard_read() {
+    let source = format!(
+        "{D012}budget 10;\ncaveat stale consequence low;\nevent scan;\nevent look;\n\
+         state seen = 0;\non scan when observed(e) examine stale cost 1;\n\
+         on look when examined(stale) set seen = 1;\n"
+    );
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["report", "flag", "scan", "unflag", "look"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(bound(&game, "e_flaky"), 0.0);
+    assert_eq!(caveats(&game, "seen"), json!(["stale"]));
+    game.dispatch_json("flag", "{}").unwrap();
+    game.dispatch_json("look", "{}").unwrap();
+    assert_eq!(caveats(&game, "seen"), json!(["flaky", "stale"]));
+}
+
 /// `e` is observed under a guard that reads `f`, so its observation's record
 /// lists `f`. Shared by D013 and D014.
 const D013_THROUGH_F: &str = r#"

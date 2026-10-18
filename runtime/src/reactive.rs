@@ -4940,13 +4940,17 @@ impl ReactiveSession {
             Effect::Examine { caveat, cost } => {
                 // This guard is part of the successful attention decision. It
                 // survives a later `examined(...)` query without changing any
-                // underlying claim or removing a retained caveat.
+                // underlying claim or removing a retained caveat. Like any
+                // stored guard, it keeps only what it did not take through a
+                // live relation, so a take-back reaches the rest (D019).
+                let mut guard = guard.clone();
+                self.freeze_observation(&mut guard);
                 let attention_basis = self
                     .examination_qualifications
                     .get(caveat)
                     .cloned()
                     .unwrap_or_default()
-                    .union(&self.frozen(guard))?;
+                    .union(&guard)?;
                 let resources = self
                     .resources
                     .as_mut()
@@ -5465,6 +5469,12 @@ impl ReactiveSession {
             .filter(|(_, lineage)| unkept(lineage))
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>();
+        let examinations = self
+            .examination_qualifications
+            .iter()
+            .filter(|(_, lineage)| unkept(lineage))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
         let predicates = self
             .predicate_qualifications
             .iter()
@@ -5487,6 +5497,13 @@ impl ReactiveSession {
             .collect::<Vec<_>>();
         for name in observations {
             Arc::make_mut(&mut self.observation_qualifications)
+                .get_mut(&name)
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for name in examinations {
+            Arc::make_mut(&mut self.examination_qualifications)
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
@@ -5561,6 +5578,7 @@ impl ReactiveSession {
         // A take-back removes it the same way (D012, D014).
         let listed = |lineage: &Provenance| lineage.evidence.contains(evidence);
         if self.observation_qualifications.values().any(listed)
+            || self.examination_qualifications.values().any(listed)
             || self
                 .predicate_qualifications
                 .values()
@@ -5573,6 +5591,12 @@ impl ReactiveSession {
             // record's references before departure runs (D016).
             let mut changed = BTreeSet::new();
             for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
+                if listed(record) {
+                    record.merge(&lineage)?;
+                    changed.insert(name.clone());
+                }
+            }
+            for (name, record) in Arc::make_mut(&mut self.examination_qualifications).iter_mut() {
                 if listed(record) {
                     record.merge(&lineage)?;
                     changed.insert(name.clone());
