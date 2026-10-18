@@ -1,0 +1,87 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.0.1",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.0.1",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/262",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "maintenanceBranch": "release/1.0.x",
+  "integrationIdentity": "PR #262 merged the reviewed 1.0.1 candidate into release/1.0.x without squashing. release/1.0.x starts at d55574a, the 1.0.0 release revision plus its publication records (PR #240), so main's later work is not an ancestor of 1.0.1. The candidate picks the commits of PR #259 (reviewed and merged on main as c29b76f) with git cherry-pick -x, one per finding, adapting only what 1.0.0 lacks. The annotated tag v1.0.1 (object 2ebd85db91ff15fe6e879298e864523541c2352a) peels to the exact tested release/1.0.x revision. v1.0.0 still peels to e2a1350024352ca707e74491d9405507b166ca23, an ancestor of the 1.0.1 revision.",
+  "stages": [
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    },
+    {
+      "id": "1.0.0-publication-records",
+      "revision": "d55574a6d853e8afd5c2435cb42c33c658fe68ae",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/240",
+      "note": "Branch point of release/1.0.x."
+    },
+    {
+      "id": "take-back-fixes-on-main",
+      "revision": "e89778ff46921e55cabfcd110c10940035b7253a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/259",
+      "mergedAs": "c29b76f"
+    },
+    {
+      "id": "reviewed-1.0.1-candidate",
+      "revision": "642fc183104da4deae478d808cd8d9a59f47a606",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/262"
+    },
+    {
+      "id": "published-1.0.1",
+      "version": "1.0.1",
+      "revision": "34f8972dde0704eccd6e96c682af7dd80f9c13be",
+      "parents": [
+        "d55574a6d853e8afd5c2435cb42c33c658fe68ae",
+        "642fc183104da4deae478d808cd8d9a59f47a606"
+      ],
+      "tag": "v1.0.1",
+      "published": true,
+      "record": "v1.0.1-npm-publication.json"
+    }
+  ],
+  "scope": "A patch release of 1.0.0 with the take-back fixes D012, D013 and D014 and nothing else from later work on main. The publish gate on release/1.0.x also accepts a Runtime run from a push to release/MAJOR.MINOR.x; main's gate is unchanged. No language syntax, schema, runtime operation, field, CLI flag, export, MCP tool, tool argument or rejection code is added.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "34f8972dde0704eccd6e96c682af7dd80f9c13be",
+  "publicationRecord": "v1.0.1-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-18T13:56:44.414Z",
+    "record": "v1.0.1-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.0.1",
+    "installPathRecord": "v1.0.1-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-18T13:49:14.329Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39133055259",
+  "publicationAttempt": 1,
+  "publicationArtifact": {
+    "id": 12138681767,
+    "name": "npm-publication-verification",
+    "digest": "sha256:0f7aff282f9035388d8cf4d672c6eaa33da772372b6758265ed465913872c8d5"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39107994619",
+  "runtimeArtifact": {
+    "id": 12130366476,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/39107994619/artifacts/12130366476"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.0.1.tgz",
+    "bytes": 1220952,
+    "sha256": "326096b337ef87a567fea0243ea2afc8f3a7ecfa015638c3fbe949d59ea2d03c",
+    "sha512": "7b9bbb36e5980f5d34da02843096f7f50de3b3e726d2684018ec8c3450ce4494e4096139caa7772dcf7c3378202395b1fc74a51b17436b56e6ce97926767ac49",
+    "integrity": "sha512-e5u7NuWYD1002gKEMJb39Q3js+cm0mhAGOyMNFDORJTkCWE5yqd3Lc98M3ggI5Wx/HSlGxdDa1bmzpeSZ2esSQ=="
+  }
+}

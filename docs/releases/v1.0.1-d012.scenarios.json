@@ -1,0 +1,19 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "v1.0.1-d012.cav",
+  "scenarios": [
+    {
+      "id": "D012",
+      "title": "Taking a doubt back clears it from a value read after a guarded renewal",
+      "steps": [
+        { "send": "report" },
+        { "send": "flag" },
+        { "send": "report" },
+        { "send": "flag" },
+        { "expect": { "/bindings/view/evidence_flaky": 1, "/bindings/view/value_flaky": 1 } },
+        { "send": "unflag" },
+        { "expect": { "/bindings/view/evidence_flaky": 0, "/bindings/view/value_flaky": 0 } }
+      ]
+    }
+  ]
+}
