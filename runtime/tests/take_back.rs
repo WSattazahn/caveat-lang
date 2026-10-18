@@ -472,6 +472,90 @@ fn d012_a_decision_made_while_flagged_keeps_the_flag() {
     assert_eq!(caveats(&game, "held"), json!(["flaky"]));
 }
 
+/// `e` is observed under a guard that reads `f`, so its observation's record
+/// lists `f`.
+const D013_THROUGH_F: &str = r#"
+caveat flaky consequence material;
+evidence e from "tool";
+evidence f from "operator";
+event see_f;
+event see_e;
+event flag_e;
+event unflag_e;
+event flag_f;
+event early;
+event late;
+state before = 0;
+state after = 0;
+on see_f reveal f;
+on see_e when observed(f) reveal e;
+on flag_e qualify e with flaky;
+on unflag_e unqualify e with flaky;
+on flag_f qualify f with flaky;
+on early set before = qualified(1, e);
+on late set after = qualified(1, e);
+"#;
+
+#[test]
+fn d013_a_take_back_tests_grounds_by_their_own_evidence() {
+    let mut game = ReactiveSession::from_source(D013_THROUGH_F).unwrap();
+    for event in ["see_f", "flag_f", "see_e", "flag_e", "late", "unflag_e"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    let shown = snapshot(&game);
+    // The lineage still holds `f`, which carries the flag; the grounds hold
+    // only `e`, which no longer does.
+    assert_eq!(
+        shown["qualified_values"]["after"]["provenance"]["caveats"],
+        json!(["flaky"])
+    );
+    assert_eq!(shown["value_grounds"]["after"]["evidence"], json!(["e"]));
+    assert_eq!(shown["value_grounds"]["after"]["caveats"], json!([]));
+}
+
+/// A caveat reaches `t` through a guard read of `r`, and `t` is flagged with
+/// a caveat of the same name.
+const D013: &str = r#"
+caveat flaky consequence material;
+evidence t from "tool";
+evidence r from "tool";
+event setup; event report; event flag; event unflag;
+state fz = 0;
+state p = 0;
+on setup reveal r;
+on setup qualify r with flaky;
+on setup when observed(r) set fz = 0;
+on report when fz == 0 reveal t;
+on report set p = qualified(1, t);
+on flag qualify t with flaky;
+on unflag unqualify t with flaky;
+bind x.t_flaky = if(carries(t, flaky), 1, 0);
+bind x.p_flaky = if(has_caveat(p, flaky), 1, 0);
+"#;
+
+#[test]
+fn d013_unflag_reaches_a_flag_named_like_one_a_guard_carried() {
+    let mut game = ReactiveSession::from_source(D013).unwrap();
+    let mut shown = Vec::new();
+    for event in ["setup", "report", "flag", "unflag"] {
+        game.dispatch_json(event, "{}").unwrap();
+        shown.push((
+            snapshot(&game)["bindings"]["x"]["t_flaky"]
+                .as_f64()
+                .unwrap(),
+            snapshot(&game)["bindings"]["x"]["p_flaky"]
+                .as_f64()
+                .unwrap(),
+        ));
+    }
+    assert_eq!(
+        shown,
+        [(0.0, 0.0), (0.0, 0.0), (1.0, 1.0), (0.0, 0.0)],
+        "{}",
+        snapshot(&game)
+    );
+}
+
 /// Invariant: a value carries a caveat exactly when evidence it rests on still
 /// carries it, with no caveat stale and none missing. In a program with no
 /// records to keep a caveat (no commitment, archive or departure) and no caveat
