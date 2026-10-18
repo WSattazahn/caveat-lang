@@ -31,9 +31,12 @@ record that nothing pins **departs**. The pins are Lineage Compaction 0.1's
 ("What stays exact"):
 
 - a state's grounds, by its own reads;
-- the grounds of each commitment in force, by their own reads: the revision in
-  force of each decision series, and every commitment outside a series, which
-  is in force once made;
+- the grounds of each commitment in force, by their own reads: the current
+  revision of each decision series, whether or not it is reopened, and every
+  commitment outside a series, which is in force once made. Here "in force"
+  is departure's word, not Dispatch 0.1's `decision_in_force`: a reopened
+  current revision keeps its grounds pinned, because `rests_on_withdrawn(D)`
+  and `explain` still read them;
 - the `because` of each journal entry still in the journal's window, and its
   `permitted_by`, the concrete grant the journal copies
   ([Decision journal 0.1](caveat-decision-journal-0.1.md));
@@ -360,3 +363,12 @@ recorded beside them.
   commitment is open and it holds a marker, because departure is a source
   mechanism that produces it. Every other reopening qualification that no
   `reopens` relation names is still refused.
+- 2026-10-18 (1.1, D017, wording only): the pin on a decision series' grounds
+  names the current revision, reopened or not, as the runtime has done since
+  rc.16 and 1.0.0 shipped. The old wording, "the revision in force", could be
+  read through Dispatch 0.1's `decision_in_force` as letting a reopened
+  revision's grounds depart, which would let a withdrawal leave with its
+  subject and turn `rests_on_withdrawn(D)` false with no event about D. No
+  output, save or exit status changes. The owner chose this reading on
+  2026-10-18; [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+  changes the same words.

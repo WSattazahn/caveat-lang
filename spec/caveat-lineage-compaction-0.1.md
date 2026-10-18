@@ -67,8 +67,9 @@ they name does not depart while they name it. They are:
 
 - a state's **grounds** ([Explanations 0.2](caveat-explanations-0.2.md)), what
   its value is based on;
-- the **grounds of the revision in force** of each decision series: what its
-  `using` read, with its retained caveats (`commitment_grounds`);
+- the **grounds of the current revision** of each decision series, whether
+  or not it is reopened: what its `using` read, with its retained caveats
+  (`commitment_grounds`);
 - the `because` of each **journal entry still in the journal's window**.
 
 A grounds' own reads, the names its expression, guard or predecessor check
@@ -100,7 +101,7 @@ still pending, and a commitment that is the current entry of its series.
 Everything else that names a departed record compacts: a state's
 **lineage**, a commitment's **basis** (including what a revision inherits from
 its predecessor through the check that the predecessor was reopened), the
-grounds of revisions no longer in force, a series' selection and reopening
+grounds of revisions no longer their series' current one, a series' selection and reopening
 qualifications, withdrawal and permission records.
 
 ## Departure markers
@@ -410,7 +411,7 @@ could hold, not records events are shown to have produced
 **Series revisions.** Since [Reactive 0.5](caveat-reactive-0.5.md), a
 revision's basis holds its predecessor's basis, so the series chain is
 another lineage that grows with play. That inherited basis compacts, while the
-revision in force keeps its own grounds exact. Series windows, which follow
+current revision, reopened or not, keeps its own grounds exact. Series windows, which follow
 this profile, retire and depart revisions. A later revision's basis then holds
 one marker for the series, such as `trust@1` to `@200`, and markers for the
 histories its predecessors read. What a revision rests on is the same rule
@@ -422,7 +423,7 @@ provenance at once.
 Series windows get their own fixture when they land, because C3's `trust`
 series never gets past one revision. The kit's `boss-stance` example revises
 `stance` on every switch. Run long enough for revisions to retire and depart,
-the revision in force must still explain with its own grounds exact and its
+the current revision must still explain with its own grounds exact and its
 inherited chain as one range.
 
 **The journal.** Under `journal window N`, a retired journal entry departs by
@@ -559,3 +560,15 @@ provenance read in its range.
   grounds pin, so Departure 0.1's attribution gains no category. Programs
   without a window keep no split, so their saves and snapshots are unchanged.
   The owner checked the diagnosis and set these requirements at 18:21 UTC.
+- 2026-10-18 (1.1, D017, wording only): "the revision in force" in "What
+  stays exact" and "Series revisions and the journal" now reads "the current
+  revision, reopened or not", which is what the runtime has done since rc.16
+  and what 1.0.0 shipped. Dispatch 0.1's `decision_in_force` calls a reopened
+  revision not in force, so the old wording could be read as letting a
+  reopened revision's grounds depart. They stay pinned because
+  `rests_on_withdrawn(D)` and `explain` read the current revision's grounds
+  whether or not it is reopened; were they to depart, a withdrawal would leave
+  with its subject and `rests_on_withdrawn(D)` would turn false with no event
+  about D. One current revision per series bounds what this pins. No output,
+  save or exit status changes. The owner chose this reading on 2026-10-18.
+  The riders and older Changes entries keep their original words.
