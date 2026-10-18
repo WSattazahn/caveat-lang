@@ -75,6 +75,13 @@ Read [Caveat's invariants](docs/CAVEAT_ESSENCE.md) and the relevant `spec/`
 documents before changing runtime semantics. Preserve evidence history,
 qualifications, frozen decision bases and atomic rollback.
 
+The project keeps its own decisions in Caveat: [`ledger/`](ledger/README.md)
+holds the program, the record of events, and the scenarios that test them.
+A merge, a release, a finding, a withdrawn claim or an owner's answer to a
+card is an event appended to `ledger/events.jsonl`; `npm run test:ledger`
+must still pass. Ask `caveat explain ledger/project.cav ledger/events.jsonl`
+what a decision rests on before arguing about it in prose.
+
 Verify changed behavior and its consumers using `package.json` and the
 [runtime workflow](.github/workflows/runtime.yml). Build with `npm run build`
 before `npm run test:kit` or `npm run test:kit-package`; runtime changes also
