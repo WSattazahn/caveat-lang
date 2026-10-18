@@ -368,3 +368,10 @@ the implementation.
   grounds hold, not the lineage's (D013): when a guard read other evidence
   that carries a caveat of the same name, `has_caveat` no longer keeps a
   taken-back flag. Tests: the D013 cases in `runtime/tests/take_back.rs`.
+- 2026-10-18: the randomized check in `runtime/tests/take_back.rs` now uses
+  guarded `renew`, `reveal`, `sample`, `set`, `qualify`, `unqualify`,
+  `commit`, `reopen` and `withdraw`, a second evidence whose caveat of the same
+  name reaches the first through a guard, directly or through a state, a
+  reading stream, and saving and restoring at random points; it checks
+  grounds both ways. New tracked program
+  `experiments/take-back-sweep/programs/guarded.cav`.
