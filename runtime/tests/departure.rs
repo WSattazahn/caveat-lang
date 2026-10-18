@@ -791,3 +791,131 @@ on decide when 0 == 1 qualify journal with stale;
         "a report of a departed journal record is not a missing evidence node"
     );
 }
+
+/// D016: a late qualification, here the `withdrawn` a withdrawal applies,
+/// reaches the stored predicate qualification of a decision whose skipped
+/// reopening read `committed(d)`, so that record now references the
+/// withdrawal rule's guard evidence `f`. The withdrawal collector must learn
+/// of the new reference, or departure runs on a stale index: in a debug
+/// build its consistency check fails at the end of the event.
+#[test]
+fn a_late_qualification_reaching_a_stored_record_updates_the_collector() {
+    let source = r#"
+claim ok;
+evidence e from "tool";
+renewable e window 2;
+evidence f from "operator";
+readings s from f window 2;
+decisions d limit 4;
+state a = 0;
+event see_e;
+event see_f;
+event decide;
+event reconsider;
+event retract;
+event read;
+on see_e reveal e supports ok;
+on see_f reveal f;
+on read sample s = a supports ok;
+on decide when observed(e) commit d because enough using qualified(a, e);
+on reconsider when committed(d) and has_sample(s) reopen d because latest(s);
+on retract when observed(e) and observed(f) withdraw e because f;
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    for event in ["see_e", "see_f", "decide", "reconsider", "retract"] {
+        send(&mut game, event, None);
+    }
+    let shown = serde_json::to_value(game.snapshot()).unwrap();
+    // The skipped reopening's record lists `e`, and the withdrawal's guard
+    // brought `f` into it.
+    let reopened = &shown["predicate_qualifications"]["reopened"]["d@1"]["evidence"];
+    assert_eq!(
+        reopened,
+        &json!(["e", "f"]),
+        "{}",
+        shown["predicate_qualifications"]
+    );
+    // A session restored from the save rebuilds its collector from scratch
+    // and must agree with the live one on every later event.
+    let saved = game.save_json().unwrap();
+    let mut restored = ReactiveSession::restore_json(source, &saved).unwrap();
+    for event in ["read", "read", "read", "reconsider", "retract"] {
+        send(&mut game, event, None);
+        send(&mut restored, event, None);
+        assert_eq!(
+            game.save_json().unwrap(),
+            restored.save_json().unwrap(),
+            "{event}"
+        );
+    }
+}
+
+/// D018: a stored observation qualification took `flaky` through a live
+/// relation of an occurrence a guard read (D012 keeps it live there, not
+/// kept). When that occurrence departs, its relation leaves with it, and
+/// Take-back 0.1 ("Departure and collection") says what held it keeps each
+/// take-back caveat the record's live relations gave. Departure kept it on
+/// current values only, so a value read later through the record carried
+/// `flaky` with no live relation and nothing kept.
+#[test]
+fn a_value_read_through_a_record_after_its_evidence_departed_keeps_the_caveat() {
+    let source = r#"
+caveat flaky consequence material;
+evidence e from "tool";
+renewable e window 2;
+state v = 0;
+event report;
+event flag;
+event unflag;
+event again;
+on report when observed(e) renew e;
+on report reveal e;
+on report set v = qualified(1, e);
+on flag qualify e with flaky;
+on unflag unqualify e with flaky;
+on again set v = qualified(1, e);
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    // e, e@2 (guard read e), flag e@2, e@3 (guard read e@2: its record takes
+    // flaky live through e@2), e@4 (guard read e@3; e@2 retires and, pinned by
+    // nothing, departs with its relation).
+    for event in ["report", "report", "flag", "report", "report"] {
+        send(&mut game, event, None);
+    }
+    let shown = serde_json::to_value(game.snapshot()).unwrap();
+    assert!(
+        shown["effects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|effect| effect["kind"] == "depart" && effect["record"] == "e@2"),
+        "{}",
+        shown["effects"]
+    );
+    assert_eq!(
+        shown["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|edge| edge["from"] == "flaky")
+            .count(),
+        0
+    );
+    // v, current at the departure, keeps the caveat.
+    assert_eq!(
+        shown["qualified_values"]["v"]["provenance"]["kept"],
+        json!(["flaky"])
+    );
+    // A value read again through e@4's record must carry it the same way.
+    let shown = send(&mut game, "again", None);
+    let provenance = &shown["qualified_values"]["v"]["provenance"];
+    assert_eq!(provenance["caveats"], json!(["flaky"]), "{provenance}");
+    assert_eq!(provenance["kept"], json!(["flaky"]), "{provenance}");
+    // And a take-back, with no live relation to mark, leaves it as it is.
+    let shown = send(&mut game, "unflag", None);
+    assert_eq!(
+        shown["qualified_values"]["v"]["provenance"]["caveats"],
+        json!(["flaky"])
+    );
+    assert!(shown["taken_back"].as_array().is_none_or(Vec::is_empty));
+}

@@ -281,11 +281,14 @@ These rules apply only to a program with a window.
   archive, beside its relations. A take-back record pins nothing: it has no
   reason to keep exact. Restore refuses a record that names a departed
   occurrence, as it refuses a relation that does.
-- When a record departs, every current value that held it keeps each
-  take-back caveat that the record's live relations gave it. Those relations
-  can never be marked, so the value carries exactly what it would have carried
-  had the record stayed. Ordinary departure still preserves outcomes
-  ([Departure 0.1](caveat-departure-0.1.md)).
+- When a record departs, every provenance that held it keeps each take-back
+  caveat that the record's live relations gave it: a current value and its
+  grounds, and a stored qualification a later read takes, such as an
+  observation's or predicate's ([D018](../experiments/agent-decisions/README.md)).
+  Those relations can never be marked, so a value carries exactly what it
+  would have carried had the record stayed, whether it was current at the
+  departure or is read afterwards through a record. Ordinary departure still
+  preserves outcomes ([Departure 0.1](caveat-departure-0.1.md)).
 - [Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md) is
   unchanged. A take-back record is metadata owned by its occurrence (rule 5),
   and it roots nothing.
@@ -375,3 +378,12 @@ the implementation.
   reading stream, and saving and restoring at random points; it checks
   grounds both ways. New tracked program
   `experiments/take-back-sweep/programs/guarded.cav`.
+- 2026-10-18: at a departure, every provenance that names the record keeps
+  what the record's live relations gave it, stored observation and predicate
+  qualifications included (D018). Before, only current values did, so a
+  value read afterwards through such a record carried a take-back caveat
+  with no live relation and nothing kept. Tests: the D018 case in
+  `runtime/tests/departure.rs`, and the randomized check in
+  `runtime/tests/take_back_windows.rs` over windows, departure, guarded
+  renewals and reveals, same-named caveats through a guard, late
+  qualifications and withdrawals under a guard.
