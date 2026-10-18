@@ -11,10 +11,10 @@ its frozen grounds. `rests_on_withdrawn(D)` asks whether the current
 revision's grounds hold withdrawn evidence. Nothing asks it of an earlier
 revision. A team that withdraws a report found wrong after the fact wants
 every ship decision made on it, current or not, so someone can review what
-went out. Before this profile a program could not say which: both authors in
-the second usability pilot packed each decision's basis into numbers,
-bitmasks or a hex digit per decision, and compared them with a hand-kept
-record of withdrawals. A host can join `decisionHistory` with the
+went out. Before this profile a program could not say which: an author had
+to pack each decision's basis into numbers, such as a bitmask or a hex digit
+per decision, and compare them with a hand-kept record of withdrawals. A
+host can join `decisionHistory` with the
 session's withdrawals, but only while the decision journal still holds the
 revision's entry; a windowed journal retires it. This profile adds one
 selector:
@@ -169,5 +169,5 @@ the case whose revisions the journal retired.
 
 ## Changes
 
-- 2026-10-18: drafted and implemented for 1.1, closing the first pilot gap
-  ("no question over decision history").
+- 2026-10-18: drafted and implemented for 1.1.
+- 2026-10-18: a pin does not bring a retired occurrence back into reach.
