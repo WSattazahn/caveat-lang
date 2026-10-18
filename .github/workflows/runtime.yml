@@ -2,7 +2,8 @@ name: runtime
 
 on:
   push:
-    branches: [main]
+    # release/MAJOR.MINOR.x carries patch releases of a published line.
+    branches: [main, 'release/*']
   pull_request:
   # A manual run re-validates a branch, for when GitHub drops a push event.
   # Pages still deploys only from a run started by a push to main.

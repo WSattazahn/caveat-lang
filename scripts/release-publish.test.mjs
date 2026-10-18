@@ -27,7 +27,7 @@ function github({ runs, artifacts, workflowId = 7 }) {
   return async url => {
     if (url.endsWith('/actions/workflows/runtime.yml')) return { id: workflowId };
     if (url.includes('/actions/workflows/runtime.yml/runs?')) {
-      assert.match(url, new RegExp(`event=push&branch=main&head_sha=${revision}`));
+      assert.match(url, new RegExp(`event=push&head_sha=${revision}`));
       return { workflow_runs: runs };
     }
     if (url.includes('/artifacts')) return { artifacts };
@@ -43,9 +43,16 @@ test('the newest successful Runtime push run for the revision supplies its teste
   assert.deepEqual(await selectRuntimeCandidate({ api, repository, revision }), { runtime_run_id: 12, artifact_id: 99 });
 });
 
+test('a patch release uses the Runtime push run on its maintenance branch', async () => {
+  const api = github({ runs: [runFor(12, { head_branch: 'release/1.0.x' })], artifacts: [artifactFor(12)] });
+  assert.deepEqual(await selectRuntimeCandidate({ api, repository, revision }), { runtime_run_id: 12, artifact_id: 99 });
+});
+
 test('a missing, failed, foreign or expired candidate is refused', async () => {
   const cases = [
     [{ runs: [], artifacts: [] }, /No Runtime run/],
+    [{ runs: [runFor(12, { head_branch: 'feature' }), runFor(13, { head_branch: 'release/1.0' })], artifacts: [artifactFor(12)] }, /No Runtime run/],
+    [{ runs: [runFor(10), runFor(12, { head_branch: 'release/1.0.x', conclusion: 'failure' })], artifacts: [artifactFor(12)] }, /has not succeeded/],
     [{ runs: [runFor(10), runFor(12, { conclusion: 'failure' })], artifacts: [artifactFor(12)] }, /has not succeeded/],
     [{ runs: [runFor(12, { status: 'in_progress', conclusion: null })], artifacts: [artifactFor(12)] }, /has not succeeded/],
     [{ runs: [runFor(12, { head_repository: { full_name: 'fork/caveat-lang' } })], artifacts: [artifactFor(12)] }, /belong to this repository/],

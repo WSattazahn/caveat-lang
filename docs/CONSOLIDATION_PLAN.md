@@ -364,7 +364,10 @@ From rc.11, npm publication goes through
 [`publish-npm.yml`](../.github/workflows/publish-npm.yml) instead of a manual
 publish from a local checkout. The workflow publishes only the tarball that a
 successful Runtime run on `main` tested for the tagged revision, with an npm
-provenance attestation. It authenticates through npm trusted publishing, so no
+provenance attestation. A patch release of an earlier line is cut the same way
+from its maintenance branch, `release/MAJOR.MINOR.x`, which starts at that
+line's last release and takes only the fix; its release record still merges to
+`main`. It authenticates through npm trusted publishing, so no
 npm token is stored in the repository.
 
 rc.11 itself did not use it: the owner published the CI-tested rc.11 tarball by
@@ -381,7 +384,8 @@ rc.19 is the eighth (see the [rc.19 release record](releases/v0.1.0-rc.19.md)).
 rc.20 is the ninth (see the [rc.20 release record](releases/v0.1.0-rc.20.md)).
 1.0.0 is the first stable release (see the [1.0.0 release record](releases/v1.0.0.md)).
 
-1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
+1. **Candidate.** Merge the release candidate to `main` (or, for a patch release
+   of an earlier line, to its `release/MAJOR.MINOR.x` branch). The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
    tarball, `report.json`, `build-info.json` and `SHA256SUMS`; take the
    tarball's SHA256 from `SHA256SUMS`.
