@@ -657,6 +657,7 @@ on show when observed(e) set v = qualified(1, e);
 on check when observed(e) set held = v + qualified(0, e);
 "#;
     let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
+    let mut d015 = 0;
     for run in 0..400 {
         let mut game = ReactiveSession::from_source(source).unwrap();
         let mut trail = Vec::new();
@@ -675,6 +676,7 @@ on check when observed(e) set held = v + qualified(0, e);
                     "qualified_values",
                     "value_grounds",
                     "observation_qualifications",
+                    "predicate_qualifications",
                 ] {
                     assert_eq!(
                         snapshot(&game)[part],
@@ -686,9 +688,13 @@ on check when observed(e) set held = v + qualified(0, e);
                 continue;
             }
             let shown = snapshot(&game);
-            // `recalled` reads a decision's basis, a record a later `qualify` reaches
-            // or not by when the value was computed (D015, open); it is not checked.
-            for state in ["v", "held", "w", "fz"] {
+            let basis = shown["commitment_bases"]
+                .as_object()
+                .into_iter()
+                .flat_map(|bases| bases.values())
+                .flat_map(|basis| basis["provenance"]["evidence"].as_array().unwrap().clone())
+                .collect::<Vec<_>>();
+            for state in ["v", "held", "w", "fz", "recalled"] {
                 let provenance = &shown["qualified_values"][state]["provenance"];
                 let lineage = provenance["evidence"].as_array().unwrap();
                 // Live: more `flaky qualifies` relations than take-backs.
@@ -711,13 +717,29 @@ on check when observed(e) set held = v + qualified(0, e);
                     list.as_array()
                         .is_some_and(|caveats| caveats.iter().any(|caveat| caveat == "flaky"))
                 };
-                // Only a reading archived while `e` was flagged keeps the flag.
+                // Only a record keeps the flag: a reading archived while `e`
+                // was flagged, or a decision's basis.
                 let kept = holds(&provenance["kept"]);
                 assert!(
-                    !kept || state == "w",
+                    !kept || state == "w" || state == "recalled",
                     "run {run}, {state} kept: {provenance}"
                 );
                 let carried = holds(&provenance["caveats"]);
+                // D015 (open): `recalled` reaches evidence through the basis
+                // `committed(trust)` reads. Whether a later `qualify` of that
+                // evidence reaches it depends today on when it was set, so it
+                // may match either answer; each such reading is counted.
+                if state == "recalled" && carried != (live || kept) {
+                    let live_outside_basis = lineage.iter().any(|occurrence| {
+                        !basis.contains(occurrence)
+                            && count("relations", "to", occurrence)
+                                > count("taken_back", "evidence", occurrence)
+                    });
+                    if carried == (live_outside_basis || kept) {
+                        d015 += 1;
+                        continue;
+                    }
+                }
                 assert_eq!(
                     carried,
                     live || kept,
@@ -745,4 +767,7 @@ on check when observed(e) set held = v + qualified(0, e);
             }
         }
     }
+    // Every reading the open D015 question leaves either way, so a run shows
+    // how often the shape occurs; this count goes when the question is settled.
+    eprintln!("D015 (open): {d015} readings of `recalled` matched the other answer");
 }
