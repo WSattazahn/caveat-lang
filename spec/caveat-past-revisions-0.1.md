@@ -115,6 +115,15 @@ Departure 0.1's pins list gains this item. A series no rule or binding reads
 through `revision(…)` keeps today's pins exactly, so every program that
 loads today departs the same records at the same events.
 
+A pin keeps a record held for what already stands on it; it does not bring
+a retired occurrence back into reach. `occurrence(E, I)` names only an
+occurrence that has not retired
+([Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md)), so once a
+window retires a past revision's report, the question still answers for it,
+and a withdrawal made earlier still stands, but no new effect can withdraw
+it. A program whose reports may be found wrong after their window passes
+uses `limit` instead of `window` for that evidence.
+
 ## Snapshot, save and views
 
 The selector adds no field and no refusal code.
