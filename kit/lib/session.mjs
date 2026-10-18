@@ -484,18 +484,22 @@ function journalChange(entry) {
 // Every revision of one decision series, oldest first, read from a view or
 // snapshot: what each was committed on and, once reopened, what reopened it.
 // The current revision is in force or reopened, as its commitment says; every
-// earlier one is superseded. A windowed journal may have retired a revision's
-// commit entry, and that revision is then left out.
+// earlier one is superseded. The series lists every revision; a windowed
+// journal may have retired a revision's entries, and that revision is then
+// listed with `retired: true` and null for each change the journal no longer
+// holds, rather than left out.
 export function decisionHistory(view, decision) {
   const series = view.decision_series?.[decision];
   if (!series) throw new TypeError(`${decision} is not a decision series of this program`);
-  const revisions = new Map();
+  const revisions = new Map(series.revisions.map(item => [item.id, { revision: item.id, status: 'superseded', retired: true, committed: null, reopened: null }]));
   for (const entry of view.decision_journal) {
-    if (entry.decision !== decision) continue;
+    const revision = entry.decision === decision ? revisions.get(entry.commitment) : undefined;
+    if (!revision) continue;
     if (entry.change === 'committed') {
-      revisions.set(entry.commitment, { revision: entry.commitment, status: 'superseded', committed: journalChange(entry), reopened: null });
-    } else if (revisions.has(entry.commitment)) {
-      revisions.get(entry.commitment).reopened = journalChange(entry);
+      revision.committed = journalChange(entry);
+      revision.retired = false;
+    } else {
+      revision.reopened = journalChange(entry);
     }
   }
   const current = series.current === null ? undefined : revisions.get(series.current);

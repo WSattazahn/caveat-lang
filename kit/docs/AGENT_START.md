@@ -73,6 +73,10 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
    An attempt succeeds only when all required operations succeed and a fresh
    assessment permits its result. An earlier approval cannot cover a refused
    observation. Preserve those checks when adapting the example.
+   A JavaScript host that keeps the session in its own process starts from
+   [Keep a small host small](#keep-a-small-host-small) instead: it covers
+   sending, the compact save and reading a decision's history without glue
+   of your own.
 
 A session lasts as long as the process that holds it. `caveat serve`, and so
 the Python client's `CaveatServer`, keeps one session of one program until it
@@ -141,8 +145,18 @@ const save = session.save({ compact: true });                      // small: a s
   log of your own.
 - `decisionHistory(view, name)` lists each revision of a decision: what it was
   committed on, what reopened it, and whether it is `in_force`, `reopened` or
-  `superseded`. `binding_explanations` gives each displayed value's evidence
-  and caveats.
+  `superseded`. A revision whose journal entries a `journal window` retired is
+  still listed, with `retired: true` and `committed: null`.
+  `binding_explanations` gives each displayed value's evidence and caveats.
+- Which past revisions rest on evidence withdrawn since is a join of that list
+  with the snapshot's withdrawals. `rests_on_withdrawn` answers it in the
+  program only for the current revision:
+
+  ```js
+  const withdrawn = new Set((session.snapshot().withdrawals ?? []).map(item => item.evidence));
+  const restingOnWithdrawn = decisionHistory(session.view(), 'heating')
+    .filter(revision => revision.committed?.because.some(name => withdrawn.has(name)));
+  ```
 - A host that must survive restarts, or keep the archive, should use the
   [integration starter](STARTER.md) instead. It checkpoints the compact save
   after every event, and `host.history(name)` returns the same list.

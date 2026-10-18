@@ -868,16 +868,19 @@ export interface DecisionHistoryEntry {
   revision: string;
   /** Only the current revision is `in_force` or `reopened`; every earlier one is `superseded`. */
   status: 'in_force' | 'reopened' | 'superseded';
-  committed: DecisionChange;
-  /** What reopened it, or null while it has not been reopened. */
+  /** True when a windowed journal retired the revision's commit entry; `committed` is then null. */
+  retired: boolean;
+  /** What it was committed on; null only when `retired`. */
+  committed: DecisionChange | null;
+  /** What reopened it, or null while it has not been reopened or once the journal retired that entry. */
   reopened: DecisionChange | null;
 }
 
 /**
  * Every revision of one decision series, oldest first, from a view or a
- * snapshot's journal. A windowed journal may have retired a revision's commit
- * entry; that revision is left out. Throws a `TypeError` for a name that is
- * not a decision series.
+ * snapshot's journal. A revision whose commit entry a windowed journal retired
+ * is still listed, with `retired: true`. Throws a `TypeError` for a name that
+ * is not a decision series.
  */
 export declare function decisionHistory(
   view: { decision_series: Record<string, DecisionSeries>; decision_journal: DecisionJournalEntry[]; commitments: Array<Commitment | ViewCommitment> },
