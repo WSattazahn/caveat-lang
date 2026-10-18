@@ -934,6 +934,23 @@ fn tag_offsets(source: &str) -> Vec<usize> {
             _ => &[][..],
         };
         offsets.extend(window.iter().map(|&index| words[index].0));
+        // `reopened by changed STREAM` (spec/caveat-changed-triggers-0.1.md):
+        // `changed` leads a trigger only when a stream follows it, so a module
+        // may still name a stream `changed`. This mirrors the parser's split
+        // of the trigger list at commas.
+        if let ["decisions", _, "limit", _, "reopened", "by", ..] = shape.as_slice() {
+            let mut trigger: Vec<(usize, &str)> = Vec::new();
+            for &(offset, word) in &words[6..] {
+                trigger.push((offset, word));
+                let last = word.ends_with(',') || word.ends_with(';');
+                if last || offset == words[words.len() - 1].0 {
+                    if matches!(trigger.len(), 2 | 4) && trigger[0].1 == "changed" {
+                        offsets.push(trigger[0].0);
+                    }
+                    trigger.clear();
+                }
+            }
+        }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the

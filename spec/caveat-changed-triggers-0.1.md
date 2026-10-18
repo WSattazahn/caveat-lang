@@ -123,6 +123,8 @@ The pilot 3 program is not in the repository. No accepted program changes.
   reading named in the journal, a first reading, the claim filter with the
   stream's previous value, a window of one, a save and restore round trip,
   and the load rules, including a stream named `changed`.
+- The module linker keeps `changed` where it leads a trigger, so a module
+  may still name a stream `changed`; `runtime/tests/modules.rs` covers it.
 - The language reference, the authoring guide and the package describe the
   form.
 
