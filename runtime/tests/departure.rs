@@ -849,3 +849,73 @@ on retract when observed(e) and observed(f) withdraw e because f;
         );
     }
 }
+
+/// D018: a stored observation qualification took `flaky` through a live
+/// relation of an occurrence a guard read (D012 keeps it live there, not
+/// kept). When that occurrence departs, its relation leaves with it, and
+/// Take-back 0.1 ("Departure and collection") says what held it keeps each
+/// take-back caveat the record's live relations gave. Departure kept it on
+/// current values only, so a value read later through the record carried
+/// `flaky` with no live relation and nothing kept.
+#[test]
+fn a_value_read_through_a_record_after_its_evidence_departed_keeps_the_caveat() {
+    let source = r#"
+caveat flaky consequence material;
+evidence e from "tool";
+renewable e window 2;
+state v = 0;
+event report;
+event flag;
+event unflag;
+event again;
+on report when observed(e) renew e;
+on report reveal e;
+on report set v = qualified(1, e);
+on flag qualify e with flaky;
+on unflag unqualify e with flaky;
+on again set v = qualified(1, e);
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    // e, e@2 (guard read e), flag e@2, e@3 (guard read e@2: its record takes
+    // flaky live through e@2), e@4 (guard read e@3; e@2 retires and, pinned by
+    // nothing, departs with its relation).
+    for event in ["report", "report", "flag", "report", "report"] {
+        send(&mut game, event, None);
+    }
+    let shown = serde_json::to_value(game.snapshot()).unwrap();
+    assert!(
+        shown["effects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|effect| effect["kind"] == "depart" && effect["record"] == "e@2"),
+        "{}",
+        shown["effects"]
+    );
+    assert_eq!(
+        shown["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|edge| edge["from"] == "flaky")
+            .count(),
+        0
+    );
+    // v, current at the departure, keeps the caveat.
+    assert_eq!(
+        shown["qualified_values"]["v"]["provenance"]["kept"],
+        json!(["flaky"])
+    );
+    // A value read again through e@4's record must carry it the same way.
+    let shown = send(&mut game, "again", None);
+    let provenance = &shown["qualified_values"]["v"]["provenance"];
+    assert_eq!(provenance["caveats"], json!(["flaky"]), "{provenance}");
+    assert_eq!(provenance["kept"], json!(["flaky"]), "{provenance}");
+    // And a take-back, with no live relation to mark, leaves it as it is.
+    let shown = send(&mut game, "unflag", None);
+    assert_eq!(
+        shown["qualified_values"]["v"]["provenance"]["caveats"],
+        json!(["flaky"])
+    );
+    assert!(shown["taken_back"].as_array().is_none_or(Vec::is_empty));
+}

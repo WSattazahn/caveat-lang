@@ -381,10 +381,16 @@ pub struct Holder {
 }
 
 /// Compact one provenance for every departing record it names, noting it as
-/// a holder of each.
+/// a holder of each. The provenance first keeps each take-back caveat the
+/// record's live relations gave it: those relations leave with the record
+/// and can never be marked, so what the provenance carries through them is
+/// held through a record from now on, whether the provenance is a current
+/// value or a stored qualification a later read takes (D018). See
+/// spec/caveat-take-back-0.1.md, "Departure and collection".
 fn compact(
     provenance: &mut Provenance,
     departing: &BTreeMap<String, (String, u64)>,
+    live_take_backs: &[(String, Vec<String>)],
     sequence: u64,
     source_id: &str,
     holder: impl Fn() -> Holder,
@@ -400,6 +406,9 @@ fn compact(
         .cloned()
         .collect::<Vec<_>>();
     for record in named {
+        if let Some((_, caveats)) = live_take_backs.iter().find(|(name, _)| *name == record) {
+            provenance.keep(caveats);
+        }
         let (history, number) = &departing[&record];
         provenance.depart(&record, history, *number, sequence, source_id);
         holders.entry(record).or_default().push(holder());
@@ -658,9 +667,10 @@ impl ReactiveSession {
             }
         };
 
-        // A current value keeps each take-back caveat a departing record's
-        // live relations gave it: those relations can no longer be marked.
-        // See spec/caveat-take-back-0.1.md, "Departure and collection".
+        // Every provenance that names a departing record keeps each take-back
+        // caveat the record's live relations gave it, in `compact`: those
+        // relations can no longer be marked. See spec/caveat-take-back-0.1.md,
+        // "Departure and collection".
         let live_take_backs = self.live_take_backs(&departing);
 
         // 1. Every provenance that names a departing record compacts.
@@ -673,16 +683,10 @@ impl ReactiveSession {
             }
             let name = self.states.names[slot].clone();
             let cell = self.states.cell_mut(slot);
-            for (record, caveats) in &live_take_backs {
-                for provenance in [&mut cell.value.provenance, &mut cell.grounds] {
-                    if provenance.evidence.contains(record) {
-                        provenance.keep(caveats);
-                    }
-                }
-            }
             compact(
                 &mut cell.value.provenance,
                 &departing,
+                &live_take_backs,
                 sequence,
                 &self.source_id,
                 holder("state", &name, "lineage"),
@@ -691,6 +695,7 @@ impl ReactiveSession {
             compact(
                 &mut cell.grounds,
                 &departing,
+                &live_take_backs,
                 sequence,
                 &self.source_id,
                 holder("state", &name, "grounds"),
@@ -706,6 +711,7 @@ impl ReactiveSession {
                 compact(
                     &mut basis.provenance,
                     &departing,
+                    &live_take_backs,
                     sequence,
                     &self.source_id,
                     holder("commitment", name, "basis"),
@@ -722,6 +728,7 @@ impl ReactiveSession {
                 compact(
                     grounds,
                     &departing,
+                    &live_take_backs,
                     sequence,
                     &self.source_id,
                     holder("commitment", name, "grounds"),
@@ -740,6 +747,7 @@ impl ReactiveSession {
                 compact(
                     &mut stream.selection_qualifications,
                     &departing,
+                    &live_take_backs,
                     sequence,
                     &self.source_id,
                     holder("stream", name, "selection_qualifications"),
@@ -752,6 +760,7 @@ impl ReactiveSession {
                     compact(
                         &mut reading.provenance,
                         &departing,
+                        &live_take_backs,
                         sequence,
                         &self.source_id,
                         holder("stream", &reading.id, "provenance"),
@@ -769,6 +778,7 @@ impl ReactiveSession {
                 compact(
                     &mut series.selection_qualifications,
                     &departing,
+                    &live_take_backs,
                     sequence,
                     &self.source_id,
                     holder("series", name, "selection_qualifications"),
@@ -801,6 +811,7 @@ impl ReactiveSession {
                     compact(
                         provenance,
                         &departing,
+                        &live_take_backs,
                         sequence,
                         &self.source_id,
                         holder("qualification", name, field),
@@ -822,6 +833,7 @@ impl ReactiveSession {
                     compact(
                         provenance,
                         &departing,
+                        &live_take_backs,
                         sequence,
                         &self.source_id,
                         holder("qualification", name, "predicate_qualifications"),
@@ -839,6 +851,7 @@ impl ReactiveSession {
                 compact(
                     &mut scheduled.guard,
                     &departing,
+                    &live_take_backs,
                     sequence,
                     &self.source_id,
                     holder("scheduled", &scheduled.evidence, "guard"),
@@ -850,6 +863,7 @@ impl ReactiveSession {
             compact(
                 provenance,
                 &departing,
+                &live_take_backs,
                 sequence,
                 &self.source_id,
                 holder("cue", &index.to_string(), "qualifications"),
