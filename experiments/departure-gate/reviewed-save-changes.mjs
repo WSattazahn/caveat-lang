@@ -5,8 +5,12 @@
 // carry the caveat; it adds caveats and changes no outcome. D015 (Caveat
 // Sources 0.1): a value read through a record reads the evidence the record
 // lists live, so it gains a later `qualify` of that evidence; it too only adds
-// caveats (experiments/caveat-sources-sweep/). Windowed programs either
-// changes are absent: their sweep compares outcomes only, which match.
+// caveats (experiments/caveat-sources-sweep/). D020: an unguarded `qualify`
+// no longer marks its caveat kept in a stored record that lists the
+// evidence, so a take-back reaches it; in guarded.cav only the records'
+// `kept` lists change, and every value's and binding's caveats are the same.
+// Windowed programs either changes are absent: their sweep compares outcomes
+// only, which match.
 export const reviewedSaveChanges = new Set([
   'experiments/agent-adoption/v1/evaluator/gold-tracker.cav',
   'experiments/agent-authoring/rc7/trial01/final/task.cav',
@@ -25,6 +29,7 @@ export const reviewedSaveChanges = new Set([
   'experiments/agent-authoring/v2/runs/B2/versions/02.cav',
   'experiments/agent-decisions/001-departure-reason-mechanism/decision.cav',
   'experiments/agent-decisions/retest-rc19/d001-undeclared.cav',
+  'experiments/take-back-sweep/programs/guarded.cav',
   'kit/examples/agent-evidence/grounded_assessment.cav',
   'kit/examples/agent-evidence/qualification.cav',
   'kit/examples/reviewer-decision/rely.cav',
