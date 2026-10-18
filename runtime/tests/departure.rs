@@ -791,3 +791,61 @@ on decide when 0 == 1 qualify journal with stale;
         "a report of a departed journal record is not a missing evidence node"
     );
 }
+
+/// D016: a late qualification, here the `withdrawn` a withdrawal applies,
+/// reaches the stored predicate qualification of a decision whose skipped
+/// reopening read `committed(d)`, so that record now references the
+/// withdrawal rule's guard evidence `f`. The withdrawal collector must learn
+/// of the new reference, or departure runs on a stale index: in a debug
+/// build its consistency check fails at the end of the event.
+#[test]
+fn a_late_qualification_reaching_a_stored_record_updates_the_collector() {
+    let source = r#"
+claim ok;
+evidence e from "tool";
+renewable e window 2;
+evidence f from "operator";
+readings s from f window 2;
+decisions d limit 4;
+state a = 0;
+event see_e;
+event see_f;
+event decide;
+event reconsider;
+event retract;
+event read;
+on see_e reveal e supports ok;
+on see_f reveal f;
+on read sample s = a supports ok;
+on decide when observed(e) commit d because enough using qualified(a, e);
+on reconsider when committed(d) and has_sample(s) reopen d because latest(s);
+on retract when observed(e) and observed(f) withdraw e because f;
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    for event in ["see_e", "see_f", "decide", "reconsider", "retract"] {
+        send(&mut game, event, None);
+    }
+    let shown = serde_json::to_value(game.snapshot()).unwrap();
+    // The skipped reopening's record lists `e`, and the withdrawal's guard
+    // brought `f` into it.
+    let reopened = &shown["predicate_qualifications"]["reopened"]["d@1"]["evidence"];
+    assert_eq!(
+        reopened,
+        &json!(["e", "f"]),
+        "{}",
+        shown["predicate_qualifications"]
+    );
+    // A session restored from the save rebuilds its collector from scratch
+    // and must agree with the live one on every later event.
+    let saved = game.save_json().unwrap();
+    let mut restored = ReactiveSession::restore_json(source, &saved).unwrap();
+    for event in ["read", "read", "read", "reconsider", "retract"] {
+        send(&mut game, event, None);
+        send(&mut restored, event, None);
+        assert_eq!(
+            game.save_json().unwrap(),
+            restored.save_json().unwrap(),
+            "{event}"
+        );
+    }
+}
