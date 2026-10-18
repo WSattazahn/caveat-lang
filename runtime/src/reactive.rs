@@ -3450,7 +3450,8 @@ impl ReactiveSession {
             _ => None,
         };
         if let Some((kind, name)) = target {
-            let guard = self.frozen(guard).into_owned();
+            let mut guard = guard.clone();
+            self.freeze_observation(&mut guard);
             Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
@@ -4616,7 +4617,7 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
-                self.freeze(&mut observation);
+                self.freeze_observation(&mut observation);
                 Arc::make_mut(&mut self.observation_qualifications)
                     .insert(name.clone(), observation);
                 let mut provenance = self.qualify(&name, &[])?;
@@ -4821,7 +4822,8 @@ impl ReactiveSession {
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 // The occurrence exists because this rule chose to renew.
                 if !guard.is_empty() {
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications).insert(name.clone(), guard);
                 }
                 Arc::make_mut(&mut self.renewals)
@@ -4891,7 +4893,8 @@ impl ReactiveSession {
                 let evidence = self.occurrence(evidence).to_string();
                 if !self.predicate("observed", &evidence)? {
                     self.clear_predicate_dependency("observed", &evidence);
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
@@ -4919,7 +4922,8 @@ impl ReactiveSession {
                     .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
                 {
                     self.clear_predicate_dependency("observed", evidence);
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
@@ -5366,6 +5370,32 @@ impl ReactiveSession {
         }
     }
 
+    /// An observation's or predicate's qualification, as its record holds it.
+    /// It keeps the take-back caveats it carries except those it takes
+    /// through a live relation of evidence it holds: those stay live, so a
+    /// take-back reaches them as it reaches the evidence (D012).
+    fn freeze_observation(&self, provenance: &mut Provenance) {
+        if self.take_back_caveats.is_empty() {
+            return;
+        }
+        let live = self
+            .take_back_caveats
+            .iter()
+            .filter(|caveat| {
+                !provenance.kept.contains(*caveat)
+                    && self.symbols.get(*caveat).is_some_and(|&from| {
+                        provenance.evidence.iter().any(|name| {
+                            self.symbols
+                                .get(name)
+                                .is_some_and(|&to| self.has_live_relation(from, to))
+                        })
+                    })
+            })
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        provenance.keep(self.take_back_caveats.difference(&live));
+    }
+
     /// `provenance` as a record holds it, copied only when that differs.
     fn frozen<'a>(&self, provenance: &'a Provenance) -> std::borrow::Cow<'a, Provenance> {
         if self.take_back_caveats.is_empty() {
@@ -5414,6 +5444,51 @@ impl ReactiveSession {
                 sequence: self.sequence,
                 event: event.clone(),
             });
+        }
+        // An observation's or predicate's record holds what it took through a
+        // live relation only while that relation is live (D012).
+        let unkept = |lineage: &Provenance| {
+            lineage.caveats.contains(caveat)
+                && !lineage.kept.contains(caveat)
+                && marked
+                    .iter()
+                    .any(|occurrence| lineage.evidence.contains(occurrence))
+                && !lineage.evidence.iter().any(|name| {
+                    self.symbols
+                        .get(name)
+                        .is_some_and(|&id| self.has_live_relation(from, id))
+                })
+        };
+        let observations = self
+            .observation_qualifications
+            .iter()
+            .filter(|(_, lineage)| unkept(lineage))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let predicates = self
+            .predicate_qualifications
+            .iter()
+            .flat_map(|(kind, targets)| {
+                targets
+                    .iter()
+                    .filter(|(_, lineage)| unkept(lineage))
+                    .map(move |(name, _)| (kind.clone(), name.clone()))
+            })
+            .collect::<Vec<_>>();
+        for name in observations {
+            Arc::make_mut(&mut self.observation_qualifications)
+                .get_mut(&name)
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for (kind, name) in predicates {
+            Arc::make_mut(&mut self.predicate_qualifications)
+                .get_mut(&kind)
+                .and_then(|targets| targets.get_mut(&name))
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
         }
         // Current values only, as a qualify. Commitment bases and grounds,
         // reading archives and the journal keep what they recorded.

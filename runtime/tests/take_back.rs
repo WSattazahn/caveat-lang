@@ -411,3 +411,151 @@ fn round8_item1_view_v2_shows_the_records_only_where_a_program_takes_back() {
         .get("taken_back")
         .is_none());
 }
+
+/// D012: a renewal guarded on the doubted evidence. The flagged first
+/// occurrence's doubt reaches the second through the renewal's guard, and the
+/// second is then doubted in its own right. Taking the doubt back must reach a
+/// value read from the second occurrence, as it reaches the occurrences.
+const D012: &str = r#"
+caveat flaky consequence material;
+evidence e from "tool";
+renewable e limit 8;
+event report;
+event flag;
+event unflag;
+on report when observed(e) renew e;
+on report reveal e;
+on flag qualify e with flaky;
+on unflag unqualify e with flaky;
+state v = 0;
+on report set v = qualified(1, e);
+bind view.v_flaky = if(has_caveat(v, flaky), 1, 0);
+bind view.e1_flaky = if(carries(occurrence(e, 1), flaky), 1, 0);
+bind view.e2_flaky = if(carries(occurrence(e, 2), flaky), 1, 0);
+"#;
+
+fn bound(game: &ReactiveSession, name: &str) -> f64 {
+    snapshot(game)["bindings"]["view"][name].as_f64().unwrap()
+}
+
+#[test]
+fn d012_unflag_reaches_a_value_read_after_a_guarded_renewal() {
+    let mut game = ReactiveSession::from_source(D012).unwrap();
+    for event in ["report", "flag", "report", "flag"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(bound(&game, "v_flaky"), 1.0);
+    game.dispatch_json("unflag", "{}").unwrap();
+    assert_eq!(bound(&game, "e1_flaky"), 0.0);
+    assert_eq!(bound(&game, "e2_flaky"), 0.0);
+    assert_eq!(bound(&game, "v_flaky"), 0.0);
+    assert_eq!(caveats(&game, "v"), json!([]));
+    // A value read again after the take-back agrees with the one taken back.
+    game.dispatch_json("report", "{}").unwrap();
+    assert_eq!(bound(&game, "v_flaky"), 0.0);
+}
+
+#[test]
+fn d012_a_decision_made_while_flagged_keeps_the_flag() {
+    let source = format!(
+        "{D012}event decide;\non decide commit trust because enough using v;\n\
+         state held = 0;\nevent recall;\non recall when committed(trust) set held = 1;\n"
+    );
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in [
+        "report", "flag", "report", "flag", "decide", "unflag", "recall",
+    ] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(bound(&game, "v_flaky"), 0.0);
+    // The basis is a record: a value read from it keeps the flag.
+    assert_eq!(caveats(&game, "held"), json!(["flaky"]));
+}
+
+/// Every caveat a value shows matches the evidence it comes from. In a program
+/// with no records to keep a caveat (no commitment, archive or departure), a
+/// state read with `qualified(1, e)` carries `flaky` exactly when some
+/// occurrence in its lineage carries it now. Random event sequences, checked
+/// after every event, so a take-back that misses a record cannot hide.
+#[test]
+fn d012_random_sequences_keep_caveats_matched_to_their_evidence() {
+    const EVENTS: [&str; 5] = ["report", "flag", "unflag", "plain", "check"];
+    let source = r#"
+caveat flaky consequence material;
+evidence e from "tool";
+renewable e limit 64;
+event report;
+event plain;
+event flag;
+event unflag;
+event check;
+state held = 0;
+on report when observed(e) renew e;
+on plain when not observed(e) renew e;
+on report reveal e;
+on plain reveal e;
+on flag when observed(e) qualify e with flaky;
+on unflag unqualify e with flaky;
+state v = 0;
+on report set v = qualified(1, e);
+on plain set v = qualified(1, e);
+on check when observed(e) set held = v + qualified(0, e);
+"#;
+    let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
+    for run in 0..200 {
+        let mut game = ReactiveSession::from_source(source).unwrap();
+        let mut trail = Vec::new();
+        for _ in 0..24 {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let event = EVENTS[(seed >> 33) as usize % EVENTS.len()];
+            trail.push(event);
+            if game.dispatch_json(event, "{}").is_err() {
+                continue;
+            }
+            let shown = snapshot(&game);
+            for state in ["v", "held"] {
+                let provenance = &shown["qualified_values"][state]["provenance"];
+                let lineage = provenance["evidence"].as_array().unwrap();
+                // Live: more `flaky qualifies` relations than take-backs.
+                let count = |list: &str, key: &str, occurrence: &Value| {
+                    shown[list].as_array().map_or(0, |entries| {
+                        entries
+                            .iter()
+                            .filter(|entry| {
+                                entry[key] == *occurrence
+                                    && (entry["caveat"] == "flaky" || entry["from"] == "flaky")
+                            })
+                            .count()
+                    })
+                };
+                let live = lineage.iter().any(|occurrence| {
+                    count("relations", "to", occurrence)
+                        > count("taken_back", "evidence", occurrence)
+                });
+                let carried = provenance["caveats"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|caveat| caveat == "flaky");
+                assert_eq!(
+                    carried, live,
+                    "run {run}, {state} after {trail:?}: {provenance}\n{}\n{}",
+                    shown["observation_qualifications"], shown["predicate_qualifications"]
+                );
+                // `has_caveat` reads the grounds, which follow the same test.
+                let grounds = shown["value_grounds"][state]["caveats"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|caveat| caveat == "flaky");
+                assert!(
+                    !grounds || live,
+                    "run {run}, {state} grounds after {trail:?}: {}",
+                    shown["value_grounds"][state]
+                );
+            }
+        }
+    }
+}

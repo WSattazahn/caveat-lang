@@ -136,13 +136,23 @@ runs:
 A value **keeps** a take-back caveat when the caveat reached it through
 something other than a live relation: a record that holds it. That is a
 frozen basis or grounds read through `committed(…)`, `reopened(…)` or a
-decision series, a reading archived with it, a stored observation,
-predicate, reopening or selection qualification, or a record that has since
-departed (below). A take-back never removes a kept caveat, so a value
-computed before a take-back and one computed after it from the same records
-carry the same caveats. Kept caveats travel with a value through
-computation, as its caveats do, and the runtime keeps them in the
-provenance (see "Snapshot and save").
+decision series, a reading archived with it, a stored reopening or selection
+qualification, or a record that has since departed (below). A take-back never
+removes a kept caveat, so a value computed before a take-back and one
+computed after it from the same records carry the same caveats. Kept caveats
+travel with a value through computation, as its caveats do, and the runtime
+keeps them in the provenance (see "Snapshot and save").
+
+A stored observation or predicate qualification is what the guard of a
+`renew`, `reveal`, `observe` or `sample` rule read. It keeps a take-back
+caveat only when it did not take that caveat through a live relation of
+evidence it lists. A caveat it took that way stays live in the record: the
+take-back removes it from the record on the test in step 4, as it does from
+current values, so a later read of the occurrence does not bring it back
+(step 3). Without this, a renewal guarded on `observed(EVIDENCE)` would copy
+a doubt into the new occurrence's record for good: after the take-back
+neither occurrence would carry it, while every value read from the new one
+would ([D012](../experiments/agent-decisions/README.md)).
 
 ### Qualifying again
 
@@ -341,3 +351,9 @@ the implementation.
   (round 8 item 1, including CR20's doubt, renew and take-back) and the
   take-back named cases in `runtime/tests/view_v2.rs`. A declared first
   occurrence never departs, so departure reaches only renewed occurrences.
+- 2026-10-18: a stored observation or predicate qualification keeps only what
+  it did not take through a live relation (D012). A doubt raised, carried
+  into a renewal by its guard and taken back no longer stays on values read
+  from the renewed occurrence. Tests: the D012 cases in
+  `runtime/tests/take_back.rs`, including a randomized check that every
+  caveat a value carries is live on evidence it holds.
