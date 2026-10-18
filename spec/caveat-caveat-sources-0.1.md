@@ -163,6 +163,12 @@ grounds, and every view binding's. It counts each direction separately:
 Every event's outcome was the same on both runtimes. The sweep fails on any
 loss or any changed outcome.
 
+Two of the kit's save fixtures (`kit/test/fixtures/saves/`, `ordered.cav`
+and `readiness.cav`) continue, after a restore, into views that gain such a
+caveat. `kit/test/save-fixtures.test.mjs` holds their views to every
+release's except for caveats added, and byte for byte to the same events
+played live without a save.
+
 1.1 ships a detector: `caveat check` (opt-in, like `--unused`) and a save
 check report whether a program or save holds a value set under a committed
 decision that reaches evidence a later `qualify` names.
