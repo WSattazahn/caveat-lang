@@ -1,5 +1,6 @@
 // Checks for .github/workflows/publish-npm.yml, which publishes only the
-// tarball that a successful Runtime run on main tested for the tagged
+// tarball that a successful Runtime run on main, or on a
+// release/MAJOR.MINOR.x branch for a patch release, tested for the tagged
 // revision. Selection, verification and refusal stay here so they are testable
 // without GitHub or npm; the workflow supplies transport and the publish.
 //
@@ -44,18 +45,23 @@ async function pages(api, url, key) {
   }
 }
 
-// The newest Runtime run pushed to main for the revision must have succeeded:
-// an older success cannot hide a newer failure.
+// A release is cut from main, or a patch release from its line's maintenance
+// branch, release/MAJOR.MINOR.x.
+export const RELEASE_BRANCH = /^(?:main|release\/\d+\.\d+\.x)$/;
+
+// The newest Runtime run pushed to a release branch for the revision must have
+// succeeded: an older success cannot hide a newer failure.
 export async function selectRuntimeCandidate({ api, repository, revision }) {
   assert.match(revision, SHA, 'Invalid release revision.');
   const workflow = await api(`/repos/${repository}/actions/workflows/runtime.yml`);
-  const runs = (await pages(api, `/repos/${repository}/actions/workflows/runtime.yml/runs?event=push&branch=main&head_sha=${revision}`, 'workflow_runs'))
+  const runs = (await pages(api, `/repos/${repository}/actions/workflows/runtime.yml/runs?event=push&head_sha=${revision}`, 'workflow_runs'))
+    .filter(run => RELEASE_BRANCH.test(run.head_branch ?? ''))
     .sort((a, b) => b.id - a.id);
-  assert.ok(runs.length > 0, `No Runtime run from a push to main tested ${revision}.`);
+  assert.ok(runs.length > 0, `No Runtime run from a push to main or a release branch tested ${revision}.`);
   const run = runs[0];
   assert.ok(run.workflow_id === workflow.id && run.path?.split('@')[0] === RUNTIME_WORKFLOW, 'The selected run is not the Runtime workflow.');
   assert.ok(same(run.repository?.full_name, repository) && same(run.head_repository?.full_name, repository), 'The Runtime run must belong to this repository.');
-  assert.ok(run.event === 'push' && run.head_branch === 'main' && run.head_sha === revision, 'The Runtime run must be a push to main at the tagged revision.');
+  assert.ok(run.event === 'push' && run.head_sha === revision, 'The Runtime run must be a push to a release branch at the tagged revision.');
   assert.ok(run.status === 'completed' && run.conclusion === 'success', `The newest Runtime run for ${revision} (${run.id}) has not succeeded.`);
   const artifacts = (await pages(api, `/repos/${repository}/actions/runs/${run.id}/artifacts`, 'artifacts'))
     .filter(artifact => artifact.name === CANDIDATE_ARTIFACT);
