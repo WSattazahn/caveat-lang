@@ -18,6 +18,7 @@ const originalWindows = [
 // Programs written in syntax rc.15 cannot load have no rc.15 behavior to
 // preserve. Each is named here, and must use that syntax.
 const newerThanBaseline = {
+  'experiments/take-back-sweep/programs/guarded.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/round8.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/windowed.cav': /\bunqualify\b/,
   'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,

@@ -568,39 +568,90 @@ fn d013_unflag_reaches_a_flag_named_like_one_a_guard_carried() {
 }
 
 /// Invariant: a value carries a caveat exactly when evidence it rests on still
-/// carries it, with no caveat stale and none missing. In a program with no
-/// records to keep a caveat (no commitment, archive or departure) and no caveat
-/// placed on a state directly, a state's lineage carries `flaky` exactly when
-/// some occurrence in its lineage carries it now, and `has_caveat(state,
-/// flaky)` holds exactly when some occurrence in its grounds does. Random event
-/// sequences, checked after every event, so a take-back that misses a record
-/// cannot hide.
+/// carries it, with no caveat stale and none missing. For a state that reads
+/// no record (a decision's basis, or a reading archived with a caveat it
+/// keeps) and has no caveat placed on it directly, its lineage carries
+/// `flaky` exactly when some occurrence in its lineage carries it now, and
+/// `has_caveat(state, flaky)` holds exactly when some occurrence in its
+/// grounds does. Random event sequences, checked after every event and after
+/// saving and restoring at random points, so a take-back or qualify that
+/// misses a record cannot hide.
 #[test]
 fn d012_random_sequences_keep_caveats_matched_to_their_evidence() {
-    const EVENTS: [&str; 5] = ["report", "flag", "unflag", "plain", "check"];
+    // Every guarded effect a source rule can write that stores an observation
+    // qualification (renew, reveal, sample), and a second evidence `f` whose
+    // `flaky` reaches `e` only through a guard, directly or through a state,
+    // while `e` has its own `flaky` (D013).
+    // `save` is no event: it saves and restores the session in its place.
+    const EVENTS: [&str; 18] = [
+        "report", "plain", "via_f", "via_fz", "see_f", "read", "flag", "unflag", "flag_f",
+        "unflag_f", "check", "show", "decide", "recall", "doubt", "withdraw", "see_op", "save",
+    ];
     let source = r#"
 caveat flaky consequence material;
+claim c;
 evidence e from "tool";
 renewable e limit 64;
+evidence f from "operator";
+renewable f limit 64;
+evidence probe from "probe";
+readings s from probe limit 64;
 event report;
 event plain;
+event via_f;
+event via_fz;
+event see_f;
+event read;
 event flag;
 event unflag;
+event flag_f;
+event unflag_f;
 event check;
+event show;
+event decide;
+event recall;
+event doubt;
+event withdraw;
+event see_op;
+evidence op from "operator check";
+decisions trust limit 64;
+state recalled = 0;
+on decide when observed(e) commit trust because enough using v;
+on recall when committed(trust) set recalled = qualified(1, e);
+on doubt when committed(trust) and observed(e) reopen trust because e;
+on see_op reveal op;
+on withdraw when observed(op) and observed(e) withdraw e because op;
 state held = 0;
+state v = 0;
+state w = 0;
+state fz = 0;
 on report when observed(e) renew e;
-on plain when not observed(e) renew e;
 on report reveal e;
+on plain when not observed(e) renew e;
 on plain reveal e;
+on via_f when observed(f) renew e;
+on via_f when observed(f) reveal e;
+on see_f when observed(f) renew f;
+on see_f reveal f;
+on see_f when observed(f) set fz = 1;
+on via_fz when fz == 1 renew e;
+on via_fz when fz == 1 reveal e;
+on via_fz when observed(e) set v = qualified(1, e);
+on read when observed(e) sample s = 1;
+on read when has_sample(s) set w = latest(s);
 on flag when observed(e) qualify e with flaky;
 on unflag unqualify e with flaky;
-state v = 0;
+on flag_f when observed(f) qualify f with flaky;
+on unflag_f when observed(f) unqualify f with flaky;
+on show when observed(f) and observed(e) reveal e supports c;
 on report set v = qualified(1, e);
 on plain set v = qualified(1, e);
+on via_f when observed(e) set v = qualified(1, e);
+on show when observed(e) set v = qualified(1, e);
 on check when observed(e) set held = v + qualified(0, e);
 "#;
     let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
-    for run in 0..200 {
+    for run in 0..400 {
         let mut game = ReactiveSession::from_source(source).unwrap();
         let mut trail = Vec::new();
         for _ in 0..24 {
@@ -609,11 +660,29 @@ on check when observed(e) set held = v + qualified(0, e);
                 .wrapping_add(1_442_695_040_888_963_407);
             let event = EVENTS[(seed >> 33) as usize % EVENTS.len()];
             trail.push(event);
-            if game.dispatch_json(event, "{}").is_err() {
+            if event == "save" {
+                let before = snapshot(&game);
+                let saved = game.save_json().unwrap();
+                game = ReactiveSession::restore_json(source, &saved)
+                    .unwrap_or_else(|error| panic!("run {run} after {trail:?}: {error}"));
+                for part in [
+                    "qualified_values",
+                    "value_grounds",
+                    "observation_qualifications",
+                ] {
+                    assert_eq!(
+                        snapshot(&game)[part],
+                        before[part],
+                        "run {run}, {part} after restoring {trail:?}"
+                    );
+                }
+            } else if game.dispatch_json(event, "{}").is_err() {
                 continue;
             }
             let shown = snapshot(&game);
-            for state in ["v", "held"] {
+            // `recalled` reads a decision's basis, a record a later `qualify` reaches
+            // or not by when the value was computed (D015, open); it is not checked.
+            for state in ["v", "held", "w", "fz"] {
                 let provenance = &shown["qualified_values"][state]["provenance"];
                 let lineage = provenance["evidence"].as_array().unwrap();
                 // Live: more `flaky qualifies` relations than take-backs.
@@ -632,15 +701,23 @@ on check when observed(e) set held = v + qualified(0, e);
                     count("relations", "to", occurrence)
                         > count("taken_back", "evidence", occurrence)
                 });
-                let carried = provenance["caveats"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .any(|caveat| caveat == "flaky");
+                let holds = |list: &Value| {
+                    list.as_array()
+                        .is_some_and(|caveats| caveats.iter().any(|caveat| caveat == "flaky"))
+                };
+                // Only a reading archived while `e` was flagged keeps the flag.
+                let kept = holds(&provenance["kept"]);
+                assert!(
+                    !kept || state == "w",
+                    "run {run}, {state} kept: {provenance}"
+                );
+                let carried = holds(&provenance["caveats"]);
                 assert_eq!(
-                    carried, live,
+                    carried,
+                    live || kept,
                     "run {run}, {state} after {trail:?}: {provenance}\n{}\n{}",
-                    shown["observation_qualifications"], shown["predicate_qualifications"]
+                    shown["observation_qualifications"],
+                    shown["predicate_qualifications"]
                 );
                 // `has_caveat` reads the grounds.
                 let grounds = &shown["value_grounds"][state];
@@ -653,13 +730,10 @@ on check when observed(e) set held = v + qualified(0, e);
                             count("relations", "to", occurrence)
                                 > count("taken_back", "evidence", occurrence)
                         });
-                let has_caveat = grounds["caveats"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .any(|caveat| caveat == "flaky");
+                let has_caveat = holds(&grounds["caveats"]);
                 assert_eq!(
-                    has_caveat, rests_on_flagged,
+                    has_caveat,
+                    rests_on_flagged || holds(&grounds["kept"]),
                     "run {run}, {state} grounds after {trail:?}: {grounds}"
                 );
             }
