@@ -135,26 +135,22 @@ fn held(shown: &Value, history: &str) -> Vec<String> {
     }
 }
 
-/// Everything in the session that pins a retired record, by name.
-fn pins(shown: &Value) -> BTreeSet<String> {
+/// Everything in the session that pins a retired record, by name, as the
+/// runtime pins today. `open_only` collects what is pinned only by the
+/// grounds of a series' current revision that is reopened: Lineage
+/// Compaction 0.1 and Departure 0.1 say the grounds of the revision *in
+/// force* pin, and a reopened revision is not in force (Dispatch 0.1,
+/// `decision_in_force`), yet the runtime keeps a current revision's grounds
+/// exact whether or not it is open (D017, open: which of the two is meant).
+fn pins(shown: &Value) -> (BTreeSet<String>, BTreeSet<String>) {
     let mut pinned = BTreeSet::new();
+    let mut open_only = BTreeSet::new();
     for grounds in shown["value_grounds"]
         .as_object()
         .map(|map| map.values().collect::<Vec<_>>())
         .unwrap_or_default()
     {
         pinned.extend(strings(&grounds["evidence"]));
-    }
-    let commitments = shown["commitments"].as_array().cloned().unwrap_or_default();
-    for (_, series) in shown["decision_series"].as_object().unwrap() {
-        if let Some(current) = series["current"].as_str() {
-            let in_force = commitments
-                .iter()
-                .any(|item| item["action"] == current && item["open"] == false);
-            if in_force {
-                pinned.extend(strings(&shown["commitment_grounds"][current]["evidence"]));
-            }
-        }
     }
     for entry in shown["decision_journal"].as_array().unwrap() {
         if entry["retired"] == true {
@@ -183,26 +179,45 @@ fn pins(shown: &Value) -> BTreeSet<String> {
     for withdrawal in shown["withdrawals"].as_array().cloned().unwrap_or_default() {
         pinned.insert(withdrawal["because"].as_str().unwrap().to_string());
     }
-    pinned
+    let commitments = shown["commitments"].as_array().cloned().unwrap_or_default();
+    for (_, series) in shown["decision_series"].as_object().unwrap() {
+        if let Some(current) = series["current"].as_str() {
+            let in_force = commitments
+                .iter()
+                .any(|item| item["action"] == current && item["open"] == false);
+            for name in strings(&shown["commitment_grounds"][current]["evidence"]) {
+                if !in_force && !pinned.contains(&name) {
+                    open_only.insert(name.clone());
+                }
+                pinned.insert(name);
+            }
+        }
+    }
+    (pinned, open_only)
 }
 
 struct Tally {
     newest: BTreeMap<&'static str, u64>,
     archived: BTreeSet<String>,
+    /// Retired records held only by a reopened current revision's grounds (D017).
+    open_only: usize,
 }
 
-fn check(shown: &Value, tally: &Tally, at: &str) {
+fn check(shown: &Value, tally: &mut Tally, at: &str) {
     let retired = shown["retired"]
         .as_object()
         .map(|map| map.keys().cloned().collect::<BTreeSet<_>>())
         .unwrap_or_default();
-    let pinned = pins(shown);
+    let (pinned, open_only) = pins(shown);
     for record in &retired {
         // A renewable evidence's declared first occurrence never departs.
         assert!(
             pinned.contains(record) || record == "e",
             "{at}: retired {record} is pinned by nothing yet has not departed; pins {pinned:?}"
         );
+        if open_only.contains(record) {
+            tally.open_only += 1;
+        }
     }
     let mut departed = BTreeSet::new();
     for (history, window) in [("s", 3), ("e", 2)] {
@@ -309,16 +324,18 @@ fn the_departure_program_loads() {
 #[test]
 fn windows_retire_and_departure_takes_exactly_what_nothing_pins() {
     let mut seed: u64 = 0x1f83_d9ab_fb41_bd6b;
-    let (mut accepted, mut departures, mut retirements, mut refusals) = (0, 0, 0, 0);
+    let (mut accepted, mut departures, mut retirements, mut refusals, mut open_only) =
+        (0, 0, 0, 0, 0);
     for run in 0..200 {
         let mut game = ReactiveSession::from_source(SOURCE).unwrap();
         let mut trail = Vec::new();
         let mut tally = Tally {
             newest: BTreeMap::from([("s", 0), ("e", 1)]),
             archived: BTreeSet::new(),
+            open_only: 0,
         };
         let mut before = snapshot(&game);
-        check(&before, &tally, &format!("run {run} start"));
+        check(&before, &mut tally, &format!("run {run} start"));
         for step in 0..70 {
             seed = seed
                 .wrapping_mul(6_364_136_223_846_793_005)
@@ -462,13 +479,93 @@ fn windows_retire_and_departure_takes_exactly_what_nothing_pins() {
                 );
             }
             assert_eq!(game.undrained(), 0, "{at}");
-            check(&shown, &tally, &at);
+            check(&shown, &mut tally, &at);
+            open_only += tally.open_only;
+            tally.open_only = 0;
             before = shown;
         }
     }
     eprintln!("{accepted} accepted events, {refusals} refusals, {retirements} retirements, {departures} departures");
+    // Counted, not asserted, while D017 is open: how often a retired record
+    // stayed only because a reopened current revision's grounds name it.
+    eprintln!("D017 (open): {open_only} retired readings held only by a reopened current revision's grounds");
     assert!(
         departures > 800 && retirements > 1000,
         "the alphabet barely reached departure: {retirements} / {departures}"
     );
+}
+
+/// D017 (open): a series' current revision that is reopened pins its grounds
+/// today. Lineage Compaction 0.1 ("What stays exact") and Departure 0.1 say
+/// the grounds of the revision *in force* pin, and Dispatch 0.1's
+/// `decision_in_force` says a reopened revision is not in force. This case
+/// records the runtime's reading, so the decision that settles it has a test
+/// to flip: `d@1` is reopened, every journal entry that named `s@1` has
+/// departed, no state's grounds hold it, and it stays.
+#[test]
+fn d017_a_reopened_current_revision_keeps_its_grounds_pinned_today() {
+    let source = r#"
+claim ok;
+evidence h from "sensor";
+readings s from h window 2;
+decisions d limit 4;
+journal window 2;
+state a = 0;
+event read;
+event decide;
+event reconsider;
+on read sample s = a supports ok;
+on decide when has_sample(s) commit d because enough using latest(s);
+on reconsider when committed(d) and has_sample(s) reopen d because latest(s);
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    // s@1 grounds d@1; then four more readings reopen d@1 by four distinct
+    // witnesses, which pushes the committed entry out of the journal window
+    // and retires s@1 from the stream's window.
+    for event in [
+        "read",
+        "decide",
+        "read",
+        "reconsider",
+        "read",
+        "reconsider",
+        "read",
+        "reconsider",
+        "read",
+        "reconsider",
+    ] {
+        let outcome =
+            serde_json::to_value(game.dispatch_outcome_json(event, "{}").unwrap()).unwrap();
+        assert_eq!(outcome["outcome"], "accepted", "{event}: {outcome}");
+    }
+    let shown = snapshot(&game);
+    let commitment = shown["commitments"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["action"] == "d@1")
+        .unwrap();
+    assert_eq!(commitment["open"], true);
+    assert_eq!(shown["decision_series"]["d"]["current"], "d@1");
+    assert_eq!(
+        strings(&shown["commitment_grounds"]["d@1"]["evidence"]),
+        ["s@1"]
+    );
+    assert!(shown["decision_journal"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|entry| !strings(&entry["because"]).contains(&"s@1".to_string())));
+    assert!(shown["value_grounds"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|grounds| !strings(&grounds["evidence"]).contains(&"s@1".to_string())));
+    // Today: retired and held, pinned by the reopened revision's grounds.
+    assert!(
+        shown["retired"].get("s@1").is_some(),
+        "{}",
+        shown["retired"]
+    );
+    assert!(held(&shown, "s").contains(&"s@1".to_string()));
 }
