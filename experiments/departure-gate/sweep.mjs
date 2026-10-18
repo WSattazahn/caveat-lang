@@ -1,6 +1,7 @@
 // Compare both runtimes against identical current source bytes on this host.
 // Run from any directory: node experiments/departure-gate/sweep.mjs
 import assert from 'node:assert/strict';
+import { reviewedSaveChanges, comparableSave } from './reviewed-save-changes.mjs';
 import { createHash } from 'node:crypto';
 import { copyFileSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
@@ -18,10 +19,13 @@ const originalWindows = [
 // Programs written in syntax rc.15 cannot load have no rc.15 behavior to
 // preserve. Each is named here, and must use that syntax.
 const newerThanBaseline = {
+  'experiments/take-back-sweep/programs/guarded.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/round8.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/windowed.cav': /\bunqualify\b/,
   'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,
+  'docs/releases/v1.0.1-d012.cav': /\bunqualify\b/,
 };
+
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: root, maxBuffer: 64 * 1024 * 1024, ...options });
@@ -166,7 +170,8 @@ const [oldSave, newSave, oldOutcome, newOutcome] = sweeps.map(([name], index) =>
 assert.equal(newSave.length, noWindow.length);
 assert.ok(newSave.every((row, index) => row.startsWith(`${noWindow[index]} `)));
 assert.ok(newSave.every(row => row.endsWith(' skipped') || row.endsWith(' fatal=0')));
-assert.deepEqual(newSave, oldSave, 'no-window outcome, save and restore digests differ');
+for (const path of reviewedSaveChanges) assert.ok(noWindow.includes(path), `reviewed save change names no gated program: ${path}`);
+assert.deepEqual(comparableSave(newSave), comparableSave(oldSave), 'no-window outcome, save and restore digests differ');
 assert.equal(newOutcome.length, windowed.length * 32);
 assert.ok(newOutcome.every((row, index) => row.startsWith(`${windowed[Math.floor(index / 32)]} run=${index % 32} `)));
 assert.ok(newOutcome.every(row => row.includes('fatal=false')));

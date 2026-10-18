@@ -69,6 +69,14 @@ and `source_sha256`. `host.permits(name)` is true only while the decision is in
 force. An approval made earlier never turns a later refused send into a
 success. Read `accepted` for the operation and `permits` for the decision.
 
+`host.history(name)` lists every revision of the decision, oldest first: what
+each was committed on (`committed.because`, `caveats`, `value`) and, once
+reopened, what reopened it. Only the current revision is `in_force` or
+`reopened`; earlier ones are `superseded`. A revision whose journal entries a
+`journal window` retired is still listed, with `retired: true`. A host without
+the starter gets the same list from `decisionHistory(view, name)` in
+`caveat-lang/session`.
+
 ## What the stores guarantee
 
 Each accepted event is checkpointed before its archive items are appended. A

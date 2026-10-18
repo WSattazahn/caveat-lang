@@ -472,3 +472,42 @@ export async function loadRuntime({ module, wasm, identity }) {
   }
   return createRuntime(namespace.WebReactiveSession, identity);
 }
+
+// One journal change, copied so the caller cannot alter the view.
+function journalChange(entry) {
+  const change = { sequence: entry.sequence, event: entry.event, because: [...entry.because], caveats: [...entry.caveats] };
+  if (entry.value !== undefined) change.value = entry.value;
+  if (entry.permitted_by !== undefined) change.permitted_by = entry.permitted_by;
+  return change;
+}
+
+// Every revision of one decision series, oldest first, read from a view or
+// snapshot: what each was committed on and, once reopened, what reopened it.
+// The current revision is in force or reopened, as its commitment says; every
+// earlier one is superseded. The series lists every revision; a windowed
+// journal may have retired a revision's entries, and that revision is then
+// listed with `retired: true` and null for each change the journal no longer
+// holds, rather than left out.
+export function decisionHistory(view, decision) {
+  const series = view.decision_series?.[decision];
+  if (!series) throw new TypeError(`${decision} is not a decision series of this program`);
+  const revisions = new Map(series.revisions.map(item => [item.id, { revision: item.id, status: 'superseded', retired: true, committed: null, reopened: null }]));
+  for (const entry of view.decision_journal) {
+    const revision = entry.decision === decision ? revisions.get(entry.commitment) : undefined;
+    if (!revision) continue;
+    if (entry.change === 'committed') {
+      revision.committed = journalChange(entry);
+      revision.retired = false;
+    } else {
+      revision.reopened = journalChange(entry);
+    }
+  }
+  const current = series.current === null ? undefined : revisions.get(series.current);
+  if (current) {
+    const commitment = view.commitments.find(item => item.action === series.current);
+    // View 0.1 and the snapshot say `open`; View 0.2 says `reopened`.
+    const reopened = commitment ? commitment.open ?? commitment.reopened : true;
+    current.status = reopened === false ? 'in_force' : 'reopened';
+  }
+  return [...revisions.values()];
+}

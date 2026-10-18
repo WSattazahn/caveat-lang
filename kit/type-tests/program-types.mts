@@ -4,7 +4,8 @@
 // --noEmit --strict --module nodenext --target es2022
 // --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
 import { typed } from '../lib/types.mjs';
-import type { ArchiveEntry, CaveatRuntime } from '../lib/session.mjs';
+import { decisionHistory } from '../lib/session.mjs';
+import type { ArchiveEntry, CaveatRuntime, DecisionHistoryEntry } from '../lib/session.mjs';
 import { dependents, explain } from '../lib/explain.mjs';
 import type { Program, ProgramEvent, Session, View } from './gauge.js';
 
@@ -30,6 +31,14 @@ export function use(runtime: CaveatRuntime, source: string): void {
     void [since, dropped];
   }
   void reopened;
+
+  // A decision's revisions read the same from View 0.1, View 0.2 and a snapshot.
+  const revisions: DecisionHistoryEntry[] = decisionHistory(plain.view(), 'cover');
+  decisionHistory(next, 'cover');
+  decisionHistory(plain.snapshot(), 'cover');
+  const firstStatus: 'in_force' | 'reopened' | 'superseded' | undefined = revisions[0]?.status;
+  const reopenedBy: string[] | undefined = revisions[0]?.reopened?.because;
+  void [firstStatus, reopenedBy];
 
   // @ts-expect-error not an event of the program
   session.dispatch('raed', { celsius: 17 });
@@ -107,7 +116,8 @@ export async function host(runtime: CaveatRuntime, source: string, directory: st
   // @ts-expect-error read needs its payload
   await typedHost.send('read');
   const status: 'none' | 'in_force' | 'reopened' = typedHost.assessment('cover').status;
-  void status;
+  const history: DecisionHistoryEntry[] = typedHost.history('cover');
+  void [status, history];
   const onDisk = await openHost({ runtime, source, store: await fileStore(directory) });
   const entries: ArchiveEntry[] = await onDisk.archive();
   void entries;

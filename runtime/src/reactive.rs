@@ -1177,11 +1177,14 @@ pub enum EffectReport {
 }
 
 /// One `reopened by` trigger: a reading stream, optionally only its readings
-/// that bear on a claim in one relation.
+/// that bear on a claim in one relation, and, when `changed`, only readings
+/// whose value differs from the stream's previous reading. See
+/// spec/caveat-changed-triggers-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReopeningTrigger {
     pub stream: String,
     pub filter: Option<(Relation, String)>,
+    pub changed: bool,
 }
 
 impl ReopeningTrigger {
@@ -1422,6 +1425,10 @@ pub struct ReactiveSession {
     /// The caveats some `unqualify` names, fixed at load; empty in a program
     /// that does not take back.
     take_back_caveats: Arc<BTreeSet<String>>,
+    /// The caveats a `qualify` effect names: the only relations added while
+    /// the session runs, so the only ones a record may lack. See
+    /// spec/caveat-caveat-sources-0.1.md.
+    late_caveats: Arc<BTreeSet<String>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
@@ -1638,6 +1645,7 @@ impl ReactiveSession {
             withdrawals: Arc::default(),
             taken_back: Arc::default(),
             take_back_caveats: Arc::default(),
+            late_caveats: Arc::default(),
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
@@ -3463,7 +3471,8 @@ impl ReactiveSession {
             _ => None,
         };
         if let Some((kind, name)) = target {
-            let guard = self.frozen(guard).into_owned();
+            let mut guard = guard.clone();
+            self.freeze_observation(&mut guard);
             Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
@@ -4467,6 +4476,7 @@ impl ReactiveSession {
                         provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
                     }
                 }
+                self.read_live(&mut provenance)?;
                 provenance
             }
             _ => Provenance::default(),
@@ -4565,6 +4575,18 @@ impl ReactiveSession {
                 stance,
             } => {
                 self.history_room(stream)?;
+                // The previous reading's value, before taking this one can
+                // retire it: spec/caveat-changed-triggers-0.1.md.
+                let previous = {
+                    let readings = &self.reading_streams[stream];
+                    readings.current.as_ref().and_then(|current| {
+                        readings
+                            .occurrences
+                            .iter()
+                            .find(|occurrence| occurrence.id == *current)
+                            .map(|occurrence| occurrence.value)
+                    })
+                };
                 self.retire_oldest(stream);
                 let ordinal = self.next_stream_ordinal(stream);
                 let readings = &self.reading_streams[stream];
@@ -4617,7 +4639,7 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
-                self.freeze(&mut observation);
+                self.freeze_observation(&mut observation);
                 Arc::make_mut(&mut self.observation_qualifications)
                     .insert(name.clone(), observation);
                 let mut provenance = self.qualify(&name, &[])?;
@@ -4651,7 +4673,15 @@ impl ReactiveSession {
                         .map(|(relation, _)| relation_name(*relation).into()),
                     target: stance.as_ref().map(|(_, claim)| claim.clone()),
                 });
-                self.run_reopening_triggers(stream, stance.as_ref(), parameters, guard, budget)?;
+                let changed = previous.is_none_or(|previous| previous != number);
+                self.run_reopening_triggers(
+                    stream,
+                    stance.as_ref(),
+                    changed,
+                    parameters,
+                    guard,
+                    budget,
+                )?;
             }
             Effect::Reject { message } => return Err(DispatchFailure::policy(message)),
             Effect::Qualify {
@@ -4814,7 +4844,8 @@ impl ReactiveSession {
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 // The occurrence exists because this rule chose to renew.
                 if !guard.is_empty() {
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications).insert(name.clone(), guard);
                 }
                 Arc::make_mut(&mut self.renewals)
@@ -4884,7 +4915,8 @@ impl ReactiveSession {
                 let evidence = self.occurrence(evidence).to_string();
                 if !self.predicate("observed", &evidence)? {
                     self.clear_predicate_dependency("observed", &evidence);
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
@@ -4912,7 +4944,8 @@ impl ReactiveSession {
                     .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
                 {
                     self.clear_predicate_dependency("observed", evidence);
-                    let guard = self.frozen(guard).into_owned();
+                    let mut guard = guard.clone();
+                    self.freeze_observation(&mut guard);
                     Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
@@ -4929,13 +4962,17 @@ impl ReactiveSession {
             Effect::Examine { caveat, cost } => {
                 // This guard is part of the successful attention decision. It
                 // survives a later `examined(...)` query without changing any
-                // underlying claim or removing a retained caveat.
+                // underlying claim or removing a retained caveat. Like any
+                // stored guard, it keeps only what it did not take through a
+                // live relation, so a take-back reaches the rest (D019).
+                let mut guard = guard.clone();
+                self.freeze_observation(&mut guard);
                 let attention_basis = self
                     .examination_qualifications
                     .get(caveat)
                     .cloned()
                     .unwrap_or_default()
-                    .union(&self.frozen(guard))?;
+                    .union(&guard)?;
                 let resources = self
                     .resources
                     .as_mut()
@@ -5394,6 +5431,32 @@ impl ReactiveSession {
         }
     }
 
+    /// An observation's or predicate's qualification, as its record holds it.
+    /// It keeps the take-back caveats it carries except those it takes
+    /// through a live relation of evidence it holds: those stay live, so a
+    /// take-back reaches them as it reaches the evidence (D012).
+    fn freeze_observation(&self, provenance: &mut Provenance) {
+        if self.take_back_caveats.is_empty() {
+            return;
+        }
+        let live = self
+            .take_back_caveats
+            .iter()
+            .filter(|caveat| {
+                !provenance.kept.contains(*caveat)
+                    && self.symbols.get(*caveat).is_some_and(|&from| {
+                        provenance.evidence.iter().any(|name| {
+                            self.symbols
+                                .get(name)
+                                .is_some_and(|&to| self.has_live_relation(from, to))
+                        })
+                    })
+            })
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        provenance.keep(self.take_back_caveats.difference(&live));
+    }
+
     /// `provenance` as a record holds it, copied only when that differs.
     fn frozen<'a>(&self, provenance: &'a Provenance) -> std::borrow::Cow<'a, Provenance> {
         if self.take_back_caveats.is_empty() {
@@ -5443,27 +5506,83 @@ impl ReactiveSession {
                 event: event.clone(),
             });
         }
-        // Current values only, as a qualify. Commitment bases and grounds,
-        // reading archives and the journal keep what they recorded.
-        for slot in 0..self.states.len() {
-            let lineage = &self.states.cells[slot].value.provenance;
-            if !lineage.caveats.contains(caveat)
-                || lineage.kept.contains(caveat)
-                || !marked
+        // An observation's or predicate's record holds what it took through a
+        // live relation only while that relation is live (D012).
+        let unkept = |lineage: &Provenance| {
+            lineage.caveats.contains(caveat)
+                && !lineage.kept.contains(caveat)
+                && marked
                     .iter()
                     .any(|occurrence| lineage.evidence.contains(occurrence))
-                || lineage.evidence.iter().any(|name| {
+                && !lineage.evidence.iter().any(|name| {
                     self.symbols
                         .get(name)
                         .is_some_and(|&id| self.has_live_relation(from, id))
                 })
-            {
-                continue;
-            }
+        };
+        let observations = self
+            .observation_qualifications
+            .iter()
+            .filter(|(_, lineage)| unkept(lineage))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let examinations = self
+            .examination_qualifications
+            .iter()
+            .filter(|(_, lineage)| unkept(lineage))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let predicates = self
+            .predicate_qualifications
+            .iter()
+            .flat_map(|(kind, targets)| {
+                targets
+                    .iter()
+                    .filter(|(_, lineage)| unkept(lineage))
+                    .map(move |(name, _)| (kind.clone(), name.clone()))
+            })
+            .collect::<Vec<_>>();
+        // Current values only, as a qualify, and their grounds on the same
+        // test over the grounds' own evidence. Commitment bases and grounds,
+        // reading archives and the journal keep what they recorded.
+        let states = (0..self.states.len())
+            .map(|slot| {
+                let cell = &self.states.cells[slot];
+                (slot, unkept(&cell.value.provenance), unkept(&cell.grounds))
+            })
+            .filter(|&(_, in_value, in_grounds)| in_value || in_grounds)
+            .collect::<Vec<_>>();
+        for name in observations {
+            Arc::make_mut(&mut self.observation_qualifications)
+                .get_mut(&name)
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for name in examinations {
+            Arc::make_mut(&mut self.examination_qualifications)
+                .get_mut(&name)
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for (kind, name) in predicates {
+            Arc::make_mut(&mut self.predicate_qualifications)
+                .get_mut(&kind)
+                .and_then(|targets| targets.get_mut(&name))
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for (slot, in_value, in_grounds) in states {
             self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
             let cell = self.states.cell_mut(slot);
-            cell.value.provenance.caveats.remove(caveat);
-            cell.grounds.caveats.remove(caveat);
+            if in_value {
+                cell.value.provenance.caveats.remove(caveat);
+            }
+            if in_grounds {
+                cell.grounds.caveats.remove(caveat);
+            }
         }
         self.effects.push(EffectReport::Unqualify {
             evidence: evidence.to_string(),
@@ -5509,6 +5628,47 @@ impl ReactiveSession {
             }
             if in_grounds {
                 cell.grounds.merge(&added)?;
+            }
+        }
+        // An observation's or predicate's record lists what its guard read,
+        // so a later read through it sees the caveat a current value gains.
+        // A take-back removes it the same way (D012, D014).
+        let listed = |lineage: &Provenance| lineage.evidence.contains(evidence);
+        if self.observation_qualifications.values().any(listed)
+            || self.examination_qualifications.values().any(listed)
+            || self
+                .predicate_qualifications
+                .values()
+                .any(|targets| targets.values().any(listed))
+        {
+            let mut lineage = added.union(guard)?;
+            self.freeze_observation(&mut lineage);
+            // Each record whose qualification gains the lineage's evidence
+            // references it, so the withdrawal collector must recount that
+            // record's references before departure runs (D016).
+            let mut changed = BTreeSet::new();
+            for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
+                if listed(record) {
+                    record.merge(&lineage)?;
+                    changed.insert(name.clone());
+                }
+            }
+            for (name, record) in Arc::make_mut(&mut self.examination_qualifications).iter_mut() {
+                if listed(record) {
+                    record.merge(&lineage)?;
+                    changed.insert(name.clone());
+                }
+            }
+            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
+                for (name, record) in targets.iter_mut() {
+                    if listed(record) {
+                        record.merge(&lineage)?;
+                        changed.insert(name.clone());
+                    }
+                }
+            }
+            for name in changed {
+                self.collector_dirty(CollectorOwner::Record(name));
             }
         }
         self.effects.push(EffectReport::Qualify {
@@ -5629,20 +5789,20 @@ impl ReactiveSession {
 
     /// Every `unqualify` of a program, after procedures are specialized.
     fn take_back_effects(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.rules
-            .iter()
-            .map(|rule| &rule.effect)
-            .chain(
-                self.procedures
-                    .values()
-                    .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
-            )
-            .filter_map(|effect| match effect {
-                Effect::Unqualify {
-                    evidence, caveat, ..
-                } => Some((evidence.as_str(), caveat.as_str())),
-                _ => None,
-            })
+        self.program_effects().filter_map(|effect| match effect {
+            Effect::Unqualify {
+                evidence, caveat, ..
+            } => Some((evidence.as_str(), caveat.as_str())),
+            _ => None,
+        })
+    }
+
+    fn program_effects(&self) -> impl Iterator<Item = &Effect> {
+        self.rules.iter().map(|rule| &rule.effect).chain(
+            self.procedures
+                .values()
+                .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+        )
     }
 
     /// The caveats a program takes back, and the rules that make a take-back
@@ -5699,6 +5859,14 @@ impl ReactiveSession {
             }
         }
         self.take_back_caveats = Arc::new(caveats);
+        self.late_caveats = Arc::new(
+            self.program_effects()
+                .filter_map(|effect| match effect {
+                    Effect::Qualify { caveat, .. } => Some(caveat.clone()),
+                    _ => None,
+                })
+                .collect(),
+        );
         Ok(())
     }
 
@@ -5756,6 +5924,7 @@ impl ReactiveSession {
         &mut self,
         stream: &str,
         stance: Option<&(Relation, String)>,
+        changed: bool,
         parameters: &Parameters,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
@@ -5764,7 +5933,7 @@ impl ReactiveSession {
         for (series, watching, condition) in triggers.iter() {
             if !watching
                 .iter()
-                .any(|trigger| trigger.matches(stream, stance))
+                .any(|trigger| trigger.matches(stream, stance) && (changed || !trigger.changed))
             {
                 continue;
             }
@@ -5986,8 +6155,10 @@ impl ReactiveSession {
     }
 
     /// A value newly read from history carries `withdrawn` if what it rests on
-    /// has since been withdrawn. The record itself is unchanged.
+    /// has since been withdrawn, and the live caveats of the evidence the
+    /// record lists. The record itself is unchanged.
     fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
+        self.read_live(&mut provenance)?;
         if provenance
             .evidence
             .iter()
@@ -5996,6 +6167,53 @@ impl ReactiveSession {
             provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
         }
         Ok(provenance)
+    }
+
+    /// A record's own caveats are kept; the evidence it lists is read live
+    /// (D015). A value read through a record gains each caveat that now
+    /// qualifies that evidence, as a value that already held it gained the
+    /// caveat when it was added, so when the value is computed does not
+    /// matter. A caveat gained here is live: a take-back reaches it. See
+    /// spec/caveat-caveat-sources-0.1.md.
+    fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
+        if self.late_caveats.is_empty() {
+            return Ok(());
+        }
+        let late = self
+            .late_caveats
+            .iter()
+            .filter(|caveat| !provenance.caveats.contains(*caveat))
+            .filter_map(|caveat| self.symbols.get(caveat).copied())
+            .collect::<HashSet<_>>();
+        let listed = provenance
+            .evidence
+            .iter()
+            .filter_map(|name| self.symbols.get(name).copied())
+            .collect::<HashSet<_>>();
+        let reached = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.relation == Relation::Qualifies
+                    && late.contains(&edge.from)
+                    && listed.contains(&edge.to)
+                    && self.has_live_relation(edge.from, edge.to)
+            })
+            .map(|edge| edge.from)
+            .collect::<BTreeSet<_>>();
+        if reached.is_empty() {
+            return Ok(());
+        }
+        // The caveat and whatever qualifies it, as `qualify` adds them.
+        let names = self
+            .symbols
+            .iter()
+            .filter(|(_, id)| reached.contains(id))
+            .map(|(name, _)| name.clone())
+            .chain(self.incoming_caveats(reached.iter().copied()))
+            .collect::<Vec<_>>();
+        provenance.merge(&Provenance::from_names([], names)?)
     }
 
     /// `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)`.
@@ -6684,10 +6902,18 @@ pub(crate) fn parse_directive_at(
                         .join(" ")
                         .split(',')
                         .map(|trigger| {
-                            match trigger.split_whitespace().collect::<Vec<_>>()[..] {
+                            let words = trigger.split_whitespace().collect::<Vec<_>>();
+                            // `changed` leads only before a stream, so a stream
+                            // named `changed` keeps both of its forms.
+                            let (changed, words) = match words[..] {
+                                ["changed", _] | ["changed", _, _, _] => (true, &words[1..]),
+                                _ => (false, &words[..]),
+                            };
+                            match *words {
                                 [stream] => Ok(ReopeningTrigger {
                                     stream: identifier(stream)?,
                                     filter: None,
+                                    changed,
                                 }),
                                 [stream, relation @ ("supporting" | "opposing"), claim] => {
                                     Ok(ReopeningTrigger {
@@ -6700,10 +6926,11 @@ pub(crate) fn parse_directive_at(
                                             },
                                             identifier(claim)?,
                                         )),
+                                        changed,
                                     })
                                 }
                                 _ => Err(format!(
-                                    "reopened by takes STREAM or STREAM supporting|opposing CLAIM, not {}",
+                                    "reopened by takes [changed] STREAM [supporting|opposing CLAIM], not {}",
                                     trigger.trim()
                                 )),
                             }

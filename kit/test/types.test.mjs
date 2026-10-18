@@ -567,9 +567,11 @@ test('a server, its lines and its responses have the declared fields', () => {
     { id: 3, op: 'snapshot' }, { id: 4, op: 'explain' }, { id: 5, op: 'dependents', of: 'temperature@1' },
     { id: 6, op: 'save' }, { id: 7, op: 'dispatch', event: 'read' }, { id: 8, op: 'unknown' },
     { id: 'undrained', op: 'undrained' }, { id: 'drainArchive', op: 'drainArchive' },
+    { id: 'view', op: 'view' }, { id: 11, op: 'dispatch', event: 'read', payload: { value: 18 }, view: true },
   ];
   const results = lines.map(line => server.handle(JSON.stringify(line)));
   results.push(server.handle(JSON.stringify({ id: 9, op: 'restore', save: results[5].response.save })));
+  assertShape('ServeSave', [server.save()], { complete: true });
   results.push(server.handle(JSON.stringify({ id: 10, op: 'close' })));
   const fatal = createServer({ runtime: real, source: 'state output = 0; event run; on run set output = 1;' + provenanceOverflow('on run') });
   results.push(fatal.handle('{"op":"dispatch","event":"run"}'));

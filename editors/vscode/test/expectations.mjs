@@ -134,6 +134,14 @@ export const groups = [
   { name: 'integer clocks', words: ['integer'], probe: 'clock tick every 16 @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'history windows', words: ['window'], probe: 'readings r from e @ 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'journal windows', words: ['journal'], probe: '@ window 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  {
+    name: 'changed triggers',
+    words: ['changed'],
+    probe: 'decisions d limit 2 reopened by @ s;',
+    scope: 'keyword.other',
+    // A stream may be named `changed`.
+    notKeyword: ['state @ = 1;', 'set x = @;', 'decisions d limit 2 reopened by @;', 'decisions d limit 2 reopened by @ supporting c;'],
+  },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',

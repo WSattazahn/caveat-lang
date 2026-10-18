@@ -11,7 +11,7 @@
 // dropped, until an append succeeds. A store is only as durable as its own
 // writes; memoryStore is not durable at all.
 import { archiveSha256 } from './archive.mjs';
-import { CaveatError } from './session.mjs';
+import { CaveatError, decisionHistory } from './session.mjs';
 
 export const CHECKPOINT_SCHEMA = 'caveat-starter-checkpoint/0.1';
 
@@ -226,6 +226,13 @@ class Host {
   /** True only while the decision is in force in the current view. */
   permits(decision) {
     return this.assessment(decision).status === 'in_force';
+  }
+
+  /** Every revision of one decision in the current view, oldest first (decisionHistory). */
+  history(decision) {
+    const view = this.view();
+    if (!view.decision_series[decision]) throw new StarterError('unknown', `${decision} is not a decision of the program`);
+    return decisionHistory(view, decision);
   }
 
   /** Every archive item the store holds, in chunk order, then those still pending. */

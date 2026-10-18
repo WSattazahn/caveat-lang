@@ -25,7 +25,7 @@ installed.
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, which event (with its payload) observed each of its grounds, and why is each displayed value what it is? |
 | `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](reference/spec/caveat-dependents-0.1.md). |
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
-| `serve PROGRAM` | Keeps a session open over standard input and output ([serve](reference/spec/caveat-serve-0.1.md)). |
+| `serve [--state FILE] PROGRAM` | Keeps a session open over standard input and output; with `--state`, in a file across runs ([serve](reference/spec/caveat-serve-0.1.md)). |
 | `init [DIRECTORY]` | Writes the getting-started program, its scenarios and an events file. |
 
 Each answers only its own question. A program that loads can still do the
@@ -89,7 +89,7 @@ end of the line; `--` is not a comment.
 | `caveat NAME consequence LEVEL;` | A caveat. LEVEL is `negligible`, `low`, `material`, `high` or `catastrophic`. The level is reported in the snapshot's `symbols` and changes no outcome; a rule that reads the caveat, such as `when has_caveat(STATE, NAME) reject "…"`, makes it matter. |
 | `CAVEAT qualifies EVIDENCE;` | The caveat goes with that evidence and everything computed from it. |
 | `readings NAME from EVIDENCE limit N;` | A stream of up to N readings. |
-| `decisions NAME limit N [reopened by STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)). A series has no `window`, so every revision stays in the save; cap recommits ([guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)). |
+| `decisions NAME limit N [reopened by [changed] STREAM [supporting\|opposing CLAIM], …];` | A decision with up to N revisions ([triggers](reference/spec/caveat-reopening-triggers-0.1.md)); `changed` fires only on a reading whose value differs from the stream's previous one (from 1.1.0, [changed triggers](reference/spec/caveat-changed-triggers-0.1.md)). A series has no `window`, so every revision stays in the save; cap recommits ([guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)). |
 | `decisions NAME limit 1 irreversible [forecloses ACTION, …] [reopened by …];` | A decision that can't be undone. Its commit must `retain` each `material` or worse caveat it rests on, and once made, a commit of any `ACTION` it forecloses is refused. Reopening it records doubt and keeps the foreclosure ([foreclosure](reference/spec/caveat-foreclosure-0.1.md)). |
 | `state NAME = EXPRESSION [min A max B];` | A number. Bounds default to, and may not exceed, `-1e12..1e12`. |
 | `event NAME [PARAMETER, …];` | A parameter is `NAME min A max B`, `NAME in A B …`, `NAME kind KIND` or `NAME id` ([identifiers](reference/spec/caveat-identifiers-0.1.md)). |

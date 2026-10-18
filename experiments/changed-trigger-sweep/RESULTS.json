@@ -1,0 +1,116 @@
+{
+  "note": "Changed Triggers 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-changed-triggers-0.1.md, \"Corpus sweep\".",
+  "revision": "adb631edc2003b857fa3d65223c766bdce86f2b8",
+  "programs": 191,
+  "triggers": 21,
+  "programs_with_triggers": 14,
+  "changed_triggers": [],
+  "authored_reopenings_comparing_readings": [],
+  "all_triggers": [
+    {
+      "path": "experiments/agent-adoption/v1/evaluator/gold-tracker.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/first.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/tracker.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/first.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/tracker.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/first.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/tracker.cav",
+      "series": "answer",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/final/task.cav",
+      "series": "assessment",
+      "trigger": "observations"
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/first/task.cav",
+      "series": "assessment",
+      "trigger": "observations"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stable_release",
+      "trigger": "checks"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stable_release",
+      "trigger": "compatibility"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stable_release",
+      "trigger": "triage"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stable_release",
+      "trigger": "window_reviews"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stable_release",
+      "trigger": "approvals"
+    },
+    {
+      "path": "kit/examples/agent-evidence/assessment.cav",
+      "series": "assessment",
+      "trigger": "observations opposing answer_supported"
+    },
+    {
+      "path": "kit/examples/agent-evidence/grounded_assessment.cav",
+      "series": "assessment",
+      "trigger": "clarity"
+    },
+    {
+      "path": "kit/examples/agent-evidence/grounded_assessment.cav",
+      "series": "assessment",
+      "trigger": "freshness"
+    },
+    {
+      "path": "kit/examples/agent-evidence/grounded_assessment.cav",
+      "series": "assessment",
+      "trigger": "tools"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "series": "cover",
+      "trigger": "soil opposing frost_risk"
+    },
+    {
+      "path": "kit/test/fixtures/saves/programs/frost.cav",
+      "series": "cover",
+      "trigger": "aerial opposing frost_risk"
+    },
+    {
+      "path": "kit/test/fixtures/starter/assessment.cav",
+      "series": "assessment",
+      "trigger": "observations opposing answer_supported"
+    }
+  ]
+}

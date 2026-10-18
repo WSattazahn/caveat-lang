@@ -390,6 +390,8 @@ export const grammar = {
         // `window N` in place of `limit N`, and `journal window N`.
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}window\b(?=[ \t]+\d)` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}journal\b(?=[ \t]+window[ \t]+\d)` },
+        // `reopened by changed STREAM`: a stream may itself be named `changed`.
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}changed\b(?=[ \t]+[A-Za-z_]\w*[ \t]*(?:[,;]|supporting\b|opposing\b))` },
       ],
     },
     // `min 0 max 100` declares a range; elsewhere min and max are functions.

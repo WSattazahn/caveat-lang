@@ -1,0 +1,17 @@
+// D012: a take-back must reach a doubt a guarded renewal carried forward.
+// Run `npx caveat-lang test v1.0.1-d012.scenarios.json` beside this file.
+// caveat-lang 1.0.0 fails the last expectation; 1.0.1 passes.
+caveat flaky consequence material;
+evidence e from "tool";
+renewable e limit 8;
+event report;
+event flag;
+event unflag;
+on report when observed(e) renew e;
+on report reveal e;
+on flag qualify e with flaky;
+on unflag unqualify e with flaky;
+state v = 0;
+on report set v = qualified(1, e);
+bind view.evidence_flaky = if(carries(e, flaky), 1, 0);
+bind view.value_flaky = if(has_caveat(v, flaky), 1, 0);

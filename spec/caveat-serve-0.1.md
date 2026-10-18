@@ -20,6 +20,12 @@ If it does not load, the line is
 `{"schema":"caveat-serve/0.1","ready":false,"error":{"kind":"load","message":"…"}}`
 and the server exits with status 2.
 
+Started with `--state FILE`, the line also carries
+`"state":{"path":"FILE","restored":true}`, where `restored` says whether the
+session came from the file (see "State file"). A file that is not a save of the
+program, or one that cannot be read or written, is reported the same way with
+`"kind":"state"`, and the server exits with status 2 without serving.
+
 ## Requests
 
 A request is a JSON object with an `op`, an optional `id` of any JSON value,
@@ -28,8 +34,9 @@ are skipped.
 
 | `op` | Fields | Result fields |
 | --- | --- | --- |
-| `dispatch` | `event`, optional `payload` object, optional `snapshot: true` | `outcome` (`accepted` or `rejected`), `origin`, `code` and `message` when rejected, `sequence`, and `snapshot` when asked for |
+| `dispatch` | `event`, optional `payload` object, optional `snapshot: true`, optional `view: true` | `outcome` (`accepted` or `rejected`), `origin`, `code` and `message` when rejected, `sequence`, and `snapshot` and `view` when asked for |
 | `snapshot` | | `snapshot` |
+| `view` | | `view`: the [View 0.1](caveat-view-0.1.md) of the session, what a display needs without the snapshot's graph |
 | `drainArchive` | | `archive`: departed record entries and provenance nodes; empties the session's pending archive |
 | `undrained` | | `undrained`: the number of pending archive items (records plus provenance nodes) |
 | `explain` | optional `archive`: array of archive item objects | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
@@ -84,6 +91,30 @@ does not authenticate the historical evidence. See
 [Departure 0.1](caveat-departure-0.1.md). A supplied archive that is not an array
 of objects is a request error and changes nothing.
 
+## State file
+
+`caveat serve --state FILE PROGRAM` keeps the session in `FILE`, so a host
+that stops and starts again loses nothing and writes no save logic of its own.
+
+- On start, when `FILE` exists, the session is restored from it, as a `restore`
+  request would; the ready line says `restored: true`. When it does not exist,
+  the session opens fresh and the file is written at once, so it exists before
+  the first event.
+- After every accepted event and every `restore` request, the file is replaced
+  with the session's save: the compact save ([Replay Save 0.1](caveat-replay-save-0.1.md))
+  where the runtime has one, else the state save. A refused event, a request
+  error and every read-only request leave it as it is. The new text is written
+  beside the file and renamed over it, so a stop between the two leaves the
+  earlier save in place.
+- When the file cannot be written after an accepted event, the response to that
+  request is `{"id":…,"ok":false,"error":{"kind":"state","message":"…"}}`
+  instead of the acceptance, and the server exits with status 1. The session
+  took the event but the file still holds the session before it, so the host
+  sends the event again after restarting.
+
+The file is the host's: nothing else reads or writes it, and the host may copy
+it or pass it to `restore` elsewhere.
+
 ## Limits
 
 One server holds one session of one program. Requests are answered in order,
@@ -91,3 +122,10 @@ one at a time. The `explain` report's event list covers only this server's
 requests since the session opened or was last restored. Windowed snapshots
 retain live records and compact departed summaries; exact departed history
 requires the archive kept by the host.
+
+## Changes
+
+- 2026-10-18: `view` request, and `view: true` on `dispatch`, for a display
+  that does not need the snapshot; `--state FILE` keeps the session in a file
+  across runs. Both additive: a server started without `--state` answers as
+  before, byte for byte. Tests: `kit/test/serve.test.mjs`.

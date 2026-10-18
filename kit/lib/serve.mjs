@@ -9,8 +9,9 @@ import { CaveatError } from './session.mjs';
 export const SERVE_SCHEMA = 'caveat-serve/0.1';
 
 const FIELDS = {
-  dispatch: ['event', 'payload', 'snapshot'],
+  dispatch: ['event', 'payload', 'snapshot', 'view'],
   snapshot: [],
+  view: [],
   drainArchive: [],
   undrained: [],
   explain: ['archive'],
@@ -42,22 +43,46 @@ function parseRequest(line) {
 /**
  * A server for `source` on `runtime` (from loadRuntime or
  * loadRuntimeFromDirectory). Opening the session throws CaveatError("load")
- * when the program does not load. `ready` is the first line to write.
- * `handle(line)` returns `{response, exit}`: write the response, then stop with
- * `exit` as the status when it is a number.
+ * when the program does not load; with `restore`, the text of an earlier save,
+ * the session starts from that save instead, and a save the runtime cannot use
+ * throws CaveatError("restore"). `ready` is the first line to write.
+ * `handle(line)` returns `{response, exit, changed}`: write the response, then
+ * stop with `exit` as the status when it is a number. `changed` is true when
+ * the request changed the session (an accepted event, or a restore), which is
+ * when a host that keeps a state file rewrites it; `save()` returns that
+ * file's text, compact where the runtime supports it, with `compact` saying
+ * which it is.
  */
-export function createServer({ runtime, source, program = null }) {
-  let session = runtime.open(source);
+export function createServer({ runtime, source, program = null, restore = null }) {
+  let session = restore === null ? runtime.open(source) : runtime.restore(source, restore);
   // The events since the session opened or was restored, for explain.
   let events = [];
+  // Whether the runtime has a compact save: unknown until the first save asks.
+  let compact = null;
 
   const ready = { schema: SERVE_SCHEMA, ready: true, program, runtime: runtime.identity ?? {} };
+
+  function save() {
+    if (compact !== false) {
+      try {
+        const text = session.save({ compact: true });
+        compact = true;
+        return { text, compact };
+      } catch (error) {
+        // A runtime from before compact saves says so on load; anything else is real.
+        if (!(error instanceof CaveatError && error.kind === 'load')) throw error;
+        compact = false;
+      }
+    }
+    return { text: session.save(), compact };
+  }
 
   function run({ op, ...request }) {
     if (op === 'dispatch') {
       if (typeof request.event !== 'string' || !request.event) throw new RequestError('dispatch needs an "event" name');
       if (request.payload !== undefined && !isObject(request.payload)) throw new RequestError('"payload" must be an object');
       if (request.snapshot !== undefined && typeof request.snapshot !== 'boolean') throw new RequestError('"snapshot" must be true or false');
+      if (request.view !== undefined && typeof request.view !== 'boolean') throw new RequestError('"view" must be true or false');
       const payload = request.payload ?? {};
       let result;
       try { result = session.dispatch(request.event, payload); } catch (error) {
@@ -68,9 +93,15 @@ export function createServer({ runtime, source, program = null }) {
       const after = snapshot ?? session.snapshot();
       events.push({ event: request.event, payload, outcome,
         ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
-      return { ...outcome, sequence: after.sequence, ...(request.snapshot ? { snapshot: after } : {}) };
+      return {
+        ...outcome,
+        sequence: after.sequence,
+        ...(request.snapshot ? { snapshot: after } : {}),
+        ...(request.view ? { view: session.view() } : {}),
+      };
     }
     if (op === 'snapshot') return { snapshot: session.snapshot() };
+    if (op === 'view') return { view: session.view() };
     if (op === 'drainArchive') return { archive: session.drainArchive() };
     if (op === 'undrained') return { undrained: session.undrained };
     if ((op === 'explain' || op === 'dependents') && request.archive !== undefined
@@ -111,16 +142,17 @@ export function createServer({ runtime, source, program = null }) {
       const request = parseRequest(line);
       id = request.id;
       const result = run(request);
-      return { response: { id, ok: true, ...result }, exit: request.op === 'close' ? 0 : null };
+      const changed = request.op === 'restore' || (request.op === 'dispatch' && result.outcome === 'accepted');
+      return { response: { id, ok: true, ...result }, exit: request.op === 'close' ? 0 : null, changed };
     } catch (error) {
       if (error instanceof RequestError) {
-        return { response: { id: error.id ?? id, ok: false, error: { kind: 'request', message: error.message } }, exit: null };
+        return { response: { id: error.id ?? id, ok: false, error: { kind: 'request', message: error.message } }, exit: null, changed: false };
       }
       // A fatal outcome makes the session unusable; the host must start again.
       const kind = error instanceof CaveatError ? error.kind : 'fatal';
-      return { response: { id, ok: false, error: { kind, message: error.message } }, exit: 1 };
+      return { response: { id, ok: false, error: { kind, message: error.message } }, exit: 1, changed: false };
     }
   }
 
-  return { ready, handle, close: () => session.close() };
+  return { ready, handle, save, close: () => session.close() };
 }
