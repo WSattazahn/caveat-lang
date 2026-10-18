@@ -213,6 +213,13 @@ program that declares neither word gets the same report, byte for byte.
 - [Procedures](caveat-procedure-symbols-0.1.md): a procedure that takes a
   `decisions` parameter may be passed an irreversible series. The rules apply
   to the commits it makes, after expansion.
+- [Late Qualification 0.1](caveat-late-qualification-0.1.md): `retaining`
+  cannot name a caveat the program takes back with `unqualify` (an existing
+  load rule). An irreversible commit resting on such a caveat, when it is
+  material or above, goes ahead only after the take-back.
+- `unqualify` cannot name a reading stream's template evidence (an existing
+  load rule), so `withdrawn` is the only late caveat a stream reading can
+  carry into an irreversible commit's grounds.
 
 ## Questions settled
 
@@ -310,6 +317,9 @@ No accepted program changes.
   series that keeps its foreclosure, the in-event order, the load rules, the
   words as names, a procedure parameter, C002, and a save and restore round
   trip with restore's check.
+- `runtime/tests/foreclosure_invariants.rs`, from the bug hunt, runs 300
+  random histories of 60 steps with save and restore in place, beside a twin
+  program without the two words, and checks each rule above on every step.
 - The kit's types add the two codes and the snapshot and explain fields, and
   `explain` prints them. Dispatch 0.1, Compatibility, the language reference
   and the authoring guide describe the form.
@@ -319,3 +329,4 @@ No accepted program changes.
 - 2026-10-18: specified for 1.2, from the
   [design note](../experiments/foreclosure-sweep/README.md).
 - 2026-10-18: implemented on its branch.
+- 2026-10-18: the bug hunt's random check added; no finding.
