@@ -1,0 +1,146 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "project.cav",
+  "scenarios": [
+    {
+      "id": "L01",
+      "title": "A patch release that looked safe is reopened when its tree is found uncovered; the next release rests on a fresh tree and inherits the doubt through its lineage only",
+      "steps": [
+        { "expect": { "/bindings/ledger/release": "none yet" } },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 101 } },
+        { "send": "ship", "payload": { "version": 101 } },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.1 stands",
+            "/bindings/ledger/release_basis_doubted": 0,
+            "/commitment_grounds/release@1": { "evidence": ["release_tree"], "caveats": ["changes_saves"] }
+        } },
+        { "checkpoint": "shipped_101" },
+        { "send": "review" },
+        { "expect": { "/bindings/ledger/release": "1.0.1 stands" } },
+        { "send": "find", "payload": { "number": 16 } },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.1 stands",
+            "/bindings/ledger/release_basis_doubted": 1
+        } },
+        { "same_as": "shipped_101", "paths": ["/commitment_grounds/release@1", "/decision_journal/0"] },
+        { "send": "review" },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.1 is reopened: its basis carries a doubt",
+            "/decision_journal/1": { "change": "reopened", "commitment": "release@1", "because": ["release_tree"], "caveats": { "$includes": ["uncovered_windows"] } }
+        } },
+        { "send": "review" },
+        { "expect": { "/decision_journal/2": { "$absent": true } } },
+        { "send": "ship", "payload": { "version": 102 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 102 } },
+        { "send": "ship", "payload": { "version": 102 } },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.2 stands",
+            "/bindings/ledger/release_basis_doubted": 0,
+            "/commitment_grounds/release@2": { "evidence": ["release_tree@2"], "caveats": ["changes_saves"] },
+            "/commitment_bases/release@2/provenance/caveats": { "$includes": ["uncovered_windows"] }
+        } }
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "A merge needs a clean rerun, a green CI run and the owner's go for that item; nothing else is enough, and a refusal leaves nothing behind",
+      "steps": [
+        { "send": "merge", "rejected": "no rerun to rest on" },
+        { "send": "rerun", "payload": { "divergences": 6 } },
+        { "send": "merge", "rejected": "the last rerun still diverged" },
+        { "send": "rerun", "payload": { "divergences": 0 } },
+        { "send": "merge", "rejected": "no green CI run on the branch" },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "merge", "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "send": "approve", "payload": { "item": 260 } },
+        { "send": "merge", "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "expect": { "/bindings/ledger/merge_259": "not merged", "/decision_journal": [] } },
+        { "send": "approve", "payload": { "item": 259 } },
+        { "send": "merge" },
+        { "expect": {
+            "/bindings/ledger/merge_259": "merged on a rerun of 0 divergences",
+            "/commitment_grounds/merge_259@1/evidence": { "$set": ["reruns@2", "ci"] },
+            "/decision_journal/0": { "change": "committed", "commitment": "merge_259@1", "permitted_by": "approvals@2" }
+        } }
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "An inference is withdrawn, not erased, when a rerun on the fix still diverges; what rested on it says so",
+      "steps": [
+        { "send": "infer_attribution" },
+        { "expect": {
+            "/bindings/ledger/attribution": "all nine divergences were D012 (inferred)",
+            "/binding_explanations/ledger/attribution/caveats": ["inferred_not_traced"]
+        } },
+        { "send": "rerun", "payload": { "divergences": 6 } },
+        { "expect": {
+            "/bindings/ledger/attribution": "the all-nine inference was withdrawn: a rerun on the fix still diverged",
+            "/withdrawals/0": { "evidence": "attribution_all_nine", "because": "rerun_on_fix" },
+            "/relations": { "$includes": [{ "from": "attribution_all_nine", "relation": "supports", "to": "divergences_were_runtime", "origin": "live" }] }
+        } },
+        { "send": "rerun", "payload": { "divergences": 0 } },
+        { "expect": { "/withdrawals": [{ "evidence": "attribution_all_nine", "because": "rerun_on_fix", "sequence": 2, "event": "rerun" }] } }
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "D018 alone puts the uncovered-windows doubt on the release tree, so the reopening reads true whichever finding came first",
+      "steps": [
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 101 } },
+        { "send": "ship", "payload": { "version": 101 } },
+        { "send": "find", "payload": { "number": 18 } },
+        { "expect": { "/bindings/ledger/release_basis_doubted": 1 } },
+        { "send": "review" },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.1 is reopened: its basis carries a doubt",
+            "/decision_journal/1": { "change": "reopened", "commitment": "release@1", "because": ["release_tree"], "caveats": { "$includes": ["uncovered_windows"] } }
+        } }
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "The ledger replays 2026-10-17 and 18 as recorded in events.jsonl and ends where the project stands",
+      "steps": [
+        { "send": "infer_attribution" },
+        { "send": "reproduce" },
+        { "send": "rerun", "payload": { "divergences": 6 } },
+        { "send": "bisect" },
+        { "send": "approve", "payload": { "item": 41 } },
+        { "send": "decide_record_fix", "payload": { "option": 1 } },
+        { "send": "rerun", "payload": { "divergences": 0 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 259 } },
+        { "send": "merge" },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 101 } },
+        { "send": "ship", "payload": { "version": 101 } },
+        { "send": "find", "payload": { "number": 16 } },
+        { "send": "find", "payload": { "number": 18 } },
+        { "send": "release_build_shows", "payload": { "number": 18 } },
+        { "send": "review" },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "checks_land" },
+        { "send": "find", "payload": { "number": 19 } },
+        { "send": "approve", "payload": { "item": 1022 } },
+        { "send": "decide_scope", "payload": { "option": 2 } },
+        { "send": "approve", "payload": { "item": 102 } },
+        { "send": "ship", "payload": { "version": 102 } },
+        { "expect": {
+            "/bindings/ledger/release": "1.0.2 stands",
+            "/bindings/ledger/merge_259": "merged on a rerun of 0 divergences",
+            "/bindings/ledger/attribution": "the all-nine inference was withdrawn: a rerun on the fix still diverged",
+            "/bindings/ledger/findings": 3,
+            "/bindings/ledger/scope_1_0_2": "1.0.2 ships D016 and D018 only; D019 follows",
+            "/bindings/ledger/record_fix": "before the two gaps",
+            "/decision_series/release/current": "release@2",
+            "/decision_series/release/revisions/0/id": "release@1",
+            "/commitment_grounds/scope_1_0_2@1": { "evidence": ["d019"], "caveats": ["latent_since_1_0_0"] }
+        } }
+      ]
+    }
+  ]
+}
