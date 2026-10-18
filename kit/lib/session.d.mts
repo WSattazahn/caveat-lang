@@ -36,7 +36,9 @@ export type KnownRejectionCode =
   | 'requirement_failed'
   | 'scheduled_limit'
   | 'not_committed'
-  | 'already_committed';
+  | 'already_committed'
+  | 'foreclosed'
+  | 'caveated_irreversible';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -451,6 +453,11 @@ export interface Snapshot {
   commitment_bases: Record<string, CommitmentBasis>;
   reading_streams: Record<string, ReadingStream>;
   decision_series: Record<string, DecisionSeries>;
+  /**
+   * Irreversible series and the actions each forecloses, in source order;
+   * absent when no series is irreversible (spec/caveat-foreclosure-0.1.md).
+   */
+  irreversible?: Record<string, string[]>;
   /** First-observation order; present after neutral observation, otherwise derived from stance relations. */
   observations?: string[];
   observation_qualifications: Record<string, Provenance>;

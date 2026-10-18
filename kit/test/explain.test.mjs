@@ -246,3 +246,34 @@ test('explain and dependents show retired and departed records', async () => {
   assert.ok(records[1].holders.some(holder => holder.kind === 'commitment' && holder.name === 'trust@1' && holder.in === 'grounds'));
   session.close();
 });
+
+test('an irreversible decision shows what it forecloses, and a refused commit names it', async () => {
+  const source = `scene "Dropping the old table can't be undone.";
+claim safe;
+evidence check from "a complete dry run";
+readings runs from check limit 4;
+decisions drop limit 1 irreversible forecloses rollback, undo;
+decisions rollback limit 4;
+event dry_run;
+event go;
+event back;
+on dry_run sample runs = 1 supports safe;
+on go commit drop because enough using latest(runs);
+on back commit rollback because enough using 1;
+on back commit undo because enough;
+`;
+  const events = ['dry_run', 'go', 'back'].map(event => JSON.stringify({ event })).join('\n');
+  await withFiles({ 'drop.cav': source, 'events.jsonl': events }, async file => {
+    const result = run(file('drop.cav'), file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, / {2}drop: 1 of at most 1, irreversible, forecloses rollback, undo\n/);
+    assert.match(result.stdout, / {2}rollback: 0 of at most 4, foreclosed by drop@1\n/);
+    assert.match(result.stdout, /back {2}refused \(evaluation\/foreclosed\): .*rollback is foreclosed by drop@1/);
+    const json = JSON.parse(run('--json', file('drop.cav'), file('events.jsonl')).stdout);
+    const series = Object.fromEntries(json.decisions.map(item => [item.name, item]));
+    assert.equal(series.drop.irreversible, true);
+    assert.deepEqual(series.drop.forecloses, ['rollback', 'undo']);
+    assert.deepEqual(series.rollback.foreclosed_by, ['drop@1']);
+    assert.equal('irreversible' in series.rollback, false);
+  });
+});

@@ -40,6 +40,8 @@ pub enum RejectionCode {
     ScheduledLimit,
     NotCommitted,
     AlreadyCommitted,
+    Foreclosed,
+    CaveatedIrreversible,
 }
 
 #[derive(Debug, Serialize)]
@@ -295,6 +297,11 @@ mod tests {
             (RejectionOrigin::Limit, RejectionCode::ScheduledLimit),
             (RejectionOrigin::Evaluation, RejectionCode::NotCommitted),
             (RejectionOrigin::Evaluation, RejectionCode::AlreadyCommitted),
+            (RejectionOrigin::Evaluation, RejectionCode::Foreclosed),
+            (
+                RejectionOrigin::Evaluation,
+                RejectionCode::CaveatedIrreversible,
+            ),
         ];
         let failures = || {
             codes

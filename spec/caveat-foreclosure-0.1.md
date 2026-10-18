@@ -1,6 +1,6 @@
 # CAVEAT Foreclosure 0.1 (draft) — decisions that close off options
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.2: nothing implements it yet. It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.2: implemented on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.5](caveat-reactive-0.5.md),
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md) and
 [Dispatch 0.1](caveat-dispatch-0.1.md); it changes no program that loads
@@ -71,7 +71,9 @@ expanded.
 The words are read only in this position, after `limit N`, so they reserve
 nothing. A series, stream or claim named `irreversible` or `forecloses` keeps
 loading, and `decisions irreversible limit 1 irreversible;` declares an
-irreversible series named `irreversible`.
+irreversible series named `irreversible`. Only a module of a draft 0.5 bundle
+([Caveat 0.5](caveat-0.5-draft.md)) may not declare them, as for every clause
+word, since its rewriter reads words, not positions.
 
 These do not load, each with its own message:
 
@@ -135,7 +137,7 @@ Once a revision of an irreversible series `D` is committed, each `ACTION` it
 `forecloses` is closed: an executed `commit` of `ACTION` is refused as
 `evaluation/foreclosed`, with the message `ACTION is foreclosed by D@1`. When
 several committed series foreclose the same action, the message names the one
-committed first.
+committed first, by event sequence and then by series name.
 
 - **Only later commits.** A foreclosure closes the commits after it. A
   revision of `ACTION` already committed keeps its status, its basis and its
@@ -178,10 +180,10 @@ program that declares neither word gets the same report, byte for byte.
 
 ## Snapshot, save, explain and views
 
-- In the `caveat-reactive/0.1` snapshot, a series declared irreversible has
-  `"irreversible": true`, and one that forecloses has `"forecloses"`, its
-  actions in source order. Both are absent otherwise, so every program that
-  loads today keeps its snapshot byte for byte.
+- The `caveat-reactive/0.1` snapshot gains `irreversible`: by irreversible
+  series, the actions it forecloses in source order (an empty list when it
+  forecloses none). It is absent when no series is irreversible, so every
+  program that loads today keeps its snapshot byte for byte.
 - A save holds nothing new: the declaration comes from the source, which the
   save binds by digest ([Save 0.1](caveat-save-0.1.md#source-digest)).
   Restoring refuses a save whose journal commits a foreclosed action after the
@@ -189,8 +191,9 @@ program that declares neither word gets the same report, byte for byte.
   irreversible series. As with every restore check, a save that passes holds
   records the program could hold; restore never authenticates history.
 - `caveat-explain/0.1` gives a series `irreversible: true` and `forecloses`
-  when declared, and gives a foreclosed series or plain commitment
-  `foreclosed_by`, the committed revisions that foreclose it in commit order.
+  when declared, and gives a foreclosed series, or a foreclosed plain
+  commitment it lists, `foreclosed_by`: the committed revisions that foreclose
+  it, by event sequence and then name.
   Each is absent otherwise. The text adds `, irreversible`,
   `, forecloses A, B` and `, foreclosed by D@1` to the series line, in that
   order.
@@ -296,19 +299,23 @@ No accepted program changes.
 
 - The runtime parses the two words after `limit N`, applies the load rules,
   and adds the two checks to `commit` in the order above. A foreclosed
-  action's refusal names the foreclosing revision. Restore applies the two
-  checks above. The snapshot carries the two declaration fields.
-- Runtime tests cover the prototype's migration, the refusal of a caveated
-  irreversible commit and its acceptance with `retaining`, a withdrawn
-  ground, a reopened irreversible series that keeps its foreclosure, the
-  in-event order, the load rules, a procedure parameter, and a save and
-  restore round trip with restore's checks.
-- The kit's types add the two codes and the snapshot and explain fields;
-  `explain` prints them; C002 skips an irreversible series. Dispatch 0.1,
-  Compatibility, the language reference, the authoring guide and the grammar
-  describe the form.
+  action's refusal names the foreclosing revision. Restore checks that no
+  foreclosed action was committed after its foreclosure; a second revision of
+  an irreversible series already fails restore's series limit check. The
+  snapshot carries `irreversible`.
+- `runtime/tests/foreclosure.rs` covers the prototype's migration, a
+  foreclosed plain commitment, the refusal of a caveated irreversible commit
+  and its acceptance with `retaining`, a `low` caveat that is not read, the
+  permission check coming first, a withdrawn ground, a reopened irreversible
+  series that keeps its foreclosure, the in-event order, the load rules, the
+  words as names, a procedure parameter, C002, and a save and restore round
+  trip with restore's check.
+- The kit's types add the two codes and the snapshot and explain fields, and
+  `explain` prints them. Dispatch 0.1, Compatibility, the language reference
+  and the authoring guide describe the form.
 
 ## Changes
 
 - 2026-10-18: specified for 1.2, from the
   [design note](../experiments/foreclosure-sweep/README.md).
+- 2026-10-18: implemented on its branch.

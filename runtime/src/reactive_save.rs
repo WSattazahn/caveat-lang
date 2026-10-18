@@ -830,6 +830,56 @@ impl ReactiveSession {
     /// Departure markers, inherited grounds and the departure rule: see
     /// spec/caveat-lineage-compaction-0.1.md and spec/caveat-departure-0.1.md,
     /// "Save and restore".
+    /// No foreclosed action is committed after the irreversible commitment
+    /// that forecloses it. A commit with no journal entry is placed by its
+    /// revision's sequence alone. See spec/caveat-foreclosure-0.1.md.
+    fn check_foreclosures_held(&self, save: &ReactiveSave) -> Result<(), String> {
+        let journaled = |commitment: &str| {
+            save.decision_journal
+                .iter()
+                .position(|entry| entry.commitment == commitment && entry.change == "committed")
+        };
+        let commits = |action: &str| -> Vec<(String, u64, Option<usize>)> {
+            match save.decision_series.get(action) {
+                Some(series) => series
+                    .revisions
+                    .iter()
+                    .map(|revision| {
+                        (
+                            revision.id.clone(),
+                            revision.sequence,
+                            journaled(&revision.id),
+                        )
+                    })
+                    .collect(),
+                None => journaled(action)
+                    .map(|index| {
+                        let entry = &save.decision_journal[index];
+                        vec![(entry.commitment.clone(), entry.sequence, Some(index))]
+                    })
+                    .unwrap_or_default(),
+            }
+        };
+        for (series, forecloses) in self.irreversible.iter() {
+            let Some((by, sequence, index)) = commits(series).into_iter().next() else {
+                continue;
+            };
+            for action in forecloses {
+                for (commitment, later, later_index) in commits(action) {
+                    let after = later > sequence
+                        || (later == sequence
+                            && matches!((index, later_index), (Some(a), Some(b)) if b > a));
+                    if after {
+                        return Err(format!(
+                            "{commitment} is committed after {by}, which forecloses it"
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn restore_departures(&mut self, save: &ReactiveSave) -> Result<(), String> {
         let journal = self.journal_window.is_some();
         let windowed = self.windowed();
@@ -2321,6 +2371,7 @@ impl ReactiveSession {
                 Some(caveats),
             )?;
         }
+        self.check_foreclosures_held(save)?;
         for (name, occurrences) in &save.renewals {
             let declared = self
                 .renewals
