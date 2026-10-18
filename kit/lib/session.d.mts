@@ -850,3 +850,36 @@ export interface Budget {
   remaining: number;
   exhausted: boolean;
 }
+
+/** One journal change to a decision revision. */
+export interface DecisionChange {
+  sequence: number;
+  event: string;
+  /** For a commit, the evidence it rests on; for a reopening, what reopened it. */
+  because: string[];
+  caveats: string[];
+  /** The commitment's frozen `using` value, if it had one. */
+  value?: number;
+  permitted_by?: string;
+}
+
+/** One revision of a decision series, as `decisionHistory` reads it. */
+export interface DecisionHistoryEntry {
+  revision: string;
+  /** Only the current revision is `in_force` or `reopened`; every earlier one is `superseded`. */
+  status: 'in_force' | 'reopened' | 'superseded';
+  committed: DecisionChange;
+  /** What reopened it, or null while it has not been reopened. */
+  reopened: DecisionChange | null;
+}
+
+/**
+ * Every revision of one decision series, oldest first, from a view or a
+ * snapshot's journal. A windowed journal may have retired a revision's commit
+ * entry; that revision is left out. Throws a `TypeError` for a name that is
+ * not a decision series.
+ */
+export declare function decisionHistory(
+  view: { decision_series: Record<string, DecisionSeries>; decision_journal: DecisionJournalEntry[]; commitments: Array<Commitment | ViewCommitment> },
+  decision: string,
+): DecisionHistoryEntry[];

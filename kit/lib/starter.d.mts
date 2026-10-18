@@ -1,6 +1,6 @@
 // Types for starter.mjs: one program's session behind a host that
 // checkpoints every accepted event and keeps the archive beside it.
-import type { ArchiveEntry, CaveatErrorKind, CaveatRuntime, Origin, RejectionCode, RuntimeIdentity, Snapshot, View } from './session.mjs';
+import type { ArchiveEntry, CaveatErrorKind, CaveatRuntime, DecisionHistoryEntry, Origin, RejectionCode, RuntimeIdentity, Snapshot, View } from './session.mjs';
 import type { PayloadArgument, ProgramTypes, TypedView } from './types.mjs';
 
 export declare const CHECKPOINT_SCHEMA: 'caveat-starter-checkpoint/0.1';
@@ -126,6 +126,8 @@ export interface CaveatHost<V = View> {
   resync(clientSequence: number | null): ResyncResult<V>;
   assessment(decision: string): Assessment;
   permits(decision: string): boolean;
+  /** Every revision of one decision in the current view, oldest first. */
+  history(decision: string): DecisionHistoryEntry[];
   archive(): Promise<ArchiveEntry[]>;
   close(): Promise<void>;
 }
