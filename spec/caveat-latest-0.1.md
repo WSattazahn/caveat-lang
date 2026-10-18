@@ -18,11 +18,11 @@ does not load: line 13, column 1: invalid reactive identifier latest(checks)
 (`caveat-lang@1.0.2`, `caveat check`, on the program below.) `withdraw
 latest(STREAM)` and `reopen … because latest(STREAM)` name a reading, but
 `qualify` and `unqualify` could not, and a stream's template cannot be
-qualified for one reading, since every later reading copies its caveats. Both Caveat authors in the second usability pilot started
-on reading streams and rewrote their programs to renewable evidence for this.
-They also noted that `unqualify E with C` reaches every held occurrence of
-`E`, where their task wanted only the latest. This profile adds one target to
-both effects:
+qualified for one reading, since every later reading copies its caveats.
+An author who starts on a reading stream has to rewrite it as renewable
+evidence to doubt one reading. Separately, `unqualify E with C` reaches every
+held occurrence of `E`, where a task often wants only the latest. This
+profile adds one target to both effects:
 
 ```caveat
 claim passing;
@@ -184,6 +184,4 @@ take-back report that names the stream. Tests:
 
 ## Changes
 
-- 2026-10-18: drafted and implemented for 1.1, closing the second and third
-  pilot gaps ("reading streams can't be qualified", "`unqualify` reaches
-  every held occurrence").
+- 2026-10-18: drafted and implemented for 1.1.
