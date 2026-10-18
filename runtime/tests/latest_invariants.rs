@@ -190,14 +190,16 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
         mut read_flaky,
         mut commits_flaky,
         mut departed_flagged,
-        mut d020,
-    ) = (0, 0, 0, 0, 0, 0, 0, 0, 0);
+    ) = (0, 0, 0, 0, 0, 0, 0, 0);
     for run in 0..200 {
         let mut game = ReactiveSession::from_source(SOURCE).unwrap();
         let mut trail = Vec::new();
         let mut before = snapshot(&game);
         // Whether flaky's relation on each reading or occurrence is live now.
         let mut live: BTreeMap<String, bool> = BTreeMap::new();
+        // Whether an occurrence of e departed its window while flaky's
+        // relation on it was live (see below).
+        let mut kept_e = false;
         // What each revision was made on, frozen at its commit.
         let mut made_on: Vec<(String, Vec<String>)> = Vec::new();
         for step in 0..60 {
@@ -295,6 +297,19 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
                 shown,
                 "{at}: the restored session's snapshot differs"
             );
+            // An occurrence of e that departed during this event, while its
+            // flaky relation was live, leaves flaky kept in every later
+            // occurrence's record, which lists it through the renewal guard
+            // (Take-back 0.1, "Departure and collection"). A value read in
+            // this same event already sees that.
+            {
+                let held_now = occurrences(&shown);
+                if live.iter().any(|(target, is_live)| {
+                    *is_live && target.starts_with("e@") && !held_now.contains(target)
+                }) {
+                    kept_e = true;
+                }
+            }
             // The model: what the event did to flaky's relations.
             let effects = shown["effects"].as_array().unwrap();
             let unqualified: Option<Vec<String>> = effects
@@ -423,20 +438,19 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
                     "none of e's occurrences".to_string()
                 };
                 let caveats = value_caveats(&shown, "ev");
-                let expected = held_e.iter().any(|occurrence| carries(occurrence));
-                // D020 (open): a stored observation or predicate qualification
-                // that took flaky from an unguarded qualify keeps it, so a
-                // take-back does not reach values read through it. Counted
-                // until the fix lands; asserted otherwise.
-                if caveats.contains(&"flaky".to_string()) && !expected && kept_flaky(&shown) {
-                    d020 += 1;
-                } else {
-                    assert_eq!(
-                        caveats.contains(&"flaky".to_string()),
-                        expected,
-                        "{at}: ev read {current}: {caveats:?}"
-                    );
-                }
+                let expected = held_e.iter().any(|occurrence| carries(occurrence)) || kept_e;
+                // D020: a stored observation or predicate qualification
+                // that took flaky from an unguarded qualify must not keep it,
+                // so a take-back reaches values read through it.
+                assert!(
+                    !(caveats.contains(&"flaky".to_string()) && !expected && kept_flaky(&shown)),
+                    "{at}: ev kept flaky through a stored record (D020): {caveats:?}"
+                );
+                assert_eq!(
+                    caveats.contains(&"flaky".to_string()),
+                    expected,
+                    "{at}: ev read {current}: {caveats:?}"
+                );
                 if carries(&c) || carries(&p) || held_e.iter().any(|occurrence| carries(occurrence))
                 {
                     read_flaky += 1;
@@ -513,7 +527,7 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
             before = shown;
         }
     }
-    eprintln!("{accepted} accepted events, {refused} refused, {flagged} readings flagged, {taken_one} take-backs of one occurrence, {taken_all} of every held occurrence, {read_flaky} reads carrying flaky, {commits_flaky} decisions made with flaky, {departed_flagged} flagged readings departed, {d020} reads kept by D020 (open)");
+    eprintln!("{accepted} accepted events, {refused} refused, {flagged} readings flagged, {taken_one} take-backs of one occurrence, {taken_all} of every held occurrence, {read_flaky} reads carrying flaky, {commits_flaky} decisions made with flaky, {departed_flagged} flagged readings departed");
     assert!(
         flagged > 250
             && taken_one > 150
