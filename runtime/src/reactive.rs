@@ -1480,6 +1480,11 @@ pub struct ReactiveSession {
     withdrawal_reasons: Arc<BTreeMap<String, String>>,
     /// New retirements and retired records whose final pin was released.
     departure_candidates: Arc<BTreeSet<String>>,
+    /// Decision series a rule or binding reads through
+    /// `rests_on_withdrawn(revision(SERIES, INDEX))`. Every revision of these
+    /// keeps its grounds pinned, not only the current one. Fixed at load. See
+    /// spec/caveat-past-revisions-0.1.md.
+    revision_series: Arc<BTreeSet<String>>,
     collector: WithdrawalCollector,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
@@ -1670,6 +1675,7 @@ impl ReactiveSession {
             pin_counts: Arc::default(),
             withdrawal_reasons: Arc::default(),
             departure_candidates: Arc::default(),
+            revision_series: Arc::default(),
             collector: WithdrawalCollector::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
@@ -2130,7 +2136,8 @@ impl ReactiveSession {
             }
         }
         session.reopening_triggers = Arc::new(declared_triggers);
-        let binding_types = session.validate_rules()?;
+        let (binding_types, revision_series) = session.validate_rules()?;
+        session.revision_series = Arc::new(revision_series);
         session.check_observation_order()?;
         session.group_bindings(&binding_types);
         let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
@@ -2537,7 +2544,8 @@ impl ReactiveSession {
 
     /// Also returns each bound property's value type, which every one of its
     /// declarations must share.
-    fn validate_rules(&self) -> Result<BindingTypes, String> {
+    /// Also returns the decision series read through `revision(…)`.
+    fn validate_rules(&self) -> Result<(BindingTypes, BTreeSet<String>), String> {
         let mut commitments = self
             .symbols
             .iter()
@@ -2568,7 +2576,17 @@ impl ReactiveSession {
                 commitments.insert(action.clone());
             }
         }
+        let revision_series = std::cell::RefCell::new(BTreeSet::new());
         let validate_predicate = |kind: &str, symbol: &str| -> Result<(), String> {
+            // `rests_on_withdrawn(revision(SERIES, INDEX))`. See
+            // spec/caveat-past-revisions-0.1.md.
+            if kind == reactive_expr::AT_REVISION {
+                if !self.decision_series.contains_key(symbol) {
+                    return Err(format!("revision({symbol}, …) names no decision series"));
+                }
+                revision_series.borrow_mut().insert(symbol.to_string());
+                return Ok(());
+            }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
@@ -2929,10 +2947,11 @@ impl ReactiveSession {
                     })?;
             }
         }
-        Ok(types
+        let types = types
             .into_iter()
             .map(|((target, property), kind)| ((target.clone(), property.clone()), kind))
-            .collect())
+            .collect();
+        Ok((types, revision_series.into_inner()))
     }
 
     /// Show every bound property: the last matching declaration's value, its
@@ -5072,7 +5091,12 @@ impl ReactiveSession {
                     grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
                     retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
                 }
-                if let Some(previous) = &previous {
+                // A series read through `revision(…)` keeps every revision's
+                // grounds pinned. See spec/caveat-past-revisions-0.1.md.
+                if let Some(previous) = previous
+                    .as_ref()
+                    .filter(|_| !self.revision_series.contains(action))
+                {
                     let released = self.commitment_grounds[previous]
                         .own_evidence()
                         .cloned()
@@ -6184,12 +6208,30 @@ impl ReactiveSession {
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
     fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
+        if kind == reactive_expr::AT_REVISION {
+            let revision = name
+                .rsplit_once('#')
+                .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
+            return Some(("rests_on_withdrawn", revision));
+        }
         let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
         let held = name
             .rsplit_once('#')
             .and_then(|(evidence, index)| Some((evidence, index.parse::<f64>().ok()?)))
             .and_then(|(evidence, index)| self.held_occurrence(evidence, index));
         Some((kind, held))
+    }
+
+    /// The revision of a decision series that a 1-based index names: `k` is
+    /// `SERIES@k`, the `k`th revision committed, current or past. `None` when
+    /// the index is not a whole number naming a revision made so far. See
+    /// spec/caveat-past-revisions-0.1.md.
+    fn held_revision(&self, series: &str, index: f64) -> Option<String> {
+        let revisions = &self.decision_series.get(series)?.revisions;
+        if index.fract() != 0.0 || index < 1.0 || index > revisions.len() as f64 {
+            return None;
+        }
+        Some(revisions[index as usize - 1].id.clone())
     }
 
     /// The held occurrence of renewable evidence that a 1-based index names:
