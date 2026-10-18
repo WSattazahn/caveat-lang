@@ -595,8 +595,8 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
     let observed = informed.snapshot();
     assert_eq!(flow_count(&observed), 1);
     let reading = observed.reading_streams["flow"].occurrences[0].clone();
-    assert_eq!(reading.relation, "supports");
-    assert_eq!(reading.claim, "current_eastward");
+    assert_eq!(reading.relation.as_deref(), Some("supports"));
+    assert_eq!(reading.claim.as_deref(), Some("current_eastward"));
     assert!(reading.provenance.caveats.contains("surge_unmeasured"));
     assert!(reading.provenance.caveats.contains("reading_may_age"));
     let revisions = &observed.decision_series["navigation"].revisions;

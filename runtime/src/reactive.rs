@@ -229,11 +229,12 @@ pub enum Effect {
         name: String,
         arguments: Vec<Expr>,
     },
+    /// `stance` is absent for a neutral sample. See
+    /// spec/caveat-neutral-sample-0.1.md.
     Sample {
         stream: String,
         value: Expr,
-        relation: Relation,
-        claim: String,
+        stance: Option<(Relation, String)>,
     },
     Emit {
         name: String,
@@ -728,8 +729,11 @@ pub struct ReadingOccurrence {
     pub event: String,
     pub value: f64,
     pub provenance: Provenance,
-    pub relation: String,
-    pub claim: String,
+    /// Both absent for a neutral reading: spec/caveat-neutral-sample-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relation: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1112,8 +1116,10 @@ pub enum EffectReport {
         stream: String,
         id: String,
         value: f64,
-        relation: String,
-        target: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        relation: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target: Option<String>,
     },
     Reveal {
         evidence: String,
@@ -1176,12 +1182,17 @@ pub struct ReopeningTrigger {
 }
 
 impl ReopeningTrigger {
-    fn matches(&self, stream: &str, relation: Relation, claim: &str) -> bool {
+    /// A neutral reading, with no stance, matches only an unfiltered
+    /// trigger. See spec/caveat-neutral-sample-0.1.md.
+    fn matches(&self, stream: &str, stance: Option<&(Relation, String)>) -> bool {
         self.stream == stream
-            && self
-                .filter
-                .as_ref()
-                .is_none_or(|(want, about)| *want == relation && about == claim)
+            && match (&self.filter, stance) {
+                (None, _) => true,
+                (Some((want, about)), Some((relation, claim))) => {
+                    want == relation && about == claim
+                }
+                (Some(_), None) => false,
+            }
     }
 }
 
@@ -2653,11 +2664,12 @@ impl ReactiveSession {
                 Effect::Sample {
                     stream,
                     value,
-                    claim,
-                    ..
+                    stance,
                 } => {
                     self.require_readings(stream)?;
-                    self.require_kind(claim, "claim")?;
+                    if let Some((_, claim)) = stance {
+                        self.require_kind(claim, "claim")?;
+                    }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("sample {stream} requires a numeric expression"));
                     }
@@ -4534,8 +4546,7 @@ impl ReactiveSession {
             Effect::Sample {
                 stream,
                 value,
-                relation,
-                claim,
+                stance,
             } => {
                 self.history_room(stream)?;
                 self.retire_oldest(stream);
@@ -4582,8 +4593,10 @@ impl ReactiveSession {
                     source,
                 });
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
-                self.record_observation(&name, false);
-                Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
+                self.record_observation(&name, stance.is_none());
+                if let Some((relation, claim)) = stance {
+                    Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
+                }
                 for caveat in inherited {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
@@ -4608,17 +4621,21 @@ impl ReactiveSession {
                         .expect("sampling occurs during dispatch"),
                     value: number,
                     provenance,
-                    relation: relation_name(*relation).into(),
-                    claim: claim.clone(),
+                    relation: stance
+                        .as_ref()
+                        .map(|(relation, _)| relation_name(*relation).into()),
+                    claim: stance.as_ref().map(|(_, claim)| claim.clone()),
                 });
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
                     id: name,
                     value: number,
-                    relation: relation_name(*relation).into(),
-                    target: claim.clone(),
+                    relation: stance
+                        .as_ref()
+                        .map(|(relation, _)| relation_name(*relation).into()),
+                    target: stance.as_ref().map(|(_, claim)| claim.clone()),
                 });
-                self.run_reopening_triggers(stream, *relation, claim, parameters, guard, budget)?;
+                self.run_reopening_triggers(stream, stance.as_ref(), parameters, guard, budget)?;
             }
             Effect::Reject { message } => return Err(DispatchFailure::policy(message)),
             Effect::Qualify {
@@ -5645,8 +5662,7 @@ impl ReactiveSession {
     fn run_reopening_triggers(
         &mut self,
         stream: &str,
-        relation: Relation,
-        claim: &str,
+        stance: Option<&(Relation, String)>,
         parameters: &Parameters,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
@@ -5655,7 +5671,7 @@ impl ReactiveSession {
         for (series, watching, condition) in triggers.iter() {
             if !watching
                 .iter()
-                .any(|trigger| trigger.matches(stream, relation, claim))
+                .any(|trigger| trigger.matches(stream, stance))
             {
                 continue;
             }
@@ -6167,13 +6183,13 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
         Effect::Sample {
             stream,
             value,
-            relation,
-            claim,
+            stance,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
-            relation: *relation,
-            claim: rename(claim),
+            stance: stance
+                .as_ref()
+                .map(|(relation, claim)| (*relation, rename(claim))),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -7219,20 +7235,32 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             let (name, arguments) = reactive_expr::parse_procedure_call(&rest.join(" "))?;
             Ok(Effect::Call { name, arguments })
         }
-        ["sample", stream, "=", rest @ ..] if rest.len() >= 3 => {
-            let end = rest.len() - 2;
-            let relation = match rest[end] {
-                "supports" => Relation::Supports,
-                "opposes" => Relation::Opposes,
-                _ => return Err("sample requires supports CLAIM or opposes CLAIM".into()),
+        ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
+            // The stance is optional: spec/caveat-neutral-sample-0.1.md.
+            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM]";
+            let relation_of = |word: &str| match word {
+                "supports" => Some(Relation::Supports),
+                "opposes" => Some(Relation::Opposes),
+                _ => None,
             };
+            let (value, stance) = match rest {
+                [value @ .., word, claim] if !value.is_empty() && relation_of(word).is_some() => (
+                    value,
+                    Some((relation_of(word).unwrap(), identifier(claim)?)),
+                ),
+                _ => (rest, None),
+            };
+            if value.iter().any(|word| relation_of(word).is_some()) {
+                return Err(FORM.into());
+            }
             Ok(Effect::Sample {
                 stream: identifier(stream)?,
-                value: reactive_expr::parse_unresolved(&rest[..end].join(" "))?,
-                relation,
-                claim: identifier(rest[end + 1])?,
+                value: reactive_expr::parse_unresolved(&value.join(" "))
+                    .map_err(|error| format!("{FORM}: {error}"))?,
+                stance,
             })
         }
+        ["sample", ..] => Err("sample expects STREAM = EXPRESSION [supports|opposes CLAIM]".into()),
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),
