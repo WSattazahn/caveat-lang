@@ -93,7 +93,9 @@ mod identifiers;
 
 #[path = "reactive_check.rs"]
 mod check;
-pub use check::{check_source, CheckReport, Diagnostic, Related, CHECK_SCHEMA};
+pub use check::{
+    check_source, check_source_with, CheckOptions, CheckReport, Diagnostic, Related, CHECK_SCHEMA,
+};
 
 #[path = "reactive_interface.rs"]
 mod interface;
@@ -307,6 +309,10 @@ pub enum Effect {
         /// Boxed so that adding `citing` leaves `Effect` smaller than before.
         permission: Option<Box<PermissionClause>>,
         retaining: Vec<String>,
+        /// `retaining C because E`: each caveat that names a reason, with that
+        /// evidence and `qualified(1, E)` to read it. See
+        /// spec/caveat-retention-reasons-0.1.md.
+        reasons: Vec<(String, String, Expr)>,
     },
     Reopen {
         action: String,
@@ -411,10 +417,17 @@ fn expand_effect(
             using,
             citing,
             permission,
+            reasons,
             ..
         } => {
             let scope = permission.as_mut().and_then(|clause| clause.scope.as_mut());
-            for value in using.iter_mut().chain(citing.iter_mut()).chain(scope) {
+            let reasons = reasons.iter_mut().map(|(_, _, reading)| reading);
+            for value in using
+                .iter_mut()
+                .chain(citing.iter_mut())
+                .chain(scope)
+                .chain(reasons)
+            {
                 *value = reactive_expr::expand_with(value, functions, defines)?;
             }
         }
@@ -951,10 +964,12 @@ impl<'a> OrderStep<'a> {
                 using,
                 citing,
                 permission,
+                reasons,
                 ..
             } => {
                 expressions.extend(using);
                 expressions.extend(citing);
+                expressions.extend(reasons.iter().map(|(_, _, reading)| reading));
                 if let Some(clause) = permission {
                     if let EvidenceSelector::Named(grant) = &clause.grant {
                         uses.push((
@@ -1315,6 +1330,10 @@ pub struct ReactiveSnapshot {
     /// What each permitted commitment was permitted by, frozen.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub commitment_permissions: BTreeMap<String, PermissionRecord>,
+    /// By commitment, each retained caveat that named a reason, with the
+    /// reason's occurrence. See spec/caveat-retention-reasons-0.1.md.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub retention_reasons: BTreeMap<String, BTreeMap<String, String>>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
@@ -1395,6 +1414,7 @@ pub struct ReactiveSession {
     take_back_caveats: Arc<BTreeSet<String>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
+    retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
     /// Declared reopening triggers, by series in name order, each with the
     /// condition its reopening step runs under. Fixed at load.
     reopening_triggers: Arc<Vec<(String, Vec<ReopeningTrigger>, Expr)>>,
@@ -1608,6 +1628,7 @@ impl ReactiveSession {
             taken_back: Arc::default(),
             take_back_caveats: Arc::default(),
             commitment_permissions: Arc::default(),
+            retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
@@ -2759,8 +2780,15 @@ impl ReactiveSession {
                     citing,
                     permission,
                     retaining,
+                    reasons,
                     ..
                 } => {
+                    for (_, evidence, reading) in reasons {
+                        self.require_kind(evidence, "evidence").map_err(|_| {
+                            format!("retaining … because names evidence, not {evidence}")
+                        })?;
+                        reading.validate(&numeric, &validate_predicate)?;
+                    }
                     if let Some(value) = using {
                         if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                             return Err("commit using requires a numeric expression".into());
@@ -4923,13 +4951,24 @@ impl ReactiveSession {
                 citing,
                 permission,
                 retaining,
+                reasons,
             } => {
                 let previous = self
                     .decision_series
                     .get(action)
                     .and_then(|series| series.current.clone());
                 if self.symbols.contains_key(action) {
-                    return Err(format!("commitment {action} already exists").into());
+                    let message = format!("commitment {action} already exists");
+                    // A plain commitment is made once, reopened or not. See
+                    // spec/caveat-dispatch-0.1.md, `already_committed`.
+                    if self.commitment_bases.contains_key(action) {
+                        return Err(DispatchFailure::rejected(
+                            RejectionOrigin::Evaluation,
+                            RejectionCode::AlreadyCommitted,
+                            message,
+                        ));
+                    }
+                    return Err(message.into());
                 }
                 let mut provenance = guard.clone();
                 let mut ordinal = None;
@@ -4987,6 +5026,14 @@ impl ReactiveSession {
                 for citation in citing {
                     provenance.merge(&self.evaluate(citation, parameters)?.provenance)?;
                     grounds.merge(&self.evaluate_grounds(citation, parameters)?.provenance)?;
+                }
+                // A retained caveat's reason is read as `qualified(1, E)` and
+                // joins the grounds. See spec/caveat-retention-reasons-0.1.md.
+                let mut retention = BTreeMap::new();
+                for (caveat, evidence, reading) in reasons {
+                    provenance.merge(&self.evaluate(reading, parameters)?.provenance)?;
+                    grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
+                    retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
                 }
                 if let Some(previous) = &previous {
                     let released = self.commitment_grounds[previous]
@@ -5054,6 +5101,14 @@ impl ReactiveSession {
                     self.add_pin(&record.grant);
                     Arc::make_mut(&mut self.commitment_permissions)
                         .insert(name.clone(), record.clone());
+                }
+                if !retention.is_empty() {
+                    // Pinned like a permission's grant: the record outlives
+                    // the revision's turn as current.
+                    for evidence in retention.values() {
+                        self.add_pin(evidence);
+                    }
+                    Arc::make_mut(&mut self.retention_reasons).insert(name.clone(), retention);
                 }
                 if let Some(ordinal) = ordinal {
                     let series = Arc::make_mut(&mut self.decision_series)
@@ -6052,6 +6107,7 @@ impl ReactiveSession {
             withdrawals: (*self.withdrawals).clone(),
             taken_back: (*self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
+            retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
@@ -6212,6 +6268,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             citing,
             permission,
             retaining,
+            reasons,
         } => Effect::Commit {
             action: rename(action),
             reason: reason.clone(),
@@ -6236,6 +6293,16 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                 })
             }),
             retaining: retaining.iter().map(rename).collect(),
+            reasons: reasons
+                .iter()
+                .map(|(caveat, evidence, reading)| {
+                    (
+                        rename(caveat),
+                        rename(evidence),
+                        reading.rename_symbols(names),
+                    )
+                })
+                .collect(),
         },
         Effect::Reopen { action, because } => Effect::Reopen {
             action: rename(action),
@@ -7242,15 +7309,34 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 "deadline" => StopReason::Deadline,
                 _ => return Err(format!("unknown commit reason {reason}")),
             };
-            let parse_retained = |names: &[&str]| -> Result<Vec<String>, String> {
+            // `CAVEAT [because EVIDENCE], …`. See
+            // spec/caveat-retention-reasons-0.1.md.
+            type Retained = (Vec<String>, Vec<(String, String, Expr)>);
+            let parse_retained = |names: &[&str]| -> Result<Retained, String> {
                 if names.is_empty() {
                     return Err("retaining requires at least one caveat".into());
                 }
-                names
-                    .join(" ")
-                    .split(',')
-                    .map(|name| identifier(name.trim()))
-                    .collect()
+                let (mut retained, mut reasons) = (Vec::new(), Vec::new());
+                for item in names.join(" ").split(',') {
+                    match item.split_whitespace().collect::<Vec<_>>()[..] {
+                        [caveat] => retained.push(identifier(caveat)?),
+                        [caveat, "because", evidence] => {
+                            let (caveat, evidence) = (identifier(caveat)?, identifier(evidence)?);
+                            let reading = reactive_expr::parse_unresolved(&format!(
+                                "qualified(1, {evidence})"
+                            ))?;
+                            retained.push(caveat.clone());
+                            reasons.push((caveat, evidence, reading));
+                        }
+                        _ => {
+                            return Err(format!(
+                                "retaining expects CAVEAT [because EVIDENCE], …, not {}",
+                                item.trim()
+                            ))
+                        }
+                    }
+                }
+                Ok((retained, reasons))
             };
             // Clauses, in order: using or citing, permitted by … [for …],
             // retaining. Their
@@ -7334,7 +7420,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     Some(Box::new(PermissionClause { grant, scope }))
                 }
             };
-            let retaining = retained_at
+            let (retaining, reasons) = retained_at
                 .map(|index| parse_retained(&rest[index + 1..]))
                 .transpose()?
                 .unwrap_or_default();
@@ -7345,6 +7431,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 citing,
                 permission,
                 retaining,
+                reasons,
             })
         }
         ["reopen", action, "because", selector @ ..] if !selector.is_empty() => {

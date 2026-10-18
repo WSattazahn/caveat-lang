@@ -1375,3 +1375,39 @@ fn a_full_scheduled_qualification_table_refuses_the_event_and_the_session_contin
     }
     assert_eq!(checkpoint(&restored), checkpoint(&game));
 }
+
+// Finding D008: a plain commitment is made once. Committing it again, in force
+// or after a reopening, was fatal `unclassified`; it is refused as
+// `evaluation/already_committed` with the same text, and the session goes on.
+#[test]
+fn d008_a_second_commit_of_a_plain_commitment_is_refused() {
+    const RECOMMIT: &str = r#"
+claim ok;
+evidence a from "a";
+evidence b from "b";
+event decide; event correct;
+on decide when not observed(a) reveal a supports ok;
+on decide commit close because enough using qualified(1, a);
+on correct when not observed(b) reveal b opposes ok;
+on correct when committed(close) and not reopened(close) reopen close because b;
+"#;
+    let mut game = session(RECOMMIT);
+    let accepted = json(&game.dispatch_outcome("decide", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    // In force.
+    let refused = rejected(&mut game, "decide", "{}", "evaluation", "already_committed");
+    assert_eq!(
+        refused["message"],
+        "event decide, rule 2: commitment close already exists"
+    );
+    // Reopened: still made once.
+    let accepted = json(&game.dispatch_outcome("correct", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    rejected(&mut game, "decide", "{}", "evaluation", "already_committed");
+    let mut legacy = ReactiveSession::from_source(RECOMMIT).unwrap();
+    legacy.dispatch_json("decide", "{}").unwrap();
+    assert_eq!(
+        legacy.dispatch_json("decide", "{}").unwrap_err(),
+        "event decide, rule 2: commitment close already exists"
+    );
+}

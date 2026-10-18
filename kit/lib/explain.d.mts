@@ -118,6 +118,11 @@ export interface ExplainedRevision {
   retained: string[];
   /** What permitted it, frozen: not its grounds. */
   permission: PermissionRecord | null;
+  /**
+   * Each retained caveat that named a reason, with the reason's occurrence;
+   * absent when none did (spec/caveat-retention-reasons-0.1.md).
+   */
+  retention_reasons?: Record<string, string>;
   /** Grounds withdrawn since the decision was made. */
   withdrawn: Withdrawal[];
   /**
