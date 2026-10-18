@@ -147,7 +147,9 @@ travel with a value through computation, as its caveats do, and the runtime
 keeps them in the provenance (see "Snapshot and save").
 
 A stored observation or predicate qualification is what the guard of a
-`renew`, `reveal`, `observe` or `sample` rule read. It keeps a take-back
+`renew`, `reveal`, `observe` or `sample` rule read, or the guard of a
+`commit`, `reopen`, `withdraw` or `examine` rule, stored with the predicate
+the rule made true. It keeps a take-back
 caveat only when it did not take that caveat through a live relation of
 evidence it lists. A caveat it took that way stays live in the record: the
 take-back removes it from the record on the test in step 4, as it does from
@@ -375,3 +377,7 @@ the implementation.
   reading stream, and saving and restoring at random points; it checks
   grounds both ways. New tracked program
   `experiments/take-back-sweep/programs/guarded.cav`.
+- 2026-10-18: "Kept caveats" names every guard that stores a record:
+  `commit`, `reopen`, `withdraw` and `examine` as well as `renew`, `reveal`,
+  `observe` and `sample`. The runtime already treated them alike; only the
+  wording changed.

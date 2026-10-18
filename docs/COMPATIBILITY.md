@@ -54,8 +54,8 @@ checks that the two agree.
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
   implements yet, and the 1.1 drafts `caveat-earlier-occurrence-0.1.md`,
   `caveat-citing-0.1.md`, `caveat-retention-reasons-0.1.md`,
-  `caveat-neutral-sample-0.1.md` and `caveat-changed-triggers-0.1.md`, which
-  become stable when a 1.x release ships them.
+  `caveat-neutral-sample-0.1.md`, `caveat-changed-triggers-0.1.md` and
+  `caveat-caveat-sources-0.1.md`, which become stable when a 1.x release ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and

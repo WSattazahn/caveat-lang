@@ -1,0 +1,160 @@
+# CAVEAT Caveat Sources 0.1 (draft): where each caveat came from
+
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: not implemented yet. It becomes stable when a 1.x release ships it. It changes how the runtime keeps
+[Take-back 0.1](caveat-take-back-0.1.md) and
+[Late Qualification 0.1](caveat-late-qualification-0.1.md) consistent; it adds
+no syntax.
+
+A value's lineage lists the evidence it rests on and the caveats it carries.
+Before this profile the caveats were names only. Whether a caveat was still
+live was worked out afterwards, by looking for a live relation on any evidence
+the lineage, grounds or stored record listed. That test went wrong in four cases
+(D012 to D015 in [the decision log](../experiments/agent-decisions/README.md)):
+it froze a caveat a guard had read, it judged grounds by the lineage's
+evidence, a late `qualify` missed records, and a value read through a
+decision's basis gained a late caveat or not depending on when it was
+computed. Three were fixes, made one by one on `main` and in 1.0.1, each by
+filtering the name test. The fourth was an open case, and this profile
+settles it. This profile replaces the
+test: every caveat a lineage carries names the routes it arrived by, and
+`unqualify` and `qualify` act on routes.
+
+## Routes
+
+A caveat `C` on a lineage, grounds or stored qualification has one or more
+**routes**:
+
+- **through `O`**: it arrived through occurrence `O`'s `C qualifies O`
+  relation, declared or added by `qualify`. A caveat that qualifies `C` (a
+  `D qualifies C` declaration) arrives through the same route as `C`.
+- **kept**: it arrived from a record: a commitment's frozen basis or grounds,
+  a reading archived with it, a stored reopening or selection qualification,
+  or a record that has departed. These are the records Take-back 0.1 lists
+  under "Kept caveats".
+
+A value carries `C` while at least one route remains. Computation joins
+routes as it joins caveats: a value computed from two inputs carries each
+caveat with the routes of both.
+
+A stored observation or predicate qualification is not a record in this
+sense. It is what the guard of a `renew`, `reveal`, `observe` or `sample`
+rule read, or the guard of a `commit`, `reopen`, `withdraw` or `examine`
+rule, stored with the predicate the rule made true. It keeps
+each route it read. A value read through the occurrence it made takes those
+routes, so a take-back or a `qualify` reaches it the same way it reaches a
+current value.
+
+## Taking back and qualifying
+
+- `unqualify E with C` marks each live `C` relation of a held occurrence of
+  `E`, as Take-back 0.1 says, and removes every route through a marked
+  occurrence from every current value, its grounds and every stored
+  observation or predicate qualification. A caveat with no route left is
+  dropped. Kept routes are never removed.
+- `qualify E with C` adds `C` with the route through `E`'s current occurrence
+  to every current value, grounds and stored observation or predicate
+  qualification whose evidence includes that occurrence, as Late
+  Qualification 0.1 step 2 says for current values.
+
+`qualify` reaches evidence a value holds through a record too: a value set
+under `when committed(D)` holds the evidence of D's frozen basis in its
+lineage, so a later `qualify` of that evidence adds a route through it, whenever
+the value was computed (D015). The basis itself is a record and stays as
+recorded; a caveat it carried reaches the value as a kept route. So a value
+read through a basis composes the two: kept routes for what the basis
+recorded, live routes through the evidence it names.
+
+The rule for every record is the same: **a record's own caveats are kept;
+evidence a record lists is read live.** It runs one way. A later `qualify`
+reaches through a basis, because the basis lists the evidence; a take-back
+never removes what a basis recorded, because that caveat is the basis's own.
+A decision made while its evidence was flagged keeps the flag after the flag
+is taken back (`d012_a_decision_made_while_flagged_keeps_the_flag` in
+`runtime/tests/take_back.rs`). An implementation must not let a take-back
+reach through a basis.
+
+Commitment bases and grounds, reading archives and the decision journal keep
+what they recorded, as before.
+
+## The invariant
+
+For every current value, its grounds and every stored observation or
+predicate qualification: a caveat is carried exactly when it has a kept
+route, or a route through an occurrence whose relation is live. The
+randomized check in `runtime/tests/take_back.rs` asserts it after every event
+and after every save and restore. Its events include every guard that stores
+a record: `renew`, `reveal`, `sample`, `commit`, `reopen`, `withdraw` and a
+guarded `examine`. Until this profile is implemented the check counts each
+reading of the D015 shape that differs; once it is, it asserts the invariant
+for every reader, and the instance filters the three fixes added come out.
+Their regression tests stay. This profile's runtime change is
+complete when that check covers every reader, with none left unchecked.
+
+## Snapshot and save
+
+The snapshot is unchanged: `qualified_values`, `value_grounds` and the
+qualification tables still list caveat names, and `kept` as before.
+
+A save gains an additive field on a provenance, `routes`, mapping a caveat
+name to its routes (occurrence names, and `kept`). It is written only for a
+caveat whose routes differ from the **default**: every listed occurrence that
+has a `C qualifies` relation, live or marked, plus `kept` when `kept` names
+`C`. A save whose routes are all default writes no `routes`, so it is byte
+for byte the save an earlier 1.x runtime writes for the same session.
+
+A save without `routes`, including every save a 1.0.x runtime wrote,
+restores with every route at its default. A save written by 1.0.0 after D012
+or D013 fired holds a frozen doubt as `kept`; it restores that way, as it
+does today.
+
+Restoring refuses a save whose `routes` names a caveat the provenance does
+not carry, an occurrence it does not list, or an occurrence with no `C
+qualifies` relation.
+
+Repair on load is now possible but not done: a restore could drop routes
+through marked relations that 1.0.0 froze as kept. Whether restore should do
+that is a separate decision; this profile keeps restore as Save 0.1 states.
+
+## Reading a record as recorded
+
+The frozen view stays readable: `history_at(SERIES, INDEX)` reads a
+revision's frozen basis with its stored provenance
+([Reactive 0.6](caveat-reactive-0.6.md)), and `explain` shows each
+decision's basis and grounds as recorded. A value read under `committed(D)`
+is the live view; the record is the frozen one.
+
+## Compatibility
+
+This is a 1.x fix, under [COMPATIBILITY.md](../docs/COMPATIBILITY.md)'s
+clause "unless a fix restores a documented promise". Late Qualification 0.1
+step 2 says every current value whose evidence includes the qualified
+evidence gains the caveat. Before this profile a value set under
+`committed(…)` after the `qualify` did not, though its evidence includes it;
+it now does. The change only adds caveats: no value a 1.0 program computes
+loses one. The 1.1 release note names it as a behavior change.
+
+The corpus sweep counts each direction separately:
+
+- **Gains** (a later `qualify` reaching a value through a basis): at
+  `c29b76f`, 67 of 193 tracked programs have a rule conditioned on
+  `committed(…)` or `reopened(…)`, or read `history_at` or `basis_of`, and
+  also `qualify`. That is the population that can gain a caveat; the
+  runtime change reports how many actually do under seeded events.
+- **Losses** (a take-back removing a caveat a value kept): none are
+  possible, since a take-back never removes a kept route. 2 of the 193
+  programs both `unqualify` and read a decision, and the runtime change must
+  show that no value in them loses a caveat.
+
+The runtime change reports both counts, and fails if the second is not 0.
+
+1.1 ships a detector: `caveat check` (opt-in, like `--unused`) and a save
+check report whether a program or save holds a value set under a committed
+decision that reaches evidence a later `qualify` names.
+
+## Changes
+
+- 2026-10-18: drafted.
+- 2026-10-18: the guard records also cover `commit`, `reopen`, `withdraw`
+  and `examine`; the one rule for records (a record's own caveats are kept,
+  evidence it lists is read live) and that a take-back never reaches through
+  a basis; the corpus count split by direction.

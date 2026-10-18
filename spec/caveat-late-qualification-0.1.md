@@ -48,9 +48,9 @@ is refused as `evaluation/unobserved_evidence`
    joins the lineage only, as for any effect. Bindings are recomputed after the
    event, so an explanation that cites such a value shows the caveat
    immediately. A stored observation or predicate qualification that lists
-   `EVIDENCE`, recorded by the guard of a `renew`, `reveal`, `observe` or
-   `sample` rule, gains the caveat the same way, so a value read through it
-   later carries it too ([Take-back 0.1](caveat-take-back-0.1.md), "Kept
+   `EVIDENCE`, recorded by the guard of a `renew`, `reveal`, `observe`,
+   `sample`, `commit`, `reopen`, `withdraw` or `examine` rule, gains the
+   caveat the same way, so a value read through it later carries it too ([Take-back 0.1](caveat-take-back-0.1.md), "Kept
    caveats").
 3. **What was already recorded is left alone:**
    - commitment bases and grounds;
@@ -83,3 +83,4 @@ that fact touches, because provenance already records the dependency.
   a value read through such a record after the `qualify` lacked the caveat a
   value read before it had. Tests: the D014 case in
   `runtime/tests/take_back.rs`.
+- 2026-10-18: step 2 names every guard that stores a record (wording only).
