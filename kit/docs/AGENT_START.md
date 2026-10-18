@@ -105,19 +105,47 @@ const session = typed(runtime.open(source));
 session.dispatch('read', { celsius: 17 }); // a misspelled event or field fails the check
 ```
 
-A host that only shows the view after each event should send it with
-`session.dispatchView(event, payload)`, which returns the view and does not
-build the full snapshot `dispatch` returns. Use `dispatch` when the host needs
-the snapshot's journal, grounds or graph. For a small store, save with
-`session.save({ compact: true })`: a short session's compact save is its
-accepted events, and `runtime.restore` takes it like any save.
-
 The declarations only add checks. A value with a condition is optional,
 because a view shows it only while one of its conditions holds. An entity or
 member is typed by name, though the runtime also accepts its position.
 Decision, journal and grounds records keep their `string` keys. Regenerate
 the file when the program changes. `--json` prints the interface itself, and
 `runtime.interface(source)` returns the same thing from code.
+
+## Keep a small host small
+
+A host that keeps the session in its own process needs no glue of its own for
+sending, saving or a decision's history:
+
+```js
+import { readFile } from 'node:fs/promises';
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+import { decisionHistory } from 'caveat-lang/session';
+
+const runtime = await loadRuntimeFromDirectory();
+const source = await readFile('program.cav', 'utf8');
+const saved = undefined; // or a save the host kept from an earlier run
+const session = saved ? runtime.restore(source, saved) : runtime.open(source);
+
+const outcome = session.dispatchView('read', { value: 17 });
+if (outcome.outcome !== 'accepted') throw new Error(outcome.message); // refused; nothing changed
+const history = decisionHistory(outcome.view, 'heating');           // every revision, oldest first
+const save = session.save({ compact: true });                      // small: a short session saves its events
+```
+
+- `session.dispatchView(event, payload)` returns the view and does not build
+  the full snapshot that `dispatch` returns. Use `dispatch` when the host needs
+  the snapshot's graph.
+- `session.save({ compact: true })` saves a short session as its accepted
+  events, and `runtime.restore` takes it like any save. Do not write a replay
+  log of your own.
+- `decisionHistory(view, name)` lists each revision of a decision: what it was
+  committed on, what reopened it, and whether it is `in_force`, `reopened` or
+  `superseded`. `binding_explanations` gives each displayed value's evidence
+  and caveats.
+- A host that must survive restarts, or keep the archive, should use the
+  [integration starter](STARTER.md) instead. It checkpoints the compact save
+  after every event, and `host.history(name)` returns the same list.
 
 ## When the integration needs something missing
 
