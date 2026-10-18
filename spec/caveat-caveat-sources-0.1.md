@@ -1,6 +1,6 @@
 # CAVEAT Caveat Sources 0.1 (draft): where each caveat came from
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: not implemented yet. It becomes stable when a 1.x release ships it. It changes how the runtime keeps
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It changes how the runtime keeps
 [Take-back 0.1](caveat-take-back-0.1.md) and
 [Late Qualification 0.1](caveat-late-qualification-0.1.md) consistent; it adds
 no syntax.
@@ -82,12 +82,24 @@ For every current value, its grounds and every stored observation or
 predicate qualification: a caveat is carried exactly when it has a kept
 route, or a route through an occurrence whose relation is live. The
 randomized check in `runtime/tests/take_back.rs` asserts it after every event
-and after every save and restore. Its events include every guard that stores
+and after every save and restore, for every value it reads, including one
+set through a decision's basis. Its events include every guard that stores
 a record: `renew`, `reveal`, `sample`, `commit`, `reopen`, `withdraw` and a
-guarded `examine`. Until this profile is implemented the check counts each
-reading of the D015 shape that differs; once it is, it asserts the invariant
-for every reader, and the instance filters the three fixes added come out.
-Their regression tests stay. This profile's runtime change is
+guarded `examine`.
+
+The runtime keeps no route list. Since every listed occurrence is read live,
+the invariant above is the test the runtime already applies: a caveat is
+live on a lineage when it is kept, or some occurrence the lineage lists has
+a live relation for it. The three fixes (D012 to D014) are that test applied
+to stored guard records and to grounds over their own evidence; they stay as
+the implementation, with their regression tests. The runtime change for
+D015 is the live read: a value read through a record gains each caveat that
+a `qualify` effect names and that now qualifies evidence the record lists,
+with whatever qualifies that caveat. Only those relations can be added after
+a record is made, so only they can be missing from it. A decision's `relies
+on` citations join `committed(…)` as names without their declared caveats,
+as before; a later `qualify` of one reaches the value like any other listed
+evidence. This profile's runtime change is
 complete when that check covers every reader, with none left unchecked.
 
 ## Snapshot and save
@@ -95,25 +107,19 @@ complete when that check covers every reader, with none left unchecked.
 The snapshot is unchanged: `qualified_values`, `value_grounds` and the
 qualification tables still list caveat names, and `kept` as before.
 
-A save gains an additive field on a provenance, `routes`, mapping a caveat
-name to its routes (occurrence names, and `kept`). It is written only for a
-caveat whose routes differ from the **default**: every listed occurrence that
-has a `C qualifies` relation, live or marked, plus `kept` when `kept` names
-`C`. A save whose routes are all default writes no `routes`, so it is byte
-for byte the save an earlier 1.x runtime writes for the same session.
+The save gains no field. Every occurrence a lineage lists is read live, so
+a caveat's live routes are exactly the listed occurrences whose `C
+qualifies` relation is live, which the save already holds (the relations and
+the take-backs). The one route that is not derived is `kept`, and the save
+already stores it. Every route is therefore at its **default**, and a save is
+byte for byte the save an earlier 1.x runtime writes for the same session.
+A save a 1.0.x runtime wrote restores as before. A save written by 1.0.0
+after D012 or D013 fired holds a frozen doubt as `kept`; it restores that
+way, as it does today.
 
-A save without `routes`, including every save a 1.0.x runtime wrote,
-restores with every route at its default. A save written by 1.0.0 after D012
-or D013 fired holds a frozen doubt as `kept`; it restores that way, as it
-does today.
-
-Restoring refuses a save whose `routes` names a caveat the provenance does
-not carry, an occurrence it does not list, or an occurrence with no `C
-qualifies` relation.
-
-Repair on load is now possible but not done: a restore could drop routes
-through marked relations that 1.0.0 froze as kept. Whether restore should do
-that is a separate decision; this profile keeps restore as Save 0.1 states.
+Repair on load is not done: a restore could drop a doubt that 1.0.0 froze as
+kept. Whether restore should do that is a separate decision; this profile
+keeps restore as Save 0.1 states. Replaying the session's events repairs it.
 
 ## Reading a record as recorded
 
@@ -133,19 +139,35 @@ evidence gains the caveat. Before this profile a value set under
 it now does. The change only adds caveats: no value a 1.0 program computes
 loses one. The 1.1 release note names it as a behavior change.
 
-The corpus sweep counts each direction separately:
+The corpus sweep (`experiments/caveat-sources-sweep/`, results in its
+`RESULTS.json`) drives every tracked program with the save sweep's seeded
+events, 8 runs of 150, on the runtime before and after this change, and
+compares every state's caveats after every event, in its value and its
+grounds, and every view binding's. It counts each direction separately:
 
-- **Gains** (a later `qualify` reaching a value through a basis): at
-  `c29b76f`, 67 of 193 tracked programs have a rule conditioned on
-  `committed(…)` or `reopened(…)`, or read `history_at` or `basis_of`, and
-  also `qualify`. That is the population that can gain a caveat; the
-  runtime change reports how many actually do under seeded events.
+- **Gains** (a later `qualify` reaching a value through a record): 66 of
+  194 tracked programs have a rule conditioned on `committed(…)` or
+  `reopened(…)`, or read `history_at` or `basis_of`, and also `qualify`;
+  that is the population that can gain. Under the seeded events, 16
+  programs gained a caveat, at 8,805 readings; 12 of them are versions of
+  four authoring-trial runs whose view reads a decision's record.
+  `RESULTS.json` lists each. The departure gate's save sweep covers 14 of
+  them and lists them as reviewed save changes
+  (`experiments/departure-gate/reviewed-save-changes.mjs`); their
+  refusals and fatal outcomes are unchanged.
 - **Losses** (a take-back removing a caveat a value kept): none are
-  possible, since a take-back never removes a kept route. 2 of the 193
-  programs both `unqualify` and read a decision, and the runtime change must
-  show that no value in them loses a caveat.
+  possible, since a take-back never removes a kept route, and none were
+  found. 2 programs both `unqualify` and read a decision
+  (`experiments/stabilization-trial/trial.cav` and `round8.cav`).
 
-The runtime change reports both counts, and fails if the second is not 0.
+Every event's outcome was the same on both runtimes. The sweep fails on any
+loss or any changed outcome.
+
+Two of the kit's save fixtures (`kit/test/fixtures/saves/`, `ordered.cav`
+and `readiness.cav`) continue, after a restore, into views that gain such a
+caveat. `kit/test/save-fixtures.test.mjs` holds their views to every
+release's except for caveats added, and byte for byte to the same events
+played live without a save.
 
 1.1 ships a detector: `caveat check` (opt-in, like `--unused`) and a save
 check report whether a program or save holds a value set under a committed
@@ -158,3 +180,8 @@ decision that reaches evidence a later `qualify` names.
   and `examine`; the one rule for records (a record's own caveats are kept,
   evidence it lists is read live) and that a take-back never reaches through
   a basis; the corpus count split by direction.
+- 2026-10-18: implemented. A value read through a record reads the evidence
+  the record lists live; the save gains no field, since every route is at
+  its default. Tests: the D015 case and the randomized check in
+  `runtime/tests/take_back.rs`; corpus sweep
+  `experiments/caveat-sources-sweep/`.

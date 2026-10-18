@@ -1,0 +1,36 @@
+{
+  "baseline_revision": "1be361066abb83685026a51c48c496079ea27181",
+  "programs": 194,
+  "runs": 8,
+  "events": 150,
+  "static": {
+    "can_gain": 66,
+    "take_back_and_record": [
+      "experiments/stabilization-trial/trial.cav",
+      "experiments/take-back-sweep/programs/round8.cav"
+    ]
+  },
+  "gains": {
+    "programs": 16,
+    "readings": 8805,
+    "by_program": {
+      "experiments/agent-authoring/rc7/trial01/final/task.cav": 39,
+      "experiments/agent-authoring/rc7/trial01/first/task.cav": 39,
+      "experiments/agent-authoring/v1/runs/B1/candidate.cav": 726,
+      "experiments/agent-authoring/v1/runs/B1/final.cav": 726,
+      "experiments/agent-authoring/v1/runs/B1/versions/02.cav": 726,
+      "experiments/agent-authoring/v1/runs/B2/candidate.cav": 726,
+      "experiments/agent-authoring/v1/runs/B2/final.cav": 726,
+      "experiments/agent-authoring/v1/runs/B2/versions/02.cav": 726,
+      "experiments/agent-authoring/v2/runs/B1/candidate.cav": 726,
+      "experiments/agent-authoring/v2/runs/B1/final.cav": 726,
+      "experiments/agent-authoring/v2/runs/B1/versions/01.cav": 726,
+      "experiments/agent-authoring/v2/runs/B2/candidate.cav": 726,
+      "experiments/agent-authoring/v2/runs/B2/final.cav": 726,
+      "experiments/agent-authoring/v2/runs/B2/versions/02.cav": 726,
+      "experiments/take-back-sweep/programs/round8.cav": 4,
+      "kit/test/fixtures/saves/programs/ordered.cav": 11
+    }
+  },
+  "losses": 0
+}

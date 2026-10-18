@@ -1415,6 +1415,10 @@ pub struct ReactiveSession {
     /// The caveats some `unqualify` names, fixed at load; empty in a program
     /// that does not take back.
     take_back_caveats: Arc<BTreeSet<String>>,
+    /// The caveats a `qualify` effect names: the only relations added while
+    /// the session runs, so the only ones a record may lack. See
+    /// spec/caveat-caveat-sources-0.1.md.
+    late_caveats: Arc<BTreeSet<String>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
@@ -1630,6 +1634,7 @@ impl ReactiveSession {
             withdrawals: Arc::default(),
             taken_back: Arc::default(),
             take_back_caveats: Arc::default(),
+            late_caveats: Arc::default(),
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
@@ -4455,6 +4460,7 @@ impl ReactiveSession {
                         provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
                     }
                 }
+                self.read_live(&mut provenance)?;
                 provenance
             }
             _ => Provenance::default(),
@@ -4940,13 +4946,17 @@ impl ReactiveSession {
             Effect::Examine { caveat, cost } => {
                 // This guard is part of the successful attention decision. It
                 // survives a later `examined(...)` query without changing any
-                // underlying claim or removing a retained caveat.
+                // underlying claim or removing a retained caveat. Like any
+                // stored guard, it keeps only what it did not take through a
+                // live relation, so a take-back reaches the rest (D019).
+                let mut guard = guard.clone();
+                self.freeze_observation(&mut guard);
                 let attention_basis = self
                     .examination_qualifications
                     .get(caveat)
                     .cloned()
                     .unwrap_or_default()
-                    .union(&self.frozen(guard))?;
+                    .union(&guard)?;
                 let resources = self
                     .resources
                     .as_mut()
@@ -5465,6 +5475,12 @@ impl ReactiveSession {
             .filter(|(_, lineage)| unkept(lineage))
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>();
+        let examinations = self
+            .examination_qualifications
+            .iter()
+            .filter(|(_, lineage)| unkept(lineage))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
         let predicates = self
             .predicate_qualifications
             .iter()
@@ -5487,6 +5503,13 @@ impl ReactiveSession {
             .collect::<Vec<_>>();
         for name in observations {
             Arc::make_mut(&mut self.observation_qualifications)
+                .get_mut(&name)
+                .expect("listed above")
+                .caveats
+                .remove(caveat);
+        }
+        for name in examinations {
+            Arc::make_mut(&mut self.examination_qualifications)
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
@@ -5561,6 +5584,7 @@ impl ReactiveSession {
         // A take-back removes it the same way (D012, D014).
         let listed = |lineage: &Provenance| lineage.evidence.contains(evidence);
         if self.observation_qualifications.values().any(listed)
+            || self.examination_qualifications.values().any(listed)
             || self
                 .predicate_qualifications
                 .values()
@@ -5573,6 +5597,12 @@ impl ReactiveSession {
             // record's references before departure runs (D016).
             let mut changed = BTreeSet::new();
             for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
+                if listed(record) {
+                    record.merge(&lineage)?;
+                    changed.insert(name.clone());
+                }
+            }
+            for (name, record) in Arc::make_mut(&mut self.examination_qualifications).iter_mut() {
                 if listed(record) {
                     record.merge(&lineage)?;
                     changed.insert(name.clone());
@@ -5666,20 +5696,20 @@ impl ReactiveSession {
 
     /// Every `unqualify` of a program, after procedures are specialized.
     fn take_back_effects(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.rules
-            .iter()
-            .map(|rule| &rule.effect)
-            .chain(
-                self.procedures
-                    .values()
-                    .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
-            )
-            .filter_map(|effect| match effect {
-                Effect::Unqualify {
-                    evidence, caveat, ..
-                } => Some((evidence.as_str(), caveat.as_str())),
-                _ => None,
-            })
+        self.program_effects().filter_map(|effect| match effect {
+            Effect::Unqualify {
+                evidence, caveat, ..
+            } => Some((evidence.as_str(), caveat.as_str())),
+            _ => None,
+        })
+    }
+
+    fn program_effects(&self) -> impl Iterator<Item = &Effect> {
+        self.rules.iter().map(|rule| &rule.effect).chain(
+            self.procedures
+                .values()
+                .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+        )
     }
 
     /// The caveats a program takes back, and the rules that make a take-back
@@ -5736,6 +5766,14 @@ impl ReactiveSession {
             }
         }
         self.take_back_caveats = Arc::new(caveats);
+        self.late_caveats = Arc::new(
+            self.program_effects()
+                .filter_map(|effect| match effect {
+                    Effect::Qualify { caveat, .. } => Some(caveat.clone()),
+                    _ => None,
+                })
+                .collect(),
+        );
         Ok(())
     }
 
@@ -6024,8 +6062,10 @@ impl ReactiveSession {
     }
 
     /// A value newly read from history carries `withdrawn` if what it rests on
-    /// has since been withdrawn. The record itself is unchanged.
+    /// has since been withdrawn, and the live caveats of the evidence the
+    /// record lists. The record itself is unchanged.
     fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
+        self.read_live(&mut provenance)?;
         if provenance
             .evidence
             .iter()
@@ -6034,6 +6074,53 @@ impl ReactiveSession {
             provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
         }
         Ok(provenance)
+    }
+
+    /// A record's own caveats are kept; the evidence it lists is read live
+    /// (D015). A value read through a record gains each caveat that now
+    /// qualifies that evidence, as a value that already held it gained the
+    /// caveat when it was added, so when the value is computed does not
+    /// matter. A caveat gained here is live: a take-back reaches it. See
+    /// spec/caveat-caveat-sources-0.1.md.
+    fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
+        if self.late_caveats.is_empty() {
+            return Ok(());
+        }
+        let late = self
+            .late_caveats
+            .iter()
+            .filter(|caveat| !provenance.caveats.contains(*caveat))
+            .filter_map(|caveat| self.symbols.get(caveat).copied())
+            .collect::<HashSet<_>>();
+        let listed = provenance
+            .evidence
+            .iter()
+            .filter_map(|name| self.symbols.get(name).copied())
+            .collect::<HashSet<_>>();
+        let reached = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.relation == Relation::Qualifies
+                    && late.contains(&edge.from)
+                    && listed.contains(&edge.to)
+                    && self.has_live_relation(edge.from, edge.to)
+            })
+            .map(|edge| edge.from)
+            .collect::<BTreeSet<_>>();
+        if reached.is_empty() {
+            return Ok(());
+        }
+        // The caveat and whatever qualifies it, as `qualify` adds them.
+        let names = self
+            .symbols
+            .iter()
+            .filter(|(_, id)| reached.contains(id))
+            .map(|(name, _)| name.clone())
+            .chain(self.incoming_caveats(reached.iter().copied()))
+            .collect::<Vec<_>>();
+        provenance.merge(&Provenance::from_names([], names)?)
     }
 
     /// `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)`.

@@ -478,6 +478,60 @@ fn d012_a_decision_made_while_flagged_keeps_the_flag() {
     assert_eq!(caveats(&game, "held"), json!(["flaky"]));
 }
 
+/// D019: `examine` stores its guard as the attention decision's record. A
+/// guard that read flagged evidence stores the flag through the live
+/// relation, so a take-back reaches it there as it does in any other guard
+/// record, and a value read through `examined(...)` after the unflag carries
+/// no flag. A late qualify reaches the record the same way (D014).
+#[test]
+fn d019_unflag_reaches_a_flag_an_examine_guard_read() {
+    let source = format!(
+        "{D012}budget 10;\ncaveat stale consequence low;\nevent scan;\nevent look;\n\
+         state seen = 0;\non scan when observed(e) examine stale cost 1;\n\
+         on look when examined(stale) set seen = 1;\n"
+    );
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["report", "flag", "scan", "unflag", "look"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(bound(&game, "e_flaky"), 0.0);
+    assert_eq!(caveats(&game, "seen"), json!(["stale"]));
+    game.dispatch_json("flag", "{}").unwrap();
+    game.dispatch_json("look", "{}").unwrap();
+    assert_eq!(caveats(&game, "seen"), json!(["flaky", "stale"]));
+}
+
+/// A value read through a decision's basis gains a later `qualify` of the
+/// evidence the basis lists, whether it was set before or after the
+/// `qualify`, and loses it again on a take-back: the basis lists `e`, and
+/// evidence a record lists is read live. The basis itself keeps what it
+/// recorded (spec/caveat-caveat-sources-0.1.md).
+#[test]
+fn d015_a_later_qualify_reaches_a_value_read_through_a_basis_whenever_it_was_set() {
+    let source = format!(
+        "{D012}event decide;\non decide commit trust because enough using v;\n\
+         state before = 0;\nstate after = 0;\nevent early;\nevent late;\n\
+         on early when committed(trust) set before = 1;\n\
+         on late when committed(trust) set after = 1;\n"
+    );
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["report", "decide", "early", "flag", "late"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(caveats(&game, "before"), json!(["flaky"]));
+    assert_eq!(caveats(&game, "after"), json!(["flaky"]));
+    assert_eq!(
+        snapshot(&game)["commitment_bases"]["trust"]["provenance"]["caveats"],
+        json!([])
+    );
+    game.dispatch_json("unflag", "{}").unwrap();
+    assert_eq!(caveats(&game, "before"), json!([]));
+    assert_eq!(caveats(&game, "after"), json!([]));
+    // Read again after the take-back, the basis brings nothing back.
+    game.dispatch_json("late", "{}").unwrap();
+    assert_eq!(caveats(&game, "after"), json!([]));
+}
+
 /// `e` is observed under a guard that reads `f`, so its observation's record
 /// lists `f`. Shared by D013 and D014.
 const D013_THROUGH_F: &str = r#"
@@ -574,27 +628,65 @@ fn d013_unflag_reaches_a_flag_named_like_one_a_guard_carried() {
 }
 
 /// Invariant: a value carries a caveat exactly when evidence it rests on still
-/// carries it, with no caveat stale and none missing. For a state that reads
-/// no record (a decision's basis, or a reading archived with a caveat it
-/// keeps) and has no caveat placed on it directly, its lineage carries
-/// `flaky` exactly when some occurrence in its lineage carries it now, and
-/// `has_caveat(state, flaky)` holds exactly when some occurrence in its
-/// grounds does. Random event sequences, checked after every event and after
+/// carries it, with no caveat stale and none missing. A state's lineage
+/// carries `flaky` exactly when some occurrence in its lineage carries it now
+/// or the state keeps it from a record (a decision's basis, or a reading
+/// archived while flagged), and `has_caveat(state, flaky)` holds exactly when
+/// some occurrence in its grounds does or its grounds keep it. Evidence a
+/// record lists is read live (D015). Random event sequences, checked after every event and after
 /// saving and restoring at random points, so a take-back or qualify that
 /// misses a record cannot hide.
 #[test]
 fn d012_random_sequences_keep_caveats_matched_to_their_evidence() {
+    random_sequences(RANDOM_SOURCE, 0x9e37_79b9_7f4a_7c15);
+}
+
+/// The same with windows, so occurrences, readings and revisions retire and
+/// depart while the sequence runs: the withdrawal collector must follow every
+/// record a late qualify reaches (D016), and a record whose evidence departs
+/// keeps what its live relations gave it (D018).
+#[test]
+fn d018_random_sequences_keep_caveats_matched_with_windows() {
+    let windowed = RANDOM_SOURCE
+        .replace("renewable e limit 64;", "renewable e window 3;")
+        .replace("renewable f limit 64;", "renewable f window 3;")
+        .replace(
+            "readings s from probe limit 64;",
+            "readings s from probe window 3;",
+        );
+    assert_ne!(windowed, RANDOM_SOURCE);
+    random_sequences(&windowed, 0x2545_f491_4f6c_dd1d);
+}
+
+fn random_sequences(source: &str, mut seed: u64) {
     // Every guarded effect a source rule can write that stores an observation
-    // qualification (renew, reveal, sample), and a second evidence `f` whose
+    // or predicate qualification (renew, reveal, sample, commit, reopen,
+    // withdraw, examine), and a second evidence `f` whose
     // `flaky` reaches `e` only through a guard, directly or through a state,
     // while `e` has its own `flaky` (D013).
     // `save` is no event: it saves and restores the session in its place.
-    const EVENTS: [&str; 18] = [
+    const EVENTS: [&str; 20] = [
         "report", "plain", "via_f", "via_fz", "see_f", "read", "flag", "unflag", "flag_f",
-        "unflag_f", "check", "show", "decide", "recall", "doubt", "withdraw", "see_op", "save",
+        "unflag_f", "check", "show", "decide", "recall", "doubt", "withdraw", "see_op", "scan",
+        "look", "save",
     ];
-    let source = r#"
+    for run in 0..400 {
+        let mut game = ReactiveSession::from_source(source).unwrap();
+        let mut trail = Vec::new();
+        for _ in 0..24 {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let event = EVENTS[(seed >> 33) as usize % EVENTS.len()];
+            trail.push(event);
+            check_event(&mut game, source, event, run, &trail);
+        }
+    }
+}
+
+const RANDOM_SOURCE: &str = r#"
 caveat flaky consequence material;
+caveat stale consequence low;
 claim c;
 evidence e from "tool";
 renewable e limit 64;
@@ -619,6 +711,9 @@ event recall;
 event doubt;
 event withdraw;
 event see_op;
+event scan;
+event look;
+budget 100000;
 evidence op from "operator check";
 decisions trust limit 64;
 state recalled = 0;
@@ -626,6 +721,8 @@ on decide when observed(e) commit trust because enough using v;
 on recall when committed(trust) set recalled = qualified(1, e);
 on doubt when committed(trust) and observed(e) reopen trust because e;
 on see_op reveal op;
+on scan when observed(e) examine stale cost 1;
+on look when examined(stale) set v = qualified(1, e);
 on withdraw when observed(op) and observed(e) withdraw e because op;
 state held = 0;
 state v = 0;
@@ -656,118 +753,89 @@ on via_f when observed(e) set v = qualified(1, e);
 on show when observed(e) set v = qualified(1, e);
 on check when observed(e) set held = v + qualified(0, e);
 "#;
-    let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
-    let mut d015 = 0;
-    for run in 0..400 {
-        let mut game = ReactiveSession::from_source(source).unwrap();
-        let mut trail = Vec::new();
-        for _ in 0..24 {
-            seed = seed
-                .wrapping_mul(6_364_136_223_846_793_005)
-                .wrapping_add(1_442_695_040_888_963_407);
-            let event = EVENTS[(seed >> 33) as usize % EVENTS.len()];
-            trail.push(event);
-            if event == "save" {
-                let before = snapshot(&game);
-                let saved = game.save_json().unwrap();
-                game = ReactiveSession::restore_json(source, &saved)
-                    .unwrap_or_else(|error| panic!("run {run} after {trail:?}: {error}"));
-                for part in [
-                    "qualified_values",
-                    "value_grounds",
-                    "observation_qualifications",
-                    "predicate_qualifications",
-                ] {
-                    assert_eq!(
-                        snapshot(&game)[part],
-                        before[part],
-                        "run {run}, {part} after restoring {trail:?}"
-                    );
-                }
-            } else if game.dispatch_json(event, "{}").is_err() {
-                continue;
-            }
-            let shown = snapshot(&game);
-            let basis = shown["commitment_bases"]
-                .as_object()
-                .into_iter()
-                .flat_map(|bases| bases.values())
-                .flat_map(|basis| basis["provenance"]["evidence"].as_array().unwrap().clone())
-                .collect::<Vec<_>>();
-            for state in ["v", "held", "w", "fz", "recalled"] {
-                let provenance = &shown["qualified_values"][state]["provenance"];
-                let lineage = provenance["evidence"].as_array().unwrap();
-                // Live: more `flaky qualifies` relations than take-backs.
-                let count = |list: &str, key: &str, occurrence: &Value| {
-                    shown[list].as_array().map_or(0, |entries| {
-                        entries
-                            .iter()
-                            .filter(|entry| {
-                                entry[key] == *occurrence
-                                    && (entry["caveat"] == "flaky" || entry["from"] == "flaky")
-                            })
-                            .count()
-                    })
-                };
-                let live = lineage.iter().any(|occurrence| {
-                    count("relations", "to", occurrence)
-                        > count("taken_back", "evidence", occurrence)
-                });
-                let holds = |list: &Value| {
-                    list.as_array()
-                        .is_some_and(|caveats| caveats.iter().any(|caveat| caveat == "flaky"))
-                };
-                // Only a record keeps the flag: a reading archived while `e`
-                // was flagged, or a decision's basis.
-                let kept = holds(&provenance["kept"]);
-                assert!(
-                    !kept || state == "w" || state == "recalled",
-                    "run {run}, {state} kept: {provenance}"
-                );
-                let carried = holds(&provenance["caveats"]);
-                // D015 (open): `recalled` reaches evidence through the basis
-                // `committed(trust)` reads. Whether a later `qualify` of that
-                // evidence reaches it depends today on when it was set, so it
-                // may match either answer; each such reading is counted.
-                if state == "recalled" && carried != (live || kept) {
-                    let live_outside_basis = lineage.iter().any(|occurrence| {
-                        !basis.contains(occurrence)
-                            && count("relations", "to", occurrence)
-                                > count("taken_back", "evidence", occurrence)
-                    });
-                    if carried == (live_outside_basis || kept) {
-                        d015 += 1;
-                        continue;
-                    }
-                }
-                assert_eq!(
-                    carried,
-                    live || kept,
-                    "run {run}, {state} after {trail:?}: {provenance}\n{}\n{}",
-                    shown["observation_qualifications"],
-                    shown["predicate_qualifications"]
-                );
-                // `has_caveat` reads the grounds.
-                let grounds = &shown["value_grounds"][state];
-                let rests_on_flagged =
-                    grounds["evidence"]
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .any(|occurrence| {
-                            count("relations", "to", occurrence)
-                                > count("taken_back", "evidence", occurrence)
-                        });
-                let has_caveat = holds(&grounds["caveats"]);
-                assert_eq!(
-                    has_caveat,
-                    rests_on_flagged || holds(&grounds["kept"]),
-                    "run {run}, {state} grounds after {trail:?}: {grounds}"
-                );
-            }
+
+/// Dispatch `event` (or save and restore), then check every state's caveats
+/// against the evidence it rests on.
+fn check_event(game: &mut ReactiveSession, source: &str, event: &str, run: usize, trail: &[&str]) {
+    if event == "save" {
+        let before = snapshot(game);
+        let saved = game.save_json().unwrap();
+        *game = ReactiveSession::restore_json(source, &saved)
+            .unwrap_or_else(|error| panic!("run {run} after {trail:?}: {error}"));
+        for part in [
+            "qualified_values",
+            "value_grounds",
+            "observation_qualifications",
+            "predicate_qualifications",
+        ] {
+            assert_eq!(
+                snapshot(game)[part],
+                before[part],
+                "run {run}, {part} after restoring {trail:?}"
+            );
         }
+    } else if game.dispatch_json(event, "{}").is_err() {
+        return;
     }
-    // Every reading the open D015 question leaves either way, so a run shows
-    // how often the shape occurs; this count goes when the question is settled.
-    eprintln!("D015 (open): {d015} readings of `recalled` matched the other answer");
+    let shown = snapshot(game);
+    for state in ["v", "held", "w", "fz", "recalled"] {
+        let provenance = &shown["qualified_values"][state]["provenance"];
+        let lineage = provenance["evidence"].as_array().unwrap();
+        // Live: more `flaky qualifies` relations than take-backs.
+        let count = |list: &str, key: &str, occurrence: &Value| {
+            shown[list].as_array().map_or(0, |entries| {
+                entries
+                    .iter()
+                    .filter(|entry| {
+                        entry[key] == *occurrence
+                            && (entry["caveat"] == "flaky" || entry["from"] == "flaky")
+                    })
+                    .count()
+            })
+        };
+        let live = lineage.iter().any(|occurrence| {
+            count("relations", "to", occurrence) > count("taken_back", "evidence", occurrence)
+        });
+        let holds = |list: &Value| {
+            list.as_array()
+                .is_some_and(|caveats| caveats.iter().any(|caveat| caveat == "flaky"))
+        };
+        // Only a record keeps the flag: a reading archived while `e`
+        // was flagged, a decision's basis, or an occurrence that has since
+        // departed (Take-back 0.1, "Kept caveats").
+        let kept = holds(&provenance["kept"]);
+        let departed = provenance["departed"]
+            .as_array()
+            .is_some_and(|markers| !markers.is_empty());
+        assert!(
+            !kept || departed || state == "w" || state == "recalled",
+            "run {run}, {state} kept: {provenance}"
+        );
+        let carried = holds(&provenance["caveats"]);
+        // `recalled` reads the basis `committed(trust)` holds: the
+        // evidence it lists is read live, whenever `recalled` was set
+        // (D015).
+        assert_eq!(
+            carried,
+            live || kept,
+            "run {run}, {state} after {trail:?}: {provenance}\n{}\n{}",
+            shown["observation_qualifications"],
+            shown["predicate_qualifications"]
+        );
+        // `has_caveat` reads the grounds.
+        let grounds = &shown["value_grounds"][state];
+        let rests_on_flagged = grounds["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|occurrence| {
+                count("relations", "to", occurrence) > count("taken_back", "evidence", occurrence)
+            });
+        let has_caveat = holds(&grounds["caveats"]);
+        assert_eq!(
+            has_caveat,
+            rests_on_flagged || holds(&grounds["kept"]),
+            "run {run}, {state} grounds after {trail:?}: {grounds}"
+        );
+    }
 }

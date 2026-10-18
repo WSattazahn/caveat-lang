@@ -33,16 +33,48 @@ const sortedEvidence = view => {
 };
 const viewV2Before = { '0.1.0-rc.17': sortedEvidence };
 
-// Expected objects match partially and arrays exactly, as in a scenario's
-// `expect` (spec/caveat-scenarios-0.1.md): a later kit may add report fields.
-function contains(actual, expected, at = '') {
-  if (Array.isArray(expected)) {
+// 1.1 changes these programs' views on purpose (D015, Caveat Sources 0.1): a
+// value read through a decision's record reads the evidence the record lists
+// live, so it gains a later `qualify` of that evidence. Each view, for every
+// release, may differ from the one that release gave only by caveats it adds,
+// and is held byte for byte to the same events played live, without a save,
+// by this runtime.
+const reviewedViewChanges = new Set(['ordered.cav', 'readiness.cav']);
+
+// `actual` is `expected` with caveats added: every `caveats` list holds the
+// expected names, and every other value is the same.
+function addsOnlyCaveats(actual, expected, at = '') {
+  if (Array.isArray(expected) && at.endsWith('/caveats')) {
+    assert.ok(Array.isArray(actual), `${at} is not an array`);
+    for (const name of expected) assert.ok(actual.includes(name), `${at} lost ${name}`);
+  } else if (Array.isArray(expected)) {
     assert.ok(Array.isArray(actual), `${at} is not an array`);
     assert.equal(actual.length, expected.length, `${at} length`);
-    expected.forEach((item, index) => contains(actual[index], item, `${at}/${index}`));
+    expected.forEach((item, index) => addsOnlyCaveats(actual[index], item, `${at}/${index}`));
   } else if (expected && typeof expected === 'object') {
     assert.ok(actual && typeof actual === 'object' && !Array.isArray(actual), `${at} is not an object`);
-    for (const [key, value] of Object.entries(expected)) contains(actual[key], value, `${at}/${key}`);
+    assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort(), `${at} keys`);
+    for (const [key, value] of Object.entries(expected)) addsOnlyCaveats(actual[key], value, `${at}/${key}`);
+  } else {
+    assert.equal(actual, expected, at);
+  }
+}
+
+// Expected objects match partially and arrays exactly, as in a scenario's
+// `expect` (spec/caveat-scenarios-0.1.md): a later kit may add report fields.
+// With `addsCaveats`, a `caveats` list may hold names beyond the expected ones
+// (reviewedViewChanges).
+function contains(actual, expected, at = '', addsCaveats = false) {
+  if (addsCaveats && Array.isArray(expected) && at.endsWith('/caveats')) {
+    assert.ok(Array.isArray(actual), `${at} is not an array`);
+    for (const name of expected) assert.ok(actual.includes(name), `${at} lost ${name}`);
+  } else if (Array.isArray(expected)) {
+    assert.ok(Array.isArray(actual), `${at} is not an array`);
+    assert.equal(actual.length, expected.length, `${at} length`);
+    expected.forEach((item, index) => contains(actual[index], item, `${at}/${index}`, addsCaveats));
+  } else if (expected && typeof expected === 'object') {
+    assert.ok(actual && typeof actual === 'object' && !Array.isArray(actual), `${at} is not an object`);
+    for (const [key, value] of Object.entries(expected)) contains(actual[key], value, `${at}/${key}`, addsCaveats);
   } else {
     assert.equal(actual, expected, at);
   }
@@ -66,20 +98,31 @@ for (const release of releases) {
       if (saved.source_sha256 !== undefined) {
         assert.equal(saved.source_sha256, createHash('sha256').update(source).digest('hex'), 'the fixture program is the source the save was made under');
       }
+      const reviewed = reviewedViewChanges.has(file.replace(/\.json$/, '.cav'));
       const session = real.restore(source, fixture.save);
+      const replay = reviewed ? real.open(source) : null;
       try {
+        for (const { event, payload } of reviewed ? before : []) replay.dispatch(event, payload);
         const archive = [...fixture.archive];
         after.forEach(({ event, payload }, index) => {
           const result = session.dispatch(event, payload);
           const { view, ...expected } = fixture.after[index];
           const outcome = result.outcome === 'accepted' ? { outcome: 'accepted' } : { outcome: result.outcome, origin: result.origin, code: result.code };
           assert.deepEqual(outcome, expected, `${event} (after event ${index + 1})`);
-          assert.equal(JSON.stringify(session.view()), view, `View 0.1 after ${event} (after event ${index + 1})`);
+          const at = `View 0.1 after ${event} (after event ${index + 1})`;
+          if (reviewed) {
+            replay.dispatch(event, payload);
+            addsOnlyCaveats(session.view(), JSON.parse(view), at);
+            assert.equal(JSON.stringify(session.view()), JSON.stringify(replay.view()), `${at}, as the same events give it without a save`);
+          } else assert.equal(JSON.stringify(session.view()), view, at);
           archive.push(...session.drainArchive());
         });
         const asWritten = viewV2Before[release];
         const viewV2 = session.view({ schema: '0.2' });
-        if (asWritten) {
+        if (reviewed) {
+          addsOnlyCaveats(asWritten ? JSON.parse(asWritten(viewV2)) : viewV2, JSON.parse(asWritten ? asWritten(JSON.parse(fixture.view_v2)) : fixture.view_v2), 'View 0.2 after the last event');
+          assert.equal(JSON.stringify(viewV2), JSON.stringify(replay.view({ schema: '0.2' })), 'View 0.2 after the last event, as the same events give it without a save');
+        } else if (asWritten) {
           assert.equal(asWritten(viewV2), asWritten(JSON.parse(fixture.view_v2)), 'View 0.2 after the last event, evidence order aside');
           const live = real.open(source);
           try {
@@ -89,7 +132,7 @@ for (const release of releases) {
             live.close();
           }
         } else assert.equal(JSON.stringify(viewV2), fixture.view_v2, 'View 0.2 after the last event');
-        contains(explain(session.snapshot(), [], { archive }), fixture.explain, 'explain');
+        contains(explain(session.snapshot(), [], { archive }), fixture.explain, 'explain', reviewed);
         // The archive that release drained stays readable by `dependents`: with
         // it, every evidence name and departed record gives the report the same
         // events give when played live, without a save, by this runtime.
@@ -116,6 +159,7 @@ for (const release of releases) {
         again.close();
       } finally {
         session.close();
+        replay?.close();
       }
     });
   }
