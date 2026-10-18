@@ -1,0 +1,33 @@
+# Take-back 0.1 under guards: a renewal guarded on the doubted evidence, and
+# an observation guarded on a value that carries a caveat of the same name
+# from other evidence. After `unflag`, a value keeps the doubt only through
+# evidence that still carries it. See spec/caveat-take-back-0.1.md, "Kept
+# caveats", and D012 to D014 in experiments/agent-decisions/README.md.
+claim working;
+caveat flaky consequence material;
+evidence report from "the tool's report";
+renewable report limit 8;
+evidence probe from "a second tool";
+state probed = 0;
+state latest_report = 0;
+state checked = 0;
+decisions trust limit 4;
+event setup;
+event read;
+event flag;
+event unflag;
+event check;
+event decide;
+on setup reveal probe;
+on setup qualify probe with flaky;
+on setup when observed(probe) set probed = 1;
+on read when observed(report) renew report;
+on read when probed == 1 reveal report supports working;
+on read set latest_report = qualified(1, report);
+on flag when observed(report) qualify report with flaky;
+on unflag unqualify report with flaky;
+on check when observed(report) set checked = latest_report + qualified(0, report);
+on decide when latest_report > 0 commit trust because enough using latest_report;
+bind tool.report_flaky = if(carries(report, flaky), 1, 0);
+bind tool.latest_flaky = if(has_caveat(latest_report, flaky), 1, 0);
+bind tool.checked_flaky = if(has_caveat(checked, flaky), 1, 0);

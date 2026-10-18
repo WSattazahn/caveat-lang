@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { comparableSave } from './reviewed-save-changes.mjs';
 const json = file => JSON.parse(readFileSync(file, 'utf8'));
 const lines = file => readFileSync(file, 'utf8').trim().split(/\r?\n/);
 const baselineSave = lines('test-results/rc15-save-sweep.txt');
@@ -12,7 +13,8 @@ assert.equal(baselineSave.length, population.length, 'baseline includes the enti
 assert.equal(currentSave.length, population.length, 'current build includes the entire registered population');
 assert.ok(currentSave.every((line, index) => line.startsWith(population[index] + ' ')));
 assert.ok(currentSave.every(line => !line.includes(' unreadable ')));
-assert.deepEqual(currentSave, baselineSave, 'no-window outcomes, saves, restores and refusal digests must match rc.15');
+assert.deepEqual(comparableSave(currentSave), comparableSave(baselineSave),
+  'no-window outcomes, saves, restores and refusal digests must match rc.15, apart from reviewed save changes');
 const baselineOutcomes = lines('test-results/rc15-outcome-sweep.txt');
 const currentOutcomes = lines('test-results/rc16-outcome-sweep.txt');
 const programs = new Set(currentOutcomes.map(line => line.split(' ')[0]));
