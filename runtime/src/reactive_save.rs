@@ -1228,7 +1228,10 @@ impl ReactiveSession {
             self.require_kind(&record.evidence, "evidence")
                 .map_err(|_| format!("{what} names unknown evidence {}", record.evidence))?;
             let source = self.source_evidence(&record.evidence);
-            if source != record.evidence && !self.renewals.contains_key(source) {
+            if source != record.evidence
+                && !self.renewals.contains_key(source)
+                && !self.reading_streams.contains_key(source)
+            {
                 return Err(format!("{what} names no occurrence of renewable evidence"));
             }
             if !self
@@ -2649,6 +2652,11 @@ impl ReactiveSession {
                     .collect(),
                 EffectReport::Reopen { action, because } => vec![action, because],
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
+                // `unqualify latest(STREAM)` reports the stream, which is no
+                // symbol: spec/caveat-latest-0.1.md.
+                EffectReport::Unqualify {
+                    evidence, caveat, ..
+                } if self.reading_streams.contains_key(evidence) => vec![caveat],
                 EffectReport::Unqualify {
                     evidence, caveat, ..
                 } => vec![evidence, caveat],
@@ -3191,7 +3199,9 @@ impl ReactiveSession {
                 caveat,
                 occurrences,
             } => {
-                named(self.require_kind(evidence, "evidence"))?;
+                if !self.reading_streams.contains_key(evidence) {
+                    named(self.require_kind(evidence, "evidence"))?;
+                }
                 named(self.require_kind(caveat, "caveat"))?;
                 if occurrences.is_empty() {
                     return Err(fail("marks no occurrence"));
