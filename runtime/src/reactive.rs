@@ -5674,7 +5674,12 @@ impl ReactiveSession {
                 .values()
                 .any(|targets| targets.values().any(listed))
         {
-            let mut lineage = added.union(guard)?;
+            // Every record merged into lists the evidence, so the caveat's
+            // route through it is live: freeze against it as well as the
+            // guard, or the caveat is wrongly kept (D020).
+            let mut lineage = added
+                .union(guard)?
+                .union(&Provenance::from_names([evidence.to_string()], [])?)?;
             self.freeze_observation(&mut lineage);
             // Each record whose qualification gains the lineage's evidence
             // references it, so the withdrawal collector must recount that
