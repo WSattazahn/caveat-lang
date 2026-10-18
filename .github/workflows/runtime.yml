@@ -110,6 +110,8 @@ jobs:
           --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
+      - name: The project's own decision ledger replays and its scenarios pass
+        run: npm run test:ledger
       - name: Adoption scorer mutation controls (no trial agents)
         run: node --test experiments/agent-adoption/v1/checks.test.mjs
       - name: Adoption runner capture failure controls (no trial agents)
