@@ -58,7 +58,10 @@ the package installed in the project. npx adds a few seconds to each start.
 To start `caveat` another way, set `CAVEAT_COMMAND` to a JSON array of words,
 such as `["node", "../node_modules/caveat-lang/bin/caveat.mjs"]`, or pass
 `command=` to `CaveatServer`. In JSON, write a Windows path with forward
-slashes or doubled backslashes.
+slashes or doubled backslashes. To keep the session across restarts, add
+`--state assessment.save` to the command: the server restores the session from
+the file when it exists and rewrites it after every accepted event, so the
+caller keeps no save of its own.
 
 With rc.7 or later installed alongside another package that owns `caveat`,
 set `CAVEAT_COMMAND` to `["npx", "--no-install", "caveat-lang"]` (use

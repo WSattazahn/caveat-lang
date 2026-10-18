@@ -25,7 +25,7 @@ installed.
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, which event (with its payload) observed each of its grounds, and why is each displayed value what it is? |
 | `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](reference/spec/caveat-dependents-0.1.md). |
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
-| `serve PROGRAM` | Keeps a session open over standard input and output ([serve](reference/spec/caveat-serve-0.1.md)). |
+| `serve [--state FILE] PROGRAM` | Keeps a session open over standard input and output; with `--state`, in a file across runs ([serve](reference/spec/caveat-serve-0.1.md)). |
 | `init [DIRECTORY]` | Writes the getting-started program, its scenarios and an events file. |
 
 Each answers only its own question. A program that loads can still do the

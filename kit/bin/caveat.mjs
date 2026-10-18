@@ -9,7 +9,7 @@
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -35,7 +35,7 @@ Usage:
   caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
-  caveat-lang serve [--runtime <dir>] <program.cav>
+  caveat-lang serve [--runtime <dir>] [--state <file>] <program.cav>
   caveat-lang init [<directory>]
   caveat-lang doctor [--runtime <dir>] [--json]
   caveat-lang demo agent [--runtime <dir>] [--json]
@@ -89,8 +89,12 @@ event. Exit status: 0 replayed, 1 an event failed fatally (its record is last),
 
 serve keeps one session of the program open and answers requests on standard
 input, one JSON object per line, with one JSON object per line on standard
-output (spec/caveat-serve-0.1.md). Exit status: 0 closed, 1 a fatal outcome
-ended the session, 2 the program does not load.
+output (spec/caveat-serve-0.1.md). With --state, it starts from the file when
+one exists and rewrites it after every accepted event and every restore, so a
+host that stops and starts again loses nothing and keeps no save logic of its
+own; the file holds the compact save where the runtime has one. Exit status:
+0 closed, 1 a fatal outcome ended the session or the state file could not be
+written, 2 the program does not load or the state file is not a save of it.
 
 doctor checks Node, package/runtime identity, a real test session and PATH
 command ownership. It inspects other executables without running them.
@@ -109,6 +113,7 @@ init writes the getting-started program, its scenarios and an events file
 into a directory (default: the current one). It refuses to overwrite a file.
 
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
+  --state <file>   (serve) the session's save: read on start, rewritten on change
   --json           print the machine report instead of text
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
@@ -137,7 +142,7 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, strict: false, unused: false, runtime: null, from: null };
+  const options = { command, files: [], json: false, strict: false, unused: false, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
@@ -146,6 +151,10 @@ function parseArguments(argv) {
     else if (argument === '--from' && command === 'types') {
       options.from = rest[++index];
       if (!options.from) return { error: '--from needs a module specifier' };
+    }
+    else if (argument === '--state' && command === 'serve') {
+      options.state = rest[++index];
+      if (!options.state) return { error: '--state needs a file' };
     }
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
@@ -345,6 +354,14 @@ async function replayProgram(options) {
   return failed ? 1 : 0;
 }
 
+// The state file is replaced whole: the new text is written beside it and
+// renamed over it, so a stop between the two leaves the earlier save in place.
+async function writeState(file, text) {
+  const partial = `${file}.${process.pid}.partial`;
+  await writeFile(partial, text);
+  await rename(partial, file);
+}
+
 async function serveProgram(options) {
   const [program] = options.files;
   const write = value => process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -352,18 +369,46 @@ async function serveProgram(options) {
   if (!inputs) return 2;
   const runtime = await loadRuntime(options);
   if (!runtime) return 2;
+  // With --state, an existing file is the save to start from.
+  let restore = null;
+  if (options.state !== null && existsSync(options.state)) {
+    try { restore = await readFile(options.state, 'utf8'); } catch (error) {
+      write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: `cannot read ${options.state}: ${error.message}` } });
+      return 2;
+    }
+  }
   let server;
-  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program) }); } catch (error) {
-    write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'load', message: error.message } });
+  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore }); } catch (error) {
+    const kind = restore === null ? 'load' : 'state';
+    const message = restore === null ? error.message : `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
+    write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });
     return 2;
   }
-  write(server.ready);
+  // A fresh session writes its state file on start, so the file exists before
+  // the first event; a restored one is unchanged until something changes it.
+  const checkpoint = options.state === null ? null : () => writeState(options.state, server.save().text);
+  if (checkpoint !== null && restore === null) {
+    try { await checkpoint(); } catch (error) {
+      write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: `cannot write ${options.state}: ${error.message}` } });
+      return 2;
+    }
+  }
+  write(checkpoint === null ? server.ready : { ...server.ready, state: { path: options.state, restored: restore !== null } });
   const lines = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
   let status = 0;
   let stopped = false;
   for await (const line of lines) {
     if (!line.trim()) continue;
-    const { response, exit } = server.handle(line);
+    const { response, exit, changed } = server.handle(line);
+    if (changed && checkpoint !== null) {
+      // The session took the event, but the file did not: answer with that
+      // instead of the acceptance and stop, so the host does not believe the
+      // file is current. The file still holds the session before this event.
+      try { await checkpoint(); } catch (error) {
+        write({ id: response.id, ok: false, error: { kind: 'state', message: `cannot write ${options.state}: ${error.message}` } });
+        status = 1; stopped = true; break;
+      }
+    }
     write(response);
     if (typeof exit === 'number') { status = exit; stopped = true; break; }
   }

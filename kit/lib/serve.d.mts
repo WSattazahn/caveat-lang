@@ -10,6 +10,7 @@ import type {
   RejectionCode,
   RuntimeIdentity,
   Snapshot,
+  View,
 } from './session.mjs';
 
 export declare const SERVE_SCHEMA: 'caveat-serve/0.1';
@@ -19,6 +20,11 @@ export interface ServeOptions {
   source: string;
   /** The program's name, as `ready` reports it. */
   program?: string | null;
+  /**
+   * The text of an earlier save to start from instead of opening the program
+   * fresh. A save the runtime cannot use throws CaveatError("restore").
+   */
+  restore?: string | null;
 }
 
 /** The first line to write. */
@@ -42,6 +48,8 @@ export interface ServeResponse {
   message?: string;
   sequence?: number;
   snapshot?: Snapshot;
+  /** From `view`, or from `dispatch` with `view: true`: the View 0.1 of the session. */
+  view?: View;
   report?: ExplainReport | DependentsReport;
   save?: string;
   /** Host-owned archive items removed from the runtime by drainArchive. */
@@ -57,15 +65,27 @@ export interface ServeError {
   message: string;
 }
 
-/** Write `response`; then stop with `exit` as the status when it is a number. */
+/**
+ * Write `response`; then stop with `exit` as the status when it is a number.
+ * `changed` is true when the request changed the session (an accepted event or
+ * a restore): a host that keeps a state file rewrites it then.
+ */
 export interface ServeResult {
   response: ServeResponse;
   exit: 0 | 1 | null;
+  changed: boolean;
+}
+
+/** A state file's text: the compact save where the runtime has one, else the full save. */
+export interface ServeSave {
+  text: string;
+  compact: boolean;
 }
 
 export interface CaveatServer {
   ready: ServeReady;
   handle(line: string): ServeResult;
+  save(): ServeSave;
   close(): void;
 }
 

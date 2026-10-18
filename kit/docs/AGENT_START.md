@@ -84,8 +84,9 @@ is closed. The [MCP authoring tools](MCP.md) keep none: each tool call starts a
 fresh subprocess and runtime with no session handle, so a call sees only the
 source and events it is sent. One MCP connection accepts 4,096 request IDs; the
 bridge then ends it, and the host must reconnect. For a long-running agent,
-keep the session in `caveat serve` and its save, or send the full event history
-again with each MCP call.
+keep the session in `caveat serve --state FILE`, which restores the session
+from the file on start and rewrites it after every accepted event, or send the
+full event history again with each MCP call.
 
 Observing is separate from assessing. Reassessing requires reopening the current
 revision. Withdrawal preserves the archive, and late qualification leaves prior
