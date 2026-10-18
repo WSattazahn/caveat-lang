@@ -1,6 +1,7 @@
 // Compare both runtimes against identical current source bytes on this host.
 // Run from any directory: node experiments/departure-gate/sweep.mjs
 import assert from 'node:assert/strict';
+import { reviewedSaveChanges, comparableSave } from './reviewed-save-changes.mjs';
 import { createHash } from 'node:crypto';
 import { copyFileSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,24 +25,6 @@ const newerThanBaseline = {
   'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,
 };
 
-// Programs whose saves a reviewed fix changed on purpose. Each must still
-// give the same refusals and fatal outcomes as rc.15; only its save and
-// restore digest may differ. D014 (experiments/agent-decisions/README.md):
-// a late `qualify` reaches a guard's stored record, so values read through it
-// carry the caveat; it adds caveats and changes no outcome. Windowed programs
-// it changes are absent: their sweep compares outcomes only, which match.
-const reviewedSaveChanges = new Set([
-  'experiments/agent-adoption/v1/evaluator/gold-tracker.cav',
-  'experiments/agent-authoring/rc7/trial01/final/task.cav',
-  'experiments/agent-authoring/rc7/trial01/first/task.cav',
-  'experiments/agent-decisions/001-departure-reason-mechanism/decision.cav',
-  'experiments/agent-decisions/retest-rc19/d001-undeclared.cav',
-  'kit/examples/agent-evidence/grounded_assessment.cav',
-  'kit/examples/agent-evidence/qualification.cav',
-  'kit/examples/reviewer-decision/rely.cav',
-  'kit/test/fixtures/saves/programs/frost.cav',
-  'runtime/tests/fixtures/f268-rc11-wide-grounds.cav',
-]);
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: root, maxBuffer: 64 * 1024 * 1024, ...options });
@@ -128,13 +111,8 @@ const newSave = sweep(executable(root, 'save_sweep'), noWindow, [8, 150], 'rc16-
 assert.equal(newSave.length, noWindow.length);
 assert.ok(newSave.every((row, index) => row.startsWith(`${noWindow[index]} `)));
 assert.ok(newSave.every(row => row.endsWith(' skipped') || row.endsWith(' fatal=0')));
-// A reviewed change keeps everything but the digest.
-const withoutDigest = row => row.replace(/^(\S+) [0-9a-f]{16} /, '$1 ');
-const reviewed = row => reviewedSaveChanges.has(row.split(' ')[0]);
 for (const path of reviewedSaveChanges) assert.ok(noWindow.includes(path), `reviewed save change names no gated program: ${path}`);
-assert.deepEqual(newSave.map(row => reviewed(row) ? withoutDigest(row) : row),
-  oldSave.map(row => reviewed(row) ? withoutDigest(row) : row),
-  'no-window outcome, save and restore digests differ');
+assert.deepEqual(comparableSave(newSave), comparableSave(oldSave), 'no-window outcome, save and restore digests differ');
 const oldOutcome = sweep(executable(baseline, 'outcome_sweep'), windowed, [32, 400], 'rc15-outcome-sweep');
 const newOutcome = sweep(executable(root, 'outcome_sweep'), windowed, [32, 400], 'rc16-outcome-sweep');
 assert.equal(newOutcome.length, windowed.length * 32);
