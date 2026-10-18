@@ -127,7 +127,7 @@ sees what the earlier ones did.
 | Values | numbers, `true`, `false`, `"text"`, state and parameter names, `PARAMETER.MEMBER` for an `in` parameter |
 | Operators | `+ - * /` (`+` also joins text), `== != < <= > >=`, `and or not` |
 | Choice | `if(CONDITION, A, B)`, `require(CONDITION, VALUE)` |
-| Decisions | `committed(SERIES)`, `reopened(SERIES)`, `rests_on_withdrawn(SERIES)`, `permission_withdrawn(SERIES)` |
+| Decisions | `committed(SERIES)`, `reopened(SERIES)`, `rests_on_withdrawn(SERIES)`, `permission_withdrawn(SERIES)`; `rests_on_withdrawn(revision(SERIES, K))` asks it of the Kth revision, from 1, current or past, and is false when K names none (from 1.1.0, [past revisions](reference/spec/caveat-past-revisions-0.1.md)) |
 | Evidence | `observed(E)`, `withdrawn(E)`, `withdrawn(latest(STREAM))`, `carries(E, CAVEAT)`, `has_caveat(STATE, CAVEAT)`, `qualified(VALUE, E[, CAVEAT…])` |
 | Histories | `has_sample(STREAM)`, `latest(H)`, `history_count(H)`, `history_at(H, INDEX)`, `fold_history(H, INITIAL, FUNCTION)`, where H is a stream or a series |
 | Functions | `abs min max clamp floor ceil round sqrt sin cos wrap`; text: `number_text percent_text time_text time_second_text time_total_text text id_text`; `elapsed()` |

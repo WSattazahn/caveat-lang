@@ -101,6 +101,21 @@ pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 /// spec/caveat-earlier-occurrence-0.1.md.
 pub const AT_OCCURRENCE: &str = "occurrence:";
 
+/// The predicate kind asked of `revision(SERIES, INDEX)`, kept whole in the
+/// node; the host receives the target as `SERIES#INDEX`. See
+/// spec/caveat-past-revisions-0.1.md.
+pub const AT_REVISION: &str = "revision:rests_on_withdrawn";
+
+/// The kind the host receives for a selector node: an occurrence predicate
+/// gains its prefix, and a revision predicate already carries its own.
+fn selector_kind(kind: &str) -> String {
+    if kind == AT_REVISION {
+        kind.to_string()
+    } else {
+        format!("{AT_OCCURRENCE}{kind}")
+    }
+}
+
 pub const MAX_PROVENANCE_BYTES: usize = 65_536;
 pub const MAX_TEXT_BYTES: usize = 65_536;
 
@@ -489,7 +504,10 @@ enum Node {
     Predicate(String, String),
     /// `observed`, `withdrawn` or `carries` asked of `occurrence(EVIDENCE,
     /// INDEX)`: the predicate's kind, the renewable evidence and the index.
-    /// See spec/caveat-earlier-occurrence-0.1.md.
+    /// See spec/caveat-earlier-occurrence-0.1.md. Also
+    /// `rests_on_withdrawn(revision(SERIES, INDEX))`, with kind
+    /// [`AT_REVISION`] and the series in place of the evidence. See
+    /// spec/caveat-past-revisions-0.1.md.
     AtOccurrence(String, String, Box<Expr>),
     Latest(String),
     HistoryCount(String),
@@ -1247,7 +1265,7 @@ impl Expr {
                 Ok(ValueType::Bool)
             }
             Node::AtOccurrence(kind, evidence, index) => {
-                predicate(&format!("{AT_OCCURRENCE}{kind}"), evidence)?;
+                predicate(&selector_kind(kind), evidence)?;
                 index
                     .validate_calls(numeric, predicate, user_call)?
                     .require(ValueType::Number)?;
@@ -1536,7 +1554,7 @@ impl Expr {
                     .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 Ok(Value::Bool(predicate(
-                    &format!("{AT_OCCURRENCE}{kind}"),
+                    &selector_kind(kind),
                     &format!("{evidence}#{index}"),
                 )?))
             }
@@ -2134,6 +2152,26 @@ impl Parser {
             };
             self.expect(TokenKind::RightParen, "')' after the predicate target")?;
             return Ok(Node::AtOccurrence(kind, evidence, Box::new(index)));
+        }
+        // `rests_on_withdrawn(revision(SERIES, INDEX))`: whether a revision
+        // of a decision series, current or past, rests on withdrawn evidence.
+        // See spec/caveat-past-revisions-0.1.md.
+        if name == "rests_on_withdrawn"
+            && self.peek() == Some(&TokenKind::Identifier("revision".into()))
+            && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                == Some(&TokenKind::LeftParen)
+        {
+            self.cursor += 2;
+            let series = self.graph_identifier("revision series")?;
+            self.expect(TokenKind::Comma, "',' after the revision's series")?;
+            let index = self.expression(0, nesting)?;
+            self.expect(TokenKind::RightParen, "')' after the revision index")?;
+            self.expect(TokenKind::RightParen, "')' after the predicate target")?;
+            return Ok(Node::AtOccurrence(
+                AT_REVISION.to_string(),
+                series,
+                Box::new(index),
+            ));
         }
         // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
         // travels in the predicate's name. See spec/caveat-renewal-0.1.md.

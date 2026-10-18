@@ -37,6 +37,10 @@ record that nothing pins **departs**. The pins are Lineage Compaction 0.1's
   is departure's word, not Dispatch 0.1's `decision_in_force`: a reopened
   current revision keeps its grounds pinned, because `rests_on_withdrawn(D)`
   and `explain` still read them;
+- the grounds of every revision of a decision series that a rule or binding
+  reads through `rests_on_withdrawn(revision(D, K))`, current or past,
+  because that predicate reads them ([Past Revisions 0.1](caveat-past-revisions-0.1.md),
+  1.1); the bound is the series' `limit`;
 - the `because` of each journal entry still in the journal's window, and its
   `permitted_by`, the concrete grant the journal copies
   ([Decision journal 0.1](caveat-decision-journal-0.1.md));
