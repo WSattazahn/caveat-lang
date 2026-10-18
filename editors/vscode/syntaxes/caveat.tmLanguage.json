@@ -1071,6 +1071,10 @@
         {
           "name": "keyword.other.caveat",
           "match": "(?<![.\\w$])journal\\b(?=[ \\t]+window[ \\t]+\\d)"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])changed\\b(?=[ \\t]+[A-Za-z_]\\w*[ \\t]*(?:[,;]|supporting\\b|opposing\\b))"
         }
       ]
     },
