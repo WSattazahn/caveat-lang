@@ -472,11 +472,14 @@ fn d012_a_decision_made_while_flagged_keeps_the_flag() {
     assert_eq!(caveats(&game, "held"), json!(["flaky"]));
 }
 
-/// Every caveat a value shows matches the evidence it comes from. In a program
-/// with no records to keep a caveat (no commitment, archive or departure), a
-/// state read with `qualified(1, e)` carries `flaky` exactly when some
-/// occurrence in its lineage carries it now. Random event sequences, checked
-/// after every event, so a take-back that misses a record cannot hide.
+/// Invariant: a value carries a caveat exactly when evidence it rests on still
+/// carries it, with no caveat stale and none missing. In a program with no
+/// records to keep a caveat (no commitment, archive or departure) and no caveat
+/// placed on a state directly, a state's lineage carries `flaky` exactly when
+/// some occurrence in its lineage carries it now, and `has_caveat(state,
+/// flaky)` holds exactly when some occurrence in its grounds does. Random event
+/// sequences, checked after every event, so a take-back that misses a record
+/// cannot hide.
 #[test]
 fn d012_random_sequences_keep_caveats_matched_to_their_evidence() {
     const EVENTS: [&str; 5] = ["report", "flag", "unflag", "plain", "check"];
@@ -544,16 +547,25 @@ on check when observed(e) set held = v + qualified(0, e);
                     "run {run}, {state} after {trail:?}: {provenance}\n{}\n{}",
                     shown["observation_qualifications"], shown["predicate_qualifications"]
                 );
-                // `has_caveat` reads the grounds, which follow the same test.
-                let grounds = shown["value_grounds"][state]["caveats"]
+                // `has_caveat` reads the grounds.
+                let grounds = &shown["value_grounds"][state];
+                let rests_on_flagged =
+                    grounds["evidence"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|occurrence| {
+                            count("relations", "to", occurrence)
+                                > count("taken_back", "evidence", occurrence)
+                        });
+                let has_caveat = grounds["caveats"]
                     .as_array()
                     .unwrap()
                     .iter()
                     .any(|caveat| caveat == "flaky");
-                assert!(
-                    !grounds || live,
-                    "run {run}, {state} grounds after {trail:?}: {}",
-                    shown["value_grounds"][state]
+                assert_eq!(
+                    has_caveat, rests_on_flagged,
+                    "run {run}, {state} grounds after {trail:?}: {grounds}"
                 );
             }
         }
