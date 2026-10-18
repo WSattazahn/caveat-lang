@@ -5295,17 +5295,26 @@ impl ReactiveSession {
         {
             let mut lineage = added.union(guard)?;
             self.freeze_observation(&mut lineage);
-            for record in Arc::make_mut(&mut self.observation_qualifications).values_mut() {
+            // Each record whose qualification gains the lineage's evidence
+            // references it, so the withdrawal collector must recount that
+            // record's references before departure runs (D016).
+            let mut changed = BTreeSet::new();
+            for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
                 if listed(record) {
                     record.merge(&lineage)?;
+                    changed.insert(name.clone());
                 }
             }
             for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
-                for record in targets.values_mut() {
+                for (name, record) in targets.iter_mut() {
                     if listed(record) {
                         record.merge(&lineage)?;
+                        changed.insert(name.clone());
                     }
                 }
+            }
+            for name in changed {
+                self.collector_dirty(CollectorOwner::Record(name));
             }
         }
         self.effects.push(EffectReport::Qualify {
