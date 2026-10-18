@@ -101,8 +101,38 @@ impl WebReactiveSession {
     /// `check`, with the checks asked for as well: `unused` adds C007
     /// `unused-declaration`.
     pub fn check_with(source: &str, unused: bool) -> Result<String, String> {
-        let options = crate::reactive::CheckOptions { unused };
+        let options = crate::reactive::CheckOptions {
+            unused,
+            ..Default::default()
+        };
         let report = crate::reactive::check_source_with(source, options)?;
+        to_json_pretty(&report).map_err(|error| error.to_string())
+    }
+
+    /// `check`, with the checks `options` asks for, as JSON:
+    /// `{"unused": true}` adds C007, `{"records": true}` adds C008, and
+    /// `"save": TEXT` with `records` adds C009 for that save. An unknown
+    /// option is an error, so a host learns this build does not have it.
+    pub fn check_options(source: &str, options: &str) -> Result<String, String> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Options {
+            #[serde(default)]
+            unused: bool,
+            #[serde(default)]
+            records: bool,
+            save: Option<String>,
+        }
+        let Options {
+            unused,
+            records,
+            save,
+        } = serde_json::from_str(options).map_err(|error| format!("check options: {error}"))?;
+        let options = crate::reactive::CheckOptions { unused, records };
+        let report = match save {
+            Some(save) => crate::reactive::check_save_with(source, &save, options)?,
+            None => crate::reactive::check_source_with(source, options)?,
+        };
         to_json_pretty(&report).map_err(|error| error.to_string())
     }
 

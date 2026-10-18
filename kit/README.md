@@ -192,7 +192,9 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind.
+  left behind. `--records` also reports each read of a decision's record that
+  a later `qualify` reaches from 1.1, and `--records --save SAVE` the values
+  that save holds without such a caveat, as a 1.0.x runtime saved them.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.

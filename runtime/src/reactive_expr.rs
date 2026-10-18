@@ -868,6 +868,71 @@ impl Expr {
         }
     }
 
+    /// Every record this expression reads, as (form, name), taken or not:
+    /// `committed(D)` and `reopened(D)`, and `latest`, `history_count`,
+    /// `history_at` and a fold of a history. Whether the name is a decision
+    /// is for the caller. Used by `caveat check`'s C008
+    /// (spec/caveat-check-0.1.md). Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_record_reads(&self, records: &mut BTreeSet<(&'static str, String)>) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
+            }
+            Node::Predicate(kind, name) => match kind.as_str() {
+                "committed" => {
+                    records.insert(("committed", name.clone()));
+                }
+                "reopened" => {
+                    records.insert(("reopened", name.clone()));
+                }
+                _ => {}
+            },
+            Node::Latest(name) => {
+                records.insert(("latest", name.clone()));
+            }
+            Node::HistoryCount(name) => {
+                records.insert(("history_count", name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                records.insert(("history_at", name.clone()));
+                index.collect_record_reads(records);
+            }
+            Node::AtOccurrence(_, _, index) => index.collect_record_reads(records),
+            Node::Fold(history, initial, _) => {
+                records.insert(("fold", history.clone()));
+                initial.collect_record_reads(records);
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                records.insert(("fold", history.clone()));
+                initial.collect_record_reads(records);
+                body.collect_record_reads(records);
+            }
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => {
+                value.collect_record_reads(records)
+            }
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_record_reads(records);
+                right.collect_record_reads(records);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_record_reads(records);
+                yes.collect_record_reads(records);
+                no.collect_record_reads(records);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_record_reads(records);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_record_reads(records);
+                }
+                body.collect_record_reads(records);
+            }
+        }
+    }
+
     /// Every history this expression names: reading streams and decision
     /// series read by `latest`, `history_count`, `history_at`, a fold,
     /// `has_sample` or `withdrawn(latest(...))`, taken or not. Used by
