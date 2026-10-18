@@ -5475,6 +5475,16 @@ impl ReactiveSession {
                     .map(move |(name, _)| (kind.clone(), name.clone()))
             })
             .collect::<Vec<_>>();
+        // Current values only, as a qualify, and their grounds on the same
+        // test over the grounds' own evidence. Commitment bases and grounds,
+        // reading archives and the journal keep what they recorded.
+        let states = (0..self.states.len())
+            .map(|slot| {
+                let cell = &self.states.cells[slot];
+                (slot, unkept(&cell.value.provenance), unkept(&cell.grounds))
+            })
+            .filter(|&(_, in_value, in_grounds)| in_value || in_grounds)
+            .collect::<Vec<_>>();
         for name in observations {
             Arc::make_mut(&mut self.observation_qualifications)
                 .get_mut(&name)
@@ -5490,27 +5500,15 @@ impl ReactiveSession {
                 .caveats
                 .remove(caveat);
         }
-        // Current values only, as a qualify. Commitment bases and grounds,
-        // reading archives and the journal keep what they recorded.
-        for slot in 0..self.states.len() {
-            let lineage = &self.states.cells[slot].value.provenance;
-            if !lineage.caveats.contains(caveat)
-                || lineage.kept.contains(caveat)
-                || !marked
-                    .iter()
-                    .any(|occurrence| lineage.evidence.contains(occurrence))
-                || lineage.evidence.iter().any(|name| {
-                    self.symbols
-                        .get(name)
-                        .is_some_and(|&id| self.has_live_relation(from, id))
-                })
-            {
-                continue;
-            }
+        for (slot, in_value, in_grounds) in states {
             self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
             let cell = self.states.cell_mut(slot);
-            cell.value.provenance.caveats.remove(caveat);
-            cell.grounds.caveats.remove(caveat);
+            if in_value {
+                cell.value.provenance.caveats.remove(caveat);
+            }
+            if in_grounds {
+                cell.grounds.caveats.remove(caveat);
+            }
         }
         self.effects.push(EffectReport::Unqualify {
             evidence: evidence.to_string(),

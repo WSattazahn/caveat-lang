@@ -115,9 +115,12 @@ runs:
    still take it through any live one.
 4. **Current values.** Every state whose lineage holds a marked occurrence
    is checked. It drops `CAVEAT` from its lineage unless the caveat is still
-   live for it, and from its grounds on the same test. The caveat is still live
-   for a state when evidence the state holds has a live `CAVEAT qualifies`
-   relation, or when the state **keeps** it. The state's value, its other
+   live for it, and from its grounds on the same test over the evidence the
+   grounds hold. The caveat is still live for a lineage or grounds when
+   evidence it holds has a live `CAVEAT qualifies` relation, or when it
+   **keeps** the caveat. A lineage can hold evidence a guard read that the
+   grounds do not, so the grounds can lose a caveat the lineage keeps
+   ([D013](../experiments/agent-decisions/README.md)). The state's value, its other
    caveats and its evidence do not change. The take-back's guard joins no
    lineage: the guard of a take-back usually reads `carries(EVIDENCE,
    CAVEAT)`, which would put back the caveat the effect removes. The
@@ -357,3 +360,7 @@ the implementation.
   from the renewed occurrence. Tests: the D012 cases in
   `runtime/tests/take_back.rs`, including a randomized check that every
   caveat a value carries is live on evidence it holds.
+- 2026-10-18: a take-back tests a state's grounds over the evidence the
+  grounds hold, not the lineage's (D013): when a guard read other evidence
+  that carries a caveat of the same name, `has_caveat` no longer keeps a
+  taken-back flag. Tests: the D013 cases in `runtime/tests/take_back.rs`.
