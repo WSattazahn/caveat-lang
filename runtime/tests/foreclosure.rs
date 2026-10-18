@@ -357,3 +357,124 @@ fn a_program_without_the_words_has_no_irreversible_field() {
     let game = session("claim ok;\ndecisions d limit 1;\nevent go;\n");
     assert!(json(&game.snapshot()).get("irreversible").is_none());
 }
+
+/// Random events over the migration, with saves and restores in place. After
+/// every step: a refusal changed nothing; a restored session is the same
+/// session; once the drop is committed no foreclosed action gains a commit;
+/// and the drop's grounds never hold an unretained `material` or worse
+/// caveat.
+#[test]
+fn random_events_keep_the_foreclosure_rules() {
+    const EVENTS: [(&str, &str); 13] = [
+        ("dry_run", r#"{"rows_ok":1,"full":"complete"}"#),
+        ("dry_run", r#"{"rows_ok":0,"full":"complete"}"#),
+        ("dry_run", r#"{"rows_ok":1,"full":"sampled"}"#),
+        ("approve", "{}"),
+        ("drop", "{}"),
+        ("drop_accepting", "{}"),
+        ("roll_back", "{}"),
+        ("undo_it", "{}"),
+        ("roll_back_then_drop", "{}"),
+        ("drop_then_roll_back", "{}"),
+        ("misread", "{}"),
+        ("approve", "{}"),
+        ("roll_back", "{}"),
+    ];
+    let snapshot = |game: &ReactiveSession| serde_json::to_value(game.snapshot()).unwrap();
+    let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
+    let mut codes = std::collections::BTreeMap::<String, usize>::new();
+    for run in 0..200 {
+        let mut game = ReactiveSession::from_source(MIGRATION).unwrap();
+        let mut trail = Vec::new();
+        for step in 0..30 {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let pick = (seed >> 33) as usize % (EVENTS.len() + 1);
+            if pick == EVENTS.len() {
+                trail.push(("save", ""));
+                let saved = game.save_json().unwrap();
+                let restored =
+                    ReactiveSession::restore_json(MIGRATION, &saved).unwrap_or_else(|error| {
+                        panic!("run {run} step {step} restore: {error} {trail:?}")
+                    });
+                assert_eq!(
+                    restored.save_json().unwrap(),
+                    saved,
+                    "run {run} step {step} {trail:?}"
+                );
+                assert_eq!(
+                    snapshot(&restored),
+                    snapshot(&game),
+                    "run {run} step {step} {trail:?}"
+                );
+                game = restored;
+                continue;
+            }
+            let (event, payload) = EVENTS[pick];
+            trail.push((event, payload));
+            let before = (game.save_json().unwrap(), snapshot(&game));
+            let outcome = game
+                .dispatch_outcome_json(event, payload)
+                .unwrap_or_else(|fatal| {
+                    panic!("run {run} step {step} fatal {}: {trail:?}", fatal.message)
+                });
+            let outcome = serde_json::to_value(outcome).unwrap();
+            if outcome["outcome"] != "accepted" {
+                *codes
+                    .entry(format!(
+                        "{}/{}",
+                        outcome["origin"].as_str().unwrap(),
+                        outcome["code"].as_str().unwrap()
+                    ))
+                    .or_default() += 1;
+                assert_eq!(
+                    (game.save_json().unwrap(), snapshot(&game)),
+                    before,
+                    "run {run} step {step} {trail:?}"
+                );
+                continue;
+            }
+            let now = snapshot(&game);
+            let drop = &now["decision_series"]["drop_old_table"]["revisions"];
+            if let Some(drop) = drop.as_array().unwrap().first() {
+                let at = drop["sequence"].as_u64().unwrap();
+                let journal = now["decision_journal"].as_array().unwrap();
+                let dropped = journal
+                    .iter()
+                    .position(|entry| {
+                        entry["commitment"] == "drop_old_table@1" && entry["change"] == "committed"
+                    })
+                    .unwrap();
+                for (index, entry) in journal.iter().enumerate() {
+                    if (entry["decision"] == "rollback" || entry["decision"] == "undo")
+                        && entry["change"] == "committed"
+                    {
+                        assert!(
+                            index < dropped && entry["sequence"].as_u64().unwrap() <= at,
+                            "run {run} step {step}: {entry} after the drop {trail:?}"
+                        );
+                    }
+                }
+                let caveats = now["commitment_grounds"]["drop_old_table@1"]["caveats"].clone();
+                for caveat in caveats.as_array().unwrap() {
+                    assert!(
+                        caveat == "timing_noise" || caveat == "sampled_only",
+                        "run {run} step {step}: drop rests on {caveat} {trail:?}"
+                    );
+                }
+            }
+        }
+    }
+    eprintln!("{codes:?}");
+    for site in [
+        "evaluation/foreclosed",
+        "evaluation/caveated_irreversible",
+        "limit/history_limit",
+    ] {
+        assert!(
+            codes.contains_key(site),
+            "the random check never reached {site}: {codes:?}"
+        );
+    }
+}
