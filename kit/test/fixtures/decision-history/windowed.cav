@@ -1,0 +1,16 @@
+scene "A decision series whose journal keeps only its two latest entries.";
+
+claim ok;
+evidence tool from "a tool result";
+renewable tool limit 8;
+decisions verdict limit 8;
+journal window 2;
+
+event read;
+event decide;
+event redo;
+
+on read when observed(tool) renew tool;
+on read reveal tool supports ok;
+on decide commit verdict because enough using 1;
+on redo reopen verdict because tool;
