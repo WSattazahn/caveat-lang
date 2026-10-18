@@ -473,7 +473,7 @@ fn d012_a_decision_made_while_flagged_keeps_the_flag() {
 }
 
 /// `e` is observed under a guard that reads `f`, so its observation's record
-/// lists `f`.
+/// lists `f`. Shared by D013 and D014.
 const D013_THROUGH_F: &str = r#"
 caveat flaky consequence material;
 evidence e from "tool";
@@ -495,6 +495,17 @@ on flag_f qualify f with flaky;
 on early set before = qualified(1, e);
 on late set after = qualified(1, e);
 "#;
+
+#[test]
+fn d014_a_later_qualify_reaches_a_read_through_a_guard() {
+    let mut game = ReactiveSession::from_source(D013_THROUGH_F).unwrap();
+    for event in ["see_f", "see_e", "early", "flag_f", "late"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    // Computed before or after the qualify, from the same records.
+    assert_eq!(caveats(&game, "before"), json!(["flaky"]));
+    assert_eq!(caveats(&game, "after"), json!(["flaky"]));
+}
 
 #[test]
 fn d013_a_take_back_tests_grounds_by_their_own_evidence() {

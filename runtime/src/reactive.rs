@@ -5556,6 +5556,31 @@ impl ReactiveSession {
                 cell.grounds.merge(&added)?;
             }
         }
+        // An observation's or predicate's record lists what its guard read,
+        // so a later read through it sees the caveat a current value gains.
+        // A take-back removes it the same way (D012, D014).
+        let listed = |lineage: &Provenance| lineage.evidence.contains(evidence);
+        if self.observation_qualifications.values().any(listed)
+            || self
+                .predicate_qualifications
+                .values()
+                .any(|targets| targets.values().any(listed))
+        {
+            let mut lineage = added.union(guard)?;
+            self.freeze_observation(&mut lineage);
+            for record in Arc::make_mut(&mut self.observation_qualifications).values_mut() {
+                if listed(record) {
+                    record.merge(&lineage)?;
+                }
+            }
+            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
+                for record in targets.values_mut() {
+                    if listed(record) {
+                        record.merge(&lineage)?;
+                    }
+                }
+            }
+        }
         self.effects.push(EffectReport::Qualify {
             evidence: evidence.to_string(),
             caveat: caveat.to_string(),
