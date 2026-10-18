@@ -430,8 +430,7 @@ on unflag unqualify e with flaky;
 state v = 0;
 on report set v = qualified(1, e);
 bind view.v_flaky = if(has_caveat(v, flaky), 1, 0);
-bind view.e1_flaky = if(carries(occurrence(e, 1), flaky), 1, 0);
-bind view.e2_flaky = if(carries(occurrence(e, 2), flaky), 1, 0);
+bind view.e_flaky = if(carries(e, flaky), 1, 0);
 "#;
 
 fn bound(game: &ReactiveSession, name: &str) -> f64 {
@@ -446,8 +445,15 @@ fn d012_unflag_reaches_a_value_read_after_a_guarded_renewal() {
     }
     assert_eq!(bound(&game, "v_flaky"), 1.0);
     game.dispatch_json("unflag", "{}").unwrap();
-    assert_eq!(bound(&game, "e1_flaky"), 0.0);
-    assert_eq!(bound(&game, "e2_flaky"), 0.0);
+    // Both occurrences' flags are taken back.
+    assert_eq!(bound(&game, "e_flaky"), 0.0);
+    let taken = snapshot(&game)["taken_back"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|record| record["evidence"].clone())
+        .collect::<Vec<_>>();
+    assert_eq!(taken, [json!("e"), json!("e@2")]);
     assert_eq!(bound(&game, "v_flaky"), 0.0);
     assert_eq!(caveats(&game, "v"), json!([]));
     // A value read again after the take-back agrees with the one taken back.
@@ -637,7 +643,7 @@ on see_f when observed(f) set fz = 1;
 on via_fz when fz == 1 renew e;
 on via_fz when fz == 1 reveal e;
 on via_fz when observed(e) set v = qualified(1, e);
-on read when observed(e) sample s = 1;
+on read when observed(e) sample s = 1 supports c;
 on read when has_sample(s) set w = latest(s);
 on flag when observed(e) qualify e with flaky;
 on unflag unqualify e with flaky;
