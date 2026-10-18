@@ -135,13 +135,11 @@ fn held(shown: &Value, history: &str) -> Vec<String> {
     }
 }
 
-/// Everything in the session that pins a retired record, by name, as the
-/// runtime pins today. `open_only` collects what is pinned only by the
-/// grounds of a series' current revision that is reopened: Lineage
-/// Compaction 0.1 and Departure 0.1 say the grounds of the revision *in
-/// force* pin, and a reopened revision is not in force (Dispatch 0.1,
-/// `decision_in_force`), yet the runtime keeps a current revision's grounds
-/// exact whether or not it is open (D017, open: which of the two is meant).
+/// Everything in the session that pins a retired record, by name.
+/// `open_only` collects what is pinned only by the grounds of a series'
+/// current revision that is reopened: Lineage Compaction 0.1 and Departure
+/// 0.1 pin the current revision's grounds whether or not it is reopened
+/// (D017, settled 2026-10-18), so these stay and are counted for coverage.
 fn pins(shown: &Value) -> (BTreeSet<String>, BTreeSet<String>) {
     let mut pinned = BTreeSet::new();
     let mut open_only = BTreeSet::new();
@@ -486,24 +484,25 @@ fn windows_retire_and_departure_takes_exactly_what_nothing_pins() {
         }
     }
     eprintln!("{accepted} accepted events, {refusals} refusals, {retirements} retirements, {departures} departures");
-    // Counted, not asserted, while D017 is open: how often a retired record
-    // stayed only because a reopened current revision's grounds name it.
-    eprintln!("D017 (open): {open_only} retired readings held only by a reopened current revision's grounds");
+    // How often a retired record stayed only because a reopened current
+    // revision's grounds name it, the pin D017 settled.
+    eprintln!(
+        "D017: {open_only} retired readings held only by a reopened current revision's grounds"
+    );
     assert!(
         departures > 800 && retirements > 1000,
         "the alphabet barely reached departure: {retirements} / {departures}"
     );
 }
 
-/// D017 (open): a series' current revision that is reopened pins its grounds
-/// today. Lineage Compaction 0.1 ("What stays exact") and Departure 0.1 say
-/// the grounds of the revision *in force* pin, and Dispatch 0.1's
-/// `decision_in_force` says a reopened revision is not in force. This case
-/// records the runtime's reading, so the decision that settles it has a test
-/// to flip: `d@1` is reopened, every journal entry that named `s@1` has
-/// departed, no state's grounds hold it, and it stays.
+/// D017 (settled 2026-10-18): a series' current revision pins its grounds
+/// whether or not it is reopened (Lineage Compaction 0.1, "What stays
+/// exact"; Departure 0.1, "When a record departs"), because
+/// `rests_on_withdrawn` and `explain` read them. `d@1` is reopened, every
+/// journal entry that named `s@1` has departed, no state's grounds hold it,
+/// and it stays.
 #[test]
-fn d017_a_reopened_current_revision_keeps_its_grounds_pinned_today() {
+fn d017_a_reopened_current_revision_keeps_its_grounds_pinned() {
     let source = r#"
 claim ok;
 evidence h from "sensor";
@@ -561,7 +560,7 @@ on reconsider when committed(d) and has_sample(s) reopen d because latest(s);
         .unwrap()
         .values()
         .all(|grounds| !strings(&grounds["evidence"]).contains(&"s@1".to_string())));
-    // Today: retired and held, pinned by the reopened revision's grounds.
+    // Retired and held, pinned by the reopened revision's grounds.
     assert!(
         shown["retired"].get("s@1").is_some(),
         "{}",
