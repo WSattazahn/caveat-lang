@@ -55,7 +55,8 @@ checks that the two agree.
   implements yet, and the 1.1 drafts `caveat-earlier-occurrence-0.1.md`,
   `caveat-citing-0.1.md`, `caveat-retention-reasons-0.1.md` and
   `caveat-neutral-sample-0.1.md`, which become stable when a 1.x release
-  ships them.
+  ships them, and the 1.2 draft `caveat-foreclosure-0.1.md`, which nothing
+  implements yet.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
