@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -258,7 +258,7 @@ test('the serve command keeps a state file across runs when asked', async () => 
     assert.equal(second.lines[2].sequence, 2);
     assert.notEqual(await readFile(state, 'utf8'), sequence1);
     assert.equal(run([{ id: 1, op: 'snapshot' }]).lines[1].snapshot.sequence, 2);
-    assert.ok(!existsSync(`${state}.partial`));
+    assert.deepEqual((await readdir(directory)).filter(name => name.endsWith('.partial')), []);
 
     // A file that is not a save of the program is reported and nothing runs.
     const other = path.join(directory, 'other.save');
@@ -268,6 +268,15 @@ test('the serve command keeps a state file across runs when asked', async () => 
     assert.deepEqual([broken.lines.length, broken.lines[0].ready, broken.lines[0].error.kind], [1, false, 'state']);
     assert.match(broken.lines[0].error.message, /other\.save is not a save of thermostat\.cav/);
     assert.equal(await readFile(other, 'utf8'), 'garbage');
+
+    // A program that does not load is a load error, whatever the state file holds.
+    const unloadable = path.join(directory, 'unloadable.cav');
+    await writeFile(unloadable, 'garbage here\n');
+    const failed = spawnSync(process.execPath, [cli, 'serve', '--state', state, unloadable], { input: '', encoding: 'utf8' });
+    const failedLines = failed.stdout.trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(failed.status, 2);
+    assert.deepEqual([failedLines.length, failedLines[0].ready, failedLines[0].error.kind], [1, false, 'load']);
+    assert.doesNotMatch(failedLines[0].error.message, /is not a save/);
 
     // --state needs a file, and belongs to serve only.
     const missing = spawnSync(process.execPath, [cli, 'serve', '--state'], { input: '', encoding: 'utf8' });

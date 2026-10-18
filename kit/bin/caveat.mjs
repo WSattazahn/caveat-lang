@@ -379,8 +379,17 @@ async function serveProgram(options) {
   }
   let server;
   try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore }); } catch (error) {
-    const kind = restore === null ? 'load' : 'state';
-    const message = restore === null ? error.message : `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
+    // The runtime reads the save before the program, so a program that does
+    // not load is told apart by opening it fresh: that is a load error.
+    let kind = 'load';
+    let message = error.message;
+    if (restore !== null) {
+      try {
+        runtime.open(inputs.source).close();
+        kind = 'state';
+        message = `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
+      } catch (loadError) { message = loadError.message; }
+    }
     write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });
     return 2;
   }
