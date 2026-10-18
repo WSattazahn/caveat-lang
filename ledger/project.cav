@@ -1,0 +1,165 @@
+scene "The caveat-lang project's own decision ledger: what each decision rested on, with its caveats, and what has since been withdrawn or reopened.";
+
+# ---- Claims the project makes or tests -------------------------------------
+
+claim divergences_were_runtime;  # a fuzz run's wrong answers were the runtime's, not the program's
+claim fix_complete;              # the take-back fixes remove every divergence
+claim patch_safe;                # a 1.0.x patch repairs without regressing
+claim runtime_correct;           # every finding is evidence against this; every passing check for it
+claim approved_by_owner;         # what an approval reading bears on
+
+# ---- Caveats a reader must see ---------------------------------------------
+
+caveat inferred_not_traced consequence material;    # a link asserted without tracing it through the code
+caveat changes_saves consequence low;               # the fixes change saves of some programs (D014; reviewed list)
+caveat uncovered_windows consequence high;          # no test on the path used a window
+caveat latent_since_1_0_0 consequence low;          # a bug every release has had; not a regression
+
+# ---- Sources of evidence ---------------------------------------------------
+
+evidence attribution_all_nine from "the inference that every divergence the fuzz run found was D012";
+evidence repro_d012 from "the minimal D012 program (docs/releases/v1.0.1-d012.cav)";
+evidence bisect_1_0_0 from "the D012 repro run against published 1.0.0";
+evidence harness from "a fuzz harness: 500 event sequences over one fixed program, checked against an oracle";
+readings reruns from harness limit 16;             # each rerun: divergences out of 500
+evidence rerun_on_fix from "a rerun on the fix that still diverged";
+evidence ci from "GitHub Actions on the branch under review";
+renewable ci limit 32;                             # each run is a new occurrence
+evidence release_tree from "v1.0.0 plus the cherry-picked fixes, full Rust suite";
+renewable release_tree limit 8;
+evidence finding_reports from "D-entries in experiments/agent-decisions/README.md";
+readings findings from finding_reports limit 64;   # value: the D-number; the count and order of findings
+evidence d016 from "D016: a late qualify reaches a stored record and the collector is not told";
+evidence d018 from "D018: a departed record's live take-back caveat is not kept on stored records";
+evidence d019 from "D019: a take-back cannot clear a flag read through examined(...)";
+evidence release_build_d018 from "the D018 regression fails in a release build too";
+evidence randomized_checks from "runtime/tests/*_invariants.rs and kin";
+evidence owner from "the owner's answer to a card";
+readings approvals from owner limit 64;            # value: the item code approved
+
+# ---- Decisions, as series: each may be reopened and revised ----------------
+
+decisions merge_259 limit 4;    # using the rerun that grounded it
+decisions release limit 8;      # value: the version shipped (101, 102, ...)
+decisions scope_1_0_2 limit 4;  # value: 1 add D019, 2 leave it out
+decisions record_fix limit 4;   # value: 1 before the two 1.1 gaps, 2 after
+
+# Bases the decisions read. A late caveat on their evidence reaches these
+# values (Late Qualification 0.1), which is how a past decision is found to
+# rest on doubted evidence; a decision's own grounds stay as recorded.
+state merge_basis = 0;
+state release_basis = 0;
+state scope_basis = 0;
+state order_basis = 0;
+
+# ---- Events: what happened, in the order it happened -----------------------
+
+event infer_attribution;                    # "all nine were D012", asserted from the pattern
+event reproduce;                            # the minimal program reproduced D012
+event bisect;                               # the repro on 1.0.0
+event rerun divergences min 0 max 500;      # the harness on the fix, program unchanged
+event ci_run green min 0 max 1;             # a CI run on the branch
+event approve item min 0 max 99999;         # the owner's go for an item code
+event merge;                                # merge #259
+event cherry_pick suite_green min 0 max 1;  # the fixes on the 1.0 tree, full suite
+event ship version min 100 max 199;         # a 1.0.x patch release
+event find number min 1 max 999;            # a D-entry filed
+event release_build_shows number min 1 max 999;  # a finding reproduced in a release build
+event review;                               # ask: does any decision rest on doubted evidence?
+event checks_land;                          # the randomized checks pass on the merged tree
+event decide_scope option min 1 max 2;
+event decide_record_fix option min 1 max 2;
+
+# The attribution was an inference; it says so.
+on infer_attribution reveal attribution_all_nine supports divergences_were_runtime;
+on infer_attribution qualify attribution_all_nine with inferred_not_traced;
+
+on reproduce reveal repro_d012 supports divergences_were_runtime;
+on bisect reveal bisect_1_0_0 supports divergences_were_runtime;
+
+# A rerun with divergences left withdraws the all-nine inference: the fix it
+# assumed did not account for them. A clean rerun supports the fix.
+on rerun when divergences > 0 sample reruns = divergences opposes fix_complete;
+on rerun when divergences == 0 sample reruns = divergences supports fix_complete;
+on rerun when divergences > 0 and not observed(rerun_on_fix) reveal rerun_on_fix opposes fix_complete;
+on rerun when divergences > 0 and observed(attribution_all_nine) and not withdrawn(attribution_all_nine)
+    withdraw attribution_all_nine because rerun_on_fix;
+
+on ci_run when observed(ci) renew ci;
+on ci_run when green == 1 reveal ci supports fix_complete;
+on ci_run when green == 0 reveal ci opposes fix_complete;
+
+on approve sample approvals = item supports approved_by_owner;
+
+# Merging #259 rests on the last rerun and the last CI run, and needs the
+# owner's go for item 259. A rerun with divergences, or a red CI, refuses it.
+on merge when not has_sample(reruns) reject "no rerun to rest on";
+on merge when latest(reruns) > 0 reject "the last rerun still diverged";
+on merge when not observed(ci) reject "no green CI run on the branch";
+on merge set merge_basis = latest(reruns) + qualified(0, ci);
+on merge when not committed(merge_259)
+    commit merge_259 because enough using merge_basis permitted by latest(approvals) for 259;
+
+# A patch release rests on the release tree's suite.
+on cherry_pick when observed(release_tree) renew release_tree;
+on cherry_pick when suite_green == 1 reveal release_tree supports patch_safe;
+on cherry_pick when suite_green == 1 qualify release_tree with changes_saves;
+on cherry_pick when suite_green == 0 reveal release_tree opposes patch_safe;
+
+on ship when not observed(release_tree) reject "no release tree to ship from";
+on ship set release_basis = qualified(version, release_tree);
+on ship when committed(release) and not reopened(release) reject "the current release decision stands; review it first";
+on ship commit release because deadline using release_basis permitted by latest(approvals) for version;
+
+# A finding is a reading, its D-number the value, for the count and the
+# order; the findings decisions rest on are named evidence too. D016 and
+# D018 were regressions on the patch: the tree that looked safe was not
+# exercised where it broke, and that doubt reaches the release decision's
+# basis through the late caveat on the tree.
+on find sample findings = number opposes runtime_correct;
+on find when number == 16 reveal d016 opposes patch_safe;
+on find when number == 16 or number == 18 qualify release_tree with uncovered_windows;
+on find when number == 18 reveal d018 opposes patch_safe;
+on find when number == 19 reveal d019 opposes runtime_correct;
+on find when number == 19 qualify d019 with latent_since_1_0_0;
+
+on release_build_shows when number == 18 reveal release_build_d018 opposes patch_safe;
+
+# Review: a release decision whose basis now carries the doubt is reopened,
+# naming the evidence that carries it. Nothing reopens by itself.
+on review when committed(release) and not reopened(release) and has_caveat(release_basis, uncovered_windows)
+    reopen release because caveated(release_basis, uncovered_windows);
+
+on checks_land reveal randomized_checks supports runtime_correct;
+
+# 1.0.2's scope: D019 in or out. Rests on the D019 finding with its caveats.
+on decide_scope when not observed(d019) reject "no D019 to decide about";
+on decide_scope set scope_basis = qualified(option, d019);
+on decide_scope when not committed(scope_1_0_2)
+    commit scope_1_0_2 because enough using scope_basis permitted by latest(approvals) for 1020 + option;
+
+# The record fix's place in 1.1 rests on the D012 repro: three bugs in one
+# mechanism, found by one program.
+on decide_record_fix when not observed(repro_d012) reject "no repro to order by";
+on decide_record_fix set order_basis = qualified(option, repro_d012);
+on decide_record_fix when not committed(record_fix)
+    commit record_fix because enough using order_basis permitted by latest(approvals) for 40 + option;
+
+# ---- What a reader sees ----------------------------------------------------
+
+bind ledger.release = "none yet";
+bind ledger.release = "1.0." + number_text(latest(release) - 100) + " stands" when committed(release) and not reopened(release);
+bind ledger.release = "1.0." + number_text(latest(release) - 100) + " is reopened: its basis carries a doubt" when reopened(release);
+bind ledger.release_basis_doubted = if(has_caveat(release_basis, uncovered_windows), 1, 0);
+bind ledger.merge_259 = "not merged";
+bind ledger.merge_259 = "merged on a rerun of " + number_text(latest(merge_259)) + " divergences" when committed(merge_259);
+bind ledger.last_rerun = latest(reruns) when has_sample(reruns);
+bind ledger.attribution = "all nine divergences were D012 (inferred)" when observed(attribution_all_nine) and not withdrawn(attribution_all_nine);
+bind ledger.attribution = "the all-nine inference was withdrawn: a rerun on the fix still diverged" when withdrawn(attribution_all_nine);
+bind ledger.findings = history_count(findings);
+bind ledger.scope_1_0_2 = "undecided";
+bind ledger.scope_1_0_2 = "D019 added to 1.0.2" when committed(scope_1_0_2) and latest(scope_1_0_2) == 1;
+bind ledger.scope_1_0_2 = "1.0.2 ships D016 and D018 only; D019 follows" when committed(scope_1_0_2) and latest(scope_1_0_2) == 2;
+bind ledger.record_fix = "undecided";
+bind ledger.record_fix = "before the two gaps" when committed(record_fix) and latest(record_fix) == 1;
+bind ledger.record_fix = "after the two gaps" when committed(record_fix) and latest(record_fix) == 2;
