@@ -192,7 +192,9 @@ diagnostic when a program does not load. `dispatch` returns
 message}`; anything else throws, and the session must then be discarded.
 `session.save()` returns text that `runtime.restore(source, saved)` resumes,
 and `session.save({ compact: true })` a smaller save for a short session (see
-[What grows the save](#what-grows-the-save)).
+[What grows the save](#what-grows-the-save)). Use the compact save rather than
+writing your own event log: it holds exactly the events the runtime accepted,
+and `runtime.restore` takes it only with the source it came from.
 
 Choose the call by what the host reads after each event. `dispatchView`
 returns the view (displayed values, decisions and cues) and is the cheapest:

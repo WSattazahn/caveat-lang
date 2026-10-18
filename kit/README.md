@@ -255,6 +255,14 @@ session.close();
 resumed.close();
 ```
 
+To store a short session, call `session.save({ compact: true })` instead of
+keeping your own list of events. While the session's accepted events fit in
+4,096 bytes and are smaller than the state save, it returns them as a
+[replay save](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-replay-save-0.1.md);
+otherwise it returns the state save. `runtime.restore` takes either, and
+`caveat serve` answers `{"op":"save","compact":true}` the same way. A runtime
+before 1.1.0 cannot restore a replay save.
+
 In the repository, import from `./kit/lib/node.mjs` instead; its default runtime
 is the build in `dist/pkg-reactive`.
 
