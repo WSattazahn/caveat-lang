@@ -1,0 +1,455 @@
+{
+  "note": "Retention Reasons 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-retention-reasons-0.1.md, \"Corpus sweep\".",
+  "revision": "85189c73b41283c1cf4cf87797d01998eae76f51",
+  "programs": 191,
+  "commits": 204,
+  "retaining_commits": 36,
+  "programs_with_retaining": 27,
+  "retaining_with_because": [],
+  "retaining_more_than_one": 12,
+  "retaining_commits_using_qualified_evidence": [
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/decision.cav",
+      "action": "close_170",
+      "retained": [
+        "ci_pending"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/002-departure-continuation/decision.cav",
+      "action": "implementation",
+      "retained": [
+        "full_checks_pending",
+        "archive_contract_open"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/decision.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps",
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/bind-reason.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps",
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_179",
+      "retained": [
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/retest-rc19/d001-undeclared.cav",
+      "action": "close_170",
+      "retained": [
+        "ci_pending"
+      ]
+    },
+    {
+      "path": "kit/examples/boss-stance/boss.cav",
+      "action": "stance",
+      "retained": [
+        "read_from_inputs"
+      ]
+    },
+    {
+      "path": "kit/examples/reviewer-decision/rely.cav",
+      "action": "rely",
+      "retained": [
+        "snapshot"
+      ]
+    }
+  ],
+  "retaining": [
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "caveatism/canon/archive.cav",
+      "action": "canon",
+      "retained": [
+        "unfinished"
+      ]
+    },
+    {
+      "path": "editors/vscode/test/fixtures/scopes.cav",
+      "action": "go",
+      "retained": [
+        "camera",
+        "secondhand"
+      ]
+    },
+    {
+      "path": "examples/canonical_001.cav",
+      "action": "treat_as_cat",
+      "retained": [
+        "creature_is_not_cat",
+        "label_may_be_misplaced"
+      ]
+    },
+    {
+      "path": "examples/canonical_002.cav",
+      "action": "continue_review",
+      "retained": [
+        "paint_color_variation",
+        "untested_crosswind"
+      ]
+    },
+    {
+      "path": "examples/canonical_003.cav",
+      "action": "ship_v1",
+      "retained": [
+        "edge_case_1",
+        "edge_case_2",
+        "edge_case_3"
+      ]
+    },
+    {
+      "path": "examples/inference_contradiction.cav",
+      "action": "act_on_q",
+      "retained": [
+        "not_p"
+      ]
+    },
+    {
+      "path": "examples/modules/crossing.cav",
+      "action": "enter_channel",
+      "retained": [
+        "weather::forecast_age"
+      ]
+    },
+    {
+      "path": "examples/multistep_inference.cav",
+      "action": "act_on_r",
+      "retained": [
+        "not_p",
+        "not_q",
+        "q_source_may_be_stale"
+      ]
+    },
+    {
+      "path": "examples/resource_budget.cav",
+      "action": "ship_v1",
+      "retained": [
+        "edge_case_a",
+        "edge_case_b"
+      ]
+    },
+    {
+      "path": "examples/ventilation_controller.cav",
+      "action": "ventilation",
+      "retained": [
+        "calibration"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "action": "repair",
+      "retained": [
+        "repair_unverified"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/decision.cav",
+      "action": "close_170",
+      "retained": [
+        "ci_pending"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/002-departure-continuation/decision.cav",
+      "action": "implementation",
+      "retained": [
+        "full_checks_pending",
+        "archive_contract_open"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/decision.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps",
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/bind-reason.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps",
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_pass",
+      "retained": [
+        "presentation_gaps"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/003-presentation-pass-deferral/probes/two-decisions.cav",
+      "action": "defer_179",
+      "retained": [
+        "pr179_drift"
+      ]
+    },
+    {
+      "path": "experiments/agent-decisions/retest-rc19/d001-undeclared.cav",
+      "action": "close_170",
+      "retained": [
+        "ci_pending"
+      ]
+    },
+    {
+      "path": "game/light_the_way.cav",
+      "action": "follow_light",
+      "retained": [
+        "reef_one_shadow",
+        "reef_two_shadow",
+        "reef_three_shadow",
+        "reef_four_shadow",
+        "reef_five_shadow",
+        "reef_six_shadow"
+      ]
+    },
+    {
+      "path": "kit/examples/boss-stance/boss.cav",
+      "action": "stance",
+      "retained": [
+        "read_from_inputs"
+      ]
+    },
+    {
+      "path": "kit/examples/reviewer-decision/rely.cav",
+      "action": "rely",
+      "retained": [
+        "snapshot"
+      ]
+    },
+    {
+      "path": "tests/adversarial/contradiction.cav",
+      "action": "enter",
+      "retained": [
+        "camera",
+        "latch"
+      ]
+    },
+    {
+      "path": "tests/adversarial/cycle.cav",
+      "action": "proceed",
+      "retained": [
+        "caveat_a",
+        "caveat_b"
+      ]
+    }
+  ]
+}

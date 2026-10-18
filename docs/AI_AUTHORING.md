@@ -165,12 +165,12 @@ while 4,096 qualifications are already waiting as
 errors, such as a type error in an expression, are deliberately unclassified:
 they are fatal, and a fatal outcome never matches an expected rejection.
 
-One of them is easy to reach. A plain `commit`, made without a `decisions`
-declaration, can be made only once: committing it again, even after it was
-reopened, is fatal ("commitment NAME already exists"), and the host loses the
-session. Declare a decision series (`decisions NAME limit N;`) when a decision
+A plain `commit`, made without a `decisions` declaration, can be made only
+once: committing it again, even after it was reopened, is refused as
+`{"origin": "evaluation", "code": "already_committed"}` (before 1.1, it was
+fatal). Declare a decision series (`decisions NAME limit N;`) when a decision
 may be made again after it is reopened, or guard the rule with
-`on EVENT when committed(NAME) reject "…";` so the event is refused instead.
+`on EVENT when committed(NAME) reject "…";` to give your own message.
 
 To see what a program does after each event, open a session from a script:
 
@@ -273,6 +273,9 @@ The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quo
    which exits 1 when there is one. Glowcap round 8's mutation harness
    counted only programs that failed to load, so a C006 warning on each of
    its 215 M5 mutants went uncounted.
+   After a rewrite, run `caveat check --unused` too: it reports a claim,
+   evidence, caveat or state that nothing else in the program names, which
+   the plain check does not.
 4. Exercise missing observations, contradictory readings, repeated equal
    readings, reopened decisions, and failures late in an event.
 5. Change one policy and run the same scenarios. Check both the changed
@@ -624,29 +627,38 @@ have to be told to ignore it.
 
 ## Record a caveat you chose not to pursue
 
-A caveat declaration and a `retaining` list take names only, so neither can
-hold the reason a caveat was left alone. Give the reason its own evidence and
-make it the grounds of a decision that retains the caveat. When caveats are
-left for different reasons, use one decision per caveat so each keeps its own
-reason:
+Give the reason its own evidence, and name it after the caveat in
+`retaining` ([Retention Reasons 0.1](../spec/caveat-retention-reasons-0.1.md)).
+Each caveat keeps its own reason, so one decision can leave several caveats
+for different reasons:
 
 ```caveat
 evidence scope_note from "the release plan: the game does not gate 1.0";
+evidence d1_only from "draft 179 only matters for option B";
 caveat presentation_gaps consequence low;
+caveat pr179_drift consequence low;
 decisions defer_polish limit 2;
 on triage reveal scope_note supports can_wait;
+on triage reveal d1_only supports can_wait;
 on triage commit defer_polish because enough
-  using qualified(1, scope_note) retaining presentation_gaps;
+  retaining presentation_gaps because scope_note, pr179_drift because d1_only;
 ```
 
-`explain` then prints `based on scope_note` and `retaining: presentation_gaps`
+`explain` then prints `based on d1_only, scope_note` and
+`retaining: pr179_drift because d1_only, presentation_gaps because scope_note`
 for `defer_polish@1`, and `dependents PROGRAM presentation_gaps` finds the
-decision. `because` takes only `enough`, `budget` or `deadline`, which are
-stopping rules, so "out of scope for now" is written `because enough`. A
-`retaining` line lists only caveats that no grounds observation carries; a
-caveat the evidence brought with it is shown beside that evidence instead.
-Nothing yet marks a caveat as deliberately not pursued rather than still
-waiting; that would be a language addition after 1.0.
+decision. A reason must be observed when the commit runs, and it joins the
+decision's grounds: withdrawing it makes `rests_on_withdrawn(defer_polish)`
+true. `because` after the series takes only `enough`, `budget` or `deadline`,
+which are stopping rules, so "out of scope for now" is written
+`because enough`. A caveat retained without a reason is listed only when no
+grounds observation carries it; a caveat the evidence brought with it is
+shown beside that evidence instead.
+
+Before 1.1, the reason went into the grounds with
+`using qualified(1, scope_note)`, and two caveats left for two reasons needed
+two decisions. That still works, but nothing in the record pairs a caveat with
+its reason.
 
 ## Evidence from fresh authors
 
