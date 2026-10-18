@@ -507,6 +507,16 @@ decisions merge limit 8 reopened by pushes, checks opposing ready;
 Any further condition, such as "unless it was merged elsewhere", still needs its
 own rule. See [reopening triggers](../spec/caveat-reopening-triggers-0.1.md).
 
+A trigger fires on every reading, including one that repeats the last. When a
+host re-checks by taking every reading again, write `changed` before the
+stream (from 1.1.0, [Changed Triggers 0.1](../spec/caveat-changed-triggers-0.1.md)):
+the trigger then fires only on a reading whose value differs from the stream's
+previous one, so the journal names the reading that changed.
+
+```caveat
+decisions install limit 4 reopened by changed n20_present;
+```
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source

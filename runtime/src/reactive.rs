@@ -1174,11 +1174,14 @@ pub enum EffectReport {
 }
 
 /// One `reopened by` trigger: a reading stream, optionally only its readings
-/// that bear on a claim in one relation.
+/// that bear on a claim in one relation, and, when `changed`, only readings
+/// whose value differs from the stream's previous reading. See
+/// spec/caveat-changed-triggers-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReopeningTrigger {
     pub stream: String,
     pub filter: Option<(Relation, String)>,
+    pub changed: bool,
 }
 
 impl ReopeningTrigger {
@@ -4549,6 +4552,18 @@ impl ReactiveSession {
                 stance,
             } => {
                 self.history_room(stream)?;
+                // The previous reading's value, before taking this one can
+                // retire it: spec/caveat-changed-triggers-0.1.md.
+                let previous = {
+                    let readings = &self.reading_streams[stream];
+                    readings.current.as_ref().and_then(|current| {
+                        readings
+                            .occurrences
+                            .iter()
+                            .find(|occurrence| occurrence.id == *current)
+                            .map(|occurrence| occurrence.value)
+                    })
+                };
                 self.retire_oldest(stream);
                 let ordinal = self.next_stream_ordinal(stream);
                 let readings = &self.reading_streams[stream];
@@ -4635,7 +4650,15 @@ impl ReactiveSession {
                         .map(|(relation, _)| relation_name(*relation).into()),
                     target: stance.as_ref().map(|(_, claim)| claim.clone()),
                 });
-                self.run_reopening_triggers(stream, stance.as_ref(), parameters, guard, budget)?;
+                let changed = previous.is_none_or(|previous| previous != number);
+                self.run_reopening_triggers(
+                    stream,
+                    stance.as_ref(),
+                    changed,
+                    parameters,
+                    guard,
+                    budget,
+                )?;
             }
             Effect::Reject { message } => return Err(DispatchFailure::policy(message)),
             Effect::Qualify {
@@ -5663,6 +5686,7 @@ impl ReactiveSession {
         &mut self,
         stream: &str,
         stance: Option<&(Relation, String)>,
+        changed: bool,
         parameters: &Parameters,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
@@ -5671,7 +5695,7 @@ impl ReactiveSession {
         for (series, watching, condition) in triggers.iter() {
             if !watching
                 .iter()
-                .any(|trigger| trigger.matches(stream, stance))
+                .any(|trigger| trigger.matches(stream, stance) && (changed || !trigger.changed))
             {
                 continue;
             }
@@ -6540,10 +6564,18 @@ pub(crate) fn parse_directive_at(
                         .join(" ")
                         .split(',')
                         .map(|trigger| {
-                            match trigger.split_whitespace().collect::<Vec<_>>()[..] {
+                            let words = trigger.split_whitespace().collect::<Vec<_>>();
+                            // `changed` leads only before a stream, so a stream
+                            // named `changed` keeps both of its forms.
+                            let (changed, words) = match words[..] {
+                                ["changed", _] | ["changed", _, _, _] => (true, &words[1..]),
+                                _ => (false, &words[..]),
+                            };
+                            match *words {
                                 [stream] => Ok(ReopeningTrigger {
                                     stream: identifier(stream)?,
                                     filter: None,
+                                    changed,
                                 }),
                                 [stream, relation @ ("supporting" | "opposing"), claim] => {
                                     Ok(ReopeningTrigger {
@@ -6556,10 +6588,11 @@ pub(crate) fn parse_directive_at(
                                             },
                                             identifier(claim)?,
                                         )),
+                                        changed,
                                     })
                                 }
                                 _ => Err(format!(
-                                    "reopened by takes STREAM or STREAM supporting|opposing CLAIM, not {}",
+                                    "reopened by takes [changed] STREAM [supporting|opposing CLAIM], not {}",
                                     trigger.trim()
                                 )),
                             }

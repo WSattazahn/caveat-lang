@@ -349,7 +349,7 @@ fn declarations_are_checked_when_the_program_loads() {
         ),
         (
             "decisions merge limit 2 reopened by checks sideways ready;",
-            "reopened by takes STREAM",
+            "reopened by takes [changed] STREAM",
         ),
         (
             "decisions merge limit 2 reopened by;",

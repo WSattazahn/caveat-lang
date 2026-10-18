@@ -1491,6 +1491,31 @@ fn a_window_keyword_survives_a_module_that_declares_its_name() {
     }
 }
 
+#[test]
+fn a_changed_trigger_survives_a_module_that_declares_its_name() {
+    // `reopened by changed STREAM` joined the trigger list in 1.1
+    // (spec/caveat-changed-triggers-0.1.md). A module may name a stream
+    // `changed` and keep both the keyword and the stream.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim ready;\n\
+             evidence probe from \"a probe\";\n\
+             readings changed from probe limit 4;\n\
+             readings other from probe limit 4;\n\
+             decisions go limit 4 reopened by changed changed, changed, changed other supporting ready;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(
+        source.contains(
+            "decisions m__go limit 4 reopened by changed m__changed, m__changed, changed m__other supporting m__ready;"
+        ),
+        "{source}"
+    );
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1603,7 +1628,7 @@ fn grammar_keywords() -> std::collections::BTreeSet<String> {
 /// are also prelude functions, and nothing stops a module claiming `every` or
 /// `reset`. Each is covered by a test above.
 const POSITIONAL: &[&str] = &[
-    "min", "max", "every", "integer", "reset", "window", "journal",
+    "min", "max", "every", "integer", "reset", "window", "journal", "changed",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
