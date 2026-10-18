@@ -50,8 +50,11 @@ is refused as `evaluation/unobserved_evidence`
    immediately. A stored observation or predicate qualification that lists
    `EVIDENCE`, recorded by the guard of a `renew`, `reveal`, `observe`,
    `sample`, `commit`, `reopen`, `withdraw` or `examine` rule, gains the
-   caveat the same way, so a value read through it later carries it too ([Take-back 0.1](caveat-take-back-0.1.md), "Kept
-   caveats").
+   caveat the same way, so a value read through it later carries it too
+   ([Take-back 0.1](caveat-take-back-0.1.md), "Kept caveats"). A value read
+   through a record of step 3 after the `qualify` gains the caveat when the
+   record lists `EVIDENCE`, as a value that held it before did
+   ([Caveat Sources 0.1](caveat-caveat-sources-0.1.md), D015).
 3. **What was already recorded is left alone:**
    - commitment bases and grounds;
    - the decision journal;
@@ -84,3 +87,7 @@ that fact touches, because provenance already records the dependency.
   value read before it had. Tests: the D014 case in
   `runtime/tests/take_back.rs`.
 - 2026-10-18: step 2 names every guard that stores a record (wording only).
+- 2026-10-18: a value read through a commitment basis, a reading or a
+  decision series after the `qualify` gains the caveat when the record lists
+  the evidence, as a value set before it did (D015). The record itself is
+  unchanged. Tests: the D015 case in `runtime/tests/take_back.rs`.
