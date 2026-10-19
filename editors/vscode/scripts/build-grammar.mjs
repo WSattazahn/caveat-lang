@@ -28,7 +28,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a

@@ -2612,6 +2612,31 @@ impl ReactiveSession {
                 revision_series.borrow_mut().insert(symbol.to_string());
                 return Ok(());
             }
+            // `in_basis(…)`, as `SERIES|R|KIND|NAME`. See
+            // spec/caveat-in-basis-0.1.md.
+            if kind == reactive_expr::IN_BASIS {
+                let mut parts = symbol.splitn(4, '|');
+                let (Some(series), Some(revision), Some(kind), Some(name)) =
+                    (parts.next(), parts.next(), parts.next(), parts.next())
+                else {
+                    return Err(format!("in_basis received a malformed target {symbol}"));
+                };
+                if revision.is_empty() {
+                    if !self.decision_series.contains_key(series) && !commitments.contains(series) {
+                        return Err(format!("in_basis({series}, …) names no decision"));
+                    }
+                } else {
+                    if !self.decision_series.contains_key(series) {
+                        return Err(format!("revision({series}, …) names no decision series"));
+                    }
+                    revision_series.borrow_mut().insert(series.to_string());
+                }
+                return match kind {
+                    "named" => self.require_kind(name, "evidence"),
+                    "latest" => self.require_latest(name),
+                    _ => self.require_renewable_occurrence(name),
+                };
+            }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
@@ -4076,6 +4101,7 @@ impl ReactiveSession {
                 }))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
                 Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
@@ -4120,6 +4146,7 @@ impl ReactiveSession {
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, true),
                 Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
@@ -6350,6 +6377,52 @@ impl ReactiveSession {
             .and_then(|(evidence, index)| Some((evidence, index.parse::<f64>().ok()?)))
             .and_then(|(evidence, index)| self.held_occurrence(evidence, index));
         Some((kind, held))
+    }
+
+    /// `in_basis(…)`, whose target arrives as `SERIES#K|KIND|NAME#N`: whether
+    /// the revision's grounds hold the evidence named. The answer rests on the
+    /// revision's record, as `committed(…)` asked of it does; a revision or a
+    /// reference that names nothing held answers false. See
+    /// spec/caveat-in-basis-0.1.md.
+    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, String> {
+        let malformed = || format!("in_basis received a malformed target {target}");
+        let mut parts = target.splitn(3, '|');
+        let (Some(revision), Some(kind), Some(reference)) =
+            (parts.next(), parts.next(), parts.next())
+        else {
+            return Err(malformed());
+        };
+        let (series, k) = revision.rsplit_once('#').ok_or_else(malformed)?;
+        let (name, n) = reference.rsplit_once('#').ok_or_else(malformed)?;
+        let revision = if k.is_empty() {
+            match self.decision_series.get(series) {
+                Some(series) => series.current.clone(),
+                None => self
+                    .predicate("committed", series)?
+                    .then(|| series.to_string()),
+            }
+        } else {
+            k.parse().ok().and_then(|k| self.held_revision(series, k))
+        };
+        let evidence = match kind {
+            "named" => Some(self.occurrence(name).to_string()),
+            "latest" => self.latest_target(name),
+            "at" => n.parse().ok().and_then(|n| self.held_occurrence(name, n)),
+            _ => return Err(malformed()),
+        };
+        let (Some(revision), Some(evidence)) = (revision, evidence) else {
+            return Ok(Tracked::plain(false));
+        };
+        let held = self
+            .commitment_grounds
+            .get(&revision)
+            .is_some_and(|grounds| grounds.evidence.contains(&evidence));
+        let record = if grounds {
+            self.predicate_grounds("committed", &revision)?
+        } else {
+            self.predicate_tracked("committed", &revision)?
+        };
+        Tracked::new(held, record.provenance)
     }
 
     /// The revision of a decision series that a 1-based index names: `k` is

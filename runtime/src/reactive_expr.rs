@@ -106,6 +106,72 @@ pub const AT_OCCURRENCE: &str = "occurrence:";
 /// spec/caveat-past-revisions-0.1.md.
 pub const AT_REVISION: &str = "revision:rests_on_withdrawn";
 
+/// The predicate kind of `in_basis(…)`. The host receives the target as
+/// `SERIES#K|KIND|NAME#N`, with `K` empty for the current revision, `KIND` one
+/// of `named`, `latest` or `at`, and `N` empty unless `KIND` is `at`. In
+/// validation it receives `SERIES|R|KIND|NAME`, `R` being `revision` or empty.
+/// See spec/caveat-in-basis-0.1.md.
+pub const IN_BASIS: &str = "in_basis";
+
+/// What `in_basis(…)` asks about: a revision of a decision series and a
+/// reference to evidence. See spec/caveat-in-basis-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InBasis {
+    series: String,
+    /// `revision(SERIES, K)`: the first child is K. Otherwise the current
+    /// revision.
+    revision: bool,
+    kind: BasisReference,
+    name: String,
+}
+
+/// `E`, `latest(NAME)`, or `occurrence(E, N)` / `reading(STREAM, N)`, whose
+/// index is the last child.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BasisReference {
+    Named,
+    Latest,
+    /// `occurrence` or `reading`, as written.
+    At(&'static str),
+}
+
+impl BasisReference {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Named => "named",
+            Self::Latest => "latest",
+            Self::At(_) => "at",
+        }
+    }
+}
+
+impl InBasis {
+    /// The call a 1.0 program meant by `in_basis(…)` when it defines a source
+    /// function of that name: the same words, read as ordinary arguments.
+    fn as_call(&self, children: &[Expr]) -> Result<Node, String> {
+        let mut children = children.iter().cloned();
+        let mut next = || children.next().ok_or("in_basis lost an index");
+        let variable = |name: &str| Expr::new(Node::Variable(name.to_string()));
+        let decision = if self.revision {
+            Expr::new(Node::UserCall(
+                "revision".into(),
+                vec![variable(&self.series)?, next()?],
+            ))?
+        } else {
+            variable(&self.series)?
+        };
+        let reference = match self.kind {
+            BasisReference::Named => variable(&self.name)?,
+            BasisReference::Latest => Expr::new(Node::Latest(self.name.clone()))?,
+            BasisReference::At(word) => Expr::new(Node::UserCall(
+                word.into(),
+                vec![variable(&self.name)?, next()?],
+            ))?,
+        };
+        Ok(Node::UserCall(IN_BASIS.into(), vec![decision, reference]))
+    }
+}
+
 /// The kind the host receives for a selector node: an occurrence predicate
 /// gains its prefix, and a revision predicate already carries its own.
 fn selector_kind(kind: &str) -> String {
@@ -509,6 +575,9 @@ enum Node {
     /// [`AT_REVISION`] and the series in place of the evidence. See
     /// spec/caveat-past-revisions-0.1.md.
     AtOccurrence(String, String, Box<Expr>),
+    /// `in_basis(SERIES | revision(SERIES, K), REFERENCE)`: its children are
+    /// K, if any, then the reference's index, if any.
+    InBasis(InBasis, Vec<Expr>),
     Latest(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
@@ -710,6 +779,11 @@ impl Expr {
                 visit(body);
             }
             Node::Qualified(value, _, _) => visit(value),
+            Node::InBasis(_, children) => {
+                for child in children {
+                    visit(child);
+                }
+            }
             _ => {}
         }
         match &self.node {
@@ -724,6 +798,7 @@ impl Expr {
             Node::Predicate(kind, name)
             | Node::Fold(kind, _, name)
             | Node::AtOccurrence(kind, name, _) => bytes += kind.len() + name.len(),
+            Node::InBasis(basis, _) => bytes += basis.series.len() + basis.name.len(),
             Node::Qualified(_, evidence, caveats) => {
                 bytes += evidence.len() + caveats.iter().map(String::len).sum::<usize>();
             }
@@ -762,6 +837,12 @@ impl Expr {
             Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => {
                 reads.graph = true;
                 index.collect_reads(reads);
+            }
+            Node::InBasis(_, children) => {
+                reads.graph = true;
+                for child in children {
+                    child.collect_reads(reads);
+                }
             }
             Node::Fold(_, initial, _) => {
                 reads.graph = true;
@@ -829,6 +910,13 @@ impl Expr {
             Node::HistoryAt(name, index) | Node::AtOccurrence(_, name, index) => {
                 sources.insert(name.clone());
                 index.collect_sources(sources);
+            }
+            Node::InBasis(basis, children) => {
+                sources.insert(basis.series.clone());
+                sources.insert(basis.name.clone());
+                for child in children {
+                    child.collect_sources(sources);
+                }
             }
             Node::Fold(history, initial, _) => {
                 sources.insert(history.clone());
@@ -898,6 +986,12 @@ impl Expr {
                 index.collect_record_reads(records);
             }
             Node::AtOccurrence(_, _, index) => index.collect_record_reads(records),
+            // New in 1.1, so no 1.0.x runtime read a record through it.
+            Node::InBasis(_, children) => {
+                for child in children {
+                    child.collect_record_reads(records);
+                }
+            }
             Node::Fold(history, initial, _) => {
                 records.insert(("fold", history.clone()));
                 initial.collect_record_reads(records);
@@ -955,6 +1049,12 @@ impl Expr {
                 index.collect_histories(histories);
             }
             Node::AtOccurrence(_, _, index) => index.collect_histories(histories),
+            Node::InBasis(basis, children) => {
+                histories.insert(basis.series.clone());
+                for child in children {
+                    child.collect_histories(histories);
+                }
+            }
             Node::Fold(_, initial, name) => {
                 histories.insert(name.clone());
                 initial.collect_histories(histories);
@@ -1039,6 +1139,17 @@ impl Expr {
                 },
                 rename(evidence),
                 child(index),
+            ),
+            Node::InBasis(basis, children) => Node::InBasis(
+                InBasis {
+                    series: rename(&basis.series),
+                    name: rename(&basis.name),
+                    ..basis.clone()
+                },
+                children
+                    .iter()
+                    .map(|expression| expression.rename_symbols(names))
+                    .collect(),
             ),
             Node::Qualified(value, evidence, caveats) => Node::Qualified(
                 child(value),
@@ -1144,6 +1255,11 @@ impl Expr {
             Node::AtOccurrence(kind, evidence, index) => {
                 kind.contains(word) || evidence.contains(word) || child(index)
             }
+            Node::InBasis(basis, children) => {
+                basis.series.contains(word)
+                    || basis.name.contains(word)
+                    || children.iter().any(child)
+            }
             Node::Fold(history, initial, reducer) => {
                 history.contains(word) || child(initial) || reducer.contains(word)
             }
@@ -1194,7 +1310,9 @@ impl Expr {
                 yes.collect_caveat_reads(examined, extras);
                 no.collect_caveat_reads(examined, extras);
             }
-            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+            Node::Function(_, arguments)
+            | Node::UserCall(_, arguments)
+            | Node::InBasis(_, arguments) => {
                 for argument in arguments {
                     argument.collect_caveat_reads(examined, extras);
                 }
@@ -1234,7 +1352,9 @@ impl Expr {
             Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
                 child.qualified_unconditionally(evidence)
             }
-            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+            Node::Function(_, arguments)
+            | Node::UserCall(_, arguments)
+            | Node::InBasis(_, arguments) => {
                 for argument in arguments {
                     argument.qualified_unconditionally(evidence);
                 }
@@ -1270,7 +1390,9 @@ impl Expr {
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
             Node::Require(condition, value) => condition.depth.max(value.depth) + 1,
             Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
-            Node::Function(_, children) | Node::UserCall(_, children) => {
+            Node::Function(_, children)
+            | Node::UserCall(_, children)
+            | Node::InBasis(_, children) => {
                 children.iter().map(|child| child.depth).max().unwrap_or(0) + 1
             }
             Node::ExpandedCall(arguments, body) => {
@@ -1334,6 +1456,24 @@ impl Expr {
                 index
                     .validate_calls(numeric, predicate, user_call)?
                     .require(ValueType::Number)?;
+                Ok(ValueType::Bool)
+            }
+            Node::InBasis(basis, children) => {
+                predicate(
+                    IN_BASIS,
+                    &format!(
+                        "{}|{}|{}|{}",
+                        basis.series,
+                        if basis.revision { "revision" } else { "" },
+                        basis.kind.name(),
+                        basis.name
+                    ),
+                )?;
+                for child in children {
+                    child
+                        .validate_calls(numeric, predicate, user_call)?
+                        .require(ValueType::Number)?;
+                }
                 Ok(ValueType::Bool)
             }
             Node::Latest(name) => {
@@ -1621,6 +1761,41 @@ impl Expr {
                 Ok(Value::Bool(predicate(
                     &selector_kind(kind),
                     &format!("{evidence}#{index}"),
+                )?))
+            }
+            // Every index is evaluated, whatever it names. The host resolves
+            // the revision and the reference, or answers false.
+            Node::InBasis(basis, children) => {
+                let mut indexes = Vec::new();
+                for child in children {
+                    indexes.push(
+                        child
+                            .evaluate_values(
+                                numbers,
+                                predicate,
+                                qualify,
+                                history,
+                                identifiers,
+                                remaining,
+                            )?
+                            .number()?,
+                    );
+                }
+                let mut indexes = indexes.into_iter();
+                let revision = if basis.revision {
+                    indexes.next().map(|k| k.to_string()).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let at = indexes.next().map(|n| n.to_string()).unwrap_or_default();
+                Ok(Value::Bool(predicate(
+                    IN_BASIS,
+                    &format!(
+                        "{}#{revision}|{}|{}#{at}",
+                        basis.series,
+                        basis.kind.name(),
+                        basis.name
+                    ),
                 )?))
             }
             Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
@@ -2133,6 +2308,67 @@ impl Parser {
         Ok(left)
     }
 
+    /// `in_basis(` read, the rest of the form.
+    fn in_basis(&mut self, nesting: usize) -> Result<Node, String> {
+        let opens = |parser: &Self, word: &str| {
+            matches!(parser.peek(), Some(TokenKind::Identifier(found)) if found == word)
+                && parser
+                    .tokens
+                    .get(parser.cursor + 1)
+                    .map(|token| &token.kind)
+                    == Some(&TokenKind::LeftParen)
+        };
+        let mut children = Vec::new();
+        let revision = opens(self, "revision");
+        let series = if revision {
+            self.cursor += 2;
+            let series = self.graph_identifier("revision series")?;
+            self.expect(TokenKind::Comma, "',' after the revision's series")?;
+            children.push(self.expression(0, nesting)?);
+            self.expect(TokenKind::RightParen, "')' after the revision index")?;
+            series
+        } else {
+            self.graph_identifier("in_basis decision")?
+        };
+        self.expect(
+            TokenKind::Comma,
+            "',' before the evidence in_basis asks about",
+        )?;
+        let (kind, evidence) = if opens(self, "latest") {
+            self.cursor += 2;
+            let evidence = self.graph_identifier("latest history")?;
+            self.expect(TokenKind::RightParen, "')' after history identifier")?;
+            (BasisReference::Latest, evidence)
+        } else if opens(self, "occurrence") || opens(self, "reading") {
+            let word = if opens(self, "reading") {
+                "reading"
+            } else {
+                "occurrence"
+            };
+            self.cursor += 2;
+            let evidence = self.graph_identifier("occurrence evidence")?;
+            self.expect(TokenKind::Comma, "',' after the occurrence's evidence")?;
+            children.push(self.expression(0, nesting)?);
+            self.expect(TokenKind::RightParen, "')' after the occurrence index")?;
+            (BasisReference::At(word), evidence)
+        } else {
+            (
+                BasisReference::Named,
+                self.graph_identifier("in_basis evidence")?,
+            )
+        };
+        self.expect(TokenKind::RightParen, "')' after in_basis")?;
+        Ok(Node::InBasis(
+            InBasis {
+                series,
+                revision,
+                kind,
+                name: evidence,
+            },
+            children,
+        ))
+    }
+
     fn call(&mut self, name: String, nesting: usize) -> Result<Node, String> {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
@@ -2195,6 +2431,19 @@ impl Parser {
             };
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
+        }
+        // `in_basis(SERIES | revision(SERIES, K), E | latest(NAME) |
+        // occurrence(E, N) | reading(STREAM, N))`: whether a revision's
+        // grounds hold the evidence. See spec/caveat-in-basis-0.1.md.
+        if name == IN_BASIS {
+            // A 1.0 program may define `fn in_basis` and call it with any
+            // arguments: what does not parse as the form is its call.
+            let start = self.cursor;
+            match self.in_basis(nesting) {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
         }
         // `observed`, `withdrawn` or `carries` of `occurrence(EVIDENCE, INDEX)`:
         // the predicate asked of a held occurrence of renewable evidence. See
@@ -2522,6 +2771,11 @@ fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
         | Node::Qualified(child, _, _)
         | Node::HistoryAt(_, child)
         | Node::AtOccurrence(_, _, child) => collect_calls(child, calls),
+        Node::InBasis(_, children) => {
+            for child in children {
+                collect_calls(child, calls);
+            }
+        }
         Node::Fold(_, initial, reducer) => {
             calls.push(reducer);
             collect_calls(initial, calls);
@@ -2693,6 +2947,23 @@ impl Expander<'_> {
                     kind.clone(),
                     evidence.clone(),
                     Box::new(self.walk(index, None)?),
+                )
+            }
+            // A 1.0 program may define `fn in_basis`; its calls keep their
+            // meaning (docs/COMPATIBILITY.md).
+            Node::InBasis(basis, children) if self.functions.contains_key(IN_BASIS) => {
+                return self.walk(&Expr::new(basis.as_call(children)?)?, parameters);
+            }
+            Node::InBasis(basis, children) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                Node::InBasis(
+                    basis.clone(),
+                    children
+                        .iter()
+                        .map(|child| self.walk(child, None))
+                        .collect::<Result<_, _>>()?,
                 )
             }
             Node::Fold(name, initial, reducer) => {
