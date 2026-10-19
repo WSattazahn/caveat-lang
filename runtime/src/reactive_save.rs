@@ -1569,6 +1569,7 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    ..
                 } => {
                     read(value);
                     let claims = bears.entry(stream.clone()).or_default();
@@ -2279,6 +2280,7 @@ impl ReactiveSession {
                     Some(caveats),
                 )?;
                 self.check_reading_stance(save, occurrence)?;
+                self.check_reading_note(save, name, occurrence)?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
             {
@@ -3042,6 +3044,29 @@ impl ReactiveSession {
         }
     }
 
+    /// A reading's note is the text of an identifier the save holds, taken by
+    /// a `sample … noting` of its stream. See spec/caveat-reading-notes-0.1.md.
+    fn check_reading_note(
+        &self,
+        save: &ReactiveSave,
+        stream: &str,
+        reading: &ReadingOccurrence,
+    ) -> Result<(), String> {
+        let Some(note) = &reading.note else {
+            return Ok(());
+        };
+        let noted = self.reached_effects(None).into_iter().any(|effect| {
+            matches!(effect, Effect::Sample { stream: source, note: Some(_), .. } if source == stream)
+        });
+        if !noted || !save.identifiers.contains(note) {
+            return Err(format!(
+                "reading {} has a note no sample of this program could take",
+                reading.id
+            ));
+        }
+        Ok(())
+    }
+
     /// Every effect a rule of `event` reaches, or with `None` of any event,
     /// directly or through the procedures it calls, as the source compiled
     /// them. Conditions are ignored: their historical values are unavailable,
@@ -3317,16 +3342,19 @@ impl ReactiveSession {
                     id,
                     relation,
                     target,
+                    note,
                     ..
                 },
                 Effect::Sample {
                     stream: source,
                     stance,
+                    note: noting,
                     ..
                 },
             ) => {
                 stream == source
                     && named(id, source)
+                    && (note.is_none() || noting.is_some())
                     && match (relation, target, stance) {
                         (None, None, None) => true,
                         (Some(relation), Some(target), Some((stance, claim))) => {
