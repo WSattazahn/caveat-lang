@@ -733,7 +733,7 @@ impl ReactiveSession {
     /// A session of `source` resumed from `save`: the same state, and the
     /// same outcome for every later event, as the session that was saved.
     pub fn restore(source: &str, save: &ReactiveSave) -> Result<Self, String> {
-        let mut session = Self::from_source(source)?;
+        let mut session = Self::from_source_cached(source)?;
         session.replay = None;
         session
             .apply_save(save)

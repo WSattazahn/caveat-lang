@@ -184,7 +184,7 @@ impl ReactiveSession {
             events: Vec<Value>,
         }
         let saved: Saved = serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
-        let mut session = Self::from_source(source)?;
+        let mut session = Self::from_source_cached(source)?;
         if saved.schema != REPLAY_SAVE_SCHEMA {
             return Err(refuse(format!(
                 "schema {} is not {REPLAY_SAVE_SCHEMA}",

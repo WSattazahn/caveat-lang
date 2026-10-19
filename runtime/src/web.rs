@@ -66,7 +66,7 @@ impl WebReactiveSession {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
     pub fn new(source: &str) -> Result<WebReactiveSession, String> {
         Ok(Self {
-            inner: ReactiveSession::from_source(source)?,
+            inner: ReactiveSession::from_source_cached(source)?,
         })
     }
 
