@@ -28,7 +28,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a
@@ -408,6 +408,9 @@ export const grammar = {
         { name: 'storage.type.caveat', match: String.raw`${notProperty}(?:${words(declarations)})\b` },
         { name: 'keyword.control.caveat', match: String.raw`${notProperty}(?:${words(control)})\b` },
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}(?:${words(effects)})\b` },
+        // `hold SERIES because …`, `release SERIES because …`: a series or
+        // evidence may itself be named `hold` or `release` (spec/caveat-holds-0.1.md).
+        { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}(?:hold|release)\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]+because\b)` },
         { name: 'keyword.operator.logical.caveat', match: String.raw`${notProperty}(?:and|or|not)\b` },
         { name: 'constant.language.boolean.caveat', match: String.raw`${notProperty}(?:true|false)\b` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(modifiers)})\b` },

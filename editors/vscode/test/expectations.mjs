@@ -142,6 +142,14 @@ export const groups = [
     // A stream may be named `changed`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'decisions d limit 2 reopened by @;', 'decisions d limit 2 reopened by @ supporting c;'],
   },
+  {
+    name: 'holds',
+    words: ['hold', 'release'],
+    probe: ['on e @ d because t;', 'on e when x @ d because latest(s);', 'proc p(e evidence) {\n  when true @ d because e;\n};'],
+    scope: 'keyword.other.effect',
+    // Evidence, events and decisions may be named `hold` or `release`.
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on @ commit d because t;', 'on e commit @ because t;', 'on e reopen d because @;'],
+  },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',
@@ -170,7 +178,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision'],
+      'permission_withdrawn', 'occurrence', 'revision', 'on_hold'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

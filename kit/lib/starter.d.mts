@@ -101,7 +101,7 @@ export interface Assessment {
   sequence: number;
   revision?: string | null;
   change?: {
-    change: 'committed' | 'reopened';
+    change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
     sequence: number;
     event: string;
     because: string[];
