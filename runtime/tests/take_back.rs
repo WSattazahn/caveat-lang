@@ -777,6 +777,12 @@ fn check_event(game: &mut ReactiveSession, source: &str, event: &str, run: usize
     } else if game.dispatch_json(event, "{}").is_err() {
         return;
     }
+    // The save check (C009) finds nothing in a session 1.1 played.
+    assert_eq!(
+        game.late_caveat_gaps(),
+        [],
+        "run {run}, late caveat gaps after {trail:?}"
+    );
     let shown = snapshot(game);
     for state in ["v", "held", "w", "fz", "recalled"] {
         let provenance = &shown["qualified_values"][state]["provenance"];

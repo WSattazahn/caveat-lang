@@ -19,7 +19,7 @@ installed.
 | Command | What it answers |
 | --- | --- |
 | `validate PROGRAM` | Does the program load? Lists its events, histories and displayed values. |
-| `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). With `--strict` it exits 1 when there is a warning; `--unused` also reports declarations nothing else names. |
+| `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). With `--strict` it exits 1 when there is a warning; `--unused` also reports declarations nothing else names; `--records` also reports reads of a decision's record that a later `qualify` reaches from 1.1, and with `--save SAVE` the values that save holds without such a caveat. |
 | `types PROGRAM` | What does a host send and read? TypeScript declarations for its events, payloads and displayed values, from its [interface](reference/spec/caveat-interface-0.1.md). |
 | `test SCENARIOS…` | Did each scenario get the outcomes and snapshot values it expects ([scenarios](reference/spec/caveat-scenarios-0.1.md))? An expected scalar must be equal, an array must have the same length and match element by element in order, and an object matches only the members it lists; `{"$set": [...]}` ignores order. It prints `check`'s warnings for each program and runs on. |
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, which event (with its payload) observed each of its grounds, and why is each displayed value what it is? |

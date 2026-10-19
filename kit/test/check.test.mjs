@@ -248,6 +248,101 @@ test('--unused reports a declaration nothing else names; plain check does not', 
   assert.throws(() => createRuntime(Older).check(LEFTOVER, { unused: true }), /predates caveat check --unused/);
 });
 
+// D015 (spec/caveat-caveat-sources-0.1.md): `after` is set under
+// committed(trust), whose basis lists `e`, and `flag` qualifies `e`.
+const RECORDS = `caveat flaky consequence material;
+evidence e from "tool";
+event report;
+event flag;
+event decide;
+event late;
+on report reveal e;
+state v = 0;
+on report set v = qualified(1, e);
+on flag qualify e with flaky;
+on decide commit trust because enough using v;
+state after = 0;
+on late when committed(trust) set after = 1;
+bind view.after = after;
+`;
+
+// A 1.1 save after `late`, with flaky taken out of after's lineage: what a
+// 1.0.x runtime saved for it.
+function savedByOnePointZero() {
+  const session = real.open(RECORDS);
+  for (const event of ['report', 'decide', 'flag', 'late']) assert.equal(session.dispatch(event).outcome, 'accepted');
+  assert.deepEqual(session.snapshot().qualified_values.after.provenance.caveats, ['flaky']);
+  const save = JSON.parse(session.save());
+  session.close();
+  for (const part of ['lineage', 'grounds']) {
+    const provenance = save.states.after[part];
+    if (!provenance?.caveats) continue;
+    provenance.caveats = provenance.caveats.filter(caveat => caveat !== 'flaky');
+    if (provenance.caveats.length === 0) delete provenance.caveats;
+  }
+  return JSON.stringify(save);
+}
+
+test('--records reports reads of a decision record; --save the values a save holds without the caveat', async () => {
+  await withProgram(RECORDS, async program => {
+    const plain = caveat(['check', '--strict', program]);
+    assert.equal(plain.status, 0, plain.stdout);
+    assert.equal(plain.stdout.trim(), 'frost.cav: no warnings.');
+
+    const records = caveat(['check', '--records', program]);
+    assert.equal(records.status, 0, records.stderr);
+    assert.match(records.stdout, /^frost\.cav:13:1: warning C008 record-reads-late-caveat: this rule reads the record of `trust` through `committed\(trust\)`/);
+
+    const directory = path.dirname(program);
+    const old = path.join(directory, 'old.save.json');
+    await writeFile(old, savedByOnePointZero());
+    const json = caveat(['check', '--json', '--strict', '--records', '--save', old, program]);
+    assert.equal(json.status, 1, json.stderr);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.schema, 'caveat-check/0.1');
+    assert.deepEqual(report.diagnostics.map(warning => [warning.code, warning.name, warning.line]),
+      [['C009', 'save-lacks-late-caveat', 12], ['C008', 'record-reads-late-caveat', 13], ['C009', 'save-lacks-late-caveat', 14]]);
+    assert.match(report.diagnostics[0].message, /the state `after` without `flaky`, which qualifies `e`/);
+    assert.deepEqual(report.diagnostics[0].related, [{ line: 10, column: 1, note: '`qualify e with flaky`' }]);
+
+    // A save this runtime wrote holds no such value.
+    const session = real.open(RECORDS);
+    for (const event of ['report', 'decide', 'flag', 'late']) session.dispatch(event);
+    const current = path.join(directory, 'current.save.json');
+    await writeFile(current, session.save());
+    session.close();
+    const clean = caveat(['check', '--json', '--records', '--save', current, program]);
+    assert.equal(clean.status, 0, clean.stderr);
+    assert.deepEqual(JSON.parse(clean.stdout).diagnostics.map(warning => warning.code), ['C008']);
+
+    // --save is read with --records, and a save must restore.
+    const alone = caveat(['check', '--save', old, program]);
+    assert.equal(alone.status, 2);
+    assert.match(alone.stderr, /--save is read with --records/);
+    const broken = path.join(directory, 'broken.save.json');
+    await writeFile(broken, '{}');
+    const refused = caveat(['check', '--records', '--save', broken, program]);
+    assert.equal(refused.status, 2);
+    assert.match(refused.stderr, /broken\.save\.json does not restore with .*frost\.cav: cannot restore save/);
+    const refusedJson = JSON.parse(caveat(['check', '--json', '--records', '--save', broken, program]).stdout);
+    assert.equal(refusedJson.loads, true);
+    assert.match(refusedJson.error, /cannot restore save/);
+  });
+
+  // From a script.
+  assert.deepEqual(real.check(RECORDS).diagnostics, []);
+  assert.deepEqual(real.check(RECORDS, { records: true }).diagnostics.map(warning => warning.code), ['C008']);
+  assert.deepEqual(real.check(RECORDS, { records: true, save: savedByOnePointZero() }).diagnostics.map(warning => warning.code),
+    ['C009', 'C008', 'C009']);
+  assert.throws(() => real.check(RECORDS, { save: savedByOnePointZero() }), /a save is checked with records: true/);
+  assert.throws(() => real.check(RECORDS, { records: true, save: '{}' }),
+    error => error instanceof CaveatError && error.kind === 'restore');
+  assert.throws(() => real.check('state', { records: true, save: '{}' }),
+    error => error instanceof CaveatError && error.kind === 'load');
+  class Older { constructor(source) { this.inner = new Real(source); } static check(source) { return Real.check(source); } }
+  assert.throws(() => createRuntime(Older).check(RECORDS, { records: true }), /predates caveat check --records/);
+});
+
 // caveat test checks each program first (rc.15): round 7's C2 and C3 authors
 // met this binding only when it won at dispatch, as ungrounded_citation.
 test('caveat test prints check warnings with the run and still runs', async () => {

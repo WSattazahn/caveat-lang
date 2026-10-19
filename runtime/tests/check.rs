@@ -2089,8 +2089,14 @@ fn no_repository_program_reports_c006() {
 }
 
 fn check_unused(source: &str) -> CheckReport {
-    check_source_with(source, CheckOptions { unused: true })
-        .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
+    check_source_with(
+        source,
+        CheckOptions {
+            unused: true,
+            ..Default::default()
+        },
+    )
+    .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
 }
 
 /// Issue #219: after a rewrite, a claim nothing named was left behind.
@@ -2205,4 +2211,205 @@ fn the_shipped_examples_name_everything_they_declare() {
             .collect::<Vec<_>>();
         assert!(unused.is_empty(), "{file}: {unused:#?}");
     }
+}
+
+fn check_records(source: &str) -> CheckReport {
+    check_source_with(
+        source,
+        CheckOptions {
+            records: true,
+            ..Default::default()
+        },
+    )
+    .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
+}
+
+/// D015: `after` is set under `committed(trust)`, and `flag` qualifies the
+/// evidence trust's basis lists. From 1.1 `after` gains `flaky` whenever it
+/// was set.
+const RECORD_READS: &str = r#"caveat flaky consequence material;
+evidence e from "tool";
+event report;
+event flag;
+event decide;
+event late;
+on report reveal e;
+state v = 0;
+on report set v = qualified(1, e);
+on flag qualify e with flaky;
+decisions plan limit 4;
+on decide commit trust because enough using v;
+on decide when not committed(plan) commit plan because enough using v;
+state after = 0;
+state planned = 0;
+define trusted = committed(trust);
+on late when trusted set after = 1;
+on late set planned = if(history_count(plan) > 0, latest(plan), 0);
+bind view.plan = history_count(plan);
+bind view.v = v;
+"#;
+
+#[test]
+fn a_read_of_a_decisions_record_is_reported_only_when_asked_and_only_where_a_program_qualifies() {
+    // The default check is as it was in 1.0.
+    assert_eq!(codes(&check(RECORD_READS)), []);
+    let report = check_records(RECORD_READS);
+    assert_eq!(
+        codes(&report),
+        [
+            (
+                "C008",
+                line_of(RECORD_READS, "on decide when not committed(plan)")
+            ),
+            ("C008", line_of(RECORD_READS, "on late when trusted")),
+            ("C008", line_of(RECORD_READS, "on late set planned")),
+            ("C008", line_of(RECORD_READS, "bind view.plan")),
+        ]
+    );
+    let warning = &report.diagnostics[1];
+    assert_eq!(warning.name, "record-reads-late-caveat");
+    assert!(
+        warning
+            .message
+            .starts_with("this rule reads the record of `trust` through `committed(trust)`"),
+        "{}",
+        warning.message
+    );
+    assert_eq!(
+        warning
+            .related
+            .iter()
+            .map(|related| (related.line, related.note.as_str()))
+            .collect::<Vec<_>>(),
+        [(line_of(RECORD_READS, "on flag"), "`qualify e with flaky`")]
+    );
+    assert!(
+        report.diagnostics[2]
+            .message
+            .contains("through `history_count(plan)`, `latest(plan)`"),
+        "{}",
+        report.diagnostics[2].message
+    );
+    assert!(report.diagnostics[3]
+        .message
+        .starts_with("this binding reads the record of `plan` through `history_count(plan)`"));
+
+    // Without a `qualify` no record can gain a caveat, so nothing is
+    // reported. An `unqualify` is not a `qualify`.
+    let without = RECORD_READS.replace(
+        "on flag qualify e with flaky;",
+        "on flag unqualify e with flaky;",
+    );
+    assert_eq!(codes(&check_records(&without)), []);
+}
+
+/// A related `qualify` names its target as written: `latest(STREAM)` or an
+/// earlier occurrence, not the bare name.
+#[test]
+fn a_related_qualify_names_the_latest_reading_or_occurrence_it_targets() {
+    let source = r#"claim passing;
+caveat flaky consequence material;
+evidence runner from "the test runner";
+evidence e from "tool";
+renewable e limit 4;
+readings checks from runner limit 8;
+decisions ship limit 8 reopened by checks;
+state after = 0;
+event report v min 0 max 1;
+event flag;
+event flag_e;
+event flag_first;
+event decide;
+event late;
+on report sample checks = v supports passing;
+on report reveal e;
+on flag qualify latest(checks) with flaky;
+on flag_e qualify latest(e) with flaky;
+on flag_first qualify occurrence(e, 0) with flaky;
+on decide commit ship because enough using latest(checks);
+on late when committed(ship) set after = 1;
+"#;
+    let report = check_records(source);
+    assert_eq!(codes(&report), [("C008", line_of(source, "on late"))]);
+    assert_eq!(
+        report.diagnostics[0]
+            .related
+            .iter()
+            .map(|related| related.note.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "`qualify latest(checks) with flaky`",
+            "`qualify latest(e) with flaky`",
+            "`qualify occurrence(e, …) with flaky`",
+        ]
+    );
+}
+
+#[test]
+fn a_record_read_in_a_procedure_or_a_for_block_is_reported_where_it_is_written() {
+    let source = r#"caveat flaky consequence material;
+evidence e from "tool";
+event go;
+event flag;
+on go reveal e;
+state v = 0;
+on go set v = qualified(1, e);
+decisions plan limit 4;
+proc decide(d decisions) {
+    when not committed(d) commit d because enough using v;
+};
+proc remember(d decisions) {
+    when history_count(d) > 0 set v = latest(d);
+};
+proc doubt() {
+    qualify e with flaky;
+};
+on go call decide(plan);
+on go call remember(plan);
+on flag call doubt();
+place field kind plot;
+entity north kind plot at field;
+entity south kind plot at field;
+for plot as $p {
+    state $p_seen = 0;
+    on go when committed(plan) set $p_seen = 1;
+};
+"#;
+    let report = check_records(source);
+    let block = line_of(source, "on go when committed(plan)");
+    assert_eq!(
+        codes(&report),
+        [
+            ("C008", line_of(source, "proc decide")),
+            ("C008", line_of(source, "proc remember")),
+            ("C008", block),
+            ("C008", block),
+        ]
+    );
+    assert_eq!(
+        report.diagnostics[0]
+            .related
+            .iter()
+            .map(|related| (related.line, related.note.as_str()))
+            .collect::<Vec<_>>(),
+        [(line_of(source, "proc doubt"), "`qualify e with flaky`")]
+    );
+}
+
+#[test]
+fn a_record_read_can_be_allowed_on_purpose() {
+    let source = RECORD_READS.replace(
+        "bind view.plan",
+        "# caveat check: allow record-reads-late-caveat\nbind view.plan",
+    );
+    let report = check_records(&source);
+    assert_eq!(report.diagnostics.len(), 3);
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [("C008", line_of(&source, "bind view.plan"))]
+    );
 }

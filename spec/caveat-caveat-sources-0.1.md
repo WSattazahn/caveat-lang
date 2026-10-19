@@ -169,9 +169,16 @@ caveat. `kit/test/save-fixtures.test.mjs` holds their views to every
 release's except for caveats added, and byte for byte to the same events
 played live without a save.
 
-1.1 ships a detector: `caveat check` (opt-in, like `--unused`) and a save
-check report whether a program or save holds a value set under a committed
-decision that reaches evidence a later `qualify` names.
+1.1 ships a detector, asked for like `--unused`
+([Check 0.1](caveat-check-0.1.md), C008 and C009, a 1.1 draft).
+`caveat check --records PROGRAM` reports each rule, procedure or binding
+that reads a decision's record in a program that qualifies evidence (C008
+`record-reads-late-caveat`). `caveat check --records --save SAVE PROGRAM`
+also restores the save and reports each state or shown binding it holds
+without a caveat that evidence it lists now carries through a live
+`qualify` relation (C009 `save-lacks-late-caveat`): a value a 1.0.x runtime
+saved that 1.1 would compute with the caveat. Restore does not repair such a
+value; C009 says where one is. A save 1.1 wrote has none.
 
 ## Changes
 
@@ -185,3 +192,5 @@ decision that reaches evidence a later `qualify` names.
   its default. Tests: the D015 case and the randomized check in
   `runtime/tests/take_back.rs`; corpus sweep
   `experiments/caveat-sources-sweep/`.
+- 2026-10-18: the detector is Check 0.1's C008 and C009 (`--records`,
+  `--save`).

@@ -94,7 +94,8 @@ mod identifiers;
 #[path = "reactive_check.rs"]
 mod check;
 pub use check::{
-    check_source, check_source_with, CheckOptions, CheckReport, Diagnostic, Related, CHECK_SCHEMA,
+    check_save_with, check_source, check_source_with, CheckOptions, CheckReport, Diagnostic,
+    LateCaveatGap, Related, CHECK_SCHEMA,
 };
 
 #[path = "reactive_interface.rs"]
@@ -6228,31 +6229,10 @@ impl ReactiveSession {
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
     fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
-        if self.late_caveats.is_empty() {
-            return Ok(());
-        }
-        let late = self
-            .late_caveats
-            .iter()
-            .filter(|caveat| !provenance.caveats.contains(*caveat))
-            .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<HashSet<_>>();
-        let listed = provenance
-            .evidence
-            .iter()
-            .filter_map(|name| self.symbols.get(name).copied())
-            .collect::<HashSet<_>>();
         let reached = self
-            .graph
-            .edges
-            .iter()
-            .filter(|edge| {
-                edge.relation == Relation::Qualifies
-                    && late.contains(&edge.from)
-                    && listed.contains(&edge.to)
-                    && self.has_live_relation(edge.from, edge.to)
-            })
-            .map(|edge| edge.from)
+            .live_late_relations(provenance)
+            .into_iter()
+            .map(|(caveat, _)| caveat)
             .collect::<BTreeSet<_>>();
         if reached.is_empty() {
             return Ok(());
@@ -6266,6 +6246,37 @@ impl ReactiveSession {
             .chain(self.incoming_caveats(reached.iter().copied()))
             .collect::<Vec<_>>();
         provenance.merge(&Provenance::from_names([], names)?)
+    }
+
+    /// Each live `C qualifies E` relation for a late caveat C that
+    /// `provenance` lacks, where it lists E: what `read_live` adds, as
+    /// (C, E) pairs.
+    fn live_late_relations(&self, provenance: &Provenance) -> BTreeSet<(NodeId, NodeId)> {
+        if self.late_caveats.is_empty() {
+            return BTreeSet::new();
+        }
+        let late = self
+            .late_caveats
+            .iter()
+            .filter(|caveat| !provenance.caveats.contains(*caveat))
+            .filter_map(|caveat| self.symbols.get(caveat).copied())
+            .collect::<HashSet<_>>();
+        let listed = provenance
+            .evidence
+            .iter()
+            .filter_map(|name| self.symbols.get(name).copied())
+            .collect::<HashSet<_>>();
+        self.graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.relation == Relation::Qualifies
+                    && late.contains(&edge.from)
+                    && listed.contains(&edge.to)
+                    && self.has_live_relation(edge.from, edge.to)
+            })
+            .map(|edge| (edge.from, edge.to))
+            .collect()
     }
 
     /// `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)`.
