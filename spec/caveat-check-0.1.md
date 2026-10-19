@@ -14,17 +14,19 @@ session is in the state it is in. A clean check proves none of those.
 ## Running it
 
 ```sh
-npx --no-install caveat check [--json] [--strict] [--unused] PROGRAM
+npx --no-install caveat check [--json] [--strict] [--unused] [--records [--save SAVE]] PROGRAM
 ```
 
-`--unused` adds C007 `unused-declaration`, which is reported only when asked
-for. Every other check always runs.
+`--unused` adds C007 `unused-declaration`, and `--records` adds C008
+`record-reads-late-caveat`; each is reported only when asked for. With
+`--records`, `--save SAVE` adds C009 `save-lacks-late-caveat` for that save.
+Every other check always runs.
 
 | Exit status | When |
 | --- | --- |
 | 0 | The program loads. This holds whether or not there are warnings. |
 | 1 | `--strict` was given and there is at least one warning. |
-| 2 | The program does not load, cannot be read, or is a bundle. |
+| 2 | The program does not load, cannot be read, or is a bundle; or the save given with `--save` cannot be read or does not restore. |
 
 A program that does not load gets the loader's diagnostic, as from
 `caveat validate`. Check reads a single-file program. It does not read a
@@ -402,6 +404,101 @@ Of the 161 tracked `.cav` files that load, it reports 3 declarations, in 3
 files, each a name nothing reads: an unused claim in two agent-adoption
 submissions, and an unused caveat in an adversarial test fixture.
 
+### C008 `record-reads-late-caveat` and C009 `save-lacks-late-caveat`
+
+**Status:** draft for 1.1, as [Caveat Sources 0.1](caveat-caveat-sources-0.1.md)
+is: implemented on `main`, not yet in a release, and not part of the
+[compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable)
+until a 1.x release ships it. It may change before then.
+
+Reported only with `--records`, or `runtime.check(source, { records: true })`
+from a script; C009 only with `--save` as well. Without them, a program checks,
+tests and exits exactly as it did under 1.0.
+
+From 1.1 a record's own caveats are kept, and the evidence it lists is read
+live (Caveat Sources 0.1, D015). A value set under `committed(D)` holds the
+evidence of D's frozen basis in its lineage, so a later `qualify` of that
+evidence adds its caveat to the value, whenever the value was set. A 1.0.x
+runtime added it only to a value set before the `qualify`. These two checks
+find where that difference can show: in a program, and in a save.
+
+C008 reports a `rule`, `proc` or `bind` that reads a decision's record, in a
+program with at least one `qualify` effect, in a rule or a procedure. A
+`qualify … after` counts; an `unqualify` does not. A record is read by
+`committed(D)` or `reopened(D)`, or by `latest`, `history_count`,
+`history_at` or a fold of a decision series, in the rule's guard or any
+expression of its effect, in any step of a procedure, or in a binding's
+value, `when` condition or `because`. In a procedure, a `decisions`
+parameter counts as a decision series. Defines are read through, as C006
+reads them, and every branch counts, taken or not.
+
+```caveat
+caveat flaky consequence material;
+evidence e from "tool";
+event report;
+event flag;
+event decide;
+event late;
+on report reveal e;
+state v = 0;
+on report set v = qualified(1, e);
+on flag qualify e with flaky;
+on decide commit trust because enough using v;
+state after = 0;
+on late when committed(trust) set after = 1;
+```
+
+The rule on `late` is reported. After `report`, `decide`, `flag`, `late`,
+`after` carries `flaky` on 1.1 and did not on 1.0.x. The warning is at the
+statement; one in a `for` block gets one warning per member, at the template,
+as for C006. Its related entries are the `qualify` statements: each rule, or
+the procedure that holds one. The suggestion is to change nothing if the
+value should carry what its evidence is qualified with later, and to check
+each save the program has.
+
+The comparison is by name and by statement, so it reports a read whether or
+not a `qualify` can ever reach the evidence that record lists. It does not
+report a read of a reading stream's records, which 1.1 reads live too: a
+reading lists the occurrence it sampled and what its guard read. Under 1.0.x a
+`qualify` named observed evidence, never a reading, so a stream's records
+gained a caveat only through evidence a guard read. `qualify latest(STREAM)`
+([Latest 0.1](caveat-latest-0.1.md)) names a reading, but it is new in 1.1, so
+no 1.0.x runtime saved a value it reaches. C009 finds a value that lacks a
+late caveat in a save all the same.
+
+C009 restores the save given with `--save` (or `{ records: true, save }` from
+a script) and reports each state and each shown binding that the restored
+session holds without a caveat C while its lineage, or a state's grounds,
+lists evidence E with a live `C qualifies E` relation, where C is a caveat a
+`qualify` effect names. A relation is live unless an `unqualify` has taken it
+back. The warning is at the state's declaration, or at the first `bind` of
+the binding's target and property. Its message names each caveat, the
+evidence it qualifies and where the value lacks it; its related entries are
+the `qualify` statements that name those caveats. One state can be reported
+both as a state and through a binding that shows it.
+
+Restore keeps a saved value as it was saved: Caveat Sources 0.1 does no
+repair on load. So a value that a 1.0.x runtime set under a committed
+decision after a `qualify`, and saved, is restored without the caveat, and
+C009 reports it. The suggestion is to replay the session's events on this
+runtime, or let an event set the value again; either gives it the caveat.
+A session that 1.1 played holds no such value, so C009 reports nothing for
+a save 1.1 wrote: the randomized checks in `runtime/tests/take_back.rs` and
+`runtime/tests/late_caveat_gaps.rs` assert it after every event and every
+save and restore. The runtime's `ReactiveSession::late_caveat_gaps` returns
+the same list for any session.
+
+A save that does not restore exits 2, with the restore's error. With
+`--json` that is `{"schema": "caveat-check/0.1", "program": …, "loads": true,
+"save": …, "error": …}`. From a script, `runtime.check` throws a
+`CaveatError` of kind `restore`, as `runtime.restore` does.
+
+Of the 195 tracked `.cav` files, the 165 that load report exactly what they
+did before without `--records`. With it, C008 reports 610 statements in 62
+files, 290 of them in one version of Glowcap. They include each of the 16
+programs in which the corpus sweep of Caveat Sources 0.1 found a value that
+gained a caveat.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -453,10 +550,18 @@ codes, names, locations and the fields above are stable. From a script,
 `runtime.check(source)` in `caveat-lang/session` returns the same report
 without `program`, `loads` and `strict`, and
 `runtime.check(source, { unused: true })` the report with C007. It throws a `CaveatError` of kind
-`load` for a program that does not load.
+`load` for a program that does not load. `{ records: true }` adds C008, and
+`{ records: true, save }`, with a save's text, C009.
 
 ## Changes
 
+- 2026-10-18 (1.1, draft): C008 `record-reads-late-caveat` with `--records`
+  or `{ records: true }`, and C009 `save-lacks-late-caveat` with `--save` as
+  well, the detector [Caveat Sources 0.1](caveat-caveat-sources-0.1.md)
+  promises for D015. C008 reports where a program reads a decision's record
+  that a later `qualify` can reach; C009 reports the values a save holds
+  without such a caveat, as a 1.0.x runtime saved them. Both are asked for,
+  so every program checks, tests and exits exactly as it did under 1.0.
 - 2026-10-17 (1.1): C007 `unused-declaration`, reported only with `--unused`
   or `{ unused: true }` (issue #219). An agent's program kept a claim after a
   rewrite that nothing revealed, sampled or cited, and `check` printed "no

@@ -4,13 +4,14 @@ caveat-lang's decisions about caveat-lang, kept in Caveat. `project.cav` is
 the program, `events.jsonl` the record of what happened in the order it
 happened, `project.scenarios.json` the tests of what the ledger must say,
 and `replay-check.mjs` the check that the record still replays. It loads and
-passes on the published 1.0.0 and 1.0.2 runtimes as well as on `main`, so
+passes on the published 1.0.0, 1.0.2 and 1.0.3 runtimes as well as on `main`, so
 every thread that has `caveat` installed can ask it.
 
 This exists because the language's claim is that a decision should carry
 what it rested on, with its caveats, and should be found when that evidence
-is later withdrawn or doubted. On 2026-10-17 and 18 the project made a run of
-such decisions (merging #259, shipping 1.0.1, reopening it, shipping 1.0.2)
+is later withdrawn or doubted. From 2026-10-17 to 19 the project made a run of
+such decisions (merging #259, shipping 1.0.1, reopening it, shipping 1.0.2,
+reopening that, shipping 1.0.3)
 and kept them in prose. This is the same run, kept in the language, in the
 order the [release records](../docs/releases/) and the
 [decision log](../experiments/agent-decisions/README.md) show. If the ledger
@@ -28,7 +29,7 @@ npm run test:ledger
 `explain` after the recorded events, the part about the release:
 
 ```
-  release: 2 of at most 8
+  release: 3 of at most 8
     release@1 = 101  superseded
       based on release_tree (caveats: changes_saves)
       release_tree: observed at #11 cherry_pick {"suite_green":1}
@@ -36,13 +37,21 @@ npm run test:ledger
       could also have been influenced by approvals@3
       #13 ship: committed because release_tree (caveats: changes_saves)
       #17 review: reopened because release_tree (caveats: changes_saves, uncovered_windows)
-    release@2 = 102  in force
+    release@2 = 102  superseded
       based on release_tree@2 (caveats: changes_saves)
       release_tree@2: observed at #18 cherry_pick {"suite_green":1}
       also carrying, through its lineage: uncovered_windows
       permitted by approvals@5 for 102
       could also have been influenced by approvals@3, approvals@5, release_tree
       #24 ship: committed because release_tree@2 (caveats: changes_saves)
+      #33 review: reopened because release_tree@2 (caveats: changes_saves, fix_regressed)
+    release@3 = 103  in force
+      based on release_tree@3 (caveats: changes_saves)
+      release_tree@3: observed at #35 cherry_pick {"suite_green":1}
+      also carrying, through its lineage: fix_regressed, uncovered_windows
+      permitted by approvals@9 for 103
+      could also have been influenced by approvals@3, approvals@5, approvals@9, release_tree, release_tree@2
+      #36 ship: committed because release_tree@3 (caveats: changes_saves)
 ```
 
 That is the 1.0.1 story as the language tells it: the release rested on a
@@ -53,6 +62,9 @@ which put a doubt on that evidence after the fact; the decision's own grounds
 stayed as recorded, the doubt reached the basis it was computed from, and
 `review` reopened the release naming the evidence that carried it. 1.0.2
 rests on a fresh tree and carries the old doubt only through its lineage.
+D020 then showed that 1.0.1's own D014 fix had broken a take-back on that
+tree, so `review` reopened 1.0.2 on the `fix_regressed` doubt, and 1.0.3
+rests on the tree with the D020 fix.
 
 The withdrawn inference reads the same way:
 
@@ -65,9 +77,9 @@ The withdrawn inference reads the same way:
 | Kind | Names | Meaning |
 | --- | --- | --- |
 | claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `runtime_correct`, `approved_by_owner` | what evidence bears on |
-| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0` | what a reader must see next to a piece of evidence |
+| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed` | what a reader must see next to a piece of evidence |
 | evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
-| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix` | series: each may be reopened and revised, never overwritten |
+| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1` | series: each may be reopened and revised, never overwritten |
 | events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `find`, `review`, the `decide_*` cards | what gets appended to the record |
 
 A decision is refused until its grounds exist and the owner has approved
@@ -75,8 +87,9 @@ that item: `merge` needs a rerun with 0 divergences, a green CI run and
 `approvals` carrying 259; `ship` needs a release tree and an approval for the
 version; a second `ship` while the current release stands is refused until
 `review` has reopened it. An approval is a reading in `approvals` whose
-value is the item code: a PR number, a version (101, 102), or a card option
-(1021/1022 for 1.0.2's scope, 41–42 for the record fix's order).
+value is the item code: a PR number, a version (101, 102, 103), or a card option
+(1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
+the two forms' place in 1.1).
 
 ## Keep it going
 
@@ -84,8 +97,8 @@ Every thread that makes or informs a decision appends to the record:
 
 1. **A finding filed** (a D-entry): `{"event": "find", "payload": {"number": N}}`.
    If decisions will rest on it, declare it as named evidence with its
-   caveats and add its `reveal` to the `find` rule, as `d016`, `d018` and
-   `d019` are.
+   caveats and add its `reveal` to the `find` rule, as `d016`, `d018`,
+   `d019` and `d020` are.
 2. **A rerun, a CI run, a release tree**: `rerun` with the divergence count,
    `ci_run` with `green` 0 or 1, `cherry_pick` with `suite_green` 0 or 1.
 3. **The owner's answer to a card**: `approve` with the item code, then the

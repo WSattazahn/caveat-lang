@@ -3,13 +3,14 @@
 //! does, and a warning describes a pattern, not a proven fault.
 
 use super::{
-    parse_directive_at, Directive, Effect, Expr, FunctionDef, Parameter, ParameterDomain,
-    ReactiveSession, Reads, Value,
+    parse_directive_at, BindingExpression, Directive, Effect, EvidenceSelector, Expr, FunctionDef,
+    Parameter, ParameterDomain, Provenance, ReactiveSession, Reads, Value,
 };
 use crate::link::{
     is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
 };
 use crate::parser::{position_of, scan_statements_at, Position};
+use crate::NodeId;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -51,6 +52,8 @@ const UNROUTED_MEMBER_RULE: (&str, &str) = ("C003", "unrouted-member-rule");
 const SHIFTED_MEMBER_INDEX: (&str, &str) = ("C004", "shifted-member-index");
 const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
 const UNUSED_DECLARATION: (&str, &str) = ("C007", "unused-declaration");
+const RECORD_READS_LATE_CAVEAT: (&str, &str) = ("C008", "record-reads-late-caveat");
+const SAVE_LACKS_LATE_CAVEAT: (&str, &str) = ("C009", "save-lacks-late-caveat");
 const ALLOW: &str = "caveat check: allow";
 
 /// Which checks run beyond the default ones. Each is asked for, so a program
@@ -59,6 +62,9 @@ const ALLOW: &str = "caveat check: allow";
 pub struct CheckOptions {
     /// C007 `unused-declaration`.
     pub unused: bool,
+    /// C008 `record-reads-late-caveat`, and C009 `save-lacks-late-caveat`
+    /// when a save is checked (`check_save_with`).
+    pub records: bool,
 }
 
 /// Loads the program, then looks for the patterns in
@@ -70,10 +76,33 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
 
 /// `check_source`, with the checks `options` asks for as well.
 pub fn check_source_with(source: &str, options: CheckOptions) -> Result<CheckReport, String> {
+    report(source, options, None)
+}
+
+/// `check_source_with`, with C009 for the session that `save`, a save's
+/// JSON, restores: each value it holds without a late caveat that evidence
+/// it lists now carries. C009 belongs to the records check, so `options`
+/// must ask for it. An error when the program does not load or the save
+/// does not restore.
+pub fn check_save_with(
+    source: &str,
+    save: &str,
+    options: CheckOptions,
+) -> Result<CheckReport, String> {
+    if !options.records {
+        return Err("a save is checked only with the records check".into());
+    }
+    report(source, options, Some(save))
+}
+
+fn report(source: &str, options: CheckOptions, save: Option<&str>) -> Result<CheckReport, String> {
     if source.starts_with(crate::link::BUNDLE_MARKER) {
         return Err("caveat check reads a single-file program, not a bundle".into());
     }
     let session = ReactiveSession::from_source(source)?;
+    let saved = save
+        .map(|save| ReactiveSession::restore_json(source, save))
+        .transpose()?;
     let (statements, blocks) = statements(source)?;
     let mut found = repeated_rules(&session, &statements);
     found.extend(unreopened_decisions(&session, &statements));
@@ -81,6 +110,12 @@ pub fn check_source_with(source: &str, options: CheckOptions) -> Result<CheckRep
     found.extend(unreachable_citations(&session, &statements));
     if options.unused {
         found.extend(unused_declarations(&statements));
+    }
+    if options.records {
+        found.extend(record_reads(&session, &statements));
+    }
+    if let Some(saved) = &saved {
+        found.extend(saved_without_late_caveats(saved, &statements));
     }
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
@@ -564,6 +599,389 @@ fn unused_declarations(statements: &[Statement]) -> Vec<Diagnostic> {
                     UNUSED_DECLARATION.1
                 ),
                 related: Vec::new(),
+            }
+        })
+        .collect()
+}
+
+/// The expressions an effect evaluates, taken or not.
+fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
+    fn selector(selector: &EvidenceSelector) -> Option<&Expr> {
+        match selector {
+            EvidenceSelector::Occurrence { index, .. } => Some(index),
+            _ => None,
+        }
+    }
+    match effect {
+        Effect::Call { arguments, .. } => arguments.iter().collect(),
+        Effect::Sample { value, note, .. } => {
+            std::iter::once(value).chain(note.as_deref()).collect()
+        }
+        Effect::Qualify { after, index, .. } => after.iter().chain(index.as_deref()).collect(),
+        Effect::Unqualify { index, .. } => index.as_deref().into_iter().collect(),
+        Effect::Withdraw { target, .. } => selector(target).into_iter().collect(),
+        Effect::Reopen { because, .. } => selector(because).into_iter().collect(),
+        Effect::Set { value, because, .. } => std::iter::once(value)
+            .chain(because.iter().flatten())
+            .collect(),
+        Effect::Commit {
+            using,
+            citing,
+            reasons,
+            ..
+        } => using
+            .iter()
+            .chain(citing)
+            .chain(reasons.iter().map(|(_, _, read)| read))
+            .collect(),
+        Effect::Emit { .. }
+        | Effect::Reject { .. }
+        | Effect::Renew { .. }
+        | Effect::Observe { .. }
+        | Effect::Reveal { .. }
+        | Effect::Examine { .. } => Vec::new(),
+    }
+}
+
+/// The records `value` reads (`Expr::collect_record_reads`), itself or
+/// through the defines it reads.
+fn records_through<'d>(
+    value: &Expr,
+    defines: &'d HashMap<String, Expr>,
+    seen: &mut HashSet<&'d str>,
+    records: &mut BTreeSet<(&'static str, String)>,
+) {
+    value.collect_record_reads(records);
+    let mut reads = Reads::default();
+    value.collect_reads(&mut reads);
+    for read in &reads.names {
+        if let Some((define, expression)) = defines.get_key_value(read.as_str()) {
+            if seen.insert(define.as_str()) {
+                records_through(expression, defines, seen, records);
+            }
+        }
+    }
+}
+
+/// Each statement with a `qualify` effect, with the caveat it names: in a
+/// rule, or in a procedure's body, at the procedure.
+fn late_qualifications(statements: &[Statement]) -> Vec<(String, Related)> {
+    let mut found = Vec::new();
+    for statement in statements {
+        let effects = match parse_directive_at(statement.text.trim(), statement.at) {
+            Some(Ok(Directive::Rule(rule))) => vec![rule.effect],
+            Some(Ok(Directive::Procedure(procedure))) => {
+                procedure.body.into_iter().map(|step| step.effect).collect()
+            }
+            _ => continue,
+        };
+        for effect in effects {
+            if let Effect::Qualify {
+                evidence,
+                caveat,
+                index,
+                latest,
+                ..
+            } = effect
+            {
+                let target = if latest {
+                    format!("latest({evidence})")
+                } else if index.is_some() {
+                    format!("occurrence({evidence}, …)")
+                } else {
+                    evidence
+                };
+                let note = format!("`qualify {target} with {caveat}`");
+                if !found.iter().any(|(_, related): &(String, Related)| {
+                    related.line == statement.at.line && related.note == note
+                }) {
+                    found.push((
+                        caveat,
+                        Related {
+                            line: statement.at.line,
+                            column: statement.at.column,
+                            note,
+                        },
+                    ));
+                }
+            }
+        }
+    }
+    found
+}
+
+/// C008. A rule, procedure or binding that reads a decision's record, in a
+/// program that qualifies evidence late: `committed(D)` or `reopened(D)`, or
+/// `latest`, `history_count`, `history_at` or a fold of a decision series.
+/// From 1.1 a value read through a record reads the evidence the record
+/// lists live, so a later `qualify` of that evidence adds its caveat to a
+/// value set this way whenever it was set; a 1.0.x runtime did not (D015,
+/// spec/caveat-caveat-sources-0.1.md). Compared by name after defines are
+/// expanded, so a read on a branch never taken is reported too.
+fn record_reads(session: &ReactiveSession, statements: &[Statement]) -> Vec<Diagnostic> {
+    let qualifications = late_qualifications(statements);
+    if qualifications.is_empty() {
+        return Vec::new();
+    }
+    let mut defines = HashMap::new();
+    for statement in statements {
+        if let Some(Ok(Directive::Define { name, expression })) =
+            parse_directive_at(statement.text.trim(), statement.at)
+        {
+            defines.insert(name, expression);
+        }
+    }
+    let related = qualifications
+        .into_iter()
+        .map(|(_, related)| related)
+        .collect::<Vec<_>>();
+    let mut found = Vec::new();
+    for statement in statements {
+        // What the statement is, its expressions, and the names it may take
+        // as decision series: a procedure's `decisions` parameters.
+        let (what, expressions, series) =
+            match parse_directive_at(statement.text.trim(), statement.at) {
+                Some(Ok(Directive::Rule(rule))) => {
+                    let mut expressions = vec![rule.condition.clone()];
+                    expressions.extend(effect_expressions(&rule.effect).into_iter().cloned());
+                    ("rule", expressions, Vec::new())
+                }
+                Some(Ok(Directive::Procedure(procedure))) => {
+                    let mut expressions = Vec::new();
+                    for step in &procedure.body {
+                        expressions.push(step.condition.clone());
+                        expressions.extend(effect_expressions(&step.effect).into_iter().cloned());
+                    }
+                    let series = procedure
+                        .symbol_parameters
+                        .into_iter()
+                        .filter(|parameter| parameter.kind == "decisions")
+                        .map(|parameter| parameter.name)
+                        .collect();
+                    ("procedure", expressions, series)
+                }
+                Some(Ok(Directive::Binding(binding))) => {
+                    let mut expressions = vec![binding.condition];
+                    if let BindingExpression::Expression(value) = binding.value {
+                        expressions.push(value);
+                    }
+                    expressions.extend(binding.because.into_iter().flatten());
+                    ("binding", expressions, Vec::new())
+                }
+                _ => continue,
+            };
+        let mut records = BTreeSet::new();
+        for expression in &expressions {
+            records_through(expression, &defines, &mut HashSet::new(), &mut records);
+        }
+        let reads = records
+            .into_iter()
+            .filter(|(form, name)| {
+                matches!(*form, "committed" | "reopened")
+                    || session.decision_series.contains_key(name)
+                    || series.contains(name)
+            })
+            .map(|(form, name)| {
+                let read = if form == "fold" {
+                    format!("a fold of `{name}`")
+                } else if form == "history_at" {
+                    format!("`history_at({name}, …)`")
+                } else {
+                    format!("`{form}({name})`")
+                };
+                (name, read)
+            })
+            .collect::<Vec<_>>();
+        if reads.is_empty() {
+            continue;
+        }
+        let decisions = reads
+            .iter()
+            .map(|(name, _)| format!("`{name}`"))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let through = reads
+            .iter()
+            .map(|(_, read)| read.as_str())
+            .collect::<Vec<_>>();
+        found.push(Diagnostic {
+            code: RECORD_READS_LATE_CAVEAT.0,
+            name: RECORD_READS_LATE_CAVEAT.1,
+            severity: "warning",
+            line: statement.at.line,
+            column: statement.at.column,
+            message: format!(
+                "this {what} reads the record of {} through {}, and the program qualifies evidence later: from 1.1 a value set this way reads the evidence that record lists live, so a later `qualify` of that evidence adds its caveat to the value, whenever the value was set (D015). A 1.0.x runtime did not add it",
+                decisions.join(", "),
+                through.join(", ")
+            ),
+            suggestion: format!(
+                "Nothing needs to change if a value read through a decision should carry what its evidence is qualified with later. To find values a 1.0.x runtime saved without such a caveat, check each save with `caveat check --records --save SAVE PROGRAM`. To keep this read without the warning, put `# {ALLOW} {}` on the line above.",
+                RECORD_READS_LATE_CAVEAT.1
+            ),
+            related: related.clone(),
+        });
+    }
+    found
+}
+
+/// A value a session holds without a late caveat that evidence its lineage
+/// lists now carries through a live relation: a caveat some `qualify` names,
+/// whose relation has not been taken back. A 1.0.x runtime saved a value
+/// read through a decision's record this way; 1.1 reads the evidence a
+/// record lists live (D015), so a session 1.1 produced holds none. See
+/// spec/caveat-check-0.1.md, C009.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct LateCaveatGap {
+    /// `state` for a state's value, `grounds` for its grounds, `binding` for
+    /// a shown binding.
+    pub place: &'static str,
+    /// The state, or `TARGET.PROPERTY` for a binding.
+    pub name: String,
+    /// The caveat the value lacks.
+    pub caveat: String,
+    /// The evidence its lineage or grounds lists that the caveat qualifies.
+    pub evidence: Vec<String>,
+}
+
+impl ReactiveSession {
+    /// Every state's value and grounds, and every shown binding, that lists
+    /// evidence a late caveat qualifies through a live relation while
+    /// lacking that caveat, by state or binding name. Restore keeps a saved
+    /// value as it was saved, so this is how to find, after restoring a save
+    /// a 1.0.x runtime wrote, the values that 1.1 would compute with a
+    /// caveat they lack (spec/caveat-caveat-sources-0.1.md).
+    pub fn late_caveat_gaps(&self) -> Vec<LateCaveatGap> {
+        let names = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect::<HashMap<NodeId, &str>>();
+        let mut gaps = Vec::new();
+        let mut look = |place: &'static str, name: &str, provenance: &Provenance| {
+            let mut lacking: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+            for (caveat, evidence) in self.live_late_relations(provenance) {
+                lacking
+                    .entry(names[&caveat])
+                    .or_default()
+                    .insert(names[&evidence].to_string());
+            }
+            for (caveat, evidence) in lacking {
+                gaps.push(LateCaveatGap {
+                    place,
+                    name: name.to_string(),
+                    caveat: caveat.to_string(),
+                    evidence: evidence.into_iter().collect(),
+                });
+            }
+        };
+        for name in self.states.names().collect::<BTreeSet<_>>() {
+            let cell = self.states.get(name).expect("a declared state");
+            look("state", name, &cell.value.provenance);
+            look("grounds", name, &cell.grounds);
+        }
+        for (target, properties) in &self.bindings {
+            for property in properties.keys() {
+                if let Some(lineage) = self
+                    .binding_qualifications
+                    .get(target)
+                    .and_then(|shown| shown.get(property))
+                {
+                    look("binding", &format!("{target}.{property}"), lineage);
+                }
+            }
+        }
+        gaps
+    }
+}
+
+/// C009. Each state and shown binding of a restored save that lacks a late
+/// caveat evidence it lists now carries (`late_caveat_gaps`), at the state's
+/// declaration or the binding's first `bind`.
+fn saved_without_late_caveats(
+    saved: &ReactiveSession,
+    statements: &[Statement],
+) -> Vec<Diagnostic> {
+    let gaps = saved.late_caveat_gaps();
+    if gaps.is_empty() {
+        return Vec::new();
+    }
+    let mut declared: HashMap<String, Position> = HashMap::new();
+    for statement in statements {
+        match parse_directive_at(statement.text.trim(), statement.at) {
+            Some(Ok(Directive::State { name, .. })) => {
+                declared.entry(name).or_insert(statement.at);
+            }
+            Some(Ok(Directive::Binding(binding))) => {
+                declared
+                    .entry(format!("{}.{}", binding.target, binding.property))
+                    .or_insert(statement.at);
+            }
+            _ => {}
+        }
+    }
+    let qualifications = late_qualifications(statements);
+    // One warning for each state or binding, in the order found.
+    let mut by_value: Vec<(&str, &str, Vec<&LateCaveatGap>)> = Vec::new();
+    for gap in &gaps {
+        let what = if gap.place == "binding" {
+            "binding"
+        } else {
+            "state"
+        };
+        match by_value
+            .iter_mut()
+            .find(|(kind, name, _)| *kind == what && *name == gap.name)
+        {
+            Some((_, _, list)) => list.push(gap),
+            None => by_value.push((what, &gap.name, vec![gap])),
+        }
+    }
+    by_value
+        .into_iter()
+        .map(|(what, name, list)| {
+            let at = declared.get(name).copied().unwrap_or(Position { line: 1, column: 1 });
+            let mut lacking: Vec<(String, Vec<&str>)> = Vec::new();
+            for gap in &list {
+                let place = match gap.place {
+                    "state" => "value",
+                    "grounds" => "grounds",
+                    _ => "lineage",
+                };
+                let evidence = gap
+                    .evidence
+                    .iter()
+                    .map(|evidence| format!("`{evidence}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let text = format!("`{}`, which qualifies {evidence}", gap.caveat);
+                match lacking.iter_mut().find(|(known, _)| *known == text) {
+                    Some((_, places)) => places.push(place),
+                    None => lacking.push((text, vec![place])),
+                }
+            }
+            let lacking = lacking
+                .into_iter()
+                .map(|(text, places)| format!("{text} (in its {})", places.join(" and ")))
+                .collect::<Vec<_>>();
+            let caveats = list.iter().map(|gap| gap.caveat.as_str()).collect::<BTreeSet<_>>();
+            Diagnostic {
+                code: SAVE_LACKS_LATE_CAVEAT.0,
+                name: SAVE_LACKS_LATE_CAVEAT.1,
+                severity: "warning",
+                line: at.line,
+                column: at.column,
+                message: format!(
+                    "the save holds the {what} `{name}` without {}: the evidence is listed and the caveat qualifies it through a live relation. A 1.0.x runtime saved a value read through a decision's record this way; 1.1 reads that evidence live, so the same value computed now carries the caveat (D015)",
+                    lacking.join("; ")
+                ),
+                suggestion: "Restore keeps a saved value as it was saved and does not add the caveat. Replaying the session's events on this runtime gives the value the caveat, and so does any event that sets it again.".into(),
+                related: qualifications
+                    .iter()
+                    .filter(|(caveat, _)| caveats.contains(caveat.as_str()))
+                    .map(|(_, related)| related.clone())
+                    .collect(),
             }
         })
         .collect()

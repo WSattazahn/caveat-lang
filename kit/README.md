@@ -192,7 +192,9 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind.
+  left behind. `--records` also reports each read of a decision's record that
+  a later `qualify` reaches from 1.1, and `--records --save SAVE` the values
+  that save holds without such a caveat, as a 1.0.x runtime saved them.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
@@ -252,6 +254,14 @@ console.log(resumed.view().bindings.heating.text);
 session.close();
 resumed.close();
 ```
+
+To store a short session, call `session.save({ compact: true })` instead of
+keeping your own list of events. While the session's accepted events fit in
+4,096 bytes and are smaller than the state save, it returns them as a
+[replay save](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-replay-save-0.1.md);
+otherwise it returns the state save. `runtime.restore` takes either, and
+`caveat serve` answers `{"op":"save","compact":true}` the same way. A runtime
+before 1.1.0 cannot restore a replay save.
 
 In the repository, import from `./kit/lib/node.mjs` instead; its default runtime
 is the build in `dist/pkg-reactive`.

@@ -351,7 +351,8 @@ function lifecycleOf(SessionClass) {
 // dispatch_view_delta_outcome (for View 0.2), drain_archive and undrained (for
 // drainArchive and undrained), save_compact (for save({ compact: true })),
 // snapshot_compact (a faster snapshot()), SessionClass.check(source),
-// optionally SessionClass.check_with(source, unused) (for check's options) and
+// optionally SessionClass.check_with(source, unused) and
+// SessionClass.check_options(source, optionsJson) (for check's options), and
 // SessionClass.interface(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
@@ -402,7 +403,9 @@ export function createRuntime(SessionClass, identity = {}) {
     },
     // Advisory warnings for a program that loads (spec/caveat-check-0.1.md).
     // A program that does not load throws as open does. `{ unused: true }`
-    // adds C007, which is reported only when asked for.
+    // adds C007 and `{ records: true }` C008, each reported only when asked
+    // for. `{ records: true, save }` also adds C009 for that save (its text);
+    // a save that does not restore throws as restore does.
     check(source, options = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
@@ -410,10 +413,25 @@ export function createRuntime(SessionClass, identity = {}) {
         throw new CaveatError('load', 'this runtime build has no check; it predates caveat check');
       }
       const unused = options?.unused === true;
+      const records = options?.records === true;
+      const save = options?.save;
+      if (save !== undefined && typeof save !== 'string') throw new TypeError('save must be text');
+      if (save !== undefined && !records) throw new TypeError('a save is checked with records: true');
       if (unused && typeof SessionClass.check_with !== 'function') {
         throw new CaveatError('load', 'this runtime build has no unused-declaration check; it predates caveat check --unused');
       }
-      try { return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source)); } catch (error) {
+      if (records && typeof SessionClass.check_options !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no records check; it predates caveat check --records');
+      }
+      if (save !== undefined) {
+        // The program must load first, so its error is reported as load.
+        try { new SessionClass(source).free(); } catch (error) { throw failure(error, 'load'); }
+        try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore'); }
+      }
+      try {
+        if (records) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, save })));
+        return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source));
+      } catch (error) {
         throw failure(error, 'load');
       }
     },
