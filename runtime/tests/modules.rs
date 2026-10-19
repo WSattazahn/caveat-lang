@@ -1516,6 +1516,38 @@ fn a_changed_trigger_survives_a_module_that_declares_its_name() {
     );
 }
 
+#[test]
+fn a_hold_survives_a_module_that_declares_its_words() {
+    // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
+    // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
+    // `release` and keep both the verbs and the names.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim ready;\n\
+             evidence hold from \"a freeze\";\n\
+             evidence release from \"a thaw\";\n\
+             evidence probe from \"a probe\";\n\
+             readings tests from probe limit 4;\n\
+             decisions gate limit 4 reopened by tests;\n\
+             event freeze;\n\
+             event thaw;\n\
+             on freeze reveal hold;\n\
+             on freeze hold gate because hold;\n\
+             on thaw release gate because release;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "on m__freeze hold m__gate because m__hold;",
+        "on m__thaw release m__gate because m__release;",
+        "on m__freeze reveal m__hold;",
+    ] {
+        assert!(source.contains(expected), "{expected}: {source}");
+    }
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1628,7 +1660,7 @@ fn grammar_keywords() -> std::collections::BTreeSet<String> {
 /// are also prelude functions, and nothing stops a module claiming `every` or
 /// `reset`. Each is covered by a test above.
 const POSITIONAL: &[&str] = &[
-    "min", "max", "every", "integer", "reset", "window", "journal", "changed",
+    "min", "max", "every", "integer", "reset", "window", "journal", "changed", "hold", "release",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —

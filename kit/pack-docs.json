@@ -63,6 +63,7 @@
     "spec/caveat-neutral-sample-0.1.md",
     "spec/caveat-changed-triggers-0.1.md",
     "spec/caveat-nested-repetition-0.1.md",
+    "spec/caveat-holds-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]

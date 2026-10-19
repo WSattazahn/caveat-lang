@@ -606,6 +606,25 @@ are sets. Older saves can omit the two new fields, so generic consumers should
 treat their absence as unknown. Saved records are checked for internal
 consistency; an unsigned save is not proof that its history really occurred.
 
+## Keep a decision in force for a while
+
+From 1.2.0, a hold keeps a decision series' current revision in force without
+dropping what would have reopened it. While it is on hold, a reopening by a
+rule or a `reopened by` trigger is deferred and recorded; `release` ends the
+hold and reopens the revision because of every deferred cause:
+
+```caveat
+decisions gate limit 8 reopened by tests;
+on freeze when on_hold(gate) reject "already frozen";
+on freeze hold gate because team;
+on unfreeze release gate because team;
+```
+
+Do not write a freeze as a state that guards each reopening rule: a guarded
+rule drops the reopening, and a trigger has no guard. A hold never keeps a
+revision that rests on withdrawn evidence: a reopening of it goes ahead. See
+[holds](../spec/caveat-holds-0.1.md).
+
 ## Citations and named expressions
 
 Grounds and caveats are not bookkeeping the author writes. A value carries the
