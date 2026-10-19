@@ -1,7 +1,7 @@
 # Project names and CLI commands
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.0.2`**.
+Package: **`caveat-lang@1.0.3`**.
 <!-- /caveat-package:identity -->
 
 **CAVEAT Language — Programs that remember why.** The npm package is
