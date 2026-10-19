@@ -7,6 +7,14 @@ tracks evidence through computations, preserves the grounds of recorded
 decisions, and supports reconsideration under authored policies when evidence
 changes.
 
+For teams that govern their agents, Caveat is also an audit trail for agent
+decisions. `caveat explain` shows what each decision rested on: its evidence
+and caveats, the permission it needed and why it was later reopened.
+Withdrawing evidence adds to that record and never rewrites a decision's
+original grounds. Your application stores the events; Caveat does not sign
+them or authenticate the evidence, so it complements your platform's identity,
+permission and logging controls rather than replacing them.
+
 The published release is **1.0.3**, a patch release of 1.0.0, the first stable
 release. See the [1.0.3 release record](docs/releases/v1.0.3.md) for what it
 fixes and the [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
