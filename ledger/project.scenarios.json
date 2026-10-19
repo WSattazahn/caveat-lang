@@ -132,7 +132,11 @@
         { "send": "find", "payload": { "number": 20 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 274 } },
+        { "send": "report_gaps" },
+        { "send": "approve", "payload": { "item": 1101 } },
+        { "send": "decide_gaps", "payload": { "option": 1 } },
         { "expect": {
+            "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/release": "1.0.2 stands",
             "/bindings/ledger/merge_259": "merged on a rerun of 0 divergences",
             "/bindings/ledger/attribution": "the all-nine inference was withdrawn: a rerun on the fix still diverged",

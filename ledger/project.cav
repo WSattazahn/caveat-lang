@@ -34,6 +34,7 @@ evidence d018 from "D018: a departed record's live take-back caveat is not kept 
 evidence d019 from "D019: a take-back cannot clear a flag read through examined(...)";
 evidence release_build_d018 from "the D018 regression fails in a release build too";
 evidence randomized_checks from "runtime/tests/*_invariants.rs and kin";
+evidence gap_report from "a report of two forms 1.1 lacked: naming a stream's earlier reading, and asking whether evidence is in a decision's basis";
 evidence owner from "the owner's answer to a card";
 readings approvals from owner limit 64;            # value: the item code approved
 
@@ -43,6 +44,7 @@ decisions merge_259 limit 4;    # using the rerun that grounded it
 decisions release limit 8;      # value: the version shipped (101, 102, ...)
 decisions scope_1_0_2 limit 4;  # value: 1 add D019, 2 leave it out
 decisions record_fix limit 4;   # value: 1 before the two 1.1 gaps, 2 after
+decisions gaps_1_1 limit 4;     # value: 1 both forms in 1.1, 2 neither, 3 readings only
 
 # Bases the decisions read. A late caveat on their evidence reaches these
 # values (Late Qualification 0.1), which is how a past decision is found to
@@ -51,6 +53,7 @@ state merge_basis = 0;
 state release_basis = 0;
 state scope_basis = 0;
 state order_basis = 0;
+state gaps_basis = 0;
 
 # ---- Events: what happened, in the order it happened -----------------------
 
@@ -69,6 +72,8 @@ event review;                               # ask: does any decision rest on dou
 event checks_land;                          # the randomized checks pass on the merged tree
 event decide_scope option min 1 max 2;
 event decide_record_fix option min 1 max 2;
+event report_gaps;                          # the two missing forms reported
+event decide_gaps option min 1 max 3;
 
 # The attribution was an inference; it says so.
 on infer_attribution reveal attribution_all_nine supports divergences_were_runtime;
@@ -145,6 +150,13 @@ on decide_record_fix set order_basis = qualified(option, repro_d012);
 on decide_record_fix when not committed(record_fix)
     commit record_fix because enough using order_basis permitted by latest(approvals) for 40 + option;
 
+# Whether 1.1 adds the two reported forms rests on the report.
+on report_gaps reveal gap_report;
+on decide_gaps when not observed(gap_report) reject "no gap report to decide on";
+on decide_gaps set gaps_basis = qualified(option, gap_report);
+on decide_gaps when not committed(gaps_1_1)
+    commit gaps_1_1 because enough using gaps_basis permitted by latest(approvals) for 1100 + option;
+
 # ---- What a reader sees ----------------------------------------------------
 
 bind ledger.release = "none yet";
@@ -163,3 +175,7 @@ bind ledger.scope_1_0_2 = "1.0.2 ships D016 and D018 only; D019 follows" when co
 bind ledger.record_fix = "undecided";
 bind ledger.record_fix = "before the two gaps" when committed(record_fix) and latest(record_fix) == 1;
 bind ledger.record_fix = "after the two gaps" when committed(record_fix) and latest(record_fix) == 2;
+bind ledger.gaps_1_1 = "undecided";
+bind ledger.gaps_1_1 = "both forms in 1.1" when committed(gaps_1_1) and latest(gaps_1_1) == 1;
+bind ledger.gaps_1_1 = "1.1 as planned; both forms later" when committed(gaps_1_1) and latest(gaps_1_1) == 2;
+bind ledger.gaps_1_1 = "earlier readings in 1.1; the basis question later" when committed(gaps_1_1) and latest(gaps_1_1) == 3;
