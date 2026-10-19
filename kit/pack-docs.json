@@ -32,6 +32,7 @@
     "spec/caveat-observation-order-0.1.md",
     "spec/caveat-neutral-reveal-0.1.md",
     "spec/caveat-replay-save-0.1.md",
+    "spec/caveat-replay-save-0.2.md",
     "spec/caveat-save-0.1.md",
     "spec/caveat-view-0.1.md",
     "spec/caveat-view-0.2.md",

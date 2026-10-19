@@ -68,6 +68,13 @@ state save; `runtime.restore` takes either. Restoring a replay save dispatches
 its events again, so it costs more as they grow. A runtime before 1.1.0 cannot
 restore one.
 
+`session.save({ compact: true, positional: true })` writes the
+[positional replay save](../spec/caveat-replay-save-0.2.md) instead: each event
+as its position and its parameters' values, written as one base-36 digit each
+when every value is a whole number below 36, so it stays a replay save for
+several times as many events. Prefer it to keeping
+your own event log. A runtime before it cannot restore one.
+
 A decision series cannot have a window: `decisions NAME window N` is refused
 when the program loads, and series windows wait until after 1.0
 ([Windows 0.1](../spec/caveat-windows-0.1.md#decision-series-not-in-rc15)).
@@ -199,17 +206,17 @@ and `runtime.restore` takes it only with the source it came from.
 Choose the call by what the host reads after each event. `dispatchView`
 returns the view (displayed values, decisions and cues) and is the cheapest:
 the runtime does not build the snapshot. Read the view it returns rather than
-calling `view()` after it, which builds the same view again. `dispatchViewDelta`
+calling `view()` after it, which builds the same view again. When the host
+reads only a few of the view's fields, `dispatchView(event, payload, { fields })`
+builds just those: `{ fields: ['bindings', 'binding_explanations'] }`, or add
+`commitments`, `decision_series` and `decision_journal` for `decisionHistory`.
+`dispatchViewDelta`
 returns what changed in a View 0.2. `dispatch` builds the full snapshot, the
 largest thing the runtime returns; use it when the host needs the journal,
 grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
 snapshot instead of building another. A decision's basis is in the view:
 `decisionHistory(view, name)` lists what each revision was committed on, so an
 adapter that reads bases does not need `dispatch` and the snapshot for it.
-A binding that reads `latest(STREAM)` explains itself in
-`view.binding_explanations[TARGET][PROPERTY]`: its `evidence` includes the
-current reading (`STREAM@N`) and its `caveats` are that reading's live caveats, so the
-adapter needs no snapshot for the latest report either.
 
 ## Replay with the native command line (repository checkout)
 
