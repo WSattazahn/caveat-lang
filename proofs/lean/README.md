@@ -3,7 +3,8 @@
 This pinned rc.9 verification project contains core dependency and outcome
 proofs plus a narrow executable branch, guard, and citation comparison model.
 Since rc.13 it also models one late-qualification step over recorded
-commitments, and since rc.15 one reopening step. The runner executes the same constructors covered by the proofs.
+commitments, since rc.15 one reopening step, and since 1.2 the Caveat Sources
+invariant over whole event histories. The runner executes the same constructors covered by the proofs.
 Its accepted fragments are small and explicit; they are not a model of the
 complete CAVEAT language.
 
@@ -17,7 +18,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, and runner. `laws.json` records 108 authored theorem declarations, including six inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws, 9 take-back laws and 17 reopening laws. `theorems.json` inventories all 266 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, Caveat Sources model, and runner. `laws.json` records 144 authored theorem declarations, including six inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws, 9 take-back laws, 17 reopening laws and 36 Caveat Sources laws. `theorems.json` inventories all 542 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -375,3 +376,59 @@ creation, series revision, the rest of the decision journal, work budgets,
 and general effect scheduling are not formalized here.
 CAVEAT's evidence remains supplied evidence; the model does not authenticate it
 or turn it into a truth guarantee.
+
+## Caveat Sources: the invariant over any history
+
+[Caveat Sources 0.1](../../spec/caveat-caveat-sources-0.1.md), "The invariant",
+says that for every current value, its grounds and every stored observation or
+predicate qualification, a caveat is carried exactly when it has a kept route,
+or a route through an occurrence whose relation is live. The take-back and
+late-qualification findings D012 to D020 were each a carrier that drifted from
+this: a stored guard record a `qualify` missed (D014, D020), a basis reader a
+later `qualify` missed (D015), a doubt left unexplained after its occurrence
+departed (D018).
+
+`Caveat/Sources.lean` keeps every route explicitly and updates the routes event
+by event, as an implementation that pushes caveats to what holds them would:
+
+- `observe`: a `reveal` or `renew` makes a new occurrence with its declared
+  relations and stores what its guard read as the occurrence's observation.
+- `predicate`: a `commit`, `reopen`, `withdraw` or `examine` guard stores what
+  it read.
+- `set`: a state takes its body's lineage and grounds; its guard joins the
+  lineage only.
+- `qualify`: refused as `unobserved_evidence` without a held current
+  occurrence; otherwise a new live relation, and each carrier that lists the
+  occurrence gains the route through it. A current value that gains it also
+  takes the guard's lineage.
+- `unqualify`: marks each live relation of the caveat on a held occurrence of
+  the evidence and removes the routes through it. Never refused.
+- `commit`: freezes a basis as a record, the evidence it lists and the caveats
+  it was made with. Reading it gives those caveats as kept routes and the
+  listed evidence read live.
+- `depart`: the occurrence is no longer held, and every route through it
+  becomes kept.
+
+`step_preserves` proves each event keeps the invariant; `run_preserves` and
+`caveat_sources_invariant` prove it holds after any sequence of events from
+an empty session, with refused events leaving the session as it was. Further
+laws prove that a take-back never removes a kept route and removes only its own
+caveat, that a `qualify` only adds, that departure changes no caveat a carrier
+shows, and that only `commit` changes recorded bases. The witnesses
+`d012_decision_keeps_flag`, `d015_late_qualification_reaches_basis_reader`,
+`d018_departed_doubt_is_kept` and `d020_stored_record_take_back` run each
+finding's shape on the model.
+
+The proofs are not vacuous. `npm run verify:lean` also compiles three altered
+copies of the model and requires each to fail inside the theorem that covers
+it: a `qualify` that skips stored records (the shape of D014 and D020) fails
+`qualify_preserves`; a departure that leaves routes through the departed
+occurrence (D018) fails `depart_preserves`; a take-back that reaches a record's
+own caveat fails `take_back_keeps_kept_routes`.
+
+What the model leaves out: values and guard truth (a rule whose guard is false
+is no event); `D qualifies C` chains, where a caveat arrives with the one it
+qualifies; citations narrowing grounds; reading archives, decision series and
+departure of records; scheduled qualification; save and restore. Like the rest
+of this project it is a model of the specification, not a proof about the Rust
+runtime. Whether the runtime matches it is a separate, sampled check.
