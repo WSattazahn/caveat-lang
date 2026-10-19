@@ -1,0 +1,696 @@
+{
+  "note": "Nested Repetition 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-nested-repetition-0.1.md, \"Corpus sweep\".",
+  "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+  "programs": 196,
+  "for_blocks": 58,
+  "programs_with_for_blocks": 29,
+  "nested_blocks": [],
+  "written_once_per_pair_of_members": [],
+  "written_once_per_member": {
+    "in_a_for_block": [],
+    "at_the_top_level": [
+      {
+        "path": "game/light_the_way.cav",
+        "scope": "top level",
+        "kind": "reef",
+        "forms": 22,
+        "members": [
+          "reef_one",
+          "reef_two",
+          "reef_three",
+          "reef_four",
+          "reef_five",
+          "reef_six"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/caveat4/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 8,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "cave_2",
+          "pool_2",
+          "ruin_2",
+          "grove_2",
+          "cave_3",
+          "pool_3",
+          "ruin_3",
+          "grove_3",
+          "cave_4",
+          "pool_4",
+          "ruin_4",
+          "grove_4",
+          "cave_5",
+          "pool_5",
+          "ruin_5",
+          "grove_5",
+          "cave_6",
+          "pool_6",
+          "ruin_6",
+          "grove_6",
+          "cave_7",
+          "pool_7",
+          "ruin_7",
+          "grove_7",
+          "cave_8",
+          "pool_8",
+          "ruin_8",
+          "grove_8"
+        ]
+      },
+      {
+        "path": "game/trail_rescue.cav",
+        "scope": "top level",
+        "kind": "tunnel",
+        "forms": 7,
+        "members": [
+          "stone",
+          "reed"
+        ]
+      },
+      {
+        "path": "game/light_the_way.cav",
+        "scope": "top level",
+        "kind": "ring",
+        "forms": 5,
+        "members": [
+          "crosscurrent_marker",
+          "last_reading_marker"
+        ]
+      },
+      {
+        "path": "game/before_the_rain.cav",
+        "scope": "top level",
+        "kind": "suspect",
+        "forms": 4,
+        "members": [
+          "farmhand",
+          "neighbour",
+          "accident"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 2,
+        "members": [
+          "e1",
+          "e2",
+          "e3",
+          "e4",
+          "e5",
+          "e6"
+        ]
+      },
+      {
+        "path": "game/before_the_rain.cav",
+        "scope": "top level",
+        "kind": "exhibit",
+        "forms": 2,
+        "members": [
+          "x_farmer",
+          "x_farmhand",
+          "x_neighbour",
+          "x_prints",
+          "x_can",
+          "x_lamp",
+          "x_hay"
+        ]
+      },
+      {
+        "path": "game/missing_dumpling.cav",
+        "scope": "top level",
+        "kind": "suspect",
+        "forms": 2,
+        "members": [
+          "sauce_face",
+          "chopsticks",
+          "innocent"
+        ]
+      },
+      {
+        "path": "game/trail_rescue.cav",
+        "scope": "top level",
+        "kind": "observation",
+        "forms": 2,
+        "members": [
+          "report_stone",
+          "scout_stone_1",
+          "scout_stone_2",
+          "scout_stone_3",
+          "report_reed",
+          "scout_reed_1",
+          "scout_reed_2",
+          "scout_reed_3"
+        ]
+      },
+      {
+        "path": "experiments/agent-ledger/ledger-approved-head.cav",
+        "scope": "top level",
+        "kind": "pr",
+        "forms": 1,
+        "members": [
+          "pr21",
+          "pr26",
+          "pr28",
+          "pr29"
+        ]
+      },
+      {
+        "path": "experiments/agent-ledger/ledger-identifiers.cav",
+        "scope": "top level",
+        "kind": "pr",
+        "forms": 1,
+        "members": [
+          "pr21",
+          "pr26",
+          "pr28",
+          "pr29"
+        ]
+      },
+      {
+        "path": "experiments/agent-ledger/ledger.cav",
+        "scope": "top level",
+        "kind": "pr",
+        "forms": 1,
+        "members": [
+          "pr21",
+          "pr26",
+          "pr28",
+          "pr29"
+        ]
+      },
+      {
+        "path": "experiments/agent-ledger/release.cav",
+        "scope": "top level",
+        "kind": "pr",
+        "forms": 1,
+        "members": [
+          "pr1",
+          "pr2",
+          "pr3",
+          "pr4",
+          "pr5",
+          "pr6",
+          "pr7",
+          "pr8",
+          "unlisted"
+        ]
+      },
+      {
+        "path": "experiments/departure-gate/c3-windows.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/departure-gate/c3-windows.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6"
+        ]
+      },
+      {
+        "path": "experiments/departure-gate/c3-windows.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/caveat/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/caveat2/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/caveat3/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/caveat5/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C1.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C2.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C2.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "memory_1",
+          "memory_2",
+          "memory_3",
+          "memory_4",
+          "memory_5",
+          "memory_6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C3.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C3.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C3.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/clock/C4.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C2/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "memory_1",
+          "memory_2",
+          "memory_3",
+          "memory_4",
+          "memory_5",
+          "memory_6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round7/runs/C4/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "page",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      },
+      {
+        "path": "experiments/glowcap/round8/runs/C3/impl/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "game/glowcap.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove"
+        ]
+      },
+      {
+        "path": "kit/type-tests/gauge.cav",
+        "scope": "top level",
+        "kind": "bed",
+        "forms": 1,
+        "members": [
+          "north",
+          "south"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "memory_1",
+          "memory_2",
+          "memory_3",
+          "memory_4",
+          "memory_5",
+          "memory_6"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "memory_1",
+          "memory_2",
+          "memory_3",
+          "memory_4",
+          "memory_5",
+          "memory_6"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+        "scope": "top level",
+        "kind": "mushroom",
+        "forms": 1,
+        "members": [
+          "cave",
+          "pool",
+          "ruin",
+          "grove",
+          "pit"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+        "scope": "top level",
+        "kind": "memory",
+        "forms": 1,
+        "members": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6"
+        ]
+      },
+      {
+        "path": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+        "scope": "top level",
+        "kind": "entry",
+        "forms": 1,
+        "members": [
+          "j1",
+          "j2",
+          "j3",
+          "j4",
+          "j5",
+          "j6"
+        ]
+      }
+    ]
+  }
+}

@@ -11,6 +11,11 @@
 //! selection `P == $index` at the front of its guard. See
 //! spec/caveat-routed-repetition-0.1.md. The copy is the text a hand-routed
 //! block expands to, so routing adds no runtime semantics either.
+//!
+//! Nested Repetition 0.1 lets a block's body hold blocks. A nested block is
+//! expanded first, inside its enclosing block's body, with the enclosing
+//! blocks' bindings left as written; the enclosing block then expands the
+//! result. See spec/caveat-nested-repetition-0.1.md.
 
 use crate::link::{
     blank_comments, block_braces, is_identifier_char, is_identifier_start, statement_words,
@@ -43,10 +48,39 @@ pub fn expand(source: &str) -> Result<String, String> {
     let mut cursor = 0;
     for (start, end) in blocks {
         out.push_str(&source[cursor..start]);
-        out.push_str(&expand_block((start, end), &part)?);
+        out.push_str(&expand_block((start, end), &part, &[], true)?);
         cursor = end;
     }
     out.push_str(&source[cursor..]);
+    Ok(out)
+}
+
+/// The body at `start` of the part's source, `length` bytes long, with each
+/// block nested in it replaced by its copies. `scope` names the bindings of
+/// the blocks the body is in, innermost last.
+fn expand_nested(
+    part: &Part,
+    (start, length): (usize, usize),
+    scope: &[&str],
+    route: bool,
+) -> Result<String, String> {
+    let body = &part.source[start..start + length];
+    let mut out = String::with_capacity(body.len());
+    let mut cursor = 0;
+    for (inner, inner_end) in statements_of(body) {
+        if statement_words(&body[inner..inner_end]).first() != Some(&"for") {
+            continue;
+        }
+        out.push_str(&body[cursor..inner]);
+        out.push_str(&expand_block(
+            (start + inner, start + inner_end),
+            part,
+            scope,
+            route,
+        )?);
+        cursor = inner_end;
+    }
+    out.push_str(&body[cursor..]);
     Ok(out)
 }
 
@@ -64,7 +98,18 @@ pub(crate) fn instantiate(
     member: &str,
     index: &str,
 ) -> Result<String, String> {
-    substitute(template, &[(binding, member), ("index", index)])
+    substitute(template, &[(binding, member), ("index", index)], &[])
+}
+
+/// `text` with each binding in `bindings` replaced, and each binding named in
+/// `kept` left as written: what a nested block's statement reads like before
+/// its enclosing blocks expand it.
+pub(crate) fn substitute_keeping(
+    text: &str,
+    bindings: &[(&str, &str)],
+    kept: &[&str],
+) -> Result<String, String> {
+    substitute(text, bindings, kept)
 }
 
 /// Members of each entity kind, in declaration order: every top-level
@@ -86,7 +131,16 @@ fn entity_kinds(source: &str, statements: &[(usize, usize)]) -> Vec<(String, Vec
     kinds
 }
 
-fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
+/// The copies of the block at `span` of the part's source. `outer` names the
+/// bindings of the blocks it is nested in, innermost last, which its copies
+/// keep as written for those blocks to replace. `route` is false only where
+/// the copies are read for their declarations, which routing does not change.
+fn expand_block(
+    span: (usize, usize),
+    part: &Part,
+    outer: &[&str],
+    route: bool,
+) -> Result<String, String> {
     let block = read_block(part.source, span, part.kinds)?;
     // The body is copied as written and no `;` is added, so its last
     // statement must end with its own `;`, whatever the number of members:
@@ -98,28 +152,52 @@ fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
     if let Some(error) = block.unended {
         return Err(error);
     }
-    // Which rules are routed is read from the body as written, once.
-    let routed = match block.route {
+    // A name an enclosing block binds would be replaced here first, and the
+    // enclosing block's member would never reach it.
+    if outer.contains(&block.name) {
+        return Err(format!(
+            "`{}` binds {}, which an enclosing for block binds too; give the nested block another name",
+            block.header.join(" "),
+            block.binding
+        ));
+    }
+    // Nested blocks expand first, with this block's names and the enclosing
+    // blocks' kept as written. What is left of `$index` is this block's.
+    let scope = [outer, &[block.name][..]].concat();
+    let body = expand_nested(part, (block.body_start, block.body.len()), &scope, route)?;
+    // Which rules are routed is read from the body, once.
+    let routed = match block.route.filter(|_| route) {
         Some(parameter) => Routing {
             header: block.header.join(" "),
             kind: block.kind,
             binding: block.binding,
+            name: block.name,
+            outer,
             parameter,
         }
-        .rules(block.body, part)?,
+        .rules(&body, part)?,
         None => Vec::new(),
     };
 
     let mut out = String::new();
     for (position, member) in block.members.iter().enumerate() {
+        // A copy nested in another block is read again when that block
+        // expands, so a `$` in a member's name would be read as a binding.
+        if !outer.is_empty() && member.contains('$') {
+            return Err(format!(
+                "`{}`: entity `{member}` has a `$` in its name, which the enclosing for block would read as a binding; rename it, or do not nest the block",
+                block.header.join(" ")
+            ));
+        }
         let index = (position + 1).to_string();
         let bindings = [(block.name, member.as_str()), ("index", index.as_str())];
-        match block.route {
-            None => out.push_str(&substitute(block.body, &bindings)?),
+        match block.route.filter(|_| route) {
+            None => out.push_str(&substitute(&body, &bindings, outer)?),
             Some(parameter) => out.push_str(&routed_copy(
-                block.body,
+                &body,
                 &routed,
                 &bindings,
+                outer,
                 &format!("{parameter} == {index}"),
             )?),
         }
@@ -141,6 +219,8 @@ struct Block<'s, 'k> {
     name: &'s str,
     route: Option<&'s str>,
     body: &'s str,
+    /// Where the body begins in the part's source.
+    body_start: usize,
     members: &'k [String],
     /// The refusal of the body's last statement when it has no `;`.
     unended: Option<String>,
@@ -214,18 +294,6 @@ fn read_block<'s, 'k>(
     }
 
     let body = &statement[open + 1..close];
-    // A nested block is a statement that begins with `for`, the body's last
-    // statement without its `;` too. The word inside a comment or quoted
-    // text is not one.
-    if statements_of(body)
-        .into_iter()
-        .any(|(start, end)| statement_words(&body[start..end]).first() == Some(&"for"))
-    {
-        return Err(format!(
-            "for blocks do not nest; see spec/caveat-repetition-0.1.md section 4: {}",
-            head(statement)
-        ));
-    }
     let Some((_, members)) = kinds.iter().find(|(declared, _)| declared == kind) else {
         return Err(format!(
             "no entity is declared `kind {kind}`, so `for {kind}` has nothing to expand"
@@ -243,6 +311,7 @@ fn read_block<'s, 'k>(
         name,
         route,
         body,
+        body_start: start + open + 1,
         members,
         unended,
     })
@@ -254,6 +323,10 @@ struct Routing<'a> {
     header: String,
     kind: &'a str,
     binding: &'a str,
+    /// The binding without its `$`.
+    name: &'a str,
+    /// The bindings of the blocks this one is nested in.
+    outer: &'a [&'a str],
     parameter: &'a str,
 }
 
@@ -268,6 +341,8 @@ impl Routing<'_> {
             header,
             kind,
             binding,
+            name,
+            outer,
             parameter,
         } = self;
         if let Some(entity) = part.entity_in_block(kind) {
@@ -286,8 +361,14 @@ impl Routing<'_> {
                 continue;
             };
             // An event written with `$NAME` or `$index` is the member's own,
-            // so it already selects the member.
+            // so it already selects the member. One written with only an
+            // enclosing block's name is not known until that block expands.
             if event.contains('$') {
+                if !mentions(event, name, outer) {
+                    return Err(format!(
+                        "`on {event}` in `{header}`: the event is named with an enclosing for block's binding only, so this block cannot tell whether it names a {kind}; write the rule in the enclosing block"
+                    ));
+                }
                 continue;
             }
             let Some((_, parameters)) = events.iter().find(|(declared, _)| declared == event)
@@ -329,8 +410,10 @@ impl Routing<'_> {
                     }
                 }
             }
-            // Quoted text counts; a comment does not, as for C003.
-            if !code.contains('$') {
+            // Quoted text counts; a comment does not, as for C003. An
+            // enclosing block's binding does not tell this block's copies
+            // apart.
+            if !mentions(&code, name, outer) {
                 return Err(format!(
                     "`on {event}` in `{header}` mentions neither `{binding}` nor `$index`; its copies are all the same rule, so write it once, outside the block"
                 ));
@@ -388,6 +471,15 @@ impl Part<'_> {
     /// it. None when the block does not expand.
     fn copies(&self, span: (usize, usize)) -> Option<Vec<String>> {
         let block = read_block(self.source, span, self.kinds).ok()?;
+        // Routing changes no declaration, and reading the events of a block
+        // must not route the blocks nested in it, which read the events.
+        let body = expand_nested(
+            self,
+            (block.body_start, block.body.len()),
+            &[block.name],
+            false,
+        )
+        .ok()?;
         block
             .members
             .iter()
@@ -395,8 +487,9 @@ impl Part<'_> {
             .map(|(position, member)| {
                 let index = (position + 1).to_string();
                 substitute(
-                    block.body,
+                    &body,
                     &[(block.name, member.as_str()), ("index", index.as_str())],
+                    &[],
                 )
                 .ok()
             })
@@ -412,16 +505,25 @@ impl Part<'_> {
             if statement_words(text).first() != Some(&"for") {
                 return None;
             }
-            let body = body_of(text)?;
-            statements_of(body)
-                .into_iter()
-                .find_map(|(inner, inner_end)| {
-                    entity_of(&body[inner..inner_end])
-                        .filter(|(_, declared)| declared == kind)
-                        .map(|(name, _)| name)
-                })
+            entity_in_body(body_of(text)?, kind)
         })
     }
+}
+
+/// The first entity of `kind` declared in a block's body, or in a block
+/// nested in it.
+fn entity_in_body(body: &str, kind: &str) -> Option<String> {
+    statements_of(body)
+        .into_iter()
+        .find_map(|(inner, inner_end)| {
+            let text = &body[inner..inner_end];
+            if statement_words(text).first() == Some(&"for") {
+                return entity_in_body(body_of(text)?, kind);
+            }
+            entity_of(text)
+                .filter(|(_, declared)| declared == kind)
+                .map(|(name, _)| name)
+        })
 }
 
 /// The name and kind an `entity` statement declares, read as the parser
@@ -549,19 +651,20 @@ fn routed_copy(
     body: &str,
     routed: &[(usize, usize)],
     bindings: &[(&str, &str); 2],
+    outer: &[&str],
     route: &str,
 ) -> Result<String, String> {
     let mut out = String::with_capacity(body.len());
     let mut cursor = 0;
     for (start, end) in routed {
-        out.push_str(&substitute(&body[cursor..*start], bindings)?);
+        out.push_str(&substitute(&body[cursor..*start], bindings, outer)?);
         out.push_str(&with_route(
-            &substitute(&body[*start..*end], bindings)?,
+            &substitute(&body[*start..*end], bindings, outer)?,
             route,
         ));
         cursor = *end;
     }
-    out.push_str(&substitute(&body[cursor..], bindings)?);
+    out.push_str(&substitute(&body[cursor..], bindings, outer)?);
     Ok(out)
 }
 
@@ -662,10 +765,49 @@ fn words(code: &str) -> Vec<&str> {
         .collect()
 }
 
+/// Whether `text` names `$NAME`, for the binding `name`, or `$index`, among
+/// the `$` words it holds: each is read as `substitute` reads it, so one an
+/// enclosing block's binding prefixes further belongs to that block.
+fn mentions(text: &str, name: &str, outer: &[&str]) -> bool {
+    dollar_words(text).any(|word| {
+        let own = [name, "index"]
+            .into_iter()
+            .filter(|binding| word.starts_with(binding))
+            .map(str::len)
+            .max();
+        let enclosing = outer
+            .iter()
+            .filter(|binding| word.starts_with(**binding))
+            .map(|binding| binding.len())
+            .max();
+        own.is_some_and(|own| enclosing.is_none_or(|enclosing| own > enclosing))
+    })
+}
+
+/// The run of identifier characters after each `$` in `text`.
+fn dollar_words(text: &str) -> impl Iterator<Item = &str> {
+    text.match_indices('$').map(move |(index, _)| {
+        let rest = &text[index + 1..];
+        let end = rest
+            .char_indices()
+            .find(|(at, next)| {
+                if *at == 0 {
+                    !is_identifier_start(*next)
+                } else {
+                    !is_identifier_char(*next)
+                }
+            })
+            .map_or(rest.len(), |(at, _)| at);
+        &rest[..end]
+    })
+}
+
 /// Replace every `$binding` in the body. Substitution reaches inside quoted
 /// text on purpose: the body is a template, and `evidence $r_reading from
-/// "$r";` needs the member's name in both places.
-fn substitute(body: &str, bindings: &[(&str, &str); 2]) -> Result<String, String> {
+/// "$r";` needs the member's name in both places. A `$` word that a binding
+/// in `kept`, an enclosing block's, prefixes further than any in `bindings`
+/// is left as written, for that block to replace.
+fn substitute(body: &str, bindings: &[(&str, &str)], kept: &[&str]) -> Result<String, String> {
     let mut out = String::with_capacity(body.len());
     let mut chars = body.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {
@@ -693,6 +835,19 @@ fn substitute(body: &str, bindings: &[(&str, &str); 2]) -> Result<String, String
             .iter()
             .filter(|(name, _)| word.starts_with(*name))
             .max_by_key(|(name, _)| name.len());
+        let enclosing = kept
+            .iter()
+            .filter(|name| word.starts_with(**name))
+            .map(|name| name.len())
+            .max();
+        if enclosing > matched.map(|(name, _)| name.len()) {
+            out.push('$');
+            out.push_str(word);
+            while chars.peek().map(|(next, _)| *next < end) == Some(true) {
+                chars.next();
+            }
+            continue;
+        }
         let Some((name, value)) = matched else {
             return Err(format!(
                 "${word} is not bound in this for block; $ is not a literal"
