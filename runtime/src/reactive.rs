@@ -1327,6 +1327,90 @@ pub struct ReactiveView<'a> {
     pub relations: Vec<MapRelation>,
 }
 
+/// The parts of `ReactiveView` a host can ask for after an event, in the
+/// view's own order. `schema`, `sequence` and `last_event` always come.
+pub const VIEW_FIELDS: [&str; 9] = [
+    "bindings",
+    "binding_explanations",
+    "cues",
+    "effects",
+    "commitments",
+    "commitment_grounds",
+    "decision_series",
+    "decision_journal",
+    "relations",
+];
+
+/// A selection of `VIEW_FIELDS`, one bit each in that order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ViewFields(u16);
+
+impl ViewFields {
+    /// Every field: the selection that gives `ReactiveView` itself.
+    pub const ALL: Self = Self((1 << VIEW_FIELDS.len()) - 1);
+
+    /// The named fields. A name outside `VIEW_FIELDS`, or a repeated one, is
+    /// an error naming it.
+    pub fn from_names<'n>(names: impl IntoIterator<Item = &'n str>) -> Result<Self, String> {
+        let mut bits = 0u16;
+        for name in names {
+            let Some(index) = VIEW_FIELDS.iter().position(|field| *field == name) else {
+                return Err(format!(
+                    "unknown view field `{name}`; the fields are {}",
+                    VIEW_FIELDS.join(", ")
+                ));
+            };
+            if bits & (1 << index) != 0 {
+                return Err(format!("view field `{name}` is named twice"));
+            }
+            bits |= 1 << index;
+        }
+        Ok(Self(bits))
+    }
+
+    /// The fields named by a JSON array of strings.
+    pub fn from_json(text: &str) -> Result<Self, String> {
+        let names: Vec<String> = serde_json::from_str(text)
+            .map_err(|_| "view fields must be a JSON array of field names".to_string())?;
+        Self::from_names(names.iter().map(String::as_str))
+    }
+
+    fn has(self, field: &str) -> bool {
+        let index = VIEW_FIELDS
+            .iter()
+            .position(|name| *name == field)
+            .expect("a view field");
+        self.0 & (1 << index) != 0
+    }
+}
+
+/// `ReactiveView` with only the selected fields. Each field it holds is
+/// exactly the view's, in the view's order; the others are left out.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReactiveViewSelection<'a> {
+    pub schema: &'static str,
+    pub sequence: u64,
+    pub last_event: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bindings: Option<&'a BTreeMap<String, BTreeMap<String, BindingValue>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binding_explanations: Option<&'a BTreeMap<String, BTreeMap<String, Provenance>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cues: Option<&'a [Cue]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effects: Option<&'a [EffectReport]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commitments: Option<Vec<MapCommitment>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commitment_grounds: Option<&'a BTreeMap<String, Provenance>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decision_series: Option<&'a BTreeMap<String, DecisionSeries>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decision_journal: Option<&'a [JournalEntry]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relations: Option<Vec<MapRelation>>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReactiveSnapshot {
     pub schema: String,
@@ -3668,6 +3752,21 @@ impl ReactiveSession {
         }
     }
 
+    /// `dispatch_view_outcome_json` with only the selected view fields. The
+    /// same transaction and the same refusals; the records a field needs are
+    /// built only when it is selected.
+    pub fn dispatch_view_fields_outcome_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        fields: ViewFields,
+    ) -> Result<DispatchViewOutcome<'_, ReactiveViewSelection<'_>>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json) {
+            Ok(()) => Ok(DispatchViewOutcome::accepted(self.view_fields(fields))),
+            Err(failure) => failure.view_outcome(),
+        }
+    }
+
     /// The transaction both outcome entry points run: resolve the payload,
     /// then apply the event. A failure leaves the session as it was.
     fn dispatch_classified(
@@ -4062,6 +4161,35 @@ impl ReactiveSession {
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
             relations: self.relation_records(&names),
+        }
+    }
+
+    /// The view with only the selected fields.
+    pub fn view_fields(&self, fields: ViewFields) -> ReactiveViewSelection<'_> {
+        let needs_names = fields.has("commitments") || fields.has("relations");
+        let names = if needs_names {
+            self.symbols
+                .iter()
+                .map(|(name, id)| (*id, name.as_str()))
+                .collect::<HashMap<_, _>>()
+        } else {
+            HashMap::new()
+        };
+        let pick = |field: &str| fields.has(field);
+        ReactiveViewSelection {
+            schema: REACTIVE_VIEW_SCHEMA,
+            sequence: self.sequence,
+            last_event: self.last_event.as_deref(),
+            bindings: pick("bindings").then_some(&self.bindings),
+            binding_explanations: pick("binding_explanations")
+                .then_some(&self.binding_explanations),
+            cues: pick("cues").then_some(self.cues.as_slice()),
+            effects: pick("effects").then_some(self.effects.as_slice()),
+            commitments: pick("commitments").then(|| self.commitment_records(&names)),
+            commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
+            decision_series: pick("decision_series").then_some(&self.decision_series),
+            decision_journal: pick("decision_journal").then_some(self.journal.as_slice()),
+            relations: pick("relations").then(|| self.relation_records(&names)),
         }
     }
 

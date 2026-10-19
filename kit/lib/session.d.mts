@@ -47,10 +47,10 @@ export interface DispatchAccepted {
 }
 
 /** An accepted event, from `dispatchView`: the view after it. */
-export interface DispatchViewAccepted {
+export interface DispatchViewAccepted<V = View> {
   schema: 'caveat-dispatch/0.1';
   outcome: 'accepted';
-  view: View;
+  view: V;
 }
 
 /**
@@ -66,7 +66,7 @@ export interface DispatchRejected {
 }
 
 export type DispatchOutcome = DispatchAccepted | DispatchRejected;
-export type DispatchViewOutcome = DispatchViewAccepted | DispatchRejected;
+export type DispatchViewOutcome<V = View> = DispatchViewAccepted<V> | DispatchRejected;
 
 /** An accepted event, from `dispatchViewDelta`: how the View 0.2 changed. */
 export interface DispatchViewDeltaAccepted {
@@ -132,6 +132,12 @@ export declare class CaveatSession {
   dispatch(event: string, payload?: object): DispatchOutcome;
   /** The same transaction as `dispatch`, with the view in place of the snapshot. */
   dispatchView(event: string, payload?: object): DispatchViewOutcome;
+  /**
+   * The same, with only the named view fields (plus `schema`, `sequence` and
+   * `last_event`), each exactly as `view()` has it. The runtime builds no
+   * other field. An unknown or repeated name throws `TypeError`.
+   */
+  dispatchView(event: string, payload: object, options: { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   /**
    * The same transaction as `dispatch`, with the View 0.2 delta in place of
    * the snapshot. See spec/caveat-view-0.2.md.
@@ -241,6 +247,7 @@ export interface RuntimeSessionHandle {
   dispatch_outcome(event: string, payload: string): string;
   dispatch_view_outcome?(event: string, payload: string): string;
   dispatch_view_delta_outcome?(event: string, payload: string): string;
+  dispatch_view_fields_outcome?(event: string, payload: string, fields: string): string;
   snapshot(): string;
   snapshot_compact?(): string;
   view(): string;
@@ -517,6 +524,15 @@ export interface View {
   decision_journal: DecisionJournalEntry[];
   relations: Relation[];
 }
+
+/** A field `dispatchView` can select. */
+export type ViewField = Exclude<keyof View, 'schema' | 'sequence' | 'last_event'>;
+
+/** The view fields `VIEW_FIELDS` lists, in the view's order. */
+export declare const VIEW_FIELDS: readonly ViewField[];
+
+/** A view with only the selected fields: each one present is exactly the full view's. */
+export type ViewSelection = Pick<View, 'schema' | 'sequence' | 'last_event'> & Partial<Pick<View, ViewField>>;
 
 /**
  * View 0.2: View 0.1 with grounds evidence in first-observed order and

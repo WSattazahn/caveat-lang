@@ -65,6 +65,31 @@ export function payloadText(payload) {
 
 // accepted names what an accepted outcome carries: dispatch() the snapshot,
 // dispatchView() the view, dispatchViewDelta() the delta.
+// The view fields dispatchView can select, in the view's order.
+export const VIEW_FIELDS = Object.freeze([
+  'bindings', 'binding_explanations', 'cues', 'effects', 'commitments',
+  'commitment_grounds', 'decision_series', 'decision_journal', 'relations',
+]);
+
+// dispatchView's field selection as the JSON text the runtime takes, or null
+// for the whole view. Checked before the runtime is called.
+function viewFields(options) {
+  if (options === undefined || options === null) return null;
+  if (typeof options !== 'object') throw new TypeError('dispatchView options must be an object');
+  const { fields } = options;
+  if (fields === undefined) return null;
+  if (!Array.isArray(fields)) throw new TypeError('fields must be an array of view field names');
+  const seen = new Set();
+  for (const field of fields) {
+    if (!VIEW_FIELDS.includes(field)) {
+      throw new TypeError(`unknown view field ${JSON.stringify(field)}; the fields are ${VIEW_FIELDS.join(', ')}`);
+    }
+    if (seen.has(field)) throw new TypeError(`view field ${JSON.stringify(field)} is named twice`);
+    seen.add(field);
+  }
+  return JSON.stringify(fields);
+}
+
 function validOutcome(outcome, accepted = 'snapshot') {
   if (!outcome || outcome.schema !== DISPATCH_SCHEMA) return false;
   if (outcome.outcome === 'accepted') return isPlainObject(outcome[accepted]);
@@ -189,16 +214,30 @@ export class CaveatSession {
   // what view() returns after the event, or the rejected outcome dispatch()
   // returns. The runtime does not build the snapshot. A runtime build that
   // predates it throws CaveatError("load") and the session is untouched.
-  dispatchView(event, payload = {}) {
+  //
+  // dispatchView(event, payload, { fields }) gives a view with only the named
+  // fields of VIEW_FIELDS, each exactly as view() has it, plus schema,
+  // sequence and last_event. The runtime builds no other field. An unknown or
+  // repeated name throws TypeError, and a runtime build without selection
+  // throws CaveatError("load"); either leaves the session untouched.
+  dispatchView(event, payload = {}, options = {}) {
     this.#usable();
+    const fields = viewFields(options);
     if (typeof this.#inner.dispatch_view_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no dispatch_view_outcome; it predates dispatchView');
+    }
+    if (fields !== null && typeof this.#inner.dispatch_view_fields_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no dispatch_view_fields_outcome; it predates dispatchView fields');
     }
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     this.#lastSnapshot = null;
     let raw;
-    try { raw = this.#inner.dispatch_view_outcome(event, text); } catch (error) { throw this.#fail(error); }
+    try {
+      raw = fields === null
+        ? this.#inner.dispatch_view_outcome(event, text)
+        : this.#inner.dispatch_view_fields_outcome(event, text, fields);
+    } catch (error) { throw this.#fail(error); }
     let outcome;
     try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatchView returned text that is not JSON')); }
     if (!validOutcome(outcome, 'view')) {

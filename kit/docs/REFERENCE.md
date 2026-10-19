@@ -152,7 +152,7 @@ rejection, and the session must be discarded
 ([dispatch](reference/spec/caveat-dispatch-0.1.md)). From code,
 `session.dispatch(event, payload)` returns an accepted event's snapshot, and
 `session.dispatchView(event, payload)` the same outcome with the view in
-place of the snapshot, which it does not build: use it when the host reads only the view. `session.save({ compact: true })` writes a small [replay save](reference/spec/caveat-replay-save-0.1.md). `session.save({ compact: true, positional: true })` writes a [positional](reference/spec/caveat-replay-save-0.2.md) one, which holds several times as many events. In a scenario, a bare
+place of the snapshot, which it does not build: use it when the host reads only the view. With `{ fields: [...] }` as a third argument it builds only the named view fields ([view](reference/spec/caveat-view-0.1.md#selected-fields)). `session.save({ compact: true })` writes a small [replay save](reference/spec/caveat-replay-save-0.1.md). `session.save({ compact: true, positional: true })` writes a [positional](reference/spec/caveat-replay-save-0.2.md) one, which holds several times as many events. In a scenario, a bare
 `"rejected": true` matches any `policy` refusal; name the code to tell the program's own `reject` from `not_permitted`.
 
 ## Common mistakes

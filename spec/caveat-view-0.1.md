@@ -38,9 +38,11 @@ restored edges; see the [restore trust boundary](caveat-save-0.1.md#host-trust-b
 ```text
 ReactiveSession::dispatch_view_json(event, payload) -> ReactiveView
 ReactiveSession::dispatch_view_outcome_json(event, payload) -> DispatchViewOutcome
+ReactiveSession::dispatch_view_fields_outcome_json(event, payload, fields) -> DispatchViewOutcome
 ReactiveSession::view() -> ReactiveView
 WebReactiveSession.dispatch_view(event, payload) -> compact JSON
 WebReactiveSession.dispatch_view_outcome(event, payload) -> compact JSON
+WebReactiveSession.dispatch_view_fields_outcome(event, payload, fields) -> compact JSON
 WebReactiveSession.view() -> compact JSON
 ```
 
@@ -63,7 +65,27 @@ classified refusal as the returned value `dispatch_outcome` gives, where
 `dispatch_view` throws. See
 [Dispatch 0.1](caveat-dispatch-0.1.md#the-view-path).
 
+### Selected fields
+
+`dispatch_view_fields_outcome`, `session.dispatchView(event, payload, { fields })`
+in the developer kit, is `dispatch_view_outcome` with only the named fields.
+`fields` lists names from `bindings`, `binding_explanations`, `cues`,
+`effects`, `commitments`, `commitment_grounds`, `decision_series`,
+`decision_journal` and `relations`. The view keeps `schema`, `sequence` and
+`last_event`, then each named field exactly as the full view has it, in the
+full view's order. The runtime does not build the fields left out. An
+unknown or repeated name is an error before the event is applied, and the
+session is unchanged. The transaction, the refusals and the session after the
+event are those of `dispatch_view_outcome`.
+
+`decisionHistory` reads `decision_series`, `decision_journal` and
+`commitments`, so a view meant for it names all three.
+
 ## Changes
+
+- 2026-10-19: `dispatch_view_fields_outcome` returns a view with only the
+  fields a host names. A host that reads a few fields no longer pays to build
+  and parse the rest. The full view and every other call are unchanged.
 
 - 2026-09-29: `dispatch_view_outcome` returns the view as a dispatch outcome
   ([Dispatch 0.1](caveat-dispatch-0.1.md#the-view-path)). A host that wants
