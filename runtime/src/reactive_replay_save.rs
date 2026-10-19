@@ -12,8 +12,9 @@ use super::*;
 use serde_json::Value;
 
 pub const REPLAY_SAVE_SCHEMA: &str = "caveat-replay-save/0.1";
-/// The positional replay save: each event as its position among the
-/// program's events, then its parameters in declared order.
+/// The positional replay save: the source's digest in base64url, and each
+/// event as its position among the program's events followed by its
+/// parameters in declared order, all in one list.
 pub const POSITIONAL_REPLAY_SAVE_SCHEMA: &str = "caveat-replay-save/0.2";
 /// The largest replay save a session writes or restores, in either form. Past
 /// it, the session drops the events it kept and its compact saves are state
@@ -38,7 +39,7 @@ impl ReplayEntry {
         Value::Array(entry)
     }
 
-    /// `[E, ARGUMENT, …]`: the event's position in `events`, which is in name
+    /// `[E, ARGUMENT, …]`, written into the save without its brackets: the event's position in `events`, which is in name
     /// order as the interface lists them, then each parameter in declared
     /// order, written as in the payload.
     fn to_positional(&self, events: &BTreeMap<String, Vec<Parameter>>) -> Value {
@@ -55,35 +56,42 @@ impl ReplayEntry {
         Value::Array(entry)
     }
 
+    /// The entry that begins `items`, and how many values it takes: the
+    /// event's position, then one value for each of its parameters.
     fn from_positional(
-        value: &Value,
+        items: &[Value],
         events: &BTreeMap<String, Vec<Parameter>>,
-    ) -> Result<Self, String> {
-        let malformed = || "an event entry is not [event, argument, …]".to_string();
-        let items = value.as_array().ok_or_else(malformed)?;
+    ) -> Result<(Self, usize), String> {
         let (event, parameters) = items
             .first()
             .and_then(Value::as_u64)
             .and_then(|position| events.iter().nth(usize::try_from(position).ok()?))
-            .ok_or_else(|| "an event entry names no event of this program".to_string())?;
-        if items.len() != parameters.len() + 1 {
+            .ok_or_else(|| {
+                "an entry does not begin with the position of an event of this program".to_string()
+            })?;
+        let Some(values) = items.get(1..=parameters.len()) else {
             return Err(format!(
                 "event {event} takes {} arguments",
                 parameters.len()
             ));
-        }
+        };
         let payload = parameters
             .iter()
-            .zip(&items[1..])
+            .zip(values)
             .map(|(parameter, value)| match value {
                 Value::Number(_) | Value::String(_) => Ok((parameter.name.clone(), value.clone())),
-                _ => Err(malformed()),
+                _ => Err(format!(
+                    "an argument of event {event} is not a number or a text"
+                )),
             })
             .collect::<Result<_, _>>()?;
-        Ok(Self {
-            event: event.clone(),
-            payload,
-        })
+        Ok((
+            Self {
+                event: event.clone(),
+                payload,
+            },
+            parameters.len() + 1,
+        ))
     }
 
     fn from_value(value: &Value) -> Result<Self, String> {
@@ -114,6 +122,27 @@ fn number(value: f64) -> Value {
         return Value::from(value as i64);
     }
     serde_json::Number::from_f64(value).map_or(Value::Null, Value::Number)
+}
+
+/// A hex digest as base64url without padding, as the positional replay save
+/// writes it; `None` if it is not hex.
+fn base64url(hex: &str) -> Option<String> {
+    const DIGITS: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let bytes = (0..hex.len())
+        .step_by(2)
+        .map(|at| u8::from_str_radix(hex.get(at..at + 2)?, 16).ok())
+        .collect::<Option<Vec<u8>>>()?;
+    let mut text = String::new();
+    for chunk in bytes.chunks(3) {
+        let word = chunk
+            .iter()
+            .fold(0u32, |word, byte| word << 8 | u32::from(*byte))
+            << (8 * (3 - chunk.len()));
+        for digit in 0..=chunk.len() {
+            text.push(char::from(DIGITS[(word >> (18 - 6 * digit) & 63) as usize]));
+        }
+    }
+    Some(text)
 }
 
 /// The events a session accepted since its program loaded, while their
@@ -167,7 +196,8 @@ impl ReactiveSession {
             event: event.to_string(),
             payload,
         };
-        let positional = entry.to_positional(&self.events).to_string().len() + 1;
+        // Without its brackets, and with the comma before it.
+        let positional = entry.to_positional(&self.events).to_string().len() - 1;
         let named = entry.to_value().to_string().len() + 1;
         let Some(log) = self.replay.as_mut() else {
             return;
@@ -225,21 +255,32 @@ impl ReactiveSession {
     fn positional_replay_json(&self) -> Option<String> {
         let log = self.replay.as_ref()?;
         #[derive(Serialize)]
-        struct Written<'a> {
+        struct Written {
             schema: &'static str,
-            source_id: &'a str,
-            source_sha256: &'a str,
-            events: Vec<Value>,
+            sha256: String,
+            events: Value,
         }
+        let values: Vec<Value> = log
+            .entries
+            .iter()
+            .flat_map(|entry| match entry.to_positional(&self.events) {
+                Value::Array(items) => items,
+                other => vec![other],
+            })
+            .collect();
+        // When every value is a whole number below 36, one base-36 digit each.
+        let digits: Option<String> = values
+            .iter()
+            .map(|value| {
+                value
+                    .as_u64()
+                    .and_then(|digit| char::from_digit(u32::try_from(digit).ok()?, 36))
+            })
+            .collect();
         let text = serde_json::to_string(&Written {
             schema: POSITIONAL_REPLAY_SAVE_SCHEMA,
-            source_id: &self.source_id,
-            source_sha256: &self.source_sha256,
-            events: log
-                .entries
-                .iter()
-                .map(|entry| entry.to_positional(&self.events))
-                .collect(),
+            sha256: base64url(&self.source_sha256)?,
+            events: digits.map_or(Value::Array(values), Value::String),
         })
         .ok()?;
         (text.len() <= REPLAY_SAVE_MAX_BYTES).then_some(text)
@@ -298,28 +339,81 @@ impl ReactiveSession {
             source_sha256: String,
             events: Vec<Value>,
         }
-        let saved: Saved = serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Positional {
+            #[allow(dead_code)]
+            schema: String,
+            sha256: String,
+            events: Value,
+        }
+        #[derive(Deserialize)]
+        struct Schema {
+            schema: String,
+        }
+        let schema = serde_json::from_str::<Schema>(save)
+            .map_err(|error| refuse(error.to_string()))?
+            .schema;
+        // Each form is read whole before the source loads, as 0.1 always was.
+        let (positional, named) = if schema == POSITIONAL_REPLAY_SAVE_SCHEMA {
+            let saved: Positional =
+                serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
+            (Some(saved), None)
+        } else {
+            let saved: Saved =
+                serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
+            (None, Some(saved))
+        };
         let mut session = Self::from_source_cached(source)?;
-        let positional = saved.schema == POSITIONAL_REPLAY_SAVE_SCHEMA;
-        if saved.schema != REPLAY_SAVE_SCHEMA && !positional {
-            return Err(refuse(format!(
-                "schema {} is not {REPLAY_SAVE_SCHEMA}",
-                saved.schema
-            )));
-        }
-        if saved.source_id != session.source_id {
-            return Err(refuse("it belongs to a different program".into()));
-        }
-        if saved.source_sha256 != session.source_sha256 {
-            return Err(refuse("its source digest is not this source's".into()));
-        }
-        for (index, value) in saved.events.iter().enumerate() {
-            let entry = if positional {
-                ReplayEntry::from_positional(value, &session.events)
-            } else {
-                ReplayEntry::from_value(value)
+        let mut entries = Vec::new();
+        if let Some(saved) = positional {
+            if base64url(&session.source_sha256).as_deref() != Some(saved.sha256.as_str()) {
+                return Err(refuse("its source digest is not this source's".into()));
             }
-            .map_err(refuse)?;
+            let values = match saved.events {
+                Value::Array(values) => values,
+                Value::String(digits) => digits
+                    .chars()
+                    .map(|digit| {
+                        digit
+                            .to_digit(36)
+                            .filter(|_| !digit.is_ascii_uppercase())
+                            .map(Value::from)
+                            .ok_or_else(|| refuse(format!("{digit:?} is not a base-36 digit")))
+                    })
+                    .collect::<Result<_, _>>()?,
+                _ => {
+                    return Err(refuse(
+                        "its events are not a list or a text of digits".into(),
+                    ))
+                }
+            };
+            let mut rest = values.as_slice();
+            while !rest.is_empty() {
+                let (entry, taken) =
+                    ReplayEntry::from_positional(rest, &session.events).map_err(refuse)?;
+                entries.push(entry);
+                rest = &rest[taken..];
+            }
+        }
+        if let Some(saved) = named {
+            if saved.schema != REPLAY_SAVE_SCHEMA {
+                return Err(refuse(format!(
+                    "schema {} is not {REPLAY_SAVE_SCHEMA}",
+                    saved.schema
+                )));
+            }
+            if saved.source_id != session.source_id {
+                return Err(refuse("it belongs to a different program".into()));
+            }
+            if saved.source_sha256 != session.source_sha256 {
+                return Err(refuse("its source digest is not this source's".into()));
+            }
+            for value in &saved.events {
+                entries.push(ReplayEntry::from_value(value).map_err(refuse)?);
+            }
+        }
+        for (index, entry) in entries.into_iter().enumerate() {
             let payload = Value::Object(entry.payload).to_string();
             session
                 .dispatch_classified(&entry.event, &payload)

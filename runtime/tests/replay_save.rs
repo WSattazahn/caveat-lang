@@ -201,12 +201,17 @@ fn a_positional_save_restores_the_session_that_wrote_it() {
     let parsed: Value = serde_json::from_str(&positional).unwrap();
     assert_eq!(parsed["schema"], POSITIONAL_REPLAY_SAVE_SCHEMA);
     assert!(positional.len() < named.len(), "{positional} vs {named}");
-    // Events in name order: checks 0, decide 1, flag 2, nudge 3, unflag 4.
-    // `result in failed passed` is written as its position, the identifier
-    // as its text and the signed zero as written.
-    assert_eq!(parsed["events"][0], json!([0, SHA, 2]));
-    assert_eq!(parsed["events"][2], json!([1]));
-    assert!(positional.contains("[3,-0.0]"), "{positional}");
+    // Events in name order: checks 0, decide 1, flag 2, nudge 3, unflag 4,
+    // each followed by its arguments in one list. `result in failed passed`
+    // is written as its position, the identifier as its text and the signed
+    // zero as written. The digest is the source's SHA-256 in base64url.
+    assert_eq!(
+        parsed["events"],
+        json!([0, SHA, 2, 3, -0.0, 1, 2, 0, SHA, 1, 4])
+    );
+    assert!(positional.contains(",3,-0.0,1,"), "{positional}");
+    assert_eq!(parsed["sha256"].as_str().map(str::len), Some(43));
+    assert!(parsed.get("source_id").is_none(), "{positional}");
 
     let mut restored = ReactiveSession::restore_json(LEDGER, &positional).unwrap();
     assert_eq!(snapshot(&restored), snapshot(&saved));
@@ -226,6 +231,36 @@ fn a_positional_save_restores_the_session_that_wrote_it() {
         restored.save_compact_positional_json().unwrap(),
         saved.save_compact_positional_json().unwrap()
     );
+}
+
+#[test]
+fn a_positional_save_of_small_whole_numbers_is_a_text_of_digits() {
+    let mut saved = session();
+    send(&mut saved, "nudge", json!({"by": 12}));
+    send(&mut saved, "nudge", json!({"by": 35}));
+    let digits = saved.save_compact_positional_json().unwrap();
+    let parsed: Value = serde_json::from_str(&digits).unwrap();
+    // nudge 3 by 12, then by 35.
+    assert_eq!(parsed["events"], json!("3c3z"));
+    let restored = ReactiveSession::restore_json(LEDGER, &digits).unwrap();
+    assert_eq!(restored.save_json().unwrap(), saved.save_json().unwrap());
+    assert_eq!(restored.save_compact_positional_json().unwrap(), digits);
+    // A value past 35 writes the list.
+    send(&mut saved, "nudge", json!({"by": 36}));
+    let parsed: Value =
+        serde_json::from_str(&saved.save_compact_positional_json().unwrap()).unwrap();
+    assert_eq!(parsed["events"], json!([3, 12, 3, 35, 3, 36]));
+    for (events, expected) in [
+        (json!("3C"), "not a base-36 digit"),
+        (json!("3-"), "not a base-36 digit"),
+        (json!({}), "not a list or a text"),
+        (json!("3"), "takes 1 arguments"),
+    ] {
+        let mut save = parsed.clone();
+        save["events"] = events;
+        let error = ReactiveSession::restore_json(LEDGER, &save.to_string()).unwrap_err();
+        assert!(error.contains(expected), "{save}: {error}");
+    }
 }
 
 #[test]
@@ -264,14 +299,15 @@ fn a_positional_save_it_cannot_replay_is_refused() {
         save.to_string()
     };
     for (save, expected) in [
-        (with_events(json!([[9]])), "names no event"),
-        (with_events(json!([["decide"]])), "names no event"),
-        (with_events(json!([[1, 0]])), "takes 0 arguments"),
-        (with_events(json!([[0, SHA]])), "takes 2 arguments"),
-        (with_events(json!([[0, SHA, null]])), "not [event, argument"),
+        (with_events(json!([9])), "position of an event"),
+        (with_events(json!(["decide"])), "position of an event"),
+        (with_events(json!([[1]])), "position of an event"),
+        (with_events(json!([1, 5])), "position of an event"),
+        (with_events(json!([0, SHA])), "takes 2 arguments"),
+        (with_events(json!([0, SHA, null])), "not a number or a text"),
         (
-            with_events(json!([[0, SHA, 7]])),
-            "event 1 (checks) is not accepted",
+            with_events(json!([0, SHA, 2, 0, SHA, 7])),
+            "event 2 (checks) is not accepted",
         ),
     ] {
         let error = ReactiveSession::restore_json(LEDGER, &save)
@@ -279,4 +315,12 @@ fn a_positional_save_it_cannot_replay_is_refused() {
             .unwrap_or_else(|| panic!("{save} restored"));
         assert!(error.contains(expected), "{save}: {error}");
     }
+    let mut moved = good.clone();
+    moved["sha256"] = json!("A".repeat(43));
+    let error = ReactiveSession::restore_json(LEDGER, &moved.to_string()).unwrap_err();
+    assert!(error.contains("source digest"), "{error}");
+    let mut named = good;
+    named["source_id"] = json!("fnv1a64:0:0");
+    let error = ReactiveSession::restore_json(LEDGER, &named.to_string()).unwrap_err();
+    assert!(error.contains("unknown field"), "{error}");
 }

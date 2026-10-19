@@ -70,8 +70,9 @@ restore one.
 
 `session.save({ compact: true, positional: true })` writes the
 [positional replay save](../spec/caveat-replay-save-0.2.md) instead: each event
-as its position and its parameters' values, about a fifth of the bytes, so it
-stays a replay save for several times as many events. Prefer it to keeping
+as its position and its parameters' values, written as one base-36 digit each
+when every value is a whole number below 36, so it stays a replay save for
+several times as many events. Prefer it to keeping
 your own event log. A runtime before it cannot restore one.
 
 A decision series cannot have a window: `decisions NAME window N` is refused
