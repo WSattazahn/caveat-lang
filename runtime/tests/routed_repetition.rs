@@ -606,7 +606,9 @@ fn an_event_declared_in_a_block_that_does_not_expand_is_not_read() {
     let unread = "`on poke_handheld` in `for plot as $p routed by target`: no event `poke_handheld` is declared in this part, so the block cannot tell whether it names a plot";
     for block in [
         "for probe as $d { event poke_$d target kind plot; claim $typo; };",
-        "for probe as $d { event poke_$d target kind plot; for plot as $q { claim $q; }; };",
+        // A nested block expands (spec/caveat-nested-repetition-0.1.md);
+        // one that rebinds its enclosing block's name does not.
+        "for probe as $d { event poke_$d target kind plot; for plot as $d { claim $d; }; };",
         "for probe is $d { event poke_$d target kind plot; };",
     ] {
         let source = format!(
@@ -1334,7 +1336,9 @@ fn every_program_with_a_for_block_expands_as_before() {
             "{file}"
         );
     }
-    // And the shapes Repetition 0.1's own tests use, errors included.
+    // And the shapes Repetition 0.1's own tests use, errors included. A
+    // nested block, which it refused, expands now
+    // (spec/caveat-nested-repetition-0.1.md).
     let entities = "entity reef_one kind reef at harbor;\nentity reef_two kind reef at harbor;\n";
     for block in [
         "for reef as $r { evidence $r_reading from \"$r\"; on tick when contact == $index set hit_x = $r.x; };",
@@ -1344,7 +1348,6 @@ fn every_program_with_a_for_block_expands_as_before() {
         "for reef as $r { claim $typo_seen; };",
         "for reef as r { claim r_seen; };",
         "for reef as $index { claim $index; };",
-        "for reef as $r { for reef as $q { claim $q; }; };",
         "for reef { claim x; };",
         "for reef as $r routes by target { claim $r_seen; };",
     ] {
