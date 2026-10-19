@@ -30,9 +30,9 @@ consequence of every caveat. Defined in
 
 | Kind | What it shows | What it does not show | Where |
 | --- | --- | --- | --- |
-| **Model theorems** (Lean) | Laws that hold for *every* input of a small mathematical model: dependency flow, grounds ⊆ lineage, citation checks, outcomes, one late-qualification step and one reopening step | That the Rust runtime implements the model. The model is a separate, smaller program | [proofs/lean](../proofs/lean/README.md); CI job `lean` |
+| **Model theorems** (Lean) | Laws that hold for *every* input of a small mathematical model: dependency flow, grounds ⊆ lineage, citation checks, outcomes, one late-qualification step, one reopening step, and the Caveat Sources invariant after any history of observe, set, qualify, unqualify, commit and departure events | That the Rust runtime implements the model. The model is a separate, smaller program | [proofs/lean](../proofs/lean/README.md); CI job `lean` |
 | **Sampled conformance** | For registered programs, the native and WebAssembly runtimes and the Lean model's executable agree on the compared projection, step by step | Agreement on programs or states outside the registered samples; a refinement proof | `npm run verify:lean-conformance`; cases in `scripts/lean-*-cases.mjs` |
-| **Mutation controls** | The checks above can fail: deliberately broken compiled runtimes and incomplete proofs must be refused for their intended reasons, and altered scenario expectations must fail | That every possible defect would be caught | `scripts/verify-lean-conformance.mjs`, `scripts/verify-lean.mjs`, `experiments/scenario-conversion/mutation-check.mjs` |
+| **Mutation controls** | The checks above can fail: deliberately broken compiled runtimes, incomplete proofs and Caveat Sources models broken in the shapes of D014, D018 and D020 must be refused for their intended reasons, and altered scenario expectations must fail | That every possible defect would be caught | `scripts/verify-lean-conformance.mjs`, `scripts/verify-lean.mjs`, `experiments/scenario-conversion/mutation-check.mjs` |
 | **Runtime tests** | The production runtime's behavior on Rust unit and integration tests, kit tests, scenario suites, installed-package tests, browser checks and byte-for-byte reproducible builds | Behavior on untested programs or workloads | [runtime workflow](../.github/workflows/runtime.yml) |
 | **Unproved boundaries** | Named parts that no theorem covers, tested only by the runtime tests above | — | Listed below |
 
@@ -57,6 +57,19 @@ records and must be caught. Reopening has the same structure in
 [Reopen.lean](../proofs/lean/Caveat/Reopen.lean): records and retained caveats
 are preserved, and the cause is appended to the journal.
 
+### The Caveat Sources invariant, precisely
+
+[Sources.lean](../proofs/lean/Caveat/Sources.lean) keeps each caveat's routes
+explicitly and updates them event by event. `caveat_sources_invariant` proves
+that after any sequence of `reveal`/`renew` observations, stored guard reads,
+`set`, `qualify`, `unqualify`, `commit` and departures, every current value,
+its grounds and every stored observation or predicate qualification carries a
+caveat exactly when it has a kept route or a route through a listed occurrence
+whose relation is live, as [Caveat Sources 0.1](../spec/caveat-caveat-sources-0.1.md)
+states. It covers whole histories, where the late-qualification and reopening
+theorems cover one step. It is a theorem about the model: the runtime is held to
+the same invariant by the randomized check in `runtime/tests/take_back.rs`.
+
 ### Unproved boundaries
 
 From the [proof documentation](../proofs/lean/README.md): commitment creation
@@ -64,8 +77,9 @@ From the [proof documentation](../proofs/lean/README.md): commitment creation
 renewal and occurrence identity, graph closure, save and restore, complete
 session rollback, source parsing, function evaluation, arbitrary expressions,
 work budgets, effect scheduling, floating-point behavior, the JSON decoder and
-Rust's bounded sets and overflow detection are not formalized. Departure,
-archives and the withdrawal collector are covered by runtime tests and the
+Rust's bounded sets and overflow detection are not formalized. Departure is
+modeled only for what it does to caveat routes; archives, the withdrawal
+collector and the rest of departure are covered by runtime tests and the
 departure gate, not by the model.
 
 ## Precise claims
