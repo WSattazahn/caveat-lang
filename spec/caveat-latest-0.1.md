@@ -52,6 +52,7 @@ carries it. `unflag` marked only `checks@2`.
 ```text
 qualify latest(NAME) with CAVEAT [after SECONDS];
 unqualify latest(NAME) with CAVEAT;
+carries(latest(NAME), CAVEAT)
 ```
 
 `NAME` is a reading stream (`readings NAME from TEMPLATE …`) or declared
@@ -61,8 +62,11 @@ evidence. Anything else does not load:
 latest(NAME) must name a reading stream or declared evidence
 ```
 
-The forms stand wherever `qualify` and `unqualify` do: in a rule or as a
-procedure step. `latest` keeps its other meanings: `latest(H)` in an
+The effects stand wherever `qualify` and `unqualify` do: in a rule or as a
+procedure step. `carries(latest(NAME), CAVEAT)` is a boolean expression and
+stands wherever one does; `CAVEAT` must name a declared caveat.
+`has_caveat(…)` asks about a state, so `has_caveat(latest(NAME), CAVEAT)` does
+not load, and its error names the `carries` form. `latest` keeps its other meanings: `latest(H)` in an
 expression, `withdrawn(latest(STREAM))`, `withdraw latest(STREAM)` and
 `reopen … because latest(STREAM)` are unchanged. A stream is still named only through
 `latest(…)`: `qualify STREAM with C` and `unqualify STREAM with C` do not
@@ -93,6 +97,19 @@ occurrence is named directly ([Earlier Occurrence 0.1](caveat-earlier-occurrence
 So `qualify latest(E) with C` means what `qualify E with C` means, and
 `unqualify latest(E) with C` is `unqualify occurrence(E, I) with C` for the
 current `I`, without a host or a state to track `I`.
+
+`carries(latest(NAME), CAVEAT)` resolves `latest(NAME)` the same way when the
+expression is evaluated, then asks `carries` of that occurrence, as
+`carries(occurrence(E, I), CAVEAT)` and `carries(reading(STREAM, I), CAVEAT)`
+do ([Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md),
+[Reading Index 0.1](caveat-reading-index-0.1.md)). A stream with no reading
+yet makes it false, and nothing is refused. So a guard can ask whether the
+current reading was already doubted:
+
+```caveat
+on flag when carries(latest(checks), flaky) reject "already flagged";
+on flag qualify latest(checks) with flaky;
+```
 
 **What follows.** A reading is ordinary evidence once named, so everything
 downstream works on it as it works for withdrawal:
@@ -161,12 +178,12 @@ reading, since the current reading never retires.
   separate design.
 - `latest(E)` for evidence in `withdraw` or `reopen … because`. `withdraw E`
   and `reopen … because E` already reach the current occurrence.
-- `latest(…)` in a predicate other than `withdrawn(…)`.
+- `latest(…)` in a predicate other than `withdrawn(…)` and `carries(…)`.
 
 ## Corpus sweep
 
-No tracked program writes `qualify latest(` or `unqualify latest(`; before
-this profile neither loaded. The save sweep
+No tracked program writes `qualify latest(`, `unqualify latest(` or
+`carries(latest(`; before this profile none loaded. The save sweep
 (`runtime/examples/save_sweep.rs`, 8 runs of 150 seeded events) over all
 tracked programs gives the same digest for every program on the runtime
 before this change and after it: no program that loads today changes an
@@ -179,9 +196,14 @@ programs to rc.15.
 target when the effect runs: a stream to its current reading, evidence to its
 current occurrence. A take-back given one occurrence marks only it. Restore
 counts a reading of a stream as a source of take-back records and accepts a
-take-back report that names the stream. Tests:
-`runtime/tests/latest_qualify.rs`.
+take-back report that names the stream. `carries(latest(NAME), CAVEAT)` reaches
+the host as predicate kind `latest:carries:CAVEAT`, resolved with the target
+the effects use. Tests: `runtime/tests/latest_qualify.rs` and
+`runtime/tests/carries_latest.rs`.
 
 ## Changes
 
 - 2026-10-18: drafted and implemented for 1.1.
+- 2026-10-19: `carries(latest(NAME), CAVEAT)` added for 1.1; before it,
+  `caveat-lang@1.0.3` and `main` refused it with "expected ',' before the
+  carried caveat".

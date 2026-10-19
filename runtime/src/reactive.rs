@@ -2673,6 +2673,13 @@ impl ReactiveSession {
                     _ => self.require_renewable_occurrence(name),
                 };
             }
+            if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+                self.require_latest(symbol)?;
+                return match kind.strip_prefix(CARRIES) {
+                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    None => Err(format!("unknown epistemic predicate {kind}")),
+                };
+            }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
@@ -6401,7 +6408,8 @@ impl ReactiveSession {
     }
 
     /// A predicate asked of `occurrence(EVIDENCE, INDEX)` arrives as kind
-    /// `occurrence:KIND` and target `EVIDENCE#INDEX`. Returns `None` for any
+    /// `occurrence:KIND` and target `EVIDENCE#INDEX`, and one asked of
+    /// `latest(NAME)` as kind `latest:KIND` and target `NAME`. Returns `None` for any
     /// other predicate, and otherwise the plain kind with the held occurrence
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
@@ -6411,6 +6419,9 @@ impl ReactiveSession {
                 .rsplit_once('#')
                 .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
             return Some(("rests_on_withdrawn", revision));
+        }
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return Some((kind, self.latest_target(name)));
         }
         let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
         let held = name
