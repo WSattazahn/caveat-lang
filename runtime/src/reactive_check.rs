@@ -3,8 +3,8 @@
 //! does, and a warning describes a pattern, not a proven fault.
 
 use super::{
-    parse_directive_at, BindingExpression, Directive, Effect, EvidenceSelector, Expr, FunctionDef,
-    Parameter, ParameterDomain, Provenance, ReactiveSession, Reads, Value,
+    parse_directive_at, BindingExpression, DecisionChange, Directive, Effect, EvidenceSelector,
+    Expr, FunctionDef, Parameter, ParameterDomain, Provenance, ReactiveSession, Reads, Value,
 };
 use crate::link::{
     is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
@@ -1015,7 +1015,8 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
     let mut read_by: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for (condition, effect) in steps {
         match effect {
-            Effect::Reopen { action, .. } => {
+            // A hold reopens nothing (spec/caveat-holds-0.1.md).
+            Effect::Reopen { action, form, .. } if *form != DecisionChange::Hold => {
                 reopened.insert(action.clone());
             }
             Effect::Commit {

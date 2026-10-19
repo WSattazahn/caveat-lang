@@ -1113,7 +1113,15 @@ impl ReactiveSession {
             .filter(|entry| entry.change == "reopened")
         {
             for (record, at) in &save.retired {
-                if entry.sequence > *at && entry.because.iter().any(|name| name == record) {
+                // A release reopens for what its hold deferred, which may
+                // have retired since; the hold kept it from departing
+                // (spec/caveat-holds-0.1.md).
+                let released =
+                    self.event_can_change_decision(&entry.event, &entry.decision, "released");
+                if !released
+                    && entry.sequence > *at
+                    && entry.because.iter().any(|name| name == record)
+                {
                     return Err(format!(
                         "{} {} after {record} retired reads it",
                         entry.commitment, entry.change
@@ -2319,6 +2327,30 @@ impl ReactiveSession {
                     "decision series {name} current is not its latest revision"
                 ));
             }
+            // A hold is of a series the source can hold, with a current
+            // revision; it defers only while some reason holds it, each name
+            // observed evidence, once (spec/caveat-holds-0.1.md).
+            if (!series.on_hold.is_empty() && (series.current.is_none() || !self.holdable(name)))
+                || (series.on_hold.is_empty() && !series.deferred.is_empty())
+            {
+                return Err(format!(
+                    "decision series {name} has a hold no source can make"
+                ));
+            }
+            for (index, evidence) in series.on_hold.iter().enumerate() {
+                self.require_kind(evidence, "evidence")?;
+                self.require_observed(evidence, observed)?;
+                if series.on_hold[..index].contains(evidence) {
+                    return Err(format!("decision series {name} holds {evidence} twice"));
+                }
+            }
+            for (index, evidence) in series.deferred.iter().enumerate() {
+                self.require_kind(evidence, "evidence")?;
+                self.require_observed(evidence, observed)?;
+                if series.deferred[..index].contains(evidence) {
+                    return Err(format!("decision series {name} defers {evidence} twice"));
+                }
+            }
             self.check_provenance(
                 &format!("decision series {name}"),
                 &series.selection_qualifications,
@@ -2462,6 +2494,9 @@ impl ReactiveSession {
                     // A cause that departed took its `reopens` relation with
                     // it, and the qualification holds the cause as a marker
                     // (spec/caveat-departure-0.1.md).
+                    // A hold, a deferred reopening and a release join the
+                    // record of a revision they do not reopen
+                    // (spec/caveat-holds-0.1.md).
                     _ => id.is_some_and(|id| {
                         reopened.contains(id)
                             || !provenance.0.departed.is_empty()
@@ -2469,6 +2504,14 @@ impl ReactiveSession {
                                     self.graph.nodes.get(id),
                                     Some(NodeKind::Commitment { open: true, .. })
                                 )
+                            || matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
+                                && save.decision_series.iter().any(|(series, record)| {
+                                    self.holdable(series)
+                                        && record
+                                            .revisions
+                                            .iter()
+                                            .any(|revision| &revision.id == name)
+                                })
                     }),
                 };
                 if !fits {
@@ -2819,7 +2862,10 @@ impl ReactiveSession {
         };
         for entry in &save.decision_journal {
             self.require_commitment(&entry.commitment)?;
-            if !matches!(entry.change.as_str(), "committed" | "reopened") {
+            if !matches!(
+                entry.change.as_str(),
+                "committed" | "reopened" | "held" | "deferred" | "released"
+            ) {
                 return Err(fail("unknown change"));
             }
             if entry.sequence == 0 || entry.sequence > save.sequence {
@@ -2945,13 +2991,18 @@ impl ReactiveSession {
                 {
                     return Err(fail("reopening has no cause or preceding commitment"));
                 }
+                // A hold, a deferred reopening and a release change no
+                // reopening cause (spec/caveat-holds-0.1.md).
+                let reopening = entry.change == "reopened";
                 let seen = reopened.entry(&entry.commitment).or_default();
                 let mut related_caveats = BTreeSet::new();
                 for evidence in &entry.because {
-                    if seen.contains(&evidence.as_str()) {
-                        return Err(fail("reopening repeats an existing cause"));
+                    if reopening {
+                        if seen.contains(&evidence.as_str()) {
+                            return Err(fail("reopening repeats an existing cause"));
+                        }
+                        seen.push(evidence);
                     }
-                    seen.push(evidence);
                     related_caveats.extend(self.qualify_core_before_take_back(evidence)?.caveats);
                 }
                 // Qualification only adds relations, and a take-back marks one
@@ -3065,6 +3116,17 @@ impl ReactiveSession {
             ));
         }
         Ok(())
+    }
+
+    /// Whether a rule or procedure can put `series` on hold
+    /// (spec/caveat-holds-0.1.md).
+    pub(super) fn holdable(&self, series: &str) -> bool {
+        self.reached_effects(None).into_iter().any(|effect| {
+            matches!(
+                effect,
+                Effect::Reopen { action, form: DecisionChange::Hold, .. } if action == series
+            )
+        })
     }
 
     /// Every effect a rule of `event` reaches, or with `None` of any event,
@@ -3335,6 +3397,10 @@ impl ReactiveSession {
             } => named(reported, source),
             EvidenceSelector::Caveated { .. } => true,
         };
+        // A reopening of a series the program can hold may also name causes
+        // deferred by earlier events, at a release or when a withdrawal
+        // reaches a revision on hold (spec/caveat-holds-0.1.md).
+        let holdable = |series: &str| self.holdable(series);
         reached.iter().any(|rule| match (effect, rule) {
             (
                 EffectReport::Sample {
@@ -3398,10 +3464,22 @@ impl ReactiveSession {
                 Effect::Reopen {
                     action: source,
                     because: selector,
+                    form,
                 },
-            ) => named(action, source) && selects(because, selector),
+            ) => {
+                named(action, source)
+                    && match form {
+                        DecisionChange::Reopen => selects(because, selector) || holdable(source),
+                        DecisionChange::Release => true,
+                        DecisionChange::Hold => false,
+                    }
+            }
             (EffectReport::Reopen { action, because }, Effect::Sample { stream, stance, .. }) => {
-                named(because, stream)
+                (named(because, stream)
+                    || self
+                        .reopening_triggers
+                        .iter()
+                        .any(|(series, _, _)| named(action, series) && holdable(series)))
                     && self.reopening_triggers.iter().any(|(series, triggers, _)| {
                         named(action, series)
                             && triggers
@@ -3489,13 +3567,21 @@ impl ReactiveSession {
                 Effect::Commit { action, .. } if change == "committed" && action == decision => {
                     return true
                 }
-                Effect::Reopen { action, .. } if change == "reopened" && action == decision => {
+                Effect::Reopen { action, form, .. }
+                    if action == decision
+                        && matches!(
+                            (form, change),
+                            (DecisionChange::Reopen, "reopened" | "deferred")
+                                | (DecisionChange::Hold, "held")
+                                | (DecisionChange::Release, "released" | "reopened")
+                        ) =>
+                {
                     return true
                 }
                 // A declared trigger reopens it when this sample's stream,
                 // relation and claim match (spec/caveat-reopening-triggers-0.1.md).
                 Effect::Sample { stream, stance, .. }
-                    if change == "reopened"
+                    if matches!(change, "reopened" | "deferred")
                         && self.reopening_triggers.iter().any(|(series, triggers, _)| {
                             series == decision
                                 && triggers
