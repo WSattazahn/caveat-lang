@@ -137,6 +137,8 @@
         { "send": "decide_gaps", "payload": { "option": 1 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 278 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 281 } },
         { "expect": {
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/release": "1.0.2 stands",
