@@ -47,34 +47,35 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-1.0.1 fixes three cases where a caveat travelling through a guard's stored
-record was kept after it was taken back, or missed by a later `qualify`
-(D012, D013 and D014). It adds no language, schema, operation, field, CLI flag,
-export, MCP tool or refusal code, and restores every 1.0.0 save. The
-[1.0.1 verified publication record](docs/releases/v1.0.1.md) identifies the
-exact tested npm artifact and says which programs can see a difference.
+## Start here
 
-1.0.2 fixes two cases where 1.0.1's fixes met a window or limit: departure
-was not told of evidence a late `qualify` added to a stored record (D016), and
-a caveat read through a stored record after its evidence departed could no
-longer be taken back (D018). It adds nothing either, and restores every 1.0.0 and
-1.0.1 save. The [1.0.2 verified publication record](docs/releases/v1.0.2.md)
-says which programs can see a difference.
+To see what Caveat does, give a coding agent this task in an empty directory:
 
-1.0.3 fixes a case where 1.0.1's D014 fix let a caveat that a plain `qualify`
-put on a guard's stored record survive its take-back (D020). It adds nothing
-either, and restores every 1.0.0, 1.0.1 and 1.0.2 save. The
-[1.0.3 verified publication record](docs/releases/v1.0.3.md) says which
-programs can see a difference.
+```text
+Install the caveat-lang npm package (Node 20 or later) in this empty directory
+and run `npx --no-install caveat-lang init`. Read
+node_modules/caveat-lang/docs/REFERENCE.md before writing any Caveat source.
+In umbrella.cav, raise the rain chance needed to commit the umbrella decision
+from 50 to 60. Add a scenario to umbrella.scenarios.json showing that a 55%
+forecast leaves the advice at "No decision yet". Run
+`npx --no-install caveat-lang check umbrella.cav` and
+`npx --no-install caveat-lang test umbrella.scenarios.json`, then run
+`npx --no-install caveat-lang explain umbrella.cav events.jsonl` and tell me
+what umbrella@1 rests on and why it was reopened. Change no other files.
+```
 
-1.1.0 adds language forms (`citing`, `retaining … because`, neutral and noted
-samples, `reading(STREAM, N)`, `in_basis` and more), a compact save format,
-opt-in `caveat check` warnings, a `serve` option and kit helpers, and one
-refusal code. It changes one behavior to keep Late Qualification 0.1's promise:
-a later `qualify` now reaches a value read through a decision (D015). Every
-1.0.x save restores as it was recorded. The
-[1.1.0 verified publication record](docs/releases/v1.1.0.md) lists each
-addition and says how to find the programs the change reaches.
+The three scenarios pass, and the explanation still shows `umbrella@1` resting
+on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
+
+| To | Start with |
+| --- | --- |
+| Try Caveat by hand | [Getting started](kit/docs/GETTING_STARTED.md) |
+| Give an agent Caveat's tools over MCP | [MCP server](#mcp-server) |
+| Integrate Caveat into an agent or application | [Agent quickstart](kit/docs/AGENT_START.md) and the [Python client](kit/examples/agent-evidence/README.md) |
+| Write Caveat source | [The language in brief](kit/docs/REFERENCE.md) and the [authoring guide](docs/AI_AUTHORING.md) |
+| See what is proved and tested | [What is checked, and how](docs/VERIFICATION.md) |
+| Report a capability Caveat lacks | [Agent feature requests](AGENTS.md#report-a-capability-missing-from-a-real-integration) |
+| See what each release changed | [Release history](#release-history) |
 
 The [1.0.0 verified publication record](docs/releases/v1.0.0.md) identifies
 the exact tested npm artifact. 1.0.0 makes the
@@ -84,31 +85,6 @@ the MCP tools, named schemas and saves are stable, and 1.x minors only add. It
 adds no language, schema, operation, field, CLI flag, export or MCP tool over
 rc.20, and its Rust runtime is unchanged from rc.20.
 
-rc.20 clarified when to use each MCP tool, its
-inputs and its results. It also fixed human-readable explanations of caveats
-carried by a decision's grounds, retained in its frozen basis, or present only
-in its wider lineage. It changed no Rust runtime, language or save format.
-
-rc.19 began the 1.0 feature freeze: it added no language, schema, operation,
-field, CLI flag or export. It fixed restore of a
-session that reopened a decision because of a caveat and then took that caveat
-back; saves written by rc.18 in that state restore in rc.19.
-
-rc.18 added `unqualify`, which takes back a caveat
-that `qualify` added, on every held occurrence of the evidence. The take-back is
-recorded, not erased, and decisions keep their basis. A save of a program that
-uses `unqualify` does not restore in rc.17 or earlier; other saves do. View 0.2
-now lists a binding's evidence in the order it was first observed, and
-`explain` names the event and payload that observed each ground.
-
-rc.17 introduced View 0.2, source digests in saves and the integration starter
-(`caveat-lang/starter`); the digest identifies the source and does not
-authenticate a save. rc.16 introduced departure of eligible retired history, host-drained archives
-and collection of unreachable withdrawal groups; see the
-[history integration guide](kit/docs/HISTORY.md). rc.15 introduced integer clocks, history windows and `caveat test` checking each
-program first. rc.14 corrected the package's MCP server name to
-`io.github.WSattazahn/caveat-lang`. rc.13 introduced interface JSON and TypeScript
-declarations, stricter restore checks and refused invalid `id_text` operations.
 Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
@@ -307,6 +283,63 @@ subprocess with a 10-second limit. It speaks MCP 2026-07-28 and the
 2025-11-25 profile. [MCP setup and limits](kit/docs/MCP.md) covers the protocol,
 result format, limits and a configuration for an installed copy. A tool's
 report does not authorize an external action or authenticate its evidence.
+
+## Release history
+
+1.0.1 fixes three cases where a caveat travelling through a guard's stored
+record was kept after it was taken back, or missed by a later `qualify`
+(D012, D013 and D014). It adds no language, schema, operation, field, CLI flag,
+export, MCP tool or refusal code, and restores every 1.0.0 save. The
+[1.0.1 verified publication record](docs/releases/v1.0.1.md) identifies the
+exact tested npm artifact and says which programs can see a difference.
+
+1.0.2 fixes two cases where 1.0.1's fixes met a window or limit: departure
+was not told of evidence a late `qualify` added to a stored record (D016), and
+a caveat read through a stored record after its evidence departed could no
+longer be taken back (D018). It adds nothing either, and restores every 1.0.0 and
+1.0.1 save. The [1.0.2 verified publication record](docs/releases/v1.0.2.md)
+says which programs can see a difference.
+
+1.0.3 fixes a case where 1.0.1's D014 fix let a caveat that a plain `qualify`
+put on a guard's stored record survive its take-back (D020). It adds nothing
+either, and restores every 1.0.0, 1.0.1 and 1.0.2 save. The
+[1.0.3 verified publication record](docs/releases/v1.0.3.md) says which
+programs can see a difference.
+
+1.1.0 adds language forms (`citing`, `retaining … because`, neutral and noted
+samples, `reading(STREAM, N)`, `in_basis` and more), a compact save format,
+opt-in `caveat check` warnings, a `serve` option and kit helpers, and one
+refusal code. It changes one behavior to keep Late Qualification 0.1's promise:
+a later `qualify` now reaches a value read through a decision (D015). Every
+1.0.x save restores as it was recorded. The
+[1.1.0 verified publication record](docs/releases/v1.1.0.md) lists each
+addition and says how to find the programs the change reaches.
+
+rc.20 clarified when to use each MCP tool, its
+inputs and its results. It also fixed human-readable explanations of caveats
+carried by a decision's grounds, retained in its frozen basis, or present only
+in its wider lineage. It changed no Rust runtime, language or save format.
+
+rc.19 began the 1.0 feature freeze: it added no language, schema, operation,
+field, CLI flag or export. It fixed restore of a
+session that reopened a decision because of a caveat and then took that caveat
+back; saves written by rc.18 in that state restore in rc.19.
+
+rc.18 added `unqualify`, which takes back a caveat
+that `qualify` added, on every held occurrence of the evidence. The take-back is
+recorded, not erased, and decisions keep their basis. A save of a program that
+uses `unqualify` does not restore in rc.17 or earlier; other saves do. View 0.2
+now lists a binding's evidence in the order it was first observed, and
+`explain` names the event and payload that observed each ground.
+
+rc.17 introduced View 0.2, source digests in saves and the integration starter
+(`caveat-lang/starter`); the digest identifies the source and does not
+authenticate a save. rc.16 introduced departure of eligible retired history, host-drained archives
+and collection of unreachable withdrawal groups; see the
+[history integration guide](kit/docs/HISTORY.md). rc.15 introduced integer clocks, history windows and `caveat test` checking each
+program first. rc.14 corrected the package's MCP server name to
+`io.github.WSattazahn/caveat-lang`. rc.13 introduced interface JSON and TypeScript
+declarations, stricter restore checks and refused invalid `id_text` operations.
 
 ## Status
 
