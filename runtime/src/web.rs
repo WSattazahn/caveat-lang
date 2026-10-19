@@ -177,6 +177,27 @@ impl WebReactiveSession {
         }
     }
 
+    /// `dispatch_view_outcome` with only the view fields `fields_json` names,
+    /// a JSON array of field names. An unknown or repeated name throws before
+    /// the event is applied. See spec/caveat-view-0.1.md.
+    pub fn dispatch_view_fields_outcome(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        fields_json: &str,
+    ) -> Result<String, String> {
+        let fields = crate::reactive::ViewFields::from_json(fields_json)?;
+        match self
+            .inner
+            .dispatch_view_fields_outcome_json(event, payload_json, fields)
+        {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
     /// The per-event view, as compact JSON. See spec/caveat-view-0.1.md.
     pub fn view(&self) -> String {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")
@@ -218,6 +239,12 @@ impl WebReactiveSession {
     /// either. See spec/caveat-replay-save-0.1.md.
     pub fn save_compact(&self) -> Result<String, String> {
         self.inner.save_compact_json()
+    }
+
+    /// `save_compact` with the positional replay save, which holds more
+    /// events. See spec/caveat-replay-save-0.2.md.
+    pub fn save_compact_positional(&self) -> Result<String, String> {
+        self.inner.save_compact_positional_json()
     }
 
     /// The records departed since the last drain, as a JSON array, and an

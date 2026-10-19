@@ -80,3 +80,45 @@ fn the_browser_view_is_compact_json_without_static_declarations() {
         view
     );
 }
+
+#[test]
+fn a_field_selection_is_the_full_views_fields_in_its_order() {
+    use caveat_runtime::reactive::{ViewFields, VIEW_FIELDS};
+    // Every subset of the fields, by bit pattern, against the full view.
+    for mask in 0u32..(1 << VIEW_FIELDS.len()) {
+        let names: Vec<&str> = VIEW_FIELDS
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| mask & (1 << index) != 0)
+            .map(|(_, name)| *name)
+            .collect();
+        ViewFields::from_names(names.iter().copied()).unwrap();
+        let mut selected = WebReactiveSession::new(PROGRAM).unwrap();
+        let mut full = WebReactiveSession::new(PROGRAM).unwrap();
+        let fields_json = serde_json::to_string(&names).unwrap();
+        for event in ["read", "doubt", "read"] {
+            let lean = selected
+                .dispatch_view_fields_outcome(event, "{}", &fields_json)
+                .unwrap();
+            let whole = full.dispatch_view_outcome(event, "{}").unwrap();
+            // The full view's text with the fields left out cut from it.
+            let prefix = r#"{"schema":"caveat-dispatch/0.1","outcome":"accepted","view":"#;
+            assert!(whole.starts_with(prefix), "{event} is accepted");
+            let view: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+                serde_json::from_str(&whole[prefix.len()..whole.len() - 1]).unwrap();
+            let mut expected = format!(
+                r#"{prefix}{{"schema":{},"sequence":{},"last_event":{}"#,
+                view["schema"], view["sequence"], view["last_event"]
+            );
+            for name in &names {
+                expected.push_str(&format!(r#","{name}":{}"#, view[*name]));
+            }
+            expected.push_str("}}");
+            assert_eq!(lean, expected, "{names:?}");
+            assert_eq!(selected.save(), full.save(), "{names:?}: the same session");
+        }
+    }
+    assert!(ViewFields::from_names(["world"]).is_err());
+    assert!(ViewFields::from_names(["bindings", "bindings"]).is_err());
+    assert_eq!(ViewFields::from_names(VIEW_FIELDS), Ok(ViewFields::ALL));
+}

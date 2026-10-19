@@ -68,17 +68,19 @@ pub enum DispatchResult {
 /// event in place of the snapshot, which it does not build. A refusal is
 /// exactly `DispatchOutcome`'s, and so is a fatal error.
 #[derive(Debug, Serialize)]
-pub struct DispatchViewOutcome<'a> {
+pub struct DispatchViewOutcome<'a, V = ReactiveView<'a>> {
     pub schema: &'static str,
     #[serde(flatten)]
-    pub result: DispatchViewResult<'a>,
+    pub result: DispatchViewResult<'a, V>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
-pub enum DispatchViewResult<'a> {
+pub enum DispatchViewResult<'a, V = ReactiveView<'a>> {
     Accepted {
-        view: ReactiveView<'a>,
+        view: V,
+        #[serde(skip)]
+        borrowed: std::marker::PhantomData<&'a ()>,
     },
     Rejected {
         origin: RejectionOrigin,
@@ -114,11 +116,14 @@ impl DispatchOutcome {
     }
 }
 
-impl<'a> DispatchViewOutcome<'a> {
-    pub(super) fn accepted(view: ReactiveView<'a>) -> Self {
+impl<'a, V> DispatchViewOutcome<'a, V> {
+    pub(super) fn accepted(view: V) -> Self {
         Self {
             schema: DISPATCH_SCHEMA,
-            result: DispatchViewResult::Accepted { view },
+            result: DispatchViewResult::Accepted {
+                view,
+                borrowed: std::marker::PhantomData,
+            },
         }
     }
 }
@@ -171,7 +176,7 @@ impl DispatchFailure {
     }
 
     /// The same refusal or fatal error as `outcome`, for the view path.
-    pub(super) fn view_outcome<'a>(self) -> Result<DispatchViewOutcome<'a>, DispatchFatal> {
+    pub(super) fn view_outcome<'a, V>(self) -> Result<DispatchViewOutcome<'a, V>, DispatchFatal> {
         let (origin, code, message) = self.classify()?;
         Ok(DispatchViewOutcome {
             schema: DISPATCH_SCHEMA,
@@ -319,7 +324,7 @@ mod tests {
                 .outcome()
                 .map(|outcome| serde_json::to_string(&outcome).unwrap());
             let new = new
-                .view_outcome()
+                .view_outcome::<ReactiveView<'_>>()
                 .map(|outcome| serde_json::to_string(&outcome).unwrap());
             match (old, new) {
                 (Ok(old), Ok(new)) => assert_eq!(old, new),

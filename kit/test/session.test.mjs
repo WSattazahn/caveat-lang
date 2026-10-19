@@ -331,11 +331,29 @@ test('a compact save is smaller and restores the same session', () => {
   } finally { first.close(); second.close(); }
 });
 
+test('a positional compact save is smaller still and restores the same session', () => {
+  const first = real.open(thermostat);
+  for (const value of [17, 21, 25]) first.dispatch('read', { value });
+  const named = first.save({ compact: true });
+  const positional = first.save({ compact: true, positional: true });
+  assert.equal(JSON.parse(positional).schema, 'caveat-replay-save/0.2');
+  assert.ok(positional.length < named.length);
+  // Asking for it leaves the named compact save as it was.
+  assert.equal(first.save({ compact: true }), named);
+  const second = real.restore(thermostat, positional);
+  try {
+    assert.deepEqual(second.snapshot(), first.snapshot());
+    assert.equal(second.save({ compact: true }), named);
+    assert.deepEqual(second.dispatch('read', { value: 30 }), first.dispatch('read', { value: 30 }));
+  } finally { first.close(); second.close(); }
+});
+
 test('a compact save on a runtime build that predates it throws a load error and changes nothing', () => {
   const { runtime } = faulty();
   const session = runtime.open(thermostat);
   session.dispatch('read', { value: 17 });
   assert.throws(() => session.save({ compact: true }), error => error.kind === 'load' && /predates/.test(error.message));
+  assert.throws(() => session.save({ compact: true, positional: true }), error => error.kind === 'load' && /predates/.test(error.message));
   assert.equal(session.state, 'open');
   assert.equal(typeof session.save(), 'string');
   session.close();
