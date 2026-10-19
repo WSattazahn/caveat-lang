@@ -238,7 +238,7 @@ pub enum Effect {
         stance: Option<(Relation, String)>,
         /// `noting EXPRESSION`: the text of the identifier it names, kept
         /// with the reading. See spec/caveat-reading-notes-0.1.md.
-        note: Option<Expr>,
+        note: Option<Box<Expr>>,
     },
     Emit {
         name: String,
@@ -403,7 +403,7 @@ fn expand_effect(
         Effect::Sample { value, note, .. } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
             if let Some(note) = note {
-                *note = reactive_expr::expand_with(note, functions, defines)?;
+                **note = reactive_expr::expand_with(note, functions, defines)?;
             }
         }
         Effect::Qualify { after, index, .. } => {
@@ -978,7 +978,7 @@ impl<'a> OrderStep<'a> {
             }
             Effect::Sample { value, note, .. } => {
                 expressions.push(value);
-                expressions.extend(note.iter());
+                expressions.extend(note.as_deref());
             }
             Effect::Commit {
                 using,
@@ -6706,7 +6706,9 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             stance: stance
                 .as_ref()
                 .map(|(relation, claim)| (*relation, rename(claim))),
-            note: note.as_ref().map(|note| note.rename_symbols(names)),
+            note: note
+                .as_ref()
+                .map(|note| Box::new(note.rename_symbols(names))),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -7866,7 +7868,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 value: reactive_expr::parse_unresolved(&value.join(" "))
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
-                note,
+                note: note.map(Box::new),
             })
         }
         ["sample", ..] => Err(

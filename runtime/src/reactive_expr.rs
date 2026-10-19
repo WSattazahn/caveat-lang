@@ -577,7 +577,7 @@ enum Node {
     AtOccurrence(String, String, Box<Expr>),
     /// `in_basis(SERIES | revision(SERIES, K), REFERENCE)`: its children are
     /// K, if any, then the reference's index, if any.
-    InBasis(InBasis, Vec<Expr>),
+    InBasis(Box<InBasis>, Vec<Expr>),
     Latest(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
@@ -1141,11 +1141,11 @@ impl Expr {
                 child(index),
             ),
             Node::InBasis(basis, children) => Node::InBasis(
-                InBasis {
+                Box::new(InBasis {
                     series: rename(&basis.series),
                     name: rename(&basis.name),
-                    ..basis.clone()
-                },
+                    ..(**basis).clone()
+                }),
                 children
                     .iter()
                     .map(|expression| expression.rename_symbols(names))
@@ -2359,12 +2359,12 @@ impl Parser {
         };
         self.expect(TokenKind::RightParen, "')' after in_basis")?;
         Ok(Node::InBasis(
-            InBasis {
+            Box::new(InBasis {
                 series,
                 revision,
                 kind,
                 name: evidence,
-            },
+            }),
             children,
         ))
     }
