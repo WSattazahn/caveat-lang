@@ -50,7 +50,9 @@ for KIND as $NAME routed by P { BODY };
 This is a Repetition 0.1 block with one more clause. P is the name of an event
 parameter: a plain name, with no `$` and no dots. Everything Repetition 0.1
 says still holds: `$NAME` and `$index`, member-major expansion, one part at a
-time, no nesting.
+time. A routed block may hold nested blocks, and be nested, as
+[Nested Repetition 0.1](caveat-nested-repetition-0.1.md) says: it routes the
+rules of the blocks nested in it too, once they have expanded.
 
 P is written, not inferred. An event can name two members of one kind, as
 `event stacked target kind pr, base kind pr;` would, and an inferred P would
@@ -336,8 +338,9 @@ declared in its own part, routing reads nothing else.
 
 An error stops loading at the first one found. Blocks are read in source
 order, and in each block the checks run in this order:
-1. the header, and Repetition 0.1's checks of the binding, of nesting, of
-   the kind and of the body's last `;`;
+1. the header, and Repetition 0.1's checks of the binding, of the kind and
+   of the body's last `;`, then the blocks nested in the body, each with
+   these checks in this order (Nested Repetition 0.1);
 2. an entity of KIND in a `for` block;
 3. each rule, in the order written;
 4. whether the block routes any rule;
