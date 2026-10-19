@@ -64,10 +64,13 @@ const RESERVED: &[&str] = &[
     "examine",
     "fn",
     "for",
+    // spec/caveat-foreclosure-0.1.md: clause words of a decisions declaration.
+    "forecloses",
     "from",
     "id",
     "identifiers",
     "if",
+    "irreversible",
     "kind",
     "limit",
     "module",
