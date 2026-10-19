@@ -7,6 +7,7 @@ claim fix_complete;              # the take-back fixes remove every divergence
 claim patch_safe;                # a 1.0.x patch repairs without regressing
 claim runtime_correct;           # every finding is evidence against this; every passing check for it
 claim approved_by_owner;         # what an approval reading bears on
+claim plugin_listable;           # the OpenAI plugin may be published as submitted
 
 # ---- Caveats a reader must see ---------------------------------------------
 
@@ -15,6 +16,7 @@ caveat changes_saves consequence low;               # the fixes change saves of 
 caveat uncovered_windows consequence high;          # no test on the path used a window
 caveat latent_since_1_0_0 consequence low;          # a bug every release has had; not a regression
 caveat fix_regressed consequence high;              # a fix on the tree broke the case it fixed (D020)
+caveat notes_name_old_runtime consequence low;      # approved release notes name the 1.0.0 runtime; the server runs a later 1.x
 
 # ---- Sources of evidence ---------------------------------------------------
 
@@ -39,6 +41,7 @@ evidence randomized_checks from "runtime/tests/*_invariants.rs and kin";
 evidence gap_report from "a report of two forms 1.1 lacked: naming a stream's earlier reading, and asking whether evidence is in a decision's basis";
 evidence latest_gap_report from "a report that carries(latest(STREAM), C) did not load while qualify latest(STREAM) did";
 evidence next_report from "a report that a fresh author lacked a freeze construct and nested for, and wanted a faster view and a smaller save";
+evidence openai_review from "OpenAI's review of the Caveat plugin 1.1.1 with the hosted MCP server";
 evidence owner from "the owner's answer to a card";
 readings approvals from owner limit 64;            # value: the item code approved
 
@@ -51,6 +54,7 @@ decisions record_fix limit 4;   # value: 1 before the two 1.1 gaps, 2 after
 decisions gaps_1_1 limit 4;     # value: 1 both forms in 1.1, 2 neither, 3 readings only
 decisions latest_gap_1_1 limit 4;  # value: 1 add, then a fresh-author check; 2 add only; 3 the docs warning only
 decisions next_1_2 limit 4;     # value: 1 both halves, 2 language only, 3 speed only, 4 stop the checks
+decisions openai_listing limit 4;  # value: the plugin version published (111 is 1.1.1)
 
 # Bases the decisions read. A late caveat on their evidence reaches these
 # values (Late Qualification 0.1), which is how a past decision is found to
@@ -62,6 +66,7 @@ state order_basis = 0;
 state gaps_basis = 0;
 state latest_gap_basis = 0;
 state next_basis = 0;
+state listing_basis = 0;
 
 # ---- Events: what happened, in the order it happened -----------------------
 
@@ -86,6 +91,8 @@ event report_latest_gap;                    # carries(latest(STREAM), C) reporte
 event decide_latest_gap option min 1 max 3;
 event report_next;                          # the forms and speed a fresh author wanted
 event decide_next option min 1 max 4;
+event plugin_review approved min 0 max 1;  # OpenAI's verdict on a submitted plugin version
+event publish_plugin version min 100 max 199;  # the owner publishes that version
 
 # The attribution was an inference; it says so.
 on infer_attribution reveal attribution_all_nine supports divergences_were_runtime;
@@ -189,6 +196,16 @@ on decide_next set next_basis = qualified(option, next_report);
 on decide_next when not committed(next_1_2)
     commit next_1_2 because enough using next_basis permitted by latest(approvals) for 1200 + option;
 
+# Publishing the OpenAI plugin rests on OpenAI's approval of the version
+# submitted, and on the owner's go for item 7000 + the version.
+on plugin_review when approved == 1 reveal openai_review supports plugin_listable;
+on plugin_review when approved == 1 qualify openai_review with notes_name_old_runtime;
+on plugin_review when approved == 0 reveal openai_review opposes plugin_listable;
+on publish_plugin when not observed(openai_review) reject "no review to publish on";
+on publish_plugin set listing_basis = qualified(version, openai_review);
+on publish_plugin when committed(openai_listing) and not reopened(openai_listing) reject "a published version stands; review it first";
+on publish_plugin commit openai_listing because enough using listing_basis permitted by latest(approvals) for 7000 + version;
+
 # ---- What a reader sees ----------------------------------------------------
 
 bind ledger.release = "none yet";
@@ -221,3 +238,5 @@ bind ledger.next_1_2 = "freeze and nested for specs, a faster view and a smaller
 bind ledger.next_1_2 = "freeze and nested for specs, then a fresh-author check" when committed(next_1_2) and latest(next_1_2) == 2;
 bind ledger.next_1_2 = "a faster view and a smaller save, then a fresh-author check" when committed(next_1_2) and latest(next_1_2) == 3;
 bind ledger.next_1_2 = "no further fresh-author checks" when committed(next_1_2) and latest(next_1_2) == 4;
+bind ledger.openai_listing = "not published";
+bind ledger.openai_listing = "1.1.1 published on OpenAI's plugin directory" when committed(openai_listing) and not reopened(openai_listing) and latest(openai_listing) == 111;
