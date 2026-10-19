@@ -119,6 +119,39 @@
       ]
     },
     {
+      "id": "L07",
+      "title": "The OpenAI plugin is published only on an approving review and the owner's go for 7000 plus the version, and its grounds keep the stale-notes caveat",
+      "steps": [
+        { "expect": { "/bindings/ledger/openai_listing": "not published" } },
+        { "send": "publish_plugin", "payload": { "version": 111 }, "rejected": "no review to publish on" },
+        { "send": "plugin_review", "payload": { "approved": 1 } },
+        { "send": "approve", "payload": { "item": 111 } },
+        { "send": "publish_plugin", "payload": { "version": 111 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "send": "approve", "payload": { "item": 7111 } },
+        { "send": "publish_plugin", "payload": { "version": 111 } },
+        { "expect": {
+            "/bindings/ledger/openai_listing": "1.1.1 published on OpenAI's plugin directory",
+            "/commitment_grounds/openai_listing@1": { "evidence": ["openai_review"], "caveats": ["notes_name_old_runtime"] }
+        } },
+        { "send": "publish_plugin", "payload": { "version": 111 }, "rejected": "a published version stands; review it first" }
+      ]
+    },
+    {
+      "id": "L08",
+      "title": "A minor release needs a passing Runtime run on main and the owner's go, and does not touch the 1.0.x patch line",
+      "steps": [
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": "no main run to ship from" },
+        { "send": "main_run", "payload": { "green": 0 } },
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": "main's last Runtime run did not pass" },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "expect": { "/bindings/ledger/minor_release": "none yet" } },
+        { "send": "approve", "payload": { "item": 110 } },
+        { "send": "ship_minor", "payload": { "version": 110 } },
+        { "expect": { "/bindings/ledger/minor_release": "1.1.0 stands", "/bindings/ledger/release": "none yet" } }
+      ]
+    },
+    {
       "id": "L04",
       "title": "The ledger replays 2026-10-17 to 19 as recorded in events.jsonl and ends where the project stands",
       "steps": [
@@ -167,13 +200,23 @@
         { "send": "approve", "payload": { "item": 284 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 285 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 288 } },
         { "send": "approve", "payload": { "item": 280 } },
         { "send": "report_next" },
         { "send": "approve", "payload": { "item": 1201 } },
         { "send": "decide_next", "payload": { "option": 1 } },
+        { "send": "plugin_review", "payload": { "approved": 1 } },
+        { "send": "approve", "payload": { "item": 7111 } },
+        { "send": "publish_plugin", "payload": { "version": 111 } },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 110 } },
+        { "send": "ship_minor", "payload": { "version": 110 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 286 } },
         { "expect": {
+            "/bindings/ledger/minor_release": "1.1.0 stands",
+            "/bindings/ledger/openai_listing": "1.1.1 published on OpenAI's plugin directory",
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/latest_gap_1_1": "carries(latest) in 1.1, then a fresh-author check",
             "/bindings/ledger/next_1_2": "freeze and nested for specs, a faster view and a smaller save, then a fresh-author check",
