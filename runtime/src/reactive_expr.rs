@@ -2200,7 +2200,7 @@ impl Parser {
         // the predicate asked of a held occurrence of renewable evidence. See
         // spec/caveat-earlier-occurrence-0.1.md.
         if matches!(name.as_str(), "observed" | "withdrawn" | "carries")
-            && self.peek() == Some(&TokenKind::Identifier("occurrence".into()))
+            && matches!(self.peek(), Some(TokenKind::Identifier(selector)) if selector == "occurrence" || selector == "reading")
             && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
                 == Some(&TokenKind::LeftParen)
         {

@@ -2743,7 +2743,8 @@ impl ReactiveSession {
                 } => {
                     if *latest {
                         self.require_latest(evidence)?;
-                    } else {
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
                         self.require_kind(evidence, "evidence")?;
                     }
                     if let Some(index) = index {
@@ -2777,7 +2778,8 @@ impl ReactiveSession {
                 } => {
                     if *latest {
                         self.require_latest(evidence)?;
-                    } else {
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
                         self.require_kind(evidence, "evidence")?;
                     }
                     self.require_kind(caveat, "caveat")?;
@@ -3236,10 +3238,12 @@ impl ReactiveSession {
         Ok(state)
     }
 
-    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence: see
-    /// spec/caveat-earlier-occurrence-0.1.md.
+    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence, and
+    /// `reading(STREAM, INDEX)` a reading stream: see
+    /// spec/caveat-earlier-occurrence-0.1.md and
+    /// spec/caveat-reading-index-0.1.md.
     fn require_renewable_occurrence(&self, evidence: &str) -> Result<(), String> {
-        if self.renewals.contains_key(evidence) {
+        if self.renewals.contains_key(evidence) || self.reading_streams.contains_key(evidence) {
             Ok(())
         } else {
             Err(format!(
@@ -6365,10 +6369,21 @@ impl ReactiveSession {
     /// is not a whole number naming an occurrence that exists and has not
     /// retired.
     fn held_occurrence(&self, evidence: &str, index: f64) -> Option<String> {
-        let renewal = self.renewals.get(evidence)?;
         if index < 1.0 || index.fract() != 0.0 {
             return None;
         }
+        // A stream's `k`th reading is `STREAM@k`, while the stream holds it:
+        // spec/caveat-reading-index-0.1.md.
+        if let Some(stream) = self.reading_streams.get(evidence) {
+            let name = format!("{evidence}@{index}");
+            return stream
+                .occurrences
+                .iter()
+                .any(|occurrence| occurrence.id == name)
+                .then_some(name)
+                .filter(|name| !self.is_retired(name));
+        }
+        let renewal = self.renewals.get(evidence)?;
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
@@ -7515,12 +7530,14 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 /// `occurrence(EVIDENCE, INDEX)` as an effect's target or reason, or `None`
 /// for any other text. See spec/caveat-earlier-occurrence-0.1.md.
+/// `occurrence(EVIDENCE, INDEX)`, or `reading(STREAM, INDEX)`, which names a
+/// stream's reading the same way: spec/caveat-reading-index-0.1.md.
 fn occurrence_selector(text: &str) -> Result<Option<(String, Box<Expr>)>, String> {
-    let Some(arguments) = text
-        .strip_prefix("occurrence")
-        .map(str::trim_start)
-        .and_then(|rest| rest.strip_prefix('('))
-    else {
+    let Some(arguments) = ["occurrence", "reading"].iter().find_map(|selector| {
+        text.strip_prefix(selector)
+            .map(str::trim_start)
+            .and_then(|rest| rest.strip_prefix('('))
+    }) else {
         return Ok(None);
     };
     let arguments = arguments
@@ -7540,10 +7557,11 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     let invalid = || format!("invalid reactive effect: {}", words.join(" "));
     match words {
         [verb @ ("qualify" | "unqualify"), rest @ ..]
-            if rest
-                .join(" ")
-                .strip_prefix("occurrence")
-                .is_some_and(|rest| rest.trim_start().starts_with('(')) =>
+            if ["occurrence", "reading"].iter().any(|selector| {
+                rest.join(" ")
+                    .strip_prefix(selector)
+                    .is_some_and(|rest| rest.trim_start().starts_with('('))
+            }) =>
         {
             let split = rest
                 .iter()
