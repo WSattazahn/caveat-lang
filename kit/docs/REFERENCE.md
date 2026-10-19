@@ -13,8 +13,7 @@ which are authoritative.
 
 ## Commands
 
-Run each as `npx --no-install caveat …` in a project with the package
-installed.
+Run each as `npx --no-install caveat …` in a project with the package installed.
 
 | Command | What it answers |
 | --- | --- |
