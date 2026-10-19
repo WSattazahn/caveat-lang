@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.join(here, '..', 'kit', 'bin', 'caveat.mjs');
 const runtime = process.argv.includes('--runtime') ? ['--runtime', process.argv[process.argv.indexOf('--runtime') + 1]] : [];
-const result = spawnSync(process.execPath, [cli, 'replay', ...runtime, path.join(here, 'project.cav'), path.join(here, 'events.jsonl')], { encoding: 'utf8' });
+const result = spawnSync(process.execPath, [cli, 'replay', ...runtime, path.join(here, 'project.cav'), path.join(here, 'events.jsonl')], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
 if (result.status !== 0 && result.status !== 1) {
   process.stderr.write(result.stderr || result.stdout);
   process.exit(2);

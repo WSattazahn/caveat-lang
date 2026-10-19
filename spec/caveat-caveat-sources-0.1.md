@@ -1,6 +1,6 @@
-# CAVEAT Caveat Sources 0.1 (draft): where each caveat came from
+# CAVEAT Caveat Sources 0.1: where each caveat came from
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It changes how the runtime keeps
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It changes how the runtime keeps
 [Take-back 0.1](caveat-take-back-0.1.md) and
 [Late Qualification 0.1](caveat-late-qualification-0.1.md) consistent; it adds
 no syntax.
@@ -170,7 +170,7 @@ release's except for caveats added, and byte for byte to the same events
 played live without a save.
 
 1.1 ships a detector, asked for like `--unused`
-([Check 0.1](caveat-check-0.1.md), C008 and C009, a 1.1 draft).
+([Check 0.1](caveat-check-0.1.md), C008 and C009, from 1.1.0).
 `caveat check --records PROGRAM` reports each rule, procedure or binding
 that reads a decision's record in a program that qualifies evidence (C008
 `record-reads-late-caveat`). `caveat check --records --save SAVE PROGRAM`

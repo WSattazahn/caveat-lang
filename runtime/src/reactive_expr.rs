@@ -102,6 +102,11 @@ pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 /// spec/caveat-earlier-occurrence-0.1.md.
 pub const AT_OCCURRENCE: &str = "occurrence:";
 
+/// The prefix of a predicate kind asked of `latest(NAME)`; the host resolves
+/// the name to its current reading or occurrence. See
+/// spec/caveat-latest-0.1.md.
+pub const AT_LATEST: &str = "latest:";
+
 /// The predicate kind asked of `revision(SERIES, INDEX)`, kept whole in the
 /// node; the host receives the target as `SERIES#INDEX`. See
 /// spec/caveat-past-revisions-0.1.md.
@@ -1272,7 +1277,7 @@ impl Expr {
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
-                let qualified = ["carries:", "has_caveat:"]
+                let qualified = ["latest:carries:", "carries:", "has_caveat:"]
                     .into_iter()
                     .find_map(|prefix| kind.strip_prefix(prefix).map(|caveat| (prefix, caveat)));
                 match qualified {
@@ -2641,6 +2646,23 @@ impl Parser {
         // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
         // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
         if name == "carries" {
+            // `carries(latest(NAME), CAVEAT)`: asked of the current reading
+            // or occurrence. See spec/caveat-latest-0.1.md.
+            if self.peek() == Some(&TokenKind::Identifier("latest".into()))
+                && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                    == Some(&TokenKind::LeftParen)
+            {
+                self.cursor += 2;
+                let target = self.graph_identifier("carries latest name")?;
+                self.expect(TokenKind::RightParen, "')' after the latest name")?;
+                self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+                let caveat = self.graph_identifier("carries caveat")?;
+                self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
+                return Ok(Node::Predicate(
+                    format!("{AT_LATEST}carries:{caveat}"),
+                    target,
+                ));
+            }
             let evidence = self.graph_identifier("carries evidence")?;
             self.expect(TokenKind::Comma, "',' before the carried caveat")?;
             let caveat = self.graph_identifier("carries caveat")?;
@@ -2648,6 +2670,12 @@ impl Parser {
             return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
         }
         if name == "has_caveat" {
+            if self.peek() == Some(&TokenKind::Identifier("latest".into())) {
+                return Err(format!(
+                    "has_caveat asks about a state; ask carries(latest(NAME), CAVEAT) of a reading at byte {}",
+                    self.offset()
+                ));
+            }
             let state = self.graph_identifier("has_caveat state")?;
             self.expect(TokenKind::Comma, "',' before the state's caveat")?;
             let caveat = self.graph_identifier("has_caveat caveat")?;

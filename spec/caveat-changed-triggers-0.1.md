@@ -1,6 +1,6 @@
-# CAVEAT Changed Triggers 0.1 (draft) — reopen only when a reading changes
+# CAVEAT Changed Triggers 0.1 — reopen only when a reading changes
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#223](https://github.com/WSattazahn/caveat-lang/issues/223)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1 ([#223](https://github.com/WSattazahn/caveat-lang/issues/223)). It adds to
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md); it changes no
 program that loads today.
 

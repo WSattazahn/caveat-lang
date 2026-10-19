@@ -203,7 +203,13 @@ calling `view()` after it, which builds the same view again. `dispatchViewDelta`
 returns what changed in a View 0.2. `dispatch` builds the full snapshot, the
 largest thing the runtime returns; use it when the host needs the journal,
 grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
-snapshot instead of building another.
+snapshot instead of building another. A decision's basis is in the view:
+`decisionHistory(view, name)` lists what each revision was committed on, so an
+adapter that reads bases does not need `dispatch` and the snapshot for it.
+A binding that reads `latest(STREAM)` explains itself in
+`view.binding_explanations[TARGET][PROPERTY]`: its `evidence` includes the
+current reading (`STREAM@N`) and its `caveats` are that reading's live caveats, so the
+adapter needs no snapshot for the latest report either.
 
 ## Replay with the native command line (repository checkout)
 
@@ -349,6 +355,26 @@ and see the effects of earlier steps in the same event, and a `reject` inside
 one refuses the whole event. When a change adds another instrument, it adds
 declarations and a call, not another copy of the rules. See
 [procedure symbols](../spec/caveat-procedure-symbols-0.1.md).
+
+A call passes its guard's and every argument's evidence and caveats to
+everything the procedure does, samples included, even when the body never
+reads that argument ([evaluation order](../spec/caveat-reactive-0.7.md#evaluation-order-and-qualification)).
+Passing a control flag such as `frozen` into a procedure that samples
+therefore puts the flag's lineage on every new reading. If the flag was set
+under a guard that read a withdrawn report, each later reading then carries
+`withdrawn` as well. Pass a procedure only what its steps read. Keep a
+`sample` in a procedure that does not take the flag, or in its own rule, and
+test the flag in the calling rule's `when`:
+
+```caveat
+proc take(s readings, outcome) {
+    sample s = outcome supports passing;
+};
+on report when frozen == 0 call take(checks, outcome);
+```
+
+The guard's lineage still reaches what the call does, as it does for any
+guarded effect, but only for that one event.
 
 ## Compare several candidates
 
@@ -502,6 +528,8 @@ on retract when committed(merge) and not reopened(merge)
 does in `withdraw`, `qualify`, `unqualify` and `reopen … because`, and in
 `observed`, `withdrawn` and `carries`. An N that names no reading the stream
 holds refuses an effect as `expression` and makes a predicate false.
+`carries(latest(STREAM), C)` asks whether the current reading carries `C`,
+for example in a guard that refuses to flag a reading twice.
 `in_basis(DECISION, E)` is true when the decision's current revision rests on
 `E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
 asks the same of the Kth revision. A later reading is never in an earlier

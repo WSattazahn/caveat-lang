@@ -1,6 +1,6 @@
-# CAVEAT Reading Index 0.1 (draft) — naming an earlier reading of a stream
+# CAVEAT Reading Index 0.1 — naming an earlier reading of a stream
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It adds to
 [Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md) and
 [Latest 0.1](caveat-latest-0.1.md); it changes no program that loads today.
 
