@@ -49,7 +49,7 @@ pub use save::{
 
 #[path = "reactive_replay_save.rs"]
 mod replay_save;
-pub use replay_save::{REPLAY_SAVE_MAX_BYTES, REPLAY_SAVE_SCHEMA};
+pub use replay_save::{POSITIONAL_REPLAY_SAVE_SCHEMA, REPLAY_SAVE_MAX_BYTES, REPLAY_SAVE_SCHEMA};
 
 #[path = "reactive_outcome.rs"]
 mod outcome;

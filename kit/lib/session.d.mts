@@ -112,6 +112,11 @@ export type SessionState = 'open' | 'closed' | 'fatal';
 export interface SaveOptions {
   /** The replay save when it is smaller. Default false: the state save. */
   compact?: boolean;
+  /**
+   * With `compact`, the positional replay save, which holds more events
+   * (spec/caveat-replay-save-0.2.md). Default false.
+   */
+  positional?: boolean;
 }
 
 /** One program's session. Made by `runtime.open` or `runtime.restore`. */
@@ -242,6 +247,7 @@ export interface RuntimeSessionHandle {
   view_v2?(): string;
   save(): string;
   save_compact?(): string;
+  save_compact_positional?(): string;
   drain_archive?(): string;
   undrained?(): number;
   free(): void;

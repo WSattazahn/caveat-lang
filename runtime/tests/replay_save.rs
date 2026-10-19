@@ -1,5 +1,7 @@
-//! The replay save. See spec/caveat-replay-save-0.1.md.
-use caveat_runtime::reactive::{ReactiveSession, REPLAY_SAVE_MAX_BYTES, REPLAY_SAVE_SCHEMA};
+//! The replay save. See spec/caveat-replay-save-0.1.md and 0.2.
+use caveat_runtime::reactive::{
+    ReactiveSession, POSITIONAL_REPLAY_SAVE_SCHEMA, REPLAY_SAVE_MAX_BYTES, REPLAY_SAVE_SCHEMA,
+};
 use serde_json::{json, Value};
 
 const LEDGER: &str = r#"
@@ -189,4 +191,92 @@ fn the_archive_is_not_restored() {
     let restored =
         ReactiveSession::restore_json(LEDGER, &played().save_compact_json().unwrap()).unwrap();
     assert_eq!(restored.undrained(), 0);
+}
+
+#[test]
+fn a_positional_save_restores_the_session_that_wrote_it() {
+    let mut saved = played();
+    let named = saved.save_compact_json().unwrap();
+    let positional = saved.save_compact_positional_json().unwrap();
+    let parsed: Value = serde_json::from_str(&positional).unwrap();
+    assert_eq!(parsed["schema"], POSITIONAL_REPLAY_SAVE_SCHEMA);
+    assert!(positional.len() < named.len(), "{positional} vs {named}");
+    // Events in name order: checks 0, decide 1, flag 2, nudge 3, unflag 4.
+    // `result in failed passed` is written as its position, the identifier
+    // as its text and the signed zero as written.
+    assert_eq!(parsed["events"][0], json!([0, SHA, 2]));
+    assert_eq!(parsed["events"][2], json!([1]));
+    assert!(positional.contains("[3,-0.0]"), "{positional}");
+
+    let mut restored = ReactiveSession::restore_json(LEDGER, &positional).unwrap();
+    assert_eq!(snapshot(&restored), snapshot(&saved));
+    assert_eq!(restored.save_json().unwrap(), saved.save_json().unwrap());
+    assert_eq!(restored.save_compact_json().unwrap(), named);
+    assert_eq!(restored.save_compact_positional_json().unwrap(), positional);
+    for (event, payload) in [
+        ("decide", json!({})),
+        ("checks", json!({"commit": "another", "result": "passed"})),
+    ] {
+        assert_eq!(
+            send(&mut restored, event, payload.clone()),
+            send(&mut saved, event, payload)
+        );
+    }
+    assert_eq!(
+        restored.save_compact_positional_json().unwrap(),
+        saved.save_compact_positional_json().unwrap()
+    );
+}
+
+#[test]
+fn a_positional_save_outlasts_the_named_one_and_leaves_it_unchanged() {
+    let mut with = played();
+    let mut without = played();
+    let (mut named, mut positional) = (0, 0);
+    for step in 0..400 {
+        send(&mut with, "nudge", json!({"by": step}));
+        send(&mut without, "nudge", json!({"by": step}));
+        // Asking for the positional save changes nothing the named one writes.
+        let _ = with.save_compact_positional_json().unwrap();
+        let compact = with.save_compact_json().unwrap();
+        assert_eq!(compact, without.save_compact_json().unwrap());
+        named += usize::from(compact.contains(REPLAY_SAVE_SCHEMA));
+        let save = with.save_compact_positional_json().unwrap();
+        if save.contains(POSITIONAL_REPLAY_SAVE_SCHEMA) {
+            assert!(save.len() <= REPLAY_SAVE_MAX_BYTES);
+            let restored = ReactiveSession::restore_json(LEDGER, &save).unwrap();
+            assert_eq!(restored.save_json().unwrap(), with.save_json().unwrap());
+            positional += 1;
+        } else {
+            assert_eq!(save, with.save_json().unwrap());
+        }
+    }
+    assert!(positional > 2 * named, "{positional} vs {named}");
+}
+
+#[test]
+fn a_positional_save_it_cannot_replay_is_refused() {
+    let saved = played();
+    let good: Value = serde_json::from_str(&saved.save_compact_positional_json().unwrap()).unwrap();
+    let with_events = |events: Value| {
+        let mut save = good.clone();
+        save["events"] = events;
+        save.to_string()
+    };
+    for (save, expected) in [
+        (with_events(json!([[9]])), "names no event"),
+        (with_events(json!([["decide"]])), "names no event"),
+        (with_events(json!([[1, 0]])), "takes 0 arguments"),
+        (with_events(json!([[0, SHA]])), "takes 2 arguments"),
+        (with_events(json!([[0, SHA, null]])), "not [event, argument"),
+        (
+            with_events(json!([[0, SHA, 7]])),
+            "event 1 (checks) is not accepted",
+        ),
+    ] {
+        let error = ReactiveSession::restore_json(LEDGER, &save)
+            .err()
+            .unwrap_or_else(|| panic!("{save} restored"));
+        assert!(error.contains(expected), "{save}: {error}");
+    }
 }

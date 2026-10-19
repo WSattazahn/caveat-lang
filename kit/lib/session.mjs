@@ -276,11 +276,19 @@ export class CaveatSession {
   // The save is JSON text; restore it with the exact source it came from.
   // save({ compact: true }) is the replay save while the session's accepted
   // events fit in one and it is smaller, otherwise the same state save
-  // (spec/caveat-replay-save-0.1.md). A runtime build that predates it throws
-  // CaveatError("load") and the session is untouched.
+  // (spec/caveat-replay-save-0.1.md). With positional: true as well it is the
+  // positional replay save, which holds more events
+  // (spec/caveat-replay-save-0.2.md). A runtime build that predates either
+  // throws CaveatError("load") and the session is untouched.
   save(options = {}) {
     if (options?.compact !== true) return this.#json(() => this.#inner.save(), 'save').text;
     this.#usable();
+    if (options.positional === true) {
+      if (typeof this.#inner.save_compact_positional !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no save_compact_positional; it predates positional replay saves');
+      }
+      return this.#json(() => this.#inner.save_compact_positional(), 'save').text;
+    }
     if (typeof this.#inner.save_compact !== 'function') {
       throw new CaveatError('load', 'this runtime build has no save_compact; it predates compact saves');
     }
@@ -350,6 +358,7 @@ function lifecycleOf(SessionClass) {
 // dispatch_view_outcome (for dispatchView), view_v2 and
 // dispatch_view_delta_outcome (for View 0.2), drain_archive and undrained (for
 // drainArchive and undrained), save_compact (for save({ compact: true })),
+// save_compact_positional (for save({ compact: true, positional: true })),
 // snapshot_compact (a faster snapshot()), SessionClass.check(source),
 // optionally SessionClass.check_with(source, unused) and
 // SessionClass.check_options(source, optionsJson) (for check's options), and

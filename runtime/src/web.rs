@@ -220,6 +220,12 @@ impl WebReactiveSession {
         self.inner.save_compact_json()
     }
 
+    /// `save_compact` with the positional replay save, which holds more
+    /// events. See spec/caveat-replay-save-0.2.md.
+    pub fn save_compact_positional(&self) -> Result<String, String> {
+        self.inner.save_compact_positional_json()
+    }
+
     /// The records departed since the last drain, as a JSON array, and an
     /// empty archive. See spec/caveat-departure-0.1.md, "The archive".
     pub fn drain_archive(&mut self) -> String {

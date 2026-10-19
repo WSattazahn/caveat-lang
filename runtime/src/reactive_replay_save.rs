@@ -1,5 +1,6 @@
 //! The replay save: the events a session accepted since its program loaded,
-//! restored by dispatching them again. See spec/caveat-replay-save-0.1.md.
+//! restored by dispatching them again. See spec/caveat-replay-save-0.1.md and,
+//! for the positional form, spec/caveat-replay-save-0.2.md.
 //!
 //! A session keeps the events it accepts while they fit in
 //! `REPLAY_SAVE_MAX_BYTES`, and `save_compact_json` writes them in place of the
@@ -11,8 +12,12 @@ use super::*;
 use serde_json::Value;
 
 pub const REPLAY_SAVE_SCHEMA: &str = "caveat-replay-save/0.1";
-/// The largest replay save a session writes or restores. Past it, the session
-/// drops the events it kept and its compact save is the state save.
+/// The positional replay save: each event as its position among the
+/// program's events, then its parameters in declared order.
+pub const POSITIONAL_REPLAY_SAVE_SCHEMA: &str = "caveat-replay-save/0.2";
+/// The largest replay save a session writes or restores, in either form. Past
+/// it, the session drops the events it kept and its compact saves are state
+/// saves.
 pub const REPLAY_SAVE_MAX_BYTES: usize = 4096;
 
 /// One accepted event: its name and its payload as `dispatch` takes it, each
@@ -31,6 +36,54 @@ impl ReplayEntry {
             entry.push(Value::Object(self.payload.clone()));
         }
         Value::Array(entry)
+    }
+
+    /// `[E, ARGUMENT, …]`: the event's position in `events`, which is in name
+    /// order as the interface lists them, then each parameter in declared
+    /// order, written as in the payload.
+    fn to_positional(&self, events: &BTreeMap<String, Vec<Parameter>>) -> Value {
+        let position = events.keys().position(|name| *name == self.event);
+        let mut entry = vec![Value::from(position.unwrap_or(usize::MAX))];
+        for parameter in events.get(&self.event).into_iter().flatten() {
+            entry.push(
+                self.payload
+                    .get(&parameter.name)
+                    .cloned()
+                    .unwrap_or(Value::Null),
+            );
+        }
+        Value::Array(entry)
+    }
+
+    fn from_positional(
+        value: &Value,
+        events: &BTreeMap<String, Vec<Parameter>>,
+    ) -> Result<Self, String> {
+        let malformed = || "an event entry is not [event, argument, …]".to_string();
+        let items = value.as_array().ok_or_else(malformed)?;
+        let (event, parameters) = items
+            .first()
+            .and_then(Value::as_u64)
+            .and_then(|position| events.iter().nth(usize::try_from(position).ok()?))
+            .ok_or_else(|| "an event entry names no event of this program".to_string())?;
+        if items.len() != parameters.len() + 1 {
+            return Err(format!(
+                "event {event} takes {} arguments",
+                parameters.len()
+            ));
+        }
+        let payload = parameters
+            .iter()
+            .zip(&items[1..])
+            .map(|(parameter, value)| match value {
+                Value::Number(_) | Value::String(_) => Ok((parameter.name.clone(), value.clone())),
+                _ => Err(malformed()),
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(Self {
+            event: event.clone(),
+            payload,
+        })
     }
 
     fn from_value(value: &Value) -> Result<Self, String> {
@@ -65,11 +118,24 @@ fn number(value: f64) -> Value {
 
 /// The events a session accepted since its program loaded, while their
 /// replay save fits.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(super) struct ReplayLog {
     entries: Vec<ReplayEntry>,
-    /// The bytes the entries take in a replay save, separators included.
-    bytes: usize,
+    /// The bytes the entries take in a replay save, separators included,
+    /// while they still fit; `None` once they no longer do.
+    bytes: Option<usize>,
+    /// The bytes they take in a positional replay save.
+    positional_bytes: usize,
+}
+
+impl Default for ReplayLog {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            bytes: Some(0),
+            positional_bytes: 0,
+        }
+    }
 }
 
 impl ReactiveSession {
@@ -101,23 +167,31 @@ impl ReactiveSession {
             event: event.to_string(),
             payload,
         };
-        let bytes = entry.to_value().to_string().len() + 1;
+        let positional = entry.to_positional(&self.events).to_string().len() + 1;
+        let named = entry.to_value().to_string().len() + 1;
         let Some(log) = self.replay.as_mut() else {
             return;
         };
-        if log.bytes + bytes > REPLAY_SAVE_MAX_BYTES {
+        // A positional entry is never longer than its named one, so the
+        // positional log outlasts the named one.
+        if log.positional_bytes + positional > REPLAY_SAVE_MAX_BYTES {
             self.replay = None;
             return;
         }
         let log = Arc::make_mut(log);
         log.entries.push(entry);
-        log.bytes += bytes;
+        log.positional_bytes += positional;
+        log.bytes = log
+            .bytes
+            .map(|bytes| bytes + named)
+            .filter(|bytes| *bytes <= REPLAY_SAVE_MAX_BYTES);
     }
 
     /// The replay save, while the session holds every event it accepted since
     /// its program loaded and the save fits.
     fn replay_json(&self) -> Option<String> {
         let log = self.replay.as_ref()?;
+        log.bytes?;
         #[derive(Serialize)]
         struct Written<'a> {
             schema: &'static str,
@@ -146,14 +220,53 @@ impl ReactiveSession {
         })
     }
 
+    /// The positional replay save, while the session holds every event it
+    /// accepted since its program loaded and the save fits.
+    fn positional_replay_json(&self) -> Option<String> {
+        let log = self.replay.as_ref()?;
+        #[derive(Serialize)]
+        struct Written<'a> {
+            schema: &'static str,
+            source_id: &'a str,
+            source_sha256: &'a str,
+            events: Vec<Value>,
+        }
+        let text = serde_json::to_string(&Written {
+            schema: POSITIONAL_REPLAY_SAVE_SCHEMA,
+            source_id: &self.source_id,
+            source_sha256: &self.source_sha256,
+            events: log
+                .entries
+                .iter()
+                .map(|entry| entry.to_positional(&self.events))
+                .collect(),
+        })
+        .ok()?;
+        (text.len() <= REPLAY_SAVE_MAX_BYTES).then_some(text)
+    }
+
+    /// `save_compact_json` with the positional replay save in place of the
+    /// named one: it holds more events, so it is a replay save for longer.
+    pub fn save_compact_positional_json(&self) -> Result<String, String> {
+        let state = self.save_json()?;
+        Ok(match self.positional_replay_json() {
+            Some(replay) if replay.len() < state.len() => replay,
+            _ => state,
+        })
+    }
+
     /// Whether `save` names the replay save's schema. A text longer than a
     /// replay save can be is one only if it begins as the runtime writes one,
     /// so that restoring it says why it is refused; anything else is read as a
     /// state save.
     pub(super) fn is_replay_save(save: &str) -> bool {
         if save.len() > REPLAY_SAVE_MAX_BYTES {
-            let written = format!("{{\"schema\":\"{REPLAY_SAVE_SCHEMA}\"");
-            return save.trim_start().starts_with(&written);
+            return [REPLAY_SAVE_SCHEMA, POSITIONAL_REPLAY_SAVE_SCHEMA]
+                .iter()
+                .any(|schema| {
+                    let written = format!("{{\"schema\":\"{schema}\"");
+                    save.trim_start().starts_with(&written)
+                });
         }
         #[derive(Deserialize)]
         struct Schema {
@@ -163,7 +276,9 @@ impl ReactiveSession {
         serde_json::from_str::<Schema>(save)
             .ok()
             .and_then(|save| save.schema)
-            .is_some_and(|schema| schema == REPLAY_SAVE_SCHEMA)
+            .is_some_and(|schema| {
+                schema == REPLAY_SAVE_SCHEMA || schema == POSITIONAL_REPLAY_SAVE_SCHEMA
+            })
     }
 
     /// A session of `source` with the replay save's events dispatched again.
@@ -185,7 +300,8 @@ impl ReactiveSession {
         }
         let saved: Saved = serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
         let mut session = Self::from_source_cached(source)?;
-        if saved.schema != REPLAY_SAVE_SCHEMA {
+        let positional = saved.schema == POSITIONAL_REPLAY_SAVE_SCHEMA;
+        if saved.schema != REPLAY_SAVE_SCHEMA && !positional {
             return Err(refuse(format!(
                 "schema {} is not {REPLAY_SAVE_SCHEMA}",
                 saved.schema
@@ -198,7 +314,12 @@ impl ReactiveSession {
             return Err(refuse("its source digest is not this source's".into()));
         }
         for (index, value) in saved.events.iter().enumerate() {
-            let entry = ReplayEntry::from_value(value).map_err(refuse)?;
+            let entry = if positional {
+                ReplayEntry::from_positional(value, &session.events)
+            } else {
+                ReplayEntry::from_value(value)
+            }
+            .map_err(refuse)?;
             let payload = Value::Object(entry.payload).to_string();
             session
                 .dispatch_classified(&entry.event, &payload)

@@ -68,6 +68,12 @@ state save; `runtime.restore` takes either. Restoring a replay save dispatches
 its events again, so it costs more as they grow. A runtime before 1.1.0 cannot
 restore one.
 
+`session.save({ compact: true, positional: true })` writes the
+[positional replay save](../spec/caveat-replay-save-0.2.md) instead: each event
+as its position and its parameters' values, about a fifth of the bytes, so it
+stays a replay save for several times as many events. Prefer it to keeping
+your own event log. A runtime before it cannot restore one.
+
 A decision series cannot have a window: `decisions NAME window N` is refused
 when the program loads, and series windows wait until after 1.0
 ([Windows 0.1](../spec/caveat-windows-0.1.md#decision-series-not-in-rc15)).
