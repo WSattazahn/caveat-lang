@@ -76,18 +76,20 @@ The withdrawn inference reads the same way:
 
 | Kind | Names | Meaning |
 | --- | --- | --- |
-| claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `runtime_correct`, `approved_by_owner`, `plugin_listable` | what evidence bears on |
+| claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `minor_safe`, `runtime_correct`, `approved_by_owner`, `plugin_listable` | what evidence bears on |
 | caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed`, `notes_name_old_runtime` | what a reader must see next to a piece of evidence |
-| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
-| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing` | series: each may be reopened and revised, never overwritten |
-| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `find`, `review`, the `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
+| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), main runs at a minor release (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
+| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing`, `minor_release` (value: the minor, 110 for 1.1.0) | series: each may be reopened and revised, never overwritten |
+| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `main_run`, `ship_minor`, `find`, `review`, the `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
 
 A decision is refused until its grounds exist and the owner has approved
 that item: `merge` needs a rerun with 0 divergences, a green CI run and
 `approvals` carrying 259; `ship` needs a release tree and an approval for the
 version; a second `ship` while the current release stands is refused until
-`review` has reopened it. An approval is a reading in `approvals` whose
-value is the item code: a PR number, a version (101, 102, 103), or a card option
+`review` has reopened it. `ship_minor` needs main's last Runtime run
+to have passed and an approval for the version; it leaves the 1.0.x line
+alone. An approval is a reading in `approvals` whose
+value is the item code: a PR number, a version (101, 102, 103, 110), or a card option
 (1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
 the two forms' place in 1.1, 1111–1113 for `carries(latest(STREAM), C)` in 1.1, 1201–1204 for what follows 1.1,
 7000 plus the version for publishing the OpenAI plugin, so 7111 for 1.1.1).
@@ -101,7 +103,8 @@ Every thread that makes or informs a decision appends to the record:
    caveats and add its `reveal` to the `find` rule, as `d016`, `d018`,
    `d019` and `d020` are.
 2. **A rerun, a CI run, a release tree**: `rerun` with the divergence count,
-   `ci_run` with `green` 0 or 1, `cherry_pick` with `suite_green` 0 or 1.
+   `ci_run` with `green` 0 or 1, `cherry_pick` with `suite_green` 0 or 1, `main_run` with `green` 0 or 1
+   for the Runtime run on main that a minor release ships from.
 3. **The owner's answer to a card**: `approve` with the item code, then the
    decision's event with the option chosen. A new kind of decision is a new
    `decisions` series, a basis state, a `decide_*` event and a rule, in the

@@ -1,0 +1,232 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-19T16:58:54.313Z",
+  "name": "caveat-lang",
+  "version": "1.1.0",
+  "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+  "tag": "v1.1.0",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.1.0.tgz",
+    "bytes": 1333677,
+    "sha256": "f83ff39ed18c473f67c4d1ad2adb6ddaf1a9b6fec9e0a71ae9c1ffe4b71be41d",
+    "sha512": "806e7adb6a3122622dbd7cda331e2c1f3a046008703be8fee8c2e2d47782e0cf5fa9fe71a65a964530608a5d74d0a32c85865a8b50e1bc857c27dd51b611b9e9",
+    "integrity": "sha512-gG5622oxImItvXzaMx4sHzoEYAhwO+j+6MLi1HeC4M9fqf5xplqWRTBgil100KMshYZai1DhvIV8J91RthG56Q=="
+  },
+  "channelsAtVerification": {
+    "next": "1.0.3",
+    "latest": "1.1.0"
+  },
+  "publication": {
+    "method": "workflow",
+    "workflow": ".github/workflows/publish-npm.yml",
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/39289692554",
+    "runAttempt": 2,
+    "authentication": "npm trusted publishing (OIDC), environment npm-publish",
+    "approval": "npm-publish environment approved by WSattazahn using the GitHub deployment review API (deployment 7179609602); approval comment: Owner approves publishing caveat-lang 1.1.0 to npm latest",
+    "registryPublishedAt": "2026-10-19T16:57:35.782Z",
+    "provenance": true,
+    "attestation": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/caveat-lang@1.1.0",
+      "predicateType": "https://slsa.dev/provenance/v1"
+    },
+    "provenanceStatement": {
+      "workflow": {
+        "ref": "refs/tags/v1.1.0",
+        "repository": "https://github.com/WSattazahn/caveat-lang",
+        "path": ".github/workflows/publish-npm.yml"
+      },
+      "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+      "builder": "https://github.com/actions/runner/github-hosted"
+    },
+    "testedArtifact": {
+      "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39281014810",
+      "runtimeRunEvent": "push",
+      "runtimeRunBranch": "main",
+      "artifact": "kit-package-candidate",
+      "artifactId": 12201111860,
+      "digest": "sha256:0d0f19b80beeaaa6c1e43244e98d9fb8ce3990907f5c046857e91cf0a7704cef",
+      "sha256": "f83ff39ed18c473f67c4d1ad2adb6ddaf1a9b6fec9e0a71ae9c1ffe4b71be41d",
+      "bytes": 1333677,
+      "workflowChecksumCheck": true
+    },
+    "note": "Candidate validation (job 118186804902) and publication (job 118186961624) passed on attempt 1. The publish step ran between 16:56:17Z and 16:56:41Z and the registry records 1.1.0 as published at 16:57:35Z; registry verification on attempt 1 (job 118187356485) failed when npm audit signatures got HTTP 404 for the new version's attestations, which npm was still processing. Once the attestations endpoint answered, only that failed job was re-run; attempt 2's registry verification (job 118188328812) passed and wrote the artifact below. The tested artifact comes from the Runtime run on the push of the 1.1.0 merge (PR #288) to main. The workflow updated latest; next still named 1.0.3 at verification, and the owner moved next to 1.1.0 at about 17:02Z. GitHub release creation is a separate closeout step; it does not move the annotated release tag or replace the published package."
+  },
+  "verificationArtifact": {
+    "name": "npm-publication-verification",
+    "id": 12204188396,
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/39289692554",
+    "runAttempt": 2,
+    "digest": "sha256:48cd4443924281c6f1fe5daefff58f910920168b1d54e420f7f39414293c25f6",
+    "file": "1.1.0/npm-publication-verification.json",
+    "fileSha256": "dd2e7e2232eff332a91948b730ab7abfceb18fa1621991ec0768dab9af0158b6",
+    "attestationsFile": "1.1.0/attestations.json",
+    "attestationsFileSha256": "af72663bb5697f350c677753144860fb43cf98761653362f28759a2e14a590d4"
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "provenanceAttested": true,
+    "signaturesVerified": true,
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenarios": true,
+    "umbrellaExplanation": true,
+    "successfulCommands": 10
+  },
+  "tools": {
+    "node": "v24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "npm": "11.19.0"
+  },
+  "commands": [
+    {
+      "id": "01",
+      "executable": "npm",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "005206ab803f8881d8227540b7980b37e723b69a8849edb31734a90b7e7964e2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "02",
+      "executable": "npm",
+      "args": [
+        "install",
+        "caveat-lang@1.1.0",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "da13ab9d025b19c91553bc7d4c450975d3e4e36dd7c5fef6f223f8008ba39547",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "03",
+      "executable": "npm",
+      "args": [
+        "audit",
+        "signatures",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d6c98d41303a1d4376e2bcaae38fbf34cdd05591f0902f99a4f485ac18f70c70",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "04",
+      "executable": "caveat",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "32e1e9b999c18c2864190b17d97f1e80f1b7862544a99a43e16877477ecfa2c4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "05",
+      "executable": "caveat-lang",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "32e1e9b999c18c2864190b17d97f1e80f1b7862544a99a43e16877477ecfa2c4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "06",
+      "executable": "caveat-lang",
+      "args": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "45d4d31e8781be6ff5a1e19c2ceba9fe6a590d27ab359c1e34dc8f9957ad4d14",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "07",
+      "executable": "caveat-lang",
+      "args": [
+        "demo",
+        "agent",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "2939b1723e851af44429a7bc1fc27f4f7888b2d986a0f73ff19e1e710616c44e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "08",
+      "executable": "caveat-lang",
+      "args": [
+        "init"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "7e7fbf91fa9eaacd811e2c9ebb9259f5788e88e00c413b723abf07d4967c0078",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "09",
+      "executable": "caveat-lang",
+      "args": [
+        "test",
+        "umbrella.scenarios.json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "e046464220ae4e5280a7a31c823652e57e44e173e79347485e7d547620f3fcff",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "10",
+      "executable": "caveat-lang",
+      "args": [
+        "explain",
+        "umbrella.cav",
+        "events.jsonl"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d2b557200e490022cdcb9eb539daf73ec1deaac90e2f25f88d8c4592d7605e64",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "independentVerification": {
+    "checkedAt": "2026-10-19T17:03:43Z",
+    "tools": {
+      "node": "v22.22.0",
+      "platform": "linux",
+      "architecture": "x64"
+    },
+    "registryPublishedAt": "2026-10-19T16:57:35.782Z",
+    "channels": {
+      "next": "1.1.0",
+      "latest": "1.1.0"
+    },
+    "registryTarballMatchesTestedBytes": true,
+    "registryTarballSha256": "f83ff39ed18c473f67c4d1ad2adb6ddaf1a9b6fec9e0a71ae9c1ffe4b71be41d",
+    "freshInstallLockIntegrityMatches": true,
+    "installedBuildRevision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+    "registryAttestationsMatchSavedJson": true,
+    "doctorOk": true
+  },
+  "method": "Fields copied from the publish-npm.yml npm-publication-verification artifact (attempt 2, artifact 12204188396), as printed by the owner after downloading it by artifact ID. The owner hashed the downloaded archive (equal to digest) and the extracted files (fileSha256 and attestationsFileSha256); the verification file as transcribed from the owner's output hashes to the same fileSha256. The raw stdout/stderr receipt files were not re-hashed for this record; their hashes are copied as the artifact states them. Separately, from a cloud session on 2026-10-19: a fresh registry download (npm pack caveat-lang@1.1.0) matched the tested tarball's size and SHA-256; a fresh-cache install recorded the same integrity and build revision 8e25b30, and its doctor reported ok; and the live attestation bundle, serialized as the verifier writes it, hashed to attestationsFileSha256. Temporary consumer paths in command arguments are normalized to <consumer>.",
+  "scope": "Verification of the exact CI-tested 1.1.0 package, the first minor release of 1.x, cut from main at the merge of PR #288. It adds language forms, a save format, opt-in caveat check warnings, a serve option, kit helpers and one rejection code, as docs/releases/v1.1.0.md lists, and changes one behavior to keep Late Qualification 0.1's promise (D015). It does not include PR #286, which merged after the release merge. This record does not establish a later GitHub release or directory listing."
+}
