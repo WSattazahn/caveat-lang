@@ -34,3 +34,5 @@
 {"event": "approve", "payload": {"item": 103}}
 {"event": "cherry_pick", "payload": {"suite_green": 1}}
 {"event": "ship", "payload": {"version": 103}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 281}}
