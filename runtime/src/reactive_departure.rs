@@ -526,6 +526,13 @@ impl ReactiveSession {
                 }
             }
         }
+        // A hold keeps its reasons and the reopenings it defers
+        // (spec/caveat-holds-0.1.md).
+        for series in self.decision_series.values() {
+            for name in series.on_hold.iter().chain(&series.deferred) {
+                pin(name, "hold");
+            }
+        }
         for scheduled in self.scheduled.iter() {
             pin(&scheduled.evidence, "scheduled qualification");
         }

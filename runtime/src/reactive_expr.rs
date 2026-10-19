@@ -119,6 +119,10 @@ pub const AT_REVISION: &str = "revision:rests_on_withdrawn";
 /// See spec/caveat-in-basis-0.1.md.
 pub const IN_BASIS: &str = "in_basis";
 
+/// The predicate kind of `on_hold(SERIES)`: whether the series' current
+/// revision is on hold. See spec/caveat-holds-0.1.md.
+pub const ON_HOLD: &str = "on_hold";
+
 /// What `in_basis(…)` asks about: a revision of a decision series and a
 /// reference to evidence. See spec/caveat-in-basis-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2697,6 +2701,25 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after the withdrawn target")?;
             return Ok(Node::Predicate("withdrawn_latest".into(), history));
         }
+        // `on_hold(SERIES)`. A 1.0 program may define `fn on_hold` and call it
+        // with any arguments: what is not one plain name is its call.
+        if name == ON_HOLD {
+            if let (Some(TokenKind::Identifier(target)), Some(TokenKind::RightParen)) = (
+                self.peek().cloned(),
+                self.tokens.get(self.cursor + 1).map(|token| &token.kind),
+            ) {
+                if !target.contains('.') {
+                    self.cursor += 2;
+                    return Ok(Node::Predicate(name, target));
+                }
+            }
+            if !self.allow_user_functions {
+                return Err(format!(
+                    "on_hold requires a decision series at byte {}",
+                    self.offset()
+                ));
+            }
+        }
         if predicate_name(&name) {
             let offset = self.offset();
             let Some(TokenKind::Identifier(target)) = self.take() else {
@@ -3099,6 +3122,17 @@ impl Expander<'_> {
                     return expanded.map_err(|error| format!("define {name}: {error}"));
                 }
                 Node::Variable(name.clone())
+            }
+            // A 1.0 program may define `fn on_hold`; its calls keep their
+            // meaning (docs/COMPATIBILITY.md).
+            Node::Predicate(name, target)
+                if name == ON_HOLD && self.functions.contains_key(ON_HOLD) =>
+            {
+                let argument = Expr::new(Node::Variable(target.clone()))?;
+                return self.walk(
+                    &Expr::new(Node::UserCall(ON_HOLD.into(), vec![argument]))?,
+                    parameters,
+                );
             }
             Node::Predicate(name, target) => {
                 if parameters.is_some() {

@@ -475,17 +475,18 @@ export function reopenRequest(fixture, index, beforeRecord) {
     commitment: r.commitment, evidence: r.evidence, caveats: [...EVIDENCE_CAVEATS[r.evidence]], guard } };
 }
 
-const reopenAnchor = '                        Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);\n';
-const journalAnchor = '                        caveats: caveats.into_iter().collect(),\n';
+const reopenAnchor = '            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);\n';
+const journalAnchor = '            because,\n            caveats: caveats.into_iter().collect(),\n';
 const reopenMutations = {
   // The reopened commitment loses the caveats it retained.
   retained: [reopenAnchor, reopenAnchor +
-    '                        // Deliberate mutation: reopening drops the retained caveats.\n' +
-    '                        Arc::make_mut(&mut self.graph).edges.retain(|edge| !(edge.from == id && edge.relation == Relation::Retains));\n'],
+    '            // Deliberate mutation: reopening drops the retained caveats.\n' +
+    '            Arc::make_mut(&mut self.graph).edges.retain(|edge| !(edge.from == id && edge.relation == Relation::Retains));\n'],
   // The journal records the cause without its caveats.
   cause: [journalAnchor,
-    '                        // Deliberate mutation: the reopening entry drops its cause\'s caveats.\n' +
-    '                        caveats: Vec::new(),\n'],
+    '            because,\n' +
+    '            // Deliberate mutation: the reopening entry drops its cause\'s caveats.\n' +
+    '            caveats: Vec::new(),\n'],
 };
 export function reopenMutation(source, field) {
   if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');

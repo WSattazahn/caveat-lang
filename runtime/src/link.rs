@@ -951,6 +951,19 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                 }
             }
         }
+        // `hold SERIES because …` and `release SERIES because …`
+        // (spec/caveat-holds-0.1.md) came after modules, so a module may
+        // still declare `hold` or `release`. The verb is two words before a
+        // `because`; a name used there is the series, one word before.
+        for (index, (offset, word)) in words.iter().enumerate() {
+            if matches!(*word, "hold" | "release")
+                && words
+                    .get(index + 2)
+                    .is_some_and(|(_, next)| *next == "because")
+            {
+                offsets.push(*offset);
+            }
+        }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the
