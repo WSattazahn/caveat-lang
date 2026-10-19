@@ -118,7 +118,7 @@ sees what the earlier ones did.
 | `qualify EVIDENCE with CAVEAT [after SECONDS]`, `unqualify EVIDENCE with CAVEAT` | `qualify` attaches a caveat now, or after that much session time. `unqualify` takes back what `qualify` added, on every held occurrence. The take-back is recorded, not erased, and decisions keep their basis ([take-back](reference/spec/caveat-take-back-0.1.md)). `latest(STREAM)` in place of `EVIDENCE` names a stream's current reading, and `unqualify latest(EVIDENCE)` only the current occurrence (from 1.1.0, [latest](reference/spec/caveat-latest-0.1.md)). |
 | `renew EVIDENCE` | Moves the name to a new, **unobserved** occurrence. `observed(EVIDENCE)` is false again until a `reveal`. Earlier occurrences keep what they were about. `occurrence(EVIDENCE, N)` names the Nth, from 1, in `withdraw`, `qualify`, `unqualify`, `reopen … because`, `observed`, `withdrawn` and `carries`; an N that names no held occurrence refuses an effect as `expression` and makes a predicate false ([earlier occurrence](reference/spec/caveat-earlier-occurrence-0.1.md)). `reading(STREAM, N)` names a stream's Nth reading, `STREAM@N`, in the same places (from 1.1.0, [reading index](reference/spec/caveat-reading-index-0.1.md)). |
 | `reject "MESSAGE"` | Refuses the whole event. |
-| `call PROCEDURE(ARGUMENT, …)` | Runs a procedure's steps. |
+| `call PROCEDURE(ARGUMENT, …)` | Runs a procedure's steps. The call's guard and every argument pass their evidence and caveats to everything the steps do, samples included, even an argument the body never reads ([procedures](reference/spec/caveat-reactive-0.7.md#evaluation-order-and-qualification)). Pass only what the steps read; a flag passed to a procedure that samples reaches every new reading. |
 
 ### Expressions
 
@@ -128,7 +128,7 @@ sees what the earlier ones did.
 | Operators | `+ - * /` (`+` also joins text), `== != < <= > >=`, `and or not` |
 | Choice | `if(CONDITION, A, B)`, `require(CONDITION, VALUE)` |
 | Decisions | `committed(SERIES)`, `reopened(SERIES)`, `rests_on_withdrawn(SERIES)`, `permission_withdrawn(SERIES)`; `rests_on_withdrawn(revision(SERIES, K))` asks it of the Kth revision, from 1, current or past, and is false when K names none (from 1.1.0, [past revisions](reference/spec/caveat-past-revisions-0.1.md)); `in_basis(SERIES, E)` asks whether the current revision's grounds hold `E`, `latest(STREAM)` or `reading(STREAM, N)`, and `in_basis(revision(SERIES, K), …)` asks it of the Kth (from 1.1.0, [in basis](reference/spec/caveat-in-basis-0.1.md)) |
-| Evidence | `observed(E)`, `withdrawn(E)`, `withdrawn(latest(STREAM))`, `carries(E, CAVEAT)`, `has_caveat(STATE, CAVEAT)`, `qualified(VALUE, E[, CAVEAT…])` |
+| Evidence | `observed(E)`, `withdrawn(E)`, `withdrawn(latest(STREAM))`, `carries(E, CAVEAT)`, `carries(latest(NAME), CAVEAT)` (the current reading or occurrence, from 1.1.0, [latest](reference/spec/caveat-latest-0.1.md)), `has_caveat(STATE, CAVEAT)`, `qualified(VALUE, E[, CAVEAT…])` |
 | Histories | `has_sample(STREAM)`, `latest(H)`, `history_count(H)`, `history_at(H, INDEX)`, `fold_history(H, INITIAL, FUNCTION)`, where H is a stream or a series |
 | Functions | `abs min max clamp floor ceil round sqrt sin cos wrap`; text: `number_text percent_text time_text time_second_text time_total_text text id_text`; `elapsed()` |
 

@@ -36,3 +36,8 @@
 {"event": "ship", "payload": {"version": 103}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 281}}
+{"event": "report_latest_gap"}
+{"event": "approve", "payload": {"item": 1111}}
+{"event": "decide_latest_gap", "payload": {"option": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 284}}
