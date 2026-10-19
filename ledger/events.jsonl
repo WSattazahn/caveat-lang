@@ -41,3 +41,5 @@
 {"event": "decide_latest_gap", "payload": {"option": 1}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 284}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 285}}

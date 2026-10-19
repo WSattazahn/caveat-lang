@@ -1,6 +1,6 @@
-# CAVEAT Reading Notes 0.1 (draft) — keeping the observed text with a reading
+# CAVEAT Reading Notes 0.1 — keeping the observed text with a reading
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It adds to
 [Sampling](caveat-reactive-0.1.md), [Neutral samples 0.1](caveat-neutral-sample-0.1.md)
 and [Identifiers 0.1](caveat-identifiers-0.1.md); it changes no program that
 loads today.

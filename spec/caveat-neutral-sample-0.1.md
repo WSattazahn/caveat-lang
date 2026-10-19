@@ -1,6 +1,6 @@
-# CAVEAT Neutral Sample 0.1 (draft) — a reading without a stance
+# CAVEAT Neutral Sample 0.1 — a reading without a stance
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#218](https://github.com/WSattazahn/caveat-lang/issues/218)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1 ([#218](https://github.com/WSattazahn/caveat-lang/issues/218)). It adds to
 [Reactive 0.3](caveat-reactive-0.3.md),
 [Neutral Reveal 0.1](caveat-neutral-reveal-0.1.md) and
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md); it changes no

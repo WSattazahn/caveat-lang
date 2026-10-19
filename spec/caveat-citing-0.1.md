@@ -1,6 +1,6 @@
-# CAVEAT Citing 0.1 (draft) — a decision with grounds and no value
+# CAVEAT Citing 0.1 — a decision with grounds and no value
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#198](https://github.com/WSattazahn/caveat-lang/issues/198)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1 ([#198](https://github.com/WSattazahn/caveat-lang/issues/198)). It adds to
 [Reactive 0.3](caveat-reactive-0.3.md) and
 [Permission 0.1](caveat-permission-0.1.md); it changes no program that loads
 today.

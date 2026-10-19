@@ -1,6 +1,6 @@
-# CAVEAT Latest 0.1 (draft) — qualifying and taking back the latest reading or occurrence
+# CAVEAT Latest 0.1 — qualifying and taking back the latest reading or occurrence
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It adds to
 [Late Qualification 0.1](caveat-late-qualification-0.1.md),
 [Take-back 0.1](caveat-take-back-0.1.md) and
 [Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md); it changes no
