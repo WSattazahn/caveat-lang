@@ -47,3 +47,6 @@
 {"event": "report_next"}
 {"event": "approve", "payload": {"item": 1201}}
 {"event": "decide_next", "payload": {"option": 1}}
+{"event": "plugin_review", "payload": {"approved": 1}}
+{"event": "approve", "payload": {"item": 7111}}
+{"event": "publish_plugin", "payload": {"version": 111}}
