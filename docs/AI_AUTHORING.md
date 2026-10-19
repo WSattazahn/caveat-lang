@@ -485,6 +485,33 @@ of the reading, carry a `withdrawn` caveat. The decision keeps what it was made
 on, and reopens only because a rule says so. See
 [withdrawal](../spec/caveat-withdrawal-0.1.md).
 
+A reading found wrong after later readings arrived is no longer the latest.
+Name it by its position instead, counted from 1, and ask whether the decision
+in force rested on it (from 1.1.0):
+
+```caveat
+event retract i min 1 max 64;
+on retract withdraw reading(checks, i) because recheck;
+on retract when committed(merge) and not reopened(merge)
+    and in_basis(merge, reading(checks, i))
+    reopen merge because reading(checks, i);
+```
+
+`reading(STREAM, N)` names the stream's Nth reading wherever `latest(STREAM)`
+does in `withdraw`, `qualify`, `unqualify` and `reopen … because`, and in
+`observed`, `withdrawn` and `carries`. An N that names no reading the stream
+holds refuses an effect as `expression` and makes a predicate false.
+`in_basis(DECISION, E)` is true when the decision's current revision rests on
+`E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
+asks the same of the Kth revision. A later reading is never in an earlier
+decision's basis. See [reading index](../spec/caveat-reading-index-0.1.md) and
+[in basis](../spec/caveat-in-basis-0.1.md).
+
+When a reading's source said something in words, such as a version range,
+keep the words with the number: `sample node_min = minimum supports compatible
+noting range;`, where `range` is an `id` parameter. Decisions still compare the
+number. See [reading notes](../spec/caveat-reading-notes-0.1.md).
+
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:
 
