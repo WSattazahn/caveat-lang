@@ -157,9 +157,9 @@ reopens a series, and a `hold` as none, for C002.
 - [Modules](caveat-0.5-draft.md): a module may still declare `hold` or
   `release`. The rewriter reads the verb by its place, two words before a
   `because`.
-- Foreclosure, a 1.2 draft on its own branch: it is about what a decision
-  closes off; a hold is about when a decision is reconsidered. They do not
-  interact.
+- [Foreclosure 0.1](caveat-foreclosure-0.1.md): it is about what a decision
+  closes off; a hold is about when a decision is reconsidered. An irreversible
+  series may be held, and a hold never lifts a foreclosure.
 
 ## Corpus sweep
 

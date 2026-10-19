@@ -34,7 +34,7 @@ test('every specification\'s status line says whether the compatibility commitme
 test('the permanent rejection codes are Dispatch 0.1\'s catalog and the kit\'s declared codes', async () => {
   const text = section('### Rejection origins and codes');
   const promised = ticked(text.slice(text.indexOf('are permanent:'), text.indexOf('A 1.x release')));
-  assert.equal(promised.length, 20);
+  assert.equal(promised.length, 22);
   const dispatch = await readFile(path.join(repo, 'spec', 'caveat-dispatch-0.1.md'), 'utf8');
   const catalog = [...dispatch.matchAll(/^\| `(\w+)` \| `(\w+)` \|/gm)];
   assert.deepEqual(sorted(promised), sorted(new Set(catalog.map(([, , code]) => code))));

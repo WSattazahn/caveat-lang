@@ -1,0 +1,32 @@
+{
+  "note": "Foreclosure 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-foreclosure-0.1.md, \"Corpus sweep\".",
+  "revision": "513dba12321bee8a2be44bec278d28f69e6b1557",
+  "programs": 191,
+  "decisions_declarations": 138,
+  "programs_with_decisions": 129,
+  "new_syntax": [],
+  "names_spelled_like_the_new_words": [],
+  "limit_one_series": 4,
+  "limit_one_without_reopening_path": [
+    {
+      "path": "experiments/agent-ledger/release.cav",
+      "series": "publish"
+    },
+    {
+      "path": "experiments/release-readiness/release-readiness.cav",
+      "series": "stabilization"
+    },
+    {
+      "path": "game/before_the_rain.cav",
+      "series": "ruling"
+    }
+  ],
+  "limit_one_with_reopening_path": [
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/decision.cav",
+      "series": "close_170"
+    }
+  ],
+  "rejects_while_another_is_committed": [],
+  "commits_guarded_by_not_committed_other": []
+}

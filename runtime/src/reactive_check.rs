@@ -1162,7 +1162,13 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
         .collect::<HashMap<_, _>>();
     read_by
         .into_iter()
-        .filter(|(series, streams)| !streams.is_empty() && !reopened.contains(series))
+        // An irreversible series holds one revision by declaration, so a
+        // reopening path would never revise it (spec/caveat-foreclosure-0.1.md).
+        .filter(|(series, streams)| {
+            !streams.is_empty()
+                && !reopened.contains(series)
+                && !session.irreversible.contains_key(series)
+        })
         .map(|(series, streams)| {
             let at = declared.get(&series).copied().unwrap_or(Position { line: 1, column: 1 });
             let streams = streams.into_iter().map(|stream| format!("`{stream}`")).collect::<Vec<_>>();

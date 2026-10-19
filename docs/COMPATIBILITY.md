@@ -38,8 +38,9 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `decision_in_force`, `ungrounded_citation`, `empty_caveated_selection`,
 `unobserved_evidence`, `not_committed`, `expression`, `requirement_failed`,
 `attention_limit`, `work_limit`, `depth_limit`, `history_limit`,
-`identifier_limit`, `renewal_limit`, `scheduled_limit`, and from 1.1.0
-`already_committed`. A 1.x release never
+`identifier_limit`, `renewal_limit`, `scheduled_limit`, from 1.1.0
+`already_committed`, and from 1.2.0 `foreclosed` and
+`caveated_irreversible`. A 1.x release never
 renames or removes one, and never moves an input from one code to another. It
 may add a code only for an input that was refused or fatal before, or for new
 syntax. Hosts should treat an unknown code as a refusal.
@@ -53,7 +54,8 @@ checks that the two agree.
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
   implements yet, and the 1.2 drafts `caveat-nested-repetition-0.1.md`,
-  `caveat-holds-0.1.md` and `caveat-replay-save-0.2.md`, which become stable
+  `caveat-holds-0.1.md`, `caveat-replay-save-0.2.md` and
+  `caveat-foreclosure-0.1.md`, which become stable
   when a 1.x release ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
