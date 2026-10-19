@@ -149,8 +149,10 @@ imported module declared is not in this profile: it would make one part's
 generated names depend on another part's declarations, and
 [caveat-0.5](caveat-0.5-draft.md) keeps a part's names its own.
 
-`for` blocks do not nest. A nested one is rejected rather than given an
-ordering nobody asked about.
+`for` blocks did not nest in this profile: a nested one was rejected rather
+than given an ordering nobody asked about. From 1.2,
+[Nested Repetition 0.1](caveat-nested-repetition-0.1.md) gives one: a nested
+block expands inside each copy of its enclosing block, outer member first.
 
 Expansion changes how many lines a part has, so a diagnostic pointing into or
 after an expanded block reports the line in the expanded text rather than the
@@ -317,3 +319,9 @@ what keeps the expansion checkable and the generated program ordinary.
   A last block may still leave out its own `;` once its body's last
   statement has one, and a `}` in a comment, a quoted brace and a brace pair
   within a statement load as before.
+- 2026-10-19: a `for` block in a body expands, as
+  [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) says, where it was
+  refused: "for blocks do not nest; see spec/caveat-repetition-0.1.md section
+  4". A nested block that is the body's last statement without its `;` is
+  refused for that, with section 2's error. Every program that loaded
+  expands as before.

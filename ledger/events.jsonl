@@ -56,4 +56,6 @@
 {"event": "approve", "payload": {"item": 110}}
 {"event": "ship_minor", "payload": {"version": 110}}
 {"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 290}}
+{"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 295}}
