@@ -478,3 +478,154 @@ fn random_events_keep_the_foreclosure_rules() {
         );
     }
 }
+
+/// The migration with a change freeze (spec/caveat-holds-0.1.md): a hold
+/// keeps the drop or the rollback in force and defers its reopenings.
+const FROZEN: &str = r#"
+claim migration_safe;
+evidence full_check from "full migration dry run";
+evidence approvals from "owner";
+evidence board from "the change board";
+evidence recheck from "a second look at the dry run";
+readings full_runs from full_check limit 8;
+readings grants from approvals limit 4;
+decisions drop_old_table limit 1 irreversible forecloses rollback reopened by full_runs opposing migration_safe;
+decisions rollback limit 4;
+event dry_run rows_ok min 0 max 1;
+event approve;
+event drop;
+event roll_back;
+event freeze_drop;
+event freeze_rollback;
+event thaw_drop;
+event thaw_rollback;
+event reopen_rollback;
+event misread;
+on dry_run when rows_ok == 1 sample full_runs = 1 supports migration_safe;
+on dry_run when rows_ok == 0 sample full_runs = 0 opposes migration_safe;
+on approve sample grants = 1 supports migration_safe;
+on drop commit drop_old_table because enough using latest(full_runs) permitted by latest(grants);
+on roll_back commit rollback because enough using 1;
+on freeze_drop when not observed(board) reveal board;
+on freeze_drop hold drop_old_table because board;
+on freeze_rollback when not observed(board) reveal board;
+on freeze_rollback hold rollback because board;
+on thaw_drop release drop_old_table because board;
+on thaw_rollback release rollback because board;
+on reopen_rollback reopen rollback because board;
+on misread when not observed(recheck) reveal recheck opposes migration_safe;
+on misread withdraw latest(full_runs) because recheck;
+on misread when committed(drop_old_table) and not reopened(drop_old_table) reopen drop_old_table because recheck;
+"#;
+
+fn changes(game: &WebReactiveSession) -> Vec<String> {
+    json(&game.snapshot())["decision_journal"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|entry| {
+            format!(
+                "{} {}",
+                entry["commitment"].as_str().unwrap(),
+                entry["change"].as_str().unwrap()
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn a_hold_defers_an_irreversible_reopening_and_the_foreclosure_stays() {
+    let mut game = session(FROZEN);
+    accept(&mut game, "dry_run", r#"{"rows_ok":1}"#);
+    accept(&mut game, "approve", "{}");
+    accept(&mut game, "drop", "{}");
+    accept(&mut game, "freeze_drop", "{}");
+    // The opposing run is deferred: the drop stays in force.
+    accept(&mut game, "dry_run", r#"{"rows_ok":0}"#);
+    let snapshot = json(&game.snapshot());
+    assert_eq!(
+        snapshot["decision_series"]["drop_old_table"]["on_hold"],
+        serde_json::json!(["board"])
+    );
+    assert_eq!(changes(&game).last().unwrap(), "drop_old_table@1 deferred");
+    refuse(&mut game, "roll_back", "foreclosed");
+    // The release reopens the drop; reopening never restores the rollback.
+    accept(&mut game, "thaw_drop", "{}");
+    assert_eq!(
+        changes(&game)[changes(&game).len() - 2..],
+        ["drop_old_table@1 released", "drop_old_table@1 reopened"]
+    );
+    refuse(&mut game, "roll_back", "foreclosed");
+    let result = json(&game.dispatch_outcome("drop", "{}").unwrap());
+    assert_eq!(result["code"], "history_limit", "{result}");
+}
+
+#[test]
+fn a_hold_does_not_keep_an_irreversible_decision_on_withdrawn_evidence() {
+    let mut game = session(FROZEN);
+    accept(&mut game, "dry_run", r#"{"rows_ok":1}"#);
+    accept(&mut game, "approve", "{}");
+    accept(&mut game, "drop", "{}");
+    accept(&mut game, "freeze_drop", "{}");
+    accept(&mut game, "misread", "{}");
+    let snapshot = json(&game.snapshot());
+    assert!(snapshot["decision_series"]["drop_old_table"]
+        .get("on_hold")
+        .is_none());
+    assert_eq!(changes(&game).last().unwrap(), "drop_old_table@1 reopened");
+    refuse(&mut game, "roll_back", "foreclosed");
+}
+
+#[test]
+fn a_hold_cannot_come_before_the_irreversible_commit() {
+    let mut game = session(FROZEN);
+    let result = json(&game.dispatch_outcome("freeze_drop", "{}").unwrap());
+    assert_eq!(result["code"], "not_committed", "{result}");
+}
+
+#[test]
+fn a_released_rollback_stays_foreclosed() {
+    let mut game = session(FROZEN);
+    accept(&mut game, "dry_run", r#"{"rows_ok":1}"#);
+    accept(&mut game, "approve", "{}");
+    accept(&mut game, "roll_back", "{}");
+    accept(&mut game, "freeze_rollback", "{}");
+    accept(&mut game, "drop", "{}");
+    // A reopening of the held rollback is deferred, then applied on release.
+    accept(&mut game, "reopen_rollback", "{}");
+    assert_eq!(changes(&game).last().unwrap(), "rollback@1 deferred");
+    accept(&mut game, "thaw_rollback", "{}");
+    assert_eq!(changes(&game).last().unwrap(), "rollback@1 reopened");
+    // Reopened, the rollback still can't be committed again.
+    let message = refuse(&mut game, "roll_back", "foreclosed");
+    assert!(
+        message.ends_with("rollback is foreclosed by drop_old_table@1"),
+        "{message}"
+    );
+}
+
+#[test]
+fn a_save_with_a_hold_restores_its_foreclosure() {
+    let mut game = ReactiveSession::from_source(FROZEN).unwrap();
+    for (event, payload) in [
+        ("dry_run", r#"{"rows_ok":1}"#),
+        ("approve", "{}"),
+        ("drop", "{}"),
+        ("freeze_drop", "{}"),
+        ("dry_run", r#"{"rows_ok":0}"#),
+    ] {
+        game.dispatch_json(event, payload)
+            .unwrap_or_else(|error| panic!("{event}: {error}"));
+    }
+    let saved = game.save_json().unwrap();
+    assert!(saved.contains("\"deferred\""), "{saved}");
+    let mut restored = ReactiveSession::restore_json(FROZEN, &saved).unwrap();
+    assert_eq!(restored.save_json().unwrap(), saved);
+    let error = restored
+        .dispatch_json("roll_back", "{}")
+        .map(|_| ())
+        .expect_err("a foreclosed rollback was accepted after restore");
+    assert!(error.contains("foreclosed by drop_old_table@1"), "{error}");
+    restored.dispatch_json("thaw_drop", "{}").unwrap();
+    assert!(restored.snapshot().decision_journal.last().unwrap().change == "reopened");
+}

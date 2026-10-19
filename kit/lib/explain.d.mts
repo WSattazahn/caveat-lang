@@ -146,7 +146,7 @@ export type GroundsObservation =
   | { evidence: string; sequence: null; event: null; payload: null };
 
 export interface RevisionChange {
-  change: 'committed' | 'reopened';
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
   sequence: number;
   event: string;
   because: string[];
@@ -254,7 +254,7 @@ export interface DependentChange {
   sequence: number;
   event: string;
   commitment: string;
-  change: 'committed' | 'reopened';
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];

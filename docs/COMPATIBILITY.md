@@ -53,9 +53,9 @@ checks that the two agree.
 
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
-  implements yet, and the 1.2 drafts `caveat-nested-repetition-0.1.md` and
-  `caveat-foreclosure-0.1.md`, which become stable when a 1.x release ships
-  them.
+  implements yet, and the 1.2 drafts `caveat-nested-repetition-0.1.md`,
+  `caveat-holds-0.1.md` and `caveat-foreclosure-0.1.md`, which become stable
+  when a 1.x release ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and

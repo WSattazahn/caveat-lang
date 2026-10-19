@@ -213,6 +213,12 @@ program that declares neither word gets the same report, byte for byte.
 - [Procedures](caveat-procedure-symbols-0.1.md): a procedure that takes a
   `decisions` parameter may be passed an irreversible series. The rules apply
   to the commits it makes, after expansion.
+- [Holds 0.1](caveat-holds-0.1.md): an irreversible series may be held and
+  released like any series. A hold defers its reopenings and a release applies
+  them; a hold never keeps it in force on withdrawn evidence. A hold never
+  touches a foreclosure: what an irreversible revision forecloses stays
+  refused while it is on hold, after its release, and after a held
+  foreclosed series is released and reopened.
 - [Late Qualification 0.1](caveat-late-qualification-0.1.md): `retaining`
   cannot name a caveat the program takes back with `unqualify` (an existing
   load rule). An irreversible commit resting on such a caveat, when it is
@@ -317,6 +323,10 @@ No accepted program changes.
   series that keeps its foreclosure, the in-event order, the load rules, the
   words as names, a procedure parameter, C002, and a save and restore round
   trip with restore's check.
+- `runtime/tests/foreclosure.rs` also covers holds: a deferred reopening of
+  an irreversible series and its release, a withdrawal breaking through the
+  hold, a hold before the commit, a held foreclosed series released and
+  reopened, and a save with a hold.
 - `runtime/tests/foreclosure_invariants.rs`, from the bug hunt, runs 300
   random histories of 60 steps with save and restore in place, beside a twin
   program without the two words, and checks each rule above on every step.
@@ -330,3 +340,4 @@ No accepted program changes.
   [design note](../experiments/foreclosure-sweep/README.md).
 - 2026-10-18: implemented on its branch.
 - 2026-10-18: the bug hunt's random check added; no finding.
+- 2026-10-19: checked with Holds 0.1 and Nested Repetition 0.1 on `main`.

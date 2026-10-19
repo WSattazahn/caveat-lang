@@ -325,10 +325,33 @@ pub enum Effect {
         /// spec/caveat-retention-reasons-0.1.md.
         reasons: Vec<(String, String, Expr)>,
     },
+    /// `reopen D because E`, and from 1.2 `hold D because E` and
+    /// `release D because E`, which share its target and selector. See
+    /// spec/caveat-holds-0.1.md.
     Reopen {
         action: String,
         because: EvidenceSelector,
+        form: DecisionChange,
     },
+}
+
+/// What a `reopen`, `hold` or `release` effect does to a decision. See
+/// spec/caveat-holds-0.1.md.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DecisionChange {
+    Reopen,
+    Hold,
+    Release,
+}
+
+impl DecisionChange {
+    pub fn verb(self) -> &'static str {
+        match self {
+            Self::Reopen => "reopen",
+            Self::Hold => "hold",
+            Self::Release => "release",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -783,6 +806,15 @@ pub struct DecisionSeries {
     pub current: Option<String>,
     pub revisions: Vec<DecisionRevision>,
     pub selection_qualifications: Provenance,
+    /// While the current revision is on hold, the evidence each `hold` cited,
+    /// in the order cited. Empty, and left out, otherwise. See
+    /// spec/caveat-holds-0.1.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub on_hold: Vec<String>,
+    /// The causes of the reopenings deferred while on hold, in the order
+    /// deferred. Empty, and left out, when none waits.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub deferred: Vec<String>,
 }
 
 /// Evidence that can be renewed, and every occurrence it has had. See
@@ -1025,11 +1057,12 @@ impl<'a> OrderStep<'a> {
             }
             Effect::Reopen {
                 because: EvidenceSelector::Named(evidence),
+                form,
                 ..
             } => uses.push((
                 evidence.clone(),
                 guard.clone(),
-                format!("reopen because {evidence}"),
+                format!("{} because {evidence}", form.verb()),
             )),
             Effect::Withdraw { target, because } => {
                 if let EvidenceSelector::Named(evidence) = target {
@@ -1861,6 +1894,8 @@ impl ReactiveSession {
                             current: None,
                             revisions: Vec::new(),
                             selection_qualifications: Provenance::default(),
+                            on_hold: Vec::new(),
+                            deferred: Vec::new(),
                         },
                     );
                 }
@@ -2727,6 +2762,10 @@ impl ReactiveSession {
                 }
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
+                reactive_expr::ON_HOLD if self.decision_series.contains_key(symbol) => Ok(()),
+                reactive_expr::ON_HOLD => Err(format!(
+                    "on_hold names a decision series; {symbol} is not one"
+                )),
                 _ if kind.starts_with(CARRIES) => {
                     self.require_kind(symbol, "evidence")?;
                     self.require_kind(&kind[CARRIES.len()..], "caveat")
@@ -2992,9 +3031,22 @@ impl ReactiveSession {
                         }
                     }
                 }
-                Effect::Reopen { action, because } => {
+                Effect::Reopen {
+                    action,
+                    because,
+                    form,
+                } => {
                     if !commitments.contains(action) {
                         return Err(format!("unknown reactive commitment {action}"));
+                    }
+                    // A hold is of a series' current revision, and is kept
+                    // with the series (spec/caveat-holds-0.1.md).
+                    if *form != DecisionChange::Reopen && !self.decision_series.contains_key(action)
+                    {
+                        return Err(format!(
+                            "{} names a decision series; {action} is not one",
+                            form.verb()
+                        ));
                     }
                     match because {
                         EvidenceSelector::Named(name) => self.require_kind(name, "evidence")?,
@@ -4240,6 +4292,15 @@ impl ReactiveSession {
                 };
             }
         }
+        // On hold, it rests on what the holds cited (spec/caveat-holds-0.1.md).
+        if kind == reactive_expr::ON_HOLD {
+            let series = &self.decision_series[name];
+            let mut grounds = Provenance::default();
+            for reason in &series.on_hold {
+                grounds.merge(&self.qualify_core(reason, &[])?)?;
+            }
+            return Tracked::new(!series.on_hold.is_empty(), grounds);
+        }
         let value = match kind {
             "has_sample" => return self.predicate_tracked(kind, name),
             _ => self.predicate(kind, name)?,
@@ -4567,6 +4628,14 @@ impl ReactiveSession {
                 provenance
             };
             return Tracked::new(stream.current.is_some(), provenance);
+        }
+        // Whether a series is on hold reads what its reopening reads: the
+        // holds, the deferred reopenings and the guards of skipped ones
+        // (spec/caveat-holds-0.1.md).
+        if kind == reactive_expr::ON_HOLD {
+            let value = !self.decision_series[name].on_hold.is_empty();
+            let provenance = self.predicate_tracked("reopened", name)?.provenance;
+            return Tracked::new(value, provenance);
         }
         if matches!(kind, "committed" | "reopened") {
             if let Some(series) = self.decision_series.get(name) {
@@ -5437,7 +5506,11 @@ impl ReactiveSession {
                     retained: retained_names,
                 });
             }
-            Effect::Reopen { action, because } => {
+            Effect::Reopen {
+                action,
+                because,
+                form,
+            } => {
                 let current = self
                     .decision_series
                     .get(action)
@@ -5448,7 +5521,7 @@ impl ReactiveSession {
                     DispatchFailure::rejected(
                         RejectionOrigin::Evaluation,
                         RejectionCode::NotCommitted,
-                        format!("cannot reopen uncommitted action {action}"),
+                        format!("cannot {} uncommitted action {action}", form.verb()),
                     )
                 })?;
                 let (because, cause) = match because {
@@ -5459,7 +5532,8 @@ impl ReactiveSession {
                                 RejectionOrigin::Evaluation,
                                 RejectionCode::UnobservedEvidence,
                                 format!(
-                                    "cannot reopen {action} because unobserved evidence {name}"
+                                    "cannot {} {action} because unobserved evidence {name}",
+                                    form.verb()
                                 ),
                             ));
                         }
@@ -5474,7 +5548,8 @@ impl ReactiveSession {
                                 RejectionOrigin::Evaluation,
                                 RejectionCode::UnobservedEvidence,
                                 format!(
-                                    "cannot reopen {action} because unobserved evidence {name}"
+                                    "cannot {} {action} because unobserved evidence {name}",
+                                    form.verb()
                                 ),
                             ));
                         }
@@ -5488,7 +5563,8 @@ impl ReactiveSession {
                                 RejectionOrigin::Evaluation,
                                 RejectionCode::UnobservedEvidence,
                                 format!(
-                                    "cannot reopen {action} because latest({stream}): its stream has no reading"
+                                    "cannot {} {action} because latest({stream}): its stream has no reading",
+                                    form.verb()
                                 ),
                             ));
                         }
@@ -5524,59 +5600,231 @@ impl ReactiveSession {
                         (self.in_observation_order(selected.into_iter()), cause)
                     }
                 };
-                let because = because
-                    .into_iter()
-                    .filter(|evidence| {
-                        let from = self.symbols[evidence];
-                        !self.graph.edges.iter().any(|edge| {
-                            edge.from == from && edge.to == id && edge.relation == Relation::Reopens
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                if !because.is_empty() {
-                    self.collector_reopens(&current, &because);
-                    let mut basis = cause.union(guard)?;
-                    if let Some(series) = self.decision_series.get(action) {
-                        self.inherit(&mut basis, &series.selection_qualifications)?;
+                let mut basis = cause.union(guard)?;
+                if let Some(series) = self.decision_series.get(action) {
+                    self.inherit(&mut basis, &series.selection_qualifications)?;
+                }
+                self.freeze(&mut basis);
+                let open = matches!(
+                    self.graph.nodes.get(&id),
+                    Some(NodeKind::Commitment { open: true, .. })
+                );
+                let on_hold = self
+                    .decision_series
+                    .get(action)
+                    .is_some_and(|series| !series.on_hold.is_empty());
+                match form {
+                    DecisionChange::Reopen if on_hold && !open => {
+                        // A hold never keeps in force a revision whose
+                        // grounds hold withdrawn evidence: the reopening goes
+                        // ahead, and the deferred ones follow it
+                        // (spec/caveat-holds-0.1.md).
+                        let through = self
+                            .withdrawal_predicate("rests_on_withdrawn", action, false)?
+                            .is_some_and(|rests| rests.value);
+                        if through {
+                            let deferred = self.end_hold(action);
+                            let mut causes = because;
+                            for evidence in deferred {
+                                if !causes.contains(&evidence) {
+                                    causes.push(evidence);
+                                }
+                            }
+                            self.reopen_revision(action, &current, id, causes, &basis)?;
+                        } else {
+                            let series = &self.decision_series[action];
+                            let causes = self.new_causes(&current, id, because, &series.deferred);
+                            if !causes.is_empty() {
+                                self.join_reopening(&current, &basis)?;
+                                for evidence in &causes {
+                                    self.add_pin(evidence);
+                                }
+                                Arc::make_mut(&mut self.decision_series)
+                                    .get_mut(action)
+                                    .expect("on hold")
+                                    .deferred
+                                    .extend(causes.iter().cloned());
+                                self.journal_change(action, &current, "deferred", causes)?;
+                            }
+                        }
                     }
-                    self.freeze(&mut basis);
-                    self.clear_predicate_dependency("reopened", &current);
-                    Arc::make_mut(&mut self.reopening_qualifications)
-                        .entry(current.clone())
-                        .or_default()
-                        .merge(&basis)?;
-                    // Reported before the reopen that adds the entry.
-                    self.retire_journal_entry();
-                    let mut caveats = BTreeSet::new();
-                    for evidence in &because {
-                        caveats.extend(self.qualify_core(evidence, &[])?.caveats);
-                        Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
-                        self.effects.push(EffectReport::Reopen {
-                            action: current.clone(),
-                            because: evidence.clone(),
-                        });
+                    DecisionChange::Reopen => {
+                        self.reopen_revision(action, &current, id, because, &basis)?;
                     }
-                    let entry = JournalEntry {
-                        decision: action.clone(),
-                        commitment: current.clone(),
-                        change: "reopened".into(),
-                        sequence: self.sequence,
-                        event: self.last_event.clone().unwrap_or_default(),
-                        elapsed: Some(self.elapsed),
-                        value: self
-                            .commitment_bases
-                            .get(&current)
-                            .and_then(|basis| basis.value),
-                        because,
-                        caveats: caveats.into_iter().collect(),
-                        permitted_by: None,
-                    };
-                    self.pin_journal_entry(&entry);
-                    Arc::make_mut(&mut self.journal).push(entry);
+                    // A revision already reopened is not in force: nothing
+                    // is held.
+                    DecisionChange::Hold if open => {}
+                    DecisionChange::Hold => {
+                        let held = &self.decision_series[action].on_hold;
+                        let reasons = because
+                            .into_iter()
+                            .filter(|evidence| !held.contains(evidence))
+                            .collect::<Vec<_>>();
+                        if !reasons.is_empty() {
+                            self.join_reopening(&current, &basis)?;
+                            for evidence in &reasons {
+                                self.add_pin(evidence);
+                            }
+                            Arc::make_mut(&mut self.decision_series)
+                                .get_mut(action)
+                                .expect("a series")
+                                .on_hold
+                                .extend(reasons.iter().cloned());
+                            self.journal_change(action, &current, "held", reasons)?;
+                        }
+                    }
+                    DecisionChange::Release if !on_hold || open => {}
+                    DecisionChange::Release => {
+                        self.join_reopening(&current, &basis)?;
+                        let deferred = self.end_hold(action);
+                        self.journal_change(action, &current, "released", because)?;
+                        self.reopen_revision(action, &current, id, deferred, &basis)?;
+                    }
                 }
             }
         }
         self.collector_effect(effect);
+        Ok(())
+    }
+
+    /// Ends `action`'s hold, if it has one, releasing what the hold pinned,
+    /// and returns the reopenings it deferred.
+    fn end_hold(&mut self, action: &str) -> Vec<String> {
+        if self
+            .decision_series
+            .get(action)
+            .is_none_or(|series| series.on_hold.is_empty() && series.deferred.is_empty())
+        {
+            return Vec::new();
+        }
+        let series = Arc::make_mut(&mut self.decision_series)
+            .get_mut(action)
+            .expect("a series");
+        let held = std::mem::take(&mut series.on_hold);
+        let deferred = std::mem::take(&mut series.deferred);
+        for evidence in held.iter().chain(&deferred) {
+            self.release_pin(evidence);
+        }
+        deferred
+    }
+
+    /// The causes in `because` that neither reopen `current` already nor
+    /// are among `kept`.
+    fn new_causes(
+        &self,
+        current: &str,
+        id: NodeId,
+        because: Vec<String>,
+        kept: &[String],
+    ) -> Vec<String> {
+        let _ = current;
+        because
+            .into_iter()
+            .filter(|evidence| {
+                let from = self.symbols[evidence];
+                !kept.contains(evidence)
+                    && !self.graph.edges.iter().any(|edge| {
+                        edge.from == from && edge.to == id && edge.relation == Relation::Reopens
+                    })
+            })
+            .collect()
+    }
+
+    /// Adds `basis` to the record of what `current`'s reopening rests on: a
+    /// reopening, and from 1.2 a hold, a deferred reopening or a release of
+    /// it (spec/caveat-holds-0.1.md).
+    fn join_reopening(&mut self, current: &str, basis: &Provenance) -> Result<(), DispatchFailure> {
+        Arc::make_mut(&mut self.reopening_qualifications)
+            .entry(current.to_string())
+            .or_default()
+            .merge(basis)?;
+        Ok(())
+    }
+
+    /// One journal entry for a change to `current` that is not a commit,
+    /// citing `because` in observation order with the caveats it carries now.
+    fn journal_change(
+        &mut self,
+        action: &str,
+        current: &str,
+        change: &str,
+        because: Vec<String>,
+    ) -> Result<(), DispatchFailure> {
+        self.retire_journal_entry();
+        let mut caveats = BTreeSet::new();
+        for evidence in &because {
+            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+        }
+        let entry = JournalEntry {
+            decision: action.to_string(),
+            commitment: current.to_string(),
+            change: change.into(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+            elapsed: Some(self.elapsed),
+            value: self
+                .commitment_bases
+                .get(current)
+                .and_then(|basis| basis.value),
+            because: self.in_observation_order(because.iter()),
+            caveats: caveats.into_iter().collect(),
+            permitted_by: None,
+        };
+        self.pin_journal_entry(&entry);
+        Arc::make_mut(&mut self.journal).push(entry);
+        Ok(())
+    }
+
+    /// Reopens `current`, `id` in the graph, because of each of `because`
+    /// that does not reopen it already, on `basis`: the cause's lineage, the
+    /// guard and the series' selection, frozen. Nothing happens when every
+    /// cause reopens it already. A reopening ends a hold, and the next
+    /// revision starts with none.
+    fn reopen_revision(
+        &mut self,
+        action: &str,
+        current: &str,
+        id: NodeId,
+        because: Vec<String>,
+        basis: &Provenance,
+    ) -> Result<(), DispatchFailure> {
+        let because = self.new_causes(current, id, because, &[]);
+        if because.is_empty() {
+            return Ok(());
+        }
+        self.end_hold(action);
+        let current = current.to_string();
+        self.collector_reopens(&current, &because);
+        self.clear_predicate_dependency("reopened", &current);
+        self.join_reopening(&current, basis)?;
+        // Reported before the reopen that adds the entry.
+        self.retire_journal_entry();
+        let mut caveats = BTreeSet::new();
+        for evidence in &because {
+            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
+            self.effects.push(EffectReport::Reopen {
+                action: current.clone(),
+                because: evidence.clone(),
+            });
+        }
+        let entry = JournalEntry {
+            decision: action.to_string(),
+            commitment: current.clone(),
+            change: "reopened".into(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+            elapsed: Some(self.elapsed),
+            value: self
+                .commitment_bases
+                .get(&current)
+                .and_then(|basis| basis.value),
+            because,
+            caveats: caveats.into_iter().collect(),
+            permitted_by: None,
+        };
+        self.pin_journal_entry(&entry);
+        Arc::make_mut(&mut self.journal).push(entry);
         Ok(())
     }
 
@@ -6159,6 +6407,7 @@ impl ReactiveSession {
             let reopen = Effect::Reopen {
                 action: series.clone(),
                 because: EvidenceSelector::Latest(stream.to_string()),
+                form: DecisionChange::Reopen,
             };
             self.execute_guarded_effect(condition, &reopen, parameters, guard, budget)?;
         }
@@ -6932,7 +7181,12 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                 })
                 .collect(),
         },
-        Effect::Reopen { action, because } => Effect::Reopen {
+        Effect::Reopen {
+            action,
+            because,
+            form,
+        } => Effect::Reopen {
+            form: *form,
             action: rename(action),
             because: match because {
                 EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
@@ -7453,6 +7707,16 @@ fn effect_candidates(words: &[&str]) -> Vec<usize> {
                     | "renew"
                     | "withdraw"
             )
+        {
+            candidates.push(index);
+        }
+        // `hold` and `release` came after 1.0 and are legal names: one is an
+        // effect word only two words before a `because`, so a rule that does
+        // not load reports the error it reported before
+        // (spec/caveat-holds-0.1.md).
+        if depth == 0
+            && matches!(*token, "hold" | "release")
+            && words.get(index + 2) == Some(&"because")
         {
             candidates.push(index);
         }
@@ -8204,7 +8468,14 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 reasons,
             })
         }
-        ["reopen", action, "because", selector @ ..] if !selector.is_empty() => {
+        [verb @ ("reopen" | "hold" | "release"), action, "because", selector @ ..]
+            if !selector.is_empty() =>
+        {
+            let form = match *verb {
+                "hold" => DecisionChange::Hold,
+                "release" => DecisionChange::Release,
+                _ => DecisionChange::Reopen,
+            };
             let selector = selector.join(" ");
             let because = if let Some(arguments) = selector
                 .strip_prefix("latest")
@@ -8240,6 +8511,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             Ok(Effect::Reopen {
                 action: identifier(action)?,
                 because,
+                form,
             })
         }
         _ => Err(invalid()),

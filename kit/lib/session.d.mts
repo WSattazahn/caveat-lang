@@ -602,12 +602,17 @@ export interface DecisionSeries {
   current: string | null;
   revisions: DecisionRevision[];
   selection_qualifications: Provenance;
+  /** From 1.2 (spec/caveat-holds-0.1.md): the reasons the current revision is on hold. Absent when it is not. */
+  on_hold?: string[];
+  /** From 1.2: the reopenings a hold defers, applied on release. Absent when there are none. */
+  deferred?: string[];
 }
 
 export interface DecisionJournalEntry {
   decision: string;
   commitment: string;
-  change: 'committed' | 'reopened';
+  /** `held`, `deferred` and `released` from 1.2 (spec/caveat-holds-0.1.md). */
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
   sequence: number;
   event: string;
   /** Absent in older saves. */
