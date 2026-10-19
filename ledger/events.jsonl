@@ -22,3 +22,4 @@
 {"event": "decide_scope", "payload": {"option": 2}}
 {"event": "approve", "payload": {"item": 102}}
 {"event": "ship", "payload": {"version": 102}}
+{"event": "find", "payload": {"number": 20}}

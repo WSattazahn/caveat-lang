@@ -496,10 +496,14 @@ impl ReactiveSession {
             }
         }
         // A series revision is in force while it is its series' current one;
-        // a commitment outside a series is in force once made.
+        // a commitment outside a series is in force once made. A series read
+        // through `revision(…)` keeps every revision's grounds pinned (see
+        // spec/caveat-past-revisions-0.1.md).
         let superseded = self
             .decision_series
-            .values()
+            .iter()
+            .filter(|(name, _)| !self.revision_series.contains(*name))
+            .map(|(_, series)| series)
             .flat_map(|series| {
                 series
                     .revisions

@@ -839,3 +839,38 @@ fn check_event(game: &mut ReactiveSession, source: &str, event: &str, run: usize
         );
     }
 }
+
+/// D020: an unguarded `qualify` reached a stored predicate record that lists
+/// the evidence, but froze the caveat as kept there, so a later take-back left
+/// it on every value read through that record. The record lists the evidence,
+/// so the caveat's route is live and a take-back removes it.
+#[test]
+fn d020_a_doubt_raised_after_a_stored_guard_read_the_evidence_can_be_taken_back() {
+    let source = r#"
+claim ok;
+caveat flaky consequence material;
+evidence e from "operator";
+state ev = 0;
+event see_e;
+event flag_e;
+event unflag_e;
+event read;
+on see_e when not observed(e) reveal e supports ok;
+on flag_e qualify e with flaky;
+on unflag_e unqualify e with flaky;
+on read set ev = qualified(1, e);
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    for event in ["see_e", "see_e", "flag_e", "read"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(caveats(&game, "ev"), json!(["flaky"]));
+    for event in ["unflag_e", "read"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    assert_eq!(caveats(&game, "ev"), json!([]));
+    let save = game.save_json().unwrap();
+    let mut restored = ReactiveSession::restore_json(source, &save).unwrap();
+    restored.dispatch_json("read", "{}").unwrap();
+    assert_eq!(caveats(&restored, "ev"), json!([]));
+}

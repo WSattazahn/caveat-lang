@@ -70,6 +70,8 @@ they name does not depart while they name it. They are:
 - the **grounds of the current revision** of each decision series, whether
   or not it is reopened: what its `using` read, with its retained caveats
   (`commitment_grounds`);
+- the grounds of **every revision** of a decision series a program reads
+  through `revision(…)` ([Past Revisions 0.1](caveat-past-revisions-0.1.md));
 - the `because` of each **journal entry still in the journal's window**.
 
 A grounds' own reads, the names its expression, guard or predecessor check
