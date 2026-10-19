@@ -24,6 +24,7 @@ const newerThanBaseline = {
   'experiments/take-back-sweep/programs/windowed.cav': /\bunqualify\b/,
   'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,
   'docs/releases/v1.0.1-d012.cav': /\bunqualify\b/,
+  'docs/releases/v1.0.3-d020.cav': /\bunqualify\b/,
 };
 
 
