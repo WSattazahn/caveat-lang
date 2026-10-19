@@ -43,6 +43,22 @@ is taken or not:
   when the event revealed, qualified, examined, committed, reopened or sampled
   anything, or changed a record those read.
 
+A declaration whose every graph read names a reading stream or decision
+series is scoped to those histories. After a graph change it is evaluated again
+only if:
+
+- a record of one of its histories changed: the history itself, one of its
+  readings or revisions (`NAME@N`), a commitment basis or ground, a reopening's
+  qualification, or a graph node or edge that touches one of them; or
+- the event changed something a read of any history can reach. That covers a
+  `qualifies` edge, a qualification that is not a new reading's, a take-back,
+  a withdrawal, a renewal, a retirement or a permission. It also covers a
+  record no history owns but that a scoped read consults, or any removal.
+
+A change to a claim or to evidence outside every history reaches no scoped
+declaration. A sample of `api_tests` or a commitment in `api_gate` leaves the
+declarations that read only `web_tests` as they were.
+
 For an author this means `bind hud.elapsed = elapsed();` is evaluated when the
 clock changes, and a binding that reads only `support` is evaluated when
 `support` changes. The runtime clock dependency is distinct from any state

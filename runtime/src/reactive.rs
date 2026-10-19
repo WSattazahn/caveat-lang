@@ -1104,6 +1104,11 @@ struct BindingGroup {
     target: String,
     property: String,
     reads: Reads,
+    /// When every graph read names a reading stream or decision series:
+    /// those histories. A graph change that touches none of them, and none
+    /// of the records every value's caveats are read from, leaves the group
+    /// as it was. `None` for any other graph read.
+    histories: Option<BTreeSet<String>>,
     /// `number`, `boolean` or `text`: one type for every declaration.
     value_type: &'static str,
 }
@@ -1118,6 +1123,10 @@ struct Changes {
     names: HashSet<String>,
     graph: bool,
     clock: bool,
+    /// When the graph changed: the reading streams and decision series whose
+    /// records changed, if every change belongs to one of them or to nothing
+    /// a history read reaches. `None` when a change could reach any of them.
+    histories: Option<BTreeSet<String>>,
 }
 
 impl Changes {
@@ -1153,12 +1162,197 @@ impl Changes {
             graph,
             // Signed zero is observable, for example through atan2.
             clock: old.elapsed.to_bits() != new.elapsed.to_bits(),
+            histories: if graph {
+                Self::histories_between(old, new)
+            } else {
+                Some(BTreeSet::new())
+            },
         }
     }
 
-    fn touch(&self, reads: &Reads) -> bool {
+    /// The histories whose records an event changed, or `None` if it changed
+    /// something a read of any history can reach: a qualification, take-back,
+    /// withdrawal, renewal, retirement or permission, or a record it cannot
+    /// place in one history. A change to a record no history read consults
+    /// (a claim, or evidence outside every history) places nowhere.
+    fn histories_between(old: &ReactiveSession, new: &ReactiveSession) -> Option<BTreeSet<String>> {
+        fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
+            Arc::ptr_eq(old, new) || **old == **new
+        }
+        if !same(
+            &old.examination_qualifications,
+            &new.examination_qualifications,
+        ) || !same(&old.predicate_qualifications, &new.predicate_qualifications)
+            || !same(&old.renewals, &new.renewals)
+            || !same(&old.retired, &new.retired)
+            || !same(&old.taken_back, &new.taken_back)
+            || !same(&old.withdrawals, &new.withdrawals)
+            || !same(&old.late_caveats, &new.late_caveats)
+            || !same(&old.take_back_caveats, &new.take_back_caveats)
+            || !same(&old.commitment_permissions, &new.commitment_permissions)
+        {
+            return None;
+        }
+        // The history a record belongs to: a history itself, or `NAME@N`.
+        let history_of = |name: &str| -> Option<String> {
+            let is_history = |name: &str| {
+                new.reading_streams.contains_key(name) || new.decision_series.contains_key(name)
+            };
+            if is_history(name) {
+                return Some(name.to_string());
+            }
+            let (history, ordinal) = name.rsplit_once('@')?;
+            (is_history(history) && ordinal.bytes().all(|byte| byte.is_ascii_digit()))
+                .then(|| history.to_string())
+        };
+        let mut changed = BTreeSet::new();
+        // Keyed records: every changed key must place in a history.
+        fn keyed<V: PartialEq>(
+            old: &BTreeMap<String, V>,
+            new: &BTreeMap<String, V>,
+            added_only: bool,
+            place: &dyn Fn(&str) -> Option<String>,
+            changed: &mut BTreeSet<String>,
+        ) -> Option<()> {
+            if old.keys().any(|key| !new.contains_key(key)) {
+                return None;
+            }
+            for (key, value) in new {
+                match old.get(key) {
+                    Some(previous) if previous == value => {}
+                    Some(_) if added_only => return None,
+                    _ => {
+                        changed.insert(place(key)?);
+                    }
+                }
+            }
+            Some(())
+        }
+        if !Arc::ptr_eq(&old.reading_streams, &new.reading_streams) {
+            keyed(
+                &old.reading_streams,
+                &new.reading_streams,
+                false,
+                &history_of,
+                &mut changed,
+            )?;
+        }
+        if !Arc::ptr_eq(&old.decision_series, &new.decision_series) {
+            keyed(
+                &old.decision_series,
+                &new.decision_series,
+                false,
+                &history_of,
+                &mut changed,
+            )?;
+        }
+        if !Arc::ptr_eq(&old.commitment_bases, &new.commitment_bases) {
+            keyed(
+                &old.commitment_bases,
+                &new.commitment_bases,
+                false,
+                &history_of,
+                &mut changed,
+            )?;
+        }
+        if !Arc::ptr_eq(&old.commitment_grounds, &new.commitment_grounds) {
+            keyed(
+                &old.commitment_grounds,
+                &new.commitment_grounds,
+                false,
+                &history_of,
+                &mut changed,
+            )?;
+        }
+        if !Arc::ptr_eq(&old.reopening_qualifications, &new.reopening_qualifications) {
+            keyed(
+                &old.reopening_qualifications,
+                &new.reopening_qualifications,
+                false,
+                &history_of,
+                &mut changed,
+            )?;
+        }
+        // A new reading's qualification is new; one that changes could be
+        // read through any value that holds that reading.
+        if !Arc::ptr_eq(
+            &old.observation_qualifications,
+            &new.observation_qualifications,
+        ) {
+            let anywhere = |name: &str| Some(history_of(name).unwrap_or_default());
+            keyed(
+                &old.observation_qualifications,
+                &new.observation_qualifications,
+                true,
+                &anywhere,
+                &mut changed,
+            )?;
+        }
+        // Names only gain symbols.
+        if !Arc::ptr_eq(&old.symbols, &new.symbols)
+            && old
+                .symbols
+                .iter()
+                .any(|(name, id)| new.symbols.get(name) != Some(id))
+        {
+            return None;
+        }
+        if !Arc::ptr_eq(&old.observations, &new.observations)
+            && !new.observations.starts_with(&old.observations)
+        {
+            return None;
+        }
+        if !Arc::ptr_eq(&old.graph, &new.graph) {
+            // Edges are only added here; a `qualifies` edge reaches every
+            // value whose lineage lists its evidence.
+            let added = new.graph.edges.strip_prefix(old.graph.edges.as_slice())?;
+            if added
+                .iter()
+                .any(|edge| edge.relation == Relation::Qualifies)
+            {
+                return None;
+            }
+            let mut touched = added
+                .iter()
+                .flat_map(|edge| [edge.from, edge.to])
+                .collect::<HashSet<_>>();
+            if old
+                .graph
+                .nodes
+                .keys()
+                .any(|id| !new.graph.nodes.contains_key(id))
+            {
+                return None;
+            }
+            touched.extend(
+                new.graph
+                    .nodes
+                    .iter()
+                    .filter(|(id, node)| old.graph.nodes.get(id) != Some(*node))
+                    .map(|(id, _)| *id),
+            );
+            if !touched.is_empty() {
+                for (name, id) in new.symbols.iter() {
+                    if touched.contains(id) {
+                        if let Some(history) = history_of(name) {
+                            changed.insert(history);
+                        }
+                    }
+                }
+            }
+        }
+        changed.remove("");
+        Some(changed)
+    }
+
+    fn touch(&self, reads: &Reads, histories: Option<&BTreeSet<String>>) -> bool {
         reads.anything
-            || (reads.graph && self.graph)
+            || (reads.graph
+                && self.graph
+                && match (histories, &self.histories) {
+                    (Some(read), Some(changed)) => read.iter().any(|name| changed.contains(name)),
+                    _ => true,
+                })
             || (reads.clock && self.clock)
             || reads.names.iter().any(|name| self.names.contains(name))
     }
@@ -2526,6 +2720,7 @@ impl ReactiveSession {
                     target: binding.target.clone(),
                     property: binding.property.clone(),
                     reads: Reads::default(),
+                    histories: None,
                     value_type: types[&(binding.target.clone(), binding.property.clone())],
                 });
                 groups.len() - 1
@@ -2539,6 +2734,17 @@ impl ReactiveSession {
                 citation.collect_reads(reads);
             }
             group_of.push(group);
+        }
+        for group in &mut groups {
+            let reads = &group.reads;
+            let scoped = reads.graph
+                && !reads.anything
+                && !reads.graph_unnamed
+                && reads.graph_names.iter().all(|name| {
+                    self.reading_streams.contains_key(name)
+                        || self.decision_series.contains_key(name)
+                });
+            group.histories = scoped.then(|| reads.graph_names.clone());
         }
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
@@ -3142,7 +3348,9 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.binding_rules);
         let stale = groups
             .iter()
-            .map(|group| changes.is_none_or(|changes| changes.touch(&group.reads)))
+            .map(|group| {
+                changes.is_none_or(|changes| changes.touch(&group.reads, group.histories.as_ref()))
+            })
             .collect::<Vec<_>>();
         if !stale.contains(&true) {
             return Ok(());
@@ -4670,11 +4878,35 @@ impl ReactiveSession {
                 if let Some(reopening) = self.reopening_qualifications.get(name) {
                     self.inherit(&mut provenance, reopening)?;
                 }
-                let by_id = self
-                    .symbols
+                // Only the names these edges reach: the session may hold many.
+                let reached = self
+                    .graph
+                    .edges
                     .iter()
-                    .map(|(name, id)| (*id, name))
-                    .collect::<HashMap<_, _>>();
+                    .filter_map(|edge| {
+                        if edge.from == id
+                            && matches!(edge.relation, Relation::Retains | Relation::ReliesOn)
+                        {
+                            Some(edge.to)
+                        } else if kind == "reopened"
+                            && edge.to == id
+                            && edge.relation == Relation::Reopens
+                        {
+                            Some(edge.from)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<HashSet<_>>();
+                let by_id = if reached.is_empty() {
+                    HashMap::new()
+                } else {
+                    self.symbols
+                        .iter()
+                        .filter(|(_, id)| reached.contains(*id))
+                        .map(|(name, id)| (*id, name))
+                        .collect::<HashMap<_, _>>()
+                };
                 for edge in &self.graph.edges {
                     if edge.from == id && edge.relation == Relation::Retains {
                         provenance
@@ -6577,27 +6809,35 @@ impl ReactiveSession {
         if self.late_caveats.is_empty() {
             return BTreeSet::new();
         }
-        let late = self
+        // A handful of names each: sorted lists, not hash sets.
+        let mut late = self
             .late_caveats
             .iter()
             .filter(|caveat| !provenance.caveats.contains(*caveat))
             .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<HashSet<_>>();
-        let listed = provenance
+            .collect::<Vec<_>>();
+        if late.is_empty() {
+            return BTreeSet::new();
+        }
+        late.sort_unstable();
+        let mut listed = provenance
             .evidence
             .iter()
             .filter_map(|name| self.symbols.get(name).copied())
-            .collect::<HashSet<_>>();
+            .collect::<Vec<_>>();
+        listed.sort_unstable();
         self.graph
             .edges
             .iter()
             .filter(|edge| {
                 edge.relation == Relation::Qualifies
-                    && late.contains(&edge.from)
-                    && listed.contains(&edge.to)
-                    && self.has_live_relation(edge.from, edge.to)
+                    && late.binary_search(&edge.from).is_ok()
+                    && listed.binary_search(&edge.to).is_ok()
             })
             .map(|edge| (edge.from, edge.to))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .filter(|&(caveat, evidence)| self.has_live_relation(caveat, evidence))
             .collect()
     }
 
