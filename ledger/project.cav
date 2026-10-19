@@ -14,6 +14,7 @@ caveat inferred_not_traced consequence material;    # a link asserted without tr
 caveat changes_saves consequence low;               # the fixes change saves of some programs (D014; reviewed list)
 caveat uncovered_windows consequence high;          # no test on the path used a window
 caveat latent_since_1_0_0 consequence low;          # a bug every release has had; not a regression
+caveat fix_regressed consequence high;              # a fix on the tree broke the case it fixed (D020)
 
 # ---- Sources of evidence ---------------------------------------------------
 
@@ -32,6 +33,7 @@ readings findings from finding_reports limit 64;   # value: the D-number; the co
 evidence d016 from "D016: a late qualify reaches a stored record and the collector is not told";
 evidence d018 from "D018: a departed record's live take-back caveat is not kept on stored records";
 evidence d019 from "D019: a take-back cannot clear a flag read through examined(...)";
+evidence d020 from "D020: a take-back cannot clear a doubt an unguarded qualify put on a stored record";
 evidence release_build_d018 from "the D018 regression fails in a release build too";
 evidence randomized_checks from "runtime/tests/*_invariants.rs and kin";
 evidence owner from "the owner's answer to a card";
@@ -122,6 +124,10 @@ on find when number == 16 or number == 18 qualify release_tree with uncovered_wi
 on find when number == 18 reveal d018 opposes patch_safe;
 on find when number == 19 reveal d019 opposes runtime_correct;
 on find when number == 19 qualify d019 with latent_since_1_0_0;
+# D020 came from 1.0.1's own D014 fix: the tree both patches shipped from
+# broke what it was meant to fix, so both release decisions rest on doubt.
+on find when number == 20 reveal d020 opposes patch_safe;
+on find when number == 20 qualify release_tree with fix_regressed;
 
 on release_build_shows when number == 18 reveal release_build_d018 opposes patch_safe;
 
@@ -129,6 +135,8 @@ on release_build_shows when number == 18 reveal release_build_d018 opposes patch
 # naming the evidence that carries it. Nothing reopens by itself.
 on review when committed(release) and not reopened(release) and has_caveat(release_basis, uncovered_windows)
     reopen release because caveated(release_basis, uncovered_windows);
+on review when committed(release) and not reopened(release) and has_caveat(release_basis, fix_regressed)
+    reopen release because caveated(release_basis, fix_regressed);
 
 on checks_land reveal randomized_checks supports runtime_correct;
 
@@ -151,6 +159,7 @@ bind ledger.release = "none yet";
 bind ledger.release = "1.0." + number_text(latest(release) - 100) + " stands" when committed(release) and not reopened(release);
 bind ledger.release = "1.0." + number_text(latest(release) - 100) + " is reopened: its basis carries a doubt" when reopened(release);
 bind ledger.release_basis_doubted = if(has_caveat(release_basis, uncovered_windows), 1, 0);
+bind ledger.release_basis_regressed = if(has_caveat(release_basis, fix_regressed), 1, 0);
 bind ledger.merge_259 = "not merged";
 bind ledger.merge_259 = "merged on a rerun of " + number_text(latest(merge_259)) + " divergences" when committed(merge_259);
 bind ledger.last_rerun = latest(reruns) when has_sample(reruns);
