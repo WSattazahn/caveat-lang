@@ -67,7 +67,7 @@ The withdrawn inference reads the same way:
 | claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `runtime_correct`, `approved_by_owner` | what evidence bears on |
 | caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0` | what a reader must see next to a piece of evidence |
 | evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
-| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix` | series: each may be reopened and revised, never overwritten |
+| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1` | series: each may be reopened and revised, never overwritten |
 | events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `find`, `review`, the `decide_*` cards | what gets appended to the record |
 
 A decision is refused until its grounds exist and the owner has approved
@@ -76,7 +76,8 @@ that item: `merge` needs a rerun with 0 divergences, a green CI run and
 version; a second `ship` while the current release stands is refused until
 `review` has reopened it. An approval is a reading in `approvals` whose
 value is the item code: a PR number, a version (101, 102), or a card option
-(1021/1022 for 1.0.2's scope, 41–42 for the record fix's order).
+(1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
+the two forms' place in 1.1).
 
 ## Keep it going
 

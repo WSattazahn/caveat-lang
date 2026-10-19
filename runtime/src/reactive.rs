@@ -236,6 +236,9 @@ pub enum Effect {
         stream: String,
         value: Expr,
         stance: Option<(Relation, String)>,
+        /// `noting EXPRESSION`: the text of the identifier it names, kept
+        /// with the reading. See spec/caveat-reading-notes-0.1.md.
+        note: Option<Box<Expr>>,
     },
     Emit {
         name: String,
@@ -397,8 +400,11 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, .. } => {
+        Effect::Sample { value, note, .. } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
+            if let Some(note) = note {
+                **note = reactive_expr::expand_with(note, functions, defines)?;
+            }
         }
         Effect::Qualify { after, index, .. } => {
             for value in after
@@ -742,6 +748,9 @@ pub struct ReadingOccurrence {
     pub relation: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim: Option<String>,
+    /// What was observed, as text: spec/caveat-reading-notes-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -967,7 +976,10 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, .. } => expressions.push(value),
+            Effect::Sample { value, note, .. } => {
+                expressions.push(value);
+                expressions.extend(note.as_deref());
+            }
             Effect::Commit {
                 using,
                 citing,
@@ -1130,6 +1142,9 @@ pub enum EffectReport {
         relation: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         target: Option<String>,
+        /// `noting`: spec/caveat-reading-notes-0.1.md.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        note: Option<String>,
     },
     Reveal {
         evidence: String,
@@ -2633,6 +2648,31 @@ impl ReactiveSession {
                 revision_series.borrow_mut().insert(symbol.to_string());
                 return Ok(());
             }
+            // `in_basis(…)`, as `SERIES|R|KIND|NAME`. See
+            // spec/caveat-in-basis-0.1.md.
+            if kind == reactive_expr::IN_BASIS {
+                let mut parts = symbol.splitn(4, '|');
+                let (Some(series), Some(revision), Some(kind), Some(name)) =
+                    (parts.next(), parts.next(), parts.next(), parts.next())
+                else {
+                    return Err(format!("in_basis received a malformed target {symbol}"));
+                };
+                if revision.is_empty() {
+                    if !self.decision_series.contains_key(series) && !commitments.contains(series) {
+                        return Err(format!("in_basis({series}, …) names no decision"));
+                    }
+                } else {
+                    if !self.decision_series.contains_key(series) {
+                        return Err(format!("revision({series}, …) names no decision series"));
+                    }
+                    revision_series.borrow_mut().insert(series.to_string());
+                }
+                return match kind {
+                    "named" => self.require_kind(name, "evidence"),
+                    "latest" => self.require_latest(name),
+                    _ => self.require_renewable_occurrence(name),
+                };
+            }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
@@ -2745,6 +2785,7 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    note,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -2752,6 +2793,13 @@ impl ReactiveSession {
                     }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("sample {stream} requires a numeric expression"));
+                    }
+                    if let Some(note) = note {
+                        if note.validate(&numeric, &validate_predicate)? != ValueType::Text {
+                            return Err(format!(
+                                "sample {stream} noting requires an identifier handle"
+                            ));
+                        }
                     }
                 }
                 Effect::Reject { .. } => {}
@@ -2764,7 +2812,8 @@ impl ReactiveSession {
                 } => {
                     if *latest {
                         self.require_latest(evidence)?;
-                    } else {
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
                         self.require_kind(evidence, "evidence")?;
                     }
                     if let Some(index) = index {
@@ -2798,7 +2847,8 @@ impl ReactiveSession {
                 } => {
                     if *latest {
                         self.require_latest(evidence)?;
-                    } else {
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
                         self.require_kind(evidence, "evidence")?;
                     }
                     self.require_kind(caveat, "caveat")?;
@@ -3254,10 +3304,12 @@ impl ReactiveSession {
         Ok(state)
     }
 
-    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence: see
-    /// spec/caveat-earlier-occurrence-0.1.md.
+    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence, and
+    /// `reading(STREAM, INDEX)` a reading stream: see
+    /// spec/caveat-earlier-occurrence-0.1.md and
+    /// spec/caveat-reading-index-0.1.md.
     fn require_renewable_occurrence(&self, evidence: &str) -> Result<(), String> {
-        if self.renewals.contains_key(evidence) {
+        if self.renewals.contains_key(evidence) || self.reading_streams.contains_key(evidence) {
             Ok(())
         } else {
             Err(format!(
@@ -4090,6 +4142,7 @@ impl ReactiveSession {
                 }))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
                 Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
@@ -4134,6 +4187,7 @@ impl ReactiveSession {
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, true),
                 Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
@@ -4658,6 +4712,7 @@ impl ReactiveSession {
                 stream,
                 value,
                 stance,
+                note,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -4683,6 +4738,15 @@ impl ReactiveSession {
                 let value = self.evaluate(value, parameters)?;
                 let Value::Number(number) = value.value else {
                     return Err("sample requires a numeric value".into());
+                };
+                // The note is text only: it joins neither the reading's
+                // lineage nor its grounds.
+                let note = match note {
+                    Some(note) => match self.evaluate(note, parameters)?.value {
+                        Value::Text(text) => Some(text),
+                        _ => return Err("sample noting requires an identifier handle".into()),
+                    },
+                    None => None,
                 };
                 let NodeKind::Evidence {
                     description,
@@ -4748,6 +4812,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     claim: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note: note.clone(),
                 });
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
@@ -4757,6 +4822,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     target: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note,
                 });
                 let changed = previous.is_none_or(|previous| previous != number);
                 self.run_reopening_triggers(
@@ -6354,6 +6420,52 @@ impl ReactiveSession {
         Some((kind, held))
     }
 
+    /// `in_basis(…)`, whose target arrives as `SERIES#K|KIND|NAME#N`: whether
+    /// the revision's grounds hold the evidence named. The answer rests on the
+    /// revision's record, as `committed(…)` asked of it does; a revision or a
+    /// reference that names nothing held answers false. See
+    /// spec/caveat-in-basis-0.1.md.
+    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, String> {
+        let malformed = || format!("in_basis received a malformed target {target}");
+        let mut parts = target.splitn(3, '|');
+        let (Some(revision), Some(kind), Some(reference)) =
+            (parts.next(), parts.next(), parts.next())
+        else {
+            return Err(malformed());
+        };
+        let (series, k) = revision.rsplit_once('#').ok_or_else(malformed)?;
+        let (name, n) = reference.rsplit_once('#').ok_or_else(malformed)?;
+        let revision = if k.is_empty() {
+            match self.decision_series.get(series) {
+                Some(series) => series.current.clone(),
+                None => self
+                    .predicate("committed", series)?
+                    .then(|| series.to_string()),
+            }
+        } else {
+            k.parse().ok().and_then(|k| self.held_revision(series, k))
+        };
+        let evidence = match kind {
+            "named" => Some(self.occurrence(name).to_string()),
+            "latest" => self.latest_target(name),
+            "at" => n.parse().ok().and_then(|n| self.held_occurrence(name, n)),
+            _ => return Err(malformed()),
+        };
+        let (Some(revision), Some(evidence)) = (revision, evidence) else {
+            return Ok(Tracked::plain(false));
+        };
+        let held = self
+            .commitment_grounds
+            .get(&revision)
+            .is_some_and(|grounds| grounds.evidence.contains(&evidence));
+        let record = if grounds {
+            self.predicate_grounds("committed", &revision)?
+        } else {
+            self.predicate_tracked("committed", &revision)?
+        };
+        Tracked::new(held, record.provenance)
+    }
+
     /// The revision of a decision series that a 1-based index names: `k` is
     /// `SERIES@k`, the `k`th revision committed, current or past. `None` when
     /// the index is not a whole number naming a revision made so far. See
@@ -6371,10 +6483,21 @@ impl ReactiveSession {
     /// is not a whole number naming an occurrence that exists and has not
     /// retired.
     fn held_occurrence(&self, evidence: &str, index: f64) -> Option<String> {
-        let renewal = self.renewals.get(evidence)?;
         if index < 1.0 || index.fract() != 0.0 {
             return None;
         }
+        // A stream's `k`th reading is `STREAM@k`, while the stream holds it:
+        // spec/caveat-reading-index-0.1.md.
+        if let Some(stream) = self.reading_streams.get(evidence) {
+            let name = format!("{evidence}@{index}");
+            return stream
+                .occurrences
+                .iter()
+                .any(|occurrence| occurrence.id == name)
+                .then_some(name)
+                .filter(|name| !self.is_retired(name));
+        }
+        let renewal = self.renewals.get(evidence)?;
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
@@ -6576,12 +6699,16 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             stream,
             value,
             stance,
+            note,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
             stance: stance
                 .as_ref()
                 .map(|(relation, claim)| (*relation, rename(claim))),
+            note: note
+                .as_ref()
+                .map(|note| Box::new(note.rename_symbols(names))),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -7519,12 +7646,14 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 /// `occurrence(EVIDENCE, INDEX)` as an effect's target or reason, or `None`
 /// for any other text. See spec/caveat-earlier-occurrence-0.1.md.
+/// `occurrence(EVIDENCE, INDEX)`, or `reading(STREAM, INDEX)`, which names a
+/// stream's reading the same way: spec/caveat-reading-index-0.1.md.
 fn occurrence_selector(text: &str) -> Result<Option<(String, Box<Expr>)>, String> {
-    let Some(arguments) = text
-        .strip_prefix("occurrence")
-        .map(str::trim_start)
-        .and_then(|rest| rest.strip_prefix('('))
-    else {
+    let Some(arguments) = ["occurrence", "reading"].iter().find_map(|selector| {
+        text.strip_prefix(selector)
+            .map(str::trim_start)
+            .and_then(|rest| rest.strip_prefix('('))
+    }) else {
         return Ok(None);
     };
     let arguments = arguments
@@ -7544,10 +7673,11 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     let invalid = || format!("invalid reactive effect: {}", words.join(" "));
     match words {
         [verb @ ("qualify" | "unqualify"), rest @ ..]
-            if rest
-                .join(" ")
-                .strip_prefix("occurrence")
-                .is_some_and(|rest| rest.trim_start().starts_with('(')) =>
+            if ["occurrence", "reading"].iter().any(|selector| {
+                rest.join(" ")
+                    .strip_prefix(selector)
+                    .is_some_and(|rest| rest.trim_start().starts_with('('))
+            }) =>
         {
             let split = rest
                 .iter()
@@ -7696,7 +7826,28 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM]";
+            const FORM: &str =
+                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            // `noting` is a word only where what follows parses: a 1.0
+            // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
+            let noting = rest
+                .iter()
+                .rposition(|word| *word == "noting")
+                .and_then(|at| {
+                    if at == 0 || at + 1 == rest.len() {
+                        return None;
+                    }
+                    reactive_expr::parse_unresolved(&format!(
+                        "id_text({})",
+                        rest[at + 1..].join(" ")
+                    ))
+                    .ok()
+                    .map(|note| (at, note))
+                });
+            let (rest, note) = match noting {
+                Some((at, note)) => (&rest[..at], Some(note)),
+                None => (rest, None),
+            };
             let relation_of = |word: &str| match word {
                 "supports" => Some(Relation::Supports),
                 "opposes" => Some(Relation::Opposes),
@@ -7717,9 +7868,13 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 value: reactive_expr::parse_unresolved(&value.join(" "))
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
+                note: note.map(Box::new),
             })
         }
-        ["sample", ..] => Err("sample expects STREAM = EXPRESSION [supports|opposes CLAIM]".into()),
+        ["sample", ..] => Err(
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+                .into(),
+        ),
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),
