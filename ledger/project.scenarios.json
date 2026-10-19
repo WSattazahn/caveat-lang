@@ -171,6 +171,8 @@
         { "send": "report_next" },
         { "send": "approve", "payload": { "item": 1201 } },
         { "send": "decide_next", "payload": { "option": 1 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 286 } },
         { "expect": {
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/latest_gap_1_1": "carries(latest) in 1.1, then a fresh-author check",
