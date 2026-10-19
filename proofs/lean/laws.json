@@ -121,7 +121,10 @@
   "Caveat.Sources.set_preserves",
   "Caveat.Sources.predicate_preserves",
   "Caveat.Sources.commit_preserves",
-  "Caveat.Sources.observe_preserves",
+  "Caveat.Sources.observeStep_consistent",
+  "Caveat.Sources.consistent_observed",
+  "Caveat.Sources.renew_preserves",
+  "Caveat.Sources.reveal_preserves",
   "Caveat.Sources.addRoute_matches",
   "Caveat.Sources.qualify_preserves",
   "Caveat.Sources.unqualify_preserves",
@@ -142,5 +145,6 @@
   "Caveat.Sources.d012_decision_keeps_flag",
   "Caveat.Sources.d015_late_qualification_reaches_basis_reader",
   "Caveat.Sources.d018_departed_doubt_is_kept",
-  "Caveat.Sources.d020_stored_record_take_back"
+  "Caveat.Sources.d020_stored_record_take_back",
+  "Caveat.Sources.runEvent_preserves"
 ]

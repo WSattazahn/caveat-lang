@@ -1,6 +1,7 @@
 import Caveat.Bridge
 import Caveat.Late
 import Caveat.Reopen
+import Caveat.Sources
 import Lean.Data.Json
 
 open Lean
@@ -450,6 +451,109 @@ def executeReopen (request : ReopenRequest) : Except String Json := do
     | _, _ => throw "unexpected fatal result in the admitted reopening fragment"
   pure (Json.mkObj [("schema", toJson reopenSchema), ("id", toJson request.id), ("after", frame)])
 
+
+/-! ## Caveat Sources histories -/
+
+def sourcesSchema : String := "caveat-sources/0.1"
+
+def parseSource (json : Json) : Except String Sources.Source := do
+  let fields ← json.getObj?
+  unless fields.size == 1 do throw "a source has exactly one field"
+  match fields.toList with
+  | [("state", v)] => .state <$> parseIdentifier v "source state"
+  | [("evidence", v)] => .evidence <$> parseIdentifier v "source evidence"
+  | [("basis", v)] => .basis <$> parseIdentifier v "source basis"
+  | [("predicate", v)] => .predicate <$> parseIdentifier v "source predicate"
+  | _ => throw "unknown source"
+
+def parseSources (json : Json) (label : String) : Except String (List Sources.Source) := do
+  (← arrayBetween json 0 4 label).mapM parseSource
+
+def parseSourcesEvent (json : Json) : Except String Sources.Event := do
+  let fields ← json.getObj?
+  unless fields.size == 1 do throw "a model event has exactly one field"
+  match fields.toList with
+  | [("set", v)] =>
+      exactFields v ["state", "body", "guard"] []
+      pure (.set (← parseIdentifier (← v.getObjVal? "state") "set state")
+        (← parseSources (← v.getObjVal? "body") "set body")
+        (← parseSources (← v.getObjVal? "guard") "set guard"))
+  | [("renew", v)] =>
+      exactFields v ["evidence", "declared", "guard"] []
+      pure (.renew (← parseIdentifier (← v.getObjVal? "evidence") "renew evidence")
+        (← parseIdentifiers (← v.getObjVal? "declared") 4 "renew declared")
+        (← parseSources (← v.getObjVal? "guard") "renew guard"))
+  | [("reveal", v)] =>
+      exactFields v ["evidence", "declared"] []
+      pure (.reveal (← parseIdentifier (← v.getObjVal? "evidence") "reveal evidence")
+        (← parseIdentifiers (← v.getObjVal? "declared") 4 "reveal declared"))
+  | [("predicate", v)] =>
+      exactFields v ["key", "guard"] []
+      pure (.predicate (← parseIdentifier (← v.getObjVal? "key") "predicate key")
+        (← parseSources (← v.getObjVal? "guard") "predicate guard"))
+  | [("qualify", v)] =>
+      exactFields v ["evidence", "caveat", "guard"] []
+      pure (.qualify (← parseIdentifier (← v.getObjVal? "evidence") "qualify evidence")
+        (← parseIdentifier (← v.getObjVal? "caveat") "qualify caveat")
+        (← parseSources (← v.getObjVal? "guard") "qualify guard"))
+  | [("unqualify", v)] =>
+      exactFields v ["evidence", "caveat"] []
+      pure (.unqualify (← parseIdentifier (← v.getObjVal? "evidence") "unqualify evidence")
+        (← parseIdentifier (← v.getObjVal? "caveat") "unqualify caveat"))
+  | [("commit", v)] =>
+      exactFields v ["decision", "basis"] []
+      pure (.commit (← parseIdentifier (← v.getObjVal? "decision") "commit decision")
+        (← parseSources (← v.getObjVal? "basis") "commit basis"))
+  | [("depart", v)] =>
+      exactFields v ["evidence", "index"] []
+      let index ← (← v.getObjVal? "index").getNat?
+      unless index < 1024 do throw "depart index out of range"
+      pure (.depart (← parseIdentifier (← v.getObjVal? "evidence") "depart evidence", index))
+  | _ => throw "unknown model event"
+
+structure SourcesRequest where
+  id : String
+  states : List String
+  events : List (List Sources.Event)
+
+def parseSourcesRequest (json : Json) : Except String SourcesRequest := do
+  exactFields json ["schema", "id", "states", "events"] []
+  unless (← (← json.getObjVal? "schema").getStr?) == sourcesSchema do
+    throw "unsupported schema"
+  let id ← (← json.getObjVal? "id").getStr?
+  let idChars := id.toList
+  unless 1 ≤ idChars.length && idChars.length ≤ 64 &&
+      ('a' ≤ idChars.head! && idChars.head! ≤ 'z') &&
+      idChars.all (fun c => ('a' ≤ c && c ≤ 'z') || ('0' ≤ c && c ≤ '9') || c == '-') do
+    throw "id requires lowercase ASCII letter followed by up to 63 lowercase letters, digits or hyphens"
+  let states ← parseIdentifiers (← json.getObjVal? "states") 8 "states"
+  let events ← (← arrayBetween (← json.getObjVal? "events") 1 64 "events").mapM fun host => do
+    (← arrayBetween host 0 8 "host event").mapM parseSourcesEvent
+  pure ⟨id, states, events⟩
+
+def sourcesFrame (outcome : Json) (ledger : Sources.Ledger) (states : List String) : Json :=
+  let shown := fun (k : Sources.Cell) => toJson ((Sources.cell ledger k).caveats.eraseDups.mergeSort)
+  Json.mkObj [("outcome", outcome),
+    ("states", Json.mkObj (states.map fun name =>
+      (name, Json.mkObj [("lineage", shown (.lineage name)), ("grounds", shown (.grounds name))])))]
+
+def executeSources (request : SourcesRequest) : Except String Json := do
+  let mut ledger : Sources.Ledger := {}
+  let mut frames : Array Json := #[]
+  for host in request.events do
+    match Sources.runEvent ledger host with
+    | .accepted after =>
+        ledger := after
+        frames := frames.push (sourcesFrame (Json.mkObj [("outcome", toJson ("accepted" : String))])
+          ledger request.states)
+    | .rejected reason =>
+        let result : Outcome Sources.Ledger := .rejected reason
+        frames := frames.push (sourcesFrame (Json.mkObj [("outcome", toJson ("rejected" : String)),
+          ("origin", toJson result.origin), ("code", toJson result.code)]) ledger request.states)
+    | .fatal _ => throw "unexpected fatal result in the Caveat Sources fragment"
+  pure (Json.mkObj [("schema", toJson sourcesSchema), ("id", toJson request.id),
+    ("frames", toJson frames)])
+
 def process (input : String) : Except String Json := do
   unless input.utf8ByteSize ≤ 65536 do throw "request exceeds 65536 UTF-8 bytes"
   checkNumericTokens input
@@ -459,6 +563,7 @@ def process (input : String) : Except String Json := do
   | .ok (.str name) =>
       if name == lateSchema then executeLate (← parseLateRequest json)
       else if name == reopenSchema then executeReopen (← parseReopenRequest json)
+      else if name == sourcesSchema then executeSources (← parseSourcesRequest json)
       else execute (← parseRequest json)
   | _ => execute (← parseRequest json)
 
