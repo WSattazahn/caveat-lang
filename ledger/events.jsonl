@@ -45,3 +45,7 @@
 {"event": "approve", "payload": {"item": 285}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 288}}
+{"event": "approve", "payload": {"item": 280}}
+{"event": "report_next"}
+{"event": "approve", "payload": {"item": 1201}}
+{"event": "decide_next", "payload": {"option": 1}}

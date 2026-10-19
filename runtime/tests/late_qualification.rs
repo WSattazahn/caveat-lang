@@ -30,7 +30,7 @@ fn names(values: &[&str]) -> BTreeSet<String> {
 }
 
 fn caveats(provenance: &Provenance) -> BTreeSet<String> {
-    provenance.caveats.clone()
+    BTreeSet::clone(&provenance.caveats)
 }
 
 #[test]
