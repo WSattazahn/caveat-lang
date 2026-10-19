@@ -198,11 +198,12 @@ and `runtime.restore` takes it only with the source it came from.
 
 Choose the call by what the host reads after each event. `dispatchView`
 returns the view (displayed values, decisions and cues) and is the cheapest:
-the runtime does not build the snapshot. `dispatchViewDelta` returns what
-changed in a View 0.2. `dispatch` builds the full snapshot, the largest thing
-the runtime returns; use it when the host needs the journal, grounds or graph.
-`session.snapshot()` straight after `dispatch` reuses that snapshot instead of
-building another.
+the runtime does not build the snapshot. Read the view it returns rather than
+calling `view()` after it, which builds the same view again. `dispatchViewDelta`
+returns what changed in a View 0.2. `dispatch` builds the full snapshot, the
+largest thing the runtime returns; use it when the host needs the journal,
+grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
+snapshot instead of building another.
 
 ## Replay with the native command line (repository checkout)
 

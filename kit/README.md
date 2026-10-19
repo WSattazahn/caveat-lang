@@ -272,7 +272,12 @@ It runs the same event and returns `{outcome: "accepted", view}`, where `view`
 is what `session.view()` then returns, or the same rejected outcome as
 `dispatch`. The runtime does not build the snapshot for it. Its payload checks
 and failures are `dispatch`'s, and after the same events either way the session
-is the same.
+is the same. Read the view it returns: calling `session.view()` after it builds
+the same view again.
+
+A runtime keeps the last few programs it loaded, so opening or restoring the
+same source again reuses the loaded program instead of parsing and checking it
+again. The session is the same either way.
 
 [View 0.2](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-view-0.2.md)
 is available beside it. `session.view({ schema: '0.2' })` lists each

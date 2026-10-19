@@ -1528,7 +1528,43 @@ pub struct ReactiveSession {
     replay: Option<Arc<replay_save::ReplayLog>>,
 }
 
+/// How many loaded programs `from_source_cached` keeps.
+const LOADED_PROGRAMS: usize = 4;
+
+thread_local! {
+    /// Programs this thread loaded recently, by source text, least recent first.
+    static LOADED: std::cell::RefCell<Vec<(String, ReactiveSession)>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
 impl ReactiveSession {
+    /// `from_source`, reusing a program this thread loaded recently. Loading
+    /// depends only on the source text, and a clone of a freshly loaded
+    /// session is that session (its shared parts are copied on write), so a
+    /// host that opens or restores one program again pays its load once. The
+    /// last few programs that loaded are kept; a source that does not load is
+    /// not, and fails the same way each time.
+    pub fn from_source_cached(source: &str) -> Result<Self, String> {
+        let kept = LOADED.with_borrow_mut(|loaded| {
+            let index = loaded.iter().position(|(text, _)| text == source)?;
+            let entry = loaded.remove(index);
+            let session = entry.1.clone();
+            loaded.push(entry);
+            Some(session)
+        });
+        if let Some(session) = kept {
+            return Ok(session);
+        }
+        let session = Self::from_source(source)?;
+        LOADED.with_borrow_mut(|loaded| {
+            if loaded.len() == LOADED_PROGRAMS {
+                loaded.remove(0);
+            }
+            loaded.push((source.to_string(), session.clone()));
+        });
+        Ok(session)
+    }
+
     /// Whether the program declares an integer clock.
     pub(crate) fn integer_clock(&self) -> bool {
         self.clock.as_ref().is_some_and(|clock| clock.integer)
@@ -2707,14 +2743,22 @@ impl ReactiveSession {
                 ));
             }
         }
+        // The states and constants are built into the set once; each step's
+        // parameters join it while that step is checked. Rebuilding the whole
+        // set for every step made loading quadratic in program size.
+        let mut numeric: HashSet<String> = self
+            .states
+            .names()
+            .chain(self.constants.keys())
+            .cloned()
+            .collect();
         for (context, condition, effect, parameters) in steps {
-            let numeric = self
-                .states
-                .names()
-                .chain(self.constants.keys())
-                .cloned()
-                .chain(parameters.into_iter().map(str::to_owned))
-                .collect();
+            let added = parameters
+                .into_iter()
+                .filter(|name| !numeric.contains(*name))
+                .map(str::to_owned)
+                .collect::<Vec<_>>();
+            numeric.extend(added.iter().cloned());
             if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
                 return Err(format!("{context} condition must be boolean"));
             }
@@ -2940,13 +2984,10 @@ impl ReactiveSession {
                     }
                 }
             }
+            for name in &added {
+                numeric.remove(name);
+            }
         }
-        let numeric = self
-            .states
-            .names()
-            .chain(self.constants.keys())
-            .cloned()
-            .collect();
         for (name, expression) in self.define_rules.iter() {
             if self.states.contains_key(name) || self.constants.contains_key(name) {
                 return Err(format!("define {name} collides with a state"));

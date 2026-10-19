@@ -140,7 +140,8 @@ const save = session.save({ compact: true });                      // small: a s
 
 - `session.dispatchView(event, payload)` returns the view and does not build
   the full snapshot that `dispatch` returns. Use `dispatch` when the host needs
-  the snapshot's graph.
+  the snapshot's graph. Keep the view it returns: calling `session.view()`
+  afterwards builds the same view a second time.
 - `session.save({ compact: true })` saves a short session as its accepted
   events, and `runtime.restore` takes it like any save. Do not write a replay
   log of your own.
