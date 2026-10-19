@@ -92,6 +92,12 @@ export interface ExplainedSeries {
   limit: number;
   current: string | null;
   revisions: ExplainedRevision[];
+  /** Present when the series is declared irreversible (spec/caveat-foreclosure-0.1.md). */
+  irreversible?: true;
+  /** The actions an irreversible series forecloses, in source order; present when it declares any. */
+  forecloses?: string[];
+  /** The committed irreversible revisions that foreclose this decision, in commit order; present when there are any. */
+  foreclosed_by?: string[];
 }
 
 export type RevisionStatus = 'in force' | 'reopened' | 'superseded';

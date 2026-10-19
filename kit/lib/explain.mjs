@@ -198,6 +198,24 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
       history,
     };
   };
+  // Irreversible series, what they foreclose, and which committed revision
+  // forecloses each action (spec/caveat-foreclosure-0.1.md). All absent for a
+  // program that declares none.
+  const irreversible = snapshot.irreversible ?? {};
+  const foreclosing = name => Object.entries(irreversible)
+    .filter(([, actions]) => actions.includes(name))
+    .map(([series]) => snapshot.decision_series?.[series]?.revisions?.[0])
+    .filter(Boolean)
+    .sort((a, b) => a.sequence - b.sequence || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map(revision => revision.id);
+  const foreclosure = name => {
+    const by = foreclosing(name);
+    return {
+      ...(Object.hasOwn(irreversible, name) ? { irreversible: true } : {}),
+      ...(irreversible[name]?.length ? { forecloses: irreversible[name] } : {}),
+      ...(by.length ? { foreclosed_by: by } : {}),
+    };
+  };
   const seriesIds = new Set();
   const decisions = Object.entries(snapshot.decision_series ?? {}).map(([name, series]) => ({
     name,
@@ -207,13 +225,14 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
       seriesIds.add(revision.id);
       return describe(revision.id, series.current);
     }),
+    ...foreclosure(name),
   }));
   // A plain commit has one current record rather than a declared revision
   // history. Keep its journal and reasons visible without inventing a series.
   for (const { action } of commitments.values()) {
     if (seriesIds.has(action)) continue;
     decisions.push({ name: action, kind: 'plain', limit: 1, current: action,
-      revisions: [describe(action, action)] });
+      revisions: [describe(action, action)], ...foreclosure(action) });
   }
 
   const displayed = Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
@@ -292,8 +311,11 @@ export function formatExplanation(report, title = 'the program') {
   }
   if (!report.decisions.length) lines.push('  none declared');
   for (const series of report.decisions) {
-    lines.push(series.kind === 'plain' ? `  ${series.name}: plain commitment`
-      : `  ${series.name}: ${series.revisions.length} of at most ${series.limit}`);
+    lines.push((series.kind === 'plain' ? `  ${series.name}: plain commitment`
+      : `  ${series.name}: ${series.revisions.length} of at most ${series.limit}`)
+      + (series.irreversible ? ', irreversible' : '')
+      + (series.forecloses?.length ? `, forecloses ${series.forecloses.join(', ')}` : '')
+      + (series.foreclosed_by?.length ? `, foreclosed by ${series.foreclosed_by.join(', ')}` : ''));
     for (const revision of series.revisions) {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
       // The commit record unions the caveats its grounds carried with those the

@@ -600,6 +600,21 @@ previous one, so the journal names the reading that changed.
 decisions install limit 4 reopened by changed n20_present;
 ```
 
+When carrying out a decision can't be undone, such as dropping a table or
+publishing a package, declare it irreversible and name what it rules out:
+
+```caveat
+decisions drop_old_table limit 1 irreversible forecloses rollback;
+```
+
+Its commit is refused as `{"origin": "evaluation", "code": "caveated_irreversible"}`
+when it rests on a caveat of consequence `material` or worse that it does not
+name in `retaining`, so a withdrawn reading never grounds it. Once it is made,
+a commit of `rollback` is refused as `foreclosed`, and the message names
+`drop_old_table@1`. It may still be reopened: that records doubt and keeps the
+foreclosure. Caveat records the declaration; it does not check that the action
+really can't be undone. See [foreclosure](../spec/caveat-foreclosure-0.1.md).
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source
