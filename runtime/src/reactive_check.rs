@@ -167,33 +167,83 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
             }
             continue;
         }
+        let walk = Walk {
+            source,
+            kinds: &kinds,
+        };
+        walk.block((start, end), &[], &mut out, &mut blocks)?;
+    }
+    Ok((out, blocks))
+}
+
+/// What reading a `for` block, and the blocks nested in it, needs.
+struct Walk<'a> {
+    source: &'a str,
+    kinds: &'a [(String, Vec<String>)],
+}
+
+/// A `for` block's header and members, read as written.
+struct Header<'a> {
+    kind: &'a str,
+    binding: &'a str,
+    routed: bool,
+    members: &'a [String],
+    body_start: usize,
+    body: &'a str,
+}
+
+impl<'a> Walk<'a> {
+    fn header(&self, (start, end): (usize, usize)) -> Option<Header<'a>> {
+        let text = &self.source[start..end];
         let (Some(open), Some(close)) = crate::repeat::body_braces(text) else {
-            continue;
+            return None;
         };
         let (kind, binding, routed) = match statement_words(&text[..open])[..] {
             ["for", kind, "as", binding] => (kind, binding, false),
             ["for", kind, "as", binding, "routed", "by", _] => (kind, binding, true),
-            _ => continue,
+            _ => return None,
         };
-        let binding = binding.trim_start_matches('$');
-        let members = kinds
+        let members = self
+            .kinds
             .iter()
             .find(|(declared, _)| declared == kind)
             .map(|(_, members)| members.as_slice())
             .unwrap_or_default();
-        let body_start = start + open + 1;
-        let body = &source[body_start..start + close];
+        Some(Header {
+            kind,
+            binding: binding.trim_start_matches('$'),
+            routed,
+            members,
+            body_start: start + open + 1,
+            body: &text[open + 1..close],
+        })
+    }
+
+    /// The block at `span`, inside the blocks whose bindings and members
+    /// `scope` gives, outermost first. Each of its statements goes to `out`
+    /// once per member, expanded, and the block to `blocks` with its body
+    /// as written, the enclosing members put in. A nested block is read once
+    /// per member of this one, and its copies are statements of this
+    /// block's body.
+    fn block(
+        &self,
+        span: (usize, usize),
+        scope: &[(&str, &str)],
+        out: &mut Vec<Statement>,
+        blocks: &mut Vec<Block>,
+    ) -> Result<(), String> {
+        let Some(header) = self.header(span) else {
+            return Ok(());
+        };
         let mut templates = Vec::new();
-        for (inner, inner_end) in statement_spans(body) {
-            let template = &body[inner..inner_end];
-            let at = position_of(source, body_start + inner);
+        for (template, at) in self.templates(&header, scope, &[])? {
             // A template can scan only once expanded, as `"\$p"` does; C003
             // then skips it.
-            templates.extend(scan_statements_at(template, at).unwrap_or_default());
-            for (index, member) in members.iter().enumerate() {
+            templates.extend(scan_statements_at(&template, at).unwrap_or_default());
+            for (index, member) in header.members.iter().enumerate() {
                 let expanded = crate::repeat::instantiate(
-                    template,
-                    binding,
+                    &template,
+                    header.binding,
                     member,
                     &(index + 1).to_string(),
                 )?;
@@ -207,14 +257,73 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
             }
         }
         blocks.push(Block {
-            kind: kind.to_string(),
-            binding: binding.to_string(),
-            routed,
-            members: members.to_vec(),
+            kind: header.kind.to_string(),
+            binding: header.binding.to_string(),
+            routed: header.routed,
+            members: header.members.to_vec(),
             body: templates,
         });
+        // Each nested block is a block of its own too, once per member.
+        for (inner, inner_end) in statement_spans(header.body) {
+            if statement_words(&header.body[inner..inner_end]).first() != Some(&"for") {
+                continue;
+            }
+            for member in header.members {
+                let scope = [scope, &[(header.binding, member.as_str())][..]].concat();
+                self.block(
+                    (header.body_start + inner, header.body_start + inner_end),
+                    &scope,
+                    &mut Vec::new(),
+                    blocks,
+                )?;
+            }
+        }
+        Ok(())
     }
-    Ok((out, blocks))
+
+    /// The statements of a block's body as one member's copy would read
+    /// them before its own binding is put in: the enclosing members in
+    /// `scope` put in, and each nested block expanded, each at the position
+    /// of the statement it comes from.
+    fn templates(
+        &self,
+        header: &Header,
+        scope: &[(&str, &str)],
+        enclosing: &[&str],
+    ) -> Result<Vec<(String, Position)>, String> {
+        let kept = [&[header.binding, "index"][..], enclosing].concat();
+        let mut out = Vec::new();
+        for (inner, inner_end) in statement_spans(header.body) {
+            let written = &header.body[inner..inner_end];
+            let at = position_of(self.source, header.body_start + inner);
+            if statement_words(written).first() != Some(&"for") {
+                out.push((
+                    crate::repeat::substitute_keeping(written, scope, &kept)?,
+                    at,
+                ));
+                continue;
+            }
+            let span = (header.body_start + inner, header.body_start + inner_end);
+            let Some(nested) = self.header(span) else {
+                continue;
+            };
+            let templates = self.templates(&nested, scope, &kept)?;
+            for (index, member) in nested.members.iter().enumerate() {
+                let index = (index + 1).to_string();
+                for (template, at) in &templates {
+                    out.push((
+                        crate::repeat::substitute_keeping(
+                            template,
+                            &[(nested.binding, member), ("index", &index)],
+                            &kept,
+                        )?,
+                        *at,
+                    ));
+                }
+            }
+        }
+        Ok(out)
+    }
 }
 
 /// A comment line directly above the statement: `# caveat check: allow

@@ -115,10 +115,6 @@ fn a_block_is_rejected_rather_than_guessed_at() {
             "$index is provided by the block",
         ),
         (
-            format!("{ENTITIES}for reef as $r {{ for reef as $q {{ claim $q; }}; }};"),
-            "for blocks do not nest",
-        ),
-        (
             format!("{ENTITIES}for reef {{ claim x; }};"),
             "expected `for KIND as $NAME",
         ),
@@ -321,12 +317,13 @@ fn the_word_for_in_a_comment_or_text_is_not_a_nested_block() {
         expanded.contains("evidence reef_two_sighting from \"good for reef_two\";"),
         "{expanded}"
     );
-    // A real nested block is still refused.
+    // A real nested block is one: it expands in each copy
+    // (spec/caveat-nested-repetition-0.1.md).
     let nested =
-        format!("{ENTITIES}for reef as $r {{ // note\n for reef as $q {{ claim $q; }}; }};");
+        format!("{ENTITIES}for reef as $r {{ // note\n for reef as $q {{ claim $r_$q; }}; }};");
     assert!(repeat::expand(&nested)
-        .unwrap_err()
-        .contains("for blocks do not nest"));
+        .unwrap()
+        .contains("claim reef_three_reef_one;"));
 }
 
 /// Issue #47's program. The loader declares both plots, and north's
@@ -850,12 +847,14 @@ fn a_last_block_without_its_semicolon_is_expanded() {
         }
     }
     // A block that is the last statement of a body is a nested block. It was
-    // not read, and its `$q` was refused as unbound.
+    // not read, and its `$q` was refused as unbound. Nested blocks expand
+    // now (spec/caveat-nested-repetition-0.1.md), and this one is the
+    // body's last statement without its `;`.
     let nested =
         format!("{ENTITIES}for reef as $r {{ claim $r_seen; for reef as $q {{ claim $q; }} }};");
     assert_eq!(
         repeat::expand(&nested).unwrap_err(),
-        "for blocks do not nest; see spec/caveat-repetition-0.1.md section 4: for reef as $r {"
+        "line 4, column 33: the last statement in the body of `for reef as $r`, `for reef as $q { claim $q; }`, has no `;` before the `}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`"
     );
 }
 
