@@ -1,6 +1,6 @@
-# CAVEAT Past Revisions 0.1 (draft) — asking whether a past revision rests on withdrawn evidence
+# CAVEAT Past Revisions 0.1 — asking whether a past revision rests on withdrawn evidence
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It adds to
 [Withdrawal 0.1](caveat-withdrawal-0.1.md),
 [Departure 0.1](caveat-departure-0.1.md) and
 [Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md); it changes no

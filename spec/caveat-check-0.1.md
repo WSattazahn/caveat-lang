@@ -406,10 +406,8 @@ submissions, and an unused caveat in an adversarial test fixture.
 
 ### C008 `record-reads-late-caveat` and C009 `save-lacks-late-caveat`
 
-**Status:** draft for 1.1, as [Caveat Sources 0.1](caveat-caveat-sources-0.1.md)
-is: implemented on `main`, not yet in a release, and not part of the
-[compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable)
-until a 1.x release ships it. It may change before then.
+**Status:** stable from 1.1.0, as [Caveat Sources 0.1](caveat-caveat-sources-0.1.md)
+is, under the [compatibility commitment](../docs/COMPATIBILITY.md).
 
 Reported only with `--records`, or `runtime.check(source, { records: true })`
 from a script; C009 only with `--save` as well. Without them, a program checks,

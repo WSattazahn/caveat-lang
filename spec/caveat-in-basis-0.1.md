@@ -1,6 +1,6 @@
-# CAVEAT In Basis 0.1 (draft) — asking whether evidence is in a decision's basis
+# CAVEAT In Basis 0.1 — asking whether evidence is in a decision's basis
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1: implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1. It adds to
 [Past Revisions 0.1](caveat-past-revisions-0.1.md),
 [Latest 0.1](caveat-latest-0.1.md) and
 [Reading Index 0.1](caveat-reading-index-0.1.md); it changes no program that
