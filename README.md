@@ -69,15 +69,6 @@ on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
 | Report a capability Caveat lacks | [Agent feature requests](AGENTS.md#report-a-capability-missing-from-a-real-integration) |
 | See what each release changed | [Release history](#release-history) |
 
-1.1.0 adds language forms (`citing`, `retaining … because`, neutral and noted
-samples, `reading(STREAM, N)`, `in_basis` and more), a compact save format,
-opt-in `caveat check` warnings, a `serve` option and kit helpers, and one
-refusal code. It changes one behavior to keep Late Qualification 0.1's promise:
-a later `qualify` now reaches a value read through a decision (D015). Every
-1.0.x save restores as it was recorded. The
-[1.1.0 verified publication record](docs/releases/v1.1.0.md) lists each
-addition and says how to find the programs the change reaches.
-
 The [1.0.0 verified publication record](docs/releases/v1.0.0.md) identifies
 the exact tested npm artifact. 1.0.0 makes the
 [compatibility commitment](docs/COMPATIBILITY.md) the promise for every 1.x
@@ -306,6 +297,15 @@ put on a guard's stored record survive its take-back (D020). It adds nothing
 either, and restores every 1.0.0, 1.0.1 and 1.0.2 save. The
 [1.0.3 verified publication record](docs/releases/v1.0.3.md) says which
 programs can see a difference.
+
+1.1.0 adds language forms (`citing`, `retaining … because`, neutral and noted
+samples, `reading(STREAM, N)`, `in_basis` and more), a compact save format,
+opt-in `caveat check` warnings, a `serve` option and kit helpers, and one
+refusal code. It changes one behavior to keep Late Qualification 0.1's promise:
+a later `qualify` now reaches a value read through a decision (D015). Every
+1.0.x save restores as it was recorded. The
+[1.1.0 verified publication record](docs/releases/v1.1.0.md) lists each
+addition and says how to find the programs the change reaches.
 
 rc.20 clarified when to use each MCP tool, its
 inputs and its results. It also fixed human-readable explanations of caveats
