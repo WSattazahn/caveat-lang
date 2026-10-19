@@ -212,8 +212,6 @@
         { "send": "main_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 110 } },
         { "send": "ship_minor", "payload": { "version": 110 } },
-        { "send": "ci_run", "payload": { "green": 1 } },
-        { "send": "approve", "payload": { "item": 290 } },
         { "expect": {
             "/bindings/ledger/minor_release": "1.1.0 stands",
             "/bindings/ledger/openai_listing": "1.1.1 published on OpenAI's plugin directory",
