@@ -1,0 +1,121 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.1.0",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.1.0",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/288",
+  "integrationBranch": "claude/earlier-occurrence-yvhy3a",
+  "maintenanceBranch": null,
+  "integrationIdentity": "PR #288 merged the reviewed 1.1.0 candidate into main without squashing. The annotated tag v1.1.0 (object b31089ba7dc51e7e46995278a09a4565fb8ebfd0) peels to the exact tested main revision. v1.0.0 still peels to e2a1350024352ca707e74491d9405507b166ca23, an ancestor of the 1.1.0 revision. 1.0.1 to 1.0.3 were cut from release/1.0.x and are not ancestors of 1.1.0; each of their fixes reached main first (D020 through PR #274, merged as ee09fa0) and is in 1.1.0. PR #286, merged to main after the release merge, is not in 1.1.0.",
+  "stages": [
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    },
+    {
+      "id": "published-1.0.3",
+      "version": "1.0.3",
+      "revision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+      "tag": "v1.0.3",
+      "published": true,
+      "record": "v1.0.3-npm-publication.json",
+      "branch": "release/1.0.x",
+      "ancestorOfRelease": false
+    },
+    {
+      "id": "take-back-fix-d020-on-main",
+      "revision": "1a7a3fa3892617d912cd731aae9e6f0619e8a7d9",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/274",
+      "mergedAs": "ee09fa0"
+    },
+    {
+      "id": "reuse-loaded-programs",
+      "revision": "9172d35854ed1f116e164f3a846ea8568933ed99",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/280"
+    },
+    {
+      "id": "d015-detector-and-compact-save-docs",
+      "revision": "aa07c205f05830429960688cb816b7efa2dc8ab4",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/278"
+    },
+    {
+      "id": "reading-index-notes-and-in-basis",
+      "revision": "5358b0402dd3ba33829fee5c6b023e44f515b84f",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/281"
+    },
+    {
+      "id": "1.0.3-publication-records",
+      "revision": "f974f94ba1035ba1a9e3ee2488d08e2969855873",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/282"
+    },
+    {
+      "id": "randomized-check-of-the-three-forms",
+      "revision": "367f0f2e0efdbe486ce3a5ce5e6c5cbafbf3d240",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/284"
+    },
+    {
+      "id": "carries-latest",
+      "revision": "554f023c9355d6ce4ad5338ef325a3a0a9157e63",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/285"
+    },
+    {
+      "id": "reviewed-1.1.0-candidate",
+      "revision": "a77aed736647924833c187b085561dcb32bebb6a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/288"
+    },
+    {
+      "id": "published-1.1.0",
+      "version": "1.1.0",
+      "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+      "parents": [
+        "554f023c9355d6ce4ad5338ef325a3a0a9157e63",
+        "a77aed736647924833c187b085561dcb32bebb6a"
+      ],
+      "tag": "v1.1.0",
+      "published": true,
+      "record": "v1.1.0-npm-publication.json"
+    }
+  ],
+  "scope": "Verification of the exact CI-tested 1.1.0 package, the first minor release of 1.x, cut from main at the merge of PR #288. It adds language forms, a save format, opt-in caveat check warnings, a serve option, kit helpers and one rejection code, as docs/releases/v1.1.0.md lists, and changes one behavior to keep Late Qualification 0.1's promise (D015). It does not include PR #286, which merged after the release merge. This record does not establish a later GitHub release or directory listing.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+  "publicationRecord": "v1.1.0-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-19T17:10:39.774Z",
+    "record": "v1.1.0-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.1.0",
+    "installPathRecord": "v1.1.0-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-19T16:58:54.313Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39289692554",
+  "publicationAttempt": 2,
+  "publicationArtifact": {
+    "id": 12204188396,
+    "name": "npm-publication-verification",
+    "digest": "sha256:48cd4443924281c6f1fe5daefff58f910920168b1d54e420f7f39414293c25f6"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39281014810",
+  "runtimeArtifact": {
+    "id": 12201111860,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/39281014810/artifacts/12201111860"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.1.0.tgz",
+    "bytes": 1333677,
+    "sha256": "f83ff39ed18c473f67c4d1ad2adb6ddaf1a9b6fec9e0a71ae9c1ffe4b71be41d",
+    "sha512": "806e7adb6a3122622dbd7cda331e2c1f3a046008703be8fee8c2e2d47782e0cf5fa9fe71a65a964530608a5d74d0a32c85865a8b50e1bc857c27dd51b611b9e9",
+    "integrity": "sha512-gG5622oxImItvXzaMx4sHzoEYAhwO+j+6MLi1HeC4M9fqf5xplqWRTBgil100KMshYZai1DhvIV8J91RthG56Q=="
+  }
+}
