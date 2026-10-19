@@ -412,6 +412,24 @@ game it has no other meaning. Use a procedure, as above, when the inputs are
 different events rather than one event naming its subject. See
 [repetition](../spec/caveat-repetition-0.1.md).
 
+When a rule is about a pair, such as a candidate and one of its checks, put a
+block over the second kind inside the block over the first, from 1.2.0. The
+inner block expands in each copy of the outer one, and its body may use both
+names; `$index` is the inner member's position:
+
+```caveat
+for component as $c routed by component {
+  for slot as $k {
+    state $c_ack_$k = 0 min 0 max 1;
+    on acknowledge when decision == $index set $c_ack_$k = 1;
+  };
+};
+```
+
+This declares `api_ack_d1` through `worker_ack_d8`, and the route selects the
+component on each `acknowledge`. See
+[nested repetition](../spec/caveat-nested-repetition-0.1.md).
+
 ## Read the session clock
 
 ```caveat
