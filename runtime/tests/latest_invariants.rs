@@ -29,6 +29,9 @@ state last = 0;
 state lastp = 0;
 state hist = 0;
 state ev = 0;
+state cl = 0;
+state pl = 0;
+state el = 0;
 event report v min 0 max 3;
 event probe_it v min 0 max 3;
 event see_e;
@@ -45,6 +48,7 @@ event reconsider;
 event read;
 event read_at k min 0 max 9;
 event retract;
+event ask;
 on report sample checks = v supports ok;
 on probe_it sample probes = v supports ok;
 on see_e when not observed(e) reveal e supports ok;
@@ -64,9 +68,12 @@ on read set lastp = latest(probes);
 on read set ev = qualified(1, e);
 on read_at set hist = history_at(probes, k);
 on retract when has_sample(checks) and observed(e) and not withdrawn(latest(checks)) withdraw latest(checks) because e;
+on ask set cl = if(carries(latest(checks), flaky), 1, 0);
+on ask set pl = if(carries(latest(probes), flaky), 1, 0);
+on ask set el = if(carries(latest(e), flaky), 1, 0);
 "#;
 
-const EVENTS: [(&str, &str); 30] = [
+const EVENTS: [(&str, &str); 33] = [
     ("report", r#"{"v": 1}"#),
     ("report", r#"{"v": 2}"#),
     ("report", r#"{"v": 3}"#),
@@ -97,6 +104,9 @@ const EVENTS: [(&str, &str); 30] = [
     ("read_at", r#"{"k": 2}"#),
     ("read_at", r#"{"k": 5}"#),
     ("retract", "{}"),
+    ("ask", "{}"),
+    ("ask", "{}"),
+    ("ask", "{}"),
 ];
 
 fn snapshot(game: &ReactiveSession) -> Value {
@@ -190,7 +200,8 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
         mut read_flaky,
         mut commits_flaky,
         mut departed_flagged,
-    ) = (0, 0, 0, 0, 0, 0, 0, 0);
+        mut asked_flaky,
+    ) = (0, 0, 0, 0, 0, 0, 0, 0, 0);
     for run in 0..200 {
         let mut game = ReactiveSession::from_source(SOURCE).unwrap();
         let mut trail = Vec::new();
@@ -456,6 +467,26 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
                     read_flaky += 1;
                 }
             }
+            // carries(latest(NAME), flaky) asks about the current reading
+            // or occurrence alone, and is false with none (Latest 0.1).
+            if event == "ask" {
+                let expected = [
+                    ("cl", checks_latest.as_deref().is_some_and(carries)),
+                    ("pl", probes_latest.as_deref().is_some_and(carries)),
+                    ("el", e_observed && carries(&e_current)),
+                ];
+                for (state, carried) in expected {
+                    let read = shown["qualified_values"][state]["value"].as_f64().unwrap();
+                    assert_eq!(
+                        read,
+                        if carried { 1.0 } else { 0.0 },
+                        "{at}: {state} on {checks_latest:?} {probes_latest:?} {e_current}"
+                    );
+                    if carried {
+                        asked_flaky += 1;
+                    }
+                }
+            }
             if event == "read_at" {
                 let reading = readings(&shown, "probes")[k.unwrap()].clone();
                 let caveats = value_caveats(&shown, "hist");
@@ -527,14 +558,15 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
             before = shown;
         }
     }
-    eprintln!("{accepted} accepted events, {refused} refused, {flagged} readings flagged, {taken_one} take-backs of one occurrence, {taken_all} of every held occurrence, {read_flaky} reads carrying flaky, {commits_flaky} decisions made with flaky, {departed_flagged} flagged readings departed");
+    eprintln!("{accepted} accepted events, {refused} refused, {flagged} readings flagged, {taken_one} take-backs of one occurrence, {taken_all} of every held occurrence, {read_flaky} reads carrying flaky, {commits_flaky} decisions made with flaky, {departed_flagged} flagged readings departed, {asked_flaky} carries(latest) true");
     assert!(
         flagged > 250
             && taken_one > 150
             && taken_all > 50
             && read_flaky > 250
             && commits_flaky > 50
-            && departed_flagged > 30,
-        "{flagged} / {taken_one} / {taken_all} / {read_flaky} / {commits_flaky} / {departed_flagged}"
+            && departed_flagged > 30
+            && asked_flaky > 0,
+        "{flagged} / {taken_one} / {taken_all} / {read_flaky} / {commits_flaky} / {departed_flagged} / {asked_flaky}"
     );
 }
