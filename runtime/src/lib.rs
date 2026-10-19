@@ -21,7 +21,9 @@ pub mod web_games;
 pub mod web_source_library;
 pub mod world3d;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+pub mod fast_hash;
+use crate::fast_hash::{HashMap, HashSet};
+use std::collections::VecDeque;
 
 pub type NodeId = u64;
 
@@ -221,7 +223,7 @@ impl EpistemicGraph {
             .filter(|edge| edge.from == caveat && edge.relation == Relation::Qualifies)
             .map(|edge| edge.to)
         {
-            let mut seen = HashSet::new();
+            let mut seen = HashSet::default();
             let mut queue = VecDeque::from([direct]);
             while let Some(node) = queue.pop_front() {
                 if !seen.insert(node) {

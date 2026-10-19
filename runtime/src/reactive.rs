@@ -5,6 +5,7 @@
 
 use crate::ast::{Program, Statement};
 use crate::eval::ResourceLedger;
+use crate::fast_hash::{HashMap, HashSet};
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
@@ -14,7 +15,7 @@ use crate::reactive_expr::{
 pub use crate::reactive_expr::{Marker, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 const LIMIT: f64 = 1_000_000_000_000.0;
@@ -928,7 +929,7 @@ impl States {
     /// The states whose value, lineage or grounds differ from `old`'s.
     fn changed_since(&self, old: &Self) -> HashSet<String> {
         if Arc::ptr_eq(&self.cells, &old.cells) {
-            return HashSet::new();
+            return HashSet::default();
         }
         self.cells
             .iter()
@@ -2392,7 +2393,7 @@ impl ReactiveSession {
                     {
                         return Err(format!("duplicate reactive event {name}"));
                     }
-                    let mut names = HashSet::new();
+                    let mut names = HashSet::default();
                     for parameter in parameters {
                         if !names.insert(&parameter.name) {
                             return Err(format!(
@@ -2514,7 +2515,7 @@ impl ReactiveSession {
         session.revision_series = Arc::new(revision_series);
         session.check_observation_order()?;
         session.group_bindings(&binding_types);
-        let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
+        let mut rules_by_event = HashMap::<String, Vec<usize>>::default();
         for (index, rule) in session.rules.iter().enumerate() {
             rules_by_event
                 .entry(rule.event.clone())
@@ -2549,7 +2550,7 @@ impl ReactiveSession {
             return Ok(());
         }
         for template in templates.values() {
-            let mut names = HashSet::new();
+            let mut names = HashSet::default();
             for parameter in &template.symbol_parameters {
                 if !names.insert(&parameter.name) || template.parameters.contains(&parameter.name) {
                     return Err(format!(
@@ -2608,7 +2609,7 @@ impl ReactiveSession {
                 arguments.len()
             ));
         }
-        let mut names = HashMap::new();
+        let mut names = HashMap::default();
         let mut passed = Vec::new();
         for parameter in &template.symbol_parameters {
             let symbol = arguments[parameter.position]
@@ -2795,7 +2796,7 @@ impl ReactiveSession {
 
     fn group_bindings(&mut self, types: &BindingTypes) {
         let mut groups = Vec::<BindingGroup>::new();
-        let mut index_of = HashMap::<(String, String), usize>::new();
+        let mut index_of = HashMap::<(String, String), usize>::default();
         let mut group_of = Vec::with_capacity(self.binding_rules.len());
         for binding in self.binding_rules.iter() {
             let key = (binding.target.clone(), binding.property.clone());
@@ -2854,7 +2855,7 @@ impl ReactiveSession {
                     "source exceeds procedure step limit {MAX_PROCEDURE_STEPS}"
                 ));
             }
-            let mut names = HashSet::new();
+            let mut names = HashSet::default();
             for parameter in &procedure.parameters {
                 if !names.insert(parameter) {
                     return Err(format!(
@@ -3295,7 +3296,7 @@ impl ReactiveSession {
                             }
                         }
                     }
-                    let mut retained = HashSet::new();
+                    let mut retained = HashSet::default();
                     for caveat in retaining {
                         self.require_kind(caveat, "caveat")?;
                         self.not_the_withdrawal_caveat(caveat, "retaining")?;
@@ -4433,7 +4434,7 @@ impl ReactiveSession {
                 .map(|(name, id)| (*id, name.as_str()))
                 .collect::<HashMap<_, _>>()
         } else {
-            HashMap::new()
+            HashMap::default()
         };
         let pick = |field: &str| fields.has(field);
         ReactiveViewSelection {
@@ -4719,18 +4720,18 @@ impl ReactiveSession {
         honor_take_back: bool,
     ) -> Vec<String> {
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
-        let mut visited = HashSet::new();
-        let mut caveats = HashSet::new();
+        let mut visited = HashSet::default();
+        let mut caveats = HashSet::default();
         let marked = if honor_take_back {
             self.marked_relations()
         } else {
-            HashMap::new()
+            HashMap::default()
         };
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
-            let mut passed = HashMap::new();
+            let mut passed = HashMap::default();
             for edge in self
                 .graph
                 .edges
@@ -4807,7 +4808,7 @@ impl ReactiveSession {
     /// `supports` or `opposes` edge. Built once, read for many names.
     pub(crate) fn observation_ranks(&self) -> ObservationRanks<'_> {
         if self.observations.is_empty() {
-            let mut first = HashMap::new();
+            let mut first = HashMap::default();
             for (position, edge) in self.graph.edges.iter().enumerate() {
                 if matches!(edge.relation, Relation::Supports | Relation::Opposes) {
                     first.entry(edge.from).or_insert(position);
@@ -4818,7 +4819,7 @@ impl ReactiveSession {
                 first,
             }
         } else {
-            let mut first = HashMap::new();
+            let mut first = HashMap::default();
             for (position, name) in self.observations.iter().enumerate() {
                 first.entry(name.as_str()).or_insert(position);
             }
@@ -5027,7 +5028,7 @@ impl ReactiveSession {
                     })
                     .collect::<HashSet<_>>();
                 let by_id = if reached.is_empty() {
-                    HashMap::new()
+                    HashMap::default()
                 } else {
                     self.symbols
                         .iter()
@@ -6143,7 +6144,7 @@ impl ReactiveSession {
     /// relation and a qualify adds one only when none is live. Empty unless
     /// the program has taken something back. See spec/caveat-take-back-0.1.md.
     fn marked_relations(&self) -> HashMap<(NodeId, NodeId), usize> {
-        let mut marked = HashMap::new();
+        let mut marked = HashMap::default();
         for record in self.taken_back.iter() {
             if let (Some(&caveat), Some(&occurrence)) = (
                 self.symbols.get(&record.caveat),

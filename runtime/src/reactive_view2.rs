@@ -10,11 +10,12 @@ use super::{
     BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ReactiveSession, TakeBack,
     DISPATCH_SCHEMA,
 };
+use crate::fast_hash::HashMap;
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
 use crate::reactive_expr::{departure_markers, Marker};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const REACTIVE_VIEW_V2_SCHEMA: &str = "caveat-reactive-view/0.2";
 pub const REACTIVE_VIEW_DELTA_SCHEMA: &str = "caveat-reactive-view-delta/0.2";

@@ -1,11 +1,11 @@
 use caveat_runtime::{
     ast::{EpistemicCondition, Program, Statement},
     eval,
+    fast_hash::HashMap,
     game_session::{GamePending, GameSession, GameSnapshot},
     link, parser, NodeKind,
 };
 use std::{
-    collections::HashMap,
     env,
     io::{self, Write},
     path::Path,

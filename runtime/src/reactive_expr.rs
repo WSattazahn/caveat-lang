@@ -3,10 +3,11 @@
 //! Expressions can read numeric state and coordinates, and query the host's
 //! epistemic graph. They cannot mutate state or invoke arbitrary host code.
 
+use crate::fast_hash::{HashMap, HashSet};
 use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
 const MAX_TOKENS: usize = 1024;
@@ -1680,7 +1681,9 @@ impl Expr {
                     .validate_calls(numeric, predicate, user_call)?
                     .require(ValueType::Number)?;
                 body.validate_calls(
-                    &HashSet::from([FOLD_ACC.into(), FOLD_VALUE.into()]),
+                    &[FOLD_ACC.into(), FOLD_VALUE.into()]
+                        .into_iter()
+                        .collect::<HashSet<String>>(),
                     &|_, _| Err("fold reducer must be pure".into()),
                     user_call,
                 )?
@@ -2954,7 +2957,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
                 "source function {name} shadows an intrinsic or predicate"
             ));
         }
-        let mut parameters = HashSet::new();
+        let mut parameters = HashSet::default();
         for parameter in &definition.parameters {
             if !plain_identifier(parameter) {
                 return Err(format!(
@@ -2969,7 +2972,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         }
     }
     let mut result_types = BTreeMap::new();
-    let mut active = HashSet::new();
+    let mut active = HashSet::default();
     for name in functions.keys() {
         infer_function(name, functions, &mut result_types, &mut active)?;
     }
@@ -3388,7 +3391,7 @@ mod tests {
         let expression = parse("has_sample(readings) and latest(course) > 0").unwrap();
         let calls = RefCell::new(Vec::new());
         assert_eq!(
-            expression.validate(&HashSet::new(), &|kind, name| {
+            expression.validate(&HashSet::default(), &|kind, name| {
                 calls
                     .borrow_mut()
                     .push((kind.to_string(), name.to_string()));
@@ -3404,7 +3407,7 @@ mod tests {
             ]
         );
         assert!(expression
-            .validate(&HashSet::new(), &|kind, _| {
+            .validate(&HashSet::default(), &|kind, _| {
                 if kind == "has_sample" {
                     Err("expected reading stream".into())
                 } else {
@@ -3414,13 +3417,13 @@ mod tests {
             .is_err());
         assert!(parse("latest(readings)")
             .unwrap()
-            .validate(&HashSet::new(), &|_, _| Err(
+            .validate(&HashSet::default(), &|_, _| Err(
                 "unknown numeric history".into()
             ))
             .is_err());
         assert!(parse("readings")
             .unwrap()
-            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .validate(&HashSet::default(), &|_, _| Ok(()))
             .is_err());
         for source in [
             "latest()",
@@ -3642,7 +3645,7 @@ mod tests {
             let expression = parse(source).unwrap();
             assert!(
                 expression
-                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .validate(&HashSet::default(), &|_, _| Ok(()))
                     .is_err(),
                 "{source}"
             );
@@ -3684,7 +3687,7 @@ mod tests {
             assert!(
                 parse(source)
                     .unwrap()
-                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .validate(&HashSet::default(), &|_, _| Ok(()))
                     .is_err(),
                 "{source}"
             );
@@ -3744,7 +3747,7 @@ mod tests {
         validate_functions(&functions).unwrap();
         let expression = expand(&parse_unresolved("forward(3)").unwrap(), &functions).unwrap();
         assert_eq!(
-            expression.validate(&HashSet::new(), &|_, _| Ok(())),
+            expression.validate(&HashSet::default(), &|_, _| Ok(())),
             Ok(ValueType::Text)
         );
         assert_eq!(
@@ -3753,7 +3756,7 @@ mod tests {
         );
         let expression = expand(&parse_unresolved("positive(3)").unwrap(), &functions).unwrap();
         assert_eq!(
-            expression.validate(&HashSet::new(), &|_, _| Ok(())),
+            expression.validate(&HashSet::default(), &|_, _| Ok(())),
             Ok(ValueType::Bool)
         );
         assert_eq!(
@@ -3783,7 +3786,7 @@ mod tests {
             assert!(
                 expand(&parse_unresolved(source).unwrap(), &functions)
                     .unwrap()
-                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .validate(&HashSet::default(), &|_, _| Ok(()))
                     .is_err(),
                 "{source}"
             );
@@ -4053,7 +4056,7 @@ mod tests {
         }
         let expression = parse("qualified(true, reading)").unwrap();
         assert!(expression
-            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .validate(&HashSet::default(), &|_, _| Ok(()))
             .is_err());
         let calls = Cell::new(0);
         assert!(expression
@@ -4298,7 +4301,7 @@ mod tests {
         let expression =
             parse_unresolved("distance(ship_x, ship_z, reef_one.x, reef_one.z)").unwrap();
         assert!(expression
-            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .validate(&HashSet::default(), &|_, _| Ok(()))
             .is_err());
         assert!(expression
             .evaluate(&|_| Some(1.0), &|_, _| Ok(false))
@@ -4435,10 +4438,14 @@ mod tests {
         let functions = definitions(&[("constant", &["ignored"], "2")]);
         validate_functions(&functions).unwrap();
         let boolean = expand(&parse_unresolved("constant(true)").unwrap(), &functions).unwrap();
-        assert!(boolean.validate(&HashSet::new(), &|_, _| Ok(())).is_err());
+        assert!(boolean
+            .validate(&HashSet::default(), &|_, _| Ok(()))
+            .is_err());
         assert!(boolean.evaluate(&|_| None, &|_, _| Ok(false)).is_err());
         let unknown = expand(&parse_unresolved("constant(missing)").unwrap(), &functions).unwrap();
-        assert!(unknown.validate(&HashSet::new(), &|_, _| Ok(())).is_err());
+        assert!(unknown
+            .validate(&HashSet::default(), &|_, _| Ok(()))
+            .is_err());
         let division = expand(&parse_unresolved("constant(1 / 0)").unwrap(), &functions).unwrap();
         assert!(division
             .evaluate(&|_| None, &|_, _| Ok(false))
@@ -4595,7 +4602,7 @@ mod tests {
         for name in ["observed", "examined", "committed", "reopened"] {
             let expression = parse(&format!("{name}(signal_known)")).unwrap();
             assert_eq!(
-                expression.validate(&HashSet::new(), &|kind, target| {
+                expression.validate(&HashSet::default(), &|kind, target| {
                     assert_eq!(kind, name);
                     assert_eq!(target, "signal_known");
                     Ok(())
@@ -4611,7 +4618,7 @@ mod tests {
                 Ok(Value::Bool(true))
             );
             assert_eq!(
-                expression.validate(&HashSet::new(), &|_, _| Err("wrong node kind".into())),
+                expression.validate(&HashSet::default(), &|_, _| Err("wrong node kind".into())),
                 Err("wrong node kind".into())
             );
             assert_eq!(
