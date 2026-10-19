@@ -51,6 +51,37 @@ export function auditInventory(output, names) {
   return actual;
 }
 
+/** Model defects in the shapes of D014/D020, D018 and a take-back reaching a record. */
+export const sourcesMutants = [
+  { id: 'QualifyMissesRecords', breaks: 'qualify_preserves',
+    find: '    | _ => addRoute o c k) s.cells',
+    replace: '    | .grounds _ => addRoute o c k\n    | _ => k) s.cells' },
+  { id: 'DepartureLeavesRoutes', breaks: 'depart_preserves',
+    find: 'def depart (o : Occ) (k : Carrier) : Carrier := { k with routes := k.routes.map (keepRoute o) }',
+    replace: 'def depart (o : Occ) (k : Carrier) : Carrier := k' },
+  { id: 'TakeBackReachesRecord', breaks: 'take_back_keeps_kept_routes',
+    find: '  | (_, .kept) => false',
+    replace: '  | (c, .kept) => decide (c = caveat)' },
+];
+
+export function applyMutant(model, mutant) {
+  if (model.split(mutant.find).length !== 2) throw new Error('Mutant anchor is not unique: ' + mutant.id);
+  return model.replace(mutant.find, mutant.replace);
+}
+
+/** Whether Lean reported an error inside the named theorem's source lines. */
+export function errorInTheorem(output, model, theorem) {
+  const lines = model.split('\n');
+  const start = lines.findIndex(line => line.startsWith('theorem ' + theorem + ' '));
+  if (start < 0) return false;
+  let end = lines.findIndex((line, index) => index > start && /^(theorem|def|structure|inductive|instance|abbrev|\/-)/.test(line));
+  if (end < 0) end = lines.length;
+  return [...output.matchAll(/:(\d+):\d+: error/g)].some(match => {
+    const line = Number(match[1]) - 1;
+    return line >= start && line < end;
+  });
+}
+
 function sources(directory) {
   return readdirSync(directory, { withFileTypes: true })
     .filter(entry => entry.name !== '.lake')
@@ -61,7 +92,7 @@ export function verify() {
   const outputDirectory = join(root, 'test-results', 'lean-verification');
   mkdirSync(outputDirectory, { recursive: true });
   const report = {
-    scope: 'provenance algebra, outcome contract, bounded executable bridge laws, late-qualification laws and reopening laws; no Rust/Lean conformance claim',
+    scope: 'provenance algebra, outcome contract, bounded executable bridge laws, late-qualification laws, reopening laws and the Caveat Sources invariant; no Rust/Lean conformance claim',
     startedAt: new Date().toISOString(),
     status: 'failed',
     commands: [],
@@ -142,9 +173,23 @@ export function verify() {
       else throw error;
     }
     if (!rejected) throw new Error('Transitive custom axiom was accepted.');
-    report.negativeControls = ['incomplete proof rejected by Lean', 'transitive custom axiom rejected by audit'];
+    // A model that drifts from Caveat Sources 0.1 in a finding's shape must fail
+    // to prove the theorem that covers it, so the invariant proof is not vacuous.
+    const sourcesModel = readFileSync(join(proofRoot, 'Caveat', 'Sources.lean'), 'utf8');
+    const mutantResults = [];
+    for (const mutant of sourcesMutants) {
+      const path = join(controls, 'Sources' + mutant.id + '.lean');
+      writeFileSync(path, applyMutant(sourcesModel, mutant));
+      const output = run('lake', ['env', 'lean', '--error=hasSorry', path], 'failure');
+      if (!errorInTheorem(output, applyMutant(sourcesModel, mutant), mutant.breaks)) {
+        throw new Error('Caveat Sources mutant ' + mutant.id + ' failed outside ' + mutant.breaks + '.');
+      }
+      mutantResults.push(mutant.id + ': ' + mutant.breaks + ' refused');
+    }
+    report.negativeControls = ['incomplete proof rejected by Lean', 'transitive custom axiom rejected by audit',
+      ...mutantResults];
     report.status = 'passed';
-    console.log('Lean scaffold verified: ' + laws.length + ' authored laws, ' + names.length + ' inventoried theorems, transitive axiom audit, kernel replay, negative controls.');
+    console.log('Lean scaffold verified: ' + laws.length + ' authored laws, ' + names.length + ' inventoried theorems, transitive axiom audit, kernel replay, negative controls, ' + sourcesMutants.length + ' model mutants refused.');
   } catch (error) {
     report.error = error.message;
     throw error;
