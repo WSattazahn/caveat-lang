@@ -40,6 +40,12 @@
   decision runtime with a small rules language. When a piece of evidence turns
   out to be wrong, withdraw it: the decisions that rested on it reopen, and
   each one keeps the grounds it was originally made on.</p>
+  <p>For teams that govern their agents, it is also an audit trail for agent
+  decisions: <code>caveat explain</code> shows what each decision rested on,
+  the permission it needed and why it was reopened, and withdrawing evidence
+  never rewrites a decision's original grounds. It complements your platform's
+  identity, permission and logging controls; see <a href="#limitations">what it
+  does not do</a>.</p>
   <p class="status"><strong>Available now: CAVEAT 1.0.0, the first stable release.</strong>
   Run CAVEAT in Node.js or the browser.
   <a href="#run">Get started</a> ·

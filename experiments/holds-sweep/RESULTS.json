@@ -1,0 +1,645 @@
+{
+  "programs": 196,
+  "words": [
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 202,
+      "word": "release"
+    },
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 203,
+      "word": "release"
+    },
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 204,
+      "word": "release"
+    },
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 205,
+      "word": "release"
+    },
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 206,
+      "word": "release"
+    },
+    {
+      "file": "experiments/agent-ledger/release.cav",
+      "line": 207,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 5,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 29,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 30,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 31,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 32,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 33,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 34,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 35,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "line": 36,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 4,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 25,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 26,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 27,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 28,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 29,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 30,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 31,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "line": 32,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "line": 41,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "line": 179,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "line": 41,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/high-degree.cav",
+      "line": 179,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 5,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 29,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 30,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 31,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 32,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 33,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 34,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 35,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-mutual.cav",
+      "line": 36,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 4,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 25,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 26,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 27,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 28,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 29,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 30,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 31,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/index-compaction/results/windows-f171d41/fixtures/release-self.cav",
+      "line": 32,
+      "word": "release"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "line": 5,
+      "word": "hold"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "line": 13,
+      "word": "hold"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "line": 14,
+      "word": "hold"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+      "line": 4,
+      "word": "hold"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+      "line": 9,
+      "word": "hold"
+    },
+    {
+      "file": "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+      "line": 10,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 51,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 53,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 53,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 63,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 73,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 151,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 152,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 153,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 154,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 156,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 157,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 158,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 159,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 160,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 162,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 163,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 163,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 166,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 166,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 167,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 184,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 185,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 186,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 186,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 187,
+      "word": "hold"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "line": 188,
+      "word": "hold"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 25,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 52,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 52,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 53,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 67,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 67,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 68,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 74,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 76,
+      "word": "release"
+    },
+    {
+      "file": "kit/examples/readiness/readiness.cav",
+      "line": 76,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/adversarial/post-collection.cav",
+      "line": 10,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/adversarial/post-collection.cav",
+      "line": 29,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/adversarial/withdrawal-own-grounds.cav",
+      "line": 4,
+      "word": "hold"
+    },
+    {
+      "file": "kit/test/fixtures/adversarial/withdrawal-own-grounds.cav",
+      "line": 8,
+      "word": "hold"
+    },
+    {
+      "file": "kit/test/fixtures/adversarial/withdrawal-own-grounds.cav",
+      "line": 9,
+      "word": "hold"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 25,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 52,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 52,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 53,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 67,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 67,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 68,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 74,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 75,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 76,
+      "word": "release"
+    },
+    {
+      "file": "kit/test/fixtures/saves/programs/readiness.cav",
+      "line": 76,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 47,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 123,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 123,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 124,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 146,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 146,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 147,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 148,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 148,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 149,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 182,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 183,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 183,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 183,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 183,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 184,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 184,
+      "word": "release"
+    },
+    {
+      "file": "ledger/project.cav",
+      "line": 184,
+      "word": "release"
+    }
+  ],
+  "on_hold_definitions": [],
+  "series_with_triggers": 14,
+  "programs_with_triggers": 14,
+  "reopen_effects": 252,
+  "programs_with_reopen_effects": 132
+}
