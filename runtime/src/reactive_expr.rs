@@ -695,6 +695,11 @@ pub struct Reads {
     pub anything: bool,
     /// Evidence named by `observed(...)`.
     pub observed: BTreeSet<String>,
+    /// Every name a graph or history read names: the history, evidence,
+    /// commitment or caveat it asks about.
+    pub graph_names: BTreeSet<String>,
+    /// A graph read that names nothing it could be scoped to.
+    pub graph_unnamed: bool,
 }
 
 /// A parsed expression with finite, canonical number literals.
@@ -986,35 +991,45 @@ impl Expr {
                     reads.names.insert(name.clone());
                 } else {
                     reads.graph = true;
+                    reads.graph_names.insert(name.clone());
                 }
                 if kind == "observed" {
                     reads.observed.insert(name.clone());
                 }
             }
-            Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                reads.graph = true;
+                reads.graph_names.insert(name.clone());
+            }
             // Not an observation of the current occurrence, so it guards
             // nothing that names the evidence.
-            Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => {
+            Node::HistoryAt(name, index) | Node::AtOccurrence(_, name, index) => {
                 reads.graph = true;
+                reads.graph_names.insert(name.clone());
                 index.collect_reads(reads);
             }
-            Node::InBasis(_, children) => {
+            Node::InBasis(basis, children) => {
                 reads.graph = true;
+                reads.graph_names.insert(basis.series.clone());
+                reads.graph_names.insert(basis.name.clone());
                 for child in children {
                     child.collect_reads(reads);
                 }
             }
-            Node::Fold(_, initial, _) => {
+            Node::Fold(name, initial, _) => {
                 reads.graph = true;
+                reads.graph_names.insert(name.clone());
                 initial.collect_reads(reads);
             }
-            Node::ExpandedFold(_, initial, body) => {
+            Node::ExpandedFold(name, initial, body) => {
                 reads.graph = true;
+                reads.graph_names.insert(name.clone());
                 initial.collect_reads(reads);
                 body.collect_reads(reads);
             }
             Node::Qualified(value, _, _) => {
                 reads.graph = true;
+                reads.graph_unnamed = true;
                 value.collect_reads(reads);
             }
             Node::Unary(_, child) => child.collect_reads(reads),
