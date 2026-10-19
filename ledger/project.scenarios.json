@@ -119,6 +119,21 @@
       ]
     },
     {
+      "id": "L07",
+      "title": "A minor release needs a passing Runtime run on main and the owner's go, and does not touch the 1.0.x patch line",
+      "steps": [
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": "no main run to ship from" },
+        { "send": "main_run", "payload": { "green": 0 } },
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": "main's last Runtime run did not pass" },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "expect": { "/bindings/ledger/minor_release": "none yet" } },
+        { "send": "approve", "payload": { "item": 110 } },
+        { "send": "ship_minor", "payload": { "version": 110 } },
+        { "expect": { "/bindings/ledger/minor_release": "1.1.0 stands", "/bindings/ledger/release": "none yet" } }
+      ]
+    },
+    {
       "id": "L04",
       "title": "The ledger replays 2026-10-17 to 19 as recorded in events.jsonl and ends where the project stands",
       "steps": [
@@ -173,7 +188,11 @@
         { "send": "report_next" },
         { "send": "approve", "payload": { "item": 1201 } },
         { "send": "decide_next", "payload": { "option": 1 } },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 110 } },
+        { "send": "ship_minor", "payload": { "version": 110 } },
         { "expect": {
+            "/bindings/ledger/minor_release": "1.1.0 stands",
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/latest_gap_1_1": "carries(latest) in 1.1, then a fresh-author check",
             "/bindings/ledger/next_1_2": "freeze and nested for specs, a faster view and a smaller save, then a fresh-author check",

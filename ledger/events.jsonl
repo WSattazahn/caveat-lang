@@ -49,3 +49,6 @@
 {"event": "report_next"}
 {"event": "approve", "payload": {"item": 1201}}
 {"event": "decide_next", "payload": {"option": 1}}
+{"event": "main_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 110}}
+{"event": "ship_minor", "payload": {"version": 110}}

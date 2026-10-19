@@ -5,6 +5,7 @@ scene "The caveat-lang project's own decision ledger: what each decision rested 
 claim divergences_were_runtime;  # a fuzz run's wrong answers were the runtime's, not the program's
 claim fix_complete;              # the take-back fixes remove every divergence
 claim patch_safe;                # a 1.0.x patch repairs without regressing
+claim minor_safe;                # a 1.x minor only adds
 claim runtime_correct;           # every finding is evidence against this; every passing check for it
 claim approved_by_owner;         # what an approval reading bears on
 
@@ -28,6 +29,8 @@ evidence ci from "GitHub Actions on the branch under review";
 renewable ci limit 32;                             # each run is a new occurrence
 evidence release_tree from "v1.0.0 plus the cherry-picked fixes, full Rust suite";
 renewable release_tree limit 8;
+evidence main_tree from "main at a minor release's merge, with the Runtime run on its push";
+renewable main_tree limit 8;
 evidence finding_reports from "D-entries in experiments/agent-decisions/README.md";
 readings findings from finding_reports limit 64;   # value: the D-number; the count and order of findings
 evidence d016 from "D016: a late qualify reaches a stored record and the collector is not told";
@@ -51,6 +54,7 @@ decisions record_fix limit 4;   # value: 1 before the two 1.1 gaps, 2 after
 decisions gaps_1_1 limit 4;     # value: 1 both forms in 1.1, 2 neither, 3 readings only
 decisions latest_gap_1_1 limit 4;  # value: 1 add, then a fresh-author check; 2 add only; 3 the docs warning only
 decisions next_1_2 limit 4;     # value: 1 both halves, 2 language only, 3 speed only, 4 stop the checks
+decisions minor_release limit 8;  # value: the minor shipped (110, 120, ...)
 
 # Bases the decisions read. A late caveat on their evidence reaches these
 # values (Late Qualification 0.1), which is how a past decision is found to
@@ -62,6 +66,8 @@ state order_basis = 0;
 state gaps_basis = 0;
 state latest_gap_basis = 0;
 state next_basis = 0;
+state minor_basis = 0;
+state main_green = 0;   # 1 while main's last Runtime run passed
 
 # ---- Events: what happened, in the order it happened -----------------------
 
@@ -86,6 +92,8 @@ event report_latest_gap;                    # carries(latest(STREAM), C) reporte
 event decide_latest_gap option min 1 max 3;
 event report_next;                          # the forms and speed a fresh author wanted
 event decide_next option min 1 max 4;
+event main_run green min 0 max 1;           # the Runtime run on main at a minor's merge
+event ship_minor version min 110 max 199;   # a 1.x minor release (110 is 1.1.0)
 
 # The attribution was an inference; it says so.
 on infer_attribution reveal attribution_all_nine supports divergences_were_runtime;
@@ -127,6 +135,17 @@ on ship when not observed(release_tree) reject "no release tree to ship from";
 on ship set release_basis = qualified(version, release_tree);
 on ship when committed(release) and not reopened(release) reject "the current release decision stands; review it first";
 on ship commit release because deadline using release_basis permitted by latest(approvals) for version;
+
+# A minor release rests on main's Runtime run at its merge.
+on main_run when observed(main_tree) renew main_tree;
+on main_run when green == 1 reveal main_tree supports minor_safe;
+on main_run when green == 0 reveal main_tree opposes minor_safe;
+on main_run set main_green = green;
+
+on ship_minor when not observed(main_tree) reject "no main run to ship from";
+on ship_minor when main_green == 0 reject "main's last Runtime run did not pass";
+on ship_minor set minor_basis = qualified(version, main_tree);
+on ship_minor commit minor_release because deadline using minor_basis permitted by latest(approvals) for version;
 
 # A finding is a reading, its D-number the value, for the count and the
 # order; the findings decisions rest on are named evidence too. D016 and
@@ -196,6 +215,8 @@ bind ledger.release = "1.0." + number_text(latest(release) - 100) + " stands" wh
 bind ledger.release = "1.0." + number_text(latest(release) - 100) + " is reopened: its basis carries a doubt" when reopened(release);
 bind ledger.release_basis_doubted = if(has_caveat(release_basis, uncovered_windows), 1, 0);
 bind ledger.release_basis_regressed = if(has_caveat(release_basis, fix_regressed), 1, 0);
+bind ledger.minor_release = "none yet";
+bind ledger.minor_release = "1." + number_text((latest(minor_release) - 100) / 10) + ".0 stands" when committed(minor_release) and not reopened(minor_release);
 bind ledger.merge_259 = "not merged";
 bind ledger.merge_259 = "merged on a rerun of " + number_text(latest(merge_259)) + " divergences" when committed(merge_259);
 bind ledger.last_rerun = latest(reruns) when has_sample(reruns);
