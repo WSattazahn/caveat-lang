@@ -570,6 +570,8 @@ export interface ReadingOccurrence {
   /** Relation and claim are both absent for a neutral reading, otherwise both present. */
   relation?: 'supports' | 'opposes';
   claim?: string;
+  /** The text a `sample … noting` kept with the reading; absent otherwise. */
+  note?: string;
 }
 
 export interface ReadingStream {
@@ -706,6 +708,8 @@ export interface EffectSample {
   /** Relation and target are both absent for a neutral sample, otherwise both present. */
   relation?: 'supports' | 'opposes';
   target?: string;
+  /** The text a `sample … noting` kept with the reading; absent otherwise. */
+  note?: string;
 }
 
 export interface EffectReveal {

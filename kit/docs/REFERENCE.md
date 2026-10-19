@@ -110,7 +110,7 @@ sees what the earlier ones did.
 | Effect | Does |
 | --- | --- |
 | `set STATE = EXPRESSION [because CITATION, …]` | Sets a number. |
-| `sample STREAM = EXPRESSION [supports\|opposes CLAIM]` | Records a reading; without a stance it bears on no claim (from 1.1.0). |
+| `sample STREAM = EXPRESSION [supports\|opposes CLAIM] [noting ID]` | Records a reading; without a stance it bears on no claim (from 1.1.0). `noting` keeps the text of an `id` value with the reading, such as the version string a number was read from (from 1.1.0, [reading notes](reference/spec/caveat-reading-notes-0.1.md)). |
 | `reveal EVIDENCE [supports\|opposes CLAIM]` | Observes evidence, optionally with a stance ([neutral reveal](reference/spec/caveat-neutral-reveal-0.1.md)). |
 | `commit SERIES because enough\|budget\|deadline [using EXPRESSION \| citing EXPRESSION, …] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT [because EVIDENCE], …]` | Makes a decision. Its grounds are what `using` or `citing` reads; `citing` records no value ([citing](reference/spec/caveat-citing-0.1.md)). `retaining C because E` keeps a caveat on purpose with its reason, which must be observed and joins the grounds ([retention reasons](reference/spec/caveat-retention-reasons-0.1.md)). GRANT is evidence or `latest(STREAM)`. `for X` requires the grant's value to equal X ([permission](reference/spec/caveat-permission-0.1.md)). To keep "not ready" with its grounds, commit a second series `citing` what it rests on ([guide](reference/docs/AI_AUTHORING.md#record-not-ready-with-its-reasons)). |
 | `reopen SERIES because EVIDENCE\|latest(STREAM)\|caveated(STATE, CAVEAT)` | Reopens the current revision. |

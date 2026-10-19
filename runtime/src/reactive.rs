@@ -236,6 +236,9 @@ pub enum Effect {
         stream: String,
         value: Expr,
         stance: Option<(Relation, String)>,
+        /// `noting EXPRESSION`: the text of the identifier it names, kept
+        /// with the reading. See spec/caveat-reading-notes-0.1.md.
+        note: Option<Expr>,
     },
     Emit {
         name: String,
@@ -397,8 +400,11 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, .. } => {
+        Effect::Sample { value, note, .. } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
+            if let Some(note) = note {
+                *note = reactive_expr::expand_with(note, functions, defines)?;
+            }
         }
         Effect::Qualify { after, index, .. } => {
             for value in after
@@ -742,6 +748,9 @@ pub struct ReadingOccurrence {
     pub relation: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim: Option<String>,
+    /// What was observed, as text: spec/caveat-reading-notes-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -967,7 +976,10 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, .. } => expressions.push(value),
+            Effect::Sample { value, note, .. } => {
+                expressions.push(value);
+                expressions.extend(note.iter());
+            }
             Effect::Commit {
                 using,
                 citing,
@@ -1130,6 +1142,9 @@ pub enum EffectReport {
         relation: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         target: Option<String>,
+        /// `noting`: spec/caveat-reading-notes-0.1.md.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        note: Option<String>,
     },
     Reveal {
         evidence: String,
@@ -2701,6 +2716,7 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    note,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -2708,6 +2724,13 @@ impl ReactiveSession {
                     }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("sample {stream} requires a numeric expression"));
+                    }
+                    if let Some(note) = note {
+                        if note.validate(&numeric, &validate_predicate)? != ValueType::Text {
+                            return Err(format!(
+                                "sample {stream} noting requires an identifier handle"
+                            ));
+                        }
                     }
                 }
                 Effect::Reject { .. } => {}
@@ -4617,6 +4640,7 @@ impl ReactiveSession {
                 stream,
                 value,
                 stance,
+                note,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -4642,6 +4666,15 @@ impl ReactiveSession {
                 let value = self.evaluate(value, parameters)?;
                 let Value::Number(number) = value.value else {
                     return Err("sample requires a numeric value".into());
+                };
+                // The note is text only: it joins neither the reading's
+                // lineage nor its grounds.
+                let note = match note {
+                    Some(note) => match self.evaluate(note, parameters)?.value {
+                        Value::Text(text) => Some(text),
+                        _ => return Err("sample noting requires an identifier handle".into()),
+                    },
+                    None => None,
                 };
                 let NodeKind::Evidence {
                     description,
@@ -4707,6 +4740,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     claim: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note: note.clone(),
                 });
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
@@ -4716,6 +4750,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     target: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note,
                 });
                 let changed = previous.is_none_or(|previous| previous != number);
                 self.run_reopening_triggers(
@@ -6535,12 +6570,14 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             stream,
             value,
             stance,
+            note,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
             stance: stance
                 .as_ref()
                 .map(|(relation, claim)| (*relation, rename(claim))),
+            note: note.as_ref().map(|note| note.rename_symbols(names)),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -7655,7 +7692,28 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM]";
+            const FORM: &str =
+                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            // `noting` is a word only where what follows parses: a 1.0
+            // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
+            let noting = rest
+                .iter()
+                .rposition(|word| *word == "noting")
+                .and_then(|at| {
+                    if at == 0 || at + 1 == rest.len() {
+                        return None;
+                    }
+                    reactive_expr::parse_unresolved(&format!(
+                        "id_text({})",
+                        rest[at + 1..].join(" ")
+                    ))
+                    .ok()
+                    .map(|note| (at, note))
+                });
+            let (rest, note) = match noting {
+                Some((at, note)) => (&rest[..at], Some(note)),
+                None => (rest, None),
+            };
             let relation_of = |word: &str| match word {
                 "supports" => Some(Relation::Supports),
                 "opposes" => Some(Relation::Opposes),
@@ -7676,9 +7734,13 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 value: reactive_expr::parse_unresolved(&value.join(" "))
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
+                note,
             })
         }
-        ["sample", ..] => Err("sample expects STREAM = EXPRESSION [supports|opposes CLAIM]".into()),
+        ["sample", ..] => Err(
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+                .into(),
+        ),
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),

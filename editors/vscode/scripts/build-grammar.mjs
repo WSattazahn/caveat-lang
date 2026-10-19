@@ -21,7 +21,7 @@ const declarations = ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 
 const control = ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'];
 const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'];
 const modifiers = ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind',
-  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward'];
+  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'noting'];
 // Epistemic predicates, expression functions and callable primitives: names
 // that are functions only where a call follows.
 export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified',
