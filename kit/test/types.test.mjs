@@ -184,6 +184,8 @@ function sessionsOf() {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']]],
     ['evidence memory from "lookup"; event consult; on consult reveal memory;', [['consult']]],
     ['evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 3;', [['go']]],
+    // A reading that keeps the observed text (spec/caveat-reading-notes-0.1.md).
+    ['identifiers limit 4; evidence probe from "probe"; readings r from probe limit 2; event go word id; on go sample r = 3 noting word;', [['go', { word: '^22.22.2' }]]],
     [WINDOWED, WINDOWED_EVENTS],
     [TAKE_BACK, [['sip'], ['doubt'], ['undoubt']]],
     // A retained caveat's reason (spec/caveat-retention-reasons-0.1.md).

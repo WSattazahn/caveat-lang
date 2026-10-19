@@ -20,9 +20,9 @@ says what the proofs and tests cover and where they stop.
   and `caveat test` against the program, and use `explain` or `dependents` to
   inspect what its decisions rest on.
 
-Identify the package version before following commands. The published 1.0.1 release provides `caveat-lang`
+Identify the package version before following commands. The published 1.1.0 release provides `caveat-lang`
 (with `caveat` supported shorthand), `doctor` and `demo agent`.
-The [verified publication record](docs/releases/v1.0.1.md) identifies its exact
+The [verified publication record](docs/releases/v1.1.0.md) identifies its exact
 tested artifact. Do not infer publication from a checkout's version.
 In a checkout with doctor support, after building, `node kit/bin/caveat.mjs doctor --json`
 checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the
@@ -74,6 +74,13 @@ scenario when possible. A Caveat assessment does not override host permissions.
 Read [Caveat's invariants](docs/CAVEAT_ESSENCE.md) and the relevant `spec/`
 documents before changing runtime semantics. Preserve evidence history,
 qualifications, frozen decision bases and atomic rollback.
+
+The project keeps its own decisions in Caveat: [`ledger/`](ledger/README.md)
+holds the program, the record of events, and the scenarios that test them.
+A merge, a release, a finding, a withdrawn claim or an owner's answer to a
+card is an event appended to `ledger/events.jsonl`; `npm run test:ledger`
+must still pass. Ask `caveat explain ledger/project.cav ledger/events.jsonl`
+what a decision rests on before arguing about it in prose.
 
 Verify changed behavior and its consumers using `package.json` and the
 [runtime workflow](.github/workflows/runtime.yml). Build with `npm run build`

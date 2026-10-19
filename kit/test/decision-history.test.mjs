@@ -69,6 +69,33 @@ test('a revision whose journal entries retired is listed, not dropped', () => {
   } finally { session.close(); }
 });
 
+// The language answers what the guide's join cannot once the journal has
+// retired a revision's entries: `rests_on_withdrawn(revision(SERIES, K))`
+// names the Kth revision decisionHistory lists, retired or not
+// (spec/caveat-past-revisions-0.1.md).
+test('revision(SERIES, K) answers for the Kth listed revision, retired ones too', () => {
+  const asking = windowed
+    .replace('on decide commit verdict because enough using 1;', 'on decide commit verdict because enough using qualified(1, tool);')
+    + 'evidence operator from "the operator";\nevent wrong n min 1 max 8;\n'
+    + 'on wrong reveal operator;\non wrong withdraw occurrence(tool, n) because operator;\n'
+    + 'state answer = 0;\nevent ask k min 1 max 8;\non ask set answer = if(rests_on_withdrawn(revision(verdict, k)), 1, 0);\n';
+  const session = real.open(asking);
+  try {
+    for (const event of ['read', 'decide', 'redo', 'read', 'decide', 'redo', 'read', 'decide']) {
+      assert.equal(session.dispatch(event, {}).outcome, 'accepted');
+    }
+    assert.equal(session.dispatch('wrong', { n: 1 }).outcome, 'accepted');
+    for (const _ of [1, 2, 3]) assert.equal(session.dispatch('read', {}).outcome, 'accepted');
+    const history = decisionHistory(session.view(), 'verdict');
+    assert.deepEqual(history.map(item => item.retired), [true, true, false]);
+    const answers = history.map((_, index) => {
+      assert.equal(session.dispatch('ask', { k: index + 1 }).outcome, 'accepted');
+      return session.snapshot().qualified_values.answer.value;
+    });
+    assert.deepEqual(answers, [1, 0, 0], 'verdict@1, retired from the journal, rests on the withdrawn report');
+  } finally { session.close(); }
+});
+
 test('the current revision reads reopened until it is committed again', () => {
   const session = sessionAfter(3);
   try {

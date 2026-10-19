@@ -94,7 +94,8 @@ mod identifiers;
 #[path = "reactive_check.rs"]
 mod check;
 pub use check::{
-    check_source, check_source_with, CheckOptions, CheckReport, Diagnostic, Related, CHECK_SCHEMA,
+    check_save_with, check_source, check_source_with, CheckOptions, CheckReport, Diagnostic,
+    LateCaveatGap, Related, CHECK_SCHEMA,
 };
 
 #[path = "reactive_interface.rs"]
@@ -235,6 +236,9 @@ pub enum Effect {
         stream: String,
         value: Expr,
         stance: Option<(Relation, String)>,
+        /// `noting EXPRESSION`: the text of the identifier it names, kept
+        /// with the reading. See spec/caveat-reading-notes-0.1.md.
+        note: Option<Box<Expr>>,
     },
     Emit {
         name: String,
@@ -256,6 +260,9 @@ pub enum Effect {
         /// index names instead of the current one. See
         /// spec/caveat-earlier-occurrence-0.1.md.
         index: Option<Box<Expr>>,
+        /// `qualify latest(NAME) …`: a reading stream's current reading, or
+        /// the evidence's current occurrence. See spec/caveat-latest-0.1.md.
+        latest: bool,
     },
     /// Record that the live qualifications of every held occurrence of the
     /// evidence by the caveat no longer stand. See
@@ -266,6 +273,10 @@ pub enum Effect {
         /// `unqualify occurrence(EVIDENCE, INDEX) …`: only the held occurrence
         /// the index names. See spec/caveat-earlier-occurrence-0.1.md.
         index: Option<Box<Expr>>,
+        /// `unqualify latest(NAME) …`: only a reading stream's current
+        /// reading, or the evidence's current occurrence. See
+        /// spec/caveat-latest-0.1.md.
+        latest: bool,
     },
     /// Give renewable evidence a new occurrence: from now on its name means a
     /// new, unobserved piece of evidence. See spec/caveat-renewal-0.1.md.
@@ -389,8 +400,11 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, .. } => {
+        Effect::Sample { value, note, .. } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
+            if let Some(note) = note {
+                **note = reactive_expr::expand_with(note, functions, defines)?;
+            }
         }
         Effect::Qualify { after, index, .. } => {
             for value in after
@@ -737,6 +751,9 @@ pub struct ReadingOccurrence {
     pub relation: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim: Option<String>,
+    /// What was observed, as text: spec/caveat-reading-notes-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -962,7 +979,10 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, .. } => expressions.push(value),
+            Effect::Sample { value, note, .. } => {
+                expressions.push(value);
+                expressions.extend(note.as_deref());
+            }
             Effect::Commit {
                 using,
                 citing,
@@ -989,10 +1009,12 @@ impl<'a> OrderStep<'a> {
                 evidence,
                 after,
                 index,
+                latest,
                 ..
             } => {
-                // An earlier occurrence is checked when the effect runs.
-                if index.is_none() {
+                // An earlier occurrence, or a stream's latest reading, is
+                // checked when the effect runs.
+                if index.is_none() && !latest {
                     uses.push((
                         evidence.clone(),
                         guard.clone(),
@@ -1123,6 +1145,9 @@ pub enum EffectReport {
         relation: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         target: Option<String>,
+        /// `noting`: spec/caveat-reading-notes-0.1.md.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        note: Option<String>,
     },
     Reveal {
         evidence: String,
@@ -1490,6 +1515,11 @@ pub struct ReactiveSession {
     withdrawal_reasons: Arc<BTreeMap<String, String>>,
     /// New retirements and retired records whose final pin was released.
     departure_candidates: Arc<BTreeSet<String>>,
+    /// Decision series a rule or binding reads through
+    /// `rests_on_withdrawn(revision(SERIES, INDEX))`. Every revision of these
+    /// keeps its grounds pinned, not only the current one. Fixed at load. See
+    /// spec/caveat-past-revisions-0.1.md.
+    revision_series: Arc<BTreeSet<String>>,
     collector: WithdrawalCollector,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
@@ -1508,7 +1538,43 @@ pub struct ReactiveSession {
     replay: Option<Arc<replay_save::ReplayLog>>,
 }
 
+/// How many loaded programs `from_source_cached` keeps.
+const LOADED_PROGRAMS: usize = 4;
+
+thread_local! {
+    /// Programs this thread loaded recently, by source text, least recent first.
+    static LOADED: std::cell::RefCell<Vec<(String, ReactiveSession)>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
 impl ReactiveSession {
+    /// `from_source`, reusing a program this thread loaded recently. Loading
+    /// depends only on the source text, and a clone of a freshly loaded
+    /// session is that session (its shared parts are copied on write), so a
+    /// host that opens or restores one program again pays its load once. The
+    /// last few programs that loaded are kept; a source that does not load is
+    /// not, and fails the same way each time.
+    pub fn from_source_cached(source: &str) -> Result<Self, String> {
+        let kept = LOADED.with_borrow_mut(|loaded| {
+            let index = loaded.iter().position(|(text, _)| text == source)?;
+            let entry = loaded.remove(index);
+            let session = entry.1.clone();
+            loaded.push(entry);
+            Some(session)
+        });
+        if let Some(session) = kept {
+            return Ok(session);
+        }
+        let session = Self::from_source(source)?;
+        LOADED.with_borrow_mut(|loaded| {
+            if loaded.len() == LOADED_PROGRAMS {
+                loaded.remove(0);
+            }
+            loaded.push((source.to_string(), session.clone()));
+        });
+        Ok(session)
+    }
+
     /// Whether the program declares an integer clock.
     pub(crate) fn integer_clock(&self) -> bool {
         self.clock.as_ref().is_some_and(|clock| clock.integer)
@@ -1681,6 +1747,7 @@ impl ReactiveSession {
             pin_counts: Arc::default(),
             withdrawal_reasons: Arc::default(),
             departure_candidates: Arc::default(),
+            revision_series: Arc::default(),
             collector: WithdrawalCollector::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
@@ -2146,7 +2213,8 @@ impl ReactiveSession {
         }
         session.reopening_triggers = Arc::new(declared_triggers);
         session.check_foreclosures()?;
-        let binding_types = session.validate_rules()?;
+        let (binding_types, revision_series) = session.validate_rules()?;
+        session.revision_series = Arc::new(revision_series);
         session.check_observation_order()?;
         session.group_bindings(&binding_types);
         let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
@@ -2553,7 +2621,8 @@ impl ReactiveSession {
 
     /// Also returns each bound property's value type, which every one of its
     /// declarations must share.
-    fn validate_rules(&self) -> Result<BindingTypes, String> {
+    /// Also returns the decision series read through `revision(…)`.
+    fn validate_rules(&self) -> Result<(BindingTypes, BTreeSet<String>), String> {
         let mut commitments = self
             .symbols
             .iter()
@@ -2584,7 +2653,49 @@ impl ReactiveSession {
                 commitments.insert(action.clone());
             }
         }
+        let revision_series = std::cell::RefCell::new(BTreeSet::new());
         let validate_predicate = |kind: &str, symbol: &str| -> Result<(), String> {
+            // `rests_on_withdrawn(revision(SERIES, INDEX))`. See
+            // spec/caveat-past-revisions-0.1.md.
+            if kind == reactive_expr::AT_REVISION {
+                if !self.decision_series.contains_key(symbol) {
+                    return Err(format!("revision({symbol}, …) names no decision series"));
+                }
+                revision_series.borrow_mut().insert(symbol.to_string());
+                return Ok(());
+            }
+            // `in_basis(…)`, as `SERIES|R|KIND|NAME`. See
+            // spec/caveat-in-basis-0.1.md.
+            if kind == reactive_expr::IN_BASIS {
+                let mut parts = symbol.splitn(4, '|');
+                let (Some(series), Some(revision), Some(kind), Some(name)) =
+                    (parts.next(), parts.next(), parts.next(), parts.next())
+                else {
+                    return Err(format!("in_basis received a malformed target {symbol}"));
+                };
+                if revision.is_empty() {
+                    if !self.decision_series.contains_key(series) && !commitments.contains(series) {
+                        return Err(format!("in_basis({series}, …) names no decision"));
+                    }
+                } else {
+                    if !self.decision_series.contains_key(series) {
+                        return Err(format!("revision({series}, …) names no decision series"));
+                    }
+                    revision_series.borrow_mut().insert(series.to_string());
+                }
+                return match kind {
+                    "named" => self.require_kind(name, "evidence"),
+                    "latest" => self.require_latest(name),
+                    _ => self.require_renewable_occurrence(name),
+                };
+            }
+            if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+                self.require_latest(symbol)?;
+                return match kind.strip_prefix(CARRIES) {
+                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    None => Err(format!("unknown epistemic predicate {kind}")),
+                };
+            }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
@@ -2655,14 +2766,22 @@ impl ReactiveSession {
                 ));
             }
         }
+        // The states and constants are built into the set once; each step's
+        // parameters join it while that step is checked. Rebuilding the whole
+        // set for every step made loading quadratic in program size.
+        let mut numeric: HashSet<String> = self
+            .states
+            .names()
+            .chain(self.constants.keys())
+            .cloned()
+            .collect();
         for (context, condition, effect, parameters) in steps {
-            let numeric = self
-                .states
-                .names()
-                .chain(self.constants.keys())
-                .cloned()
-                .chain(parameters.into_iter().map(str::to_owned))
-                .collect();
+            let added = parameters
+                .into_iter()
+                .filter(|name| !numeric.contains(*name))
+                .map(str::to_owned)
+                .collect::<Vec<_>>();
+            numeric.extend(added.iter().cloned());
             if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
                 return Err(format!("{context} condition must be boolean"));
             }
@@ -2689,6 +2808,7 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    note,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -2697,6 +2817,13 @@ impl ReactiveSession {
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("sample {stream} requires a numeric expression"));
                     }
+                    if let Some(note) = note {
+                        if note.validate(&numeric, &validate_predicate)? != ValueType::Text {
+                            return Err(format!(
+                                "sample {stream} noting requires an identifier handle"
+                            ));
+                        }
+                    }
                 }
                 Effect::Reject { .. } => {}
                 Effect::Qualify {
@@ -2704,8 +2831,14 @@ impl ReactiveSession {
                     caveat,
                     after,
                     index,
+                    latest,
                 } => {
-                    self.require_kind(evidence, "evidence")?;
+                    if *latest {
+                        self.require_latest(evidence)?;
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
+                        self.require_kind(evidence, "evidence")?;
+                    }
                     if let Some(index) = index {
                         self.validate_occurrence(evidence, index, &numeric, &validate_predicate)?;
                     }
@@ -2733,8 +2866,14 @@ impl ReactiveSession {
                     evidence,
                     caveat,
                     index,
+                    latest,
                 } => {
-                    self.require_kind(evidence, "evidence")?;
+                    if *latest {
+                        self.require_latest(evidence)?;
+                    } else if index.is_none() {
+                        // An index names evidence or a stream: below.
+                        self.require_kind(evidence, "evidence")?;
+                    }
                     self.require_kind(caveat, "caveat")?;
                     if let Some(index) = index {
                         self.validate_occurrence(evidence, index, &numeric, &validate_predicate)?;
@@ -2868,13 +3007,10 @@ impl ReactiveSession {
                     }
                 }
             }
+            for name in &added {
+                numeric.remove(name);
+            }
         }
-        let numeric = self
-            .states
-            .names()
-            .chain(self.constants.keys())
-            .cloned()
-            .collect();
         for (name, expression) in self.define_rules.iter() {
             if self.states.contains_key(name) || self.constants.contains_key(name) {
                 return Err(format!("define {name} collides with a state"));
@@ -2945,10 +3081,11 @@ impl ReactiveSession {
                     })?;
             }
         }
-        Ok(types
+        let types = types
             .into_iter()
             .map(|((target, property), kind)| ((target.clone(), property.clone()), kind))
-            .collect())
+            .collect();
+        Ok((types, revision_series.into_inner()))
     }
 
     /// Show every bound property: the last matching declaration's value, its
@@ -3190,10 +3327,12 @@ impl ReactiveSession {
         Ok(state)
     }
 
-    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence: see
-    /// spec/caveat-earlier-occurrence-0.1.md.
+    /// `occurrence(EVIDENCE, INDEX)` names renewable evidence, and
+    /// `reading(STREAM, INDEX)` a reading stream: see
+    /// spec/caveat-earlier-occurrence-0.1.md and
+    /// spec/caveat-reading-index-0.1.md.
     fn require_renewable_occurrence(&self, evidence: &str) -> Result<(), String> {
-        if self.renewals.contains_key(evidence) {
+        if self.renewals.contains_key(evidence) || self.reading_streams.contains_key(evidence) {
             Ok(())
         } else {
             Err(format!(
@@ -3218,6 +3357,27 @@ impl ReactiveSession {
             ));
         }
         Ok(())
+    }
+
+    /// `latest(NAME)` in `qualify` or `unqualify`: a reading stream or
+    /// declared evidence. See spec/caveat-latest-0.1.md.
+    fn require_latest(&self, name: &str) -> Result<(), String> {
+        if self.reading_streams.contains_key(name) || self.require_kind(name, "evidence").is_ok() {
+            Ok(())
+        } else {
+            Err(format!(
+                "latest({name}) must name a reading stream or declared evidence"
+            ))
+        }
+    }
+
+    /// What `latest(NAME)` names now: a reading stream's current reading,
+    /// none before its first sample, or the evidence's current occurrence.
+    pub(super) fn latest_target(&self, name: &str) -> Option<String> {
+        match self.reading_streams.get(name) {
+            Some(stream) => stream.current.clone(),
+            None => Some(self.occurrence(name).to_string()),
+        }
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -4005,6 +4165,7 @@ impl ReactiveSession {
                 }))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
                 Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
@@ -4049,6 +4210,7 @@ impl ReactiveSession {
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
+                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, true),
                 Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
                 Some((_, None)) => Ok(Tracked::plain(false)),
                 None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
@@ -4573,6 +4735,7 @@ impl ReactiveSession {
                 stream,
                 value,
                 stance,
+                note,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -4598,6 +4761,15 @@ impl ReactiveSession {
                 let value = self.evaluate(value, parameters)?;
                 let Value::Number(number) = value.value else {
                     return Err("sample requires a numeric value".into());
+                };
+                // The note is text only: it joins neither the reading's
+                // lineage nor its grounds.
+                let note = match note {
+                    Some(note) => match self.evaluate(note, parameters)?.value {
+                        Value::Text(text) => Some(text),
+                        _ => return Err("sample noting requires an identifier handle".into()),
+                    },
+                    None => None,
                 };
                 let NodeKind::Evidence {
                     description,
@@ -4663,6 +4835,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     claim: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note: note.clone(),
                 });
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
@@ -4672,6 +4845,7 @@ impl ReactiveSession {
                         .as_ref()
                         .map(|(relation, _)| relation_name(*relation).into()),
                     target: stance.as_ref().map(|(_, claim)| claim.clone()),
+                    note,
                 });
                 let changed = previous.is_none_or(|previous| previous != number);
                 self.run_reopening_triggers(
@@ -4689,6 +4863,7 @@ impl ReactiveSession {
                 caveat,
                 after,
                 index,
+                latest,
             } => {
                 let (occurrence, guard) = match index {
                     Some(index) => {
@@ -4696,6 +4871,18 @@ impl ReactiveSession {
                             self.resolve_occurrence(evidence, index, parameters)?;
                         (occurrence, guard.union(&lineage)?)
                     }
+                    None if *latest => match self.latest_target(evidence) {
+                        Some(occurrence) => (occurrence, guard.clone()),
+                        None => {
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::UnobservedEvidence,
+                                format!(
+                                    "cannot qualify latest({evidence}): its stream has no reading"
+                                ),
+                            ))
+                        }
+                    },
                     None => (self.occurrence(evidence).to_string(), guard.clone()),
                 };
                 let guard = &guard;
@@ -4755,12 +4942,17 @@ impl ReactiveSession {
                 evidence,
                 caveat,
                 index,
+                latest,
             } => {
                 let only = match index {
                     Some(index) => Some(self.resolve_occurrence(evidence, index, parameters)?.0),
+                    None if *latest => self.latest_target(evidence),
                     None => None,
                 };
-                self.take_back(evidence, caveat, only.as_deref())?
+                // A stream with no reading has nothing to take back.
+                if !(*latest && only.is_none()) {
+                    self.take_back(evidence, caveat, only.as_deref())?
+                }
             }
             Effect::Withdraw { target, because } => {
                 let unobserved = |message: String| {
@@ -5123,7 +5315,12 @@ impl ReactiveSession {
                         ));
                     }
                 }
-                if let Some(previous) = &previous {
+                // A series read through `revision(…)` keeps every revision's
+                // grounds pinned. See spec/caveat-past-revisions-0.1.md.
+                if let Some(previous) = previous
+                    .as_ref()
+                    .filter(|_| !self.revision_series.contains(action))
+                {
                     let released = self.commitment_grounds[previous]
                         .own_evidence()
                         .cloned()
@@ -5478,15 +5675,17 @@ impl ReactiveSession {
         only: Option<&str>,
     ) -> Result<(), String> {
         let from = self.symbols[caveat];
-        let occurrences = match self.renewals.get(evidence) {
-            Some(renewal) => renewal.occurrences.clone(),
-            None => vec![evidence.to_string()],
+        // `only` is one occurrence of the evidence, or a reading of the
+        // stream `unqualify latest(…)` names.
+        let occurrences = match (only, self.renewals.get(evidence)) {
+            (Some(only), _) => vec![only.to_string()],
+            (None, Some(renewal)) => renewal.occurrences.clone(),
+            (None, None) => vec![evidence.to_string()],
         };
         let marked = occurrences
             .into_iter()
             .filter(|occurrence| {
-                only.is_none_or(|only| only == occurrence)
-                    && !self.is_retired(occurrence)
+                !self.is_retired(occurrence)
                     && self
                         .symbols
                         .get(occurrence)
@@ -5641,7 +5840,12 @@ impl ReactiveSession {
                 .values()
                 .any(|targets| targets.values().any(listed))
         {
-            let mut lineage = added.union(guard)?;
+            // Every record merged into lists the evidence, so the caveat's
+            // route through it is live: freeze against it as well as the
+            // guard, or the caveat is wrongly kept (D020).
+            let mut lineage = added
+                .union(guard)?
+                .union(&Provenance::from_names([evidence.to_string()], [])?)?;
             self.freeze_observation(&mut lineage);
             // Each record whose qualification gains the lineage's evidence
             // references it, so the withdrawal collector must recount that
@@ -5812,8 +6016,23 @@ impl ReactiveSession {
     fn declare_take_backs(&mut self, extras: &BTreeSet<String>) -> Result<(), String> {
         let mut caveats = BTreeSet::new();
         for (evidence, caveat) in self.take_back_effects() {
-            self.require_kind(evidence, "evidence")
-                .map_err(|error| format!("unqualify {evidence} with {caveat}: {error}"))?;
+            if let Some(stream) = self.reading_streams.get(evidence) {
+                // Only `unqualify latest(STREAM)` names a stream. Its readings
+                // copy the template's caveats, so a caveat it takes back is
+                // never put on the template: see spec/caveat-latest-0.1.md.
+                if self.program_effects().any(|effect| {
+                    matches!(effect, Effect::Qualify { evidence: target, caveat: added, .. }
+                        if *target == stream.template && added == caveat)
+                }) {
+                    return Err(format!(
+                        "unqualify latest({evidence}) with {caveat}: qualify {} with {caveat} puts it on the template, whose caveats every reading copies",
+                        stream.template
+                    ));
+                }
+            } else {
+                self.require_kind(evidence, "evidence")
+                    .map_err(|error| format!("unqualify {evidence} with {caveat}: {error}"))?;
+            }
             self.require_kind(caveat, "caveat")
                 .map_err(|error| format!("unqualify {evidence} with {caveat}: {error}"))?;
             if let Some((stream, _)) = self
@@ -6176,31 +6395,10 @@ impl ReactiveSession {
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
     fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
-        if self.late_caveats.is_empty() {
-            return Ok(());
-        }
-        let late = self
-            .late_caveats
-            .iter()
-            .filter(|caveat| !provenance.caveats.contains(*caveat))
-            .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<HashSet<_>>();
-        let listed = provenance
-            .evidence
-            .iter()
-            .filter_map(|name| self.symbols.get(name).copied())
-            .collect::<HashSet<_>>();
         let reached = self
-            .graph
-            .edges
-            .iter()
-            .filter(|edge| {
-                edge.relation == Relation::Qualifies
-                    && late.contains(&edge.from)
-                    && listed.contains(&edge.to)
-                    && self.has_live_relation(edge.from, edge.to)
-            })
-            .map(|edge| edge.from)
+            .live_late_relations(provenance)
+            .into_iter()
+            .map(|(caveat, _)| caveat)
             .collect::<BTreeSet<_>>();
         if reached.is_empty() {
             return Ok(());
@@ -6214,6 +6412,37 @@ impl ReactiveSession {
             .chain(self.incoming_caveats(reached.iter().copied()))
             .collect::<Vec<_>>();
         provenance.merge(&Provenance::from_names([], names)?)
+    }
+
+    /// Each live `C qualifies E` relation for a late caveat C that
+    /// `provenance` lacks, where it lists E: what `read_live` adds, as
+    /// (C, E) pairs.
+    fn live_late_relations(&self, provenance: &Provenance) -> BTreeSet<(NodeId, NodeId)> {
+        if self.late_caveats.is_empty() {
+            return BTreeSet::new();
+        }
+        let late = self
+            .late_caveats
+            .iter()
+            .filter(|caveat| !provenance.caveats.contains(*caveat))
+            .filter_map(|caveat| self.symbols.get(caveat).copied())
+            .collect::<HashSet<_>>();
+        let listed = provenance
+            .evidence
+            .iter()
+            .filter_map(|name| self.symbols.get(name).copied())
+            .collect::<HashSet<_>>();
+        self.graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.relation == Relation::Qualifies
+                    && late.contains(&edge.from)
+                    && listed.contains(&edge.to)
+                    && self.has_live_relation(edge.from, edge.to)
+            })
+            .map(|edge| (edge.from, edge.to))
+            .collect()
     }
 
     /// `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)`.
@@ -6272,11 +6501,21 @@ impl ReactiveSession {
     }
 
     /// A predicate asked of `occurrence(EVIDENCE, INDEX)` arrives as kind
-    /// `occurrence:KIND` and target `EVIDENCE#INDEX`. Returns `None` for any
+    /// `occurrence:KIND` and target `EVIDENCE#INDEX`, and one asked of
+    /// `latest(NAME)` as kind `latest:KIND` and target `NAME`. Returns `None` for any
     /// other predicate, and otherwise the plain kind with the held occurrence
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
     fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
+        if kind == reactive_expr::AT_REVISION {
+            let revision = name
+                .rsplit_once('#')
+                .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
+            return Some(("rests_on_withdrawn", revision));
+        }
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return Some((kind, self.latest_target(name)));
+        }
         let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
         let held = name
             .rsplit_once('#')
@@ -6285,15 +6524,84 @@ impl ReactiveSession {
         Some((kind, held))
     }
 
+    /// `in_basis(…)`, whose target arrives as `SERIES#K|KIND|NAME#N`: whether
+    /// the revision's grounds hold the evidence named. The answer rests on the
+    /// revision's record, as `committed(…)` asked of it does; a revision or a
+    /// reference that names nothing held answers false. See
+    /// spec/caveat-in-basis-0.1.md.
+    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, String> {
+        let malformed = || format!("in_basis received a malformed target {target}");
+        let mut parts = target.splitn(3, '|');
+        let (Some(revision), Some(kind), Some(reference)) =
+            (parts.next(), parts.next(), parts.next())
+        else {
+            return Err(malformed());
+        };
+        let (series, k) = revision.rsplit_once('#').ok_or_else(malformed)?;
+        let (name, n) = reference.rsplit_once('#').ok_or_else(malformed)?;
+        let revision = if k.is_empty() {
+            match self.decision_series.get(series) {
+                Some(series) => series.current.clone(),
+                None => self
+                    .predicate("committed", series)?
+                    .then(|| series.to_string()),
+            }
+        } else {
+            k.parse().ok().and_then(|k| self.held_revision(series, k))
+        };
+        let evidence = match kind {
+            "named" => Some(self.occurrence(name).to_string()),
+            "latest" => self.latest_target(name),
+            "at" => n.parse().ok().and_then(|n| self.held_occurrence(name, n)),
+            _ => return Err(malformed()),
+        };
+        let (Some(revision), Some(evidence)) = (revision, evidence) else {
+            return Ok(Tracked::plain(false));
+        };
+        let held = self
+            .commitment_grounds
+            .get(&revision)
+            .is_some_and(|grounds| grounds.evidence.contains(&evidence));
+        let record = if grounds {
+            self.predicate_grounds("committed", &revision)?
+        } else {
+            self.predicate_tracked("committed", &revision)?
+        };
+        Tracked::new(held, record.provenance)
+    }
+
+    /// The revision of a decision series that a 1-based index names: `k` is
+    /// `SERIES@k`, the `k`th revision committed, current or past. `None` when
+    /// the index is not a whole number naming a revision made so far. See
+    /// spec/caveat-past-revisions-0.1.md.
+    fn held_revision(&self, series: &str, index: f64) -> Option<String> {
+        let revisions = &self.decision_series.get(series)?.revisions;
+        if index.fract() != 0.0 || index < 1.0 || index > revisions.len() as f64 {
+            return None;
+        }
+        Some(revisions[index as usize - 1].id.clone())
+    }
+
     /// The held occurrence of renewable evidence that a 1-based index names:
     /// 1 is the declared evidence, `k` is `EVIDENCE@k`. `None` when the index
     /// is not a whole number naming an occurrence that exists and has not
     /// retired.
     fn held_occurrence(&self, evidence: &str, index: f64) -> Option<String> {
-        let renewal = self.renewals.get(evidence)?;
         if index < 1.0 || index.fract() != 0.0 {
             return None;
         }
+        // A stream's `k`th reading is `STREAM@k`, while the stream holds it:
+        // spec/caveat-reading-index-0.1.md.
+        if let Some(stream) = self.reading_streams.get(evidence) {
+            let name = format!("{evidence}@{index}");
+            return stream
+                .occurrences
+                .iter()
+                .any(|occurrence| occurrence.id == name)
+                .then_some(name)
+                .filter(|name| !self.is_retired(name));
+        }
+        let renewal = self.renewals.get(evidence)?;
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
@@ -6496,12 +6804,16 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             stream,
             value,
             stance,
+            note,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
             stance: stance
                 .as_ref()
                 .map(|(relation, claim)| (*relation, rename(claim))),
+            note: note
+                .as_ref()
+                .map(|note| Box::new(note.rename_symbols(names))),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -6509,6 +6821,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             caveat,
             after,
             index,
+            latest,
         } => Effect::Qualify {
             evidence: rename(evidence),
             caveat: rename(caveat),
@@ -6516,6 +6829,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             index: index
                 .as_ref()
                 .map(|index| Box::new(index.rename_symbols(names))),
+            latest: *latest,
         },
         Effect::Withdraw { target, because } => Effect::Withdraw {
             target: match target {
@@ -6533,12 +6847,14 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             evidence,
             caveat,
             index,
+            latest,
         } => Effect::Unqualify {
             evidence: rename(evidence),
             caveat: rename(caveat),
             index: index
                 .as_ref()
                 .map(|index| Box::new(index.rename_symbols(names))),
+            latest: *latest,
         },
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
@@ -7486,12 +7802,14 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 /// `occurrence(EVIDENCE, INDEX)` as an effect's target or reason, or `None`
 /// for any other text. See spec/caveat-earlier-occurrence-0.1.md.
+/// `occurrence(EVIDENCE, INDEX)`, or `reading(STREAM, INDEX)`, which names a
+/// stream's reading the same way: spec/caveat-reading-index-0.1.md.
 fn occurrence_selector(text: &str) -> Result<Option<(String, Box<Expr>)>, String> {
-    let Some(arguments) = text
-        .strip_prefix("occurrence")
-        .map(str::trim_start)
-        .and_then(|rest| rest.strip_prefix('('))
-    else {
+    let Some(arguments) = ["occurrence", "reading"].iter().find_map(|selector| {
+        text.strip_prefix(selector)
+            .map(str::trim_start)
+            .and_then(|rest| rest.strip_prefix('('))
+    }) else {
         return Ok(None);
     };
     let arguments = arguments
@@ -7511,10 +7829,11 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     let invalid = || format!("invalid reactive effect: {}", words.join(" "));
     match words {
         [verb @ ("qualify" | "unqualify"), rest @ ..]
-            if rest
-                .join(" ")
-                .strip_prefix("occurrence")
-                .is_some_and(|rest| rest.trim_start().starts_with('(')) =>
+            if ["occurrence", "reading"].iter().any(|selector| {
+                rest.join(" ")
+                    .strip_prefix(selector)
+                    .is_some_and(|rest| rest.trim_start().starts_with('('))
+            }) =>
         {
             let split = rest
                 .iter()
@@ -7528,6 +7847,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     caveat: identifier(caveat)?,
                     after: None,
                     index: Some(index),
+                    latest: false,
                 }),
                 ("qualify", [caveat, "after", delay @ ..]) if !delay.is_empty() => {
                     Ok(Effect::Qualify {
@@ -7535,12 +7855,62 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                         caveat: identifier(caveat)?,
                         after: Some(reactive_expr::parse_unresolved(&delay.join(" "))?),
                         index: Some(index),
+                        latest: false,
                     })
                 }
                 ("unqualify", [caveat]) => Ok(Effect::Unqualify {
                     evidence,
                     caveat: identifier(caveat)?,
                     index: Some(index),
+                    latest: false,
+                }),
+                _ => Err(invalid()),
+            }
+        }
+        // `qualify latest(NAME) …` and `unqualify latest(NAME) …`: see
+        // spec/caveat-latest-0.1.md.
+        [verb @ ("qualify" | "unqualify"), rest @ ..]
+            if rest
+                .join(" ")
+                .strip_prefix("latest")
+                .is_some_and(|rest| rest.trim_start().starts_with('(')) =>
+        {
+            let split = rest
+                .iter()
+                .position(|word| *word == "with")
+                .ok_or_else(invalid)?;
+            let target = rest[..split].join(" ");
+            let name = identifier(
+                target
+                    .strip_prefix("latest")
+                    .map(str::trim)
+                    .and_then(|rest| rest.strip_prefix('('))
+                    .and_then(|rest| rest.trim_end().strip_suffix(')'))
+                    .ok_or_else(|| format!("{verb} latest requires latest(NAME)"))?
+                    .trim(),
+            )?;
+            match (*verb, &rest[split + 1..]) {
+                ("qualify", [caveat]) => Ok(Effect::Qualify {
+                    evidence: name,
+                    caveat: identifier(caveat)?,
+                    after: None,
+                    index: None,
+                    latest: true,
+                }),
+                ("qualify", [caveat, "after", delay @ ..]) if !delay.is_empty() => {
+                    Ok(Effect::Qualify {
+                        evidence: name,
+                        caveat: identifier(caveat)?,
+                        after: Some(reactive_expr::parse_unresolved(&delay.join(" "))?),
+                        index: None,
+                        latest: true,
+                    })
+                }
+                ("unqualify", [caveat]) => Ok(Effect::Unqualify {
+                    evidence: name,
+                    caveat: identifier(caveat)?,
+                    index: None,
+                    latest: true,
                 }),
                 _ => Err(invalid()),
             }
@@ -7550,6 +7920,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             caveat: identifier(caveat)?,
             after: None,
             index: None,
+            latest: false,
         }),
         ["qualify", evidence, "with", caveat, "after", rest @ ..] if !rest.is_empty() => {
             Ok(Effect::Qualify {
@@ -7557,12 +7928,14 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 caveat: identifier(caveat)?,
                 after: Some(reactive_expr::parse_unresolved(&rest.join(" "))?),
                 index: None,
+                latest: false,
             })
         }
         ["unqualify", evidence, "with", caveat] => Ok(Effect::Unqualify {
             evidence: identifier(evidence)?,
             caveat: identifier(caveat)?,
             index: None,
+            latest: false,
         }),
         ["renew", evidence] => Ok(Effect::Renew {
             evidence: identifier(evidence)?,
@@ -7609,7 +7982,28 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM]";
+            const FORM: &str =
+                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            // `noting` is a word only where what follows parses: a 1.0
+            // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
+            let noting = rest
+                .iter()
+                .rposition(|word| *word == "noting")
+                .and_then(|at| {
+                    if at == 0 || at + 1 == rest.len() {
+                        return None;
+                    }
+                    reactive_expr::parse_unresolved(&format!(
+                        "id_text({})",
+                        rest[at + 1..].join(" ")
+                    ))
+                    .ok()
+                    .map(|note| (at, note))
+                });
+            let (rest, note) = match noting {
+                Some((at, note)) => (&rest[..at], Some(note)),
+                None => (rest, None),
+            };
             let relation_of = |word: &str| match word {
                 "supports" => Some(Relation::Supports),
                 "opposes" => Some(Relation::Opposes),
@@ -7630,9 +8024,13 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 value: reactive_expr::parse_unresolved(&value.join(" "))
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
+                note: note.map(Box::new),
             })
         }
-        ["sample", ..] => Err("sample expects STREAM = EXPRESSION [supports|opposes CLAIM]".into()),
+        ["sample", ..] => Err(
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+                .into(),
+        ),
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),

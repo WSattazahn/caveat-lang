@@ -192,15 +192,24 @@ diagnostic when a program does not load. `dispatch` returns
 message}`; anything else throws, and the session must then be discarded.
 `session.save()` returns text that `runtime.restore(source, saved)` resumes,
 and `session.save({ compact: true })` a smaller save for a short session (see
-[What grows the save](#what-grows-the-save)).
+[What grows the save](#what-grows-the-save)). Use the compact save rather than
+writing your own event log: it holds exactly the events the runtime accepted,
+and `runtime.restore` takes it only with the source it came from.
 
 Choose the call by what the host reads after each event. `dispatchView`
 returns the view (displayed values, decisions and cues) and is the cheapest:
-the runtime does not build the snapshot. `dispatchViewDelta` returns what
-changed in a View 0.2. `dispatch` builds the full snapshot, the largest thing
-the runtime returns; use it when the host needs the journal, grounds or graph.
-`session.snapshot()` straight after `dispatch` reuses that snapshot instead of
-building another.
+the runtime does not build the snapshot. Read the view it returns rather than
+calling `view()` after it, which builds the same view again. `dispatchViewDelta`
+returns what changed in a View 0.2. `dispatch` builds the full snapshot, the
+largest thing the runtime returns; use it when the host needs the journal,
+grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
+snapshot instead of building another. A decision's basis is in the view:
+`decisionHistory(view, name)` lists what each revision was committed on, so an
+adapter that reads bases does not need `dispatch` and the snapshot for it.
+A binding that reads `latest(STREAM)` explains itself in
+`view.binding_explanations[TARGET][PROPERTY]`: its `evidence` includes the
+current reading (`STREAM@N`) and its `caveats` are that reading's live caveats, so the
+adapter needs no snapshot for the latest report either.
 
 ## Replay with the native command line (repository checkout)
 
@@ -347,6 +356,26 @@ one refuses the whole event. When a change adds another instrument, it adds
 declarations and a call, not another copy of the rules. See
 [procedure symbols](../spec/caveat-procedure-symbols-0.1.md).
 
+A call passes its guard's and every argument's evidence and caveats to
+everything the procedure does, samples included, even when the body never
+reads that argument ([evaluation order](../spec/caveat-reactive-0.7.md#evaluation-order-and-qualification)).
+Passing a control flag such as `frozen` into a procedure that samples
+therefore puts the flag's lineage on every new reading. If the flag was set
+under a guard that read a withdrawn report, each later reading then carries
+`withdrawn` as well. Pass a procedure only what its steps read. Keep a
+`sample` in a procedure that does not take the flag, or in its own rule, and
+test the flag in the calling rule's `when`:
+
+```caveat
+proc take(s readings, outcome) {
+    sample s = outcome supports passing;
+};
+on report when frozen == 0 call take(checks, outcome);
+```
+
+The guard's lineage still reaches what the call does, as it does for any
+guarded effect, but only for that one event.
+
 ## Compare several candidates
 
 When a decision compares several candidates, such as hosts, packages or
@@ -375,6 +404,24 @@ the rules. The `place` line only gives the entities somewhere to be; outside a
 game it has no other meaning. Use a procedure, as above, when the inputs are
 different events rather than one event naming its subject. See
 [repetition](../spec/caveat-repetition-0.1.md).
+
+When a rule is about a pair, such as a candidate and one of its checks, put a
+block over the second kind inside the block over the first, from 1.2.0. The
+inner block expands in each copy of the outer one, and its body may use both
+names; `$index` is the inner member's position:
+
+```caveat
+for component as $c routed by component {
+  for slot as $k {
+    state $c_ack_$k = 0 min 0 max 1;
+    on acknowledge when decision == $index set $c_ack_$k = 1;
+  };
+};
+```
+
+This declares `api_ack_d1` through `worker_ack_d8`, and the route selects the
+component on each `acknowledge`. See
+[nested repetition](../spec/caveat-nested-repetition-0.1.md).
 
 ## Read the session clock
 
@@ -482,6 +529,35 @@ The withdrawal is recorded with its reason. Current values, and any later read
 of the reading, carry a `withdrawn` caveat. The decision keeps what it was made
 on, and reopens only because a rule says so. See
 [withdrawal](../spec/caveat-withdrawal-0.1.md).
+
+A reading found wrong after later readings arrived is no longer the latest.
+Name it by its position instead, counted from 1, and ask whether the decision
+in force rested on it (from 1.1.0):
+
+```caveat
+event retract i min 1 max 64;
+on retract withdraw reading(checks, i) because recheck;
+on retract when committed(merge) and not reopened(merge)
+    and in_basis(merge, reading(checks, i))
+    reopen merge because reading(checks, i);
+```
+
+`reading(STREAM, N)` names the stream's Nth reading wherever `latest(STREAM)`
+does in `withdraw`, `qualify`, `unqualify` and `reopen … because`, and in
+`observed`, `withdrawn` and `carries`. An N that names no reading the stream
+holds refuses an effect as `expression` and makes a predicate false.
+`carries(latest(STREAM), C)` asks whether the current reading carries `C`,
+for example in a guard that refuses to flag a reading twice.
+`in_basis(DECISION, E)` is true when the decision's current revision rests on
+`E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
+asks the same of the Kth revision. A later reading is never in an earlier
+decision's basis. See [reading index](../spec/caveat-reading-index-0.1.md) and
+[in basis](../spec/caveat-in-basis-0.1.md).
+
+When a reading's source said something in words, such as a version range,
+keep the words with the number: `sample node_min = minimum supports compatible
+noting range;`, where `range` is an `id` parameter. Decisions still compare the
+number. See [reading notes](../spec/caveat-reading-notes-0.1.md).
 
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:

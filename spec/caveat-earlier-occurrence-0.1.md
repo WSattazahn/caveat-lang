@@ -1,6 +1,6 @@
-# CAVEAT Earlier Occurrence 0.1 (draft) — naming an earlier occurrence of renewable evidence
+# CAVEAT Earlier Occurrence 0.1 — naming an earlier occurrence of renewable evidence
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 ([#238](https://github.com/WSattazahn/caveat-lang/issues/238)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1 ([#238](https://github.com/WSattazahn/caveat-lang/issues/238)). It adds to
 [Renewal 0.1](caveat-renewal-0.1.md),
 [Withdrawal 0.1](caveat-withdrawal-0.1.md),
 [Late Qualification 0.1](caveat-late-qualification-0.1.md) and

@@ -255,6 +255,8 @@ export interface RuntimeSessionClass {
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
   check_with?(source: string, unused: boolean): string;
+  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "save"?: string}`. */
+  check_options?(source: string, options: string): string;
   interface?(source: string): string;
   /** True once the instance has failed to allocate memory; safe to read after a trap. */
   out_of_memory?(): boolean;
@@ -354,6 +356,18 @@ export interface InterfaceReadings {
 export interface CheckOptions {
   /** Also report C007 `unused-declaration`: a claim, evidence, caveat or state nothing else names. */
   unused?: boolean;
+  /**
+   * Also report C008 `record-reads-late-caveat`: a rule, procedure or binding
+   * that reads a decision's record in a program that qualifies evidence late
+   * (spec/caveat-caveat-sources-0.1.md, D015).
+   */
+  records?: boolean;
+  /**
+   * With `records`, a save's text: also report C009 `save-lacks-late-caveat`
+   * for each value it holds without a late caveat its evidence carries.
+   * Throws `CaveatError("restore")` when it does not restore.
+   */
+  save?: string;
 }
 
 export interface CheckReport {
@@ -563,6 +577,8 @@ export interface ReadingOccurrence {
   /** Relation and claim are both absent for a neutral reading, otherwise both present. */
   relation?: 'supports' | 'opposes';
   claim?: string;
+  /** The text a `sample … noting` kept with the reading; absent otherwise. */
+  note?: string;
 }
 
 export interface ReadingStream {
@@ -699,6 +715,8 @@ export interface EffectSample {
   /** Relation and target are both absent for a neutral sample, otherwise both present. */
   relation?: 'supports' | 'opposes';
   target?: string;
+  /** The text a `sample … noting` kept with the reading; absent otherwise. */
+  note?: string;
 }
 
 export interface EffectReveal {

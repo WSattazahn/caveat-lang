@@ -6,7 +6,8 @@
 // Sources 0.1): a value read through a record reads the evidence the record
 // lists live, so it gains a later `qualify` of that evidence; it too only adds
 // caveats (experiments/caveat-sources-sweep/). Windowed programs either
-// changes are absent: their sweep compares outcomes only, which match.
+// changes are absent: their sweep compares outcomes only, which match. D020
+// changes no gated program's save.
 export const reviewedSaveChanges = new Set([
   'experiments/agent-adoption/v1/evaluator/gold-tracker.cav',
   'experiments/agent-authoring/rc7/trial01/final/task.cav',

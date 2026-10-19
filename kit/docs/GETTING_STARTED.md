@@ -1,7 +1,7 @@
 # Getting started with CAVEAT Language
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.0.0`**.
+Package: **`caveat-lang@1.1.0`**.
 <!-- /caveat-package:identity -->
 
 This guide starts from an empty directory and ends with a program that makes a
@@ -24,7 +24,7 @@ package version this guide accompanies:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.0.0
+npm install caveat-lang@1.1.0
 ```
 <!-- /caveat-package:install -->
 
@@ -244,7 +244,10 @@ binding's explanation (`binding_explanations`), every value's lineage
 (`qualified_values`), each decision's basis (`commitment_bases`), relations
 between evidence and claims (`relations`) and the session clock (`elapsed`).
 `session.save()` returns text you can restore later with
-`runtime.restore(source, saved)`.
+`runtime.restore(source, saved)`. For a short session,
+`session.save({ compact: true })` returns a much smaller save, the session's
+accepted events, and `runtime.restore` takes it the same way; use it rather
+than storing events yourself.
 
 To ask why without writing a script, list the events in a file, one JSON object
 per line, and let `caveat explain` send them. Save this as `events.jsonl`:

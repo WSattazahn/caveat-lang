@@ -363,6 +363,14 @@ impl ReactiveSession {
                 }
                 return;
             }
+            Effect::Qualify {
+                evidence,
+                latest: true,
+                ..
+            } => match self.latest_target(evidence) {
+                Some(name) => CollectorOwner::Record(name),
+                None => return,
+            },
             Effect::Reveal { evidence, .. }
             | Effect::Observe { evidence }
             | Effect::Renew { evidence }

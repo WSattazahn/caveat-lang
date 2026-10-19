@@ -7,14 +7,14 @@ tracks evidence through computations, preserves the grounds of recorded
 decisions, and supports reconsideration under authored policies when evidence
 changes.
 
-The published release is **1.0.1**, a patch release of 1.0.0, the first stable
-release. See the [1.0.1 release record](docs/releases/v1.0.1.md) for what it
-fixes and the [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
+The published release is **1.1.0**, the first minor release of 1.x. See the
+[1.1.0 release record](docs/releases/v1.1.0.md) for what it adds and the
+[1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
 
-> npm publication verified 2026-10-18T13:49:14.329Z: exact **caveat-lang@1.0.1**,
-> tested Linux artifact SHA256 `326096b337ef87a567fea0243ea2afc8f3a7ecfa015638c3fbe949d59ea2d03c`.
-> Published by `publish-npm.yml` from tag `v1.0.1` with an npm provenance attestation. After the owner's channel update, both `latest` and `next` were verified at 1.0.1 on 2026-10-18.
-> [Publication record](docs/releases/v1.0.1-npm-publication.json).
+> npm publication verified 2026-10-19T16:58:54.313Z: exact **caveat-lang@1.1.0**,
+> tested Linux artifact SHA256 `f83ff39ed18c473f67c4d1ad2adb6ddaf1a9b6fec9e0a71ae9c1ffe4b71be41d`.
+> Published by `publish-npm.yml` from tag `v1.1.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.1.0 on 2026-10-19.
+> [Publication record](docs/releases/v1.1.0-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -22,12 +22,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published release, **1.0.1**, in an empty directory with Node 20 or
+Try the published release, **1.1.0**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.0.1
+npm install caveat-lang@1.1.0
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -45,6 +45,28 @@ record was kept after it was taken back, or missed by a later `qualify`
 export, MCP tool or refusal code, and restores every 1.0.0 save. The
 [1.0.1 verified publication record](docs/releases/v1.0.1.md) identifies the
 exact tested npm artifact and says which programs can see a difference.
+
+1.0.2 fixes two cases where 1.0.1's fixes met a window or limit: departure
+was not told of evidence a late `qualify` added to a stored record (D016), and
+a caveat read through a stored record after its evidence departed could no
+longer be taken back (D018). It adds nothing either, and restores every 1.0.0 and
+1.0.1 save. The [1.0.2 verified publication record](docs/releases/v1.0.2.md)
+says which programs can see a difference.
+
+1.0.3 fixes a case where 1.0.1's D014 fix let a caveat that a plain `qualify`
+put on a guard's stored record survive its take-back (D020). It adds nothing
+either, and restores every 1.0.0, 1.0.1 and 1.0.2 save. The
+[1.0.3 verified publication record](docs/releases/v1.0.3.md) says which
+programs can see a difference.
+
+1.1.0 adds language forms (`citing`, `retaining … because`, neutral and noted
+samples, `reading(STREAM, N)`, `in_basis` and more), a compact save format,
+opt-in `caveat check` warnings, a `serve` option and kit helpers, and one
+refusal code. It changes one behavior to keep Late Qualification 0.1's promise:
+a later `qualify` now reaches a value read through a decision (D015). Every
+1.0.x save restores as it was recorded. The
+[1.1.0 verified publication record](docs/releases/v1.1.0.md) lists each
+addition and says how to find the programs the change reaches.
 
 The [1.0.0 verified publication record](docs/releases/v1.0.0.md) identifies
 the exact tested npm artifact. 1.0.0 makes the
@@ -83,7 +105,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With 1.0.1 installed, use `npx --no-install caveat-lang doctor` to check it and
+With 1.1.0 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -257,7 +279,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@1.0.1", "mcp"]
+      "args": ["-y", "caveat-lang@1.1.0", "mcp"]
     }
   }
 }

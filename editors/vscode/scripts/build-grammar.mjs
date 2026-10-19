@@ -21,14 +21,14 @@ const declarations = ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 
 const control = ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'];
 const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'];
 const modifiers = ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind',
-  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'irreversible', 'forecloses'];
+  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'noting', 'irreversible', 'forecloses'];
 // Epistemic predicates, expression functions and callable primitives: names
 // that are functions only where a call follows.
 export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified',
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a

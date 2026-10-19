@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.0.0`**.
+Package: **`caveat-lang@1.1.0`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -25,7 +25,7 @@ run its installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.0.0
+npm install caveat-lang@1.1.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -192,7 +192,9 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind.
+  left behind. `--records` also reports each read of a decision's record that
+  a later `qualify` reaches from 1.1, and `--records --save SAVE` the values
+  that save holds without such a caveat, as a 1.0.x runtime saved them.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
@@ -253,6 +255,14 @@ session.close();
 resumed.close();
 ```
 
+To store a short session, call `session.save({ compact: true })` instead of
+keeping your own list of events. While the session's accepted events fit in
+4,096 bytes and are smaller than the state save, it returns them as a
+[replay save](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-replay-save-0.1.md);
+otherwise it returns the state save. `runtime.restore` takes either, and
+`caveat serve` answers `{"op":"save","compact":true}` the same way. A runtime
+before 1.1.0 cannot restore a replay save.
+
 In the repository, import from `./kit/lib/node.mjs` instead; its default runtime
 is the build in `dist/pkg-reactive`.
 
@@ -262,7 +272,12 @@ It runs the same event and returns `{outcome: "accepted", view}`, where `view`
 is what `session.view()` then returns, or the same rejected outcome as
 `dispatch`. The runtime does not build the snapshot for it. Its payload checks
 and failures are `dispatch`'s, and after the same events either way the session
-is the same.
+is the same. Read the view it returns: calling `session.view()` after it builds
+the same view again.
+
+A runtime keeps the last few programs it loaded, so opening or restoring the
+same source again reuses the loaded program instead of parsing and checking it
+again. The session is the same either way.
 
 [View 0.2](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-view-0.2.md)
 is available beside it. `session.view({ schema: '0.2' })` lists each

@@ -1,7 +1,7 @@
 # Start an agent integration
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.0.0`**.
+Package: **`caveat-lang@1.1.0`**.
 <!-- /caveat-package:identity -->
 
 Use Caveat when your application needs to keep a decision's evidence, carry its
@@ -18,7 +18,7 @@ place of the npm package specifier.
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.0.0
+npm install caveat-lang@1.1.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -140,7 +140,8 @@ const save = session.save({ compact: true });                      // small: a s
 
 - `session.dispatchView(event, payload)` returns the view and does not build
   the full snapshot that `dispatch` returns. Use `dispatch` when the host needs
-  the snapshot's graph.
+  the snapshot's graph. Keep the view it returns: calling `session.view()`
+  afterwards builds the same view a second time.
 - `session.save({ compact: true })` saves a short session as its accepted
   events, and `runtime.restore` takes it like any save. Do not write a replay
   log of your own.

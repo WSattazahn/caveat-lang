@@ -7,6 +7,7 @@ use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::{Arc, OnceLock};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -101,6 +102,92 @@ pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 /// spec/caveat-earlier-occurrence-0.1.md.
 pub const AT_OCCURRENCE: &str = "occurrence:";
 
+/// The prefix of a predicate kind asked of `latest(NAME)`; the host resolves
+/// the name to its current reading or occurrence. See
+/// spec/caveat-latest-0.1.md.
+pub const AT_LATEST: &str = "latest:";
+
+/// The predicate kind asked of `revision(SERIES, INDEX)`, kept whole in the
+/// node; the host receives the target as `SERIES#INDEX`. See
+/// spec/caveat-past-revisions-0.1.md.
+pub const AT_REVISION: &str = "revision:rests_on_withdrawn";
+
+/// The predicate kind of `in_basis(…)`. The host receives the target as
+/// `SERIES#K|KIND|NAME#N`, with `K` empty for the current revision, `KIND` one
+/// of `named`, `latest` or `at`, and `N` empty unless `KIND` is `at`. In
+/// validation it receives `SERIES|R|KIND|NAME`, `R` being `revision` or empty.
+/// See spec/caveat-in-basis-0.1.md.
+pub const IN_BASIS: &str = "in_basis";
+
+/// What `in_basis(…)` asks about: a revision of a decision series and a
+/// reference to evidence. See spec/caveat-in-basis-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InBasis {
+    series: String,
+    /// `revision(SERIES, K)`: the first child is K. Otherwise the current
+    /// revision.
+    revision: bool,
+    kind: BasisReference,
+    name: String,
+}
+
+/// `E`, `latest(NAME)`, or `occurrence(E, N)` / `reading(STREAM, N)`, whose
+/// index is the last child.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BasisReference {
+    Named,
+    Latest,
+    /// `occurrence` or `reading`, as written.
+    At(&'static str),
+}
+
+impl BasisReference {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Named => "named",
+            Self::Latest => "latest",
+            Self::At(_) => "at",
+        }
+    }
+}
+
+impl InBasis {
+    /// The call a 1.0 program meant by `in_basis(…)` when it defines a source
+    /// function of that name: the same words, read as ordinary arguments.
+    fn as_call(&self, children: &[Expr]) -> Result<Node, String> {
+        let mut children = children.iter().cloned();
+        let mut next = || children.next().ok_or("in_basis lost an index");
+        let variable = |name: &str| Expr::new(Node::Variable(name.to_string()));
+        let decision = if self.revision {
+            Expr::new(Node::UserCall(
+                "revision".into(),
+                vec![variable(&self.series)?, next()?],
+            ))?
+        } else {
+            variable(&self.series)?
+        };
+        let reference = match self.kind {
+            BasisReference::Named => variable(&self.name)?,
+            BasisReference::Latest => Expr::new(Node::Latest(self.name.clone()))?,
+            BasisReference::At(word) => Expr::new(Node::UserCall(
+                word.into(),
+                vec![variable(&self.name)?, next()?],
+            ))?,
+        };
+        Ok(Node::UserCall(IN_BASIS.into(), vec![decision, reference]))
+    }
+}
+
+/// The kind the host receives for a selector node: an occurrence predicate
+/// gains its prefix, and a revision predicate already carries its own.
+fn selector_kind(kind: &str) -> String {
+    if kind == AT_REVISION {
+        kind.to_string()
+    } else {
+        format!("{AT_OCCURRENCE}{kind}")
+    }
+}
+
 pub const MAX_PROVENANCE_BYTES: usize = 65_536;
 pub const MAX_TEXT_BYTES: usize = 65_536;
 
@@ -109,8 +196,8 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Provenance {
-    pub evidence: BTreeSet<String>,
-    pub caveats: BTreeSet<String>,
+    pub evidence: NameSet,
+    pub caveats: NameSet,
     /// Departed records of each windowed history, one marker per history in
     /// place of their names. Absent unless a record has departed. See
     /// spec/caveat-lineage-compaction-0.1.md.
@@ -121,13 +208,159 @@ pub struct Provenance {
     /// is not here. Only a program with a window keeps it, since only
     /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub inherited: BTreeSet<String>,
+    pub inherited: NameSet,
     /// The take-back caveats among `caveats` that this value holds through a
     /// record rather than a live qualification, so no take-back removes them.
     /// Only a program that takes back keeps any; see
     /// spec/caveat-take-back-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub kept: BTreeSet<String>,
+    pub kept: NameSet,
+}
+
+/// A provenance's set of names, shared between the values that hold it until
+/// one of them changes it: a value copies its inputs' lineage far more often
+/// than it adds to it. Reads see the set itself; a write copies it first when
+/// another value still shares it. An empty set holds nothing.
+#[derive(Debug, Clone, Default)]
+pub struct NameSet(Option<Arc<Names>>);
+
+/// The names and, once asked, their total bytes.
+#[derive(Debug, Default)]
+struct Names {
+    names: BTreeSet<String>,
+    bytes: OnceLock<usize>,
+}
+
+impl Clone for Names {
+    fn clone(&self) -> Self {
+        Self {
+            names: self.names.clone(),
+            bytes: self.bytes.clone(),
+        }
+    }
+}
+
+static NO_NAMES: BTreeSet<String> = BTreeSet::new();
+
+impl NameSet {
+    /// Whether both hold the very same set, so neither can add to the other.
+    fn shares(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Some(left), Some(right)) => Arc::ptr_eq(left, right),
+            _ => false,
+        }
+    }
+
+    /// The names this set would add to `ours`.
+    fn added_to<'a>(
+        &'a self,
+        ours: &'a Self,
+    ) -> std::collections::btree_set::Difference<'a, String> {
+        if self.is_empty() || self.shares(ours) {
+            NO_NAMES.difference(&NO_NAMES)
+        } else {
+            self.difference(ours)
+        }
+    }
+
+    /// The names' total bytes, counted once per set.
+    fn bytes(&self) -> usize {
+        self.0.as_ref().map_or(0, |set| {
+            *set.bytes
+                .get_or_init(|| set.names.iter().map(String::len).sum())
+        })
+    }
+
+    /// Add every name of `other`, sharing its set when this one is empty and
+    /// copying nothing when it adds no name.
+    fn absorb(&mut self, other: &Self) {
+        if other.is_empty() || self.shares(other) {
+        } else if self.is_empty() {
+            *self = other.clone();
+        } else if !other.is_subset(self) {
+            self.extend(other.iter().cloned());
+        }
+    }
+}
+
+impl PartialEq for NameSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.shares(other) || **self == **other
+    }
+}
+
+impl Eq for NameSet {}
+
+impl PartialEq<BTreeSet<String>> for NameSet {
+    fn eq(&self, other: &BTreeSet<String>) -> bool {
+        **self == *other
+    }
+}
+
+impl std::ops::Deref for NameSet {
+    type Target = BTreeSet<String>;
+
+    fn deref(&self) -> &BTreeSet<String> {
+        self.0.as_ref().map_or(&NO_NAMES, |set| &set.names)
+    }
+}
+
+impl std::ops::DerefMut for NameSet {
+    fn deref_mut(&mut self) -> &mut BTreeSet<String> {
+        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
+        set.bytes = OnceLock::new();
+        &mut set.names
+    }
+}
+
+impl serde::Serialize for NameSet {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        (**self).serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for NameSet {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        BTreeSet::deserialize(deserializer).map(Self::from)
+    }
+}
+
+impl IntoIterator for NameSet {
+    type Item = String;
+    type IntoIter = std::collections::btree_set::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0
+            .map(|set| Arc::unwrap_or_clone(set).names)
+            .unwrap_or_default()
+            .into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a NameSet {
+    type Item = &'a String;
+    type IntoIter = std::collections::btree_set::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (**self).iter()
+    }
+}
+
+impl From<BTreeSet<String>> for NameSet {
+    fn from(names: BTreeSet<String>) -> Self {
+        Self((!names.is_empty()).then(|| {
+            Arc::new(Names {
+                names,
+                bytes: OnceLock::new(),
+            })
+        }))
+    }
+}
+
+impl FromIterator<String> for NameSet {
+    fn from_iter<I: IntoIterator<Item = String>>(names: I) -> Self {
+        Self::from(names.into_iter().collect::<BTreeSet<_>>())
+    }
 }
 
 /// The departed records of one history that a provenance named: at least
@@ -327,16 +560,10 @@ impl Provenance {
             .and_then(|count| count.checked_add(self.departed.len()))
             .ok_or_else(provenance_identifier_error)?;
         check_provenance_size(count, 0, 0)?;
-        let mut bytes = 0;
-        for name in self
-            .evidence
-            .iter()
-            .chain(&self.caveats)
-            .chain(self.departed.keys())
-        {
-            check_provenance_size(count, bytes, name.len())?;
-            bytes += name.len();
-        }
+        let bytes = self.evidence.bytes()
+            + self.caveats.bytes()
+            + self.departed.keys().map(String::len).sum::<usize>();
+        check_provenance_size(count, 0, bytes)?;
         Ok((count, bytes))
     }
 
@@ -360,20 +587,26 @@ impl Provenance {
     pub fn merge(&mut self, other: &Self) -> Result<(), String> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
-        for name in other
-            .evidence
-            .difference(&self.evidence)
-            .chain(other.caveats.difference(&self.caveats))
-            .chain(
-                other
-                    .departed
-                    .keys()
-                    .filter(|history| !self.departed.contains_key(*history)),
-            )
-        {
+        let mut check = |name: &String| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
+            Ok::<(), String>(())
+        };
+        let mut evidence = false;
+        for name in other.evidence.added_to(&self.evidence) {
+            check(name)?;
+            evidence = true;
+        }
+        let mut caveats = false;
+        for name in other.caveats.added_to(&self.caveats) {
+            check(name)?;
+            caveats = true;
+        }
+        for history in other.departed.keys() {
+            if !self.departed.contains_key(history) {
+                check(history)?;
+            }
         }
         if !self.inherited.is_empty() || !other.inherited.is_empty() {
             let inherited = self
@@ -387,9 +620,13 @@ impl Provenance {
                 .collect();
             self.inherited = inherited;
         }
-        self.evidence.extend(other.evidence.iter().cloned());
-        self.caveats.extend(other.caveats.iter().cloned());
-        self.kept.extend(other.kept.iter().cloned());
+        if evidence {
+            self.evidence.absorb(&other.evidence);
+        }
+        if caveats {
+            self.caveats.absorb(&other.caveats);
+        }
+        self.kept.absorb(&other.kept);
         for (history, marker) in &other.departed {
             self.departed
                 .entry(history.clone())
@@ -489,8 +726,14 @@ enum Node {
     Predicate(String, String),
     /// `observed`, `withdrawn` or `carries` asked of `occurrence(EVIDENCE,
     /// INDEX)`: the predicate's kind, the renewable evidence and the index.
-    /// See spec/caveat-earlier-occurrence-0.1.md.
+    /// See spec/caveat-earlier-occurrence-0.1.md. Also
+    /// `rests_on_withdrawn(revision(SERIES, INDEX))`, with kind
+    /// [`AT_REVISION`] and the series in place of the evidence. See
+    /// spec/caveat-past-revisions-0.1.md.
     AtOccurrence(String, String, Box<Expr>),
+    /// `in_basis(SERIES | revision(SERIES, K), REFERENCE)`: its children are
+    /// K, if any, then the reference's index, if any.
+    InBasis(Box<InBasis>, Vec<Expr>),
     Latest(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
@@ -692,6 +935,11 @@ impl Expr {
                 visit(body);
             }
             Node::Qualified(value, _, _) => visit(value),
+            Node::InBasis(_, children) => {
+                for child in children {
+                    visit(child);
+                }
+            }
             _ => {}
         }
         match &self.node {
@@ -706,6 +954,7 @@ impl Expr {
             Node::Predicate(kind, name)
             | Node::Fold(kind, _, name)
             | Node::AtOccurrence(kind, name, _) => bytes += kind.len() + name.len(),
+            Node::InBasis(basis, _) => bytes += basis.series.len() + basis.name.len(),
             Node::Qualified(_, evidence, caveats) => {
                 bytes += evidence.len() + caveats.iter().map(String::len).sum::<usize>();
             }
@@ -744,6 +993,12 @@ impl Expr {
             Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => {
                 reads.graph = true;
                 index.collect_reads(reads);
+            }
+            Node::InBasis(_, children) => {
+                reads.graph = true;
+                for child in children {
+                    child.collect_reads(reads);
+                }
             }
             Node::Fold(_, initial, _) => {
                 reads.graph = true;
@@ -812,6 +1067,13 @@ impl Expr {
                 sources.insert(name.clone());
                 index.collect_sources(sources);
             }
+            Node::InBasis(basis, children) => {
+                sources.insert(basis.series.clone());
+                sources.insert(basis.name.clone());
+                for child in children {
+                    child.collect_sources(sources);
+                }
+            }
             Node::Fold(history, initial, _) => {
                 sources.insert(history.clone());
                 initial.collect_sources(sources);
@@ -850,6 +1112,77 @@ impl Expr {
         }
     }
 
+    /// Every record this expression reads, as (form, name), taken or not:
+    /// `committed(D)` and `reopened(D)`, and `latest`, `history_count`,
+    /// `history_at` and a fold of a history. Whether the name is a decision
+    /// is for the caller. Used by `caveat check`'s C008
+    /// (spec/caveat-check-0.1.md). Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_record_reads(&self, records: &mut BTreeSet<(&'static str, String)>) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
+            }
+            Node::Predicate(kind, name) => match kind.as_str() {
+                "committed" => {
+                    records.insert(("committed", name.clone()));
+                }
+                "reopened" => {
+                    records.insert(("reopened", name.clone()));
+                }
+                _ => {}
+            },
+            Node::Latest(name) => {
+                records.insert(("latest", name.clone()));
+            }
+            Node::HistoryCount(name) => {
+                records.insert(("history_count", name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                records.insert(("history_at", name.clone()));
+                index.collect_record_reads(records);
+            }
+            Node::AtOccurrence(_, _, index) => index.collect_record_reads(records),
+            // New in 1.1, so no 1.0.x runtime read a record through it.
+            Node::InBasis(_, children) => {
+                for child in children {
+                    child.collect_record_reads(records);
+                }
+            }
+            Node::Fold(history, initial, _) => {
+                records.insert(("fold", history.clone()));
+                initial.collect_record_reads(records);
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                records.insert(("fold", history.clone()));
+                initial.collect_record_reads(records);
+                body.collect_record_reads(records);
+            }
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => {
+                value.collect_record_reads(records)
+            }
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_record_reads(records);
+                right.collect_record_reads(records);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_record_reads(records);
+                yes.collect_record_reads(records);
+                no.collect_record_reads(records);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_record_reads(records);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_record_reads(records);
+                }
+                body.collect_record_reads(records);
+            }
+        }
+    }
+
     /// Every history this expression names: reading streams and decision
     /// series read by `latest`, `history_count`, `history_at`, a fold,
     /// `has_sample` or `withdrawn(latest(...))`, taken or not. Used by
@@ -872,6 +1205,12 @@ impl Expr {
                 index.collect_histories(histories);
             }
             Node::AtOccurrence(_, _, index) => index.collect_histories(histories),
+            Node::InBasis(basis, children) => {
+                histories.insert(basis.series.clone());
+                for child in children {
+                    child.collect_histories(histories);
+                }
+            }
             Node::Fold(_, initial, name) => {
                 histories.insert(name.clone());
                 initial.collect_histories(histories);
@@ -938,7 +1277,7 @@ impl Expr {
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
-                let qualified = ["carries:", "has_caveat:"]
+                let qualified = ["latest:carries:", "carries:", "has_caveat:"]
                     .into_iter()
                     .find_map(|prefix| kind.strip_prefix(prefix).map(|caveat| (prefix, caveat)));
                 match qualified {
@@ -956,6 +1295,17 @@ impl Expr {
                 },
                 rename(evidence),
                 child(index),
+            ),
+            Node::InBasis(basis, children) => Node::InBasis(
+                Box::new(InBasis {
+                    series: rename(&basis.series),
+                    name: rename(&basis.name),
+                    ..(**basis).clone()
+                }),
+                children
+                    .iter()
+                    .map(|expression| expression.rename_symbols(names))
+                    .collect(),
             ),
             Node::Qualified(value, evidence, caveats) => Node::Qualified(
                 child(value),
@@ -1061,6 +1411,11 @@ impl Expr {
             Node::AtOccurrence(kind, evidence, index) => {
                 kind.contains(word) || evidence.contains(word) || child(index)
             }
+            Node::InBasis(basis, children) => {
+                basis.series.contains(word)
+                    || basis.name.contains(word)
+                    || children.iter().any(child)
+            }
             Node::Fold(history, initial, reducer) => {
                 history.contains(word) || child(initial) || reducer.contains(word)
             }
@@ -1111,7 +1466,9 @@ impl Expr {
                 yes.collect_caveat_reads(examined, extras);
                 no.collect_caveat_reads(examined, extras);
             }
-            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+            Node::Function(_, arguments)
+            | Node::UserCall(_, arguments)
+            | Node::InBasis(_, arguments) => {
                 for argument in arguments {
                     argument.collect_caveat_reads(examined, extras);
                 }
@@ -1151,7 +1508,9 @@ impl Expr {
             Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
                 child.qualified_unconditionally(evidence)
             }
-            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+            Node::Function(_, arguments)
+            | Node::UserCall(_, arguments)
+            | Node::InBasis(_, arguments) => {
                 for argument in arguments {
                     argument.qualified_unconditionally(evidence);
                 }
@@ -1187,7 +1546,9 @@ impl Expr {
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
             Node::Require(condition, value) => condition.depth.max(value.depth) + 1,
             Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
-            Node::Function(_, children) | Node::UserCall(_, children) => {
+            Node::Function(_, children)
+            | Node::UserCall(_, children)
+            | Node::InBasis(_, children) => {
                 children.iter().map(|child| child.depth).max().unwrap_or(0) + 1
             }
             Node::ExpandedCall(arguments, body) => {
@@ -1247,10 +1608,28 @@ impl Expr {
                 Ok(ValueType::Bool)
             }
             Node::AtOccurrence(kind, evidence, index) => {
-                predicate(&format!("{AT_OCCURRENCE}{kind}"), evidence)?;
+                predicate(&selector_kind(kind), evidence)?;
                 index
                     .validate_calls(numeric, predicate, user_call)?
                     .require(ValueType::Number)?;
+                Ok(ValueType::Bool)
+            }
+            Node::InBasis(basis, children) => {
+                predicate(
+                    IN_BASIS,
+                    &format!(
+                        "{}|{}|{}|{}",
+                        basis.series,
+                        if basis.revision { "revision" } else { "" },
+                        basis.kind.name(),
+                        basis.name
+                    ),
+                )?;
+                for child in children {
+                    child
+                        .validate_calls(numeric, predicate, user_call)?
+                        .require(ValueType::Number)?;
+                }
                 Ok(ValueType::Bool)
             }
             Node::Latest(name) => {
@@ -1536,8 +1915,43 @@ impl Expr {
                     .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 Ok(Value::Bool(predicate(
-                    &format!("{AT_OCCURRENCE}{kind}"),
+                    &selector_kind(kind),
                     &format!("{evidence}#{index}"),
+                )?))
+            }
+            // Every index is evaluated, whatever it names. The host resolves
+            // the revision and the reference, or answers false.
+            Node::InBasis(basis, children) => {
+                let mut indexes = Vec::new();
+                for child in children {
+                    indexes.push(
+                        child
+                            .evaluate_values(
+                                numbers,
+                                predicate,
+                                qualify,
+                                history,
+                                identifiers,
+                                remaining,
+                            )?
+                            .number()?,
+                    );
+                }
+                let mut indexes = indexes.into_iter();
+                let revision = if basis.revision {
+                    indexes.next().map(|k| k.to_string()).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let at = indexes.next().map(|n| n.to_string()).unwrap_or_default();
+                Ok(Value::Bool(predicate(
+                    IN_BASIS,
+                    &format!(
+                        "{}#{revision}|{}|{}#{at}",
+                        basis.series,
+                        basis.kind.name(),
+                        basis.name
+                    ),
                 )?))
             }
             Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
@@ -2050,6 +2464,67 @@ impl Parser {
         Ok(left)
     }
 
+    /// `in_basis(` read, the rest of the form.
+    fn in_basis(&mut self, nesting: usize) -> Result<Node, String> {
+        let opens = |parser: &Self, word: &str| {
+            matches!(parser.peek(), Some(TokenKind::Identifier(found)) if found == word)
+                && parser
+                    .tokens
+                    .get(parser.cursor + 1)
+                    .map(|token| &token.kind)
+                    == Some(&TokenKind::LeftParen)
+        };
+        let mut children = Vec::new();
+        let revision = opens(self, "revision");
+        let series = if revision {
+            self.cursor += 2;
+            let series = self.graph_identifier("revision series")?;
+            self.expect(TokenKind::Comma, "',' after the revision's series")?;
+            children.push(self.expression(0, nesting)?);
+            self.expect(TokenKind::RightParen, "')' after the revision index")?;
+            series
+        } else {
+            self.graph_identifier("in_basis decision")?
+        };
+        self.expect(
+            TokenKind::Comma,
+            "',' before the evidence in_basis asks about",
+        )?;
+        let (kind, evidence) = if opens(self, "latest") {
+            self.cursor += 2;
+            let evidence = self.graph_identifier("latest history")?;
+            self.expect(TokenKind::RightParen, "')' after history identifier")?;
+            (BasisReference::Latest, evidence)
+        } else if opens(self, "occurrence") || opens(self, "reading") {
+            let word = if opens(self, "reading") {
+                "reading"
+            } else {
+                "occurrence"
+            };
+            self.cursor += 2;
+            let evidence = self.graph_identifier("occurrence evidence")?;
+            self.expect(TokenKind::Comma, "',' after the occurrence's evidence")?;
+            children.push(self.expression(0, nesting)?);
+            self.expect(TokenKind::RightParen, "')' after the occurrence index")?;
+            (BasisReference::At(word), evidence)
+        } else {
+            (
+                BasisReference::Named,
+                self.graph_identifier("in_basis evidence")?,
+            )
+        };
+        self.expect(TokenKind::RightParen, "')' after in_basis")?;
+        Ok(Node::InBasis(
+            Box::new(InBasis {
+                series,
+                revision,
+                kind,
+                name: evidence,
+            }),
+            children,
+        ))
+    }
+
     fn call(&mut self, name: String, nesting: usize) -> Result<Node, String> {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
@@ -2113,11 +2588,24 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
         }
+        // `in_basis(SERIES | revision(SERIES, K), E | latest(NAME) |
+        // occurrence(E, N) | reading(STREAM, N))`: whether a revision's
+        // grounds hold the evidence. See spec/caveat-in-basis-0.1.md.
+        if name == IN_BASIS {
+            // A 1.0 program may define `fn in_basis` and call it with any
+            // arguments: what does not parse as the form is its call.
+            let start = self.cursor;
+            match self.in_basis(nesting) {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         // `observed`, `withdrawn` or `carries` of `occurrence(EVIDENCE, INDEX)`:
         // the predicate asked of a held occurrence of renewable evidence. See
         // spec/caveat-earlier-occurrence-0.1.md.
         if matches!(name.as_str(), "observed" | "withdrawn" | "carries")
-            && self.peek() == Some(&TokenKind::Identifier("occurrence".into()))
+            && matches!(self.peek(), Some(TokenKind::Identifier(selector)) if selector == "occurrence" || selector == "reading")
             && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
                 == Some(&TokenKind::LeftParen)
         {
@@ -2135,9 +2623,46 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after the predicate target")?;
             return Ok(Node::AtOccurrence(kind, evidence, Box::new(index)));
         }
+        // `rests_on_withdrawn(revision(SERIES, INDEX))`: whether a revision
+        // of a decision series, current or past, rests on withdrawn evidence.
+        // See spec/caveat-past-revisions-0.1.md.
+        if name == "rests_on_withdrawn"
+            && self.peek() == Some(&TokenKind::Identifier("revision".into()))
+            && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                == Some(&TokenKind::LeftParen)
+        {
+            self.cursor += 2;
+            let series = self.graph_identifier("revision series")?;
+            self.expect(TokenKind::Comma, "',' after the revision's series")?;
+            let index = self.expression(0, nesting)?;
+            self.expect(TokenKind::RightParen, "')' after the revision index")?;
+            self.expect(TokenKind::RightParen, "')' after the predicate target")?;
+            return Ok(Node::AtOccurrence(
+                AT_REVISION.to_string(),
+                series,
+                Box::new(index),
+            ));
+        }
         // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
         // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
         if name == "carries" {
+            // `carries(latest(NAME), CAVEAT)`: asked of the current reading
+            // or occurrence. See spec/caveat-latest-0.1.md.
+            if self.peek() == Some(&TokenKind::Identifier("latest".into()))
+                && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                    == Some(&TokenKind::LeftParen)
+            {
+                self.cursor += 2;
+                let target = self.graph_identifier("carries latest name")?;
+                self.expect(TokenKind::RightParen, "')' after the latest name")?;
+                self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+                let caveat = self.graph_identifier("carries caveat")?;
+                self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
+                return Ok(Node::Predicate(
+                    format!("{AT_LATEST}carries:{caveat}"),
+                    target,
+                ));
+            }
             let evidence = self.graph_identifier("carries evidence")?;
             self.expect(TokenKind::Comma, "',' before the carried caveat")?;
             let caveat = self.graph_identifier("carries caveat")?;
@@ -2145,6 +2670,12 @@ impl Parser {
             return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
         }
         if name == "has_caveat" {
+            if self.peek() == Some(&TokenKind::Identifier("latest".into())) {
+                return Err(format!(
+                    "has_caveat asks about a state; ask carries(latest(NAME), CAVEAT) of a reading at byte {}",
+                    self.offset()
+                ));
+            }
             let state = self.graph_identifier("has_caveat state")?;
             self.expect(TokenKind::Comma, "',' before the state's caveat")?;
             let caveat = self.graph_identifier("has_caveat caveat")?;
@@ -2419,6 +2950,11 @@ fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
         | Node::Qualified(child, _, _)
         | Node::HistoryAt(_, child)
         | Node::AtOccurrence(_, _, child) => collect_calls(child, calls),
+        Node::InBasis(_, children) => {
+            for child in children {
+                collect_calls(child, calls);
+            }
+        }
         Node::Fold(_, initial, reducer) => {
             calls.push(reducer);
             collect_calls(initial, calls);
@@ -2590,6 +3126,23 @@ impl Expander<'_> {
                     kind.clone(),
                     evidence.clone(),
                     Box::new(self.walk(index, None)?),
+                )
+            }
+            // A 1.0 program may define `fn in_basis`; its calls keep their
+            // meaning (docs/COMPATIBILITY.md).
+            Node::InBasis(basis, children) if self.functions.contains_key(IN_BASIS) => {
+                return self.walk(&Expr::new(basis.as_call(children)?)?, parameters);
+            }
+            Node::InBasis(basis, children) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                Node::InBasis(
+                    basis.clone(),
+                    children
+                        .iter()
+                        .map(|child| self.walk(child, None))
+                        .collect::<Result<_, _>>()?,
                 )
             }
             Node::Fold(name, initial, reducer) => {
@@ -2996,7 +3549,7 @@ mod tests {
             evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
                 .map(|index| format!("e{index}"))
                 .collect(),
-            caveats: BTreeSet::new(),
+            caveats: NameSet::default(),
             ..Provenance::default()
         };
         assert!(expression
@@ -3577,7 +4130,7 @@ mod tests {
             evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
                 .map(|index| format!("e{index}"))
                 .collect(),
-            caveats: BTreeSet::new(),
+            caveats: NameSet::default(),
             ..Provenance::default()
         };
         assert!(parse("x")

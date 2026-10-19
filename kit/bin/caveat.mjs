@@ -3,7 +3,7 @@
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] [--unused] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -32,7 +32,8 @@ Usage:
   caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
-  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] <program.cav>
+  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
+                    [--records [--save <save.json>]] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] [--state <file>] <program.cav>
@@ -73,7 +74,12 @@ not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load. --unused also
 reports a claim, evidence, caveat or state that nothing else names (C007), such
-as one left behind by a rewrite.
+as one left behind by a rewrite. --records also reports each rule, procedure or
+binding that reads a decision's record in a program that qualifies evidence
+(C008): from 1.1 a later qualify of the evidence the record lists reaches a
+value set that way. With --save it also restores the save and reports each
+value it holds without such a caveat (C009), as a 1.0.x runtime saved it; 2
+when the save does not restore.
 
 types prints TypeScript declarations for a program: each event's payload, the
 displayed values and their types, and its state, cue, decision, stream,
@@ -118,6 +124,10 @@ into a directory (default: the current one). It refuses to overwrite a file.
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
                    that nothing else in the program names
+  --records        (check) also report reads of a decision's record that a
+                   later qualify reaches from 1.1
+  --save <file>    (check, with --records) also report the values that save
+                   holds without such a caveat
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -142,12 +152,17 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, strict: false, unused: false, runtime: null, from: null, state: null };
+  const options = { command, files: [], json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
+    else if (argument === '--records' && command === 'check') options.records = true;
+    else if (argument === '--save' && command === 'check') {
+      options.save = rest[++index];
+      if (!options.save) return { error: '--save needs a save file' };
+    }
     else if (argument === '--from' && command === 'types') {
       options.from = rest[++index];
       if (!options.from) return { error: '--from needs a module specifier' };
@@ -164,6 +179,7 @@ function parseArguments(argv) {
   }
   const [fewest, most, message] = COMMANDS[command];
   if (options.files.length < fewest || options.files.length > most) return { error: message };
+  if (options.save && !options.records) return { error: '--save is read with --records' };
   return options;
 }
 
@@ -311,8 +327,18 @@ async function checkProgram(options) {
   if (inputs.source.startsWith('#caveat-bundle')) return refuse('is a bundle; check reads a single-file program');
   const runtime = await loadRuntime(options);
   if (!runtime) return 2;
+  let save;
+  if (options.save) {
+    try { save = await readFile(options.save, 'utf8'); } catch (error) { console.error(`cannot read ${options.save}: ${error.message}`); return 2; }
+  }
+  const asked = { unused: options.unused, ...(options.records ? { records: true } : {}), ...(save !== undefined ? { save } : {}) };
   let report;
-  try { report = runtime.check(inputs.source, { unused: options.unused }); } catch (error) { return refuse(`does not load: ${error.message}`); }
+  try { report = runtime.check(inputs.source, asked); } catch (error) {
+    if (error.kind !== 'restore') return refuse(`does not load: ${error.message}`);
+    if (options.json) console.log(JSON.stringify({ schema: CHECK_SCHEMA, program, loads: true, save: options.save, error: error.message }, null, 2));
+    else console.error(`${options.save} does not restore with ${program}: ${error.message}`);
+    return 2;
+  }
   if (options.json) {
     const { schema, diagnostics, suppressed } = report;
     console.log(JSON.stringify({ schema, program, loads: true, strict: options.strict, diagnostics, suppressed }, null, 2));

@@ -1,6 +1,6 @@
-# CAVEAT Retention Reasons 0.1 (draft) — a caveat kept on purpose, with its reason
+# CAVEAT Retention Reasons 0.1 — a caveat kept on purpose, with its reason
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.1 (finding D006 in [agent decisions](../experiments/agent-decisions/README.md)): implemented on `main`, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.1 (finding D006 in [agent decisions](../experiments/agent-decisions/README.md)). It adds to
 [Reactive 0.3](caveat-reactive-0.3.md) and
 [Explanations 0.2](caveat-explanations-0.2.md); it changes no program that
 loads today.

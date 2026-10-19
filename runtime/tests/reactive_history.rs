@@ -26,7 +26,10 @@ fn session(source: &str) -> ReactiveSession {
 fn evidence(trace: &Provenance, expected: &[&str]) {
     assert_eq!(
         trace.evidence,
-        expected.iter().map(|name| (*name).into()).collect()
+        expected
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect::<std::collections::BTreeSet<_>>()
     );
 }
 

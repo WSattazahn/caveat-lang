@@ -206,11 +206,11 @@ impl<'de> Deserialize<'de> for Compact {
         }
         let saved = Saved::deserialize(deserializer)?;
         Ok(Self(Provenance {
-            evidence: saved.evidence,
-            caveats: saved.caveats,
+            evidence: saved.evidence.into(),
+            caveats: saved.caveats.into(),
             departed: saved.departed,
-            inherited: saved.inherited,
-            kept: saved.kept,
+            inherited: saved.inherited.into(),
+            kept: saved.kept.into(),
         }))
     }
 }
@@ -733,7 +733,7 @@ impl ReactiveSession {
     /// A session of `source` resumed from `save`: the same state, and the
     /// same outcome for every later event, as the session that was saved.
     pub fn restore(source: &str, save: &ReactiveSave) -> Result<Self, String> {
-        let mut session = Self::from_source(source)?;
+        let mut session = Self::from_source_cached(source)?;
         session.replay = None;
         session
             .apply_save(save)
@@ -1278,7 +1278,10 @@ impl ReactiveSession {
             self.require_kind(&record.evidence, "evidence")
                 .map_err(|_| format!("{what} names unknown evidence {}", record.evidence))?;
             let source = self.source_evidence(&record.evidence);
-            if source != record.evidence && !self.renewals.contains_key(source) {
+            if source != record.evidence
+                && !self.renewals.contains_key(source)
+                && !self.reading_streams.contains_key(source)
+            {
                 return Err(format!("{what} names no occurrence of renewable evidence"));
             }
             if !self
@@ -1616,6 +1619,7 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    ..
                 } => {
                     read(value);
                     let claims = bears.entry(stream.clone()).or_default();
@@ -2326,6 +2330,7 @@ impl ReactiveSession {
                     Some(caveats),
                 )?;
                 self.check_reading_stance(save, occurrence)?;
+                self.check_reading_note(save, name, occurrence)?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
             {
@@ -2700,6 +2705,11 @@ impl ReactiveSession {
                     .collect(),
                 EffectReport::Reopen { action, because } => vec![action, because],
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
+                // `unqualify latest(STREAM)` reports the stream, which is no
+                // symbol: spec/caveat-latest-0.1.md.
+                EffectReport::Unqualify {
+                    evidence, caveat, ..
+                } if self.reading_streams.contains_key(evidence) => vec![caveat],
                 EffectReport::Unqualify {
                     evidence, caveat, ..
                 } => vec![evidence, caveat],
@@ -3085,6 +3095,29 @@ impl ReactiveSession {
         }
     }
 
+    /// A reading's note is the text of an identifier the save holds, taken by
+    /// a `sample … noting` of its stream. See spec/caveat-reading-notes-0.1.md.
+    fn check_reading_note(
+        &self,
+        save: &ReactiveSave,
+        stream: &str,
+        reading: &ReadingOccurrence,
+    ) -> Result<(), String> {
+        let Some(note) = &reading.note else {
+            return Ok(());
+        };
+        let noted = self.reached_effects(None).into_iter().any(|effect| {
+            matches!(effect, Effect::Sample { stream: source, note: Some(_), .. } if source == stream)
+        });
+        if !noted || !save.identifiers.contains(note) {
+            return Err(format!(
+                "reading {} has a note no sample of this program could take",
+                reading.id
+            ));
+        }
+        Ok(())
+    }
+
     /// Every effect a rule of `event` reaches, or with `None` of any event,
     /// directly or through the procedures it calls, as the source compiled
     /// them. Conditions are ignored: their historical values are unavailable,
@@ -3242,7 +3275,9 @@ impl ReactiveSession {
                 caveat,
                 occurrences,
             } => {
-                named(self.require_kind(evidence, "evidence"))?;
+                if !self.reading_streams.contains_key(evidence) {
+                    named(self.require_kind(evidence, "evidence"))?;
+                }
                 named(self.require_kind(caveat, "caveat"))?;
                 if occurrences.is_empty() {
                     return Err(fail("marks no occurrence"));
@@ -3358,16 +3393,19 @@ impl ReactiveSession {
                     id,
                     relation,
                     target,
+                    note,
                     ..
                 },
                 Effect::Sample {
                     stream: source,
                     stance,
+                    note: noting,
                     ..
                 },
             ) => {
                 stream == source
                     && named(id, source)
+                    && (note.is_none() || noting.is_some())
                     && match (relation, target, stance) {
                         (None, None, None) => true,
                         (Some(relation), Some(target), Some((stance, claim))) => {

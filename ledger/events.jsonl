@@ -1,0 +1,59 @@
+{"event": "infer_attribution"}
+{"event": "reproduce"}
+{"event": "rerun", "payload": {"divergences": 6}}
+{"event": "bisect"}
+{"event": "approve", "payload": {"item": 41}}
+{"event": "decide_record_fix", "payload": {"option": 1}}
+{"event": "rerun", "payload": {"divergences": 0}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 259}}
+{"event": "merge"}
+{"event": "cherry_pick", "payload": {"suite_green": 1}}
+{"event": "approve", "payload": {"item": 101}}
+{"event": "ship", "payload": {"version": 101}}
+{"event": "find", "payload": {"number": 16}}
+{"event": "find", "payload": {"number": 18}}
+{"event": "release_build_shows", "payload": {"number": 18}}
+{"event": "review"}
+{"event": "cherry_pick", "payload": {"suite_green": 1}}
+{"event": "checks_land"}
+{"event": "find", "payload": {"number": 19}}
+{"event": "approve", "payload": {"item": 1022}}
+{"event": "decide_scope", "payload": {"option": 2}}
+{"event": "approve", "payload": {"item": 102}}
+{"event": "ship", "payload": {"version": 102}}
+{"event": "find", "payload": {"number": 20}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 274}}
+{"event": "report_gaps"}
+{"event": "approve", "payload": {"item": 1101}}
+{"event": "decide_gaps", "payload": {"option": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 278}}
+{"event": "review"}
+{"event": "approve", "payload": {"item": 103}}
+{"event": "cherry_pick", "payload": {"suite_green": 1}}
+{"event": "ship", "payload": {"version": 103}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 281}}
+{"event": "report_latest_gap"}
+{"event": "approve", "payload": {"item": 1111}}
+{"event": "decide_latest_gap", "payload": {"option": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 284}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 285}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 288}}
+{"event": "approve", "payload": {"item": 280}}
+{"event": "report_next"}
+{"event": "approve", "payload": {"item": 1201}}
+{"event": "decide_next", "payload": {"option": 1}}
+{"event": "plugin_review", "payload": {"approved": 1}}
+{"event": "approve", "payload": {"item": 7111}}
+{"event": "publish_plugin", "payload": {"version": 111}}
+{"event": "main_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 110}}
+{"event": "ship_minor", "payload": {"version": 110}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 290}}
