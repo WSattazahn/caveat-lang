@@ -102,8 +102,25 @@
       ]
     },
     {
+      "id": "L06",
+      "title": "D020 puts a regression doubt on the release tree, so review reopens the standing release and the next one rests on a fresh tree",
+      "steps": [
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 102 } },
+        { "send": "ship", "payload": { "version": 102 } },
+        { "send": "find", "payload": { "number": 20 } },
+        { "expect": { "/bindings/ledger/release": "1.0.2 stands", "/bindings/ledger/release_basis_regressed": 1 } },
+        { "send": "review" },
+        { "expect": { "/bindings/ledger/release": "1.0.2 is reopened: its basis carries a doubt" } },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "approve", "payload": { "item": 103 } },
+        { "send": "ship", "payload": { "version": 103 } },
+        { "expect": { "/bindings/ledger/release": "1.0.3 stands", "/bindings/ledger/release_basis_regressed": 0 } }
+      ]
+    },
+    {
       "id": "L04",
-      "title": "The ledger replays 2026-10-17 and 18 as recorded in events.jsonl and ends where the project stands",
+      "title": "The ledger replays 2026-10-17 to 19 as recorded in events.jsonl and ends where the project stands",
       "steps": [
         { "send": "infer_attribution" },
         { "send": "reproduce" },
@@ -137,16 +154,22 @@
         { "send": "decide_gaps", "payload": { "option": 1 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 278 } },
+        { "send": "review" },
+        { "send": "approve", "payload": { "item": 103 } },
+        { "send": "cherry_pick", "payload": { "suite_green": 1 } },
+        { "send": "ship", "payload": { "version": 103 } },
         { "expect": {
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
-            "/bindings/ledger/release": "1.0.2 stands",
+            "/bindings/ledger/release": "1.0.3 stands",
             "/bindings/ledger/merge_259": "merged on a rerun of 0 divergences",
             "/bindings/ledger/attribution": "the all-nine inference was withdrawn: a rerun on the fix still diverged",
             "/bindings/ledger/findings": 4,
             "/bindings/ledger/scope_1_0_2": "1.0.2 ships D016 and D018 only; D019 follows",
             "/bindings/ledger/record_fix": "before the two gaps",
-            "/decision_series/release/current": "release@2",
+            "/decision_series/release/current": "release@3",
             "/decision_series/release/revisions/0/id": "release@1",
+            "/decision_series/release/revisions/1/id": "release@2",
+            "/bindings/ledger/release_basis_regressed": 0,
             "/commitment_grounds/scope_1_0_2@1": { "evidence": ["d019"], "caveats": ["latent_since_1_0_0"] }
         } }
       ]
