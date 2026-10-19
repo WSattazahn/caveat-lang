@@ -459,10 +459,12 @@ each save the program has.
 The comparison is by name and by statement, so it reports a read whether or
 not a `qualify` can ever reach the evidence that record lists. It does not
 report a read of a reading stream's records, which 1.1 reads live too: a
-reading lists the occurrence it sampled and what its guard read, and a
-`qualify` names observed evidence, never a reading, so a stream's records
-gain a caveat only through evidence a guard read. C009 finds such a value in
-a save all the same.
+reading lists the occurrence it sampled and what its guard read. Under 1.0.x a
+`qualify` named observed evidence, never a reading, so a stream's records
+gained a caveat only through evidence a guard read. `qualify latest(STREAM)`
+([Latest 0.1](caveat-latest-0.1.md)) names a reading, but it is new in 1.1, so
+no 1.0.x runtime saved a value it reaches. C009 finds a value that lacks a
+late caveat in a save all the same.
 
 C009 restores the save given with `--save` (or `{ records: true, save }` from
 a script) and reports each state and each shown binding that the restored

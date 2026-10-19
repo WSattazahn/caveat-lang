@@ -675,10 +675,21 @@ fn late_qualifications(statements: &[Statement]) -> Vec<(String, Related)> {
         };
         for effect in effects {
             if let Effect::Qualify {
-                evidence, caveat, ..
+                evidence,
+                caveat,
+                index,
+                latest,
+                ..
             } = effect
             {
-                let note = format!("`qualify {evidence} with {caveat}`");
+                let target = if latest {
+                    format!("latest({evidence})")
+                } else if index.is_some() {
+                    format!("occurrence({evidence}, …)")
+                } else {
+                    evidence
+                };
+                let note = format!("`qualify {target} with {caveat}`");
                 if !found.iter().any(|(_, related): &(String, Related)| {
                     related.line == statement.at.line && related.note == note
                 }) {

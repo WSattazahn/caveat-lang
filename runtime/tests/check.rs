@@ -2303,6 +2303,48 @@ fn a_read_of_a_decisions_record_is_reported_only_when_asked_and_only_where_a_pro
     assert_eq!(codes(&check_records(&without)), []);
 }
 
+/// A related `qualify` names its target as written: `latest(STREAM)` or an
+/// earlier occurrence, not the bare name.
+#[test]
+fn a_related_qualify_names_the_latest_reading_or_occurrence_it_targets() {
+    let source = r#"claim passing;
+caveat flaky consequence material;
+evidence runner from "the test runner";
+evidence e from "tool";
+renewable e limit 4;
+readings checks from runner limit 8;
+decisions ship limit 8 reopened by checks;
+state after = 0;
+event report v min 0 max 1;
+event flag;
+event flag_e;
+event flag_first;
+event decide;
+event late;
+on report sample checks = v supports passing;
+on report reveal e;
+on flag qualify latest(checks) with flaky;
+on flag_e qualify latest(e) with flaky;
+on flag_first qualify occurrence(e, 0) with flaky;
+on decide commit ship because enough using latest(checks);
+on late when committed(ship) set after = 1;
+"#;
+    let report = check_records(source);
+    assert_eq!(codes(&report), [("C008", line_of(source, "on late"))]);
+    assert_eq!(
+        report.diagnostics[0]
+            .related
+            .iter()
+            .map(|related| related.note.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "`qualify latest(checks) with flaky`",
+            "`qualify latest(e) with flaky`",
+            "`qualify occurrence(e, …) with flaky`",
+        ]
+    );
+}
+
 #[test]
 fn a_record_read_in_a_procedure_or_a_for_block_is_reported_where_it_is_written() {
     let source = r#"caveat flaky consequence material;

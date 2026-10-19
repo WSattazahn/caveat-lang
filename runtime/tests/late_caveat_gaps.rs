@@ -208,6 +208,9 @@ event recall;
 event read;
 event see_op;
 event withdraw;
+event flag_s;
+event unflag_s;
+event decide_s;
 on report when observed(e) renew e;
 on report reveal e;
 on report set v = qualified(1, e);
@@ -223,13 +226,16 @@ on read when observed(e) sample s = 1 supports c;
 on read when has_sample(s) set sampled = latest(s);
 on see_op reveal op;
 on withdraw when observed(op) and observed(e) withdraw e because op;
+on flag_s when has_sample(s) qualify latest(s) with flaky;
+on unflag_s unqualify latest(s) with flaky;
+on decide_s when has_sample(s) commit trust because enough using latest(s);
 bind view.recalled = recalled;
 bind view.reopened = if(reopened(trust), 1, 0);
 bind view.first = first + latest_trust;
 "#;
-    const EVENTS: [&str; 10] = [
+    const EVENTS: [&str; 13] = [
         "report", "flag", "unflag", "decide", "doubt", "recall", "read", "see_op", "withdraw",
-        "save",
+        "flag_s", "unflag_s", "decide_s", "save",
     ];
     let mut seed: u64 = 0x5851_f42d_4c95_7f2d;
     let mut gained = 0;
