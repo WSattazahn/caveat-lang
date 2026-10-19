@@ -206,6 +206,10 @@ grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
 snapshot instead of building another. A decision's basis is in the view:
 `decisionHistory(view, name)` lists what each revision was committed on, so an
 adapter that reads bases does not need `dispatch` and the snapshot for it.
+A binding that reads `latest(STREAM)` explains itself in
+`view.binding_explanations[TARGET][PROPERTY]`: its `evidence` includes the
+current reading (`STREAM@N`) and its `caveats` are that reading's live caveats, so the
+adapter needs no snapshot for the latest report either.
 
 ## Replay with the native command line (repository checkout)
 
