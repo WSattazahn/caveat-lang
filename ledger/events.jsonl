@@ -28,3 +28,5 @@
 {"event": "report_gaps"}
 {"event": "approve", "payload": {"item": 1101}}
 {"event": "decide_gaps", "payload": {"option": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 278}}
