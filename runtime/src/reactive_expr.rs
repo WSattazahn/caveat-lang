@@ -7,6 +7,7 @@ use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::{Arc, OnceLock};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -190,8 +191,8 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Provenance {
-    pub evidence: BTreeSet<String>,
-    pub caveats: BTreeSet<String>,
+    pub evidence: NameSet,
+    pub caveats: NameSet,
     /// Departed records of each windowed history, one marker per history in
     /// place of their names. Absent unless a record has departed. See
     /// spec/caveat-lineage-compaction-0.1.md.
@@ -202,13 +203,159 @@ pub struct Provenance {
     /// is not here. Only a program with a window keeps it, since only
     /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub inherited: BTreeSet<String>,
+    pub inherited: NameSet,
     /// The take-back caveats among `caveats` that this value holds through a
     /// record rather than a live qualification, so no take-back removes them.
     /// Only a program that takes back keeps any; see
     /// spec/caveat-take-back-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub kept: BTreeSet<String>,
+    pub kept: NameSet,
+}
+
+/// A provenance's set of names, shared between the values that hold it until
+/// one of them changes it: a value copies its inputs' lineage far more often
+/// than it adds to it. Reads see the set itself; a write copies it first when
+/// another value still shares it. An empty set holds nothing.
+#[derive(Debug, Clone, Default)]
+pub struct NameSet(Option<Arc<Names>>);
+
+/// The names and, once asked, their total bytes.
+#[derive(Debug, Default)]
+struct Names {
+    names: BTreeSet<String>,
+    bytes: OnceLock<usize>,
+}
+
+impl Clone for Names {
+    fn clone(&self) -> Self {
+        Self {
+            names: self.names.clone(),
+            bytes: self.bytes.clone(),
+        }
+    }
+}
+
+static NO_NAMES: BTreeSet<String> = BTreeSet::new();
+
+impl NameSet {
+    /// Whether both hold the very same set, so neither can add to the other.
+    fn shares(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Some(left), Some(right)) => Arc::ptr_eq(left, right),
+            _ => false,
+        }
+    }
+
+    /// The names this set would add to `ours`.
+    fn added_to<'a>(
+        &'a self,
+        ours: &'a Self,
+    ) -> std::collections::btree_set::Difference<'a, String> {
+        if self.is_empty() || self.shares(ours) {
+            NO_NAMES.difference(&NO_NAMES)
+        } else {
+            self.difference(ours)
+        }
+    }
+
+    /// The names' total bytes, counted once per set.
+    fn bytes(&self) -> usize {
+        self.0.as_ref().map_or(0, |set| {
+            *set.bytes
+                .get_or_init(|| set.names.iter().map(String::len).sum())
+        })
+    }
+
+    /// Add every name of `other`, sharing its set when this one is empty and
+    /// copying nothing when it adds no name.
+    fn absorb(&mut self, other: &Self) {
+        if other.is_empty() || self.shares(other) {
+        } else if self.is_empty() {
+            *self = other.clone();
+        } else if !other.is_subset(self) {
+            self.extend(other.iter().cloned());
+        }
+    }
+}
+
+impl PartialEq for NameSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.shares(other) || **self == **other
+    }
+}
+
+impl Eq for NameSet {}
+
+impl PartialEq<BTreeSet<String>> for NameSet {
+    fn eq(&self, other: &BTreeSet<String>) -> bool {
+        **self == *other
+    }
+}
+
+impl std::ops::Deref for NameSet {
+    type Target = BTreeSet<String>;
+
+    fn deref(&self) -> &BTreeSet<String> {
+        self.0.as_ref().map_or(&NO_NAMES, |set| &set.names)
+    }
+}
+
+impl std::ops::DerefMut for NameSet {
+    fn deref_mut(&mut self) -> &mut BTreeSet<String> {
+        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
+        set.bytes = OnceLock::new();
+        &mut set.names
+    }
+}
+
+impl serde::Serialize for NameSet {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        (**self).serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for NameSet {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        BTreeSet::deserialize(deserializer).map(Self::from)
+    }
+}
+
+impl IntoIterator for NameSet {
+    type Item = String;
+    type IntoIter = std::collections::btree_set::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0
+            .map(|set| Arc::unwrap_or_clone(set).names)
+            .unwrap_or_default()
+            .into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a NameSet {
+    type Item = &'a String;
+    type IntoIter = std::collections::btree_set::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (**self).iter()
+    }
+}
+
+impl From<BTreeSet<String>> for NameSet {
+    fn from(names: BTreeSet<String>) -> Self {
+        Self((!names.is_empty()).then(|| {
+            Arc::new(Names {
+                names,
+                bytes: OnceLock::new(),
+            })
+        }))
+    }
+}
+
+impl FromIterator<String> for NameSet {
+    fn from_iter<I: IntoIterator<Item = String>>(names: I) -> Self {
+        Self::from(names.into_iter().collect::<BTreeSet<_>>())
+    }
 }
 
 /// The departed records of one history that a provenance named: at least
@@ -408,16 +555,10 @@ impl Provenance {
             .and_then(|count| count.checked_add(self.departed.len()))
             .ok_or_else(provenance_identifier_error)?;
         check_provenance_size(count, 0, 0)?;
-        let mut bytes = 0;
-        for name in self
-            .evidence
-            .iter()
-            .chain(&self.caveats)
-            .chain(self.departed.keys())
-        {
-            check_provenance_size(count, bytes, name.len())?;
-            bytes += name.len();
-        }
+        let bytes = self.evidence.bytes()
+            + self.caveats.bytes()
+            + self.departed.keys().map(String::len).sum::<usize>();
+        check_provenance_size(count, 0, bytes)?;
         Ok((count, bytes))
     }
 
@@ -441,20 +582,26 @@ impl Provenance {
     pub fn merge(&mut self, other: &Self) -> Result<(), String> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
-        for name in other
-            .evidence
-            .difference(&self.evidence)
-            .chain(other.caveats.difference(&self.caveats))
-            .chain(
-                other
-                    .departed
-                    .keys()
-                    .filter(|history| !self.departed.contains_key(*history)),
-            )
-        {
+        let mut check = |name: &String| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
+            Ok::<(), String>(())
+        };
+        let mut evidence = false;
+        for name in other.evidence.added_to(&self.evidence) {
+            check(name)?;
+            evidence = true;
+        }
+        let mut caveats = false;
+        for name in other.caveats.added_to(&self.caveats) {
+            check(name)?;
+            caveats = true;
+        }
+        for history in other.departed.keys() {
+            if !self.departed.contains_key(history) {
+                check(history)?;
+            }
         }
         if !self.inherited.is_empty() || !other.inherited.is_empty() {
             let inherited = self
@@ -468,9 +615,13 @@ impl Provenance {
                 .collect();
             self.inherited = inherited;
         }
-        self.evidence.extend(other.evidence.iter().cloned());
-        self.caveats.extend(other.caveats.iter().cloned());
-        self.kept.extend(other.kept.iter().cloned());
+        if evidence {
+            self.evidence.absorb(&other.evidence);
+        }
+        if caveats {
+            self.caveats.absorb(&other.caveats);
+        }
+        self.kept.absorb(&other.kept);
         for (history, marker) in &other.departed {
             self.departed
                 .entry(history.clone())
@@ -3370,7 +3521,7 @@ mod tests {
             evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
                 .map(|index| format!("e{index}"))
                 .collect(),
-            caveats: BTreeSet::new(),
+            caveats: NameSet::default(),
             ..Provenance::default()
         };
         assert!(expression
@@ -3951,7 +4102,7 @@ mod tests {
             evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
                 .map(|index| format!("e{index}"))
                 .collect(),
-            caveats: BTreeSet::new(),
+            caveats: NameSet::default(),
             ..Provenance::default()
         };
         assert!(parse("x")

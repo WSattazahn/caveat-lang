@@ -206,11 +206,11 @@ impl<'de> Deserialize<'de> for Compact {
         }
         let saved = Saved::deserialize(deserializer)?;
         Ok(Self(Provenance {
-            evidence: saved.evidence,
-            caveats: saved.caveats,
+            evidence: saved.evidence.into(),
+            caveats: saved.caveats.into(),
             departed: saved.departed,
-            inherited: saved.inherited,
-            kept: saved.kept,
+            inherited: saved.inherited.into(),
+            kept: saved.kept.into(),
         }))
     }
 }
