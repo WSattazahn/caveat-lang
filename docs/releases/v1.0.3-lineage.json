@@ -1,0 +1,81 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.0.3",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.0.3",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/277",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "maintenanceBranch": "release/1.0.x",
+  "integrationIdentity": "PR #277 merged the reviewed 1.0.3 candidate into release/1.0.x without squashing. release/1.0.x carries 1.0.2 (599b01d) and nothing from main after the 1.0.0 publication records (PR #240) except picked fixes, so main's later work is not an ancestor of 1.0.3. The candidate picks the D020 commit of PR #274 (1a7a3fa, reviewed and merged on main as ee09fa0) with git cherry-pick -x and sets the package and server.json versions to 1.0.3. The annotated tag v1.0.3 (object 26f411808055aeb9840deb5cf03e3d20647a29a4) peels to the exact tested release/1.0.x revision. v1.0.2 still peels to 599b01d428de551b488f3c400c9714ad5c917535, an ancestor of the 1.0.3 revision.",
+  "stages": [
+    {
+      "id": "published-1.0.2",
+      "version": "1.0.2",
+      "revision": "599b01d428de551b488f3c400c9714ad5c917535",
+      "tag": "v1.0.2",
+      "published": true,
+      "record": "v1.0.2-npm-publication.json"
+    },
+    {
+      "id": "take-back-fix-on-main",
+      "revision": "1a7a3fa3892617d912cd731aae9e6f0619e8a7d9",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/274",
+      "mergedAs": "ee09fa0"
+    },
+    {
+      "id": "reviewed-1.0.3-candidate",
+      "revision": "dd3255e93b2740763695c3427fc9ed99fef6bddf",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/277"
+    },
+    {
+      "id": "published-1.0.3",
+      "version": "1.0.3",
+      "revision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+      "parents": [
+        "599b01d428de551b488f3c400c9714ad5c917535",
+        "dd3255e93b2740763695c3427fc9ed99fef6bddf"
+      ],
+      "tag": "v1.0.3",
+      "published": true,
+      "record": "v1.0.3-npm-publication.json"
+    }
+  ],
+  "scope": "A patch release of 1.0.2 with the take-back fix D020 and nothing else from later work on main. No language syntax, schema, runtime operation, field, CLI flag, export, MCP tool, tool argument or rejection code is added.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+  "publicationRecord": "v1.0.3-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-19T04:43:00.339Z",
+    "record": "v1.0.3-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.0.3",
+    "installPathRecord": "v1.0.3-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-19T04:20:08.224Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39198505193",
+  "publicationAttempt": 2,
+  "publicationArtifact": {
+    "id": 12162363511,
+    "name": "npm-publication-verification",
+    "digest": "sha256:502373b8c032d8ccc4c90b29fc6e9fd5e86943c3e33208b0717087173017a1ae"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39182913684",
+  "runtimeArtifact": {
+    "id": 12157739943,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/39182913684/artifacts/12157739943"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.0.3.tgz",
+    "bytes": 1221793,
+    "sha256": "c55d8e62b8c1514228ff0580ed608889017b915f5e9367caf87ab9fb54e59d55",
+    "sha512": "f541aa15cc3aba9e3d118e435b2f04b26a5dd075ed786df1bc75f7174373f3eb531446e4c6725946a029651eeceb5e3f5ed355ee9214c19933195a08cab117d7",
+    "integrity": "sha512-9UGqFcw6up49EY5DWy8Esmpd0HXteG3xvHX3F0Nz8+tTFEbkxnJZRqApZR7s614/XtNV7pIUwZkzGVoIyrEX1w=="
+  }
+}

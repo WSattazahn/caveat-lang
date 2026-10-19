@@ -1,0 +1,15 @@
+// D020: a take-back must reach a doubt a plain qualify put on a stored record.
+// Run `npx caveat-lang test v1.0.3-d020.scenarios.json` beside this file.
+// caveat-lang 1.0.1 and 1.0.2 fail the last expectation; 1.0.0 and 1.0.3 pass.
+claim ok;
+caveat flaky consequence material;
+evidence e from "operator";
+state ev = 0;
+event see_e;
+event flag_e;
+event unflag_e;
+event read;
+on see_e when not observed(e) reveal e supports ok;
+on flag_e qualify e with flaky;
+on unflag_e unqualify e with flaky;
+on read set ev = qualified(1, e);

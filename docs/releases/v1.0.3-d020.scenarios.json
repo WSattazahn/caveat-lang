@@ -1,0 +1,20 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "v1.0.3-d020.cav",
+  "scenarios": [
+    {
+      "id": "D020",
+      "title": "Taking a doubt back clears it after a plain qualify reached a stored guard record",
+      "steps": [
+        { "send": "see_e" },
+        { "send": "see_e" },
+        { "send": "flag_e" },
+        { "send": "read" },
+        { "expect": { "/qualified_values/ev/provenance/caveats": ["flaky"] } },
+        { "send": "unflag_e" },
+        { "send": "read" },
+        { "expect": { "/qualified_values/ev/provenance/caveats": [] } }
+      ]
+    }
+  ]
+}

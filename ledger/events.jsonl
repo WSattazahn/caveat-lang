@@ -30,5 +30,9 @@
 {"event": "decide_gaps", "payload": {"option": 1}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 278}}
+{"event": "review"}
+{"event": "approve", "payload": {"item": 103}}
+{"event": "cherry_pick", "payload": {"suite_green": 1}}
+{"event": "ship", "payload": {"version": 103}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 281}}
