@@ -167,6 +167,8 @@
         { "send": "approve", "payload": { "item": 284 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 285 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 288 } },
         { "expect": {
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/latest_gap_1_1": "carries(latest) in 1.1, then a fresh-author check",
