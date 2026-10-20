@@ -4,6 +4,7 @@
   "type": "module",
   "description": "The caveat-lang MCP tools over Streamable HTTP, as a Cloudflare Worker.",
   "scripts": {
+    "pretest": "node scripts/runtime-factory.mjs",
     "test": "node --test test/*.test.mjs",
     "measure": "node scripts/measure.mjs",
     "check": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
