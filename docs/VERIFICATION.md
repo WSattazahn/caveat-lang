@@ -30,8 +30,8 @@ consequence of every caveat. Defined in
 
 | Kind | What it shows | What it does not show | Where |
 | --- | --- | --- | --- |
-| **Model theorems** (Lean) | Laws that hold for *every* input of a small mathematical model: dependency flow, grounds ⊆ lineage, citation checks, outcomes, one late-qualification step, one reopening step, and the Caveat Sources invariant after any history of observe, set, qualify, unqualify, commit and departure events | That the Rust runtime implements the model. The model is a separate, smaller program | [proofs/lean](../proofs/lean/README.md); CI job `lean` |
-| **Sampled conformance** | For registered programs, the native and WebAssembly runtimes and the Lean model's executable agree on the compared projection, step by step | Agreement on programs or states outside the registered samples; a refinement proof | `npm run verify:lean-conformance`; cases in `scripts/lean-*-cases.mjs` |
+| **Model theorems** (Lean) | Laws that hold for *every* input of a small mathematical model: dependency flow, grounds ⊆ lineage, citation checks, outcomes, one late-qualification step, one reopening step, and the Caveat Sources invariant after any history of renew, reveal, set, qualify, unqualify, commit and departure events | That the Rust runtime implements the model. The model is a separate, smaller program | [proofs/lean](../proofs/lean/README.md); CI job `lean` |
+| **Sampled conformance** | For registered programs, the native and WebAssembly runtimes and the Lean model's executable agree on the compared projection, step by step; for 1,000 seeded random histories, the WebAssembly runtime and the Caveat Sources model agree on every event's outcome and every state's caveats | Agreement on programs or states outside the registered samples; a refinement proof | `npm run verify:lean-conformance`; cases in `scripts/lean-*-cases.mjs`; `npm run verify:lean-sources` |
 | **Mutation controls** | The checks above can fail: deliberately broken compiled runtimes, incomplete proofs and Caveat Sources models broken in the shapes of D014, D018 and D020 must be refused for their intended reasons, and altered scenario expectations must fail | That every possible defect would be caught | `scripts/verify-lean-conformance.mjs`, `scripts/verify-lean.mjs`, `experiments/scenario-conversion/mutation-check.mjs` |
 | **Runtime tests** | The production runtime's behavior on Rust unit and integration tests, kit tests, scenario suites, installed-package tests, browser checks and byte-for-byte reproducible builds | Behavior on untested programs or workloads | [runtime workflow](../.github/workflows/runtime.yml) |
 | **Unproved boundaries** | Named parts that no theorem covers, tested only by the runtime tests above | — | Listed below |
@@ -67,8 +67,10 @@ its grounds and every stored observation or predicate qualification carries a
 caveat exactly when it has a kept route or a route through a listed occurrence
 whose relation is live, as [Caveat Sources 0.1](../spec/caveat-caveat-sources-0.1.md)
 states. It covers whole histories, where the late-qualification and reopening
-theorems cover one step. It is a theorem about the model: the runtime is held to
-the same invariant by the randomized check in `runtime/tests/take_back.rs`.
+theorems cover one step. It is a theorem about the model. The runtime is held to
+the same invariant by the randomized check in `runtime/tests/take_back.rs`, and
+to the model itself by `npm run verify:lean-sources`, which runs seeded random
+histories through both and compares every state's caveats after every event.
 
 ### Unproved boundaries
 

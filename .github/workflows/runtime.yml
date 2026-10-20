@@ -302,6 +302,8 @@ jobs:
         run: npm run test:lean-conformance
       - name: Compare proved operations with production runtimes and semantic mutants
         run: npm run verify:lean-conformance
+      - name: Compare the runtime with the Caveat Sources model on random histories
+        run: npm run verify:lean-sources
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -313,6 +315,7 @@ jobs:
             test-results/lean-conformance/*.stdout
             test-results/lean-conformance/*.stderr
             test-results/lean-verification/
+            test-results/lean-sources/
           if-no-files-found: error
 
   # Vessel pins the sha256 of the published WASM. That pin only means something

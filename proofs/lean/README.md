@@ -18,7 +18,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, Caveat Sources model, and runner. `laws.json` records 144 authored theorem declarations, including six inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws, 9 take-back laws, 17 reopening laws and 36 Caveat Sources laws. `theorems.json` inventories all 542 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, Caveat Sources model, and runner. `laws.json` records 148 authored theorem declarations, including six inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws, 9 take-back laws, 17 reopening laws and 40 Caveat Sources laws. `theorems.json` inventories all 574 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -391,14 +391,17 @@ departed (D018).
 `Caveat/Sources.lean` keeps every route explicitly and updates the routes event
 by event, as an implementation that pushes caveats to what holds them would:
 
-- `observe`: a `reveal` or `renew` makes a new occurrence with its declared
-  relations and stores what its guard read as the occurrence's observation.
+- `renew`: a new, unobserved occurrence with its declared relations; what its
+  guard read is stored as the occurrence's observation.
+- `reveal`: observes the current occurrence, or makes and observes the first.
 - `predicate`: a `commit`, `reopen`, `withdraw` or `examine` guard stores what
   it read.
 - `set`: a state takes its body's lineage and grounds; its guard joins the
-  lineage only.
-- `qualify`: refused as `unobserved_evidence` without a held current
-  occurrence; otherwise a new live relation, and each carrier that lists the
+  lineage only. Reading evidence brings the occurrence's stored observation
+  into the lineage, not the grounds. Reading evidence with no observed current
+  occurrence refuses the event as `unobserved_evidence`.
+- `qualify`: refused as `unobserved_evidence` without an observed, held
+  current occurrence; otherwise a new live relation, and each carrier that lists the
   occurrence gains the route through it. A current value that gains it also
   takes the guard's lineage.
 - `unqualify`: marks each live relation of the caveat on a held occurrence of
@@ -432,3 +435,24 @@ qualifies; citations narrowing grounds; reading archives, decision series and
 departure of records; scheduled qualification; save and restore. Like the rest
 of this project it is a model of the specification, not a proof about the Rust
 runtime. Whether the runtime matches it is a separate, sampled check.
+
+### The runtime against the model
+
+`caveat_compare` also accepts schema `caveat-sources/0.1`: a list of host
+events, each the model events its rules perform, run atomically
+(`runEvent`, with `runEvent_preserves`). It answers each event's outcome and
+every named state's lineage and grounds caveats.
+
+`npm run verify:lean-sources` runs 1,000 seeded histories of 24 events of one
+fixed program (`scripts/lean-sources-histories.mjs`) through the WebAssembly
+runtime and the model, and requires the same outcome and the same caveats on
+every state after every event. The program renews and reveals two evidences,
+one renewal guarded by the other's observation, qualifies and takes back
+both, reads them into states, copies, commits a decision on a state and reads
+a value under `committed(…)`. The generator runs only events whose guards
+hold, commits once, and has no windows, so a guard's stored predicate
+qualification (D020's shape) and departure (D018's) are not compared; the
+proofs cover them. Two translation controls drop what a record contributes,
+the guard's read stored with a renewal (D014's shape) and the basis read under
+`committed(…)` (D015's), and the comparison must tell each apart from the
+runtime. The receipt is `test-results/lean-sources/report.json`.
