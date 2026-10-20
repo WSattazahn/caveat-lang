@@ -642,6 +642,22 @@ impl Provenance {
     }
 }
 
+/// Add what one read rests on to an evaluation's provenance, which only
+/// reads have built: a read resting on nothing changes nothing, and the
+/// first read's provenance, once checked, is the whole of it.
+fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), String> {
+    if read.is_empty() && read.inherited.is_empty() && read.kept.is_empty() {
+        return Ok(());
+    }
+    let mut provenance = provenance.borrow_mut();
+    if provenance.is_empty() && provenance.inherited.is_empty() && provenance.kept.is_empty() {
+        read.validate()?;
+        *provenance = read.clone();
+        return Ok(());
+    }
+    provenance.merge(read)
+}
+
 fn provenance_identifier_error() -> String {
     format!("value provenance exceeds limit {MAX_PROVENANCE_IDENTIFIERS} identifiers")
 }
@@ -1868,23 +1884,19 @@ impl Expr {
                     return Ok(None);
                 };
                 let value = finite(tracked.value)?;
-                provenance.borrow_mut().merge(&tracked.provenance)?;
+                read_into(&provenance, &tracked.provenance)?;
                 Ok(Some(value))
             },
             &|kind, name| {
                 let tracked = predicate(kind, name)?;
-                provenance.borrow_mut().merge(&tracked.provenance)?;
+                read_into(&provenance, &tracked.provenance)?;
                 Ok(tracked.value)
             },
-            &|evidence, caveats| {
-                Ok(provenance
-                    .borrow_mut()
-                    .merge(&qualify(evidence, caveats)?)?)
-            },
+            &|evidence, caveats| Ok(read_into(&provenance, &qualify(evidence, caveats)?)?),
             &|name, query| {
                 let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;
-                provenance.borrow_mut().merge(&tracked.provenance)?;
+                read_into(&provenance, &tracked.provenance)?;
                 Ok(value)
             },
             identifiers,
