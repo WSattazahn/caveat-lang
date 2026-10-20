@@ -1,0 +1,211 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.2.0",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.2.0",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/307",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "maintenanceBranch": null,
+  "integrationIdentity": "PR #307 merged the reviewed 1.2.0 candidate into main without squashing. The annotated tag v1.2.0 peels to the exact tested main revision 75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966. v1.1.0 still peels to 8e25b301c67ab946b2071cdaee14d83b7ce2250a, an ancestor of the 1.2.0 revision, and every PR merged to main between the two releases is in 1.2.0. 1.0.1 to 1.0.3 were cut from release/1.0.x and are not ancestors of 1.2.0; their fixes reached main before 1.1.0.",
+  "scope": "Verification of the exact CI-tested 1.2.0 package, the second minor release of 1.x, cut from main at the merge of PR #307. It adds nested for blocks, holds, foreclosure, a positional replay save, view field selection and two rejection codes for the new syntax, as docs/releases/v1.2.0.md lists. This record does not establish a later GitHub release or directory listing.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966",
+  "publicationRecord": "v1.2.0-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-20T18:17:50.379Z",
+    "record": "v1.2.0-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.2.0",
+    "installPathRecord": "v1.2.0-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-20T18:13:57.170Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39465979672",
+  "publicationAttempt": 1,
+  "publicationArtifact": {
+    "id": 12287378015,
+    "name": "npm-publication-verification",
+    "digest": "sha256:a7a9558a010b79cefda4ca10ffd822c0ef3132451ebf68b6cbdb00bc429f6784"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39461118265",
+  "runtimeArtifact": {
+    "id": 12282478427,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/39461118265/artifacts/12282478427"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.2.0.tgz",
+    "bytes": 1371031,
+    "sha256": "02f5fd5333c042be5aa3d4aaa0a27b0a91a9de16b6f34a8d5187569afc727a8b",
+    "sha512": "d348608f875a43e95a43c0563a40c4c7fc18631f336edc110287ea5d4a2e6e565c9cdf5d2c72a85ae2ab0372e395da74ebba5f5cf4d85338da315a7293d2f4ec",
+    "integrity": "sha512-00hgj4daQ+laQ8BWOkDEx/wYYx8zbtwRAofqXUoublZcnN9dLHKoWuKrA3Ljldp067pfXPTYUzjaMVpyk9L07A=="
+  },
+  "stages": [
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    },
+    {
+      "id": "published-1.0.3",
+      "version": "1.0.3",
+      "revision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+      "tag": "v1.0.3",
+      "published": true,
+      "record": "v1.0.3-npm-publication.json",
+      "branch": "release/1.0.x",
+      "ancestorOfRelease": false
+    },
+    {
+      "id": "published-1.1.0",
+      "version": "1.1.0",
+      "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+      "tag": "v1.1.0",
+      "published": true,
+      "record": "v1.1.0-npm-publication.json",
+      "parents": [
+        "554f023c9355d6ce4ad5338ef325a3a0a9157e63",
+        "a77aed736647924833c187b085561dcb32bebb6a"
+      ]
+    },
+    {
+      "id": "share-provenance-name-sets",
+      "revision": "151eeff83dc1b534c64f3aa2ae93b17b62ab27cf",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/286",
+      "mergedAs": "49c07e4"
+    },
+    {
+      "id": "ledger-openai-plugin",
+      "revision": "a8bc706a88dd6b3854f587a5026668c8763d6c5c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/293",
+      "mergedAs": "85b41c6"
+    },
+    {
+      "id": "1.1.0-publication-records",
+      "revision": "f23c969a801c06c1d2b298ca6ea47c289827c149",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/294",
+      "mergedAs": "96dd7a6"
+    },
+    {
+      "id": "nested-repetition",
+      "revision": "2d35004b0140515c38c2541e2ee41e126aa0903d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/290",
+      "mergedAs": "13a76ac"
+    },
+    {
+      "id": "audit-trail-wording",
+      "revision": "0188a013b78cba82083f024695500a3e8c7591e9",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/291",
+      "mergedAs": "fcb6f99"
+    },
+    {
+      "id": "holds",
+      "revision": "cfe099f6ba09f270b4d217b1950aae96806f05cb",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/295",
+      "mergedAs": "e6c01b3"
+    },
+    {
+      "id": "readme-agent-task",
+      "revision": "50f58656951655e02d80534f1fbdedcc9116d48e",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/297",
+      "mergedAs": "7e5cd54"
+    },
+    {
+      "id": "binding-reevaluation-on-change",
+      "revision": "f83111b82d568e4556aaa0a5edc3e5d46a6a5190",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/292",
+      "mergedAs": "d0293a9"
+    },
+    {
+      "id": "lean-caveat-sources-invariant",
+      "revision": "7e6c1c2aafddc4dcce50885fbdfb31c424a4fa00",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/298",
+      "mergedAs": "1ca9127"
+    },
+    {
+      "id": "positional-save-and-view-fields",
+      "revision": "9e5ac2fc12c24ea59477c6979e1e034c78dcd44c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/296",
+      "mergedAs": "1366348"
+    },
+    {
+      "id": "foreclosure",
+      "revision": "35dd36af77ba9414d63c84d93b608b4f9e06f8c3",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/258",
+      "mergedAs": "7693f81"
+    },
+    {
+      "id": "seeded-table-hash",
+      "revision": "66ee8400cd4b30d966866ea96cc96030fc0b7ac0",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/300",
+      "mergedAs": "73a2b93"
+    },
+    {
+      "id": "lean-runtime-comparison",
+      "revision": "c37fdf9eb31a716a67db1a0dec99e103769fc2df",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/299",
+      "mergedAs": "963f7bb"
+    },
+    {
+      "id": "withdrawal-reason-and-view-fields-docs",
+      "revision": "2bfdb793e5c3b202503e8d9d0bb0022c7094468b",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/301",
+      "mergedAs": "bd58211"
+    },
+    {
+      "id": "view-delta-from-text",
+      "revision": "94a7e44aaf172c09b42612553ca88773efd56a0c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/302",
+      "mergedAs": "a8d9278"
+    },
+    {
+      "id": "hosted-trap-recovery",
+      "revision": "ad7bd45472fe4193e17b98359969fcbb96354462",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/303",
+      "mergedAs": "1df661d"
+    },
+    {
+      "id": "nested-or-guard-and-history-under-hold",
+      "revision": "9e859bd56cb1c33fd466b07ba5f03f26582e41bb",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/304",
+      "mergedAs": "b14441a"
+    },
+    {
+      "id": "randomized-holds-and-nested-routes",
+      "revision": "b3a4291a16bb12a752a1436e905a0509d8432edf",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/305",
+      "mergedAs": "86e67bd"
+    },
+    {
+      "id": "skip-provenance-for-groundless-reads",
+      "revision": "950173a84db1e56d80c1316a2a9cdc50adae2937",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/306",
+      "mergedAs": "e77dd23"
+    },
+    {
+      "id": "reviewed-1.2.0-candidate",
+      "revision": "ac61381d7a5aca5079b947faf950e590c0f483d8",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/307"
+    },
+    {
+      "id": "published-1.2.0",
+      "version": "1.2.0",
+      "revision": "75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966",
+      "parents": [
+        "e77dd23cdc4bb5b64945537c7f12f29bd9ace006",
+        "ac61381d7a5aca5079b947faf950e590c0f483d8"
+      ],
+      "tag": "v1.2.0",
+      "published": true,
+      "record": "v1.2.0-npm-publication.json"
+    }
+  ]
+}

@@ -151,7 +151,10 @@ on main_run set main_green = green;
 
 on ship_minor when not observed(main_tree) reject "no main run to ship from";
 on ship_minor when main_green == 0 reject "main's last Runtime run did not pass";
+on ship_minor when committed(minor_release) and version <= latest(minor_release) reject "that minor has already shipped";
 on ship_minor set minor_basis = qualified(version, main_tree);
+# The next minor supersedes the one standing, on the owner's go for it.
+on ship_minor when committed(minor_release) and not reopened(minor_release) reopen minor_release because latest(approvals);
 on ship_minor commit minor_release because deadline using minor_basis permitted by latest(approvals) for version;
 
 # A finding is a reading, its D-number the value, for the count and the
