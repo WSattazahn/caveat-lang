@@ -9,10 +9,11 @@
 //! authorize observations or construct authoritative graph qualifications.
 
 use crate::ast::Statement;
+use crate::fast_hash::HashSet;
 use crate::reactive::{Directive, Provenance, Tracked};
 use crate::reactive_expr::{self, Expr, ValueType};
 use serde::Serialize;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 pub use crate::reactive_expr::Value as FunctionValue;

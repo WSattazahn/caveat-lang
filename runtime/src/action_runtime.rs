@@ -1,6 +1,6 @@
+use crate::fast_hash::HashSet;
 use crate::map::{CaveatMap, MapActionPlan};
 use serde::Serialize;
-use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -79,7 +79,7 @@ impl ActionRuntime {
 
         Ok(Self {
             current_place,
-            open_entities: HashSet::new(),
+            open_entities: HashSet::default(),
         })
     }
 

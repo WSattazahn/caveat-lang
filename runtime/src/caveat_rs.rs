@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use crate::fast_hash::HashSet;
 
 const PRELUDE: &str = r#"#[must_use = "a provisional value preserves a commitment and its unresolved caveats"]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,8 +70,8 @@ pub fn transpile(source: &str) -> Result<String, String> {
             function = Some(FunctionState {
                 name,
                 provisional_return,
-                caveats: HashSet::new(),
-                provisional_bindings: HashSet::new(),
+                caveats: HashSet::default(),
+                provisional_bindings: HashSet::default(),
                 saw_commit: false,
                 brace_depth: depth,
             });

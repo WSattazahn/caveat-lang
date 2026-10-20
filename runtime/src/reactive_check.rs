@@ -6,6 +6,7 @@ use super::{
     parse_directive_at, BindingExpression, DecisionChange, Directive, Effect, EvidenceSelector,
     Expr, FunctionDef, Parameter, ParameterDomain, Provenance, ReactiveSession, Reads, Value,
 };
+use crate::fast_hash::{HashMap, HashSet};
 use crate::link::{
     is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
 };
@@ -13,7 +14,7 @@ use crate::parser::{position_of, scan_statements_at, Position};
 use crate::NodeId;
 use serde::Serialize;
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const CHECK_SCHEMA: &str = "caveat-check/0.1";
 
@@ -492,7 +493,7 @@ fn correspondence(
     if earlier.len() != later.len() {
         return None;
     }
-    let (mut forward, mut backward) = (HashMap::new(), HashMap::new());
+    let (mut forward, mut backward) = (HashMap::default(), HashMap::default());
     let (mut pairs, mut numbers) = (Vec::new(), false);
     for (one, two) in earlier.iter().zip(later) {
         if one.len() != two.len() {
@@ -557,7 +558,7 @@ fn unreachable_citations(session: &ReactiveSession, statements: &[Statement]) ->
     // Each `bind` statement's position, matched to the compiled binding by
     // target, property and order: the bindings of one target and property
     // keep their source order however a `for` block is expanded.
-    let mut positions: HashMap<(String, String), Vec<Position>> = HashMap::new();
+    let mut positions: HashMap<(String, String), Vec<Position>> = HashMap::default();
     for statement in statements {
         if let Some(Ok(Directive::Binding(binding))) =
             parse_directive_at(statement.text.trim(), statement.at)
@@ -568,7 +569,7 @@ fn unreachable_citations(session: &ReactiveSession, statements: &[Statement]) ->
                 .push(statement.at);
         }
     }
-    let mut seen: HashMap<(String, String), usize> = HashMap::new();
+    let mut seen: HashMap<(String, String), usize> = HashMap::default();
     let mut found = Vec::new();
     for binding in session.binding_rules.iter() {
         let key = (binding.target.clone(), binding.property.clone());
@@ -636,7 +637,7 @@ fn unreachable_citations(session: &ReactiveSession, statements: &[Statement]) ->
 /// expanded, so a name read only in an unused `define` or never-called `proc`
 /// still counts as named: the check can miss a leftover, never invent one.
 fn unused_declarations(statements: &[Statement]) -> Vec<Diagnostic> {
-    let mut named: HashMap<String, usize> = HashMap::new();
+    let mut named: HashMap<String, usize> = HashMap::default();
     let mut declared = Vec::new();
     for statement in statements {
         let tokens = tokens(&statement.text);
@@ -832,7 +833,7 @@ fn record_reads(session: &ReactiveSession, statements: &[Statement]) -> Vec<Diag
     if qualifications.is_empty() {
         return Vec::new();
     }
-    let mut defines = HashMap::new();
+    let mut defines = HashMap::default();
     for statement in statements {
         if let Some(Ok(Directive::Define { name, expression })) =
             parse_directive_at(statement.text.trim(), statement.at)
@@ -881,7 +882,7 @@ fn record_reads(session: &ReactiveSession, statements: &[Statement]) -> Vec<Diag
             };
         let mut records = BTreeSet::new();
         for expression in &expressions {
-            records_through(expression, &defines, &mut HashSet::new(), &mut records);
+            records_through(expression, &defines, &mut HashSet::default(), &mut records);
         }
         let reads = records
             .into_iter()
@@ -1016,7 +1017,7 @@ fn saved_without_late_caveats(
     if gaps.is_empty() {
         return Vec::new();
     }
-    let mut declared: HashMap<String, Position> = HashMap::new();
+    let mut declared: HashMap<String, Position> = HashMap::default();
     for statement in statements {
         match parse_directive_at(statement.text.trim(), statement.at) {
             Some(Ok(Directive::State { name, .. })) => {
@@ -1216,7 +1217,7 @@ fn member_rules(
         (unused("caveat_check_member"), unused("caveat_check_index"));
     // The program's defines, and the functions an expression can call: the
     // prelude's and the program's.
-    let mut program_defines = HashMap::new();
+    let mut program_defines = HashMap::default();
     let mut functions = super::prelude_functions().unwrap_or_default();
     for statement in statements {
         match parse_directive_at(statement.text.trim(), statement.at) {
@@ -1237,7 +1238,7 @@ fn member_rules(
     // The defines written in blocks, as written, by the kind the block ranges
     // over. The markers stand for any binding, so a rule can use a define
     // that another block over the same kind wrote.
-    let mut kind_defines: HashMap<&str, Vec<(String, Expr)>> = HashMap::new();
+    let mut kind_defines: HashMap<&str, Vec<(String, Expr)>> = HashMap::default();
     for block in blocks {
         for (text, at) in &block.body {
             if let Some(Directive::Define { name, expression }) =
@@ -1252,7 +1253,7 @@ fn member_rules(
     }
     // Where a `for` block declares each entity: at its statement in the
     // block, where each of the block's copies is placed.
-    let mut declared_at = HashMap::new();
+    let mut declared_at = HashMap::default();
     for statement in statements.iter().filter(|statement| statement.repeated) {
         if let ["entity", name, "kind", _, "at", _] =
             statement.text.split_whitespace().collect::<Vec<_>>()[..]
@@ -1261,7 +1262,7 @@ fn member_rules(
         }
     }
     // The number each define of the program comes to, once read.
-    let known = RefCell::new(HashMap::new());
+    let known = RefCell::new(HashMap::default());
 
     let mut found = Vec::new();
     // A routed block's rules are routed, name no member, or stop loading.
@@ -1295,7 +1296,7 @@ fn member_rules(
         };
         // How each `kind` parameter numbers the block's members, by event
         // and parameter: None where it numbers each as `$index` does.
-        let mut numberings = HashMap::new();
+        let mut numberings = HashMap::default();
 
         for (template, at) in &block.body {
             // A rule that mentions neither binding is not about one member.
@@ -1347,7 +1348,7 @@ fn member_rules(
                                         value,
                                         &index_marker,
                                         &defines,
-                                        &mut HashSet::new(),
+                                        &mut HashSet::default(),
                                     )
                                 })
                                 .collect::<Vec<_>>();

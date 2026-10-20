@@ -1277,7 +1277,7 @@ impl ReactiveSession {
             return Err("save holds take-backs but the program does not take back".into());
         }
         let mut last = 0;
-        let mut records = HashMap::<(NodeId, NodeId), usize>::new();
+        let mut records = HashMap::<(NodeId, NodeId), usize>::default();
         for record in &save.taken_back {
             let what = format!(
                 "the take-back of {} with {}",
@@ -1325,7 +1325,7 @@ impl ReactiveSession {
         }
         // Each relation but a pair's last needs its record; the last may have
         // one. A take-back caveat has no declared relations.
-        let mut relations = HashMap::<(NodeId, NodeId), usize>::new();
+        let mut relations = HashMap::<(NodeId, NodeId), usize>::default();
         for caveat in self.take_back_caveats.iter() {
             let id = self.symbols[caveat];
             for edge in self
@@ -1490,8 +1490,8 @@ impl ReactiveSession {
             .iter()
             .map(|(name, id)| (*id, name.as_str()))
             .collect();
-        let mut possible = HashSet::new();
-        let mut scheduled = HashSet::new();
+        let mut possible = HashSet::default();
+        let mut scheduled = HashSet::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
             if edge.relation == Relation::Qualifies {
                 if let (Some(caveat), Some(evidence)) = (names.get(&edge.from), names.get(&edge.to))
@@ -1542,7 +1542,7 @@ impl ReactiveSession {
     /// examines each caveat. Guards are not evaluated: a caveat listed here
     /// could have been examined, not shown to have been.
     fn examination_costs(&self) -> HashMap<String, u64> {
-        let mut costs = HashMap::new();
+        let mut costs = HashMap::default();
         for effect in self.reached_effects(None) {
             if let Effect::Examine { caveat, cost } = effect {
                 costs
@@ -1569,13 +1569,13 @@ impl ReactiveSession {
             .iter()
             .map(|(name, id)| (*id, name.as_str()))
             .collect();
-        let mut qualifiers: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut qualifiers: HashMap<String, HashSet<String>> = HashMap::default();
         let (possible, _) = self.qualification_sources();
         for (caveat, target) in possible {
             qualifiers.entry(target).or_default().insert(caveat);
         }
-        let mut bears: HashMap<String, HashSet<String>> = HashMap::new();
-        let mut unpaired = HashSet::new();
+        let mut bears: HashMap<String, HashSet<String>> = HashMap::default();
+        let mut unpaired = HashSet::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
             let (Some(from), Some(to)) = (names.get(&edge.from), names.get(&edge.to)) else {
                 continue;
@@ -1701,8 +1701,8 @@ impl ReactiveSession {
         }
         let incoming = |roots: Vec<String>| {
             let mut frontier = roots;
-            let mut visited = HashSet::new();
-            let mut caveats = HashSet::new();
+            let mut visited = HashSet::default();
+            let mut caveats = HashSet::default();
             while let Some(name) = frontier.pop() {
                 if !visited.insert(name.clone()) {
                     continue;
@@ -1942,8 +1942,8 @@ impl ReactiveSession {
             .iter()
             .map(|rule| &rule.effect)
             .collect::<Vec<_>>();
-        let mut visited = HashSet::new();
-        let mut targets = HashSet::new();
+        let mut visited = HashSet::default();
+        let mut targets = HashSet::default();
         while let Some(effect) = pending.pop() {
             match effect {
                 Effect::Observe { evidence } => {
@@ -1988,7 +1988,7 @@ impl ReactiveSession {
                         && targets.contains(base)
                 })
         };
-        let mut seen = HashSet::new();
+        let mut seen = HashSet::default();
         for name in observations {
             self.require_kind(name, "evidence")?;
             if !seen.insert(name.as_str()) {
@@ -2886,9 +2886,9 @@ impl ReactiveSession {
             return Err(fail("sequence and last event disagree"));
         }
         let monotonic_time = self.source_clock_is_monotonic();
-        let mut committed = HashSet::new();
-        let mut reopened: HashMap<&str, Vec<&str>> = HashMap::new();
-        let mut current: HashMap<&str, &str> = HashMap::new();
+        let mut committed = HashSet::default();
+        let mut reopened: HashMap<&str, Vec<&str>> = HashMap::default();
+        let mut current: HashMap<&str, &str> = HashMap::default();
         let mut previous: Option<&JournalEntry> = None;
         let mut latest_elapsed = None;
         let mut last_committed_node = None;
@@ -3191,7 +3191,7 @@ impl ReactiveSession {
             .filter(|rule| event.is_none_or(|event| rule.event == event))
             .map(|rule| &rule.effect)
             .collect::<Vec<_>>();
-        let mut visited = HashSet::new();
+        let mut visited = HashSet::default();
         let mut reached = Vec::new();
         while let Some(effect) = pending.pop() {
             if let Effect::Call { name, .. } = effect {
@@ -3612,7 +3612,7 @@ impl ReactiveSession {
             .filter(|rule| rule.event == event)
             .map(|rule| &rule.effect)
             .collect::<Vec<_>>();
-        let mut visited = HashSet::new();
+        let mut visited = HashSet::default();
         while let Some(effect) = pending.pop() {
             match effect {
                 Effect::Commit { action, .. } if change == "committed" && action == decision => {

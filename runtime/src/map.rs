@@ -1,8 +1,9 @@
 use crate::ast::{ActionStep, ConditionalAction, EpistemicCondition, Program, Statement};
 use crate::eval;
+use crate::fast_hash::HashSet;
 use crate::{NodeKind, Relation};
 use serde::Serialize;
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 
 pub const MAP_SCHEMA: &str = "caveat-map/0.1";
 
@@ -690,7 +691,7 @@ impl CaveatMap {
 
     pub fn trace(&self, subject: &str) -> MapTrace {
         let mut nodes = Vec::new();
-        let mut visited = HashSet::new();
+        let mut visited = HashSet::default();
         let mut queue = VecDeque::new();
 
         visited.insert(subject.to_string());
@@ -860,8 +861,8 @@ fn validate_epistemic_actions(
             ));
         }
     }
-    let mut actions = HashSet::new();
-    let mut fallback_seen = HashSet::new();
+    let mut actions = HashSet::default();
+    let mut fallback_seen = HashSet::default();
     for (index, resolution) in resolutions.iter().enumerate() {
         validate_action(&resolution.action)?;
         actions.insert(resolution.action.as_str());
@@ -901,7 +902,7 @@ fn validate_world(
     choices: &[MapChoice],
     investigations: &[MapInvestigation],
 ) -> Result<(), String> {
-    let mut identifiers = HashSet::new();
+    let mut identifiers = HashSet::default();
     let places = world
         .places
         .iter()
@@ -941,7 +942,7 @@ fn validate_world(
         }
     }
 
-    let mut seen_connections = HashSet::new();
+    let mut seen_connections = HashSet::default();
     for connection in &world.connections {
         if !places.contains(connection.from.as_str()) {
             return Err(format!(
@@ -1002,7 +1003,7 @@ fn validate_world(
         return Err("world action plans require start_at".into());
     };
 
-    let mut plan_names = HashSet::new();
+    let mut plan_names = HashSet::default();
     for plan in &world.action_plans {
         if !plan_names.insert(plan.action.as_str()) {
             return Err(format!("duplicate action plan: {}", plan.action));
@@ -1127,7 +1128,7 @@ fn validate_world(
         if choice.converging {
             continue;
         }
-        let mut destinations = HashSet::new();
+        let mut destinations = HashSet::default();
         for option in &choice.options {
             let Some(plan) = world
                 .action_plans
