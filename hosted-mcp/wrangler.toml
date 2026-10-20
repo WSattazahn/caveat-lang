@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = false
 
+# Wraps the package's runtime glue so a trapped instance can be replaced
+# (src/runtime-loader.mjs); runs before every build, deploy included.
+[build]
+command = "node scripts/runtime-factory.mjs"
+
 # The package's lib/node.mjs reads the runtime from disk; the Worker bundles it.
 [alias]
 "./node.mjs" = "./src/bundled-node.mjs"

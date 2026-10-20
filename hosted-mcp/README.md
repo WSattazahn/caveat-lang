@@ -20,8 +20,11 @@ stdio; `test/handler.test.mjs` checks that side by side, and
   2025-11-25, 2025-06-18 or 2025-03-26, else 2025-11-25. 2026-07-28 requests
   carry their version in `_meta`, as over stdio.
 - Every call opens a fresh session, but the WebAssembly instance lives as long
-  as the isolate. If it traps, calls report a runtime error until Cloudflare
-  replaces the isolate.
+  as the isolate. The call that traps it reports a runtime error; the next call
+  gets a fresh instance (`src/runtime-loader.mjs`). The package's glue keeps its
+  instance in module state, so `scripts/runtime-factory.mjs` wraps it into
+  `src/generated/runtime-factory.mjs`, which every build and `npm test`
+  regenerate from the pinned package.
 - Limits: 4 MiB per request and response, the package's argument limits, and
   60 requests a minute per IP address in each Cloudflare location (a rate
   limiting binding, best effort). `caveat_test` runs at most 16 scenario steps
