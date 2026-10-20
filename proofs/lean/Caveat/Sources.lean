@@ -63,6 +63,7 @@ structure Ledger where
   cells : List (Cell × Carrier) := []
   relations : List Relation := []
   held : List Occ := []
+  observed : List Occ := []
   current : List (String × Occ) := []
   bases : List (String × Basis) := []
   next : Nat := 0
@@ -113,7 +114,7 @@ def basisCarrier (s : Ledger) (b : Basis) : Carrier :=
 def Source.read (s : Ledger) (grounds : Bool) : Source → Carrier
   | .state name => cell s (if grounds then .grounds name else .lineage name)
   | .evidence name => match s.current.lookup name with
-      | some o => occurrenceCarrier s o
+      | some o => if grounds then ⟨[o], liveRoutes s [o]⟩ else occurrenceCarrier s o
       | none => {}
   | .basis d => match s.bases.lookup d with
       | some b => basisCarrier s b
@@ -130,9 +131,12 @@ given as the sources they read. -/
 inductive Event where
   /-- `[when GUARD] set STATE = BODY`: the guard joins the lineage only. -/
   | set (state : String) (body guard : List Source)
-  /-- `[when GUARD] reveal`/`renew EVIDENCE`: a new occurrence with its declared
-  relations; its guard's read is stored as the occurrence's observation. -/
-  | observe (evidence : String) (declared : List String) (guard : List Source)
+  /-- `[when GUARD] renew EVIDENCE`: a new, unobserved occurrence with its
+  declared relations; its guard's read is stored as the occurrence's observation. -/
+  | renew (evidence : String) (declared : List String) (guard : List Source)
+  /-- `reveal EVIDENCE`: observes the current occurrence, or the first one when
+  there is none yet. -/
+  | reveal (evidence : String) (declared : List String)
   /-- A guard of `commit`, `reopen`, `withdraw` or `examine` stores what it read. -/
   | predicate (key : String) (guard : List Source)
   /-- `[when GUARD] qualify EVIDENCE with CAVEAT`. -/
@@ -199,6 +203,21 @@ def qualifyCells (s : Ledger) (o : Occ) (c : String) (guard : Carrier) :
     | .lineage _ => if o ∈ k.evidence then (addRoute o c k).join (addRoute o c guard) else k
     | _ => addRoute o c k) s.cells
 
+def revealStep (s : Ledger) (e : String) (declared : List String) : Ledger :=
+  match s.current.lookup e with
+  | some o => if o ∈ s.observed then s else { s with observed := o :: s.observed }
+  | none =>
+      let after := observeStep s e declared []
+      { after with observed := (e, s.next) :: after.observed }
+
+/-- Whether every evidence a body reads has an observed current occurrence. -/
+def readable (s : Ledger) (sources : List Source) : Bool :=
+  sources.all fun
+    | .evidence name => match s.current.lookup name with
+        | some o => decide (o ∈ s.observed)
+        | none => false
+    | _ => true
+
 def qualifyLedger (s : Ledger) (o : Occ) (c : String) (guard : Carrier) : Ledger :=
   { s with relations := ⟨o, c, false⟩ :: s.relations, cells := qualifyCells s o c guard }
 
@@ -210,20 +229,24 @@ def unqualifyLedger (s : Ledger) (e c : String) : Ledger :=
 def departLedger (s : Ledger) (o : Occ) : Ledger :=
   { s with held := s.held.filter (· ≠ o), cells := mapCells (fun _ k => depart o k) s.cells }
 
-/-- One event. Only a `qualify` of evidence with no held current occurrence is
-refused (`unobserved_evidence`); a refused event changes nothing. -/
+/-- One event. A `set` that reads evidence with no observed current occurrence,
+and a `qualify` of such evidence, are refused (`unobserved_evidence`); a refused
+event changes nothing. -/
 def step (s : Ledger) : Event → Outcome Ledger
   | .set x body guard =>
-      let lineage := (read s false body).join (read s false guard)
-      let grounds := read s true body
-      .accepted { s with cells := store (store s.cells (.grounds x) grounds) (.lineage x) lineage }
-  | .observe e declared guard => .accepted (observeStep s e declared guard)
+      if readable s (body ++ guard) then
+        let lineage := (read s false body).join (read s false guard)
+        let grounds := read s true body
+        .accepted { s with cells := store (store s.cells (.grounds x) grounds) (.lineage x) lineage }
+      else .rejected .unobservedEvidence
+  | .renew e declared guard => .accepted (observeStep s e declared guard)
+  | .reveal e declared => .accepted (revealStep s e declared)
   | .predicate key guard =>
       .accepted { s with cells := store s.cells (.predicate key) (read s false guard) }
   | .qualify e c guard =>
       match s.current.lookup e with
       | some o =>
-          if o ∈ s.held then
+          if o ∈ s.held ∧ o ∈ s.observed then
             .accepted (qualifyLedger s o c (read s false guard))
           else .rejected .unobservedEvidence
       | none => .rejected .unobservedEvidence
@@ -328,7 +351,9 @@ theorem source_matches {s : Ledger} (h : Consistent s) (grounds : Bool) (source 
   | evidence name =>
       simp only [Source.read]
       split
-      · exact join_matches (liveRoutes_matches s _) (cell_matches h _)
+      · split
+        · exact liveRoutes_matches s _
+        · exact join_matches (liveRoutes_matches s _) (cell_matches h _)
       · exact empty_matches s
   | basis d =>
       simp only [Source.read]
@@ -366,10 +391,13 @@ theorem mapCells_consistent {s : Ledger} {cells : List (Cell × Carrier)}
 theorem set_preserves (s : Ledger) (h : Consistent s) (x : String) (body guard : List Source) :
     ∀ after, step s (.set x body guard) = .accepted after → Consistent after := by
   intro after hs
-  simp only [step, Outcome.accepted.injEq] at hs
-  subst hs
-  exact store_consistent _ _ (store_consistent _ _ h (read_matches h true body))
-    (join_matches (read_matches h false body) (read_matches h false guard))
+  simp only [step] at hs
+  split at hs
+  · simp only [Outcome.accepted.injEq] at hs
+    subst hs
+    exact store_consistent _ _ (store_consistent _ _ h (read_matches h true body))
+      (join_matches (read_matches h false body) (read_matches h false guard))
+  · cases hs
 
 theorem predicate_preserves (s : Ledger) (h : Consistent s) (key : String) (guard : List Source) :
     ∀ after, step s (.predicate key guard) = .accepted after → Consistent after := by
@@ -385,12 +413,9 @@ theorem commit_preserves (s : Ledger) (h : Consistent s) (d : String) (body : Li
   subst hs
   exact h
 
-theorem observe_preserves (s : Ledger) (h : Consistent s) (e : String) (declared : List String)
-    (guard : List Source) :
-    ∀ after, step s (.observe e declared guard) = .accepted after → Consistent after := by
-  intro after hs
-  simp only [step, Outcome.accepted.injEq] at hs
-  subst hs
+theorem observeStep_consistent (s : Ledger) (h : Consistent s) (e : String)
+    (declared : List String) (guard : List Source) :
+    Consistent (observeStep s e declared guard) := by
   let o : Occ := (e, s.next)
   let stored : Ledger := { s with cells := store s.cells (.observation o) (read s false guard) }
   have hstored : Consistent stored :=
@@ -451,6 +476,32 @@ theorem observe_preserves (s : Ledger) (h : Consistent s) (e : String) (declared
         exact absurd he ho
     · rw [hk c q, hother q c hq]
 
+/-- What is observed does not bear on routes. -/
+theorem consistent_observed (s : Ledger) (h : Consistent s) (observed : List Occ) :
+    Consistent { s with observed := observed } := by
+  intro p hp c o
+  exact h p hp c o
+
+theorem renew_preserves (s : Ledger) (h : Consistent s) (e : String) (declared : List String)
+    (guard : List Source) :
+    ∀ after, step s (.renew e declared guard) = .accepted after → Consistent after := by
+  intro after hs
+  simp only [step, Outcome.accepted.injEq] at hs
+  subst hs
+  exact observeStep_consistent s h e declared guard
+
+theorem reveal_preserves (s : Ledger) (h : Consistent s) (e : String) (declared : List String) :
+    ∀ after, step s (.reveal e declared) = .accepted after → Consistent after := by
+  intro after hs
+  simp only [step, Outcome.accepted.injEq] at hs
+  subst hs
+  unfold revealStep
+  split
+  · split
+    · exact h
+    · exact consistent_observed s h _
+  · exact consistent_observed _ (observeStep_consistent s h e declared []) _
+
 theorem addRoute_matches {s t : Ledger} {o : Occ} {c : String} (hheld : o ∈ s.held)
     (hlive : ∀ p d, Live t p d ↔ Live s p d ∨ (p = o ∧ d = c)) {k : Carrier}
     (hk : Matches s k) : Matches t (addRoute o c k) := by
@@ -482,7 +533,8 @@ theorem qualify_preserves (s : Ledger) (h : Consistent s) (e c : String) (guard 
   split at hs
   · rename_i o _
     split at hs
-    · rename_i hheld
+    · rename_i hobs
+      have hheld := hobs.1
       simp only [Outcome.accepted.injEq] at hs
       subst hs
       have hlive : ∀ p d, Live (qualifyLedger s o c (read s false guard)) p d ↔
@@ -600,7 +652,8 @@ theorem step_preserves (s : Ledger) (h : Consistent s) (event : Event) :
     ∀ after, step s event = .accepted after → Consistent after := by
   cases event with
   | set x body guard => exact set_preserves s h x body guard
-  | observe e declared guard => exact observe_preserves s h e declared guard
+  | renew e declared guard => exact renew_preserves s h e declared guard
+  | reveal e declared => exact reveal_preserves s h e declared
   | predicate key guard => exact predicate_preserves s h key guard
   | qualify e c guard => exact qualify_preserves s h e c guard
   | unqualify e c => exact unqualify_preserves s h e c
@@ -650,7 +703,7 @@ theorem caveat_sources_invariant (events : List Event) :
 /-! ## What each event may change -/
 
 theorem unobserved_qualification_rejected (s : Ledger) (e c : String) (guard : List Source)
-    (h : ∀ o, s.current.lookup e = some o → o ∉ s.held) :
+    (h : ∀ o, s.current.lookup e = some o → o ∉ s.observed) :
     step s (.qualify e c guard) = .rejected .unobservedEvidence := by
   simp only [step]
   split
@@ -713,8 +766,18 @@ theorem bases_frozen (s after : Ledger) (event : Event)
     (hc : ∀ d body, event ≠ .commit d body) (h : step s event = .accepted after) :
     after.bases = s.bases := by
   cases event with
-  | set => simp only [step, Outcome.accepted.injEq] at h; subst h; rfl
-  | observe => simp only [step, Outcome.accepted.injEq] at h; subst h; rfl
+  | set =>
+      simp only [step] at h
+      split at h
+      · simp only [Outcome.accepted.injEq] at h; subst h; rfl
+      · cases h
+  | renew => simp only [step, Outcome.accepted.injEq] at h; subst h; rfl
+  | reveal e declared =>
+      simp only [step, Outcome.accepted.injEq] at h; subst h
+      unfold revealStep
+      split
+      · split <;> rfl
+      · rfl
   | predicate => simp only [step, Outcome.accepted.injEq] at h; subst h; rfl
   | qualify e c g =>
       simp only [step] at h
@@ -740,7 +803,7 @@ def shows (s : Ledger) (k : Cell) : List String := (cell s k).caveats.eraseDups
 /-- D012: a decision made while its evidence was flagged keeps the flag after
 the take-back; a value read afterwards does not carry it. -/
 def d012 : List Event :=
-  [.observe "e" [] [], .set "v" [.evidence "e"] [], .qualify "e" "flaky" [],
+  [.reveal "e" [], .set "v" [.evidence "e"] [], .qualify "e" "flaky" [],
     .commit "trust" [.state "v"], .unqualify "e" "flaky",
     .set "v" [.evidence "e"] [], .set "recalled" [] [.basis "trust"]]
 
@@ -751,7 +814,7 @@ theorem d012_decision_keeps_flag :
 /-- D015: a later `qualify` reaches a value read through a basis, and a take-back
 of that later doubt removes it again, since it is no part of the record. -/
 def d015 : List Event :=
-  [.observe "e" [] [], .set "v" [.evidence "e"] [], .commit "trust" [.state "v"],
+  [.reveal "e" [], .set "v" [.evidence "e"] [], .commit "trust" [.state "v"],
     .set "recalled" [] [.basis "trust"], .qualify "e" "flaky" []]
 
 theorem d015_late_qualification_reaches_basis_reader :
@@ -761,7 +824,7 @@ theorem d015_late_qualification_reaches_basis_reader :
 /-- D018: a value keeps a doubt whose occurrence departed; a later take-back
 cannot reach it, and it is kept rather than unexplained. -/
 def d018 : List Event :=
-  [.observe "e" [] [], .qualify "e" "flaky" [], .set "v" [.evidence "e"] [],
+  [.reveal "e" [], .qualify "e" "flaky" [], .set "v" [.evidence "e"] [],
     .depart ("e", 0), .unqualify "e" "flaky"]
 
 theorem d018_departed_doubt_is_kept :
@@ -771,7 +834,7 @@ theorem d018_departed_doubt_is_kept :
 stored record through the occurrence, so a take-back removes it from the record
 and from a value read through it. -/
 def d020 : List Event :=
-  [.observe "e" [] [], .predicate "seen" [.evidence "e"], .qualify "e" "flaky" [],
+  [.reveal "e" [], .predicate "seen" [.evidence "e"], .qualify "e" "flaky" [],
     .set "ev" [.predicate "seen"] []]
 
 theorem d020_stored_record_take_back :
@@ -779,5 +842,31 @@ theorem d020_stored_record_take_back :
     shows (run {} (d020 ++ [.unqualify "e" "flaky", .set "ev" [.predicate "seen"] []]))
       (.lineage "ev") = [] ∧
     shows (run {} (d020 ++ [.unqualify "e" "flaky"])) (.predicate "seen") = [] := by decide
+
+/-! ## One host event
+
+A host event runs several rules in order, atomically: if any is refused, the
+whole event is, and the session is as it was before it. -/
+
+def runEvent (s : Ledger) : List Event → Outcome Ledger
+  | [] => .accepted s
+  | event :: rest =>
+      match step s event with
+      | .accepted after => runEvent after rest
+      | .rejected reason => .rejected reason
+      | .fatal reason => .fatal reason
+
+theorem runEvent_preserves (s : Ledger) (h : Consistent s) (events : List Event) :
+    ∀ after, runEvent s events = .accepted after → Consistent after := by
+  induction events generalizing s with
+  | nil => intro after hs; cases hs; exact h
+  | cons event rest ih =>
+      intro after hs
+      simp only [runEvent] at hs
+      split at hs
+      · rename_i mid hm
+        exact ih mid (step_preserves s h event mid hm) after hs
+      · cases hs
+      · cases hs
 
 end Caveat.Sources

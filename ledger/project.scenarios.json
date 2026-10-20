@@ -227,6 +227,8 @@
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 258 } },
         { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 299 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 300 } },
         { "expect": {
             "/bindings/ledger/minor_release": "1.1.0 stands",
