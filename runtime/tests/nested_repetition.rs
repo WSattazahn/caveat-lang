@@ -165,6 +165,59 @@ fn routes_nest_outermost_first() {
     );
 }
 
+/// Found by a fresh author: a nested routed rule whose guard has an `or` and
+/// names the enclosing block's binding lost its parentheses, so another
+/// member's copy refused the event.
+#[test]
+fn a_nested_routed_guard_with_or_stays_one_condition() {
+    let source = format!(
+        "{ENTITIES}evidence tool from \"a tool\";\n\
+         event report component kind component, slot kind slot;\n\
+         event pick component kind component, slot kind slot, n min 0 max 8;\n\
+         for component as $c routed by component {{\n\
+           for slot as $k routed by slot {{\n\
+             readings $c_$k from tool limit 8;\n\
+             on report sample $c_$k = 1;\n\
+             on pick when n < 1 or n > history_count($c_$k) reject \"no such report\";\n\
+           }};\n\
+         }};\n"
+    );
+    let expanded = repeat::expand(&source).expect("expands");
+    assert!(
+        expanded.contains(
+            "on pick when component == 1 and slot == 2 and (n < 1 or n > history_count(api_d2)) reject"
+        ),
+        "{expanded}"
+    );
+    let mut session = ReactiveSession::from_source(&source).expect("loads");
+    for _ in 0..3 {
+        session
+            .dispatch_json("report", r#"{"component":"web","slot":"d2"}"#)
+            .expect("a report");
+    }
+    for n in [1, 3] {
+        let outcome = session
+            .clone()
+            .dispatch_outcome_json(
+                "pick",
+                &format!(r#"{{"component":"web","slot":"d2","n":{n}}}"#),
+            )
+            .expect("not fatal");
+        assert!(
+            serde_json::to_string(&outcome)
+                .unwrap()
+                .contains(r#""outcome":"accepted""#),
+            "report {n} of 3 exists"
+        );
+    }
+    let outcome = session
+        .dispatch_outcome_json("pick", r#"{"component":"web","slot":"d2","n":4}"#)
+        .expect("not fatal");
+    assert!(serde_json::to_string(&outcome)
+        .unwrap()
+        .contains("no such report"));
+}
+
 #[test]
 fn a_routed_rule_must_tell_its_own_blocks_copies_apart() {
     // Inside the nested block, `$c` is the enclosing block's: the three copies

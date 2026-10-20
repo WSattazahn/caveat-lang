@@ -675,7 +675,10 @@ fn routed_copy(
 fn with_route(copy: &str, route: &str) -> String {
     // The loader reads the copy once linked, with `glow::level` written
     // `glow__level`, so the guard's end and its `or` are found in that text.
-    let code = as_linked(&blank_comments(without_terminator(copy)));
+    // In a block nested in another, an enclosing block's `$NAME` is not yet
+    // substituted; it is read as the name it will become, or the guard would
+    // not parse and its `or` would go unseen.
+    let code = as_linked(&blank_comments(without_terminator(copy))).replace('$', "_");
     let spans = crate::reactive::syntax_word_spans(&code);
     let word = |index: usize| spans.get(index).map(|(start, end)| &code[*start..*end]);
     if word(2) != Some("when") {
