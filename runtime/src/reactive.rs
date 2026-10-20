@@ -60,7 +60,7 @@ mod view2;
 pub use view2::{
     CommitmentChanges, DispatchViewDeltaOutcome, DispatchViewDeltaResult, ListChanges,
     NamedChanges, OrderedGrounds, PropertyChanges, ReactiveViewV2, ViewCommitment, ViewDelta,
-    REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
+    ViewDeltaBase, REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
 };
 
 #[path = "reactive_collector.rs"]

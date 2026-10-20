@@ -1,5 +1,5 @@
 use crate::map::to_json_pretty;
-use crate::reactive::ReactiveSession;
+use crate::reactive::{ReactiveSession, ViewDeltaBase};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -59,6 +59,9 @@ pub use crate::web_games::*;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct WebReactiveSession {
     inner: ReactiveSession,
+    /// The view as `dispatch_view_delta_outcome` last left it; every other
+    /// method that changes the session clears it.
+    delta_base: ViewDeltaBase,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -67,6 +70,7 @@ impl WebReactiveSession {
     pub fn new(source: &str) -> Result<WebReactiveSession, String> {
         Ok(Self {
             inner: ReactiveSession::from_source_cached(source)?,
+            delta_base: ViewDeltaBase::default(),
         })
     }
 
@@ -144,6 +148,7 @@ impl WebReactiveSession {
     }
 
     pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.delta_base.clear();
         self.inner
             .dispatch_json(event, payload_json)
             .and_then(|snapshot| to_json_pretty(&snapshot))
@@ -152,6 +157,7 @@ impl WebReactiveSession {
     /// Structured refusals are returned values; every thrown error is fatal.
     /// Uses the same interpreter/transaction as dispatch. See Dispatch 0.1.
     pub fn dispatch_outcome(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.delta_base.clear();
         match self.inner.dispatch_outcome_json(event, payload_json) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
@@ -169,6 +175,7 @@ impl WebReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<String, String> {
+        self.delta_base.clear();
         match self.inner.dispatch_view_outcome_json(event, payload_json) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
@@ -187,6 +194,7 @@ impl WebReactiveSession {
         fields_json: &str,
     ) -> Result<String, String> {
         let fields = crate::reactive::ViewFields::from_json(fields_json)?;
+        self.delta_base.clear();
         match self
             .inner
             .dispatch_view_fields_outcome_json(event, payload_json, fields)
@@ -217,10 +225,11 @@ impl WebReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<String, String> {
-        match self
-            .inner
-            .dispatch_view_delta_outcome_json(event, payload_json)
-        {
+        match self.inner.dispatch_view_delta_outcome_json_from(
+            &mut self.delta_base,
+            event,
+            payload_json,
+        ) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
                 Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
@@ -250,6 +259,7 @@ impl WebReactiveSession {
     /// The records departed since the last drain, as a JSON array, and an
     /// empty archive. See spec/caveat-departure-0.1.md, "The archive".
     pub fn drain_archive(&mut self) -> String {
+        self.delta_base.clear();
         serde_json::to_string(&self.inner.drain_archive()).expect("finite archive entries")
     }
 
@@ -263,11 +273,13 @@ impl WebReactiveSession {
     pub fn restore(source: &str, saved: &str) -> Result<WebReactiveSession, String> {
         Ok(Self {
             inner: ReactiveSession::restore_json(source, saved)?,
+            delta_base: ViewDeltaBase::default(),
         })
     }
 
     /// Dispatch and return the per-event view rather than the full snapshot.
     pub fn dispatch_view(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.delta_base.clear();
         self.inner
             .dispatch_view_json(event, payload_json)
             .map(|view| serde_json::to_string(&view).expect("finite reactive view"))
