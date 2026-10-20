@@ -236,6 +236,12 @@
         { "send": "approve", "payload": { "item": 302 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 304 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 303 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 305 } },
+        { "send": "ci_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 306 } },
         { "expect": {
             "/bindings/ledger/minor_release": "1.1.0 stands",
             "/bindings/ledger/openai_listing": "1.1.1 published on OpenAI's plugin directory",
