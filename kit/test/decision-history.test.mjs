@@ -105,6 +105,39 @@ test('the current revision reads reopened until it is committed again', () => {
   } finally { session.close(); }
 });
 
+test('a reopening a hold defers is not a reopening until the release', () => {
+  // Holds 0.1 journals `held`, `deferred` and `released` too; only
+  // `reopened` reopens a revision.
+  const gate = [
+    'evidence tool from "a tool result";',
+    'evidence team from "the team\'s instruction";',
+    'readings tests from tool limit 8;',
+    'decisions gate limit 8 reopened by tests;',
+    'event report outcome in pass fail;',
+    'event decide;', 'event freeze;', 'event unfreeze;',
+    'on report sample tests = outcome - 1;',
+    'on decide commit gate because enough using latest(tests);',
+    'on freeze reveal team;', 'on freeze hold gate because team;',
+    'on unfreeze release gate because team;',
+  ].join('\n');
+  const session = real.open(gate);
+  try {
+    for (const [event, payload] of [['report', { outcome: 'pass' }], ['decide', {}], ['freeze', {}], ['report', { outcome: 'pass' }]]) {
+      assert.equal(session.dispatch(event, payload).outcome, 'accepted');
+    }
+    const view = session.view();
+    assert.deepEqual(view.decision_journal.map(entry => entry.change), ['committed', 'held', 'deferred']);
+    const [held] = decisionHistory(view, 'gate');
+    assert.equal(held.status, 'in_force');
+    assert.equal(held.reopened, null);
+    assert.equal(session.dispatch('unfreeze', {}).outcome, 'accepted');
+    const [released] = decisionHistory(session.view(), 'gate');
+    assert.equal(released.status, 'reopened');
+    assert.equal(released.reopened.event, 'unfreeze');
+    assert.deepEqual(released.reopened.because, ['tests@2']);
+  } finally { session.close(); }
+});
+
 test('a decision with no revision has an empty history, and an unknown name throws', () => {
   const session = sessionAfter(0);
   try {

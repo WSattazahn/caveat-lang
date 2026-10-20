@@ -564,7 +564,8 @@ export function decisionHistory(view, decision) {
     if (entry.change === 'committed') {
       revision.committed = journalChange(entry);
       revision.retired = false;
-    } else {
+    } else if (entry.change === 'reopened') {
+      // A hold's `held`, `deferred` and `released` entries reopen nothing.
       revision.reopened = journalChange(entry);
     }
   }
