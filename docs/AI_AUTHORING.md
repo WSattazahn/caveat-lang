@@ -777,6 +777,40 @@ Before 1.1, the reason went into the grounds with
 two decisions. That still works, but nothing in the record pairs a caveat with
 its reason.
 
+## What a withdrawal adds to a decision's grounds
+
+A withdrawal needs a reason: `withdraw latest(checks) because recheck`. Every
+`withdrawn(...)` read carries that reason as evidence, so a decision whose
+`using` asks whether a reading is withdrawn is grounded on the reason too:
+
+<!-- withdrawal-grounds -->
+```caveat
+scene "A withdrawn check counts as zero.";
+claim fine;
+evidence probe from "the probe";
+evidence recheck from "a recheck found the result wrong";
+readings checks from probe limit 4;
+decisions gate limit 4 reopened by checks;
+event report value min 0 max 1;
+event misread;
+event decide;
+on report sample checks = value;
+on misread reveal recheck;
+on misread withdraw latest(checks) because recheck;
+on decide commit gate because enough
+    using if(withdrawn(latest(checks)), 0 * latest(checks), latest(checks));
+```
+
+After `report 1`, `misread` and `decide`, `gate@1` is grounded on `checks@1`
+and `recheck`, with the `withdrawn` caveat. Two things follow:
+
+- A host that shows a decision's basis as a list of reports gets the reason
+  in that list. Keep only the names of readings (`STREAM@N`) when the basis
+  means reports, rather than leaving the reason out of the program.
+- The withdrawn reading stays in the grounds only if `using` reads it.
+  `if(withdrawn(latest(checks)), 0, latest(checks))` would be grounded on
+  `recheck` alone; `0 * latest(checks)` keeps the reading there.
+
 ## Evidence from fresh authors
 
 The [first authoring pilot](AI_AUTHORING_PILOT.md) supplied this guide, language

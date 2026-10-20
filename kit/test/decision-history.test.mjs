@@ -131,3 +131,22 @@ test('the starter host answers history from its current view', async () => {
     assert.throws(() => host.history('missing'), error => error instanceof StarterError && error.kind === 'unknown');
   } finally { await host.close(); }
 });
+
+test('the authoring guide\'s withdrawal example is grounded on the reason, as it says', async () => {
+  const guide = await readFile(new URL('../../docs/AI_AUTHORING.md', import.meta.url), 'utf8');
+  const program = /<!-- withdrawal-grounds -->\n```caveat\n([\s\S]*?)```/.exec(guide)?.[1];
+  assert.ok(program, 'the authoring guide has the withdrawal example');
+  const groundsOf = (text) => {
+    const session = real.open(text);
+    try {
+      for (const [event, payload] of [['report', { value: 1 }], ['misread', {}], ['decide', {}]]) {
+        assert.equal(session.dispatch(event, payload).outcome, 'accepted');
+      }
+      const [first] = decisionHistory(session.view(), 'gate');
+      return [first.committed.because, first.committed.caveats];
+    } finally { session.close(); }
+  };
+  assert.deepEqual(groundsOf(program), [['checks@1', 'recheck'], ['withdrawn']]);
+  // Without `0 * latest(checks)`, the reason alone, as the guide says.
+  assert.deepEqual(groundsOf(program.replace('0 * latest(checks)', '0'))[0], ['recheck']);
+});
