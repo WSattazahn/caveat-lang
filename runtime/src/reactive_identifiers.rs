@@ -1,6 +1,6 @@
 //! Texts a program first learns while it runs, such as commit SHAs, each held
 //! as a numeric handle. See spec/caveat-identifiers-0.1.md.
-use std::collections::HashMap;
+use crate::fast_hash::HashMap;
 
 /// The largest `identifiers limit N` a program may declare.
 pub const MAX_IDENTIFIER_LIMIT: usize = 65_536;

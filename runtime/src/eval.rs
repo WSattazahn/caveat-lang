@@ -1,6 +1,6 @@
 use crate::ast::{ConditionalAction, Program, Statement};
+use crate::fast_hash::HashMap;
 use crate::{Attention, Edge, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceLedger {
@@ -123,13 +123,13 @@ impl Evaluator {
     fn new() -> Self {
         Self {
             graph: EpistemicGraph::new(),
-            symbols: HashMap::new(),
+            symbols: HashMap::default(),
             resources: None,
             history: Vec::new(),
-            rules: HashMap::new(),
-            choices: HashMap::new(),
-            investigations: HashMap::new(),
-            display: HashMap::new(),
+            rules: HashMap::default(),
+            choices: HashMap::default(),
+            investigations: HashMap::default(),
+            display: HashMap::default(),
             inspected: Vec::new(),
             next_sequence: 1,
         }

@@ -3,9 +3,9 @@
 //! Presentation changes never authorize a physical move or epistemic effect.
 //! Routes must refer to an edge already declared in the semantic world graph.
 
+use crate::fast_hash::HashSet;
 use crate::map::MapWorld;
 use serde::{Serialize, Serializer};
-use std::collections::HashSet;
 
 /// A canonical finite JSON number with reflexive equality.
 ///
@@ -176,9 +176,9 @@ pub fn build_presentation(
         .map(|entity| entity.id.as_str())
         .collect::<HashSet<_>>();
     let mut result = Presentation::default();
-    let mut positioned = HashSet::new();
-    let mut cameras = HashSet::new();
-    let mut routes = HashSet::new();
+    let mut positioned = HashSet::default();
+    let mut cameras = HashSet::default();
+    let mut routes = HashSet::default();
 
     for directive in directives {
         match directive {
