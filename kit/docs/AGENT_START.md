@@ -132,16 +132,19 @@ const source = await readFile('program.cav', 'utf8');
 const saved = undefined; // or a save the host kept from an earlier run
 const session = saved ? runtime.restore(source, saved) : runtime.open(source);
 
-const outcome = session.dispatchView('read', { value: 17 });
+const fields = ['commitments', 'decision_series', 'decision_journal'];     // only what the host reads
+const outcome = session.dispatchView('read', { value: 17 }, { fields });
 if (outcome.outcome !== 'accepted') throw new Error(outcome.message); // refused; nothing changed
 const history = decisionHistory(outcome.view, 'heating');           // every revision, oldest first
 const save = session.save({ compact: true });                      // small: a short session saves its events
 ```
 
-- `session.dispatchView(event, payload)` returns the view and does not build
-  the full snapshot that `dispatch` returns. Use `dispatch` when the host needs
-  the snapshot's graph. Keep the view it returns: calling `session.view()`
-  afterwards builds the same view a second time.
+- `session.dispatchView(event, payload, { fields })` returns the view and does
+  not build the full snapshot that `dispatch` returns. `fields` names the view
+  fields the host reads; here, what `decisionHistory` needs. Without it the
+  whole view is built, and parts of it grow with the session. Use `dispatch`
+  when the host needs the snapshot's graph. Keep the view it returns: calling
+  `session.view()` afterwards builds the same view a second time.
 - `session.save({ compact: true })` saves a short session as its accepted
   events, and `runtime.restore` takes it like any save. Do not write a replay
   log of your own.

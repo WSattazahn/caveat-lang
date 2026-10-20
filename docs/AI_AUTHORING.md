@@ -210,8 +210,12 @@ calling `view()` after it, which builds the same view again. When the host
 reads only a few of the view's fields, `dispatchView(event, payload, { fields })`
 builds just those: `{ fields: ['bindings', 'binding_explanations'] }`, or add
 `commitments`, `decision_series` and `decision_journal` for `decisionHistory`.
+Name the fields by default. `relations`, `binding_explanations` and
+`decision_journal` grow with the session, and building and parsing a view the
+host does not read can cost more than the event itself.
 `dispatchViewDelta`
-returns what changed in a View 0.2. `dispatch` builds the full snapshot, the
+returns what changed in a View 0.2. It builds the whole view before and after
+the event to compare them, so it is not a cheaper way to read the view. `dispatch` builds the full snapshot, the
 largest thing the runtime returns; use it when the host needs the journal,
 grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
 snapshot instead of building another. A decision's basis is in the view:
