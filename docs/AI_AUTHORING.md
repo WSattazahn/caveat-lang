@@ -214,8 +214,9 @@ Name the fields by default. `relations`, `binding_explanations` and
 `decision_journal` grow with the session, and building and parsing a view the
 host does not read can cost more than the event itself.
 `dispatchViewDelta`
-returns what changed in a View 0.2. It builds the whole view before and after
-the event to compare them, so it is not a cheaper way to read the view. `dispatch` builds the full snapshot, the
+returns what changed in a View 0.2. It builds the whole view after each event
+and compares it with the one it kept from the last, so it costs about what the
+full view does and is not a cheaper way to read it. `dispatch` builds the full snapshot, the
 largest thing the runtime returns; use it when the host needs the journal,
 grounds or graph. `session.snapshot()` straight after `dispatch` reuses that
 snapshot instead of building another. A decision's basis is in the view:

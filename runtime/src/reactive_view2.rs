@@ -280,11 +280,35 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchViewDeltaOutcome, DispatchFatal> {
+        self.dispatch_view_delta_outcome_json_from(
+            &mut ViewDeltaBase::default(),
+            event,
+            payload_json,
+        )
+    }
+
+    /// `dispatch_view_delta_outcome_json`, comparing against `base` when it
+    /// holds the view as of now rather than building that view again, and
+    /// leaving in it the view after the event. A caller keeps `base` only
+    /// while nothing but this method changes the session, and starts again
+    /// from `ViewDeltaBase::default()` otherwise.
+    pub fn dispatch_view_delta_outcome_json_from(
+        &mut self,
+        base: &mut ViewDeltaBase,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<DispatchViewDeltaOutcome, DispatchFatal> {
         let since = self.sequence;
-        let before = view_value(self);
+        let before = match base.0.take() {
+            Some((sequence, parts)) if sequence == since => parts,
+            _ => view_parts(&self.view_v2()),
+        };
         match self.dispatch_classified(event, payload_json) {
             Ok(()) => {
-                let delta = view_delta(since, &before, &view_value(self));
+                let view = self.view_v2();
+                let after = view_parts(&view);
+                let delta = view_delta(since, &before, &view, &after);
+                base.0 = Some((self.sequence, after));
                 Ok(DispatchViewDeltaOutcome {
                     schema: DISPATCH_SCHEMA,
                     result: DispatchViewDeltaResult::Accepted {
@@ -292,8 +316,27 @@ impl ReactiveSession {
                     },
                 })
             }
-            Err(failure) => delta_outcome(failure),
+            Err(failure) => {
+                let outcome = delta_outcome(failure);
+                // A refusal changes nothing, so the view still stands.
+                if outcome.is_ok() {
+                    base.0 = Some((since, before));
+                }
+                outcome
+            }
         }
+    }
+}
+
+/// The View 0.2 view as of a sequence, kept between calls to
+/// `dispatch_view_delta_outcome_json_from` so each builds one view, not two.
+#[derive(Debug, Default)]
+pub struct ViewDeltaBase(Option<(u64, ViewParts)>);
+
+impl ViewDeltaBase {
+    /// Forget the kept view, as after anything else changes the session.
+    pub fn clear(&mut self) {
+        self.0 = None;
     }
 }
 
@@ -309,10 +352,69 @@ fn delta_outcome(failure: DispatchFailure) -> Result<DispatchViewDeltaOutcome, D
     })
 }
 
-fn view_value(session: &ReactiveSession) -> Map<String, Value> {
-    match serde_json::to_value(session.view_v2()).expect("finite reactive view") {
-        Value::Object(members) => members,
-        _ => unreachable!("a view serializes as an object"),
+/// The view as JSON text, member by member and entry by entry, so a delta
+/// compares texts and builds values only for what changed.
+#[derive(Debug)]
+pub(super) struct ViewParts {
+    bindings: BTreeMap<String, BTreeMap<String, String>>,
+    binding_explanations: BTreeMap<String, BTreeMap<String, String>>,
+    /// By action: a later commitment with an action already seen replaces
+    /// the earlier one.
+    commitments: BTreeMap<String, String>,
+    commitment_grounds: BTreeMap<String, String>,
+    decision_series: BTreeMap<String, String>,
+    decision_journal: Vec<String>,
+    relations: Vec<String>,
+    taken_back: Option<Vec<String>>,
+}
+
+fn text<T: Serialize + ?Sized>(value: &T) -> String {
+    serde_json::to_string(value).expect("finite reactive view")
+}
+
+fn value<T: Serialize + ?Sized>(value: &T) -> Value {
+    serde_json::to_value(value).expect("finite reactive view")
+}
+
+fn parse(text: &str) -> Value {
+    serde_json::from_str(text).expect("a view part is JSON")
+}
+
+fn texts<'a, K, T>(entries: impl IntoIterator<Item = (K, &'a T)>) -> BTreeMap<String, String>
+where
+    K: ToString,
+    T: Serialize + 'a,
+{
+    entries
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), text(value)))
+        .collect()
+}
+
+fn view_parts(view: &ReactiveViewV2<'_>) -> ViewParts {
+    ViewParts {
+        bindings: view
+            .bindings
+            .iter()
+            .map(|(target, values)| (target.clone(), texts(values)))
+            .collect(),
+        binding_explanations: view
+            .binding_explanations
+            .iter()
+            .map(|(target, explanations)| (target.to_string(), texts(explanations)))
+            .collect(),
+        commitments: view
+            .commitments
+            .iter()
+            .map(|commitment| (commitment.action.clone(), text(commitment)))
+            .collect(),
+        commitment_grounds: texts(&view.commitment_grounds),
+        decision_series: texts(view.decision_series),
+        decision_journal: view.decision_journal.iter().map(text).collect(),
+        relations: view.relations.iter().map(text).collect(),
+        taken_back: view
+            .taken_back
+            .map(|records| records.iter().map(text).collect()),
     }
 }
 
@@ -336,76 +438,52 @@ fn identical(a: &Value, b: &Value) -> bool {
     }
 }
 
-fn member<'a>(view: &'a Map<String, Value>, name: &str) -> &'a Value {
-    view.get(name).unwrap_or(&Value::Null)
+/// The same text is the same value; different texts are compared as values.
+fn same(a: &str, b: &str) -> bool {
+    a == b || identical(&parse(a), &parse(b))
 }
 
-fn object(value: &Value) -> Option<&Map<String, Value>> {
-    value.as_object()
-}
-
-fn array(value: &Value) -> &[Value] {
-    value.as_array().map(Vec::as_slice).unwrap_or_default()
-}
-
-fn view_delta(since: u64, before: &Map<String, Value>, after: &Map<String, Value>) -> ViewDelta {
+fn view_delta(
+    since: u64,
+    before: &ViewParts,
+    view: &ReactiveViewV2<'_>,
+    after: &ViewParts,
+) -> ViewDelta {
     ViewDelta {
         schema: REACTIVE_VIEW_DELTA_SCHEMA,
         since,
-        sequence: member(after, "sequence").as_u64().unwrap_or_default(),
-        last_event: member(after, "last_event").clone(),
-        bindings: property_changes(member(before, "bindings"), member(after, "bindings")),
+        sequence: view.sequence,
+        last_event: value(&view.last_event),
+        bindings: property_changes(&before.bindings, &after.bindings),
         binding_explanations: property_changes(
-            member(before, "binding_explanations"),
-            member(after, "binding_explanations"),
+            &before.binding_explanations,
+            &after.binding_explanations,
         ),
-        cues: member(after, "cues").clone(),
-        effects: member(after, "effects").clone(),
-        commitments: commitment_changes(
-            member(before, "commitments"),
-            member(after, "commitments"),
-        ),
-        commitment_grounds: named_changes(
-            member(before, "commitment_grounds"),
-            member(after, "commitment_grounds"),
-        ),
-        decision_series: named_changes(
-            member(before, "decision_series"),
-            member(after, "decision_series"),
-        ),
-        decision_journal: list_changes(
-            array(member(before, "decision_journal")),
-            array(member(after, "decision_journal")),
-        ),
-        relations: list_changes(
-            array(member(before, "relations")),
-            array(member(after, "relations")),
-        ),
-        taken_back: after.contains_key("taken_back").then(|| {
-            list_changes(
-                array(member(before, "taken_back")),
-                array(member(after, "taken_back")),
-            )
-        }),
+        cues: value(view.cues),
+        effects: value(view.effects),
+        commitments: commitment_changes(&before.commitments, &after.commitments),
+        commitment_grounds: named_changes(&before.commitment_grounds, &after.commitment_grounds),
+        decision_series: named_changes(&before.decision_series, &after.decision_series),
+        decision_journal: list_changes(&before.decision_journal, &after.decision_journal),
+        relations: list_changes(&before.relations, &after.relations),
+        taken_back: after
+            .taken_back
+            .as_deref()
+            .map(|records| list_changes(before.taken_back.as_deref().unwrap_or_default(), records)),
     }
 }
 
-fn property_changes(before: &Value, after: &Value) -> PropertyChanges {
-    let empty = Map::new();
-    let (before, after) = (
-        object(before).unwrap_or(&empty),
-        object(after).unwrap_or(&empty),
-    );
+type Properties = BTreeMap<String, BTreeMap<String, String>>;
+
+fn property_changes(before: &Properties, after: &Properties) -> PropertyChanges {
+    let empty = BTreeMap::new();
     let mut changes = PropertyChanges::default();
     for (target, properties) in after {
-        let old = before.get(target).and_then(object).unwrap_or(&empty);
+        let old = before.get(target).unwrap_or(&empty);
         let mut set = Map::new();
-        for (property, value) in object(properties).unwrap_or(&empty) {
-            if !old
-                .get(property)
-                .is_some_and(|known| identical(known, value))
-            {
-                set.insert(property.clone(), value.clone());
+        for (property, value) in properties {
+            if !old.get(property).is_some_and(|known| same(known, value)) {
+                set.insert(property.clone(), parse(value));
             }
         }
         if !set.is_empty() {
@@ -413,8 +491,8 @@ fn property_changes(before: &Value, after: &Value) -> PropertyChanges {
         }
     }
     for (target, properties) in before {
-        let new = after.get(target).and_then(object);
-        for property in object(properties).unwrap_or(&empty).keys() {
+        let new = after.get(target);
+        for property in properties.keys() {
             if !new.is_some_and(|new| new.contains_key(property)) {
                 changes.removed.push([target.clone(), property.clone()]);
             }
@@ -423,54 +501,26 @@ fn property_changes(before: &Value, after: &Value) -> PropertyChanges {
     changes
 }
 
-fn commitment_changes(before: &Value, after: &Value) -> CommitmentChanges {
-    let action = |commitment: &Value| {
-        commitment
-            .get("action")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string()
-    };
-    let old = array(before)
-        .iter()
-        .map(|commitment| (action(commitment), commitment))
-        .collect::<BTreeMap<_, _>>();
-    let new = array(after)
-        .iter()
-        .map(|commitment| (action(commitment), commitment))
-        .collect::<BTreeMap<_, _>>();
+fn commitment_changes(
+    before: &BTreeMap<String, String>,
+    after: &BTreeMap<String, String>,
+) -> CommitmentChanges {
+    let NamedChanges { set, removed } = named_changes(before, after);
     CommitmentChanges {
-        set: new
-            .iter()
-            .filter(|(name, commitment)| {
-                !old.get(*name)
-                    .is_some_and(|known| identical(known, commitment))
-            })
-            .map(|(_, commitment)| (*commitment).clone())
-            .collect(),
-        removed: old
-            .keys()
-            .filter(|name| !new.contains_key(*name))
-            .cloned()
-            .collect(),
+        set: set.into_iter().map(|(_, commitment)| commitment).collect(),
+        removed,
     }
 }
 
-fn named_changes(before: &Value, after: &Value) -> NamedChanges {
-    let empty = Map::new();
-    let (before, after) = (
-        object(before).unwrap_or(&empty),
-        object(after).unwrap_or(&empty),
-    );
+fn named_changes(
+    before: &BTreeMap<String, String>,
+    after: &BTreeMap<String, String>,
+) -> NamedChanges {
     NamedChanges {
         set: after
             .iter()
-            .filter(|(name, value)| {
-                !before
-                    .get(*name)
-                    .is_some_and(|known| identical(known, value))
-            })
-            .map(|(name, value)| (name.clone(), value.clone()))
+            .filter(|(name, value)| !before.get(*name).is_some_and(|known| same(known, value)))
+            .map(|(name, value)| (name.clone(), parse(value)))
             .collect(),
         removed: before
             .keys()
@@ -485,11 +535,11 @@ fn named_changes(before: &Value, after: &Value) -> NamedChanges {
 /// Matching greedily from the front keeps each old entry that is next in the
 /// new list and drops the rest; whatever is left of the new list is appended.
 /// Applying the result gives the new list whatever the matching chose.
-fn list_changes(before: &[Value], after: &[Value]) -> ListChanges {
+fn list_changes(before: &[String], after: &[String]) -> ListChanges {
     let mut kept = 0;
     let mut removed = Vec::new();
     for (position, entry) in before.iter().enumerate() {
-        if kept < after.len() && identical(entry, &after[kept]) {
+        if kept < after.len() && same(entry, &after[kept]) {
             kept += 1;
         } else {
             removed.push(position);
@@ -497,6 +547,6 @@ fn list_changes(before: &[Value], after: &[Value]) -> ListChanges {
     }
     ListChanges {
         removed,
-        appended: after[kept..].to_vec(),
+        appended: after[kept..].iter().map(|entry| parse(entry)).collect(),
     }
 }
