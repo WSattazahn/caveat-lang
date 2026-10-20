@@ -1,6 +1,6 @@
-# CAVEAT Nested Repetition 0.1 (draft) — a `for` block inside a `for` block
+# CAVEAT Nested Repetition 0.1 — a `for` block inside a `for` block
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.2: implemented on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.2.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.2. It adds to
 [Repetition 0.1](caveat-repetition-0.1.md) and
 [Routed Repetition 0.1](caveat-routed-repetition-0.1.md); it changes no
 program that loads today.
@@ -147,7 +147,7 @@ own. A routed block is still skipped by C003, at any depth.
 
 - [Procedures](caveat-procedure-symbols-0.1.md): a `proc` in a nested body is
   declared once per pair, as in any block body.
-- Foreclosure, a 1.2 draft on its own branch: a series a nested block
+- [Foreclosure](caveat-foreclosure-0.1.md): a series a nested block
   declares may be irreversible, as anywhere.
 
 ## Corpus sweep

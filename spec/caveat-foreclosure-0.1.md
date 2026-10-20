@@ -1,6 +1,6 @@
-# CAVEAT Foreclosure 0.1 (draft) — decisions that close off options
+# CAVEAT Foreclosure 0.1 — decisions that close off options
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.2: implemented on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.2.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.2. It adds to
 [Reactive 0.5](caveat-reactive-0.5.md),
 [Reopening Triggers 0.1](caveat-reopening-triggers-0.1.md) and
 [Dispatch 0.1](caveat-dispatch-0.1.md); it changes no program that loads

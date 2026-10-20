@@ -19,13 +19,14 @@ material or anything else that shares the repository.
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
-| Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
+| Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Replay Save 0.2](../spec/caveat-replay-save-0.2.md) (from 1.2.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
 
 ### Schemas
 
 `caveat-dispatch/0.1`, `caveat-reactive-view/0.1`, `caveat-reactive-view/0.2`,
 `caveat-reactive-view-delta/0.2`,
-`caveat-reactive-save/0.1`, `caveat-replay-save/0.1` (from 1.1.0), `caveat-explain/0.1`, `caveat-dependents/0.1`,
+`caveat-reactive-save/0.1`, `caveat-replay-save/0.1` (from 1.1.0),
+`caveat-replay-save/0.2` (from 1.2.0), `caveat-explain/0.1`, `caveat-dependents/0.1`,
 `caveat-check/0.1`, `caveat-interface/0.1`, `caveat-archive-provenance/0.1`.
 Package 1.0 does not rename them. A schema changes its version only by a new
 name beside the old one.
@@ -53,10 +54,7 @@ checks that the two agree.
 
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
-  implements yet, and the 1.2 drafts `caveat-nested-repetition-0.1.md`,
-  `caveat-holds-0.1.md`, `caveat-replay-save-0.2.md` and
-  `caveat-foreclosure-0.1.md`, which become stable
-  when a 1.x release ships them.
+  implements yet.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and

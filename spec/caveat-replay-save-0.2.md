@@ -1,6 +1,6 @@
 # CAVEAT Replay Save 0.2
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft: implemented on a branch, not yet in a release. It becomes stable when a 1.x release ships it. It adds to [Replay Save 0.1](caveat-replay-save-0.1.md) and changes nothing that 0.1 writes or restores.
+**Status:** stable from 1.2.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.2. It adds to [Replay Save 0.1](caveat-replay-save-0.1.md) and changes nothing that 0.1 writes or restores.
 
 A [replay save](caveat-replay-save-0.1.md) writes each event as its name and
 a payload object that names every parameter. For a program whose events carry
