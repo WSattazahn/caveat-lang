@@ -190,5 +190,24 @@
     "status": "handoff-delivered-integration-pending",
     "consumerIntegrationComplete": false,
     "scope": "The existing Vessel work received the release identity, its update procedure and the publication-record prerequisite. This handoff does not establish installation, consumer verification or merge of its dependency update."
+  },
+  "postMergeDependencyAudit": {
+    "observedAt": "2026-10-21T01:01:51.375Z",
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/39523862387",
+    "jobId": 118976137634,
+    "buildRevision": "4621da775e72b0eb3dbd5dcac47da2713e390583",
+    "passed": false,
+    "failedScope": "mcp-client-fixture",
+    "dependency": "@modelcontextprotocol/sdk@1.31.0",
+    "advisories": [
+      "GHSA-22jm-h49p-29qw",
+      "GHSA-6prh-2h8m-c8cw",
+      "GHSA-46jr-4wx8-v453",
+      "GHSA-rvq5-wwqv-78pq"
+    ],
+    "artifactId": 12312579532,
+    "artifactDigest": "sha256:05a47e92d43377d06da239a8b3924492e99177ffa0c162c13f0501cee55284da",
+    "scope": "The failing dependency belongs to the development-only official MCP client fixture, excluded from the published package. The packed runtime, Rust dependencies and other required scopes passed this run; the collision fixture retained two moderate findings under the existing policy. This audit examined a newly built closeout candidate, not a replacement for the already published npm tarball.",
+    "remediation": "Update the fixture's exact SDK pin and lockfile to 1.32.1, then rerun its compatibility tests and the security gate. The failed run remains part of the record."
   }
 }

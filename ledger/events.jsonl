@@ -90,3 +90,4 @@
 {"event": "ship_minor", "payload": {"version": 120}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 308}}
+{"event": "ci_run", "payload": {"green": 0}}
