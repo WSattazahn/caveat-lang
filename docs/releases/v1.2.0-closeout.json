@@ -1,0 +1,194 @@
+{
+  "schema": "caveat-release-closeout/0.1",
+  "version": "1.2.0",
+  "state": "github-release-hosted-server-and-glama-verified-vessel-handoff-delivered",
+  "scope": "Follow-up observations after npm and MCP Registry publication. GitHub release, hosted server and Glama release are verified. Vessel received the update handoff; its consumer integration remains pending.",
+  "publicationRecord": "v1.2.0-npm-publication.json",
+  "closeoutPullRequest": {
+    "url": "https://github.com/WSattazahn/caveat-lang/pull/308",
+    "headRevision": "ce42591237a2d831bae8cb29e6cc2b7ddbeac977",
+    "mergeRevision": "4621da775e72b0eb3dbd5dcac47da2713e390583",
+    "status": "merged",
+    "checks": [
+      {
+        "name": "format-check",
+        "runId": 39474935856,
+        "conclusion": "success"
+      },
+      {
+        "name": "Lean scaffold",
+        "runId": 39474935858,
+        "conclusion": "success"
+      },
+      {
+        "name": "runtime",
+        "runId": 39474935889,
+        "conclusion": "success"
+      }
+    ],
+    "ledger": {
+      "events": [
+        {
+          "event": "ci_run",
+          "payload": {
+            "green": 1
+          }
+        },
+        {
+          "event": "approve",
+          "payload": {
+            "item": 308
+          }
+        }
+      ],
+      "scope": "Records the passing CI observation and owner's approval for PR 308. The ledger's merge event is specific to PR 259; this record identifies PR 308's actual merge."
+    }
+  },
+  "githubRelease": {
+    "url": "https://github.com/WSattazahn/caveat-lang/releases/tag/v1.2.0",
+    "publishedAt": "2026-10-21T00:52:11Z",
+    "draft": false,
+    "prerelease": false,
+    "workflowRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/39523886479",
+    "conclusion": "success"
+  },
+  "distribution": {
+    "checkedAt": "2026-10-21T00:54:42Z",
+    "ok": true,
+    "npmLatest": "1.2.0",
+    "npmNext": "1.2.0",
+    "mcpRegistry": "1.2.0"
+  },
+  "hostedServer": {
+    "endpoint": "https://caveat-mcp.waltersattazahn.workers.dev/mcp",
+    "deploymentVersion": "348ab36f-f67e-4fcf-9d4a-5f034caf7ab5",
+    "sourceRevision": "4621da775e72b0eb3dbd5dcac47da2713e390583",
+    "checkedAt": "2026-10-21T00:55:29.752Z",
+    "serverVersion": "1.2.0",
+    "ok": true,
+    "requests": [
+      {
+        "method": "initialize",
+        "status": 200,
+        "sha256": "0821fbccb5e8a809803cd4114b1ddb856facfeb49ef885f190ebba919d4860d4"
+      },
+      {
+        "method": "tools/list",
+        "status": 200,
+        "sha256": "d68d3a84865785de85987a6ed9b9a67c518cf98a4eb7e17ac355f5d1dfe120a1"
+      },
+      {
+        "method": "tools/call",
+        "tool": "caveat_validate",
+        "status": 200,
+        "sha256": "c08954050eaeb9478c54006d828570a968d09dc0e7ba220252e259814152bec1",
+        "matchesInstalled120": true
+      },
+      {
+        "method": "tools/call",
+        "tool": "caveat_check",
+        "status": 200,
+        "sha256": "e74f4020f063d6f2e10abe6f229cfe7122b563dc27db186f4ade63e41f58735b",
+        "matchesInstalled120": true
+      },
+      {
+        "method": "tools/call",
+        "tool": "caveat_test",
+        "status": 200,
+        "sha256": "dd6cc3088f4bbe3d29da7b93e1f77db48ef3f31147a30c600d41285af7a47981",
+        "matchesInstalled120": true
+      },
+      {
+        "method": "tools/call",
+        "tool": "caveat_explain",
+        "status": 200,
+        "sha256": "09caec6a4ffb06f267c345f8851bb0a11d3938c1957d314c5adbc4b913cfa555",
+        "matchesInstalled120": true
+      },
+      {
+        "method": "tools/call",
+        "tool": "caveat_dependents",
+        "status": 200,
+        "sha256": "c5cc7f5057962d71f141c3b47882a25249af605d98e4157abcfc81e396d47bda",
+        "matchesInstalled120": true
+      }
+    ],
+    "scope": "Initialization, tool listing and one probe for each of the five tools succeeded over the deployed endpoint. Each tool probe matched the installed published 1.2.0 package; this is bounded smoke coverage.",
+    "localVerification": {
+      "command": [
+        "node",
+        "--test",
+        "test/handler.test.mjs",
+        "test/runtime-loader.test.mjs",
+        "test/worker.test.mjs"
+      ],
+      "workingDirectory": "hosted-mcp",
+      "testsPassed": 13,
+      "testsFailed": 0,
+      "exitCode": 0,
+      "platform": "win32",
+      "nodeVersion": "v24.11.1",
+      "receiptAuditAccepted": true,
+      "auditCheckedAt": "2026-10-21T00:54:07.591Z",
+      "scope": "HTTP handler and published stdio parity, runtime trap recovery and local workerd requests. Local checks alone do not establish production deployment."
+    }
+  },
+  "glama": {
+    "observedAt": "2026-10-21T01:00:00Z",
+    "status": "published-and-latest",
+    "verified": true,
+    "repositoryRevision": "4621da775e72b0eb3dbd5dcac47da2713e390583",
+    "build": {
+      "id": "01a15bf3-063a-7882-97cc-6ccd02df7dcd",
+      "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/admin/dockerfile/tests/01a15bf3-063a-7882-97cc-6ccd02df7dcd",
+      "status": "success",
+      "duration": "1m 44.8s",
+      "submittedLocalTime": "2026-10-20 17:53",
+      "localTimezone": "America/Los_Angeles",
+      "firstBuildLogAt": "2026-10-21T00:56:28Z",
+      "initializeAt": "2026-10-21T00:58:12Z",
+      "toolsListAt": "2026-10-21T00:58:12Z",
+      "install": "npm install --global caveat-lang",
+      "command": [
+        "mcp-proxy",
+        "--",
+        "caveat-lang",
+        "mcp"
+      ],
+      "serverInfo": {
+        "name": "caveat-lang",
+        "version": "1.2.0",
+        "title": "CAVEAT Language"
+      },
+      "protocolVersion": "2025-11-25",
+      "tools": [
+        "caveat_validate",
+        "caveat_check",
+        "caveat_test",
+        "caveat_explain",
+        "caveat_dependents"
+      ]
+    },
+    "release": {
+      "version": "1.0.3",
+      "url": "https://glama.ai/mcp/servers/WSattazahn/caveat-lang/admin/releases#release-1.0.3",
+      "status": "Published",
+      "latest": true,
+      "publishedLocalTime": "2026-10-20 17:59",
+      "localTimezone": "America/Los_Angeles",
+      "linkedBuildId": "01a15bf3-063a-7882-97cc-6ccd02df7dcd",
+      "note": "Glama's release label 1.0.3 is its own identifier. The inspected npm server identifies itself as 1.2.0."
+    },
+    "method": "Used the authenticated Glama admin UI through the existing GitHub login. Synced the existing repository listing, confirmed source head 4621da7, and clicked Build & Release with the existing configuration unchanged. After the build passed, followed its Make Release link and observed Release Created (1.0.3, Published 2026-10-20 17:59). The Releases page then showed 1.0.3 as Latest linked to the same build. Only one build was submitted. Auto-release was already enabled and was left unchanged.",
+    "limits": [
+      "The initialize and tools/list observations come from rendered Glama instance logs; no independent deployed tool execution was performed in this step.",
+      "No new TDQS score or public-schema comparison is claimed.",
+      "The source checkout is the closeout merge; the executed server comes from the npm installation, and initialize identifies its package version."
+    ]
+  },
+  "vessel": {
+    "status": "handoff-delivered-integration-pending",
+    "consumerIntegrationComplete": false,
+    "scope": "The existing Vessel work received the release identity, its update procedure and the publication-record prerequisite. This handoff does not establish installation, consumer verification or merge of its dependency update."
+  }
+}
