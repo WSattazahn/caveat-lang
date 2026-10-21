@@ -2,5 +2,5 @@
   "name": "caveat-mcp-client-fixture",
   "private": true,
   "type": "module",
-  "devDependencies": { "@modelcontextprotocol/sdk": "1.31.0" }
+  "devDependencies": { "@modelcontextprotocol/sdk": "1.32.1" }
 }
