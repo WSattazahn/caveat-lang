@@ -88,8 +88,9 @@ that item: `merge` needs a rerun with 0 divergences, a green CI run and
 version; a second `ship` while the current release stands is refused until
 `review` has reopened it. `ship_minor` needs main's last Runtime run
 to have passed and an approval for the version; it leaves the 1.0.x line
-alone. An approval is a reading in `approvals` whose
-value is the item code: a PR number, a version (101, 102, 103, 110), or a card option
+alone. The next minor reopens the one standing, citing that approval, and a
+minor that has already shipped is refused. An approval is a reading in `approvals` whose
+value is the item code: a PR number, a version (101, 102, 103, 110, 120), or a card option
 (1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
 the two forms' place in 1.1, 1111–1113 for `carries(latest(STREAM), C)` in 1.1, 1201–1204 for what follows 1.1,
 7000 plus the version for publishing the OpenAI plugin, so 7111 for 1.1.1).

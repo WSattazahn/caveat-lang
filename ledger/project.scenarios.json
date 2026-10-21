@@ -148,7 +148,14 @@
         { "expect": { "/bindings/ledger/minor_release": "none yet" } },
         { "send": "approve", "payload": { "item": 110 } },
         { "send": "ship_minor", "payload": { "version": 110 } },
-        { "expect": { "/bindings/ledger/minor_release": "1.1.0 stands", "/bindings/ledger/release": "none yet" } }
+        { "expect": { "/bindings/ledger/minor_release": "1.1.0 stands", "/bindings/ledger/release": "none yet" } },
+        { "send": "ship_minor", "payload": { "version": 110 }, "rejected": "that minor has already shipped" },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "ship_minor", "payload": { "version": 120 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "expect": { "/bindings/ledger/minor_release": "1.1.0 stands" } },
+        { "send": "approve", "payload": { "item": 120 } },
+        { "send": "ship_minor", "payload": { "version": 120 } },
+        { "expect": { "/bindings/ledger/minor_release": "1.2.0 stands" } }
       ]
     },
     {
@@ -242,8 +249,11 @@
         { "send": "approve", "payload": { "item": 305 } },
         { "send": "ci_run", "payload": { "green": 1 } },
         { "send": "approve", "payload": { "item": 306 } },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 120 } },
+        { "send": "ship_minor", "payload": { "version": 120 } },
         { "expect": {
-            "/bindings/ledger/minor_release": "1.1.0 stands",
+            "/bindings/ledger/minor_release": "1.2.0 stands",
             "/bindings/ledger/openai_listing": "1.1.1 published on OpenAI's plugin directory",
             "/bindings/ledger/gaps_1_1": "both forms in 1.1",
             "/bindings/ledger/latest_gap_1_1": "carries(latest) in 1.1, then a fresh-author check",
