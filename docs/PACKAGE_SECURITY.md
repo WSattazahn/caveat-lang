@@ -120,6 +120,14 @@ The initial inventory found and repaired two development-only issues:
 
 ## Evidence and limits
 
+The October 20, 2026 follow-up updates the collision fixture's `smol-toml`
+override to `1.9.0` for the moderate quadratic-time parser finding
+[GHSA-r4xh-jqrq-34v2](https://github.com/advisories/GHSA-r4xh-jqrq-34v2),
+which affects versions through `1.8.0`. This supersedes the fixture's earlier
+`1.7.1` override; the initial inventory and retained audit receipts above
+remain historical observations. Lifecycle scripts and the competing CLI
+remain disabled, and the security policy is unchanged.
+
 The receipt records tool versions, command arguments, timestamps and exit codes;
 input manifest/lockfile hashes; the artifact and build identity; the RustSec
 commit; and the hash of every retained raw command response. npm exposes no

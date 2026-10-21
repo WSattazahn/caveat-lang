@@ -2,7 +2,7 @@
 // This fixture needs npm registry access (or a primed cache); npm ci verifies
 // the lockfile's integrity hashes. Lifecycle scripts and the competing CLI
 // are never executed. The fixture overrides only smol-toml to its patched
-// 1.7.1 release; this verifies the real CLI package with a patched dependency
+// 1.9.0 release; this verifies the real CLI package with a patched dependency
 // tree, not the competitor's original dependency tree. All writes stay in the caller's fresh result directory.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
