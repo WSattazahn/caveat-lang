@@ -12,7 +12,7 @@ to `1.9.0`, which includes the malformed TOML denial-of-service fix from
 `1.7.1` for [GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2)
 and fixes the quadratic-time key parsing in
 [GHSA-r4xh-jqrq-34v2](https://github.com/advisories/GHSA-r4xh-jqrq-34v2).
-The latter affects versions through `1.8.0`; the audit reports both the
+The latter affects versions through `1.8.0`; the pre-update audit reported both the
 vulnerable dependency and its dependent `caveat-cli` package. Neither is
 part of the published CAVEAT package or executed by this fixture.
 This is a fixture with a patched dependency tree, not a reproduction of the
