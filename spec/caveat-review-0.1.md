@@ -1,6 +1,6 @@
 # CAVEAT Review 0.1 (draft) — which evidence a decision hinged on
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.3, beside [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit, as [Dependents 0.1](caveat-dependents-0.1.md) is: it adds no syntax, changes no program and no session, and a program means what it meant before.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4, building on [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit, as [Dependents 0.1](caveat-dependents-0.1.md) is: it adds no syntax, changes no program and no session, and a program means what it meant before.
 
 [Outcomes 0.1](caveat-outcomes-0.1.md) records how a decision turned out
 next to the basis it was made on. That tells a review what the decision
@@ -210,4 +210,4 @@ grouping grounds by the event that observed them.
 
 ## Changes
 
-- 2026-10-24: drafted and implemented for 1.3.
+- 2026-10-24: drafted and implemented; retargeted from 1.3 to 1.4, since 1.3.0 ships without it.
