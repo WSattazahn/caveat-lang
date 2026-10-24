@@ -1,0 +1,26 @@
+delivery.cav after 4 events (sequence 4)
+
+Events
+    1  freeze_contract {"approved_sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","destination":"delivered/artifact.json"}  accepted
+    2  agent_reports_done  accepted
+    3  read_back {"destination":"delivered/artifact.json","exists":"present","sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","json":"valid"}  accepted
+    4  judge  accepted
+
+Decisions
+  made under source sha256:d07e1ffb042c65d14d3aa82d9b633c86393a477bfe8f3f6654919c0bf5d330b2
+  verdict: 1 of at most 8
+    verdict@1 = 1  in force
+      based on checks@1, contract
+      checks@1: observed at #3 read_back {"destination":"delivered/artifact.json","exists":"present","sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","json":"valid"}
+      contract: observed at #1 freeze_contract {"approved_sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","destination":"delivered/artifact.json"}
+      #4 judge: committed because contract, checks@1
+
+Evidence
+  contract observed (no stance)
+  agent_report supports delivered
+  checks@1 = 1 observed (no stance)  (#3 read_back)
+
+Displayed
+  delivery.digest = "matches approved"  because checks@1, contract
+  delivery.json = "parses"  because checks@1, contract
+  delivery.verdict = "accept"  because checks@1, contract

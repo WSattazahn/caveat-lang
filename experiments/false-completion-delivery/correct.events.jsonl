@@ -1,0 +1,4 @@
+{"event":"freeze_contract","payload":{"approved_sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","destination":"delivered/artifact.json"}}
+{"event":"agent_reports_done","payload":{}}
+{"event":"read_back","payload":{"destination":"delivered/artifact.json","exists":"present","sha256":"690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d","json":"valid"}}
+{"event":"judge","payload":{}}

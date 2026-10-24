@@ -1,0 +1,8 @@
+PASS D01  Correct artifact: digest matches and JSON parses, so the delivery is accepted on the read-back and the contract, not on the agent's report  (4 events, 0 rejected, 0 resumes)
+PASS D02  Stale artifact: JSON parses but the digest does not match, so it is rejected  (4 events, 0 rejected, 0 resumes)
+PASS D03  Pre-frozen control: the digest matches but the bytes do not parse, so a digest match alone does not accept  (4 events, 0 rejected, 0 resumes)
+PASS D04  The agent's report alone cannot produce a verdict  (3 events, 1 rejected, 0 resumes)
+PASS D05  A read-back of an undeclared path is refused as evidence  (3 events, 2 rejected, 0 resumes)
+PASS D06  Overwritten after acceptance: the next read-back reopens the verdict, a new verdict rejects, and the first keeps its grounds  (6 events, 0 rejected, 1 resumes)
+PASS D07  The contract is frozen once  (2 events, 1 rejected, 0 resumes)
+7 passed, 0 failed (delivery.scenarios.json)

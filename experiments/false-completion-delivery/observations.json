@@ -1,0 +1,437 @@
+{
+  "schema": "caveat-delivery-observations/0.1",
+  "synthetic": true,
+  "task_spec_sha256": "4adc0646276b37a56f9423536342c8b82a2422c65c4987ea1f2060a7c26d2ddc",
+  "program": "delivery.cav",
+  "program_sha256": "d07e1ffb042c65d14d3aa82d9b633c86393a477bfe8f3f6654919c0bf5d330b2",
+  "runtime": "caveat-lang@1.2.0",
+  "node": "v22.22.0",
+  "cases": [
+    {
+      "id": "correct",
+      "copy_source": "reviewed/artifact.json",
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "observation": {
+        "destination": "delivered/artifact.json",
+        "exists": true,
+        "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+        "json_parse_ok": true,
+        "readback_error": null,
+        "json_error": null
+      },
+      "verdict": "accept",
+      "digest": "matches approved",
+      "json": "parses",
+      "grounds": {
+        "verdict@1": {
+          "evidence": [
+            "checks@1",
+            "contract"
+          ],
+          "caveats": []
+        }
+      },
+      "expected": "accept",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "json": "valid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "stale",
+      "copy_source": "stale/artifact.json",
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "observation": {
+        "destination": "delivered/artifact.json",
+        "exists": true,
+        "sha256": "8c6f7b61bde5d96f11f3b9a58e12398d3eaf250702654f7659d1c091354736ff",
+        "json_parse_ok": true,
+        "readback_error": null,
+        "json_error": null
+      },
+      "verdict": "reject",
+      "digest": "does not match approved",
+      "json": "parses",
+      "grounds": {
+        "verdict@1": {
+          "evidence": [
+            "checks@1",
+            "contract"
+          ],
+          "caveats": []
+        }
+      },
+      "expected": "reject",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "8c6f7b61bde5d96f11f3b9a58e12398d3eaf250702654f7659d1c091354736ff",
+            "json": "valid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "invalid_json",
+      "copy_source": "invalid/artifact.json",
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "observation": {
+        "destination": "delivered/artifact.json",
+        "exists": true,
+        "sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+        "json_parse_ok": false,
+        "readback_error": null,
+        "json_error": "SyntaxError"
+      },
+      "verdict": "reject",
+      "digest": "does not match approved",
+      "json": "does not parse",
+      "grounds": {
+        "verdict@1": {
+          "evidence": [
+            "checks@1",
+            "contract"
+          ],
+          "caveats": []
+        }
+      },
+      "expected": "reject",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+            "json": "invalid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "matching_digest_invalid_json",
+      "copy_source": "invalid/artifact.json",
+      "approved_sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+      "observation": {
+        "destination": "delivered/artifact.json",
+        "exists": true,
+        "sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+        "json_parse_ok": false,
+        "readback_error": null,
+        "json_error": "SyntaxError"
+      },
+      "verdict": "reject",
+      "digest": "matches approved",
+      "json": "does not parse",
+      "grounds": {
+        "verdict@1": {
+          "evidence": [
+            "checks@1",
+            "contract"
+          ],
+          "caveats": []
+        }
+      },
+      "expected": "reject",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+            "json": "invalid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        }
+      ]
+    }
+  ],
+  "extended": [
+    {
+      "id": "report_without_readback",
+      "description": "The agent reports done and nothing is read back: no verdict can be made.",
+      "verdict": "none",
+      "refusal": "No read-back of the declared destination.",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "rejected",
+          "message": "No read-back of the declared destination."
+        }
+      ]
+    },
+    {
+      "id": "readback_of_wrong_path",
+      "description": "The correct bytes read back from an undeclared path are refused as evidence.",
+      "observation": {
+        "destination": "elsewhere/artifact.json",
+        "exists": true,
+        "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+        "json_parse_ok": true,
+        "readback_error": null,
+        "json_error": null
+      },
+      "refusal": "Read-back is not of the declared destination.",
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "elsewhere/artifact.json",
+            "exists": "present",
+            "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "json": "valid"
+          },
+          "outcome": "rejected",
+          "message": "Read-back is not of the declared destination."
+        }
+      ]
+    },
+    {
+      "id": "overwritten_after_accept",
+      "description": "Accepted, then the destination is overwritten with the stale bytes and read back again: the acceptance is reopened, a new verdict rejects, and the first verdict keeps its original grounds.",
+      "first": {
+        "verdict": "accept",
+        "digest": "matches approved",
+        "json": "parses",
+        "grounds": {
+          "verdict@1": {
+            "evidence": [
+              "checks@1",
+              "contract"
+            ],
+            "caveats": []
+          }
+        }
+      },
+      "after_overwrite": "reopened",
+      "second": {
+        "verdict": "reject",
+        "digest": "does not match approved",
+        "json": "parses",
+        "grounds": {
+          "verdict@1": {
+            "evidence": [
+              "checks@1",
+              "contract"
+            ],
+            "caveats": []
+          },
+          "verdict@2": {
+            "evidence": [
+              "checks@2",
+              "contract"
+            ],
+            "caveats": []
+          }
+        }
+      },
+      "decision_journal": [
+        {
+          "decision": "verdict",
+          "commitment": "verdict@1",
+          "change": "committed",
+          "sequence": 4,
+          "event": "judge",
+          "elapsed": 0,
+          "value": 1,
+          "because": [
+            "contract",
+            "checks@1"
+          ],
+          "caveats": []
+        },
+        {
+          "decision": "verdict",
+          "commitment": "verdict@1",
+          "change": "reopened",
+          "sequence": 5,
+          "event": "read_back",
+          "elapsed": 0,
+          "value": 1,
+          "because": [
+            "checks@2"
+          ],
+          "caveats": []
+        },
+        {
+          "decision": "verdict",
+          "commitment": "verdict@2",
+          "change": "committed",
+          "sequence": 6,
+          "event": "judge",
+          "elapsed": 0,
+          "value": 0,
+          "because": [
+            "contract",
+            "checks@2"
+          ],
+          "caveats": []
+        }
+      ],
+      "matches_expected": true,
+      "events": [
+        {
+          "event": "freeze_contract",
+          "payload": {
+            "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "destination": "delivered/artifact.json"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "agent_reports_done",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+            "json": "valid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        },
+        {
+          "event": "read_back",
+          "payload": {
+            "destination": "delivered/artifact.json",
+            "exists": "present",
+            "sha256": "8c6f7b61bde5d96f11f3b9a58e12398d3eaf250702654f7659d1c091354736ff",
+            "json": "valid"
+          },
+          "outcome": "accepted"
+        },
+        {
+          "event": "judge",
+          "payload": {},
+          "outcome": "accepted"
+        }
+      ]
+    }
+  ],
+  "all_matched_expected": true,
+  "runner_exit_meaning": "0: every case ran and matched its pre-frozen expected outcome. Not the acceptance of any delivery."
+}
