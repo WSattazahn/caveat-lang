@@ -92,3 +92,7 @@
 {"event": "approve", "payload": {"item": 308}}
 {"event": "ci_run", "payload": {"green": 0}}
 {"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 312}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 1303}}
+{"event": "approve", "payload": {"item": 1311}}

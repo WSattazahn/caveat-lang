@@ -69,6 +69,8 @@ const SMALL_EXAMPLES = [['reviewer-decision', 'rely'], ['boss-stance', 'boss']]
 // The engineering-readiness pilot (rc.17): a program, its scenarios and a
 // starter host that runs it.
 const READINESS = ['README.md', 'readiness.cav', 'readiness.scenarios.json', 'run.mjs'].map(file => `examples/readiness/${file}`);
+// The procedure argument-kind example (1.2.x): evidence versus reading streams.
+const PROCEDURE_HANDLES = ['README.md', 'handles.cav', 'handles.scenarios.json'].map(file => `examples/procedure-handles/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -138,7 +140,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
