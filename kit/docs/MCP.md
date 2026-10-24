@@ -1,7 +1,7 @@
 # MCP authoring tools
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.2.0`**.
+Package: **`caveat-lang@1.3.0`**.
 <!-- /caveat-package:identity -->
 
 This package exposes existing Caveat authoring operations to a local MCP
