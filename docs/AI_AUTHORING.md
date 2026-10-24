@@ -75,6 +75,15 @@ when every value is a whole number below 36, so it stays a replay save for
 several times as many events. Prefer it to keeping
 your own event log. A runtime before it cannot restore one.
 
+Its bound is counted on the list form, where each value takes its digits and
+a comma, so it holds about 4,096 / (2 × (parameters + 1)) events whose values
+are single digits. After that the save is the state save, which is far
+larger. For the [authoring card](../kit/docs/AUTHORING_CARD.md)'s program, the
+positional save holds 512 three-parameter events (2,150 bytes); after 514 the
+save is a 34,488-byte state save, about 64 bytes more for each further event
+(measured on 1.2.0). Events a host can send without end, such as flag and
+unflag, need a cap when its store has a size limit.
+
 A decision series cannot have a window: `decisions NAME window N` is refused
 when the program loads, and series windows wait until after 1.0
 ([Windows 0.1](../spec/caveat-windows-0.1.md#decision-series-not-in-rc15)).

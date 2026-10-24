@@ -8,6 +8,9 @@ background, not required reading.
 
 - [Getting started](GETTING_STARTED.md): install, write a first program, check
   it with a scenario file, and look inside a session.
+- [Authoring card](AUTHORING_CARD.md): for an agent writing a program, one
+  tested program with the usual parts, its scenarios, the mistakes that cost
+  the most and a small host.
 - [Caveat on one page](REFERENCE.md): the language in brief. The commands,
   the core, the syntax, outcomes and common mistakes, with links to
   everything below.
