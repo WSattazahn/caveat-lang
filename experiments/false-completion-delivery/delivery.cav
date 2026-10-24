@@ -1,0 +1,52 @@
+# Accept a delivery as done only from a read-back of the declared destination
+# that matches the approved SHA-256 and parses as JSON. The host computes the
+# digest and attempts the parse; Caveat compares, decides and keeps the grounds.
+claim delivered;
+
+evidence contract from "the frozen task spec: approved SHA-256 and declared destination";
+evidence readback from "the host's read-back of the declared destination: SHA-256 of its bytes and a JSON parse attempt";
+evidence agent_report from "the agent's own report that the delivery is done";
+
+identifiers limit 64;
+state approved_digest = 0;
+state declared_destination = 0;
+state digest_ok = 0;
+state json_ok = 0;
+
+readings checks from readback limit 16;
+decisions verdict limit 8 reopened by changed checks;
+
+event freeze_contract approved_sha256 id, destination id;
+event agent_reports_done;
+event read_back destination id, exists in missing present, sha256 id, json in invalid valid;
+event judge;
+
+on freeze_contract when observed(contract) reject "The contract is already frozen.";
+on freeze_contract reveal contract;
+on freeze_contract set approved_digest = qualified(approved_sha256, contract);
+on freeze_contract set declared_destination = qualified(destination, contract);
+
+# The agent's report is recorded, and nothing reads it: it cannot accept a delivery.
+on agent_reports_done reveal agent_report supports delivered;
+
+on read_back when not observed(contract) reject "No frozen contract.";
+on read_back when destination != declared_destination reject "Read-back is not of the declared destination.";
+on read_back sample checks = if(exists == exists.present and sha256 == approved_digest and json == json.valid, 1, 0)
+    noting sha256;
+on read_back set digest_ok = if(exists == exists.present and sha256 == approved_digest, 1, 0);
+on read_back set json_ok = if(exists == exists.present and json == json.valid, 1, 0);
+
+on judge when not has_sample(checks) reject "No read-back of the declared destination.";
+on judge when committed(verdict) and not reopened(verdict) reject "A verdict is in force.";
+on judge commit verdict because enough using latest(checks);
+
+bind delivery.verdict = "none";
+bind delivery.verdict = "accept" when committed(verdict) and not reopened(verdict) and latest(verdict) == 1;
+bind delivery.verdict = "reject" when committed(verdict) and not reopened(verdict) and latest(verdict) == 0;
+bind delivery.verdict = "reopened" when reopened(verdict);
+bind delivery.digest = "not read";
+bind delivery.digest = "matches approved" when has_sample(checks) and digest_ok == 1;
+bind delivery.digest = "does not match approved" when has_sample(checks) and digest_ok == 0;
+bind delivery.json = "not read";
+bind delivery.json = "parses" when has_sample(checks) and json_ok == 1;
+bind delivery.json = "does not parse" when has_sample(checks) and json_ok == 0;

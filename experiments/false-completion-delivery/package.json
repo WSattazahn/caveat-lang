@@ -1,0 +1,13 @@
+{
+  "name": "caveat-wrong-delivery",
+  "private": true,
+  "type": "module",
+  "description": "The shared wrong-delivery fixture from openai/codex#36718, decided by a Caveat decision ledger.",
+  "scripts": {
+    "test": "caveat-lang test delivery.scenarios.json",
+    "fixture": "node run.mjs"
+  },
+  "dependencies": {
+    "caveat-lang": "1.2.0"
+  }
+}
