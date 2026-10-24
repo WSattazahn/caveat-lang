@@ -358,6 +358,12 @@ A parameter followed by `readings` names a reading stream, and one followed by
 those symbols. A parameter with no kind is a number, frozen when the procedure
 is called.
 
+Symbol arguments are bare declared names. An `e evidence` parameter cannot take
+`latest(soil)`: pass `soil` to `s readings` and use `latest(s)` in the body.
+The [paired procedure examples](../kit/examples/procedure-handles/README.md)
+test this distinction, including the actual reopening reasons. Replacing the
+reading with its evidence template would name different evidence.
+
 Each call passes names fixed in the source, so the program loads one copy of
 the procedure for each set of names, named `record[soil, uncover]` in
 diagnostics. That copy runs exactly as the rules would if written out by hand.

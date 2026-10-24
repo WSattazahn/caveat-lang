@@ -1,0 +1,24 @@
+# Two kinds of procedure argument, using the existing language.
+evidence measurement from "Supplied measurement";
+evidence correction_note from "Supplied reason to reconsider";
+readings samples from measurement limit 4;
+decisions review limit 4;
+event measure value min 0 max 100;
+event correction;
+event assess;
+
+proc by_evidence(e evidence) {
+  when committed(review) and not reopened(review) reopen review because e;
+};
+proc by_reading(s readings) {
+  when committed(review) and not reopened(review) reopen review because latest(s);
+};
+
+on measure sample samples = value;
+on measure call by_reading(samples);
+on correction reveal correction_note;
+on correction call by_evidence(correction_note);
+on assess when not has_sample(samples) reject "A measurement is required";
+on assess when committed(review) and not reopened(review) reject "Review is already in force";
+on assess commit review because enough using latest(samples);
+bind result.value = if(committed(review) and not reopened(review), latest(review), -1);

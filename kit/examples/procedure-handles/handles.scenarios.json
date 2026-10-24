@@ -1,0 +1,42 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "handles.cav",
+  "scenarios": [
+    {
+      "id": "reading-name",
+      "title": "A stream parameter reopens using the new reading occurrence",
+      "steps": [
+        {"send": "assess", "rejected": "A measurement is required"},
+        {"send": "measure", "payload": {"value": 10}},
+        {"send": "assess"},
+        {"expect": {"/bindings/result/value": 10, "/commitment_grounds/review@1/evidence": ["samples@1"]}},
+        {"checkpoint": "first"},
+        {"send": "measure", "payload": {"value": 20}},
+        {"expect": {"/bindings/result/value": -1, "/decision_journal/1/because": ["samples@2"]}},
+        {"same_as": "first", "paths": ["/commitment_grounds/review@1"]},
+        {"resume": true},
+        {"send": "assess"},
+        {"expect": {"/bindings/result/value": 20, "/commitment_grounds/review@2/evidence": ["samples@2"]}},
+        {"same_as": "first", "paths": ["/commitment_grounds/review@1"]}
+      ]
+    },
+    {
+      "id": "evidence-name",
+      "title": "An evidence parameter reopens using the observed declared evidence",
+      "steps": [
+        {"send": "measure", "payload": {"value": 10}},
+        {"send": "assess"},
+        {"checkpoint": "first"},
+        {"send": "correction"},
+        {"expect": {"/bindings/result/value": -1, "/decision_journal/1/because": ["correction_note"]}},
+        {"same_as": "first", "paths": ["/commitment_grounds/review@1"]},
+        {"checkpoint": "opened"},
+        {"resume": true},
+        {"send": "correction"},
+        {"same_as": "opened", "paths": ["/decision_journal", "/commitment_grounds"]},
+        {"send": "assess"},
+        {"expect": {"/bindings/result/value": 10, "/commitment_grounds/review@2/evidence": ["samples@1"]}}
+      ]
+    }
+  ]
+}
