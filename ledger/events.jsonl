@@ -111,3 +111,9 @@
 {"event": "main_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 130}}
 {"event": "ship_minor", "payload": {"version": 130}}
+{"event": "ci_run", "payload": {"green": 0}}
+{"event": "ci_run", "payload": {"green": 0}}
+{"event": "ci_run", "payload": {"green": 0}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 319}}
