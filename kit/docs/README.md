@@ -99,6 +99,12 @@ Background:
 - [Essence](reference/docs/CAVEAT_ESSENCE.md): the invariants any change to the
   language must keep.
 
+## Agents handing work to agents
+
+- [Handoff example](../examples/handoff/README.md): a main agent hands work
+  to sub-agents with the ledger, each in a session scoped to its own events,
+  and merges their work by replay.
+
 ## History and long-running sessions
 
 - [Integration starter](STARTER.md): a host for Node and browsers that

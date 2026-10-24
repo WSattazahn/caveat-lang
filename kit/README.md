@@ -332,6 +332,19 @@ const runtime = await loadRuntime({
 });
 ```
 
+## Hand a session to another agent
+
+A main agent can hand work to a sub-agent with the ledger as the save: the
+sub-agent restores it, reads what each decision rests on, and works under the
+program's foreclosures, grants and holds. The runtime does not know who sends
+an event, so `caveat-lang/handoff` keeps each agent to its own events:
+`scopeSession(session, events)` refuses any other event as
+`input/unknown_event` without sending it, and keeps the events it sent that
+were accepted; `replayOnto(session, events)` sends those to another session
+and reports each that no longer applies. The
+[handoff example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/handoff/README.md)
+runs a main agent and two sub-agents.
+
 ## Retain history outside the live session
 
 rc.16 adds `session.drainArchive()` and the `session.undrained` count for

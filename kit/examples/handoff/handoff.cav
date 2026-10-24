@@ -1,0 +1,158 @@
+# A main agent hands a database cleanup to a sub-agent. One ledger travels
+# with the work: the sub-agent sees why it was asked and what is closed off,
+# and its report carries its own caveats back to the main agent.
+#
+# Events named main_* are the main agent's and sub_* the sub-agent's. The
+# runtime does not know who sends an event; the host gives each agent a
+# session scoped to its own events (caveat-lang/handoff, see README.md).
+claim cleanup_needed;
+claim cleanup_works;
+
+evidence user_request from "the user's request to the main agent";
+evidence schema_review from "the main agent's review of the schema";
+evidence customer_notice from "the notice of column names sent to customers";
+evidence rewrite_review from "the main agent's finding that a rewrite is out of scope";
+evidence handoff_brief from "the brief the main agent gives the sub-agent";
+evidence user_update from "a change to the request while the sub-agent works";
+evidence sub_run from "the sub-agent's test runs";
+evidence sub_concern from "the sub-agent's objection to the plan";
+evidence schema_recheck from "a finding that the schema review was wrong";
+evidence report_recheck from "a finding that a sub-agent report was wrong";
+evidence return_review from "the main agent's review of what came back";
+
+caveat linux_only consequence material;
+caveat sample_data_only consequence high;
+caveat style_unchecked consequence low;
+
+readings grants from user_request limit 4;
+readings updates from user_update limit 4;
+readings reports from sub_run limit 8;
+
+# The main agent's decisions.
+decisions plan limit 4 reopened by updates;
+decisions delegate limit 4;
+decisions notify_customers limit 1 irreversible forecloses rename_column, drop_column;
+decisions no_rewrite limit 2;
+decisions ship limit 1 irreversible;
+
+# The sub-agent's decisions.
+decisions edit_queries limit 8;
+decisions rename_column limit 4;
+decisions drop_column limit 4;
+decisions rewrite limit 4;
+
+event main_request;
+event main_notify;
+event main_rule_out_rewrite;
+event main_grant scope in read_only edit;
+event main_revoke;
+event main_handoff;
+event main_update;
+event main_retract_schema;
+event main_return;
+event main_ship;
+event main_ship_on_linux;
+event main_retract_report;
+
+event sub_edit;
+event sub_rename;
+event sub_drop;
+event sub_rewrite;
+event sub_object;
+event sub_report result in pass fail, coverage in full linux sample;
+
+# Main agent: the plan, and what it rules out.
+on main_request reveal user_request supports cleanup_needed;
+on main_request reveal schema_review supports cleanup_needed;
+on main_request commit plan because enough citing qualified(1, user_request), qualified(1, schema_review);
+
+on main_notify reveal customer_notice;
+on main_notify commit notify_customers because enough citing qualified(1, customer_notice);
+
+on main_rule_out_rewrite reveal rewrite_review;
+on main_rule_out_rewrite commit no_rewrite because enough citing qualified(1, rewrite_review);
+
+on main_grant when scope == scope.edit sample grants = 2;
+on main_grant when scope == scope.read_only sample grants = 1;
+on main_revoke when not has_sample(grants) reject "Nothing granted.";
+on main_revoke withdraw latest(grants) because user_request;
+
+# The handoff: a decision that rests on the plan, and a hold on the plan
+# while the sub-agent works on it.
+on main_handoff when not committed(plan) or reopened(plan) reject "No plan in force to hand off.";
+on main_handoff when on_hold(plan) reject "Already handed off.";
+on main_handoff reveal handoff_brief;
+on main_handoff commit delegate because enough citing committed(plan), qualified(1, handoff_brief);
+on main_handoff hold plan because handoff_brief;
+
+on main_update sample updates = 1;
+
+# The schema review turns out wrong: that never waits for the sub-agent.
+on main_retract_schema reveal schema_recheck;
+on main_retract_schema withdraw schema_review because schema_recheck;
+on main_retract_schema when committed(plan) and not reopened(plan) and rests_on_withdrawn(plan)
+    reopen plan because schema_recheck;
+on main_retract_schema when committed(delegate) and not reopened(delegate) and rests_on_withdrawn(delegate)
+    reopen delegate because schema_recheck;
+on main_retract_schema when committed(edit_queries) and not reopened(edit_queries)
+    and rests_on_withdrawn(edit_queries)
+    reopen edit_queries because schema_recheck;
+
+on main_return when not on_hold(plan) reject "Nothing handed off.";
+on main_return reveal return_review;
+on main_return release plan because return_review;
+
+# Shipping the sub-agent's work cannot be undone.
+on main_ship when not has_sample(reports) reject "No report to ship on.";
+on main_ship when latest(reports) == 0 reject "The latest report failed.";
+on main_ship commit ship because enough using latest(reports);
+on main_ship_on_linux when not has_sample(reports) reject "No report to ship on.";
+on main_ship_on_linux when latest(reports) == 0 reject "The latest report failed.";
+on main_ship_on_linux when not observed(return_review) reject "Review the return first.";
+on main_ship_on_linux commit ship because enough using latest(reports)
+    retaining linux_only because return_review;
+
+on main_retract_report when not has_sample(reports) reject "No report to retract.";
+on main_retract_report reveal report_recheck;
+on main_retract_report withdraw latest(reports) because report_recheck;
+on main_retract_report when committed(ship) and not reopened(ship) and in_basis(ship, latest(reports))
+    reopen ship because report_recheck;
+on main_retract_report when committed(edit_queries) and not reopened(edit_queries)
+    and in_basis(edit_queries, latest(reports))
+    reopen edit_queries because report_recheck;
+
+# Sub-agent: what it may do, under the grant and the main agent's limits.
+on sub_edit when not committed(delegate) or reopened(delegate) reject "Nothing was handed off.";
+on sub_edit commit edit_queries because enough citing committed(delegate)
+    permitted by latest(grants) for 2;
+
+# Foreclosed by notify_customers: the runtime refuses these itself.
+on sub_rename commit rename_column because enough citing committed(delegate);
+on sub_drop commit drop_column because enough citing committed(delegate);
+
+# Ruled out by a decision that can be undone: only a guard can say so.
+on sub_rewrite when committed(no_rewrite) and not reopened(no_rewrite)
+    reject "Ruled out by the main agent: no_rewrite.";
+on sub_rewrite commit rewrite because enough citing committed(delegate);
+
+# The sub-agent may object, but the plan is on hold: the objection waits.
+on sub_object when not committed(plan) or reopened(plan) reject "No plan to object to.";
+on sub_object reveal sub_concern opposes cleanup_needed;
+on sub_object reopen plan because sub_concern;
+
+on sub_report when result == result.pass sample reports = 1 supports cleanup_works;
+on sub_report when result == result.fail sample reports = 0 opposes cleanup_works;
+on sub_report when coverage == coverage.linux qualify latest(reports) with linux_only;
+on sub_report when coverage == coverage.sample qualify latest(reports) with sample_data_only;
+on sub_report qualify latest(reports) with style_unchecked;
+
+bind status.plan = "none";
+bind status.plan = "in force" when committed(plan) and not reopened(plan);
+bind status.plan = "with the sub-agent" when on_hold(plan);
+bind status.plan = "reopened" when committed(plan) and reopened(plan);
+bind status.shipped = "no";
+bind status.shipped = "yes" when committed(ship);
+bind status.ship_in_question = "no";
+bind status.ship_in_question = "yes" when committed(ship) and reopened(ship);
+bind status.sub_work_in_question = "no";
+bind status.sub_work_in_question = "yes" when committed(edit_queries) and reopened(edit_queries);

@@ -1,0 +1,495 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "handoff.cav",
+ "scenarios": [
+  {
+   "id": "H01",
+   "title": "The sub-agent's work rests on the main agent's reasons, and the ledger survives being passed as a save",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_grant",
+     "payload": {
+      "scope": "edit"
+     }
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "with the sub-agent",
+      "/commitment_grounds/delegate@1": {
+       "evidence": {
+        "$set": [
+         "handoff_brief",
+         "schema_review",
+         "user_request"
+        ]
+       }
+      }
+     }
+    },
+    {
+     "resume": true
+    },
+    {
+     "send": "sub_edit"
+    },
+    {
+     "expect": {
+      "/commitment_grounds/edit_queries@1": {
+       "evidence": {
+        "$set": [
+         "handoff_brief",
+         "schema_review",
+         "user_request"
+        ]
+       }
+      }
+     }
+    },
+    {
+     "resume": true
+    },
+    {
+     "send": "main_handoff",
+     "rejected": "Already handed off."
+    }
+   ]
+  },
+  {
+   "id": "H02",
+   "title": "What the main agent closed off stays closed for the sub-agent",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_notify"
+    },
+    {
+     "send": "main_rule_out_rewrite"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_rename",
+     "rejected": {
+      "origin": "evaluation",
+      "code": "foreclosed"
+     }
+    },
+    {
+     "send": "sub_drop",
+     "rejected": {
+      "origin": "evaluation",
+      "code": "foreclosed"
+     }
+    },
+    {
+     "send": "sub_rewrite",
+     "rejected": "Ruled out by the main agent: no_rewrite."
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "with the sub-agent"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H03",
+   "title": "Before the notice goes out, renaming is still open",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_rename"
+    },
+    {
+     "send": "main_notify"
+    },
+    {
+     "send": "sub_drop",
+     "rejected": {
+      "origin": "evaluation",
+      "code": "foreclosed"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H04",
+   "title": "The sub-agent acts only within its grant",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "sub_edit",
+     "rejected": "Nothing was handed off."
+    },
+    {
+     "send": "main_grant",
+     "payload": {
+      "scope": "read_only"
+     }
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_edit",
+     "rejected": {
+      "origin": "policy",
+      "code": "not_permitted"
+     }
+    },
+    {
+     "send": "main_grant",
+     "payload": {
+      "scope": "edit"
+     }
+    },
+    {
+     "send": "sub_edit"
+    }
+   ]
+  },
+  {
+   "id": "H04b",
+   "title": "A revoked grant stops the sub-agent, and the refusal names the revocation",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_grant",
+     "payload": {
+      "scope": "edit"
+     }
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "main_revoke"
+    },
+    {
+     "send": "sub_edit",
+     "rejected": {
+      "origin": "policy",
+      "code": "not_permitted"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H05",
+   "title": "While the sub-agent works, a changed request and its objection wait; the return applies both",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "main_update"
+    },
+    {
+     "send": "sub_object"
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "with the sub-agent"
+     }
+    },
+    {
+     "resume": true
+    },
+    {
+     "send": "main_return"
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "reopened",
+      "/decision_journal": [
+       {
+        "commitment": "plan@1",
+        "change": "committed",
+        "because": [
+         "user_request",
+         "schema_review"
+        ]
+       },
+       {
+        "commitment": "delegate@1",
+        "change": "committed",
+        "because": [
+         "user_request",
+         "schema_review",
+         "handoff_brief"
+        ]
+       },
+       {
+        "commitment": "plan@1",
+        "change": "held",
+        "because": [
+         "handoff_brief"
+        ]
+       },
+       {
+        "commitment": "plan@1",
+        "change": "deferred",
+        "event": "main_update",
+        "because": [
+         "updates@1"
+        ]
+       },
+       {
+        "commitment": "plan@1",
+        "change": "deferred",
+        "event": "sub_object",
+        "because": [
+         "sub_concern"
+        ]
+       },
+       {
+        "commitment": "plan@1",
+        "change": "released",
+        "because": [
+         "return_review"
+        ]
+       },
+       {
+        "commitment": "plan@1",
+        "change": "reopened",
+        "because": [
+         "updates@1",
+         "sub_concern"
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "H06",
+   "title": "A wrong reason under the plan never waits for the sub-agent, and reaches the sub-agent's work",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_grant",
+     "payload": {
+      "scope": "edit"
+     }
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_edit"
+    },
+    {
+     "send": "main_retract_schema"
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "reopened",
+      "/bindings/status/sub_work_in_question": "yes"
+     }
+    },
+    {
+     "send": "sub_edit",
+     "rejected": "Nothing was handed off."
+    }
+   ]
+  },
+  {
+   "id": "H07",
+   "title": "The sub-agent's caveats come back with its report and gate the irreversible ship",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_report",
+     "payload": {
+      "result": "pass",
+      "coverage": "linux"
+     }
+    },
+    {
+     "send": "main_ship",
+     "rejected": {
+      "origin": "evaluation",
+      "code": "caveated_irreversible"
+     }
+    },
+    {
+     "send": "main_ship_on_linux",
+     "rejected": "Review the return first."
+    },
+    {
+     "send": "main_return"
+    },
+    {
+     "send": "main_ship_on_linux"
+    },
+    {
+     "expect": {
+      "/bindings/status/shipped": "yes",
+      "/commitment_grounds/ship@1": {
+       "evidence": {
+        "$set": [
+         "reports@1",
+         "return_review"
+        ]
+       },
+       "caveats": {
+        "$set": [
+         "linux_only",
+         "style_unchecked"
+        ]
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H08",
+   "title": "A report on sample data alone cannot ship, even with linux_only accepted",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_report",
+     "payload": {
+      "result": "pass",
+      "coverage": "sample"
+     }
+    },
+    {
+     "send": "main_return"
+    },
+    {
+     "send": "main_ship_on_linux",
+     "rejected": {
+      "origin": "evaluation",
+      "code": "caveated_irreversible"
+     }
+    },
+    {
+     "send": "sub_report",
+     "payload": {
+      "result": "pass",
+      "coverage": "full"
+     }
+    },
+    {
+     "send": "main_ship"
+    },
+    {
+     "expect": {
+      "/bindings/status/shipped": "yes"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H09",
+   "title": "A report found wrong after shipping puts the ship in question; it keeps its grounds and cannot be done twice",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "sub_report",
+     "payload": {
+      "result": "pass",
+      "coverage": "full"
+     }
+    },
+    {
+     "send": "main_ship"
+    },
+    {
+     "expect": {
+      "/bindings/status/ship_in_question": "no"
+     }
+    },
+    {
+     "send": "main_retract_report"
+    },
+    {
+     "expect": {
+      "/bindings/status/shipped": "yes",
+      "/bindings/status/ship_in_question": "yes",
+      "/commitment_grounds/ship@1": {
+       "evidence": [
+        "reports@1"
+       ]
+      }
+     }
+    },
+    {
+     "send": "sub_report",
+     "payload": {
+      "result": "pass",
+      "coverage": "full"
+     }
+    },
+    {
+     "send": "main_ship",
+     "rejected": {
+      "origin": "limit",
+      "code": "history_limit"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H10",
+   "title": "Without a scoped session, nothing in the program stops the sub-agent from sending the main agent's events",
+   "steps": [
+    {
+     "send": "main_request"
+    },
+    {
+     "send": "main_handoff"
+    },
+    {
+     "send": "main_return"
+    },
+    {
+     "expect": {
+      "/bindings/status/plan": "in force"
+     }
+    }
+   ]
+  }
+ ]
+}

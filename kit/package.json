@@ -58,6 +58,10 @@
       "types": "./lib/explain.d.mts",
       "default": "./lib/explain.mjs"
     },
+    "./handoff": {
+      "types": "./lib/handoff.d.mts",
+      "default": "./lib/handoff.mjs"
+    },
     "./serve": {
       "types": "./lib/serve.d.mts",
       "default": "./lib/serve.mjs"
