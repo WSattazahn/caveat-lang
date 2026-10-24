@@ -1,0 +1,159 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.3.0",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.3.0",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/317",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "maintenanceBranch": null,
+  "integrationIdentity": "PR #317 merged the reviewed 1.3.0 candidate into main without squashing. The annotated tag v1.3.0 peels to the exact tested main revision 753c8e700b0cf9d6661c185e9ec0faa0ee5ae020. v1.2.0 still peels to 75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966, an ancestor of the 1.3.0 revision, and every PR merged to main between the two releases is in 1.3.0. 1.0.1 to 1.0.3 were cut from release/1.0.x and are not ancestors of 1.3.0; their fixes reached main before 1.1.0.",
+  "scope": "Verification of the exact CI-tested 1.3.0 package, the third minor release of 1.x, cut from main at the merge of PR #317. It adds recorded outcomes (resolve, resolved and outcome) and two rejection codes for the new syntax, as docs/releases/v1.3.0.md lists. This record does not establish a later GitHub release or directory listing.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "753c8e700b0cf9d6661c185e9ec0faa0ee5ae020",
+  "publicationRecord": "v1.3.0-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-24T22:59:36.167Z",
+    "record": "v1.3.0-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.3.0",
+    "installPathRecord": "v1.3.0-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-24T21:57:39.727Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/40134986559",
+  "publicationAttempt": 1,
+  "publicationArtifact": {
+    "id": 12577195259,
+    "name": "npm-publication-verification",
+    "digest": "sha256:66ab271cb020c90c9211082cea4b0580363428d78c4657f44df8e2a0a594b476"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/40131781029",
+  "runtimeRunAttempt": 2,
+  "runtimeRunNote": "Attempt 1 passed every job except The Last Beacon browser QA, which was cancelled at its timeout while installing browsers, before any test ran. Attempt 2 reran that job alone and it passed. The candidate artifact is attempt 1's and is the one published.",
+  "runtimeArtifact": {
+    "id": 12575775253,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/40131781029/artifacts/12575775253"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.3.0.tgz",
+    "bytes": 1397148,
+    "sha256": "5c3eb33e973fb000a117e5944bd9d7aa72a1371119e7e1735d83d152c449f136",
+    "sha512": "b0f0ba4800c4f1c6797cbfea776bb3b97c6c18035c214e54fcc28b562c7188f390abe8c1f7f7ce31809d942a2c03e0f8a68012946e5723858287e8a0b89cb1a9",
+    "integrity": "sha512-sPC6SADE8cZ5fL/qd2uzuXxsGANcIU5U/MKLVixxiPOQq+jB9/fOMYCdlCosA+D4poASlG5XI4WCh+iguJyxqQ=="
+  },
+  "stages": [
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    },
+    {
+      "id": "published-1.0.3",
+      "version": "1.0.3",
+      "revision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+      "tag": "v1.0.3",
+      "published": true,
+      "record": "v1.0.3-npm-publication.json",
+      "branch": "release/1.0.x",
+      "ancestorOfRelease": false
+    },
+    {
+      "id": "published-1.1.0",
+      "version": "1.1.0",
+      "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+      "tag": "v1.1.0",
+      "published": true,
+      "record": "v1.1.0-npm-publication.json",
+      "parents": [
+        "554f023c9355d6ce4ad5338ef325a3a0a9157e63",
+        "a77aed736647924833c187b085561dcb32bebb6a"
+      ]
+    },
+    {
+      "id": "published-1.2.0",
+      "version": "1.2.0",
+      "revision": "75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966",
+      "parents": [
+        "e77dd23cdc4bb5b64945537c7f12f29bd9ace006",
+        "ac61381d7a5aca5079b947faf950e590c0f483d8"
+      ],
+      "tag": "v1.2.0",
+      "published": true,
+      "record": "v1.2.0-npm-publication.json"
+    },
+    {
+      "id": "1.2.0-publication-records",
+      "revision": "ce42591237a2d831bae8cb29e6cc2b7ddbeac977",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/308",
+      "mergedAs": "4621da7"
+    },
+    {
+      "id": "1.2.0-release-closeout",
+      "revision": "453a69718eb7443e2bea7d5e07d026c23b0aa09c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/309",
+      "mergedAs": "c29218f"
+    },
+    {
+      "id": "mcp-client-security",
+      "revision": "3aaf92aad48ae0f2132cd26fc974840972d2fd9d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/310",
+      "mergedAs": "7a4672e"
+    },
+    {
+      "id": "cli-collision-security",
+      "revision": "6ab5ff86f4f87566bb8b52caa3a7bc0a174225aa",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/311",
+      "mergedAs": "634bf84"
+    },
+    {
+      "id": "evidence-and-readings-docs",
+      "revision": "59e87d3270b1f5e20f231455236a88d9c0d19caf",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/312",
+      "mergedAs": "4e8d273"
+    },
+    {
+      "id": "authoring-card",
+      "revision": "85e821b7d433b8743fddbb25cb06c6672318d517",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/313",
+      "mergedAs": "5878e5f"
+    },
+    {
+      "id": "recorded-outcomes",
+      "revision": "62c4fa7ff8356c55baa57d8880913796cb899d82",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/314",
+      "mergedAs": "48d0d7e"
+    },
+    {
+      "id": "ledger-313-314-and-light-the-way-traps",
+      "revision": "efca361e0d5507b7df2cade9c9371a4ffbbb7937",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/315",
+      "mergedAs": "98bbee3"
+    },
+    {
+      "id": "reviewed-1.3.0-candidate",
+      "revision": "727b26e539f3c2622c14669b0038f4aed12fc6aa",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/317"
+    },
+    {
+      "id": "published-1.3.0",
+      "version": "1.3.0",
+      "revision": "753c8e700b0cf9d6661c185e9ec0faa0ee5ae020",
+      "parents": [
+        "98bbee3f28e9dc2deed9120f74711371ee7e731a",
+        "727b26e539f3c2622c14669b0038f4aed12fc6aa"
+      ],
+      "tag": "v1.3.0",
+      "published": true,
+      "record": "v1.3.0-npm-publication.json"
+    }
+  ]
+}
