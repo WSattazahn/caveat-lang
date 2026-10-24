@@ -128,6 +128,19 @@ which affects versions through `1.8.0`. This supersedes the fixture's earlier
 remain historical observations. Lifecycle scripts and the competing CLI
 remain disabled, and the security policy is unchanged.
 
+The October 24, 2026 follow-up clears two development-only scopes after new
+advisories. The editor's `@vscode/vsce` packaging tool reaches
+`@azure/msal-node` 6.x through `@azure/identity`, inside the range of
+[GHSA-xcx6-jx8p-x3h5](https://github.com/advisories/GHSA-xcx6-jx8p-x3h5)
+(5.0.0-beta.0 through 7.0.2). No `@azure/identity` release accepts a patched
+version yet, so the editor overrides it with `7.1.1`. The extension's tests
+pass and it still packages. The MCP client fixture's lockfile moves to patched
+`body-parser`, `fast-uri`, `ip-address` and `zod` within their existing ranges
+([GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828),
+[GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) and
+others the audit lists). The published package is unaffected: it still has no
+npm dependencies.
+
 The receipt records tool versions, command arguments, timestamps and exit codes;
 input manifest/lockfile hashes; the artifact and build identity; the RustSec
 commit; and the hash of every retained raw command response. npm exposes no
