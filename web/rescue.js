@@ -240,6 +240,8 @@ async function boot() {
   accept(snapshot);
   Object.defineProperty(window, '__rescue', { value: Object.freeze({
     snapshot: () => JSON.parse(session.snapshot()),
+    // After a WebAssembly trap only this is safe to read: true means it ran out of memory.
+    outOfMemory: () => WebReactiveSession.out_of_memory(),
     recentCues: () => structuredClone(recentCues),
     presentation: () => structuredClone(world.getBindingPresentation()),
     get rendered() { return Boolean(world); }, get screen() { return app.dataset.screen; },
