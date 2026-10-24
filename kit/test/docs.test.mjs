@@ -38,7 +38,7 @@ async function packageFiles() {
 
 // The kit's own documents, whose links must all resolve inside the package.
 const KIT_DOCUMENTS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md',
-  'docs/STARTER.md', 'examples/agent-evidence/README.md', 'examples/readiness/README.md', 'examples/procedure-handles/README.md'];
+  'docs/STARTER.md', 'docs/AUTHORING_CARD.md', 'examples/agent-evidence/README.md', 'examples/readiness/README.md', 'examples/procedure-handles/README.md'];
 
 export function relativeLinks(markdown) {
   return [...markdown.matchAll(/\]\(([^)\s]+)\)/g)].map(match => match[1])
@@ -187,6 +187,18 @@ test('every program in the worked example is a file it runs', async () => {
     assert.match(block.marker, /^<!-- file: \S+\.cav -->$/, `the caveat block at line ${block.at} is not a file the page runs`);
   }
   assert.deepEqual(guideSteps(markdown).map(step => step.kind), ['file', 'run', 'run', 'file', 'run', 'file', 'run']);
+});
+
+// The authoring card's program, scenarios and outputs are a file and commands
+// it runs, so the card cannot drift from the language it summarizes.
+test('following the authoring card prints what it shows', async () => {
+  const markdown = await readFile(path.join(kit, 'docs/AUTHORING_CARD.md'), 'utf8');
+  for (const block of programBlocks(markdown)) {
+    assert.match(block.marker, /^<!-- file: \S+\.cav -->$/, `the caveat block at line ${block.at} is not a file the card runs`);
+  }
+  const results = await followInCheckout('docs/AUTHORING_CARD.md');
+  assert.deepEqual(results.map(result => result.command.split(' ')[3]), ['check', 'test']);
+  assertPrintsWhatItShows(results);
 });
 
 test('following the worked example prints what it shows', async () => {

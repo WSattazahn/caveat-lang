@@ -49,7 +49,9 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
 
 ## Build one small, testable integration
 
-1. Read [Caveat on one page](REFERENCE.md) before inventing syntax. The
+1. Start with the [authoring card](AUTHORING_CARD.md): one tested program
+   with the usual parts and the mistakes that cost the most. Then read
+   [Caveat on one page](REFERENCE.md) before inventing syntax. The
    [authoring guide](reference/docs/AI_AUTHORING.md) covers lifecycle and
    qualification details; specifications linked there define the contracts.
 2. State required outcomes in [scenarios](reference/spec/caveat-scenarios-0.1.md).
