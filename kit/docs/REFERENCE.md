@@ -95,7 +95,7 @@ end of the line; `--` is not a comment.
 | `identifiers limit N;` | Required before any `id` parameter. |
 | `define NAME = EXPRESSION;` | A named expression, inlined where read ([define](reference/spec/caveat-define-0.1.md)). |
 | `fn NAME(A, B) = EXPRESSION;` | A pure function. It cannot read state or evidence. |
-| `proc NAME(PARAMETER, …) { STEP; … };` | Steps run by `call`. A parameter is a number, or `NAME readings`, `decisions`, `evidence`, `claim` or `caveat` ([procedures](reference/spec/caveat-procedure-symbols-0.1.md)). |
+| `proc NAME(PARAMETER, …) { STEP; … };` | Steps run by `call`. A parameter is a number, or `NAME readings`, `decisions`, `evidence`, `claim` or `caveat`. Symbol arguments are bare declared names; pass `S` to `s readings` and use `latest(s)` inside, not `latest(S)` to `e evidence` ([paired examples](../examples/procedure-handles/README.md), [spec](reference/spec/caveat-procedure-symbols-0.1.md)). |
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |
 | `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). A countdown from a fractional clock can show a second too many; one that must agree to the tick uses an [integer clock](reference/spec/caveat-elapsed-0.1.md#integer-clocks). |
 | `renewable EVIDENCE limit N;` | Evidence whose name can move to up to N distinct occurrences ([renewal](reference/spec/caveat-renewal-0.1.md)). |

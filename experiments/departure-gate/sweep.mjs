@@ -25,6 +25,7 @@ const newerThanBaseline = {
   'experiments/stabilization-trial/trial.cav': /\bunqualify\b/,
   'docs/releases/v1.0.1-d012.cav': /\bunqualify\b/,
   'docs/releases/v1.0.3-d020.cav': /\bunqualify\b/,
+  'kit/examples/procedure-handles/handles.cav': /\bs readings\)/,
 };
 
 
