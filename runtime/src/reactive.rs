@@ -6261,9 +6261,9 @@ impl ReactiveSession {
             .revisions[position]
             .outcome = Some(outcome);
         self.retire_journal_entry();
-        let mut caveats = BTreeSet::new();
+        let mut cause_caveats = BTreeSet::new();
         for evidence in &because {
-            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+            cause_caveats.extend(self.qualify_core(evidence, &[])?.caveats);
         }
         let entry = JournalEntry {
             decision: action.clone(),
@@ -6277,7 +6277,7 @@ impl ReactiveSession {
                 .get(&revision)
                 .and_then(|basis| basis.value),
             because,
-            caveats: caveats.into_iter().collect(),
+            caveats: cause_caveats.into_iter().collect(),
             permitted_by: None,
             outcome: Some(number),
             materialized: resolution.materialized.clone(),
