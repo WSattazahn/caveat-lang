@@ -1,0 +1,277 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "delivery.cav",
+ "scenarios": [
+  {
+   "id": "D01",
+   "title": "Correct artifact: digest matches and JSON parses, so the delivery is accepted on the read-back and the contract, not on the agent's report",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "agent_reports_done"
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "delivered/artifact.json",
+      "exists": "present",
+      "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "json": "valid"
+     }
+    },
+    {
+     "send": "judge"
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "accept",
+      "/commitment_grounds/verdict@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "contract"
+        ]
+       },
+       "caveats": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D02",
+   "title": "Stale artifact: JSON parses but the digest does not match, so it is rejected",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "agent_reports_done"
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "delivered/artifact.json",
+      "exists": "present",
+      "sha256": "stale-digest-placeholder",
+      "json": "valid"
+     }
+    },
+    {
+     "send": "judge"
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "reject",
+      "/bindings/delivery/digest": "does not match approved"
+     }
+    }
+   ]
+  },
+  {
+   "id": "D03",
+   "title": "Pre-frozen control: the digest matches but the bytes do not parse, so a digest match alone does not accept",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "agent_reports_done"
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "delivered/artifact.json",
+      "exists": "present",
+      "sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+      "json": "invalid"
+     }
+    },
+    {
+     "send": "judge"
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "reject",
+      "/bindings/delivery/digest": "matches approved",
+      "/bindings/delivery/json": "does not parse"
+     }
+    }
+   ]
+  },
+  {
+   "id": "D04",
+   "title": "The agent's report alone cannot produce a verdict",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "agent_reports_done"
+    },
+    {
+     "send": "judge",
+     "rejected": "No read-back of the declared destination."
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "none"
+     }
+    }
+   ]
+  },
+  {
+   "id": "D05",
+   "title": "A read-back of an undeclared path is refused as evidence",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "elsewhere/artifact.json",
+      "exists": "present",
+      "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "json": "valid"
+     },
+     "rejected": "Read-back is not of the declared destination."
+    },
+    {
+     "send": "judge",
+     "rejected": "No read-back of the declared destination."
+    }
+   ]
+  },
+  {
+   "id": "D06",
+   "title": "Overwritten after acceptance: the next read-back reopens the verdict, a new verdict rejects, and the first keeps its grounds",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "agent_reports_done"
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "delivered/artifact.json",
+      "exists": "present",
+      "sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "json": "valid"
+     }
+    },
+    {
+     "send": "judge"
+    },
+    {
+     "checkpoint": "accepted"
+    },
+    {
+     "send": "read_back",
+     "payload": {
+      "destination": "delivered/artifact.json",
+      "exists": "present",
+      "sha256": "stale-digest-placeholder",
+      "json": "valid"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "reopened"
+     }
+    },
+    {
+     "send": "judge"
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "reject",
+      "/commitment_grounds/verdict@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "contract"
+        ]
+       },
+       "caveats": []
+      },
+      "/commitment_grounds/verdict@2": {
+       "evidence": {
+        "$set": [
+         "checks@2",
+         "contract"
+        ]
+       }
+      }
+     }
+    },
+    {
+     "resume": true
+    },
+    {
+     "expect": {
+      "/bindings/delivery/verdict": "reject",
+      "/commitment_grounds/verdict@1": {
+       "evidence": {
+        "$set": [
+         "checks@1",
+         "contract"
+        ]
+       },
+       "caveats": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D07",
+   "title": "The contract is frozen once",
+   "steps": [
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+      "destination": "delivered/artifact.json"
+     }
+    },
+    {
+     "send": "freeze_contract",
+     "payload": {
+      "approved_sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+      "destination": "delivered/artifact.json"
+     },
+     "rejected": "The contract is already frozen."
+    }
+   ]
+  }
+ ]
+}
