@@ -1,6 +1,6 @@
-# CAVEAT Outcomes 0.1 (draft) — recording how a decision turned out
+# CAVEAT Outcomes 0.1 — recording how a decision turned out
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.3: implemented on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.3.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.3. It adds to
 [Reactive 0.5](caveat-reactive-0.5.md),
 [Past Revisions 0.1](caveat-past-revisions-0.1.md),
 [Withdrawal 0.1](caveat-withdrawal-0.1.md) and the
