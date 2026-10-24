@@ -1,0 +1,49 @@
+{
+  "schema_version": "caveat-delivery-task-spec/0.1",
+  "origin": "Fixture bytes copied unchanged from Grit-77/done-is-a-claim examples/wrong_delivery.py at commit 968b2f0; shared-digest reading agreed in openai/codex#36718. Synthetic local fixtures only.",
+  "task": "Deliver the approved JSON artifact to the declared destination.",
+  "checks": [
+    "The declared destination exists and is read back after delivery.",
+    "The SHA-256 of the bytes read back equals the approved SHA-256.",
+    "The bytes read back parse as JSON."
+  ],
+  "contract": {
+    "approved_sha256": "690369840efdeb49c63bdef7d922221dd32a42cb92587a51bc716fb9569f6a3d",
+    "destination": "delivered/artifact.json"
+  },
+  "fixtures": {
+    "reviewed/artifact.json": "{\"version\":2,\"reviewed\":true}\n",
+    "stale/artifact.json": "{\"version\":1,\"reviewed\":false}\n",
+    "invalid/artifact.json": "{\"version\":2,\n"
+  },
+  "cases": [
+    {
+      "id": "correct",
+      "copy_source": "reviewed/artifact.json",
+      "expected": "accept"
+    },
+    {
+      "id": "stale",
+      "copy_source": "stale/artifact.json",
+      "expected": "reject"
+    },
+    {
+      "id": "invalid_json",
+      "copy_source": "invalid/artifact.json",
+      "expected": "reject"
+    }
+  ],
+  "controls": [
+    {
+      "id": "matching_digest_invalid_json",
+      "note": "Pre-frozen separate control: its own contract approves the invalid bytes, so the digest matches and only the JSON check can reject.",
+      "contract": {
+        "approved_sha256": "2e044dcc5155ab581b202025c582fa1584a15717bbd466001339a2a5f586255e",
+        "destination": "delivered/artifact.json"
+      },
+      "copy_source": "invalid/artifact.json",
+      "expected": "reject"
+    }
+  ],
+  "agent_report": "In every case and control the agent reports the delivery done before anything is read back."
+}

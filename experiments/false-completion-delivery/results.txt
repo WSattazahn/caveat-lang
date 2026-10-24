@@ -1,0 +1,9 @@
+SYNTHETIC local fixtures. caveat-lang@1.2.0, v22.22.0, task-spec 4adc0646276b, program d07e1ffb042c
+correct: digest matches approved, JSON parses -> accept (expected accept)  grounds ["checks@1","contract"]
+stale: digest does not match approved, JSON parses -> reject (expected reject)  grounds ["checks@1","contract"]
+invalid_json: digest does not match approved, JSON does not parse -> reject (expected reject)  grounds ["checks@1","contract"]
+matching_digest_invalid_json: digest matches approved, JSON does not parse -> reject (expected reject)  grounds ["checks@1","contract"]
+report_without_readback: refused: "No read-back of the declared destination."  (as expected)
+readback_of_wrong_path: refused: "Read-back is not of the declared destination."  (as expected)
+overwritten_after_accept: accept -> reopened -> reject; verdict@1 grounds still ["checks@1","contract"]  (as expected)
+Runner exit: 0 (0: every case ran and matched its pre-frozen expected outcome. Not the acceptance of any delivery.)

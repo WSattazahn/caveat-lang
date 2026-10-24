@@ -1,0 +1,10 @@
+{
+  "name": "narrowed-test-break",
+  "private": true,
+  "type": "module",
+  "description": "Narrowed-test cases for completion gates, from openai/codex#36718.",
+  "dependencies": {
+    "caveat-lang": "1.2.0",
+    "donegate": "0.1.0"
+  }
+}

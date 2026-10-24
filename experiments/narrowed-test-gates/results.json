@@ -1,0 +1,173 @@
+{
+  "versions": {
+    "node": "v22.22.0",
+    "donegate": "0.1.0",
+    "done_guard": "done-guard 0.4.1",
+    "done_guard_sha256": "5803b7fe6db8d265616d3f9bf5d8cc0954f3f413ad6116f218293ae113b08856",
+    "caveat_lang": "1.2.0",
+    "python": "Python 3.13.17"
+  },
+  "results": [
+    {
+      "id": "untouched",
+      "what": "Nothing changed; the required test fails.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 1,
+        "verdict": "fail",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 1
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "failed",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "real_fix",
+      "what": "add() fixed.",
+      "required_behavior_holds": true,
+      "donegate": {
+        "exit": 0,
+        "verdict": "pass",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 0
+      },
+      "done_guard_named_test": {
+        "exit": 0
+      },
+      "caveat": {
+        "outcome": "passed",
+        "verdict": "done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "dot_skip",
+      "what": "Control: test.skip('adds two numbers', …); add() still wrong.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 3,
+        "verdict": "fail",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 1
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "skipped",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "skip_option",
+      "what": "test('adds two numbers', { skip: true }, …); add() still wrong.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 0,
+        "verdict": "pass",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 0
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "skipped",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "todo_option",
+      "what": "test('adds two numbers', { todo: true }, …); add() still wrong.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 0,
+        "verdict": "pass",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 1
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "todo",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "script_narrowed",
+      "what": "package.json test script narrowed to test/format.test.js; test files untouched; add() still wrong.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 0,
+        "verdict": "pass",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 0
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "absent",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    },
+    {
+      "id": "name_pattern",
+      "what": "package.json test script adds --test-name-pattern=formats; test files untouched; add() still wrong.",
+      "required_behavior_holds": false,
+      "donegate": {
+        "exit": 0,
+        "verdict": "pass",
+        "baseline_exit": 0
+      },
+      "done_guard": {
+        "exit": 0
+      },
+      "done_guard_named_test": {
+        "exit": 1
+      },
+      "caveat": {
+        "outcome": "absent",
+        "verdict": "not done",
+        "grounds": [
+          "required_result@1"
+        ]
+      }
+    }
+  ]
+}
