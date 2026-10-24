@@ -101,13 +101,16 @@ export interface Assessment {
   sequence: number;
   revision?: string | null;
   change?: {
-    change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
+    change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
     sequence: number;
     event: string;
     because: string[];
     caveats: string[];
     value?: number;
     permitted_by?: string;
+    /** For `resolved`, the outcome's value (spec/caveat-outcomes-0.1.md). */
+    outcome?: number;
+    materialized?: string[];
   };
   /** The source digest the revision was committed under: the session's own, since a save restores only under its source. */
   source_sha256?: string;

@@ -731,6 +731,10 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
         Effect::Unqualify { index, .. } => index.as_deref().into_iter().collect(),
         Effect::Withdraw { target, .. } => selector(target).into_iter().collect(),
         Effect::Reopen { because, .. } => selector(because).into_iter().collect(),
+        Effect::Resolve(resolution) => std::iter::once(&resolution.value)
+            .chain(&resolution.revision)
+            .chain(selector(&resolution.because))
+            .collect(),
         Effect::Set { value, because, .. } => std::iter::once(value)
             .chain(because.iter().flatten())
             .collect(),

@@ -164,6 +164,8 @@ const TAKE_BACK = `claim safe; evidence taste from "a taste"; caveat doubted con
   on sip reveal taste supports safe; on doubt qualify taste with doubted; on undoubt unqualify taste with doubted;`;
 // spec/caveat-foreclosure-0.1.md: an irreversible decision and what it forecloses.
 const FORECLOSURE = 'claim c; evidence e from "check"; decisions drop limit 1 irreversible forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit drop because enough using qualified(1, e);';
+// An outcome on a revision (spec/caveat-outcomes-0.1.md).
+const OUTCOME = 'claim c; evidence e from "check"; caveat doubt consequence low; decisions d limit 2; event go; event close; on go reveal e supports c; on go commit d because enough using qualified(1, e) retaining doubt; on close resolve d = 1 because e materialized doubt;';
 const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
@@ -191,6 +193,7 @@ function sessionsOf() {
     // A retained caveat's reason (spec/caveat-retention-reasons-0.1.md).
     [RETENTION_REASON, [['go']]],
     [FORECLOSURE, [['go']]],
+    [OUTCOME, [['go'], ['close']]],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];
@@ -499,6 +502,7 @@ test('explain, dependents and check reports have the declared fields', () => {
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
+    [OUTCOME, [['go'], ['close']], 'e'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).
     [WINDOWED, WINDOWED_EVENTS.slice(0, 4), 'sighting'],

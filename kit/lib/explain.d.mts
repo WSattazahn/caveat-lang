@@ -8,6 +8,7 @@ import type {
   DispatchRejected,
   DepartureMarker,
   Effect,
+  Outcome,
   PermissionRecord,
   Provenance,
   Snapshot,
@@ -138,6 +139,8 @@ export interface ExplainedRevision {
    * none of them observed it.
    */
   observed_by?: GroundsObservation[];
+  /** From 1.3: how it turned out, once a `resolve` recorded it (spec/caveat-outcomes-0.1.md). */
+  outcome?: Outcome;
   history: RevisionChange[];
 }
 
@@ -146,11 +149,15 @@ export type GroundsObservation =
   | { evidence: string; sequence: null; event: null; payload: null };
 
 export interface RevisionChange {
-  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   sequence: number;
   event: string;
   because: string[];
   caveats: string[];
+  /** For `resolved`, the outcome's value. */
+  outcome?: number;
+  /** For `resolved`, the retained caveats it says came true. */
+  materialized?: string[];
   /**
    * SHA-256 of the source this change was made under, or null when it ran
    * before saves recorded one ("not recorded"). Identifies the source; does
@@ -254,7 +261,7 @@ export interface DependentChange {
   sequence: number;
   event: string;
   commitment: string;
-  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];

@@ -334,6 +334,37 @@ pub enum Effect {
         because: EvidenceSelector,
         form: DecisionChange,
     },
+    /// From 1.3, `resolve D = VALUE because E [materialized C, …]`, or of
+    /// `revision(D, K)`. See spec/caveat-outcomes-0.1.md.
+    Resolve(Box<Resolution>),
+}
+
+/// A `resolve` effect: the outcome it records and the revision it records
+/// it on. See spec/caveat-outcomes-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Resolution {
+    pub action: String,
+    /// `revision(D, K)`: K. Otherwise the current revision.
+    pub revision: Option<Expr>,
+    pub value: Expr,
+    pub because: EvidenceSelector,
+    pub materialized: Vec<String>,
+}
+
+/// What `resolve` recorded on a revision. See spec/caveat-outcomes-0.1.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Outcome {
+    pub value: f64,
+    /// The evidence the outcome was read from, in observation order.
+    pub because: Vec<String>,
+    /// The revision's retained caveats that came true, in source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub materialized: Vec<String>,
+    pub sequence: u64,
+    pub event: String,
+    /// The value's lineage, the evidence's and the guard's, frozen.
+    pub lineage: Provenance,
 }
 
 /// What a `reopen`, `hold` or `release` effect does to a decision. See
@@ -790,7 +821,7 @@ pub struct ReadingStream {
     pub selection_qualifications: Provenance,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DecisionRevision {
     pub id: String,
@@ -798,6 +829,10 @@ pub struct DecisionRevision {
     pub ordinal: u64,
     pub sequence: u64,
     pub event: String,
+    /// How it turned out, once a `resolve` says. Left out until then. See
+    /// spec/caveat-outcomes-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<Outcome>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1534,6 +1569,12 @@ pub struct JournalEntry {
     /// For a commitment made with `permitted by`, its grant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permitted_by: Option<String>,
+    /// For `resolved`, the outcome's value. See spec/caveat-outcomes-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<f64>,
+    /// For `resolved`, the retained caveats it says came true.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub materialized: Vec<String>,
 }
 
 /// What a host redraws after an event: bindings and what they cite, cues and
@@ -3057,6 +3098,22 @@ impl ReactiveSession {
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
                 )),
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME
+                    if self.decision_series.contains_key(symbol) =>
+                {
+                    Ok(())
+                }
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME => Err(format!(
+                    "{kind} names a decision series; {symbol} is not one"
+                )),
+                reactive_expr::AT_REVISION_RESOLVED
+                    if self.decision_series.contains_key(symbol) =>
+                {
+                    Ok(())
+                }
+                reactive_expr::AT_REVISION_RESOLVED => {
+                    Err(format!("revision({symbol}, …) names no decision series"))
+                }
                 _ if kind.starts_with(CARRIES) => {
                     self.require_kind(symbol, "evidence")?;
                     self.require_kind(&kind[CARRIES.len()..], "caveat")
@@ -3347,6 +3404,40 @@ impl ReactiveSession {
                         }
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                    }
+                }
+                // An outcome is of a revision of a series
+                // (spec/caveat-outcomes-0.1.md).
+                Effect::Resolve(resolution) => {
+                    let action = &resolution.action;
+                    if !self.decision_series.contains_key(action) {
+                        return Err(format!(
+                            "resolve names a decision series; {action} is not one"
+                        ));
+                    }
+                    if let Some(index) = &resolution.revision {
+                        if index.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                            return Err(format!("revision({action}, …) requires a numeric index"));
+                        }
+                    }
+                    if resolution.value.validate(&numeric, &validate_predicate)?
+                        != ValueType::Number
+                    {
+                        return Err(format!("resolve {action} requires a numeric value"));
+                    }
+                    match &resolution.because {
+                        EvidenceSelector::Named(name) => self.require_kind(name, "evidence")?,
+                        EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                        EvidenceSelector::Caveated { state, caveat } => {
+                            self.state_with_caveat(state, caveat)?;
+                        }
+                        EvidenceSelector::Occurrence { evidence, index } => self
+                            .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                    }
+                    for caveat in &resolution.materialized {
+                        if self.require_kind(caveat, "caveat").is_err() {
+                            return Err(format!("unknown caveat {caveat}"));
+                        }
                     }
                 }
             }
@@ -3765,6 +3856,9 @@ impl ReactiveSession {
     /// expression failure; see
     /// spec/caveat-dispatch-0.1.md.
     fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
+        if let HistoryRead::Outcome(index) = query {
+            return self.outcome_read(name, index);
+        }
         if query == HistoryRead::Latest {
             if let Some(stream) = self.reading_streams.get(name) {
                 if stream.occurrences.is_empty() {
@@ -3813,7 +3907,7 @@ impl ReactiveSession {
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
-                HistoryRead::Latest => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
             return Ok(Tracked::new(
                 value,
@@ -3847,7 +3941,7 @@ impl ReactiveSession {
                         )
                     })?
                 }
-                HistoryRead::Latest => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
             return Ok(Tracked::new(
                 value,
@@ -3855,6 +3949,76 @@ impl ReactiveSession {
             )?);
         }
         Err(format!("unknown history {name}").into())
+    }
+
+    /// The outcome of a series' current revision, or of revision K. A
+    /// revision with none refuses the event as `evaluation/expression`, as
+    /// `history_at` past a history's records does. See
+    /// spec/caveat-outcomes-0.1.md.
+    fn outcome_read(&self, name: &str, index: Option<usize>) -> Result<Tracked<f64>, EvalError> {
+        let series = &self.decision_series[name];
+        let (label, revision) = match index {
+            None => (
+                name.to_string(),
+                series
+                    .current
+                    .as_ref()
+                    .and_then(|current| series.revisions.iter().find(|held| held.id == *current)),
+            ),
+            Some(k) => (
+                format!("revision({name}, {k})"),
+                series.revisions.get(k - 1),
+            ),
+        };
+        let Some(revision) = revision else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("outcome({label}): {name} has no such revision"),
+            ));
+        };
+        let Some(outcome) = &revision.outcome else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("outcome({label}): {} has no outcome", revision.id),
+            ));
+        };
+        Ok(Tracked::new(outcome.value, self.outcome_lineage(outcome)?)?)
+    }
+
+    /// An outcome's frozen lineage, with the caveats its evidence carries
+    /// now, so that a later qualification or withdrawal reaches it.
+    fn outcome_lineage(&self, outcome: &Outcome) -> Result<Provenance, String> {
+        let mut lineage = outcome.lineage.clone();
+        for evidence in &outcome.because {
+            lineage.merge(&self.qualify_core(evidence, &[])?)?;
+        }
+        self.with_current_withdrawals(lineage)
+    }
+
+    /// `resolved(SERIES)`, or `resolved` of a revision `SERIES@K`: true, on
+    /// the outcome's lineage, when the revision has an outcome. See
+    /// spec/caveat-outcomes-0.1.md.
+    fn resolved_predicate(&self, name: &str) -> Result<Tracked<bool>, String> {
+        let (series, revision) = match self.decision_series.get(name) {
+            Some(series) => (series, series.current.clone()),
+            None => {
+                let (series, _) = name
+                    .rsplit_once('@')
+                    .ok_or_else(|| format!("resolved received a malformed target {name}"))?;
+                (&self.decision_series[series], Some(name.to_string()))
+            }
+        };
+        let outcome = revision
+            .and_then(|id| series.revisions.iter().find(|held| held.id == id))
+            .and_then(|held| held.outcome.as_ref());
+        match outcome {
+            Some(outcome) => Tracked::new(true, self.outcome_lineage(outcome)?),
+            None => {
+                let mut provenance = Provenance::default();
+                self.inherit(&mut provenance, &series.selection_qualifications)?;
+                Tracked::new(false, provenance)
+            }
+        }
     }
 
     fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
@@ -4611,6 +4775,9 @@ impl ReactiveSession {
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if kind == reactive_expr::RESOLVED {
+            return self.resolved_predicate(name);
+        }
         if let Some(result) = self.withdrawal_predicate(kind, name, true)? {
             return Ok(result);
         }
@@ -4937,6 +5104,9 @@ impl ReactiveSession {
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if kind == reactive_expr::RESOLVED {
+            return self.resolved_predicate(name);
+        }
         if let Some(mut result) = self.withdrawal_predicate(kind, name, false)? {
             if let Some(dependency) = self
                 .predicate_qualifications
@@ -5840,6 +6010,7 @@ impl ReactiveSession {
                             .last_event
                             .clone()
                             .expect("revision occurs during dispatch"),
+                        outcome: None,
                     });
                 }
                 let grounds = &self.commitment_grounds[&name];
@@ -5854,6 +6025,8 @@ impl ReactiveSession {
                     because: self.in_observation_order(grounds.evidence.iter()),
                     caveats: grounds.caveats.iter().cloned().collect(),
                     permitted_by: permission.map(|record| record.grant),
+                    outcome: None,
+                    materialized: Vec::new(),
                 };
                 if !entry.because.iter().eq(grounds.evidence.iter()) {
                     Arc::make_mut(&mut self.evidence_order)
@@ -5867,6 +6040,7 @@ impl ReactiveSession {
                     retained: retained_names,
                 });
             }
+            Effect::Resolve(resolution) => self.resolve(resolution, parameters, guard)?,
             Effect::Reopen {
                 action,
                 because,
@@ -5885,82 +6059,8 @@ impl ReactiveSession {
                         format!("cannot {} uncommitted action {action}", form.verb()),
                     )
                 })?;
-                let (because, cause) = match because {
-                    EvidenceSelector::Named(name) => {
-                        let name = self.occurrence(name).to_string();
-                        if !self.predicate("observed", &name)? {
-                            return Err(DispatchFailure::rejected(
-                                RejectionOrigin::Evaluation,
-                                RejectionCode::UnobservedEvidence,
-                                format!(
-                                    "cannot {} {action} because unobserved evidence {name}",
-                                    form.verb()
-                                ),
-                            ));
-                        }
-                        let cause = self.qualify(&name, &[])?;
-                        (vec![name], cause)
-                    }
-                    EvidenceSelector::Occurrence { evidence, index } => {
-                        let (name, lineage) =
-                            self.resolve_occurrence(evidence, index, parameters)?;
-                        if !self.predicate("observed", &name)? {
-                            return Err(DispatchFailure::rejected(
-                                RejectionOrigin::Evaluation,
-                                RejectionCode::UnobservedEvidence,
-                                format!(
-                                    "cannot {} {action} because unobserved evidence {name}",
-                                    form.verb()
-                                ),
-                            ));
-                        }
-                        let mut cause = self.qualify(&name, &[])?;
-                        cause.merge(&lineage)?;
-                        (vec![name], cause)
-                    }
-                    EvidenceSelector::Latest(stream) => {
-                        if self.reading_streams[stream].current.is_none() {
-                            return Err(DispatchFailure::rejected(
-                                RejectionOrigin::Evaluation,
-                                RejectionCode::UnobservedEvidence,
-                                format!(
-                                    "cannot {} {action} because latest({stream}): its stream has no reading",
-                                    form.verb()
-                                ),
-                            ));
-                        }
-                        let reading = self.latest(stream)?;
-                        let name = self.reading_streams[stream]
-                            .current
-                            .as_ref()
-                            .expect("latest required an occurrence")
-                            .clone();
-                        (vec![name], reading.provenance)
-                    }
-                    EvidenceSelector::Caveated { state, caveat } => {
-                        let cell = self.state_with_caveat(state, caveat)?;
-                        let mut selected = Vec::new();
-                        let mut cause = cell.value.provenance.clone();
-                        for evidence in &cell.grounds.evidence {
-                            // These are concrete occurrence identities, not
-                            // renewable aliases. Never resolve them again.
-                            if self.predicate("observed", evidence)?
-                                && self.qualify_core(evidence, &[])?.caveats.contains(caveat)
-                            {
-                                selected.push(evidence);
-                                cause.merge(&self.qualify(evidence, &[])?)?;
-                            }
-                        }
-                        if selected.is_empty() {
-                            return Err(DispatchFailure::rejected(
-                                RejectionOrigin::Evaluation,
-                                RejectionCode::EmptyCaveatedSelection,
-                                format!("caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"),
-                            ));
-                        }
-                        (self.in_observation_order(selected.into_iter()), cause)
-                    }
-                };
+                let (because, cause) =
+                    self.select_because(because, form.verb(), action, parameters)?;
                 let mut basis = cause.union(guard)?;
                 if let Some(series) = self.decision_series.get(action) {
                     self.inherit(&mut basis, &series.selection_qualifications)?;
@@ -6048,6 +6148,232 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// `resolve`: records an outcome on a revision, changing nothing else.
+    /// See spec/caveat-outcomes-0.1.md.
+    #[inline(never)]
+    fn resolve(
+        &mut self,
+        resolution: &Resolution,
+        parameters: &Parameters,
+        guard: &Provenance,
+    ) -> Result<(), DispatchFailure> {
+        let action = &resolution.action;
+        let mut lineage = guard.clone();
+        let revision = match &resolution.revision {
+            None => self.decision_series[action]
+                .current
+                .clone()
+                .ok_or_else(|| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::NotCommitted,
+                        format!("cannot resolve {action}: it has no revision"),
+                    )
+                })?,
+            Some(index) => {
+                let index = self.evaluate(index, parameters)?;
+                let Value::Number(k) = index.value else {
+                    return Err(format!("revision({action}, …) requires a numeric index").into());
+                };
+                lineage.merge(&index.provenance)?;
+                self.held_revision(action, k).ok_or_else(|| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::NotCommitted,
+                        format!("cannot resolve {action}: it has no revision {k}"),
+                    )
+                })?
+            }
+        };
+        let position = self.decision_series[action]
+            .revisions
+            .iter()
+            .position(|held| held.id == revision)
+            .expect("a held revision");
+        let previous = self.decision_series[action].revisions[position]
+            .outcome
+            .clone();
+        if let Some(previous) = &previous {
+            // A withdrawn outcome may be corrected; any other stands.
+            let withdrawn = previous
+                .because
+                .iter()
+                .any(|evidence| self.withdrawal_of(evidence).is_some());
+            if !withdrawn {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Evaluation,
+                    RejectionCode::AlreadyResolved,
+                    format!(
+                        "{revision} is already resolved at #{}; withdraw its evidence to correct it",
+                        previous.sequence
+                    ),
+                ));
+            }
+        }
+        let id = self.symbols[&revision];
+        for caveat in &resolution.materialized {
+            let caveat_id = self.symbols[caveat];
+            let retained = self.graph.edges.iter().any(|edge| {
+                edge.from == id && edge.to == caveat_id && edge.relation == Relation::Retains
+            });
+            if !retained {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Evaluation,
+                    RejectionCode::NotRetained,
+                    format!("{revision} does not retain {caveat}, so it cannot have materialized"),
+                ));
+            }
+        }
+        let value = self.evaluate(&resolution.value, parameters)?;
+        let Value::Number(number) = value.value else {
+            return Err(format!("resolve {action} requires a numeric value").into());
+        };
+        lineage.merge(&value.provenance)?;
+        let (because, cause) =
+            self.select_because(&resolution.because, "resolve", action, parameters)?;
+        lineage.merge(&cause)?;
+        self.inherit(
+            &mut lineage,
+            &self.decision_series[action]
+                .selection_qualifications
+                .clone(),
+        )?;
+        self.freeze(&mut lineage);
+        if let Some(previous) = &previous {
+            for evidence in &previous.because {
+                self.release_pin(evidence);
+            }
+        }
+        for evidence in &because {
+            self.add_pin(evidence);
+        }
+        let outcome = Outcome {
+            value: number,
+            because: because.clone(),
+            materialized: resolution.materialized.clone(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+            lineage,
+        };
+        Arc::make_mut(&mut self.decision_series)
+            .get_mut(action)
+            .expect("a series")
+            .revisions[position]
+            .outcome = Some(outcome);
+        self.retire_journal_entry();
+        let mut caveats = BTreeSet::new();
+        for evidence in &because {
+            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+        }
+        let entry = JournalEntry {
+            decision: action.clone(),
+            commitment: revision.clone(),
+            change: "resolved".into(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+            elapsed: Some(self.elapsed),
+            value: self
+                .commitment_bases
+                .get(&revision)
+                .and_then(|basis| basis.value),
+            because,
+            caveats: caveats.into_iter().collect(),
+            permitted_by: None,
+            outcome: Some(number),
+            materialized: resolution.materialized.clone(),
+        };
+        self.pin_journal_entry(&entry);
+        Arc::make_mut(&mut self.journal).push(entry);
+        Ok(())
+    }
+
+    /// The evidence a `because` selector names now, in observation order,
+    /// and its lineage: of a reopening, a hold, a release or an outcome.
+    #[inline(never)]
+    fn select_because(
+        &mut self,
+        because: &EvidenceSelector,
+        verb: &str,
+        action: &str,
+        parameters: &Parameters,
+    ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
+        Ok(match because {
+            EvidenceSelector::Named(name) => {
+                let name = self.occurrence(name).to_string();
+                if !self.predicate("observed", &name)? {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!(
+                            "cannot {} {action} because unobserved evidence {name}",
+                            verb
+                        ),
+                    ));
+                }
+                let cause = self.qualify(&name, &[])?;
+                (vec![name], cause)
+            }
+            EvidenceSelector::Occurrence { evidence, index } => {
+                let (name, lineage) = self.resolve_occurrence(evidence, index, parameters)?;
+                if !self.predicate("observed", &name)? {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!(
+                            "cannot {} {action} because unobserved evidence {name}",
+                            verb
+                        ),
+                    ));
+                }
+                let mut cause = self.qualify(&name, &[])?;
+                cause.merge(&lineage)?;
+                (vec![name], cause)
+            }
+            EvidenceSelector::Latest(stream) => {
+                if self.reading_streams[stream].current.is_none() {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!(
+                            "cannot {} {action} because latest({stream}): its stream has no reading",
+                            verb
+                        ),
+                    ));
+                }
+                let reading = self.latest(stream)?;
+                let name = self.reading_streams[stream]
+                    .current
+                    .as_ref()
+                    .expect("latest required an occurrence")
+                    .clone();
+                (vec![name], reading.provenance)
+            }
+            EvidenceSelector::Caveated { state, caveat } => {
+                let cell = self.state_with_caveat(state, caveat)?;
+                let mut selected = Vec::new();
+                let mut cause = cell.value.provenance.clone();
+                for evidence in &cell.grounds.evidence {
+                    // These are concrete occurrence identities, not
+                    // renewable aliases. Never resolve them again.
+                    if self.predicate("observed", evidence)?
+                        && self.qualify_core(evidence, &[])?.caveats.contains(caveat)
+                    {
+                        selected.push(evidence);
+                        cause.merge(&self.qualify(evidence, &[])?)?;
+                    }
+                }
+                if selected.is_empty() {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::EmptyCaveatedSelection,
+                        format!("caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"),
+                    ));
+                }
+                (self.in_observation_order(selected.into_iter()), cause)
+            }
+        })
+    }
+
     /// Ends `action`'s hold, if it has one, releasing what the hold pinned,
     /// and returns the reopenings it deferred.
     fn end_hold(&mut self, action: &str) -> Vec<String> {
@@ -6130,6 +6456,8 @@ impl ReactiveSession {
             because: self.in_observation_order(because.iter()),
             caveats: caveats.into_iter().collect(),
             permitted_by: None,
+            outcome: None,
+            materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
         Arc::make_mut(&mut self.journal).push(entry);
@@ -6183,6 +6511,8 @@ impl ReactiveSession {
             because,
             caveats: caveats.into_iter().collect(),
             permitted_by: None,
+            outcome: None,
+            materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
         Arc::make_mut(&mut self.journal).push(entry);
@@ -7125,11 +7455,16 @@ impl ReactiveSession {
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
     fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
-        if kind == reactive_expr::AT_REVISION {
+        if kind == reactive_expr::AT_REVISION || kind == reactive_expr::AT_REVISION_RESOLVED {
             let revision = name
                 .rsplit_once('#')
                 .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
-            return Some(("rests_on_withdrawn", revision));
+            let kind = if kind == reactive_expr::AT_REVISION {
+                "rests_on_withdrawn"
+            } else {
+                reactive_expr::RESOLVED
+            };
+            return Some((kind, revision));
         }
         if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
             return Some((kind, self.latest_target(name)));
@@ -7557,18 +7892,38 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
         } => Effect::Reopen {
             form: *form,
             action: rename(action),
-            because: match because {
-                EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
-                EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
-                EvidenceSelector::Caveated { state, caveat } => EvidenceSelector::Caveated {
-                    state: state.clone(),
-                    caveat: rename(caveat),
-                },
-                EvidenceSelector::Occurrence { evidence, index } => EvidenceSelector::Occurrence {
-                    evidence: rename(evidence),
-                    index: Box::new(index.rename_symbols(names)),
-                },
-            },
+            because: rename_selector(because, names),
+        },
+        Effect::Resolve(resolution) => Effect::Resolve(Box::new(Resolution {
+            action: rename(&resolution.action),
+            revision: resolution
+                .revision
+                .as_ref()
+                .map(|index| index.rename_symbols(names)),
+            value: resolution.value.rename_symbols(names),
+            because: rename_selector(&resolution.because, names),
+            materialized: resolution.materialized.iter().map(rename).collect(),
+        })),
+    }
+}
+
+/// A `because` selector of a reopening or an outcome, with graph symbol and
+/// history names replaced.
+fn rename_selector(
+    because: &EvidenceSelector,
+    names: &HashMap<String, String>,
+) -> EvidenceSelector {
+    let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
+    match because {
+        EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
+        EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
+        EvidenceSelector::Caveated { state, caveat } => EvidenceSelector::Caveated {
+            state: state.clone(),
+            caveat: rename(caveat),
+        },
+        EvidenceSelector::Occurrence { evidence, index } => EvidenceSelector::Occurrence {
+            evidence: rename(evidence),
+            index: Box::new(index.rename_symbols(names)),
         },
     }
 }
@@ -8089,6 +8444,18 @@ fn effect_candidates(words: &[&str]) -> Vec<usize> {
         {
             candidates.push(index);
         }
+        // `resolve` came in 1.3 and is a legal name: it is an effect word only
+        // before a name and `=`, or before `revision(`
+        // (spec/caveat-outcomes-0.1.md).
+        if depth == 0
+            && *token == "resolve"
+            && (words.get(index + 2) == Some(&"=")
+                || words
+                    .get(index + 1)
+                    .is_some_and(|next| next.starts_with("revision(") || *next == "revision"))
+        {
+            candidates.push(index);
+        }
         depth += expression_depth_delta(token);
     }
     candidates
@@ -8456,6 +8823,108 @@ fn occurrence_selector(text: &str) -> Result<Option<(String, Box<Expr>)>, String
         identifier(evidence.trim())?,
         Box::new(reactive_expr::parse_unresolved(index.trim())?),
     )))
+}
+
+/// The evidence selector after a `because` of `reopen`, `hold`, `release`
+/// or `resolve`: a name, an occurrence, `latest(STREAM)` or
+/// `caveated(STATE, CAVEAT)`.
+fn parse_selector(selector: &str) -> Result<EvidenceSelector, String> {
+    Ok(
+        if let Some(arguments) = selector
+            .strip_prefix("latest")
+            .map(str::trim)
+            .and_then(|rest| rest.strip_prefix('('))
+        {
+            let stream = arguments
+                .trim()
+                .strip_suffix(')')
+                .ok_or("latest reading selector requires closing parenthesis")?;
+            EvidenceSelector::Latest(identifier(stream.trim())?)
+        } else if let Some(arguments) = selector
+            .strip_prefix("caveated")
+            .map(str::trim)
+            .and_then(|rest| rest.strip_prefix('('))
+        {
+            let arguments = arguments
+                .trim()
+                .strip_suffix(')')
+                .ok_or("caveated selector requires closing parenthesis")?;
+            let (state, caveat) = arguments
+                .split_once(',')
+                .ok_or("caveated selector requires STATE, CAVEAT")?;
+            EvidenceSelector::Caveated {
+                state: identifier(state.trim())?,
+                caveat: identifier(caveat.trim())?,
+            }
+        } else if let Some((evidence, index)) = occurrence_selector(selector)? {
+            EvidenceSelector::Occurrence { evidence, index }
+        } else {
+            EvidenceSelector::Named(identifier(selector)?)
+        },
+    )
+}
+
+/// `resolve TARGET = VALUE because SELECTOR [materialized C, …]`, with the
+/// words after `resolve`. See spec/caveat-outcomes-0.1.md.
+fn parse_resolution(words: &[&str]) -> Result<Effect, String> {
+    let invalid = || format!("invalid reactive effect: resolve {}", words.join(" "));
+    let equals = words
+        .iter()
+        .position(|word| *word == "=")
+        .ok_or_else(invalid)?;
+    let because = words
+        .iter()
+        .position(|word| *word == "because")
+        .filter(|&because| because > equals + 1)
+        .ok_or_else(invalid)?;
+    let target = words[..equals].join(" ");
+    let (action, revision) = match target
+        .strip_prefix("revision")
+        .map(str::trim_start)
+        .and_then(|rest| rest.strip_prefix('('))
+    {
+        Some(arguments) => {
+            let arguments = arguments
+                .trim_end()
+                .strip_suffix(')')
+                .ok_or("revision selector requires a closing parenthesis")?;
+            let (series, index) = arguments
+                .split_once(',')
+                .ok_or("revision selector requires SERIES, INDEX")?;
+            (
+                identifier(series.trim())?,
+                Some(reactive_expr::parse_unresolved(index.trim())?),
+            )
+        }
+        None => (identifier(&target)?, None),
+    };
+    let value = reactive_expr::parse_unresolved(&words[equals + 1..because].join(" "))?;
+    let rest = &words[because + 1..];
+    let (selector, materialized) = match rest.iter().position(|word| *word == "materialized") {
+        Some(at) => (&rest[..at], Some(&rest[at + 1..])),
+        None => (rest, None),
+    };
+    if selector.is_empty() {
+        return Err(invalid());
+    }
+    let mut caveats = Vec::new();
+    if let Some(named) = materialized {
+        let named = named.join(" ");
+        for caveat in named.split(',') {
+            let caveat = identifier(caveat.trim())?;
+            if caveats.contains(&caveat) {
+                return Err(format!("duplicate materialized caveat {caveat}"));
+            }
+            caveats.push(caveat);
+        }
+    }
+    Ok(Effect::Resolve(Box::new(Resolution {
+        action,
+        revision,
+        value,
+        because: parse_selector(&selector.join(" "))?,
+        materialized: caveats,
+    })))
 }
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
@@ -8845,44 +9314,14 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 "release" => DecisionChange::Release,
                 _ => DecisionChange::Reopen,
             };
-            let selector = selector.join(" ");
-            let because = if let Some(arguments) = selector
-                .strip_prefix("latest")
-                .map(str::trim)
-                .and_then(|rest| rest.strip_prefix('('))
-            {
-                let stream = arguments
-                    .trim()
-                    .strip_suffix(')')
-                    .ok_or("latest reading selector requires closing parenthesis")?;
-                EvidenceSelector::Latest(identifier(stream.trim())?)
-            } else if let Some(arguments) = selector
-                .strip_prefix("caveated")
-                .map(str::trim)
-                .and_then(|rest| rest.strip_prefix('('))
-            {
-                let arguments = arguments
-                    .trim()
-                    .strip_suffix(')')
-                    .ok_or("caveated selector requires closing parenthesis")?;
-                let (state, caveat) = arguments
-                    .split_once(',')
-                    .ok_or("caveated selector requires STATE, CAVEAT")?;
-                EvidenceSelector::Caveated {
-                    state: identifier(state.trim())?,
-                    caveat: identifier(caveat.trim())?,
-                }
-            } else if let Some((evidence, index)) = occurrence_selector(&selector)? {
-                EvidenceSelector::Occurrence { evidence, index }
-            } else {
-                EvidenceSelector::Named(identifier(&selector)?)
-            };
+            let because = parse_selector(&selector.join(" "))?;
             Ok(Effect::Reopen {
                 action: identifier(action)?,
                 because,
                 form,
             })
         }
+        ["resolve", rest @ ..] => parse_resolution(rest),
         _ => Err(invalid()),
     }
 }

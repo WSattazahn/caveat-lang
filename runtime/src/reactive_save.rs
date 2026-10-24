@@ -2371,6 +2371,9 @@ impl ReactiveSession {
                 if !save.commitment_bases.contains_key(&revision.id) {
                     return Err(format!("revision {} has no basis", revision.id));
                 }
+                if let Some(outcome) = &revision.outcome {
+                    self.check_outcome(save, name, revision, outcome, observed, caveats)?;
+                }
             }
             if series.current.as_ref() != series.revisions.last().map(|revision| &revision.id) {
                 return Err(format!(
@@ -2915,9 +2918,15 @@ impl ReactiveSession {
             self.require_commitment(&entry.commitment)?;
             if !matches!(
                 entry.change.as_str(),
-                "committed" | "reopened" | "held" | "deferred" | "released"
+                "committed" | "reopened" | "held" | "deferred" | "released" | "resolved"
             ) {
                 return Err(fail("unknown change"));
+            }
+            // Only an outcome's entry records one (spec/caveat-outcomes-0.1.md).
+            if (entry.change == "resolved") != entry.outcome.is_some_and(f64::is_finite)
+                || (entry.change != "resolved" && !entry.materialized.is_empty())
+            {
+                return Err(fail("entry outcome does not match its change"));
             }
             if entry.sequence == 0 || entry.sequence > save.sequence {
                 return Err(fail("entry sequence is outside the session"));
@@ -2999,6 +3008,13 @@ impl ReactiveSession {
                         return Err(fail("revision has no preceding reopened commitment"));
                     }
                     current.insert(&entry.decision, &entry.commitment);
+                } else if entry.change == "resolved" {
+                    // An outcome may be of any revision made so far.
+                    if !committed.contains(entry.commitment.as_str())
+                        && !before_window(&entry.commitment)
+                    {
+                        return Err(fail("outcome precedes its revision"));
+                    }
                 } else if current
                     .get(entry.decision.as_str())
                     .map_or(!before_window(&entry.commitment), |current| {
@@ -3171,6 +3187,60 @@ impl ReactiveSession {
 
     /// Whether a rule or procedure can put `series` on hold
     /// (spec/caveat-holds-0.1.md).
+    /// An outcome restore can trust: one a `resolve` of the series in the
+    /// source could have recorded on this revision, on observed evidence,
+    /// naming caveats the revision retains. Its value is the save's: a save
+    /// binds its source, not its history. See spec/caveat-outcomes-0.1.md.
+    fn check_outcome(
+        &self,
+        save: &ReactiveSave,
+        series: &str,
+        revision: &DecisionRevision,
+        outcome: &Outcome,
+        observed: &HashSet<u64>,
+        caveats: &CaveatSources,
+    ) -> Result<(), String> {
+        let fail = |reason: &str| format!("revision {} has an outcome {reason}", revision.id);
+        if !outcome.value.is_finite() {
+            return Err(fail("that is not a finite number"));
+        }
+        if outcome.sequence < revision.sequence
+            || outcome.sequence > save.sequence
+            || !self.events.contains_key(&outcome.event)
+            || !self.event_can_change_decision(&outcome.event, series, "resolved")
+        {
+            return Err(fail("no event of the source can record"));
+        }
+        if outcome.because.is_empty() {
+            return Err(fail("with no evidence"));
+        }
+        for (index, evidence) in outcome.because.iter().enumerate() {
+            self.require_kind(evidence, "evidence")?;
+            self.require_observed(evidence, observed)?;
+            if outcome.because[..index].contains(evidence) {
+                return Err(fail(&format!("that cites {evidence} twice")));
+            }
+        }
+        let id = self.symbols[&revision.id];
+        for (index, caveat) in outcome.materialized.iter().enumerate() {
+            self.require_kind(caveat, "caveat")?;
+            let retained = self.symbols.get(caveat).is_some_and(|caveat| {
+                self.graph.edges.iter().any(|edge| {
+                    edge.from == id && edge.to == *caveat && edge.relation == Relation::Retains
+                })
+            });
+            if !retained || outcome.materialized[..index].contains(caveat) {
+                return Err(fail(&format!("whose materialized {caveat} it cannot hold")));
+            }
+        }
+        self.check_provenance(
+            &format!("outcome of {}", revision.id),
+            &outcome.lineage,
+            observed,
+            Some(caveats),
+        )
+    }
+
     pub(super) fn holdable(&self, series: &str) -> bool {
         self.reached_effects(None).into_iter().any(|effect| {
             matches!(
@@ -3616,6 +3686,11 @@ impl ReactiveSession {
         while let Some(effect) = pending.pop() {
             match effect {
                 Effect::Commit { action, .. } if change == "committed" && action == decision => {
+                    return true
+                }
+                Effect::Resolve(resolution)
+                    if change == "resolved" && resolution.action == decision =>
+                {
                     return true
                 }
                 Effect::Reopen { action, form, .. }

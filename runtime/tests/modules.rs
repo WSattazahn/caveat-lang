@@ -1548,6 +1548,38 @@ fn a_hold_survives_a_module_that_declares_its_words() {
     }
 }
 
+#[test]
+fn an_outcome_survives_a_module_that_declares_its_words() {
+    // `resolve SERIES = … because … materialized …` arrives in 1.3
+    // (spec/caveat-outcomes-0.1.md). A module may name evidence `resolve` and
+    // a caveat `materialized` and keep both the words and the names.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim ready;\n\
+             evidence resolve from \"a report\";\n\
+             caveat materialized consequence low;\n\
+             materialized qualifies resolve;\n\
+             decisions gate limit 4;\n\
+             event go;\n\
+             event close;\n\
+             on go reveal resolve supports ready;\n\
+             on go commit gate because enough using qualified(1, resolve);\n\
+             on close resolve gate = 1 because resolve materialized materialized;\n\
+             on close resolve revision(gate, 1) = 1 because resolve;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "on m__close resolve m__gate = 1 because m__resolve materialized m__materialized;",
+        "on m__close resolve revision(m__gate, 1) = 1 because m__resolve;",
+        "on m__go reveal m__resolve supports m__ready;",
+    ] {
+        assert!(source.contains(expected), "{expected}: {source}");
+    }
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1660,7 +1692,18 @@ fn grammar_keywords() -> std::collections::BTreeSet<String> {
 /// are also prelude functions, and nothing stops a module claiming `every` or
 /// `reset`. Each is covered by a test above.
 const POSITIONAL: &[&str] = &[
-    "min", "max", "every", "integer", "reset", "window", "journal", "changed", "hold", "release",
+    "min",
+    "max",
+    "every",
+    "integer",
+    "reset",
+    "window",
+    "journal",
+    "changed",
+    "hold",
+    "release",
+    "resolve",
+    "materialized",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
@@ -1681,7 +1724,6 @@ const OUTSIDE_MODULES: &[&str] = &[
     "options",
     "otherwise",
     "requires_open",
-    "resolve",
     "select",
     "start_at",
     "stay",

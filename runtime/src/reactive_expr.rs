@@ -95,6 +95,9 @@ pub enum HistoryRead {
     Latest,
     Count,
     At(usize),
+    /// `outcome(…)`: of the current revision, or of revision K, 1-based. See
+    /// spec/caveat-outcomes-0.1.md.
+    Outcome(Option<usize>),
 }
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 
@@ -123,6 +126,18 @@ pub const IN_BASIS: &str = "in_basis";
 /// The predicate kind of `on_hold(SERIES)`: whether the series' current
 /// revision is on hold. See spec/caveat-holds-0.1.md.
 pub const ON_HOLD: &str = "on_hold";
+
+/// The predicate kind of `resolved(SERIES)`: whether the series' current
+/// revision has an outcome. See spec/caveat-outcomes-0.1.md.
+pub const RESOLVED: &str = "resolved";
+
+/// The predicate kind asked of `resolved(revision(SERIES, INDEX))`; the host
+/// receives the target as `SERIES#INDEX`, as for [`AT_REVISION`].
+pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
+
+/// The name of `outcome(…)`, a revision's outcome value. See
+/// spec/caveat-outcomes-0.1.md.
+pub const OUTCOME: &str = "outcome";
 
 /// What `in_basis(…)` asks about: a revision of a decision series and a
 /// reference to evidence. See spec/caveat-in-basis-0.1.md.
@@ -186,7 +201,7 @@ impl InBasis {
 /// The kind the host receives for a selector node: an occurrence predicate
 /// gains its prefix, and a revision predicate already carries its own.
 fn selector_kind(kind: &str) -> String {
-    if kind == AT_REVISION {
+    if kind == AT_REVISION || kind == AT_REVISION_RESOLVED {
         kind.to_string()
     } else {
         format!("{AT_OCCURRENCE}{kind}")
@@ -760,6 +775,9 @@ enum Node {
     /// `in_basis(SERIES | revision(SERIES, K), REFERENCE)`: its children are
     /// K, if any, then the reference's index, if any.
     InBasis(Box<InBasis>, Vec<Expr>),
+    /// `outcome(SERIES)`, or `outcome(revision(SERIES, INDEX))` with the
+    /// index. See spec/caveat-outcomes-0.1.md.
+    Outcome(String, Option<Box<Expr>>),
     Latest(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
@@ -996,6 +1014,13 @@ impl Expr {
     /// what it reads before it compiles.
     pub fn collect_reads(&self, reads: &mut Reads) {
         match &self.node {
+            Node::Outcome(name, index) => {
+                reads.graph = true;
+                reads.graph_names.insert(name.clone());
+                if let Some(index) = index {
+                    index.collect_reads(reads);
+                }
+            }
             Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
@@ -1089,6 +1114,12 @@ impl Expr {
     /// (spec/caveat-check-0.1.md).
     pub fn collect_sources(&self, sources: &mut BTreeSet<String>) {
         match &self.node {
+            Node::Outcome(name, index) => {
+                sources.insert(name.clone());
+                if let Some(index) = index {
+                    index.collect_sources(sources);
+                }
+            }
             Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => {
                 sources.insert("elapsed()".into());
@@ -1156,6 +1187,12 @@ impl Expr {
     /// `collect_reads`.
     pub fn collect_record_reads(&self, records: &mut BTreeSet<(&'static str, String)>) {
         match &self.node {
+            // New in 1.3, so no 1.0.x runtime read a record through it.
+            Node::Outcome(_, index) => {
+                if let Some(index) = index {
+                    index.collect_record_reads(records);
+                }
+            }
             Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
             }
             Node::Predicate(kind, name) => match kind.as_str() {
@@ -1226,6 +1263,12 @@ impl Expr {
     /// reason as `collect_reads`.
     pub fn collect_histories(&self, histories: &mut BTreeSet<String>) {
         match &self.node {
+            Node::Outcome(name, index) => {
+                histories.insert(name.clone());
+                if let Some(index) = index {
+                    index.collect_histories(histories);
+                }
+            }
             Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
             }
             Node::Predicate(kind, name) => {
@@ -1308,6 +1351,9 @@ impl Expr {
         let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
         let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
         let node = match &self.node {
+            Node::Outcome(series, index) => {
+                Node::Outcome(rename(series), index.as_ref().map(|index| child(index)))
+            }
             Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Text(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
@@ -1427,6 +1473,9 @@ impl Expr {
     pub fn mentions(&self, word: &str) -> bool {
         let child = |expression: &Expr| expression.mentions(word);
         match &self.node {
+            Node::Outcome(series, index) => {
+                series.contains(word) || index.as_ref().is_some_and(|index| child(index))
+            }
             Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
             Node::Text(name)
             | Node::Variable(name)
@@ -1476,6 +1525,11 @@ impl Expr {
         extras: &mut BTreeSet<(String, String)>,
     ) {
         match &self.node {
+            Node::Outcome(_, index) => {
+                if let Some(index) = index {
+                    index.collect_caveat_reads(examined, extras);
+                }
+            }
             Node::Predicate(kind, name) => {
                 if kind == "examined" {
                     examined.insert(name.clone());
@@ -1530,6 +1584,11 @@ impl Expr {
     /// side of `and` or `or`, a `require` value or a fold body.
     pub fn qualified_unconditionally(&self, evidence: &mut BTreeSet<String>) {
         match &self.node {
+            Node::Outcome(_, index) => {
+                if let Some(index) = index {
+                    index.qualified_unconditionally(evidence);
+                }
+            }
             Node::Qualified(value, name, _) => {
                 evidence.insert(name.clone());
                 value.qualified_unconditionally(evidence);
@@ -1577,6 +1636,7 @@ impl Expr {
             | Node::Qualified(child, _, _)
             | Node::HistoryAt(_, child)
             | Node::AtOccurrence(_, _, child)
+            | Node::Outcome(_, Some(child))
             | Node::Fold(_, child, _) => child.depth + 1,
             Node::ExpandedFold(_, initial, body) => initial.depth.max(body.depth) + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
@@ -1625,6 +1685,15 @@ impl Expr {
         user_call: &dyn Fn(&str, usize) -> Result<ValueType, String>,
     ) -> Result<ValueType, String> {
         match &self.node {
+            Node::Outcome(name, index) => {
+                predicate(OUTCOME, name)?;
+                if let Some(index) = index {
+                    index
+                        .validate_calls(numeric, predicate, user_call)?
+                        .require(ValueType::Number)?;
+                }
+                Ok(ValueType::Number)
+            }
             Node::Number(_) => Ok(ValueType::Number),
             Node::Elapsed => {
                 predicate("runtime_clock", "elapsed")?;
@@ -1925,6 +1994,34 @@ impl Expr {
         }
         remaining.set(budget - 1);
         match &self.node {
+            Node::Outcome(name, index) => {
+                let index = match index {
+                    None => None,
+                    Some(index) => {
+                        let k = index
+                            .evaluate_values(
+                                numbers,
+                                predicate,
+                                qualify,
+                                history,
+                                identifiers,
+                                remaining,
+                            )?
+                            .number()?;
+                        if k < 1.0 || k.fract() != 0.0 || k > MAX_FOLD_RECORDS as f64 {
+                            return Err(EvalError::new(
+                                EvalFailure::HistoryIndex,
+                                format!("outcome(revision({name}, {k})): {k} names no revision"),
+                            ));
+                        }
+                        Some(k as usize)
+                    }
+                };
+                Ok(Value::Number(finite(history(
+                    name,
+                    HistoryRead::Outcome(index),
+                )?)?))
+            }
             Node::Number(value) => Ok(Value::Number(value.value())),
             Node::Elapsed => {
                 let value =
@@ -2559,6 +2656,46 @@ impl Parser {
         ))
     }
 
+    /// After `resolved(` or `outcome(`: a series, or `revision(SERIES,
+    /// INDEX)`, then the closing parenthesis.
+    fn outcome_form(&mut self, name: &str, nesting: usize) -> Result<Node, String> {
+        if self.peek() == Some(&TokenKind::Identifier("revision".into()))
+            && self.tokens.get(self.cursor + 1).map(|token| &token.kind)
+                == Some(&TokenKind::LeftParen)
+        {
+            self.cursor += 2;
+            let series = self.graph_identifier("revision series")?;
+            self.expect(TokenKind::Comma, "',' after the revision's series")?;
+            let index = self.expression(0, nesting)?;
+            self.expect(TokenKind::RightParen, "')' after the revision index")?;
+            self.expect(TokenKind::RightParen, "')' after the revision")?;
+            return Ok(if name == RESOLVED {
+                Node::AtOccurrence(AT_REVISION_RESOLVED.to_string(), series, Box::new(index))
+            } else {
+                Node::Outcome(series, Some(Box::new(index)))
+            });
+        }
+        let offset = self.offset();
+        match (
+            self.peek().cloned(),
+            self.tokens.get(self.cursor + 1).map(|token| &token.kind),
+        ) {
+            (Some(TokenKind::Identifier(target)), Some(TokenKind::RightParen))
+                if !target.contains('.') =>
+            {
+                self.cursor += 2;
+                Ok(if name == RESOLVED {
+                    Node::Predicate(RESOLVED.into(), target)
+                } else {
+                    Node::Outcome(target, None)
+                })
+            }
+            _ => Err(format!(
+                "{name} requires a decision series or revision(SERIES, INDEX) at byte {offset}"
+            )),
+        }
+    }
+
     fn call(&mut self, name: String, nesting: usize) -> Result<Node, String> {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
@@ -2730,6 +2867,18 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after the history")?;
             self.expect(TokenKind::RightParen, "')' after the withdrawn target")?;
             return Ok(Node::Predicate("withdrawn_latest".into(), history));
+        }
+        // `resolved(…)` and `outcome(…)`, of a series or of
+        // `revision(SERIES, INDEX)`. A program may define `fn resolved` or `fn
+        // outcome` and call it with any arguments: what is not one of these
+        // forms is its call (spec/caveat-outcomes-0.1.md).
+        if name == RESOLVED || name == OUTCOME {
+            let start = self.cursor;
+            match self.outcome_form(&name, nesting) {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
         }
         // `on_hold(SERIES)`. A 1.0 program may define `fn on_hold` and call it
         // with any arguments: what is not one plain name is its call.
@@ -2910,6 +3059,20 @@ fn plain_identifier(name: &str) -> bool {
     bytes.next().is_some_and(identifier_start)
         && bytes.all(identifier_continue)
         && !matches!(name, "true" | "false" | "and" | "or" | "not")
+}
+
+/// The argument a program's own `fn resolved` or `fn outcome` receives for
+/// `SERIES` or `revision(SERIES, INDEX)`: the same words, read as ordinary
+/// arguments.
+fn revision_call(series: &str, index: Option<&Expr>) -> Result<Expr, String> {
+    let series = Expr::new(Node::Variable(series.to_string()))?;
+    match index {
+        None => Ok(series),
+        Some(index) => Expr::new(Node::UserCall(
+            "revision".into(),
+            vec![series, index.clone()],
+        )),
+    }
 }
 
 fn predicate_name(name: &str) -> bool {
@@ -3124,6 +3287,40 @@ impl Expander<'_> {
         parameters: Option<&BTreeMap<String, Expr>>,
     ) -> Result<Expr, String> {
         let node = match &expression.node {
+            // A program may define `fn outcome`; its calls keep their meaning
+            // (spec/caveat-outcomes-0.1.md).
+            Node::Outcome(series, index) if self.functions.contains_key(OUTCOME) => {
+                let call = Node::UserCall(
+                    OUTCOME.into(),
+                    vec![revision_call(series, index.as_deref())?],
+                );
+                return self.walk(&Expr::new(call)?, parameters);
+            }
+            Node::Outcome(series, index) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::Outcome(
+                    series.clone(),
+                    match index {
+                        Some(index) => Some(Box::new(self.walk(index, None)?)),
+                        None => None,
+                    },
+                )
+            }
+            Node::Predicate(name, target)
+                if name == RESOLVED && self.functions.contains_key(RESOLVED) =>
+            {
+                let call = Node::UserCall(RESOLVED.into(), vec![revision_call(target, None)?]);
+                return self.walk(&Expr::new(call)?, parameters);
+            }
+            Node::AtOccurrence(kind, series, index)
+                if kind == AT_REVISION_RESOLVED && self.functions.contains_key(RESOLVED) =>
+            {
+                let call =
+                    Node::UserCall(RESOLVED.into(), vec![revision_call(series, Some(index))?]);
+                return self.walk(&Expr::new(call)?, parameters);
+            }
             Node::Number(number) => Node::Number(number.clone()),
             Node::Elapsed => {
                 if parameters.is_some() {

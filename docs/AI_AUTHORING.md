@@ -667,6 +667,25 @@ rule drops the reopening, and a trigger has no guard. A hold never keeps a
 revision that rests on withdrawn evidence: a reopening of it goes ahead. See
 [holds](../spec/caveat-holds-0.1.md).
 
+## Record how a decision turned out
+
+From 1.3.0, `resolve` records an outcome on the revision it judges, so a
+review can tell a sound basis that met bad luck from an unsound one. It
+changes no basis, reopens nothing and takes no stance; `materialized` names
+the revision's retained caveats that came true:
+
+```caveat
+decisions pilot limit 4;
+on close resolve pilot = users because latest(usage) materialized thin_demand;
+on late resolve revision(pilot, k) = users because latest(usage);
+```
+
+Do not record an outcome as a reading that `supports` the decision's claim:
+an outcome is what happened, not evidence for the claim. Read it back with
+`outcome(pilot)`, guarded by `resolved(pilot)`, next to `latest(pilot)` to
+score a forecast. A wrong outcome is corrected by withdrawing its evidence,
+then resolving again. See [outcomes](../spec/caveat-outcomes-0.1.md).
+
 ## Citations and named expressions
 
 Grounds and caveats are not bookkeeping the author writes. A value carries the

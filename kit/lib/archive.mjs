@@ -259,7 +259,7 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
     if (entry.journal_entry !== undefined) {
       const journal = entry.journal_entry;
       if (!object(journal) || !integer(journal.sequence) || journal.sequence > entry.retired_at
-        || !['committed','reopened','held','deferred','released'].includes(journal.change) || typeof journal.event !== 'string') row.unresolved.add(entry.record);
+        || !['committed','reopened','held','deferred','released','resolved'].includes(journal.change) || typeof journal.event !== 'string') row.unresolved.add(entry.record);
       else {
         need(journal.decision, journal.sequence); need(journal.commitment, journal.sequence);
         names(journal.because, journal.sequence); names(journal.caveats, journal.sequence);

@@ -172,14 +172,18 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
   const journal = snapshot.decision_journal ?? [];
   const source = sourceAt(snapshot);
   const commitments = new Map((snapshot.commitments ?? []).map(item => [item.action, item]));
-  const describe = (id, current) => {
+  const describe = (id, current, outcome) => {
     const history = journal.filter(entry => entry.commitment === id).map(entry => ({
       change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
+      // An outcome's entry says what it was (spec/caveat-outcomes-0.1.md).
+      ...(entry.outcome !== undefined ? { outcome: entry.outcome } : {}),
+      ...(entry.materialized?.length ? { materialized: entry.materialized } : {}),
       source_sha256: source(entry.sequence),
     }));
     const record = commitments.get(id);
     // The current graph status survives journal retirement and recommitment.
-    const reopened = record ? record.open : history.at(-1)?.change === 'reopened';
+    // An outcome changes no status.
+    const reopened = record ? record.open : history.filter(entry => entry.change !== 'resolved').at(-1)?.change === 'reopened';
     const grounds = annotate(snapshot.commitment_grounds?.[id] ?? none(), held,
       archivedNames);
     return {
@@ -195,6 +199,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
       withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
         .map(name => ({ evidence: name, ...withdrawals.get(name) })),
       ...(observedBy ? { observed_by: grounds.evidence.map(name => ({ evidence: name, ...(observedBy.get(name) ?? unobserved) })) } : {}),
+      ...(outcome ? { outcome } : {}),
       history,
     };
   };
@@ -223,7 +228,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
     current: series.current,
     revisions: (series.revisions ?? []).map(revision => {
       seriesIds.add(revision.id);
-      return describe(revision.id, series.current);
+      return describe(revision.id, series.current, revision.outcome);
     }),
     ...foreclosure(name),
   }));
@@ -365,7 +370,9 @@ export function formatExplanation(report, title = 'the program') {
         const kept = committed ? entry.caveats.filter(name => !caveats.includes(name)) : [];
         const retaining = kept.length ? `; retaining: ${list(kept)}` : '';
         const unrecorded = entry.source_sha256 === null ? '  (source not recorded)' : '';
-        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${unrecorded}`);
+        const resolved = entry.outcome === undefined ? '' : ` = ${show(entry.outcome)}`;
+        const materialized = entry.materialized?.length ? `; materialized: ${list(entry.materialized)}` : '';
+        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change}${resolved} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${materialized}${unrecorded}`);
       }
     }
   }

@@ -38,7 +38,9 @@ export type KnownRejectionCode =
   | 'not_committed'
   | 'already_committed'
   | 'foreclosed'
-  | 'caveated_irreversible';
+  | 'caveated_irreversible'
+  | 'already_resolved'
+  | 'not_retained';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -617,6 +619,21 @@ export interface DecisionRevision {
   ordinal: number;
   sequence: number;
   event: string;
+  /** From 1.3 (spec/caveat-outcomes-0.1.md): how it turned out. Absent until a `resolve` records it. */
+  outcome?: Outcome;
+}
+
+/** What `resolve` recorded on a revision (spec/caveat-outcomes-0.1.md). */
+export interface Outcome {
+  value: number;
+  /** The evidence it was read from, in observation order. */
+  because: string[];
+  /** The revision's retained caveats that came true. Absent when none. */
+  materialized?: string[];
+  sequence: number;
+  event: string;
+  /** The value's, the evidence's and the guard's lineage, frozen. */
+  lineage: Provenance;
 }
 
 export interface DecisionSeries {
@@ -633,8 +650,8 @@ export interface DecisionSeries {
 export interface DecisionJournalEntry {
   decision: string;
   commitment: string;
-  /** `held`, `deferred` and `released` from 1.2 (spec/caveat-holds-0.1.md). */
-  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released';
+  /** `held`, `deferred` and `released` from 1.2 (spec/caveat-holds-0.1.md); `resolved` from 1.3 (spec/caveat-outcomes-0.1.md). */
+  change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   sequence: number;
   event: string;
   /** Absent in older saves. */
@@ -645,6 +662,10 @@ export interface DecisionJournalEntry {
   caveats: string[];
   /** For a commitment made with `permitted by`, its grant. */
   permitted_by?: string;
+  /** For `resolved`, the outcome's value. */
+  outcome?: number;
+  /** For `resolved`, the retained caveats it says came true. Absent when none. */
+  materialized?: string[];
 }
 
 export interface Renewal {

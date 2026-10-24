@@ -1,6 +1,6 @@
 # CAVEAT Outcomes 0.1 (draft) — recording how a decision turned out
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.3: specified on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.3: implemented on its branch, not yet on `main` or in a release. It becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.5](caveat-reactive-0.5.md),
 [Past Revisions 0.1](caveat-past-revisions-0.1.md),
 [Withdrawal 0.1](caveat-withdrawal-0.1.md) and the
@@ -36,15 +36,19 @@ decisions pilot limit 4;
 on close resolve pilot = users because latest(usage) materialized thin_demand;
 ```
 
-`pilot@1` now holds its outcome, 15, because of `usage@3`, and records that
+`pilot@1` now holds its outcome, 15, because of `usage@2`, and records that
 its retained caveat `thin_demand` came true. Its basis, its caveats and its
-status are what they were. `explain` prints, under the revision:
+status are what they were. For the pilot in
+[the tests](../runtime/tests/outcomes.rs), after a plan scored 7, a week of 12
+users and a close at 15, `explain` prints:
 
 ```text
     pilot@1 = 7  reopened
-      based on plan_review
-      ...
-      #3 close: resolved = 15 because usage@3; materialized: thin_demand
+      based on plan_review (caveats: thin_demand)
+      plan_review: observed at #1 plan {"score":7}
+      #1 plan: committed because plan_review (caveats: thin_demand)
+      #2 weekly: reopened because usage@1
+      #3 close: resolved = 15 because usage@2; materialized: thin_demand
 ```
 
 ## 1. Syntax
@@ -283,6 +287,28 @@ At this profile's revision:
   not a rule effect and is followed by `as`, not `=`;
 - 147 decision series in 130 programs: the revisions an outcome can judge.
 
+## Implementation
+
+- `runtime/src/reactive.rs` parses `resolve` as an effect only in the
+  positions section 1 names, records the outcome on the revision and the
+  `resolved` journal entry, and refuses as section 2 says. `select_because`
+  is the selector `reopen` already read, shared.
+- `runtime/src/reactive_expr.rs` parses `resolved(…)` and `outcome(…)`, and
+  hands a program's own `fn resolved` or `fn outcome` its calls.
+- `runtime/src/reactive_save.rs` restores and validates outcomes as section
+  4 says; `runtime/src/reactive_departure.rs` pins an outcome's evidence.
+- `runtime/src/link.rs` protects `resolve` and `materialized` by position in
+  a module.
+- `runtime/tests/outcomes.rs` covers an outcome that changes nothing else, a
+  refused second outcome and its correction after a withdrawal, refusals for
+  a missing revision and an unretained caveat, a late outcome, reading an
+  outcome that is not there, the load errors, a program's own names, saves
+  with and without an outcome, forged outcomes refused on restore, a
+  withdrawn outcome's caveat, the calibration example, and a procedure
+  resolving in a windowed program.
+- The kit's types, `explain` and the starter's assessment carry the new
+  journal change and revision field.
+
 ## Changes
 
-- 2026-10-24: drafted for 1.3.
+- 2026-10-24: drafted and implemented for 1.3.

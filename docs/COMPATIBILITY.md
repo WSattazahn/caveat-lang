@@ -40,8 +40,9 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `unobserved_evidence`, `not_committed`, `expression`, `requirement_failed`,
 `attention_limit`, `work_limit`, `depth_limit`, `history_limit`,
 `identifier_limit`, `renewal_limit`, `scheduled_limit`, from 1.1.0
-`already_committed`, and from 1.2.0 `foreclosed` and
-`caveated_irreversible`. A 1.x release never
+`already_committed`, from 1.2.0 `foreclosed` and
+`caveated_irreversible`, and from 1.3.0 `already_resolved` and
+`not_retained`. A 1.x release never
 renames or removes one, and never moves an input from one code to another. It
 may add a code only for an input that was refused or fatal before, or for new
 syntax. Hosts should treat an unknown code as a refusal.

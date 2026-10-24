@@ -378,6 +378,8 @@ impl ReactiveSession {
                 CollectorOwner::Record(self.occurrence(evidence).into())
             }
             Effect::Examine { caveat, .. } => CollectorOwner::Record(caveat.clone()),
+            // An outcome may be of any revision (spec/caveat-outcomes-0.1.md).
+            Effect::Resolve(resolution) => CollectorOwner::Series(resolution.action.clone()),
             Effect::Commit { action, .. } | Effect::Reopen { action, .. } => {
                 self.collector_dirty(CollectorOwner::Series(action.clone()));
                 let current = self
