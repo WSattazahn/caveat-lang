@@ -361,6 +361,12 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     report.routes.push({ name, input: pointer.kind, currentPolicy: mobile ? 'three deliberate readings' : 'adaptive manual steering with first reading', readings: flowReadings(end).length, revisions: end.decision_series.navigation.revisions.length, rescued: end.values.rescued, hull: end.values.hull, seconds: end.values.elapsed, hitCount: end.values.hit_count });
     console.log(`PASS ${name}: ${pointer.kind}, ${flowReadings(end).length} readings / ${end.decision_series.navigation.revisions.length} revisions, rescued 32 in ${end.values.elapsed.toFixed(1)}s with ${end.values.hull} hull`);
   } catch (error) {
+    // A trap inside a dispatch leaves the session unusable, so every later
+    // read fails with "recursive use of an object". Report the first error
+    // the page logged, which names the trap, not only the last one.
+    for (const message of errors) console.error(`Browser error in ${name}: ${message}`);
+    const outOfMemory = await page.evaluate(() => window.__rescue?.outOfMemory?.()).catch(() => null);
+    console.error(`WebAssembly out of memory in ${name}: ${outOfMemory}`);
     await screenshot(page, `${name}-failure`).catch(() => {});
     throw error;
   } finally { await context.close(); }

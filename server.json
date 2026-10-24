@@ -6,13 +6,13 @@
     "url": "https://github.com/WSattazahn/caveat-lang",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.3.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "caveat-lang",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "runtimeHint": "npx",
       "transport": { "type": "stdio" },
       "packageArguments": [
