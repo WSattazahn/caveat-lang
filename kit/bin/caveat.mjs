@@ -2,6 +2,7 @@
 // caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
+// caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
 // caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
@@ -17,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, parseEvents } from '../lib/explain.mjs';
+import { formatReview, review } from '../lib/review.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
@@ -31,6 +33,7 @@ Usage:
   caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
   caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
+  caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
   caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
                     [--records [--save <save.json>]] <program.cav>
@@ -64,6 +67,13 @@ of evidence, reading stream or caveat: the decisions and values based on it or
 that it could have influenced, the decision changes it caused, and the
 displayed values that cite it. Exit status as for explain; 2 also when the
 program declares no such name.
+
+review sends the events the same way, then replays them without the events
+that observed a revision's grounds, alone and together, and says which
+evidence it was decided on decisively, which only changed its value, and
+which of its retained caveats an outcome says came true
+(spec/caveat-review-0.1.md). It never changes a session or judges the
+decision. Exit status as for explain; 2 also when there is no such revision.
 
 validate loads a program and lists its events, histories and displayed values.
   Exit status: 0 it loads, 2 it does not.
@@ -136,6 +146,7 @@ const COMMANDS = {
   test: [1, Infinity, 'name at least one scenario file'],
   explain: [1, 2, 'name a program and, optionally, an events file'],
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
+  review: [3, 3, 'name a program, a revision such as choose@1 and an events file'],
   validate: [1, 1, 'name one program'],
   check: [1, 1, 'name one program'],
   types: [1, 1, 'name one program'],
@@ -272,6 +283,22 @@ async function dependentsOf(options) {
   else {
     console.log(formatDependents(result, path.basename(program), sent.length));
     if (failed) console.log(`\nEvent ${sent.length} failed; the answer above is about the session before it.`);
+  }
+  return failed ? 1 : 0;
+}
+
+async function reviewOf(options) {
+  const [program, revision, eventsFile] = options.files;
+  const opened = await openProgram(options, program, eventsFile);
+  if (!opened) return 2;
+  opened.session.close();
+  let result;
+  try { result = review(() => opened.runtime.open(opened.source), opened.events, revision); } catch (error) { console.error(error.message); return 2; }
+  const failed = result.fatal !== null;
+  if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
+  else {
+    console.log(formatReview(result, path.basename(program)));
+    if (failed) console.log('\nAn event failed; the review above is of the session before it.');
   }
   return failed ? 1 : 0;
 }
@@ -572,7 +599,7 @@ async function main() {
   }
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
-    test: testScenarios, explain: explainProgram, dependents: dependentsOf,
+    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf,
     validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
     mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];
