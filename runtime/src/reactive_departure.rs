@@ -532,6 +532,17 @@ impl ReactiveSession {
             for name in series.on_hold.iter().chain(&series.deferred) {
                 pin(name, "hold");
             }
+            // An outcome keeps the evidence it was read from
+            // (spec/caveat-outcomes-0.1.md).
+            for outcome in series
+                .revisions
+                .iter()
+                .filter_map(|revision| revision.outcome.as_ref())
+            {
+                for name in &outcome.because {
+                    pin(name, "outcome");
+                }
+            }
         }
         for scheduled in self.scheduled.iter() {
             pin(&scheduled.evidence, "scheduled qualification");

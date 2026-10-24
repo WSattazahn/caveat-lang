@@ -967,6 +967,29 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                 offsets.push(*offset);
             }
         }
+        // `resolve SERIES = … because … [materialized C, …]`
+        // (spec/caveat-outcomes-0.1.md) came after modules, so a module may
+        // still declare `resolve` or `materialized`. The verb comes before a
+        // name and `=`, or before `revision(`; `materialized` is the clause
+        // word after its `because`.
+        let mut resolving = false;
+        let mut after_because = false;
+        for (index, (offset, word)) in words.iter().enumerate() {
+            if *word == "resolve"
+                && (words.get(index + 2).is_some_and(|(_, next)| *next == "=")
+                    || words.get(index + 1).is_some_and(|(_, next)| {
+                        next.starts_with("revision(") || *next == "revision"
+                    }))
+            {
+                offsets.push(*offset);
+                resolving = true;
+                after_because = false;
+            } else if resolving && *word == "because" {
+                after_because = true;
+            } else if resolving && after_because && *word == "materialized" {
+                offsets.push(*offset);
+            }
+        }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the

@@ -28,7 +28,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a
@@ -411,6 +411,10 @@ export const grammar = {
         // `hold SERIES because …`, `release SERIES because …`: a series or
         // evidence may itself be named `hold` or `release` (spec/caveat-holds-0.1.md).
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}(?:hold|release)\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]+because\b)` },
+        // `resolve SERIES = …`, `resolve revision(SERIES, K) = …` and its
+        // `materialized CAVEAT, …` (spec/caveat-outcomes-0.1.md); elsewhere both are names.
+        { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}resolve\b(?=[ \t]+(?:revision[ \t]*\(|[A-Za-z_][\w:$]*[ \t]*=(?!=)))` },
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}materialized\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]*[;,])` },
         { name: 'keyword.operator.logical.caveat', match: String.raw`${notProperty}(?:and|or|not)\b` },
         { name: 'constant.language.boolean.caveat', match: String.raw`${notProperty}(?:true|false)\b` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(modifiers)})\b` },

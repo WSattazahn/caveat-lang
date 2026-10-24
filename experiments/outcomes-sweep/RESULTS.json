@@ -1,0 +1,334 @@
+{
+  "programs": 197,
+  "words": [
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 29,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 56,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 57,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 58,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 59,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 60,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/candidate.cav",
+      "line": 61,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 29,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 56,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 57,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 58,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 59,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 60,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/final.cav",
+      "line": 61,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 29,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 56,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 57,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 58,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 59,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 60,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C1/versions/01.cav",
+      "line": 61,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 26,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 49,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 50,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 51,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 52,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 53,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 54,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/candidate.cav",
+      "line": 55,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 26,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 49,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 50,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 51,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 52,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 53,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 54,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/final.cav",
+      "line": 55,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 26,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 49,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 50,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 51,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 52,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 53,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 54,
+      "word": "outcome"
+    },
+    {
+      "file": "experiments/agent-authoring/v1/runs/C2/versions/01.cav",
+      "line": 55,
+      "word": "outcome"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 395,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 396,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 397,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 398,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 399,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 400,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 401,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 402,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 403,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 404,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 405,
+      "word": "resolve"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "line": 406,
+      "word": "resolve"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 28,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 34,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 80,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 143,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 144,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 144,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 145,
+      "word": "outcome"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "line": 145,
+      "word": "outcome"
+    }
+  ],
+  "definitions": [],
+  "resolve_effects": [],
+  "decision_series": 147,
+  "programs_with_series": 130
+}

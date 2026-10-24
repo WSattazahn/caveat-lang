@@ -219,6 +219,8 @@ class Host {
       result.change = { change: entry.change, sequence: entry.sequence, event: entry.event, because: [...entry.because], caveats: [...entry.caveats] };
       if (entry.value !== undefined) result.change.value = entry.value;
       if (entry.permitted_by !== undefined) result.change.permitted_by = entry.permitted_by;
+      if (entry.outcome !== undefined) result.change.outcome = entry.outcome;
+      if (entry.materialized?.length) result.change.materialized = [...entry.materialized];
     }
     return result;
   }

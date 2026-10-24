@@ -73,3 +73,7 @@ adds one entry containing all its newly added witnesses in observation order.
 - 2026-10-19 (1.2 draft): a program with a hold also records `held`,
   `deferred` and `released` ([Holds 0.1](caveat-holds-0.1.md), section 3). A
   program without one records only `committed` and `reopened`, as before.
+- 2026-10-24 (1.3 draft): a program with a `resolve` also records
+  `resolved`, with `outcome` and `materialized`
+  ([Outcomes 0.1](caveat-outcomes-0.1.md), section 3). A program without one
+  records what it recorded before.

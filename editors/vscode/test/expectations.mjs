@@ -150,6 +150,22 @@ export const groups = [
     // Evidence, events and decisions may be named `hold` or `release`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'on @ commit d because t;', 'on e commit @ because t;', 'on e reopen d because @;'],
   },
+  {
+    name: 'outcomes',
+    words: ['resolve'],
+    probe: ['on e @ d = 1 because t;', 'on e when x @ revision(d, 1) = y because latest(s);', 'proc p(e evidence) {\n  when true @ d = 1 because e;\n};'],
+    scope: 'keyword.other.effect',
+    // Evidence and decisions may be named `resolve`.
+    notKeyword: ['set x = @;', 'on e commit @ because t;', 'on e reopen d because @;', 'set x = @ == 1;'],
+  },
+  {
+    name: 'outcome clauses',
+    words: ['materialized'],
+    probe: ['on e resolve d = 1 because t @ c;', 'on e resolve d = 1 because t @ c, k;'],
+    scope: 'keyword.other',
+    // A caveat or evidence may be named `materialized`.
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on e reopen d because @;', 'caveat @ consequence low;'],
+  },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',
@@ -178,7 +194,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision', 'on_hold'],
+      'permission_withdrawn', 'occurrence', 'revision', 'on_hold', 'resolved', 'outcome'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],
