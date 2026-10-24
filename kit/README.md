@@ -172,6 +172,17 @@ The exit statuses are those of `explain`, and 2 also means the program
 declares no such name. From code, `dependents(snapshot, name)` in
 `caveat-lang/explain` returns the report.
 
+`caveat review` asks which of a revision's grounds it was decided on. It
+replays the events without the events that observed them, alone and
+together, and lists the evidence without which the deciding event commits
+nothing, the evidence that only moved the value, and the retained caveats
+the revision's outcome says came true. It gives no scores and changes no
+session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-review-0.1.md)).
+
+```sh
+npx --no-install caveat-lang review program.cav choose@1 events.jsonl
+```
+
 ## Check, replay, start
 
 ```sh
