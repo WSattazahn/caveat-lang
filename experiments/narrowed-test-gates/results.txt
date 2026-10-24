@@ -1,0 +1,8 @@
+untouched        holds=false donegate=not done   done-guard=not done   done-guard+named=not done   caveat=not done   (required test: failed)
+real_fix         holds=true  donegate=done       done-guard=done       done-guard+named=done       caveat=done       (required test: passed)
+dot_skip         holds=false donegate=not done   done-guard=not done   done-guard+named=not done   caveat=not done   (required test: skipped)
+skip_option      holds=false donegate=FALSE DONE done-guard=FALSE DONE done-guard+named=not done   caveat=not done   (required test: skipped)
+todo_option      holds=false donegate=FALSE DONE done-guard=not done   done-guard+named=not done   caveat=not done   (required test: todo)
+script_narrowed  holds=false donegate=FALSE DONE done-guard=FALSE DONE done-guard+named=not done   caveat=not done   (required test: absent)
+name_pattern     holds=false donegate=FALSE DONE done-guard=FALSE DONE done-guard+named=not done   caveat=not done   (required test: absent)
+{"node":"v22.22.0","donegate":"0.1.0","done_guard":"done-guard 0.4.1","done_guard_sha256":"5803b7fe6db8d265616d3f9bf5d8cc0954f3f413ad6116f218293ae113b08856","caveat_lang":"1.2.0","python":"Python 3.13.17"}

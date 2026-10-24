@@ -1,0 +1,34 @@
+# Accept done only on the test runner's own report that the required test ran
+# and passed in this run. A skipped, todo or absent required test is no pass.
+claim required_passes;
+
+evidence contract from "the frozen task: the name of the required test";
+evidence run_report from "the test runner's own per-test report for one run of the suite";
+
+identifiers limit 64;
+state required_test = 0;
+
+readings required_result from run_report limit 16;
+decisions verdict limit 8 reopened by changed required_result;
+
+event freeze_contract required id;
+event run_reported test id, outcome in passed failed skipped todo absent;
+event judge;
+
+on freeze_contract when observed(contract) reject "The contract is already frozen.";
+on freeze_contract reveal contract;
+on freeze_contract set required_test = qualified(required, contract);
+
+on run_reported when not observed(contract) reject "No frozen contract.";
+on run_reported when test != required_test reject "Not the required test.";
+on run_reported when outcome == outcome.passed sample required_result = 1 supports required_passes noting test;
+on run_reported when outcome != outcome.passed sample required_result = 0 opposes required_passes noting test;
+
+on judge when not has_sample(required_result) reject "No run report for the required test.";
+on judge when committed(verdict) and not reopened(verdict) reject "A verdict is in force.";
+on judge commit verdict because enough using latest(required_result);
+
+bind gate.verdict = "none";
+bind gate.verdict = "done" when committed(verdict) and not reopened(verdict) and latest(verdict) == 1;
+bind gate.verdict = "not done" when committed(verdict) and not reopened(verdict) and latest(verdict) == 0;
+bind gate.verdict = "reopened" when reopened(verdict);
