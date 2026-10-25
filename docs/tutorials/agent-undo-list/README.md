@@ -26,19 +26,59 @@ npm install caveat-lang@1.3.0
 npx --no-install caveat-lang --version
 ```
 
-Then fetch the five tutorial files from this folder: `support.cav` (the
-program), `events.jsonl` and `events-corrected.jsonl` (what the agent
-reported), and `agent.mjs` and `support.scenarios.json`, which you'll use
-later.
+Then fetch the tutorial files from this folder: `hello.cav` and
+`hello.events.jsonl` for a warm-up, `support.cav` (the program),
+`events.jsonl` and `events-corrected.jsonl` (what the agent reported), and
+`agent.mjs` and `support.scenarios.json`, which you'll use later.
 
 ```sh
 base=https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/docs/tutorials/agent-undo-list
-for f in support.cav events.jsonl events-corrected.jsonl agent.mjs support.scenarios.json; do
+for f in hello.cav hello.events.jsonl support.cav events.jsonl events-corrected.jsonl agent.mjs support.scenarios.json; do
   curl -fsSLO "$base/$f"
 done
 ```
 
-## 2. The story
+## 2. Warm up: hello, world (1 minute)
+
+The shortest Caveat program that shows the idea: one piece of evidence, one
+decision, one withdrawal that reopens it. This is `hello.cav`:
+
+```caveat
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+```
+
+`hello.events.jsonl` sends `ci_passed`, then `ci_was_wrong`. Ask why:
+
+```sh
+npx --no-install caveat-lang explain hello.cav hello.events.jsonl
+```
+
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision to ship is reopened, and it still says what it was based on. The
+rest of this tutorial does the same thing for an agent with several actions,
+where only some of them rest on the evidence that turned out wrong.
+
+## 3. The story
 
 A customer writes: "Where is my package?" The agent has three tools:
 
@@ -52,7 +92,7 @@ On that evidence the agent takes three actions: a **refund**, a **carrier
 claim**, and an **apology credit**. Then a second carrier lookup shows the
 package was scanned yesterday. The first carrier reading was wrong.
 
-## 3. Read the program (4 minutes)
+## 4. Read the program (4 minutes)
 
 Open `support.cav`. Statements end with `;` and comments start with `#`.
 The parts that matter for this tutorial are below; the file also has a
@@ -129,7 +169,7 @@ npx --no-install caveat-lang check support.cav
 
 You should see `support.cav: no warnings.`
 
-## 4. Ask why each action was taken (2 minutes)
+## 5. Ask why each action was taken (2 minutes)
 
 `events.jsonl` is what the agent reported, one event per line: two lookups,
 the customer's message, then the three actions.
@@ -154,7 +194,7 @@ the payload. `= null` means the decision records no number: `citing` keeps
 grounds without a value (`using EXPRESSION` would record one, such as the
 refund amount).
 
-## 5. Before anything goes wrong: what rests on the carrier? (1 minute)
+## 6. Before anything goes wrong: what rests on the carrier? (1 minute)
 
 You can ask the reverse question at any time. If the carrier API is wrong,
 what would you have to take back?
@@ -166,7 +206,7 @@ npx --no-install caveat-lang dependents support.cav carrier events.jsonl
 Under **Decisions** it lists `carrier_claim@1` and `refund@1`. The apology
 credit isn't there, because it never rested on the carrier.
 
-## 6. The carrier was wrong (2 minutes)
+## 7. The carrier was wrong (2 minutes)
 
 `events-corrected.jsonl` is the same history plus one line: the second lookup,
 `{"event": "carrier_correction", "payload": {"days": 1}}`.
@@ -199,7 +239,7 @@ Three things to notice:
 3. The wrong reading is still there, marked `withdrawn`, with when (event #7)
    and on what evidence (`recheck`). Nothing was erased.
 
-## 7. Put it in the agent (4 minutes)
+## 8. Put it in the agent (4 minutes)
 
 `agent.mjs` is a short agent with stand-in tools. Before each action it asks
 Caveat; it acts only when Caveat records the decision. Run it:
@@ -252,7 +292,7 @@ first.reopened.because;     // ['recheck']
 Caveat records and reopens; it doesn't reverse the refund for you. Your agent
 reads the undo list and calls whatever API takes the action back.
 
-## 8. Lock the behavior in with a test (1 minute)
+## 9. Lock the behavior in with a test (1 minute)
 
 ```sh
 npx --no-install caveat-lang test support.scenarios.json
@@ -273,11 +313,11 @@ this test fails.
 Solutions for 2 and 3 are in [`solutions/`](solutions/).
 
 1. Make the apology credit also cite the carrier reading
-   (`citing latest(complaints), latest(scan_gap)`). Run step 6 again: now it's
+   (`citing latest(complaints), latest(scan_gap)`). Run step 7 again: now it's
    on the undo list too. Also add `or not has_sample(scan_gap)` to the
    credit's first guard: without it, a credit asked for before any carrier
    lookup is refused as a runtime error (`evaluation/expression`) instead of
-   with your message. Run step 8 again as well: S01 now fails, because it
+   with your message. Run step 9 again as well: S01 now fails, because it
    expects the credit to be kept. That's the test doing its job; update its
    expectation.
 2. Withdraw the order total instead. You'll need a new evidence declaration
