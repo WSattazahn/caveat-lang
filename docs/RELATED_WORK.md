@@ -1,6 +1,6 @@
 # Related work
 
-Caveat builds on ideas that predate it. This note places it beside eight of
+Caveat builds on ideas that predate it. This note places it beside nine of
 them. It is not a benchmark and not a ranking. These systems solve different
 problems and are not interchangeable products. Caveat claims none of the ideas
 below as its own invention.
@@ -15,8 +15,8 @@ in its own documented behavior. Each comparison is marked:
   it as established.
 
 Sources were read on 2026-10-10, those for the last two entries on
-2026-10-12, and the assumption-based TMS sources on 2026-10-25. Caveat's
-behavior is summarized in [What is checked, and how](VERIFICATION.md).
+2026-10-12, and the assumption-based TMS and Hyperon sources on 2026-10-25.
+Caveat's behavior is summarized in [What is checked, and how](VERIFICATION.md).
 
 ## Truth maintenance (Doyle, 1979; de Kleer, 1986)
 
@@ -142,6 +142,27 @@ neural networks.
   and check reasons, and computes no probabilities.
 - **[unverified]** Scallop has no decision journal or event rollback, as far
   as we know from the paper.
+
+## Probabilistic Logic Networks in OpenCog Hyperon
+
+Ben Goertzel et al., "OpenCog Hyperon: A Framework for AGI at the Human
+Level and Beyond" ([arXiv 2310.18318](https://arxiv.org/abs/2310.18318), a
+preprint, 2023), describes a rewrite of OpenCog around the MeTTa language.
+Its Probabilistic Logic Networks (PLN) give a statement a truth value with
+two parts: a strength, the estimated probability that it is true, and a
+confidence, how certain that estimate is
+([arXiv 2412.19524](https://arxiv.org/abs/2412.19524), a preprint).
+
+- **[checked]** Caveat scores no belief. A value carries the evidence and
+  caveats it rests on ([Explanations 0.2](../spec/caveat-explanations-0.2.md)),
+  and a caveat's consequence is one of five declared levels, from
+  `negligible` to `catastrophic`, not a probability. Withdrawing evidence marks what rests on it rather than lowering a number
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[unverified]** From the sources cited here, PLN revises truth values as
+  evidence accumulates and does not keep a frozen record of the basis an
+  earlier decision was made on. We have not read MeTTa's or PLN's
+  implementation. The two could be combined: a program could carry a PLN
+  strength as an ordinary value beside Caveat's lineage. We have not tried it.
 
 ## W3C PROV
 
