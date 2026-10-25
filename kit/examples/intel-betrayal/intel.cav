@@ -5,10 +5,6 @@ entity north kind gate at field;
 entity south kind gate at field;
 entity ocelot kind informant at field;
 entity eva kind informant at field;
-entity r1 kind slot at field;
-entity r2 kind slot at field;
-entity r3 kind slot at field;
-entity r4 kind slot at field;
 
 event intel informant kind informant, gate kind gate, says in clear guarded;
 event betray informant kind informant;
@@ -20,6 +16,7 @@ for informant as $i routed by informant {
     on intel when not observed($i_word) reveal $i_word;
     on betray when observed($i_betrayal) reject "Already exposed.";
     on betray reveal $i_betrayal;
+    on betray withdraw every $i_word because $i_betrayal;
 };
 
 for gate as $g {
@@ -32,10 +29,6 @@ for gate as $g {
         on intel when gate == gate.$g and informant == informant.$i and says == says.guarded
             sample $g_$i = 0 opposes $g_clear;
         define $g_$i_ok = if(has_sample($g_$i), if(withdrawn(latest($g_$i)), 0, latest($g_$i)), 0);
-        for slot as $k {
-            on betray when informant == informant.$i and history_count($g_$i) >= $index
-                withdraw reading($g_$i, $index) because $i_betrayal;
-        };
         on betray when informant == informant.$i and committed($g_plan) and not reopened($g_plan)
             and rests_on_withdrawn($g_plan) reopen $g_plan because $i_betrayal;
     };

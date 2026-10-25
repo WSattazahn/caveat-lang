@@ -48,12 +48,11 @@ The north plan: you were played
 | A plan rests on the reports it read | `commit $g_plan because enough using $g_ocelot_ok + $g_eva_ok` | I01 |
 | An exposed informant's plans are reopened, with their grounds kept | `rests_on_withdrawn($g_plan)` reopens; `commitment_grounds` still holds `north_ocelot@1` | I01 |
 | Someone else's exposure leaves a plan alone | only plans whose grounds hold a withdrawn report are reopened | I02 |
-| Everything the informant said is withdrawn, not just the latest | one `slot` entity per possible reading, `withdraw reading($g_$i, $index)` | I03 |
+| Everything the informant said is withdrawn, not just the latest | `withdraw every $i_word because $i_betrayal` reaches every report sampled from that informant (draft for 1.4) | I03 |
 | The player can't set out on nothing, or twice | `reject` rules whose messages the host shows | I04 |
 
-Two things are written by hand that a larger game would feel: the sum names
+One thing is written by hand that a larger game would feel: the sum names
 each informant (`$g_ocelot_ok + $g_eva_ok`), so a new informant means editing
-it, and the `slot` entities cap how many reports can be withdrawn at once at
-the streams' `limit`.
+it.
 
 See [Caveat in a game](../../docs/GAMES.md) for the loop, saves and cost.

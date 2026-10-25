@@ -20,17 +20,18 @@ route, and exposing an informant reopens every plan that rested on their word.
 | What the report bears on, such as "the north gate is clear" | a `claim`, with `supports` or `opposes` on the sample |
 | A player's choice | `decisions D limit N`, committed `using` the reports it reads. Its grounds are frozen at that moment. |
 | An exclusive choice (parry or dodge, north or south) | one series whose value is the choice; a second commit is refused until a rule reopens it |
-| "That report was a lie" | `withdraw reading(S, N) because PROOF` for each report, then reopen what `rests_on_withdrawn` |
+| "That informant was lying" | `withdraw every SOURCE because PROOF`, then reopen each plan that `rests_on_withdrawn` |
+| "That one report was wrong" | `withdraw latest(S) because PROOF`, or `reading(S, N)` for an earlier one |
 | A rumour that is doubted, not disproved | `qualify latest(S) with C`, a caveat; `unqualify` takes the doubt back |
 | A choice the player can't take back | `decisions D limit 1 irreversible forecloses OTHER` |
 | A cutscene that must not be interrupted | `hold D because E`; reopenings wait for `release` |
 
-Withdrawing the source evidence itself (`withdraw informant_word`) does not
-reach the readings already sampled from it: each sample is its own
-observation (Withdrawal 0.1, "Predicates"). To withdraw everything one source
-said, withdraw each reading. The intel example does this with one `slot`
-entity per possible reading and `withdraw reading(S, $index)` in a
-`for slot as $k` block.
+To withdraw everything one source said, write
+`withdraw every SOURCE because PROOF` (draft for 1.4, [untrusted
+sources](reference/spec/caveat-untrusted-sources-0.1.md)): it withdraws the
+source and every reading sampled from it. A plain `withdraw SOURCE` does not
+reach readings already taken, since each sample is its own observation
+(Withdrawal 0.1, "Predicates").
 
 ## The game loop
 
