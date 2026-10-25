@@ -1,7 +1,7 @@
 # Design note: graded belief
 
-Status: a design note for the owner's decision, ahead of the later 1.x work.
-Nothing here is implemented or promised, and no specification changes with
+Status: a design note. The owner chose P1 and P2 for after 1.4.0 (see
+"Decisions" at the end). Nothing here is implemented yet, and no specification changes with
 it. Each proposal below is additive (new syntax or a new tool) and would need
 its own specification PR and corpus sweep under the
 [compatibility commitment](../COMPATIBILITY.md). Receipts are `path: Lx–Ly`
@@ -287,14 +287,16 @@ for it.
   model and the guardrail keep their own state; Caveat records the number a
   decision used and what was known to be wrong with it.
 
-## Decisions for the owner
+## Decisions
 
-1. Whether P1 (a caveat on one reading) goes into the next 1.x minor after
-   1.4.0. Recommended: yes; all three cases need it, and it closes the
-   guardrail demo's rough spot 4.
-2. Whether P2 (named thresholds in the record) goes with it. Recommended:
-   yes, in the same minor, since both change the same explain output.
-3. P3 waits for a program that needs it.
+The owner chose on 2026-10-25:
 
-The renewable-evidence gap is already fixed for 1.4.0 (D024, above); it does
-not wait on these choices.
+1. **P1, a caveat on one reading:** yes, for the first 1.x minor after
+   1.4.0, as its own specification PR with a corpus sweep.
+2. **P2, named thresholds in the record:** yes, in the same minor as P1,
+   also as its own specification PR.
+3. **P3** waits for a program that needs it.
+
+Both stay opt-in: a program that uses neither loads, runs, saves and
+explains byte for byte as before. The renewable-evidence gap is already
+fixed for 1.4.0 (D024, above).
