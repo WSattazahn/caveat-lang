@@ -57,13 +57,19 @@ decisions based on it and the values and displays that cite it.
 
 ## What the author writes by hand
 
+`npx --no-install caveat-lang check --withdrawals retraction.cav` reports the
+first two of these when a rule is missing: C010 for a commit that nothing
+guards, C011 for a decision no withdrawal reopens
+([check](../../docs/reference/spec/caveat-check-0.1.md)).
+
 - **A guard on every commit.** Withdrawn evidence still has a value, and a
   commit rule that reads it records a decision whose grounds carry the
   `withdrawn` caveat. Each rule here checks `withdrawn(...)` first (R04
   refuses a new pause after the retraction).
 - **A reopen rule for each decision.** A withdrawal reopens nothing by
   itself. The `retracted` event has one `reopen` rule per decision, guarded
-  by `rests_on_withdrawn`, and a decision added later needs its own.
+  by `rests_on_withdrawn`, and a decision added later needs its own. WHO's
+  pause has one too, although the monitoring committee reopened it first.
 - **Grounds versus lineage.** `guidance@2` is based only on `recovery_hcq`,
   but its guard read `reopened(guidance)`, so `explain` lists the retracted
   study as something that "could also have been influenced" it. A report of

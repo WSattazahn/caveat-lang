@@ -34,6 +34,7 @@ bind view.after = after;
 const RECORDS: CheckOptions = CheckOptions {
     unused: false,
     records: true,
+    withdrawals: false,
 };
 
 fn played(events: &[&str]) -> ReactiveSession {

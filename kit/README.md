@@ -206,6 +206,9 @@ npx --no-install caveat-lang init my-project
   left behind. `--records` also reports each read of a decision's record that
   a later `qualify` reaches from 1.1, and `--records --save SAVE` the values
   that save holds without such a caveat, as a 1.0.x runtime saved them.
+  `--withdrawals` also reports each commit on something the program can
+  withdraw that nothing asks is withdrawn, and each decision on such a source
+  that no withdrawal reopens.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.

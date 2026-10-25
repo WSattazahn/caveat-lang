@@ -89,7 +89,8 @@ on retracted when committed(no_benefit) and not reopened(no_benefit) and rests_o
     reopen no_benefit because lancet_retraction;
 on retracted when committed(guidance) and not reopened(guidance) and rests_on_withdrawn(guidance)
     reopen guidance because lancet_retraction;
-# The pause was already reopened by the monitoring board; a past revision is asked directly.
+on retracted when committed(pause_arm) and not reopened(pause_arm) and rests_on_withdrawn(pause_arm)
+    reopen pause_arm because lancet_retraction;
 
 on recovery_reported when observed(recovery_hcq) reject "Already reported.";
 on recovery_reported reveal recovery_hcq opposes hcq_lowers_mortality;
