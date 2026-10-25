@@ -1,0 +1,69 @@
+scene "Merged pull requests and what each merge rested on: its checks, its reviews and the agent that wrote it, with what was later found wrong.";
+
+# A template: pr-ledger.mjs writes one copy per chapter of the record, with
+# one `source` entity per check, reviewer and author the chapter has seen and
+# its limits filled in. The record (chapter.json) names what each source is.
+
+claim sound;   # the merged change was sound
+
+place repo kind repo;
+entity check_evidence_games_browser_qa kind source at repo;  # check: Evidence games browser QA
+entity check_lean_runtime_comparison kind source at repo;  # check: Lean runtime comparison
+entity check_light_the_way_chromium kind source at repo;  # check: Light the Way (chromium)
+entity check_light_the_way_webkit kind source at repo;  # check: Light the Way (webkit)
+entity check_mcp_worker_ubuntu_24_04 kind source at repo;  # check: MCP worker / ubuntu-24.04
+entity check_mcp_worker_windows_latest kind source at repo;  # check: MCP worker / windows-latest
+entity check_moon_garden_2d_qa kind source at repo;  # check: Moon Garden 2D QA
+entity check_moon_garden_3d_qa kind source at repo;  # check: Moon Garden 3D QA
+entity check_mr_caveat_iphone_qa kind source at repo;  # check: Mr. Caveat iPhone QA
+entity check_the_last_beacon_browser_qa kind source at repo;  # check: The Last Beacon browser QA
+entity check_vs_code_extension kind source at repo;  # check: VS Code extension
+entity check_core_semantics kind source at repo;  # check: core semantics
+entity check_hosted_mcp_server kind source at repo;  # check: hosted MCP server
+entity check_native_runtime kind source at repo;  # check: native runtime
+entity check_packed_kit_dependency_security kind source at repo;  # check: packed kit dependency security
+entity check_proofs kind source at repo;  # check: proofs
+entity check_rc_15_compatibility_and_departure kind source at repo;  # check: rc.15 compatibility and departure gates
+entity check_regression_scope kind source at repo;  # check: regression scope
+entity check_reproducible_webassembly kind source at repo;  # check: reproducible WebAssembly
+entity check_rustfmt kind source at repo;  # check: rustfmt
+entity author_claude_code kind source at repo;  # author: Claude Code
+
+evidence merges_seen from "GitHub's record that a pull request merged";
+renewable merges_seen limit 64;
+evidence finding from "a later finding that a check run, a review or an agent's pull request was wrong";
+renewable finding limit 256;
+
+# What the merge being recorded rests on: the pull request number, plus
+# every passing check, approving review and author reading sent for it.
+state basis = 0;
+decisions main limit 64;   # one revision per merge; value: the pull request number
+
+event pr number min 1 max 999999999;   # a merged pull request's record begins
+event saw name kind source, ok min 0 max 1;   # 1 passed, approved or wrote it; 0 failed or asked for changes
+event merge;                           # the pull request merged on what was sent since `pr`
+event wrong name kind source, index min 1 max 45;   # that source's Nth reading was later found wrong
+
+on pr set basis = number;
+on merge when observed(merges_seen) renew merges_seen;
+on merge reveal merges_seen;
+on wrong when observed(finding) renew finding;
+on wrong reveal finding;
+
+for source as $s routed by name {
+    evidence $s_report from "what GitHub said about $s on each pull request";
+    readings $s from $s_report limit 45;
+    on saw when ok == 1 sample $s = 1 supports sound;
+    on saw when ok == 0 sample $s = 0 opposes sound;
+    # Only what passed or approved is what the merge rested on.
+    on saw when ok == 1 set basis = basis + 0 * latest($s);
+    on wrong when index > history_count($s) reject "No such reading.";
+    on wrong when withdrawn(reading($s, index)) reject "Already found wrong.";
+    on wrong withdraw reading($s, index) because finding;
+};
+
+# Each merge supersedes the one before it: main moved on. A finding never
+# rewrites a merge's grounds; it withdraws the reading, and `dependents`
+# names every merge whose grounds hold it.
+on merge when committed(main) and not reopened(main) reopen main because merges_seen;
+on merge commit main because enough using basis;
