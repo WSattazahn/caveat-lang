@@ -86,7 +86,12 @@ Verify changed behavior and its consumers using `package.json` and the
 [runtime workflow](.github/workflows/runtime.yml). Build with `npm run build`
 before `npm run test:kit` or `npm run test:kit-package`; runtime changes also
 need the workflow's Rust and affected browser checks. Report the exact revision,
-commands and outcomes, including failures or checks not run.
+commands and outcomes, including failures or checks not run. Before calling a
+pull request done, ask [`scripts/done-check`](scripts/done-check/README.md)
+(`node scripts/done-check/done.mjs PR`): it is advisory, and says in Caveat
+whether the checks are green on a head that contains current main, whether a
+runtime change has its corpus and save sweep green, and which merged PRs still
+owe ledger events.
 
 Keep release records factual. Follow the
 [release procedure](docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)

@@ -1,0 +1,82 @@
+scene "Is a pull request done? Green checks on a head that contains current main, the corpus and save sweep green where it touches the runtime, and the ledger events owed named.";
+
+# scripts/done-check/done.mjs fetches what GitHub says about one pull request
+# and sends each fact here; this program decides. It is advisory: it says
+# ready or not ready, with what that rests on, and blocks nothing.
+
+claim ready;   # the pull request can merge as it stands
+
+caveat ledger_owed consequence low;   # PRs merged since main's ledger last changed still owe their events
+
+evidence comparison from "GitHub's comparison of current main with the pull request head";
+readings heads from comparison limit 4;       # value: 1 when the head contains current main
+evidence check_report from "a check run on the pull request head, the newest of its name";
+readings checks from check_report limit 256;  # value: 1 passed, 0 failed, 2 still running
+evidence sweep_report from "the corpus and save sweep (rc.15 compatibility and departure gates) on the head";
+readings sweeps from sweep_report limit 4;    # value: as for checks
+evidence diff from "the files the pull request changes";
+readings runtime_touched from diff limit 4;   # value: 1 when a file under runtime/ or spec/ changes
+evidence ledger_history from "the pull requests merged to main since its ledger/events.jsonl last changed";
+readings owed from ledger_history limit 4;    # value: how many of them owe events
+ledger_owed qualifies ledger_history;
+
+fn add_failed(count, outcome) = count + if(outcome == 0, 1, 0);
+fn add_running(count, outcome) = count + if(outcome == 2, 1, 0);
+
+event head contains_main min 0 max 1;
+event check outcome in failed passed running, sweep min 0 max 1;
+event files runtime min 0 max 1;
+event ledger owed min 0 max 999;
+event decide;
+
+# Either verdict is reopened by any later fact, so a session kept open across
+# a PR's life decides again on what it now knows.
+decisions done limit 16 reopened by heads, checks, sweeps, runtime_touched, owed;      # ready: grounds and no value
+decisions not_done limit 16 reopened by heads, checks, sweeps, runtime_touched, owed;  # not ready, with its reasons
+
+on head sample heads = contains_main;
+on check when outcome == outcome.passed sample checks = 1 supports ready;
+on check when outcome == outcome.failed sample checks = 0 opposes ready;
+on check when outcome == outcome.running sample checks = 2 opposes ready;
+on check when sweep == 1 and outcome == outcome.passed sample sweeps = 1 supports ready;
+on check when sweep == 1 and outcome == outcome.failed sample sweeps = 0 opposes ready;
+on check when sweep == 1 and outcome == outcome.running sample sweeps = 2 opposes ready;
+on files sample runtime_touched = runtime;
+on ledger sample owed = owed;
+
+define failing = if(has_sample(checks), fold_history(checks, 0, add_failed), 0);
+define running = if(has_sample(checks), fold_history(checks, 0, add_running), 0);
+define on_main = has_sample(heads) and latest(heads) == 1;
+define needs_sweep = has_sample(runtime_touched) and latest(runtime_touched) == 1;
+define sweep_green = has_sample(sweeps) and latest(sweeps) == 1;
+define checks_green = has_sample(checks) and failing == 0 and running == 0;
+define all_green = on_main and checks_green and (not needs_sweep or sweep_green);
+
+on decide when not has_sample(heads) or not has_sample(runtime_touched) or not has_sample(owed)
+    reject "Send head, files and ledger before deciding.";
+on decide when committed(done) and not reopened(done) reject "Already decided ready.";
+on decide when committed(not_done) and not reopened(not_done) reject "Already decided not ready.";
+on decide when all_green and needs_sweep commit done because enough citing latest(heads), failing, running, latest(sweeps), latest(owed);
+on decide when all_green and not needs_sweep commit done because enough citing latest(heads), failing, running, latest(runtime_touched), latest(owed);
+on decide when not all_green and has_sample(checks)
+    commit not_done because enough citing latest(heads), failing, running, latest(runtime_touched);
+on decide when not all_green and not has_sample(checks)
+    commit not_done because enough citing latest(heads), latest(runtime_touched);
+
+bind pr.verdict = "not decided";
+bind pr.verdict = "not ready" when committed(not_done) and not reopened(not_done);
+bind pr.verdict = "ready" when committed(done) and not reopened(done);
+bind pr.verdict = "ready; the ledger owes events for PRs merged since it last changed"
+    when committed(done) and not reopened(done) and carries(latest(owed), ledger_owed) and latest(owed) > 0;
+bind pr.main = "no comparison yet";
+bind pr.main = "the head contains current main" when on_main;
+bind pr.main = "the head does not contain current main: merge main in" when has_sample(heads) and not on_main;
+bind pr.checks = "no check runs on the head" when not has_sample(checks);
+bind pr.checks = "all " + number_text(history_count(checks)) + " check runs passed" when checks_green;
+bind pr.checks = number_text(failing) + " failed, " + number_text(running) + " still running, of "
+    + number_text(history_count(checks)) when has_sample(checks) and not checks_green;
+bind pr.sweep = "not needed: the PR does not touch runtime/ or spec/";
+bind pr.sweep = "needed, and green" when needs_sweep and sweep_green;
+bind pr.sweep = "needed, and not green on this head" when needs_sweep and not sweep_green;
+bind pr.ledger = "no events owed" when has_sample(owed) and latest(owed) == 0;
+bind pr.ledger = number_text(latest(owed)) + " merged PRs owe ledger events" when has_sample(owed) and latest(owed) > 0;

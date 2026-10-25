@@ -112,6 +112,8 @@ jobs:
         run: npm run test:kit
       - name: The project's own decision ledger replays and its scenarios pass
         run: npm run test:ledger
+      - name: The pull request done check decides in Caveat
+        run: npm run test:done-check
       - name: Adoption scorer mutation controls (no trial agents)
         run: node --test experiments/agent-adoption/v1/checks.test.mjs
       - name: Adoption runner capture failure controls (no trial agents)
