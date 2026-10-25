@@ -5,8 +5,9 @@ Nothing here is implemented or promised, and no specification changes with
 it. Each proposal below is additive (new syntax or a new tool) and would need
 its own specification PR and corpus sweep under the
 [compatibility commitment](../COMPATIBILITY.md). Receipts are `path: Lx–Ly`
-at `main` `af61d2e`. The programs were checked with `check --strict` and run
-with `explain` on the runtime built from that commit.
+at `main` `af61d2e` unless marked. The programs were checked with
+`check --strict` and run with `explain` on the runtime built from that
+commit, and again on `41171fe`, after the D024 fix described below.
 
 ## The question
 
@@ -130,9 +131,9 @@ from this site gives `referral@2 = 0`, based on a score carrying only
 **Where it hurts.** To keep "calibrated elsewhere" on one patient's score
 and off the next, the program renews the model's evidence for every score,
 reveals it, and wraps the number in `qualified(p, risk_model)`. Three rules
-do the work of one idea: this caveat is about this reading. It also shows
-the trap below: the reading `scores@1` itself does not carry
-`calibrated_elsewhere`; only the `qualified(…)` wrapper puts it in the
+do the work of one idea: this caveat is about this reading. It also showed
+the gap below: before 1.4.0 the reading `scores@1` itself did not carry
+`calibrated_elsewhere`; only the `qualified(…)` wrapper put it in the
 grounds.
 
 ### 3. A guardrail's risk estimate (Bengio)
@@ -181,31 +182,30 @@ second assessment, carries the flag.
 
 **Where it hurts.** The threshold 0.2 is again only in the source. And the
 version a reader would write first, `sample risks = p;` with the `qualify`
-before it, is not protected: `run` commits, because the reading does not
-carry the flag. That is the trap below.
+before it, was not protected before 1.4.0: `run` committed, because the
+reading did not carry the flag. That is the gap below.
 
-## The trap: readings from renewable evidence
+## A gap the examples found: readings from renewable evidence (D024)
 
-A reading stream declared `from` renewable evidence takes its caveats from
-the declared evidence, not from the current occurrence. A sample "copies the
-template's canonical source string ... Template qualifications are linked to
-the new node" (`spec/caveat-reactive-0.5.md: L60–66`), and the template is
-the declared evidence. [Renewal 0.1](../../spec/caveat-renewal-0.1.md) says
-that after a `renew` "every rule and binding that names `EVIDENCE` means"
-the current occurrence, and lists the forms; `readings … from` is not among
-them (`spec/caveat-renewal-0.1.md: L37–45`). So:
+Up to 1.3.0, a reading stream declared `from` renewable evidence took its
+caveats from the declared evidence, not from the current occurrence. A sample
+linked the "template qualifications" (`spec/caveat-reactive-0.5.md:
+L60–66`), and the template is the declared evidence, while
+[Renewal 0.1](../../spec/caveat-renewal-0.1.md)'s list of forms that follow
+the current occurrence did not include `readings … from`
+(`spec/caveat-renewal-0.1.md: L37–45`). So a caveat that `qualify` added to
+`guard@2` did not reach a reading sampled after it. That drops a doubt, which
+matters most for an irreversible step.
 
-- a caveat added to `guard@2` by `qualify` does not reach a reading sampled
-  after it, and
-- a caveat added to the first occurrence before any `renew` reaches every
-  later reading, though it was about that first occurrence.
-
-Both were run on the runtime at `af61d2e`. The first drops a doubt, which
-matters most for an irreversible step. This note does not settle it: whether
-it is a fix to a documented promise (a 1.x patch) or a meaning change (a
-spec PR) is a question for the bug hunt and the release line, and it is
-reported there. The examples above use `qualified(p, EVIDENCE)`, which names
-the current occurrence and is safe either way.
+The bug hunt took it as finding D024 and fixed it for 1.4.0 as an add-only
+change (#351, merged as `41171fe`): a reading from renewable evidence now
+also inherits the caveats of the occurrence current when it is taken
+(`spec/caveat-renewal-0.1.md`, Changes, 2026-10-25). Readings only gain
+caveats: a late caveat on the first occurrence still reaches every later
+reading, as before. On `41171fe` the guardrail program written with
+`sample risks = p;` refuses `run`, and the screening program's `scores@1`
+carries `calibrated_elsewhere`. On 1.3.0, `qualified(p, EVIDENCE)`, as in
+the examples above, names the current occurrence and is safe either way.
 
 ## Proposals
 
@@ -296,5 +296,5 @@ for it.
    yes, in the same minor, since both change the same explain output.
 3. P3 waits for a program that needs it.
 
-The renewable-evidence trap is reported separately as a finding; its fix does
+The renewable-evidence gap is already fixed for 1.4.0 (D024, above); it does
 not wait on these choices.
