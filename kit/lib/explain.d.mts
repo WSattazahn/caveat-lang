@@ -146,6 +146,13 @@ export interface ExplainedRevision {
    */
   qualified_since?: { evidence: string; caveats: string[] }[];
   /**
+   * With `lineageNotes`: each lineage evidence outside the grounds that the
+   * previous revision rested on (`as: 'grounds'`), was reopened because of
+   * (`as: 'reopening'`) or could have been influenced by (`as: 'lineage'`).
+   * Empty for a first revision; absent without the option.
+   */
+  lineage_from?: { evidence: string; revision: string; as: 'grounds' | 'reopening' | 'lineage' }[];
+  /**
    * For each grounds evidence, in grounds order, the accepted event whose
    * `reveal` or `sample` effect first observed it, with its payload. Present
    * when the events given to `explain` carry their effects; all null when
@@ -243,6 +250,12 @@ export interface ExplainOptions {
    * default, so the report and its text stay as before.
    */
   laterCaveats?: boolean;
+  /**
+   * Also say, for each revision, which of its lineage evidence came with the
+   * revision before it (`lineage_from`). Off by default, so the report and
+   * its text stay as before.
+   */
+  lineageNotes?: boolean;
 }
 
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */

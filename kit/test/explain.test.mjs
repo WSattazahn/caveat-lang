@@ -255,6 +255,49 @@ test('with laterCaveats, explain lists live caveat names absent from the decisio
   });
 });
 
+const REDECIDED = `claim effect;
+    evidence old_study from "the first study"; evidence retraction from "its retraction";
+    evidence new_study from "a later study";
+    state old_ok = 0; state new_ok = 0; decisions conclude limit 2;
+    event publish; event decide; event retract; event replicate; event redecide;
+    on publish reveal old_study supports effect;
+    on publish set old_ok = qualified(1, old_study);
+    on decide commit conclude because enough using old_ok;
+    on retract reveal retraction;
+    on retract withdraw old_study because retraction;
+    on retract when committed(conclude) and rests_on_withdrawn(conclude) reopen conclude because retraction;
+    on replicate reveal new_study supports effect;
+    on replicate set new_ok = qualified(1, new_study);
+    on redecide when reopened(conclude) commit conclude because enough using new_ok;`;
+
+test('with lineageNotes, lineage that came with the revision before is marked with it', async () => {
+  const session = real.open(REDECIDED);
+  for (const event of ['publish', 'decide', 'retract', 'replicate', 'redecide']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  const plain = explain(snapshot);
+  assert.equal(plain.decisions[0].revisions[1].lineage_from, undefined, 'off by default');
+  assert.match(formatExplanation(plain), /could also have been influenced by old_study, retraction\n/);
+
+  const report = explain(snapshot, [], { lineageNotes: true });
+  const [first, second] = report.decisions[0].revisions;
+  assert.deepEqual(first.lineage_from, []);
+  assert.deepEqual(second.grounds.evidence, ['new_study'], 'the grounds are unchanged');
+  assert.deepEqual(second.lineage_from, [
+    { evidence: 'old_study', revision: 'conclude@1', as: 'grounds' },
+    { evidence: 'retraction', revision: 'conclude@1', as: 'reopening' },
+  ]);
+  assert.match(formatExplanation(report),
+    /could also have been influenced by old_study \(conclude@1 rested on it\), retraction \(it reopened conclude@1\)\n/);
+
+  await withFiles({ 'redecided.cav': REDECIDED, 'events.jsonl': ['publish', 'decide', 'retract', 'replicate', 'redecide'].map(event => JSON.stringify({ event })).join('\n') }, file => {
+    const before = run(file('redecided.cav'), file('events.jsonl'));
+    const after = run('--lineage-notes', file('redecided.cav'), file('events.jsonl'));
+    assert.equal(after.status, 0, after.stderr);
+    assert.equal(after.stdout.replace(' (conclude@1 rested on it)', '').replace(' (it reopened conclude@1)', ''), before.stdout);
+  });
+});
+
 test('a permission is shown as what permitted a decision, apart from what it rests on', async () => {
   const { dependents } = await import('../lib/explain.mjs');
   const session = real.open(`identifiers limit 8; claim ready; claim may_merge;
