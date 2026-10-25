@@ -19,6 +19,8 @@ pub mod web;
 pub mod web_games;
 #[cfg(feature = "games")]
 pub mod web_source_library;
+// Embeds a game program from outside the crate; only the games sessions use it.
+#[cfg(feature = "games")]
 pub mod world3d;
 
 pub mod fast_hash;
