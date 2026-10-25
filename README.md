@@ -1,5 +1,7 @@
 # CAVEAT Language
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15891/badge)](https://www.bestpractices.dev/projects/15891)
+
 **A decision ledger for agents.**
 
 Caveat is a rules language and a runtime for decisions that may need taking
@@ -519,6 +521,11 @@ Third-party components keep their own licenses: the Rust crates compiled into
 the WebAssembly runtime are listed with their notices in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the site's copy of
 three.js ships with its license as `vendor/THREE-LICENSE.txt`.
+
+Report vulnerabilities privately as the [security policy](SECURITY.md)
+describes; the [threat model](docs/THREAT_MODEL.md) sets out the trust
+boundaries. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report bugs and
+what a pull request needs.
 
 ## Culture
 
