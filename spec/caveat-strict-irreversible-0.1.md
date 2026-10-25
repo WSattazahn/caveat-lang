@@ -109,15 +109,14 @@ without `strict` does not restore onto a source that adds it.
 ## Corpus sweep
 
 `node experiments/strict-irreversible-sweep/sweep.mjs` reads the 203 tracked
-programs on main at b531f58 ([RESULTS.json](../experiments/strict-irreversible-sweep/RESULTS.json)):
+programs on main at 2f59ed7 ([RESULTS.json](../experiments/strict-irreversible-sweep/RESULTS.json)):
 
-- 7 irreversible series: 2 in `kit/examples/handoff/handoff.cav`
-  (`notify_customers`, `ship`) and 5 in the prompt-injection experiment
+- 5 irreversible series: 2 in `kit/examples/handoff/handoff.cav`
+  (`notify_customers`, `ship`) and 3 in the prompt-injection experiment
   (`experiments/prompt-injection/inbox-agent.cav` and
-  `inbox-agent-recipients.cav`, one series per routed recipient). None is
-  written `strict`;
+  `inbox-agent-recipients.cav`). None is written `strict`;
 - no declared name is spelled `strict`;
-- 13 rules commit an irreversible series. The 10 in the prompt-injection
+- 9 rules commit an irreversible series. The 6 in the prompt-injection
   programs have a `when` guard, so they are where `strict` would read more
   than the grounds if their author opted in; the 3 in the handoff example
   have neither a guard nor a grant.

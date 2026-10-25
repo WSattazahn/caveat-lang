@@ -1,6 +1,6 @@
 {
   "note": "Strict Irreversible 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-strict-irreversible-0.1.md, \"Corpus sweep\".",
-  "revision": "b595ffdb879c5ea50a7fd3024e9e133a4b27c05e",
+  "revision": "999383d34820f09ed1bedec7065e453880d2c288",
   "programs": 203,
   "irreversible_series": [
     {
@@ -9,15 +9,7 @@
     },
     {
       "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "series": "$i_user_send"
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "series": "$i_newsletter_send"
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "series": "$i_invoice_mail_send"
+      "series": "$i_send"
     },
     {
       "path": "experiments/prompt-injection/inbox-agent.cav",
@@ -54,7 +46,7 @@
     {
       "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
       "event": "send_to",
-      "series": "$i_user_send",
+      "series": "$i_send",
       "guard": true,
       "permitted": false,
       "retaining": true
@@ -62,39 +54,7 @@
     {
       "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
       "event": "send_to",
-      "series": "$i_user_send",
-      "guard": true,
-      "permitted": false,
-      "retaining": false
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "event": "send_to",
-      "series": "$i_newsletter_send",
-      "guard": true,
-      "permitted": false,
-      "retaining": true
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "event": "send_to",
-      "series": "$i_newsletter_send",
-      "guard": true,
-      "permitted": false,
-      "retaining": false
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "event": "send_to",
-      "series": "$i_invoice_mail_send",
-      "guard": true,
-      "permitted": false,
-      "retaining": true
-    },
-    {
-      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
-      "event": "send_to",
-      "series": "$i_invoice_mail_send",
+      "series": "$i_send",
       "guard": true,
       "permitted": false,
       "retaining": false
@@ -140,5 +100,5 @@
       "retaining": true
     }
   ],
-  "rules_strict_would_read_more_of": 10
+  "rules_strict_would_read_more_of": 6
 }
