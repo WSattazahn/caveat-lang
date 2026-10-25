@@ -68,6 +68,7 @@
     "spec/caveat-foreclosure-0.1.md",
     "spec/caveat-outcomes-0.1.md",
     "spec/caveat-review-0.1.md",
+    "spec/caveat-agents-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]

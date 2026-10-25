@@ -177,6 +177,7 @@ fn interleaved_removal_preserves_survivor_order_and_numeric_archive_order() {
                 because: "reason".into(),
                 sequence: index as u64 + 4,
                 event: event.into(),
+                agent: None,
             });
         }
         assert_withdrawals(&game, &original);
@@ -289,12 +290,14 @@ fn mutual_handover_preserves_first_reasons_undrained_archive_and_failed_retry() 
             because: "a@3".into(),
             sequence: 2,
             event: "cycle".into(),
+            agent: None,
         },
         Withdrawal {
             evidence: "a@3".into(),
             because: "z@3".into(),
             sequence: 2,
             event: "cycle".into(),
+            agent: None,
         },
     ];
     assert_withdrawals(&game, &remaining);

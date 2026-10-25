@@ -243,6 +243,7 @@ mod withdrawal_extraction_tests {
                     because: format!("reason{index}"),
                     sequence: index as u64 + 1,
                     event: format!("event{index}"),
+                    agent: None,
                 })
                 .collect(),
         )

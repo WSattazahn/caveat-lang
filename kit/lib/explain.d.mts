@@ -25,6 +25,8 @@ export declare const DEPENDENTS_SCHEMA: 'caveat-dependents/0.1';
 export interface ExplainEvent {
   event: string;
   payload: unknown;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   outcome: ExplainEventOutcome;
 }
 
@@ -145,13 +147,15 @@ export interface ExplainedRevision {
 }
 
 export type GroundsObservation =
-  | { evidence: string; sequence: number; event: string; payload: unknown }
+  | { evidence: string; sequence: number; event: string; agent?: string; payload: unknown }
   | { evidence: string; sequence: null; event: null; payload: null };
 
 export interface RevisionChange {
   change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   because: string[];
   caveats: string[];
   /** For `resolved`, the outcome's value. */
@@ -174,6 +178,8 @@ export interface ExplainedEvidence {
   value: number | null;
   sequence: number | null;
   event: string | null;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   caveats: string[];
   withdrawn: WithdrawalNote | null;
   /** The sequence at which it retired from its window; absent while live. */
@@ -184,6 +190,8 @@ export interface WithdrawalNote {
   because: string;
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 export interface ExplainedDisplay {
@@ -260,6 +268,8 @@ export interface DependentDecision {
 export interface DependentChange {
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   commitment: string;
   change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   via: string[];
@@ -318,6 +328,8 @@ export declare function formatDependents(report: DependentsFormatInput, title?: 
 export interface EventLine {
   event: string;
   payload: unknown;
+  /** The agent that sent it, when the line names one (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 /** Parses an events file. Blank lines are skipped; throws an Error that names the line. */

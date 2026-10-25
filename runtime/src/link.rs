@@ -430,6 +430,14 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     }
                     Some(name.clone())
                 }
+                // Who may send an event is the program's to say, as its
+                // budget is: spec/caveat-agents-0.1.md.
+                Directive::Agent { name, .. } => {
+                    return Err(format!(
+                        "module {} declares agent {name}; agents are declared by the program, not by a module",
+                        part.name
+                    ));
+                }
                 Directive::State { name, .. }
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }

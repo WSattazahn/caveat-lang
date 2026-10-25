@@ -44,6 +44,7 @@ pub enum RejectionCode {
     CaveatedIrreversible,
     AlreadyResolved,
     NotRetained,
+    WrongAgent,
 }
 
 #[derive(Debug, Serialize)]
@@ -311,6 +312,7 @@ mod tests {
             ),
             (RejectionOrigin::Evaluation, RejectionCode::AlreadyResolved),
             (RejectionOrigin::Evaluation, RejectionCode::NotRetained),
+            (RejectionOrigin::Input, RejectionCode::WrongAgent),
         ];
         let failures = || {
             codes

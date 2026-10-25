@@ -1712,6 +1712,8 @@ const POSITIONAL: &[&str] = &[
 /// runs, so the word cannot reach it. The test below checks that premise.
 const OUTSIDE_MODULES: &[&str] = &[
     "action",
+    // `agent NAME sends …` is the program's: link.rs refuses it in a module.
+    "agent",
     "choice",
     "converge",
     "infer",

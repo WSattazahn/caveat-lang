@@ -19,14 +19,18 @@ function run(open, events, indices) {
   let snapshot = session.snapshot();
   try {
     for (const index of indices) {
-      const { event, payload } = events[index];
+      const { event, payload, agent } = events[index];
+      // An event an agent sent is replayed as that agent (spec/caveat-agents-0.1.md).
+      const from = agent === undefined ? {} : { agent };
       try {
-        const { snapshot: after, ...outcome } = session.dispatch(event, payload);
-        sent.push({ index, event, payload, outcome,
+        const { snapshot: after, ...outcome } = agent === undefined
+          ? session.dispatch(event, payload)
+          : session.dispatch(event, payload, from);
+        sent.push({ index, event, payload, ...from, outcome,
           ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
         if (outcome.outcome === 'accepted') snapshot = after;
       } catch (error) {
-        sent.push({ index, event, payload, outcome: { outcome: 'fatal', kind: error.kind ?? null, message: error.message } });
+        sent.push({ index, event, payload, ...from, outcome: { outcome: 'fatal', kind: error.kind ?? null, message: error.message } });
         break;
       }
     }
@@ -134,7 +138,8 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
     replays += 1;
     const made = committedBy(replay.snapshot, replay.sent, series, deciding);
     const evidence = set.flatMap(unit => units[unit].evidence);
-    const without = set.map(unit => ({ sequence: full.sent[units[unit].index].sequence, event: events[units[unit].index].event }));
+    const without = set.map(unit => ({ sequence: full.sent[units[unit].index].sequence, event: events[units[unit].index].event,
+      ...(full.sent[units[unit].index].agent === undefined ? {} : { agent: full.sent[units[unit].index].agent }) }));
     if (!made) decisive.push({ units: set, evidence, without, because: failure(replay.sent, deciding) });
     else if (made.value !== revision.value && !covers(valueOnly, set)) {
       valueOnly.push({ units: set, evidence, without, value: made.value });
@@ -151,7 +156,7 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
     revision: revisionId,
     value: revision.value,
     status: revision.status,
-    decided_by: { sequence: commit.sequence, event: commit.event },
+    decided_by: { sequence: commit.sequence, event: commit.event, ...(commit.agent === undefined ? {} : { agent: commit.agent }) },
     grounds: grounds.map(id => ({ evidence: id, caveats: caveatsOf(id) })),
     retained: revision.retained,
     outcome,
@@ -187,7 +192,7 @@ function failureText(because) {
 /** The review as text for a person. `title` names the program. */
 export function formatReview(report, title = 'the program') {
   const lines = [`${title}: review of ${report.revision} = ${report.value}  ${report.status}`,
-    `  decided at #${report.decided_by.sequence} ${report.decided_by.event}`,
+    `  decided at #${report.decided_by.sequence} ${report.decided_by.event}${report.decided_by.agent === undefined ? '' : ` by ${report.decided_by.agent}`}`,
     `  based on ${list(report.grounds.map(item => item.evidence))}${caveatNote(report.retained)}`];
   if (report.outcome) {
     const { value, because, materialized = [], sequence, event } = report.outcome;
