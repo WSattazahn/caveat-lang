@@ -17,33 +17,61 @@ This package holds the runtime (a prebuilt 3.6 MB WebAssembly file), a
 Node and browser library and the CLI. It has no npm dependencies and needs
 Node 20 or later; no Rust installation is needed.
 
-## What a program looks like
+## Hello, world
 
-This is part of the program `caveat-lang init` writes:
+In an empty directory with Node 20 or later, install the package:
 
-```caveat
-claim rain_likely;
-evidence forecast from "the morning forecast";
-evidence sky from "a look at the sky";
-caveat forecast_is_old consequence material;
-forecast_is_old qualifies forecast;
+<!-- caveat-package:install -->
+```sh
+npm init -y
+npm install caveat-lang@1.3.0
+```
+<!-- /caveat-package:install -->
 
-readings rain_chance from forecast limit 4;
-decisions umbrella limit 4;
-event read_forecast chance min 0 max 100;
-event clear_sky;
+Then paste this. It writes a program with one piece of evidence, one decision
+resting on it, and one event that withdraws the evidence and reopens the
+decision, then asks why:
 
-on read_forecast sample rain_chance = chance supports rain_likely;
-on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
-  commit umbrella because enough using latest(rain_chance);
-on clear_sky when not observed(sky) reveal sky opposes rain_likely;
-on clear_sky when committed(umbrella) and not reopened(umbrella)
-  reopen umbrella because sky;
+<!-- hello-world -->
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
 ```
 
-[Caveat on one page](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md)
-(about 2,700 words, also in this package at `docs/REFERENCE.md`) is the syntax;
-read it before writing your own program.
+Part of what it prints:
+
+<!-- hello-world-output -->
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision to ship was reopened when the CI result it rested on was
+withdrawn, and it still says what it was first based on. The rest of Caveat
+is about saying which evidence carries which doubt, and which rules reopen
+what. [Caveat on one page](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md)
+(about 2,700 words, also in this package at `docs/REFERENCE.md`) is the
+syntax; read it before writing your own program.
 
 ## Limits
 
