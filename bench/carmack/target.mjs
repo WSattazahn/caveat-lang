@@ -17,6 +17,14 @@ const target = JSON.parse(readFileSync(path.join(ROOT, 'bench', 'carmack', 'targ
 
 const measured = profile.workloads[target.workload]?.wasm?.event_median_us;
 if (typeof measured !== 'number') throw new Error(`profile.json has no ${target.workload} WebAssembly median`);
+if (target.target_us === null) {
+  // No target is set yet: report the number alone.
+  const line = `No target set yet: ${measured} µs per event.`;
+  writeFileSync(path.join(out, 'target.json'), `${JSON.stringify({ schema: 'caveat-carmack-target/1', workload: target.workload, measure: target.measure, measured_us: measured, target_us: null, host: profile.host }, null, 2)}\n`);
+  writeFileSync(path.join(out, 'target.md'), `# Speed target\n\n${target.measure}\n\n${line}\n`);
+  console.log(line);
+  process.exit(0);
+}
 const days = Math.ceil((Date.parse(target.deadline) - Date.now()) / 86_400_000);
 const met = measured <= target.target_us;
 const factor = measured / target.target_us;

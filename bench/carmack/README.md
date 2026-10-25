@@ -50,4 +50,4 @@ node bench/carmack/replay.mjs --compare test-results/carmack
 
 ## 4. The speed target
 
-`target.json` names one number: the release-gate workload's median time per event in WebAssembly with the whole view, on CI's Ubuntu runner, and the date it should be met by. `target.mjs` reports it from the profile with how far off it is.
+`target.json` names the measure, the release-gate workload's median time per event in WebAssembly with the whole view on CI's Ubuntu runner, and once set, the number to beat and the date it should be met by. `target.mjs` reports it from the profile with how far off it is.
