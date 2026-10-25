@@ -73,6 +73,8 @@ const READINESS = ['README.md', 'readiness.cav', 'readiness.scenarios.json', 'ru
 const PROCEDURE_HANDLES = ['README.md', 'handles.cav', 'handles.scenarios.json'].map(file => `examples/procedure-handles/${file}`);
 // The sub-agent handoff example (1.4): a program, its scenarios and a host on caveat-lang/handoff.
 const HANDOFF = ['README.md', 'handoff.cav', 'handoff.scenarios.json', 'host.mjs'].map(file => `examples/handoff/${file}`);
+// The retracted-studies example (1.4): a program, its timeline and its scenarios.
+const RETRACTIONS = ['README.md', 'retraction.cav', 'retraction.events.jsonl', 'retraction.scenarios.json'].map(file => `examples/retractions/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -142,7 +144,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...RETRACTIONS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);

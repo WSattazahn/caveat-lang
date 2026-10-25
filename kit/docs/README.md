@@ -105,6 +105,12 @@ Background:
   to sub-agents with the ledger, each in a session scoped to its own events,
   and merges their work by replay.
 
+## Retracted evidence
+
+- [Retracted studies](../examples/retractions/README.md): the 2020
+  Surgisphere retractions, where withdrawing each study flags every conclusion
+  drawn from it and decisions already made keep what they rested on.
+
 ## History and long-running sessions
 
 - [Integration starter](STARTER.md): a host for Node and browsers that
