@@ -28,6 +28,7 @@ entity check_regression_scope kind source at repo;  # check: regression scope
 entity check_reproducible_webassembly kind source at repo;  # check: reproducible WebAssembly
 entity check_rustfmt kind source at repo;  # check: rustfmt
 entity author_claude_code kind source at repo;  # author: Claude Code
+entity check_legacy_door_3d_qa kind source at repo;  # check: Legacy Door 3D QA
 
 evidence merges_seen from "GitHub's record that a pull request merged";
 renewable merges_seen limit 64;
@@ -42,7 +43,7 @@ decisions main limit 64;   # one revision per merge; value: the pull request num
 event pr number min 1 max 999999999;   # a merged pull request's record begins
 event saw name kind source, ok min 0 max 1;   # 1 passed, approved or wrote it; 0 failed or asked for changes
 event merge;                           # the pull request merged on what was sent since `pr`
-event wrong name kind source, index min 1 max 45;   # that source's Nth reading was later found wrong
+event wrong name kind source, index min 1 max 43;   # that source's Nth reading was later found wrong
 
 on pr set basis = number;
 on merge when observed(merges_seen) renew merges_seen;
@@ -52,7 +53,7 @@ on wrong reveal finding;
 
 for source as $s routed by name {
     evidence $s_report from "what GitHub said about $s on each pull request";
-    readings $s from $s_report limit 45;
+    readings $s from $s_report limit 43;
     on saw when ok == 1 sample $s = 1 supports sound;
     on saw when ok == 0 sample $s = 0 opposes sound;
     # Only what passed or approved is what the merge rested on.

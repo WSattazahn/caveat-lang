@@ -1,0 +1,1940 @@
+{
+ "schema": "caveat-pr-ledger/0.1",
+ "chapter": 2,
+ "sources": [
+  {
+   "id": "check_evidence_games_browser_qa",
+   "role": "check",
+   "name": "Evidence games browser QA"
+  },
+  {
+   "id": "check_lean_runtime_comparison",
+   "role": "check",
+   "name": "Lean runtime comparison"
+  },
+  {
+   "id": "check_light_the_way_chromium",
+   "role": "check",
+   "name": "Light the Way (chromium)"
+  },
+  {
+   "id": "check_light_the_way_webkit",
+   "role": "check",
+   "name": "Light the Way (webkit)"
+  },
+  {
+   "id": "check_mcp_worker_ubuntu_24_04",
+   "role": "check",
+   "name": "MCP worker / ubuntu-24.04"
+  },
+  {
+   "id": "check_mcp_worker_windows_latest",
+   "role": "check",
+   "name": "MCP worker / windows-latest"
+  },
+  {
+   "id": "check_moon_garden_2d_qa",
+   "role": "check",
+   "name": "Moon Garden 2D QA"
+  },
+  {
+   "id": "check_moon_garden_3d_qa",
+   "role": "check",
+   "name": "Moon Garden 3D QA"
+  },
+  {
+   "id": "check_mr_caveat_iphone_qa",
+   "role": "check",
+   "name": "Mr. Caveat iPhone QA"
+  },
+  {
+   "id": "check_the_last_beacon_browser_qa",
+   "role": "check",
+   "name": "The Last Beacon browser QA"
+  },
+  {
+   "id": "check_vs_code_extension",
+   "role": "check",
+   "name": "VS Code extension"
+  },
+  {
+   "id": "check_core_semantics",
+   "role": "check",
+   "name": "core semantics"
+  },
+  {
+   "id": "check_hosted_mcp_server",
+   "role": "check",
+   "name": "hosted MCP server"
+  },
+  {
+   "id": "check_native_runtime",
+   "role": "check",
+   "name": "native runtime"
+  },
+  {
+   "id": "check_packed_kit_dependency_security",
+   "role": "check",
+   "name": "packed kit dependency security"
+  },
+  {
+   "id": "check_proofs",
+   "role": "check",
+   "name": "proofs"
+  },
+  {
+   "id": "check_rc_15_compatibility_and_departure",
+   "role": "check",
+   "name": "rc.15 compatibility and departure gates"
+  },
+  {
+   "id": "check_regression_scope",
+   "role": "check",
+   "name": "regression scope"
+  },
+  {
+   "id": "check_reproducible_webassembly",
+   "role": "check",
+   "name": "reproducible WebAssembly"
+  },
+  {
+   "id": "check_rustfmt",
+   "role": "check",
+   "name": "rustfmt"
+  },
+  {
+   "id": "author_claude_code",
+   "role": "author",
+   "name": "Claude Code"
+  },
+  {
+   "id": "author_wsattazahn",
+   "role": "author",
+   "name": "WSattazahn"
+  },
+  {
+   "id": "check_legacy_door_3d_qa",
+   "role": "check",
+   "name": "Legacy Door 3D QA"
+  }
+ ],
+ "entries": [
+  {
+   "type": "merge",
+   "pr": 308,
+   "title": "Record the 1.2.0 publication and its ledger event",
+   "merged_at": "2026-10-21T00:51:44Z",
+   "head": "ce42591237a2d831bae8cb29e6cc2b7ddbeac977",
+   "merge_commit": "4621da775e72b0eb3dbd5dcac47da2713e390583",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 309,
+   "title": "Record 1.2.0 GitHub, hosted MCP and Glama closeout",
+   "merged_at": "2026-10-21T01:02:23Z",
+   "head": "453a69718eb7443e2bea7d5e07d026c23b0aa09c",
+   "merge_commit": "c29218f8f404a9003729c04bf8558f8d984b7402",
+   "agent": false,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 0
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_wsattazahn",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 310,
+   "title": "Update MCP test client to patched SDK 1.32.1",
+   "merged_at": "2026-10-21T01:41:11Z",
+   "head": "3aaf92aad48ae0f2132cd26fc974840972d2fd9d",
+   "merge_commit": "7a4672e562b2b999ba5836457d70ab6fcb3d78ae",
+   "agent": false,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_wsattazahn",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 311,
+   "title": "Patch smol-toml in the CLI collision test fixture",
+   "merged_at": "2026-10-21T02:53:13Z",
+   "head": "6ab5ff86f4f87566bb8b52caa3a7bc0a174225aa",
+   "merge_commit": "634bf847bc9bba3c5033582b307f41fea3422b10",
+   "agent": false,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_wsattazahn",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 312,
+   "title": "Document evidence versus reading-stream procedure arguments",
+   "merged_at": "2026-10-24T16:00:48Z",
+   "head": "59e87d3270b1f5e20f231455236a88d9c0d19caf",
+   "merge_commit": "4e8d273aae3c6b9338831c4f09f84c18de3c0fbf",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 313,
+   "title": "Add an authoring card for agents and state the positional save bound",
+   "merged_at": "2026-10-24T16:33:28Z",
+   "head": "85e821b7d433b8743fddbb25cb06c6672318d517",
+   "merge_commit": "5878e5fde7c4cc2c0b76513f242292558a2d59ba",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 314,
+   "title": "Outcomes 0.1: record how a decision turned out (1.3 draft)",
+   "merged_at": "2026-10-24T18:39:46Z",
+   "head": "62c4fa7ff8356c55baa57d8880913796cb899d82",
+   "merge_commit": "48d0d7e55409a45e81c328a607564b5011d16249",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_legacy_door_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 315,
+   "title": "Record #313 and #314 in the ledger; report Light the Way traps",
+   "merged_at": "2026-10-24T19:48:44Z",
+   "head": "efca361e0d5507b7df2cade9c9371a4ffbbb7937",
+   "merge_commit": "98bbee3f28e9dc2deed9120f74711371ee7e731a",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 317,
+   "title": "Prepare the 1.3.0 candidate",
+   "merged_at": "2026-10-24T20:53:06Z",
+   "head": "727b26e539f3c2622c14669b0038f4aed12fc6aa",
+   "merge_commit": "753c8e700b0cf9d6661c185e9ec0faa0ee5ae020",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 319,
+   "title": "Add two false-completion experiments from openai/codex#36718",
+   "merged_at": "2026-10-24T23:09:56Z",
+   "head": "51905e8fdee1522441a05dfbf63eeffaf23e58fa",
+   "merge_commit": "342474a224fb5d59efda75bafc44e4cc1745e8de",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 316,
+   "title": "Review 0.1: which evidence a decision hinged on (1.4 draft)",
+   "merged_at": "2026-10-24T23:31:10Z",
+   "head": "187df9ecd2a1faf450259303eca881c6a7dfb7ca",
+   "merge_commit": "ffe0cdce04bba4756f1555e869538ea04bdc6133",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 318,
+   "title": "Add caveat-lang/handoff: sessions scoped to one agent's events, and replay between sessions",
+   "merged_at": "2026-10-25T00:02:31Z",
+   "head": "d25e5821c2b41fb503c1ab94560ccb68d11c9d3e",
+   "merge_commit": "3dc8c201f7cf0a61d11ac1436a1c6c1cbde568b1",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 320,
+   "title": "Record the 1.3.0 publication and its ledger events",
+   "merged_at": "2026-10-25T00:38:50Z",
+   "head": "c1e9e8a1e2881721f3583a769abe68c0e3679a5d",
+   "merge_commit": "7328c8ab04e0098733f55953415179f81f58bdaa",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 321,
+   "title": "Override undici to 7.30.1 in the hosted server's deploy tooling",
+   "merged_at": "2026-10-25T01:18:59Z",
+   "head": "c4dbf3bafc7a0199bcb1b68fee1e2296e17676df",
+   "merge_commit": "063f0729bf2d403bf7ebd0c4b8f6abbf9b00e57a",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 322,
+   "title": "Add a prompt injection experiment on caveat-lang 1.3.0",
+   "merged_at": "2026-10-25T03:45:07Z",
+   "head": "a28275482d110e3f40fcddefd9a13db47d2feda8",
+   "merge_commit": "7c41c6f349c62cc96dfaa8769c64dc402efb6619",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 325,
+   "title": "Highlight nested for blocks in the VS Code extension",
+   "merged_at": "2026-10-25T03:45:10Z",
+   "head": "a8a8bfd9a26f5702390ef8b2e535d4e5301b7e8f",
+   "merge_commit": "fe89cabdbe5d8bb95371aeb59d9383249972a806",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 323,
+   "title": "Review tests the evidence a decision's guard read, not only its grounds",
+   "merged_at": "2026-10-25T04:17:08Z",
+   "head": "9f9c6f2c36e506e4089d2c68247f18df74efe4d8",
+   "merge_commit": "b531f58fb7f43de7aa7f2ebb12524084fe32c566",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 328,
+   "title": "Untrusted Sources 0.1 (1.4 draft): withdraw every, because once, the undo list",
+   "merged_at": "2026-10-25T04:49:08Z",
+   "head": "352045a70f83d8e6be55a009aa9046c3a0ebc618",
+   "merge_commit": "2f59ed79fe9aa294f6ee10d50bbe6d7e4417bda5",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_legacy_door_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 336,
+   "title": "README honesty pass: limits up front, syntax shown, verify steps",
+   "merged_at": "2026-10-25T05:31:46Z",
+   "head": "37bf84fb8a3ef52c54efdb4cb9fb78ab08fe7d71",
+   "merge_commit": "71c563a5930c8973f0bd78919747bd5a13b9eccb",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_legacy_door_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  }
+ ]
+}
