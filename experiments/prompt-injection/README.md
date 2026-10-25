@@ -101,6 +101,13 @@ The scenarios: 4 passed, 0 failed. `check --unused`: no warnings on both program
    accepted events, so they disagree after a refusal (event 7 is `#6` here).
    A small display fix.
 
+7. **Only grounds are checked.** The refusal reads the caveats on a commit's
+   grounds, what `using` or `citing` read. Evidence read only in a rule's
+   `when` condition is lineage, not grounds, so an irreversible commit guarded
+   by email text but grounded on something clean is accepted. Both programs
+   here ground every send on the instruction (and recipient) readings with
+   `using`; a program that only tests them in `when` would not be protected.
+
 ## Where it stands against prior work
 
 Blocking tainted actions is not new: CaMeL and similar capability systems
