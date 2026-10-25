@@ -5,6 +5,7 @@
   "minimum_checked_programs": 147,
   "minimum_checked_events": 77302,
   "skipped": {
+    "editors/vscode/test/fixtures/nested.cav": "does not load as a reactive program or declares no events",
     "editors/vscode/test/fixtures/scopes.cav": "does not load as a reactive program or declares no events",
     "examples/canonical_001.cav": "does not load as a reactive program or declares no events",
     "examples/canonical_002.cav": "does not load as a reactive program or declares no events",

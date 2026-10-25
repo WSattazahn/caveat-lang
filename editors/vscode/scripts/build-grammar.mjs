@@ -68,8 +68,10 @@ const blockComment = (marker, scope) => ({
 
 // Statement rules come before the template rule, so a statement that starts
 // with a template (`$b_sounding supports charted_$b;`) is still read whole.
+// A body may hold `for` blocks (spec/caveat-nested-repetition-0.1.md).
 const blockBody = [
   { include: '#block-comments' },
+  { include: '#for-block' },
   { include: '#block-strings' },
   { include: '#block-relation-statement' },
   { include: '#block-rule-statement' },

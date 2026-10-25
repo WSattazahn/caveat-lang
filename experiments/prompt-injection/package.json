@@ -1,0 +1,13 @@
+{
+  "name": "caveat-prompt-injection",
+  "private": true,
+  "type": "module",
+  "description": "An inbox agent whose irreversible actions refuse to rest on injected email text, decided by a Caveat program.",
+  "scripts": {
+    "test": "caveat-lang test inbox-agent.scenarios.json",
+    "demo": "node run-demo.mjs"
+  },
+  "dependencies": {
+    "caveat-lang": "1.3.0"
+  }
+}

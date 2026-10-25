@@ -30,6 +30,8 @@ const newerThanBaseline = {
   'experiments/false-completion-delivery/delivery.cav': /\bnoting\b/,
   'experiments/narrowed-test-gates/required.cav': /\bnoting\b/,
   'kit/examples/retractions/retraction.cav': /\brests_on_withdrawn\(revision\(/,
+  'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
+  'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
 };
 
 
