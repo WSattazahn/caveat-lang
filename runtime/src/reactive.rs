@@ -36,6 +36,20 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
+
+/// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
+/// for any caveat, or the least consequence it counts.
+fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
+    Ok(match level {
+        "" => None,
+        "negligible" => Some(Consequence::Negligible),
+        "low" => Some(Consequence::Low),
+        "material" => Some(Consequence::Material),
+        "high" => Some(Consequence::High),
+        "catastrophic" => Some(Consequence::Catastrophic),
+        _ => return Err(format!("carries_any names no consequence {level}")),
+    })
+}
 /// A predicate on a live state's grounds, not on an evidence alias.
 const HAS_CAVEAT: &str = "has_caveat:";
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
@@ -3086,14 +3100,14 @@ impl ReactiveSession {
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
                 self.require_latest(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
-                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    Some(caveat) => self.require_carried(caveat),
                     None => Err(format!("unknown epistemic predicate {kind}")),
                 };
             }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
-                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    Some(caveat) => self.require_carried(caveat),
                     None => Ok(()),
                 };
             }
@@ -3143,7 +3157,7 @@ impl ReactiveSession {
                 }
                 _ if kind.starts_with(CARRIES) => {
                     self.require_kind(symbol, "evidence")?;
-                    self.require_kind(&kind[CARRIES.len()..], "caveat")
+                    self.require_carried(&kind[CARRIES.len()..])
                 }
                 _ if kind.starts_with(HAS_CAVEAT) => self
                     .state_with_caveat(symbol, &kind[HAS_CAVEAT.len()..])
@@ -4938,12 +4952,41 @@ impl ReactiveSession {
             ),
             _ if kind.starts_with(CARRIES) => {
                 self.predicate("observed", name)?
-                    && self
-                        .qualify_core(name, &[])?
-                        .caveats
-                        .contains(&kind[CARRIES.len()..])
+                    && self.carried(
+                        &self.qualify_core(name, &[])?.caveats,
+                        &kind[CARRIES.len()..],
+                    )
             }
             _ => return Err(format!("unknown graph predicate {kind}")),
+        })
+    }
+
+    /// The caveat a `carries` predicate asks about must be declared, unless
+    /// `carries_any(…)` asked it (spec/caveat-carries-any-0.1.md).
+    fn require_carried(&self, caveat: &str) -> Result<(), String> {
+        match caveat.strip_prefix(reactive_expr::ANY_CAVEAT) {
+            Some(level) => any_caveat_level(level).map(|_| ()),
+            None => self.require_kind(caveat, "caveat"),
+        }
+    }
+
+    /// Whether `caveats` hold the caveat a `carries` predicate asks about:
+    /// that caveat, or for `carries_any(…)` any caveat at all, or any of
+    /// consequence at least its level.
+    fn carried(&self, caveats: &BTreeSet<String>, caveat: &str) -> bool {
+        let Some(level) = caveat.strip_prefix(reactive_expr::ANY_CAVEAT) else {
+            return caveats.contains(caveat);
+        };
+        let Ok(level) = any_caveat_level(level) else {
+            return false;
+        };
+        caveats.iter().any(|name| {
+            level.is_none_or(|level| {
+                matches!(
+                    self.symbols.get(name).and_then(|id| self.graph.nodes.get(id)),
+                    Some(NodeKind::Caveat { consequence, .. }) if *consequence >= level
+                )
+            })
         })
     }
 

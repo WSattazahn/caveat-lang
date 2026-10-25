@@ -24,7 +24,7 @@ const modifiers = ['from', 'limit', 'because', 'using', 'citing', 'retaining', '
   'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'noting', 'irreversible', 'forecloses'];
 // Epistemic predicates, expression functions and callable primitives: names
 // that are functions only where a call follows.
-export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified',
+export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'carries_any', 'qualified',
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
