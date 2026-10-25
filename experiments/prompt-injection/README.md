@@ -67,7 +67,13 @@ How the program does it (`inbox-agent.cav`):
 
 The scenarios: 4 passed, 0 failed. `check --unused`: no warnings on both programs.
 
-## Limits found (candidate features or docs, none built)
+## Limits found
+
+Items 2 to 5 are answered by [Untrusted Sources 0.1](../../spec/caveat-untrusted-sources-0.1.md),
+a draft for 1.4: item 2 by the nested routed block above, item 3 by
+`retaining C because once E`, item 4 by the kit's undo list
+(`caveat undo-list`), and item 5 by `withdraw every NAME because E`. The
+programs here stay on 1.3.0, so they do not use the new forms.
 
 1. **Labels come from the host.** Caveat sees only the source the host says an
    instruction came from. A host that attributes email text to the user
@@ -75,19 +81,21 @@ The scenarios: 4 passed, 0 failed. `check --unused`: no warnings on both program
    labels mechanically, for example "anything read since the user's last
    turn".
 2. **A recipient taken from an email.** Covered without a language change
-   in `inbox-agent-recipients.cav`: a `for` over the instruction source, with
-   one decision per recipient source written out, grounds each send on both.
-   A nested `for` loads and runs the same, but the editor grammar's corpus
-   test (`editors/vscode/test/corpus.test.mjs`) does not yet bind the inner
-   `$r`, so no tracked program can use one; that is a separate fix. "Send to the address in that
+   in `inbox-agent-recipients.cav`: a `for` over the instruction source holds
+   a nested `for` over the recipient source, each routed by its own event
+   parameter, so each send is one decision per instruction source grounded on
+   both readings. (The first version wrote one decision per pair of sources
+   out by hand, because the editor grammar's corpus test did not yet bind a
+   nested `$r`; that was fixed in #325.) "Send to the address in that
    email", on the user's own instruction, is refused as
    `caveated_irreversible`; the same send to an address the user gave is
    accepted (`caveat explain inbox-agent-recipients.cav
-   recipients.events.jsonl`). The cost: one decision per pair of sources, so
-   it grows with the square of the sources, and each further argument
-   (attachment, subject) multiplies it again. A form that grounds one action
-   on several named sources would avoid that. CaMeL (Debenedetti et al.
-   2025) tracks this kind of data flow inside the agent.
+   recipients.events.jsonl`). The source is written once; its expansion holds
+   one copy of the send rules per pair of sources, and each further argument
+   (attachment, subject) multiplies that again. [Untrusted Sources
+   0.1](../../spec/caveat-untrusted-sources-0.1.md) states the pattern.
+   CaMeL (Debenedetti et al. 2025) tracks this kind of data flow inside the
+   agent.
 3. **Confirmation is global and permanent.** `user_ok` is revealed once and
    then covers every later send. Per-action confirmation needs renewable
    evidence or one confirmation per pending action; worth a documented

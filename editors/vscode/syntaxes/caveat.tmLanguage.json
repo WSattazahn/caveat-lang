@@ -1119,6 +1119,14 @@
           "match": "(?<![.\\w$])materialized\\b(?=[ \\t]+[A-Za-z_][\\w:$]*[ \\t]*[;,])"
         },
         {
+          "name": "keyword.other.caveat",
+          "match": "(?<=\\bwithdraw[ \\t])every\\b(?=[ \\t]+[A-Za-z_$][\\w:$]*[ \\t]+because\\b)"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<=\\bbecause[ \\t])once\\b(?=[ \\t]+[A-Za-z_$][\\w:$]*[ \\t]*[;,])"
+        },
+        {
           "name": "keyword.operator.logical.caveat",
           "match": "(?<![.\\w$])(?:and|or|not)\\b"
         },
