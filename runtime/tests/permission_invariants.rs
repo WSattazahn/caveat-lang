@@ -364,6 +364,22 @@ fn permitted_commits_are_granted_refused_and_recorded_as_the_spec_says() {
                     None => assert_eq!(revoked, None, "{at}"),
                 }
             }
+            // Every event's save restores, to the same save and snapshot (D021).
+            let saved_after = game.save_json().unwrap();
+            let restored_after = ReactiveSession::restore_json(SOURCE, &saved_after)
+                .unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_after.save_json().unwrap(),
+                saved_after,
+                "run {run} step {step}: save round trip after the event"
+            );
+            assert_eq!(
+                snapshot(&restored_after),
+                shown,
+                "run {run} step {step}: snapshot after restore"
+            );
             before = shown;
         }
     }

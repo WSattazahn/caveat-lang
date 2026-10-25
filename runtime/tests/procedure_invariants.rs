@@ -154,6 +154,22 @@ fn a_failure_anywhere_in_a_call_rolls_the_event_back() {
             let snapshot_before = snapshot(&game);
             let view_before = view(&game);
             let result = outcome(&mut game, event, payload);
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_game = game.save_json().unwrap();
+            let restored_game = ReactiveSession::restore_json(ROLLBACK, &saved_game)
+                .unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: {trail:?}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_game.save_json().unwrap(),
+                saved_game,
+                "run {run} step {step}: {trail:?}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_game),
+                snapshot(&game),
+                "run {run} step {step}: {trail:?}: snapshot after restore"
+            );
             if result["outcome"] == "accepted" {
                 accepted += 1;
                 // An accepted call did all of its work.
@@ -311,6 +327,22 @@ fn a_call_basis_reaches_every_descendant_effect_and_a_rule_carries_only_its_read
             trail.push(event);
             let before = snapshot(&game);
             let result = outcome(&mut game, event, "{}");
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_game = game.save_json().unwrap();
+            let restored_game =
+                ReactiveSession::restore_json(BASIS, &saved_game).unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: {trail:?}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_game.save_json().unwrap(),
+                saved_game,
+                "run {run} step {step}: {trail:?}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_game),
+                snapshot(&game),
+                "run {run} step {step}: {trail:?}: snapshot after restore"
+            );
             if result["outcome"] != "accepted" {
                 // Only the unobserved f in an argument can refuse here.
                 assert_eq!(
@@ -569,6 +601,38 @@ fn a_symbol_procedure_runs_as_its_hand_written_specialization() {
                     result.as_object_mut().unwrap().remove("message");
                 }
                 assert_eq!(actual, expected, "run {run} step {step}: {trail:?}");
+                // Every event's save restores, to the same snapshot (D021).
+                let saved_one = one.save_json().unwrap();
+                let restored_one = ReactiveSession::restore_json(SYMBOLIC, &saved_one)
+                    .unwrap_or_else(|error| {
+                        panic!("run {run} step {step}: {trail:?}: restore after the event: {error}")
+                    });
+                assert_eq!(
+                    restored_one.save_json().unwrap(),
+                    saved_one,
+                    "run {run} step {step}: {trail:?}: save round trip"
+                );
+                assert_eq!(
+                    snapshot(&restored_one),
+                    snapshot(&one),
+                    "run {run} step {step}: {trail:?}: snapshot after restore"
+                );
+                // Every event's save restores, to the same snapshot (D021).
+                let saved_two = two.save_json().unwrap();
+                let restored_two = ReactiveSession::restore_json(BY_HAND, &saved_two)
+                    .unwrap_or_else(|error| {
+                        panic!("run {run} step {step}: {trail:?}: restore after the event: {error}")
+                    });
+                assert_eq!(
+                    restored_two.save_json().unwrap(),
+                    saved_two,
+                    "run {run} step {step}: {trail:?}: save round trip"
+                );
+                assert_eq!(
+                    snapshot(&restored_two),
+                    snapshot(&two),
+                    "run {run} step {step}: {trail:?}: snapshot after restore"
+                );
                 if expected["outcome"] == "accepted" {
                     accepted += 1;
                 }
