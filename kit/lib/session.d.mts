@@ -41,7 +41,9 @@ export type KnownRejectionCode =
   | 'caveated_irreversible'
   | 'already_resolved'
   | 'not_retained'
-  | 'reason_spent';
+  | 'reason_spent'
+  | 'provenance_limit'
+  | 'evaluation_limit';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
