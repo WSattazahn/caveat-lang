@@ -119,8 +119,9 @@ behavior. Share only sanitized examples and output.
 - The `caveat-lang` command is `bin/caveat.mjs`, one readable file. It loads
   `runtime/caveat_runtime.js` and `runtime/caveat_runtime_bg.wasm`, built
   from the repository's Rust sources. `runtime/build-info.json` lists the
-  revision and each file's SHA-256 under `pkg-reactive/`; it is covered by the
-  package signature but is not signed on its own.
+  revision and each file's SHA-256 under `pkg-reactive/`, and `doctor` fails
+  when an installed file differs from it. It is covered by the package
+  signature but is not signed on its own.
 - To install a tarball you were given instead, pass its path to
   `npm install`. The [release records](https://github.com/WSattazahn/caveat-lang/releases)
   say which versions were published and how each was verified.
@@ -135,9 +136,10 @@ npx --no-install caveat-lang demo agent
 ```
 
 `doctor --json` reports the same checks as text: Node support, package identity,
-measured runtime hashes, local build metadata, a synthetic observation and
-save/restore test, and executable ownership on PATH. Build metadata is reported,
-not authenticated. Shell aliases, functions and cached shell lookups are outside
+measured runtime hashes compared with the ones `build-info.json` lists (a
+file that differs fails), local build metadata, a synthetic observation and
+save/restore test, and executable ownership on PATH. Build metadata is covered
+by the package signature but is not signed on its own. Shell aliases, functions and cached shell lookups are outside
 that inspection. A missing PATH command or a competing `caveat` produces a
 warning; use `caveat-lang`. Failed checks exit 1. `--runtime DIRECTORY` selects
 a trusted runtime directory, as with the other commands.

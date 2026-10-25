@@ -11,7 +11,7 @@
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -573,9 +573,18 @@ async function init(options) {
     console.error(`${existing.map(name => path.join(directory, name)).join(', ')} already exist${existing.length === 1 ? 's' : ''}; nothing written`);
     return 2;
   }
+  if (existsSync(directory) && !statSync(directory).isDirectory()) {
+    console.error(`${directory} is a file, not a directory; give init a directory to write the starter files in`);
+    return 2;
+  }
   const templates = fileURLToPath(new URL('../templates/', import.meta.url));
-  await mkdir(directory, { recursive: true });
-  for (const name of TEMPLATES) await writeFile(path.join(directory, name), await readFile(path.join(templates, name)));
+  try {
+    await mkdir(directory, { recursive: true });
+    for (const name of TEMPLATES) await writeFile(path.join(directory, name), await readFile(path.join(templates, name)), { flag: 'wx' });
+  } catch (error) {
+    console.error(`cannot write the starter files in ${directory}: ${error.message}`);
+    return 2;
+  }
   const where = directory === '.' ? '' : ` in ${directory}`;
   console.log([
     `Wrote ${TEMPLATES.slice(0, -1).join(', ')} and ${TEMPLATES.at(-1)}${where}, the program from docs/GETTING_STARTED.md.`,
