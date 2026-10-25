@@ -1,0 +1,157 @@
+name: python
+
+# The caveat_lang Python package: wheels for the major platforms, the source
+# distribution, and the checks that the package returns the npm kit's bytes.
+# Nothing here publishes; uploading to PyPI waits on the owner.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'python/**'
+      - 'runtime/**'
+      - 'rust-toolchain.toml'
+      - 'scripts/third-party-notices.mjs'
+      - '.github/workflows/python.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: python-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MATURIN_VERSION: '1.15.0'
+
+jobs:
+  linux:
+    name: wheel, Linux ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    # The manylinux image's old glibc gives a wheel that installs on most
+    # Linux distributions in use (glibc 2.28 and later).
+    container: quay.io/pypa/manylinux_2_28_${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: rustup toolchain install && rustc --version
+      - run: /opt/python/cp312-cp312/bin/python -m pip install "maturin==$MATURIN_VERSION"
+      - name: Build the wheel
+        run: /opt/python/cp312-cp312/bin/maturin build --release --locked --compatibility manylinux_2_28 --manifest-path python/Cargo.toml --out wheelhouse
+      - name: The wheel installs and passes on the oldest and newest Python
+        run: |
+          for python in /opt/python/cp39-cp39/bin/python /opt/python/cp313-cp313/bin/python; do
+            "$python" -m venv "/tmp/venv-$(basename "$(dirname "$(dirname "$python")")")"
+          done
+          for venv in /tmp/venv-*; do
+            "$venv/bin/pip" install wheelhouse/*.whl
+            "$venv/bin/python" -m unittest discover -s python/tests -p 'test_session.py' -v
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-linux-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+
+  macos-windows:
+    name: wheel, ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (arm64 and x86_64)
+            runner: macos-14
+            target: universal2-apple-darwin
+            rust_targets: aarch64-apple-darwin x86_64-apple-darwin
+            python: python3
+            bin: bin
+          - name: Windows x86_64
+            runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            rust_targets: x86_64-pc-windows-msvc
+            python: python
+            bin: Scripts
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustup target add ${{ matrix.rust_targets }} && rustc --version
+      - run: ${{ matrix.python }} -m venv .venv-build && .venv-build/${{ matrix.bin }}/pip install "maturin==$MATURIN_VERSION"
+      - name: Build the wheel
+        run: .venv-build/${{ matrix.bin }}/maturin build --release --locked --target ${{ matrix.target }} --manifest-path python/Cargo.toml --out wheelhouse
+      - name: The wheel installs and passes
+        run: |
+          ${{ matrix.python }} -m venv .venv-test
+          bin=.venv-test/${{ matrix.bin }}
+          "$bin/pip" install wheelhouse/*.whl
+          "$bin/python" -m unittest discover -s python/tests -p 'test_session.py' -v
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-${{ runner.os }}
+          path: wheelhouse/*.whl
+
+  sdist:
+    name: source distribution builds from itself
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustc --version
+      - run: python3 -m venv /tmp/build && /tmp/build/bin/pip install "maturin==$MATURIN_VERSION"
+      - run: /tmp/build/bin/maturin sdist --manifest-path python/Cargo.toml --out dist-python
+      - name: Build and test a wheel from the sdist alone, as conda-forge would
+        run: |
+          python3 -m venv /tmp/test
+          /tmp/test/bin/pip install dist-python/*.tar.gz
+          /tmp/test/bin/python -m unittest discover -s python/tests -p 'test_session.py' -v
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist-python/*.tar.gz
+
+  same-bytes:
+    name: same bytes as the npm kit
+    needs: linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustc --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Python crates' notices match the locked crates
+        run: npm run check:python-notices
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheel-linux-x86_64
+          path: wheelhouse
+      - name: Every corpus scenario gives identical bytes through both runtimes
+        env:
+          CAVEAT_DIFFERENTIAL: '1'
+        run: |
+          python3 -m venv /tmp/test
+          /tmp/test/bin/pip install wheelhouse/*.whl
+          /tmp/test/bin/python -m unittest discover -s python/tests -v
+      - name: The example agent runs
+        run: /tmp/test/bin/python python/examples/claim_checker.py
