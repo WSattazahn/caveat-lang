@@ -4,7 +4,8 @@ name: create GitHub release
 # merged to main. A release candidate tag (vX.Y.Z-rc.N) becomes a prerelease;
 # a stable tag (vX.Y.Z) becomes a full release. It downloads the tarball from the public npm
 # registry, refuses bytes whose SHA256 differs from the tested tarball, and
-# attaches that tarball, its SHA256SUMS and the npm publication record. The
+# attaches that tarball, a CycloneDX software bill of materials for it, their
+# SHA256SUMS and the npm publication record. The
 # release notes are docs/releases/<tag>.md. It never publishes to npm or moves
 # dist-tags, and it refuses a tag that already has a release.
 on:
@@ -64,9 +65,16 @@ jobs:
           url=$(curl -fsSL "https://registry.npmjs.org/caveat-lang/$version" | jq -r .dist.tarball)
           [[ "$url" == "https://registry.npmjs.org/caveat-lang/-/caveat-lang-$version.tgz" ]] || { echo "unexpected tarball URL $url"; exit 1; }
           curl -fsSL "$url" -o "release/caveat-lang-$version.tgz"
-          (cd release && sha256sum "caveat-lang-$version.tgz" > SHA256SUMS)
           echo "$RELEASE_SHA256  release/caveat-lang-$version.tgz" | sha256sum -c -
           cp "docs/releases/$RELEASE_TAG-npm-publication.json" release/
+      - name: Write the software bill of materials from the tag's own notices and lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          node scripts/release-sbom.mjs --tarball "release/caveat-lang-$version.tgz" \
+            --revision "refs/tags/$RELEASE_TAG" --out "release/caveat-lang-$version.cdx.json"
+          (cd release && sha256sum "caveat-lang-$version.tgz" "caveat-lang-$version.cdx.json" > SHA256SUMS)
       - name: Create the release
         shell: bash
         run: |
@@ -77,4 +85,5 @@ jobs:
           [[ "$RELEASE_TAG" == *-rc.* ]] && kind=(--prerelease)
           gh release create "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --verify-tag "${kind[@]}" \
             --title "CAVEAT Language $version" --notes-file "docs/releases/$RELEASE_TAG.md" \
-            "release/caveat-lang-$version.tgz" release/SHA256SUMS "release/$RELEASE_TAG-npm-publication.json"
+            "release/caveat-lang-$version.tgz" "release/caveat-lang-$version.cdx.json" release/SHA256SUMS \
+            "release/$RELEASE_TAG-npm-publication.json"

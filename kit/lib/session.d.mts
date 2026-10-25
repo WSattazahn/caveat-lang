@@ -40,7 +40,8 @@ export type KnownRejectionCode =
   | 'foreclosed'
   | 'caveated_irreversible'
   | 'already_resolved'
-  | 'not_retained';
+  | 'not_retained'
+  | 'reason_spent';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
