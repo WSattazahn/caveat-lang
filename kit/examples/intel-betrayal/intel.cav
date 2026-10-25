@@ -1,0 +1,48 @@
+# Intel carries its source. A betrayal withdraws everything the traitor said,
+# reopens every plan that rested on it, and keeps why each plan was made.
+place field kind gate;
+entity north kind gate at field;
+entity south kind gate at field;
+entity ocelot kind informant at field;
+entity eva kind informant at field;
+entity r1 kind slot at field;
+entity r2 kind slot at field;
+entity r3 kind slot at field;
+entity r4 kind slot at field;
+
+event intel informant kind informant, gate kind gate, says in clear guarded;
+event betray informant kind informant;
+event go gate kind gate;
+
+for informant as $i routed by informant {
+    evidence $i_word from "what $i tells you over the radio";
+    evidence $i_betrayal from "proof that $i was lying";
+    on intel when not observed($i_word) reveal $i_word;
+    on betray when observed($i_betrayal) reject "Already exposed.";
+    on betray reveal $i_betrayal;
+};
+
+for gate as $g {
+    claim $g_clear;
+    decisions $g_plan limit 4;
+    for informant as $i {
+        readings $g_$i from $i_word limit 4;
+        on intel when gate == gate.$g and informant == informant.$i and says == says.clear
+            sample $g_$i = 1 supports $g_clear;
+        on intel when gate == gate.$g and informant == informant.$i and says == says.guarded
+            sample $g_$i = 0 opposes $g_clear;
+        define $g_$i_ok = if(has_sample($g_$i), if(withdrawn(latest($g_$i)), 0, latest($g_$i)), 0);
+        for slot as $k {
+            on betray when informant == informant.$i and history_count($g_$i) >= $index
+                withdraw reading($g_$i, $index) because $i_betrayal;
+        };
+        on betray when informant == informant.$i and committed($g_plan) and not reopened($g_plan)
+            and rests_on_withdrawn($g_plan) reopen $g_plan because $i_betrayal;
+    };
+    on go when gate == gate.$g and committed($g_plan) and not reopened($g_plan) reject "You are already on that route.";
+    on go when gate == gate.$g and $g_ocelot_ok + $g_eva_ok == 0 reject "None of your intel says that gate is clear.";
+    on go when gate == gate.$g commit $g_plan because enough using $g_ocelot_ok + $g_eva_ok;
+    bind $g.plan = "none";
+    bind $g.plan = "trusting your intel" when committed($g_plan) and not reopened($g_plan);
+    bind $g.plan = "you were played" when committed($g_plan) and reopened($g_plan) and rests_on_withdrawn($g_plan);
+};
