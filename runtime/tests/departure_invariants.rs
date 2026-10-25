@@ -480,6 +480,22 @@ fn windows_retire_and_departure_takes_exactly_what_nothing_pins() {
             check(&shown, &mut tally, &at);
             open_only += tally.open_only;
             tally.open_only = 0;
+            // Every event's save restores, to the same save and snapshot (D021).
+            let saved_after = game.save_json().unwrap();
+            let restored_after = ReactiveSession::restore_json(SOURCE, &saved_after)
+                .unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_after.save_json().unwrap(),
+                saved_after,
+                "run {run} step {step}: save round trip after the event"
+            );
+            assert_eq!(
+                snapshot(&restored_after),
+                shown,
+                "run {run} step {step}: snapshot after restore"
+            );
             before = shown;
         }
     }

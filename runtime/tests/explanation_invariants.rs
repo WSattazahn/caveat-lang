@@ -271,6 +271,22 @@ fn explanations_cite_what_their_citations_read_and_nothing_else() {
                 &shown,
                 &format!("run {run} step {step} after {event}: {trail:?}"),
             );
+            // Every event's save restores, to the same save and snapshot (D021).
+            let saved_after = game.save_json().unwrap();
+            let restored_after = ReactiveSession::restore_json(SOURCE, &saved_after)
+                .unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_after.save_json().unwrap(),
+                saved_after,
+                "run {run} step {step}: save round trip after the event"
+            );
+            assert_eq!(
+                snapshot(&restored_after),
+                shown,
+                "run {run} step {step}: snapshot after restore"
+            );
             before = shown;
         }
     }
