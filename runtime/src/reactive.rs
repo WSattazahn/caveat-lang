@@ -4006,7 +4006,7 @@ impl ReactiveSession {
         for evidence in &outcome.because {
             lineage.merge(&self.qualify_core(evidence, &[])?)?;
         }
-        Ok(self.with_current_withdrawals(lineage)?)
+        self.with_current_withdrawals(lineage)
     }
 
     /// `resolved(SERIES)`, or `resolved` of a revision `SERIES@K`: true, on
@@ -6789,7 +6789,7 @@ impl ReactiveSession {
         evidence: &str,
         caveat: &str,
         guard: &Provenance,
-    ) -> Result<(), String> {
+    ) -> Result<(), EvalError> {
         let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
         // Once per live relation: after a take-back, qualifying again adds a
         // new one. See spec/caveat-take-back-0.1.md.
@@ -6875,7 +6875,7 @@ impl ReactiveSession {
 
     /// Apply every scheduled qualification whose time has come, in the order
     /// they were scheduled.
-    fn apply_due_qualifications(&mut self) -> Result<(), String> {
+    fn apply_due_qualifications(&mut self) -> Result<(), EvalError> {
         let elapsed = self.elapsed;
         let due = |scheduled: &ScheduledQualification| {
             elapsed - scheduled.scheduled_at >= scheduled.after
@@ -7443,7 +7443,10 @@ impl ReactiveSession {
     /// A value newly read from history carries `withdrawn` if what it rests on
     /// has since been withdrawn, and the live caveats of the evidence the
     /// record lists. The record itself is unchanged.
-    fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
+    fn with_current_withdrawals(
+        &self,
+        mut provenance: Provenance,
+    ) -> Result<Provenance, EvalError> {
         self.read_live(&mut provenance)?;
         if provenance
             .evidence
