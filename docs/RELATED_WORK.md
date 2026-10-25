@@ -14,9 +14,10 @@ in its own documented behavior. Each comparison is marked:
   it against the other system's full documentation or behavior. Do not repeat
   it as established.
 
-Sources were read on 2026-10-10, those for the W3C PROV and agent
-decision record entries on 2026-10-12, and those for the TMS, Hyperon and Watson entries and the four
-entries from bitemporal databases onward on 2026-10-25. Caveat's behavior is summarized in
+Sources were read on 2026-10-10, those for the W3C PROV and agent decision
+record entries on 2026-10-12, and those for the TMS, Hyperon and Watson
+entries and the four entries from bitemporal databases onward on 2026-10-25.
+Caveat's behavior is summarized in
 [What is checked, and how](VERIFICATION.md).
 
 ## Truth maintenance (Doyle, 1979; de Kleer, 1986)
