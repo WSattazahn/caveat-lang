@@ -45,6 +45,8 @@ pub enum RejectionCode {
     AlreadyResolved,
     NotRetained,
     ReasonSpent,
+    ProvenanceLimit,
+    EvaluationLimit,
     WrongAgent,
 }
 
@@ -228,19 +230,32 @@ impl From<String> for DispatchFailure {
 }
 
 /// An expression failure keeps the kind it was classified with where it
-/// occurred. Only the kinds in the catalog refuse; `Other` stays fatal.
+/// occurred. Only the kinds in the catalog refuse; `Other` stays fatal. The
+/// two capacity kinds are `limit` refusals (findings D022 and D023).
 impl From<EvalError> for DispatchFailure {
     fn from(error: EvalError) -> Self {
-        let code = match error.kind {
+        let (origin, code) = match error.kind {
             EvalFailure::DivisionByZero
             | EvalFailure::NonFinite
             | EvalFailure::HistoryIndex
-            | EvalFailure::Domain => RejectionCode::Expression,
-            EvalFailure::Requirement => RejectionCode::RequirementFailed,
-            EvalFailure::UnobservedEvidence => RejectionCode::UnobservedEvidence,
+            | EvalFailure::Domain => (RejectionOrigin::Evaluation, RejectionCode::Expression),
+            EvalFailure::Requirement => (
+                RejectionOrigin::Evaluation,
+                RejectionCode::RequirementFailed,
+            ),
+            EvalFailure::UnobservedEvidence => (
+                RejectionOrigin::Evaluation,
+                RejectionCode::UnobservedEvidence,
+            ),
+            EvalFailure::ProvenanceLimit => {
+                (RejectionOrigin::Limit, RejectionCode::ProvenanceLimit)
+            }
+            EvalFailure::EvaluationLimit => {
+                (RejectionOrigin::Limit, RejectionCode::EvaluationLimit)
+            }
             EvalFailure::Other => return error.message.into(),
         };
-        Self::rejected(RejectionOrigin::Evaluation, code, error.message)
+        Self::rejected(origin, code, error.message)
     }
 }
 

@@ -42,6 +42,8 @@ export type KnownRejectionCode =
   | 'already_resolved'
   | 'not_retained'
   | 'reason_spent'
+  | 'provenance_limit'
+  | 'evaluation_limit'
   | 'wrong_agent';
 export type RejectionCode = KnownRejectionCode | (string & {});
 

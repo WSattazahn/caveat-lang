@@ -42,10 +42,11 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `identifier_limit`, `renewal_limit`, `scheduled_limit`, from 1.1.0
 `already_committed`, from 1.2.0 `foreclosed` and
 `caveated_irreversible`, from 1.3.0 `already_resolved` and
-`not_retained`, and from 1.4.0 `reason_spent` and `wrong_agent`. A 1.x
-release never renames or removes one, and never moves an input from one code
-to another. It may add a code only for an input that was refused or fatal
-before, or for new syntax. Hosts should treat an unknown code as a refusal.
+`not_retained`, and from 1.4.0 `reason_spent`, `provenance_limit`,
+`evaluation_limit` and `wrong_agent`. A 1.x release never renames or removes
+one, and never moves an input from one code to another. It may add a code only
+for an input that was refused or fatal before, or for new syntax. Hosts should
+treat an unknown code as a refusal.
 
 ### Specifications
 
