@@ -177,9 +177,14 @@ history read such as a division by zero or `latest` of an empty history
 whose sum would make the session clock nonfinite is refused as
 `{"origin": "evaluation", "code": "bound_exceeded"}`, and a `qualify … after`
 while 4,096 qualifications are already waiting as
-`{"origin": "limit", "code": "scheduled_limit"}`. Other runtime
-errors, such as a type error in an expression, are deliberately unclassified:
-they are fatal, and a fatal outcome never matches an expected rejection.
+`{"origin": "limit", "code": "scheduled_limit"}`. An event that would give a
+value a lineage of more than 1,024 identifiers is refused as
+`{"origin": "limit", "code": "provenance_limit"}`, and one in which an
+expression's evaluation would visit more than 65,536 nodes, as a
+`fold_history` over a long stream with a heavy step can, as
+`{"origin": "limit", "code": "evaluation_limit"}` (before 1.4, both were
+fatal). Other runtime errors are deliberately unclassified: they are fatal,
+and a fatal outcome never matches an expected rejection.
 
 A plain `commit`, made without a `decisions` declaration, can be made only
 once: committing it again, even after it was reopened, is refused as

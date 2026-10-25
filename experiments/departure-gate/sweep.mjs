@@ -32,6 +32,7 @@ const newerThanBaseline = {
   'kit/examples/retractions/retraction.cav': /\brests_on_withdrawn\(revision\(/,
   'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
   'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
+  'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b/,
 };
 
 

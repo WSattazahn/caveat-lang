@@ -53,7 +53,7 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md', 'docs/AUTHORING_CARD.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md', 'docs/AUTHORING_CARD.md', 'docs/GAMES.md'];
 // The library's modules, each with its TypeScript declarations.
 const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
@@ -73,6 +73,8 @@ const READINESS = ['README.md', 'readiness.cav', 'readiness.scenarios.json', 'ru
 const PROCEDURE_HANDLES = ['README.md', 'handles.cav', 'handles.scenarios.json'].map(file => `examples/procedure-handles/${file}`);
 // The sub-agent handoff example (1.4): a program, its scenarios and a host on caveat-lang/handoff.
 const HANDOFF = ['README.md', 'handoff.cav', 'handoff.scenarios.json', 'host.mjs'].map(file => `examples/handoff/${file}`);
+// The game example (1.4): intel that carries its informant, and a host that saves and resumes.
+const INTEL = ['README.md', 'intel.cav', 'intel.scenarios.json', 'host.mjs'].map(file => `examples/intel-betrayal/${file}`);
 // The retracted-studies example (1.4): a program, its timeline and its scenarios.
 const RETRACTIONS = ['README.md', 'retraction.cav', 'retraction.events.jsonl', 'retraction.scenarios.json'].map(file => `examples/retractions/${file}`);
 
@@ -144,7 +146,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...RETRACTIONS, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...INTEL, ...RETRACTIONS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
@@ -451,6 +453,19 @@ assert.equal(handoffRun.status, 0, handoffRun.stdout + handoffRun.stderr);
 const handoffReport = JSON.parse(handoffRun.stdout);
 assert.deepEqual(handoffReport.conflicts.map(item => [item.event, item.outcome]), [['sub_edit', 'evaluation/decision_in_force']]);
 report.checks.handoff = { scenarios: 11, refused_outside_scope: handoffReport.steps.filter(step => step.outcome === 'input/unknown_event').length };
+
+// The intel example as its README runs it: the folder copied out of the
+// installed package, its scenarios, then host.mjs on caveat-lang/session.
+const intel = path.join(consumer, 'intel-betrayal');
+await mkdir(intel);
+for (const file of INTEL) await copyFile(path.join(installed, file), path.join(intel, path.basename(file)));
+const intelScenarios = node([path.join(installed, 'bin', 'caveat.mjs'), 'test', 'intel.scenarios.json'], intel);
+assert.equal(intelScenarios.status, 0, intelScenarios.stdout + intelScenarios.stderr);
+const intelRun = node(['host.mjs', '--json'], intel);
+assert.equal(intelRun.status, 0, intelRun.stdout + intelRun.stderr);
+const intelReport = JSON.parse(intelRun.stdout);
+assert.equal(intelReport.plan, 'you were played');
+report.checks.intel = { scenarios: 4, saveBytes: intelReport.saveBytes };
 
 // The stabilization trial (Path to 1.0, E2): the installed package drives a
 // deploy gate through the starter, with a refusal from each origin, a doubt
