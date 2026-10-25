@@ -162,7 +162,8 @@ confidence, how certain that estimate is
   evidence accumulates and does not keep a frozen record of the basis an
   earlier decision was made on. We have not read MeTTa's or PLN's
   implementation. The two could be combined: a program could carry a PLN
-  strength as an ordinary value beside Caveat's lineage. We have not tried it.
+  strength as an ordinary value beside Caveat's lineage;
+  [Caveat alongside probabilities](PROBABILITIES.md) shows how with any score.
 
 ## W3C PROV
 
