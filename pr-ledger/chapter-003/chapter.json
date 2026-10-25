@@ -1,0 +1,325 @@
+{
+ "schema": "caveat-pr-ledger/0.1",
+ "chapter": 3,
+ "sources": [
+  {
+   "id": "check_evidence_games_browser_qa",
+   "role": "check",
+   "name": "Evidence games browser QA"
+  },
+  {
+   "id": "check_lean_runtime_comparison",
+   "role": "check",
+   "name": "Lean runtime comparison"
+  },
+  {
+   "id": "check_legacy_door_3d_qa",
+   "role": "check",
+   "name": "Legacy Door 3D QA"
+  },
+  {
+   "id": "check_light_the_way_chromium",
+   "role": "check",
+   "name": "Light the Way (chromium)"
+  },
+  {
+   "id": "check_light_the_way_webkit",
+   "role": "check",
+   "name": "Light the Way (webkit)"
+  },
+  {
+   "id": "check_mcp_worker_ubuntu_24_04",
+   "role": "check",
+   "name": "MCP worker / ubuntu-24.04"
+  },
+  {
+   "id": "check_mcp_worker_windows_latest",
+   "role": "check",
+   "name": "MCP worker / windows-latest"
+  },
+  {
+   "id": "check_moon_garden_2d_qa",
+   "role": "check",
+   "name": "Moon Garden 2D QA"
+  },
+  {
+   "id": "check_moon_garden_3d_qa",
+   "role": "check",
+   "name": "Moon Garden 3D QA"
+  },
+  {
+   "id": "check_mr_caveat_iphone_qa",
+   "role": "check",
+   "name": "Mr. Caveat iPhone QA"
+  },
+  {
+   "id": "check_the_last_beacon_browser_qa",
+   "role": "check",
+   "name": "The Last Beacon browser QA"
+  },
+  {
+   "id": "check_vs_code_extension",
+   "role": "check",
+   "name": "VS Code extension"
+  },
+  {
+   "id": "check_build_the_runtime",
+   "role": "check",
+   "name": "build the runtime"
+  },
+  {
+   "id": "check_core_semantics",
+   "role": "check",
+   "name": "core semantics"
+  },
+  {
+   "id": "check_hosted_mcp_server",
+   "role": "check",
+   "name": "hosted MCP server"
+  },
+  {
+   "id": "check_native_runtime",
+   "role": "check",
+   "name": "native runtime"
+  },
+  {
+   "id": "check_packed_kit_dependency_security",
+   "role": "check",
+   "name": "packed kit dependency security"
+  },
+  {
+   "id": "check_profile_footprint_and_target",
+   "role": "check",
+   "name": "profile, footprint and target"
+  },
+  {
+   "id": "check_proofs",
+   "role": "check",
+   "name": "proofs"
+  },
+  {
+   "id": "check_rc_15_compatibility_and_departure",
+   "role": "check",
+   "name": "rc.15 compatibility and departure gates"
+  },
+  {
+   "id": "check_regression_scope",
+   "role": "check",
+   "name": "regression scope"
+  },
+  {
+   "id": "check_replay_macos_latest",
+   "role": "check",
+   "name": "replay / macos-latest"
+  },
+  {
+   "id": "check_replay_ubuntu_24_04",
+   "role": "check",
+   "name": "replay / ubuntu-24.04"
+  },
+  {
+   "id": "check_replay_windows_latest",
+   "role": "check",
+   "name": "replay / windows-latest"
+  },
+  {
+   "id": "check_replay_is_byte_identical_everywher",
+   "role": "check",
+   "name": "replay is byte-identical everywhere"
+  },
+  {
+   "id": "check_reproducible_webassembly",
+   "role": "check",
+   "name": "reproducible WebAssembly"
+  },
+  {
+   "id": "check_rustfmt",
+   "role": "check",
+   "name": "rustfmt"
+  },
+  {
+   "id": "check_same_bytes_as_the_npm_kit",
+   "role": "check",
+   "name": "same bytes as the npm kit"
+  },
+  {
+   "id": "check_source_distribution_builds_from_it",
+   "role": "check",
+   "name": "source distribution builds from itself"
+  },
+  {
+   "id": "check_wheel_linux_aarch64",
+   "role": "check",
+   "name": "wheel, Linux aarch64"
+  },
+  {
+   "id": "check_wheel_linux_x86_64",
+   "role": "check",
+   "name": "wheel, Linux x86_64"
+  },
+  {
+   "id": "check_wheel_windows_x86_64",
+   "role": "check",
+   "name": "wheel, Windows x86_64"
+  },
+  {
+   "id": "check_wheel_macos_arm64_and_x86_64",
+   "role": "check",
+   "name": "wheel, macOS (arm64 and x86_64)"
+  },
+  {
+   "id": "author_claude_code",
+   "role": "author",
+   "name": "Claude Code"
+  }
+ ],
+ "entries": [
+  {
+   "type": "merge",
+   "pr": 344,
+   "title": "Add the caveat_lang Python package: the same runtime, byte for byte",
+   "merged_at": "2026-10-25T15:52:12Z",
+   "head": "c570a19262ea2990c7a513fb4d498085a2ce4752",
+   "merge_commit": "b3a18bb5c73e5022a4561005d4162eedf2a2181d",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_legacy_door_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_build_the_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_profile_footprint_and_target",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_macos_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_is_byte_identical_everywher",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "check_same_bytes_as_the_npm_kit",
+     "ok": 1
+    },
+    {
+     "source": "check_source_distribution_builds_from_it",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_linux_aarch64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_linux_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_windows_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_macos_arm64_and_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  }
+ ]
+}
