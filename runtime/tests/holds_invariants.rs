@@ -2,8 +2,10 @@
 //! force and defers every cause that would have reopened it, once each; a
 //! release reopens it because of exactly the deferred causes, in order; a
 //! revision resting on withdrawn evidence is never held; the journal records
-//! each hold, deferral and release; and a session restored from the live save
-//! runs on exactly as the live one. See spec/caveat-holds-0.1.md.
+//! each hold, deferral and release, listing a reopening's causes in the order
+//! they were first observed, whatever order they arrived in (D021); every
+//! event's save restores; and a session restored from the live save runs on
+//! exactly as the live one. See spec/caveat-holds-0.1.md.
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::Value;
 
@@ -13,6 +15,7 @@ evidence tool from "a tool result";
 evidence correction from "a tool result found wrong";
 evidence team from "the team's instruction";
 evidence lead from "the lead's instruction";
+evidence old_note from "an earlier note against the gate";
 readings tests from tool limit 64;
 decisions gate limit 64 reopened by tests;
 state h = 0;
@@ -24,7 +27,10 @@ event freeze_lead;
 event unfreeze;
 event retract;
 event revisit;
+event revisit_old;
+event retract_first;
 event ask;
+on report when not observed(old_note) reveal old_note;
 on report when outcome == outcome.pass sample tests = 1 supports passing;
 on report when outcome == outcome.fail sample tests = 0 opposes passing;
 on decide when not committed(gate) or reopened(gate) commit gate because enough using latest(tests);
@@ -37,11 +43,15 @@ on retract when not observed(correction) reveal correction;
 on retract when has_sample(tests) and not withdrawn(latest(tests)) withdraw latest(tests) because correction;
 on retract when committed(gate) and not reopened(gate) and in_basis(gate, latest(tests)) reopen gate because latest(tests);
 on revisit when committed(gate) and not reopened(gate) and has_sample(tests) reopen gate because latest(tests);
+on revisit_old when committed(gate) and not reopened(gate) and observed(old_note) reopen gate because old_note;
+on retract_first when not observed(correction) reveal correction;
+on retract_first when has_sample(tests) and not withdrawn(reading(tests, 1)) withdraw reading(tests, 1) because correction;
+on retract_first when committed(gate) and not reopened(gate) and in_basis(gate, reading(tests, 1)) reopen gate because correction;
 on ask set h = if(on_hold(gate), 1, 0);
 on ask set r = if(reopened(gate), 1, 0);
 "#;
 
-const EVENTS: [(&str, &str); 16] = [
+const EVENTS: [(&str, &str); 19] = [
     ("report", r#"{"outcome": "pass"}"#),
     ("report", r#"{"outcome": "pass"}"#),
     ("report", r#"{"outcome": "fail"}"#),
@@ -56,6 +66,9 @@ const EVENTS: [(&str, &str); 16] = [
     ("retract", "{}"),
     ("revisit", "{}"),
     ("revisit", "{}"),
+    ("revisit_old", "{}"),
+    ("revisit_old", "{}"),
+    ("retract_first", "{}"),
     ("ask", "{}"),
     ("ask", "{}"),
 ];
@@ -157,9 +170,30 @@ struct Model {
     on_hold: Vec<String>,
     deferred: Vec<String>,
     journal: Vec<(String, String, Vec<String>)>,
+    /// Every name observed so far, in the order each was first observed.
+    observed: Vec<String>,
 }
 
 impl Model {
+    fn observe(&mut self, name: &str) {
+        if !self.observed.iter().any(|seen| seen == name) {
+            self.observed.push(name.to_string());
+        }
+    }
+
+    /// Causes in the order they were first observed, whatever order they
+    /// arrived in (Holds 0.1, D021).
+    fn in_observation_order(&self, causes: Vec<String>) -> Vec<String> {
+        let mut causes = causes;
+        causes.sort_by_key(|cause| {
+            self.observed
+                .iter()
+                .position(|seen| seen == cause)
+                .unwrap_or_else(|| panic!("{cause} reopened the gate before it was observed"))
+        });
+        causes
+    }
+
     fn in_force(&self) -> bool {
         self.current.is_some() && !self.open
     }
@@ -185,6 +219,7 @@ impl Model {
             }
             self.on_hold.clear();
             self.open = true;
+            let causes = self.in_observation_order(causes);
             self.entry("reopened", causes);
             counters.through += 1;
         } else if !self.deferred.contains(&cause) {
@@ -214,6 +249,7 @@ impl Model {
             counters.released_empty += 1;
         } else {
             self.open = true;
+            let waited = self.in_observation_order(waited);
             self.entry("reopened", waited);
             counters.released_reopen += 1;
         }
@@ -321,6 +357,8 @@ fn a_hold_defers_every_reopening_and_a_release_applies_them() {
                 "report" => {
                     let taken = readings(&shown).last().cloned().unwrap();
                     assert_ne!(Some(&taken), latest.as_ref(), "{at}: no new reading");
+                    model.observe("old_note");
+                    model.observe(&taken);
                     if model.in_force() {
                         let through = through(&model, &shown);
                         model.reopen(taken, through, &mut counters);
@@ -339,21 +377,25 @@ fn a_hold_defers_every_reopening_and_a_release_applies_them() {
                         on_hold: Vec::new(),
                         deferred: Vec::new(),
                         journal: model.journal,
+                        observed: model.observed,
                     };
                     model.entry("committed", grounds(&shown, &revision));
                     counters.decided += 1;
                 }
                 "freeze" => {
                     team_seen = true;
+                    model.observe("team");
                     model.hold("team", &mut counters);
                 }
                 "freeze_lead" => {
                     lead_seen = true;
+                    model.observe("lead");
                     model.hold("lead", &mut counters);
                 }
                 "unfreeze" if team_seen => model.release("team", &mut counters),
                 "retract" => {
                     correction_seen = true;
+                    model.observe("correction");
                     if let Some(latest) = latest.clone() {
                         let was_withdrawn = withdrawn(&before, &latest);
                         assert!(withdrawn(&shown, &latest), "{at}: {latest} not withdrawn");
@@ -375,6 +417,26 @@ fn a_hold_defers_every_reopening_and_a_release_applies_them() {
                         if model.in_force() {
                             let through = through(&model, &shown);
                             model.reopen(latest, through, &mut counters);
+                        }
+                    }
+                }
+                "revisit_old" => {
+                    if model.in_force() && model.observed.iter().any(|seen| seen == "old_note") {
+                        let through = through(&model, &shown);
+                        model.reopen("old_note".to_string(), through, &mut counters);
+                    }
+                }
+                "retract_first" => {
+                    model.observe("correction");
+                    if let Some(first) = readings(&before).first().cloned() {
+                        assert!(withdrawn(&shown, &first), "{at}: {first} not withdrawn");
+                        let in_basis = model
+                            .current
+                            .as_deref()
+                            .is_some_and(|revision| grounds(&shown, revision).contains(&first));
+                        if model.in_force() && in_basis {
+                            assert!(through(&model, &shown), "{at}: basis withdrawn");
+                            model.reopen("correction".to_string(), true, &mut counters);
                         }
                     }
                 }
@@ -413,6 +475,12 @@ fn a_hold_defers_every_reopening_and_a_release_applies_them() {
                 "{at}: deferred causes with no hold"
             );
             assert_eq!(journal(&shown), model.journal, "{at}: journal");
+            // Every event's save restores, to the same save and snapshot.
+            let save = game.save_json().unwrap();
+            let restored = ReactiveSession::restore_json(SOURCE, &save)
+                .unwrap_or_else(|error| panic!("{at}: restore after {event}: {error}"));
+            assert_eq!(restored.save_json().unwrap(), save, "{at}: save round trip");
+            assert_eq!(snapshot(&restored), shown, "{at}: restored snapshot");
             before = shown;
         }
     }
