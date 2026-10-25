@@ -14,11 +14,11 @@ in its own documented behavior. Each comparison is marked:
   it against the other system's full documentation or behavior. Do not repeat
   it as established.
 
-Sources were read on 2026-10-10, and those for the last two entries on
-2026-10-12. Caveat's behavior is summarized in
-[What is checked, and how](VERIFICATION.md).
+Sources were read on 2026-10-10, those for the last two entries on
+2026-10-12, and the assumption-based TMS sources on 2026-10-25. Caveat's
+behavior is summarized in [What is checked, and how](VERIFICATION.md).
 
-## Truth maintenance (Doyle, 1979)
+## Truth maintenance (Doyle, 1979; de Kleer, 1986)
 
 Jon Doyle, "A Truth Maintenance System", *Artificial Intelligence* 12(3),
 1979. A truth maintenance system records a justification for each belief and
@@ -35,8 +35,34 @@ It is the clearest ancestor of "keep the reasons with the conclusion".
   ([decision journal](../spec/caveat-decision-journal-0.1.md)). Classic truth
   maintenance updates which beliefs hold. It does not keep a frozen record of
   an earlier decision beside the revised beliefs.
-- **[unverified]** Later TMS variants (assumption-based, de Kleer 1986) track
-  several contexts at once. We have not compared Caveat with them.
+
+Johan de Kleer, "An Assumption-Based TMS", *Artificial Intelligence* 28,
+1986, pp. 127–162. An assumption-based TMS (ATMS) labels each conclusion with
+the sets of assumptions, called environments, under which it holds, so it
+can answer for many contexts at once without switching between them. It
+recommends retracting through an assumption rather than by deleting a
+justification (section 4.9).
+
+- **[checked]** A Caveat value's lineage is one set of evidence and caveat
+  identities, combined by union
+  ([Explanations 0.2](../spec/caveat-explanations-0.2.md)). That is a single
+  environment per value. Caveat does not keep several environments for one
+  value, and does not answer queries across contexts the way an ATMS does.
+  The ATMS's worst case, labels that grow exponentially with the number of
+  contexts (de Kleer, section 4.8), does not arise.
+- **[checked]** Caveat's withdrawal follows the shape de Kleer recommends. It
+  removes no observation or record. It adds the `withdrawn` caveat to every
+  current value whose lineage or grounds include the evidence
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[checked]** The reverse question, what rests on a piece of evidence, is
+  answered from a snapshot by
+  [Dependents 0.1](../spec/caveat-dependents-0.1.md). It reports which
+  decisions and values rest on the evidence. It does not run the program to
+  show what a withdrawal would make it do.
+- **[unverified]** McAllester's logic-based TMS (LTMS) propagates clauses
+  rather than justifications (David McAllester, "Truth Maintenance", AAAI-90,
+  pp. 1109–1116, surveys the family). Caveat does no logical inference over
+  lineage, so we expect the comparison to be distant, but have not made it.
 
 ## Datalog provenance (provenance semirings)
 
