@@ -50,6 +50,14 @@ after it.
 - Earlier occurrences keep their names, relations and caveats. A belief that
   counted the first taste still counts `taste_cave`, and a later taste adds
   `taste_cave@2`. Nothing merges them, so provenance stays true.
+- A reading sampled from a stream whose template is renewable
+  (`readings risks from guard`) is a new observation of the occurrence
+  current when it is taken. From 1.4.0 it inherits the caveats that qualify
+  that occurrence at that moment, including those a `qualify` added to it,
+  along with the caveats of the declared evidence as before
+  ([Reactive 0.5](caveat-reactive-0.5.md#a-sample-is-a-new-observation)).
+  A doubt raised about the occurrence after the reading was taken is about
+  the occurrence, not the reading.
 - The rule's guard joins the new occurrence's observation lineage, as a
   sample's does.
 - `renew` past the declared limit refuses the event as `limit/renewal_limit`
@@ -135,6 +143,18 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-10-25 (1.4.0): a reading sampled from renewable evidence inherits the
+  caveats qualifying the occurrence current when it is taken, not only the
+  declared evidence's. Before this, a program that renewed a guardrail on each
+  assessment, flagged the new occurrence when the risk was high, and sampled
+  the risk from it got readings without the flag, so a decision made
+  `using latest(risks)` carried no doubt a `retaining` could name (bug hunt
+  finding D024, from the graded-belief examples). Readings only gain
+  caveats: those of the declared evidence, and a late caveat on the first
+  occurrence, still reach every later reading as before. Programs that never
+  renew a stream's template, or never qualify a renewed occurrence before
+  sampling from it, are unchanged.
 
 - 2026-10-11 (rc.18, specified): `unqualify` reaches every held occurrence
   of renewable evidence ([Take-back 0.1](caveat-take-back-0.1.md)). Every
