@@ -1637,6 +1637,44 @@ fn untrusted_sources_survive_a_module_that_declares_their_words() {
     }
 }
 
+#[test]
+fn only_if_survives_a_module_and_a_module_name_only_if() {
+    // `only_if(C, V)` arrives in 1.4 (spec/caveat-only-if-0.1.md). In a
+    // module the call keeps its word, and a module may also name a state
+    // `only_if` and read it.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             evidence a from \"a report\";\n\
+             readings r from a limit 2;\n\
+             state only_if = 1;\n\
+             state picked = 0;\n\
+             event go;\n\
+             on go reveal a;\n\
+             on go sample r = 1;\n\
+             on go set picked = only_if(only_if == 1, latest(r));\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    let expected = "on m__go set m__picked = only_if(m__only_if == 1, latest(m__r));";
+    assert!(source.contains(expected), "{expected}: {source}");
+    // A module that defines `fn only_if` calls its own function.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             fn only_if(x, y) = x + y;\n\
+             state picked = 0;\n\
+             event go;\n\
+             on go set picked = only_if(2, 3);\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    let expected = "on m__go set m__picked = m__only_if(2, 3);";
+    assert!(source.contains(expected), "{expected}: {source}");
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
