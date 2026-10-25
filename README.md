@@ -2,10 +2,12 @@
 
 **A decision ledger for agents.**
 
-Caveat is an embeddable decision runtime with a small rules language. It
-tracks evidence through computations, preserves the grounds of recorded
-decisions, and supports reconsideration under authored policies when evidence
-changes.
+Caveat is a rules language and a runtime for decisions that may need taking
+back. It tracks evidence through computations, preserves the grounds of
+recorded decisions, and reopens them under rules you write when evidence
+changes. [Limits](docs/LIMITS.md) says up front what it does not do (check
+that evidence is true, authenticate saves, know who sent an event) and what it
+costs.
 
 For teams that govern their agents, Caveat is also an audit trail for agent
 decisions. `caveat explain` shows what each decision rested on: its evidence
@@ -451,7 +453,7 @@ and ordinary ability toggles retain that basis without growing a per-input
 history. Glow controls require a separate host-verified renderer capability;
 without it, the source reports the mushroom discovery without claiming light.
 Native and real WebAssembly tests exercise 10,001 ready toggles, early
-discovery, duplicate absorption, reset and source-only policy variation. Vessel's
+discovery, duplicate absorption, reset and source-only policy variation. The host's
 world contact, inventory transaction and visible glow remain host responsibilities.
 
 ## The Last Beacon — story experiment
