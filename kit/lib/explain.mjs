@@ -302,9 +302,16 @@ export function formatExplanation(report, title = 'the program') {
   const lines = [`${title} after ${count} event${count === 1 ? '' : 's'} (sequence ${report.sequence}${report.elapsed ? `, elapsed ${report.elapsed}` : ''})`];
   if (count) {
     lines.push('', 'Events');
+    // The list counts every event; `#N` below counts accepted ones, the
+    // session's sequence. Where the two differ, as after a refusal, an
+    // accepted row names its `#N`.
+    let sequence = report.sequence - report.events.filter(entry => entry.outcome.outcome === 'accepted').length;
     report.events.forEach((entry, index) => {
       const payload = entry.payload && Object.keys(entry.payload).length ? ` ${JSON.stringify(entry.payload)}` : '';
-      lines.push(`  ${String(index + 1).padStart(3)}  ${entry.event}${payload}  ${outcomeText(entry.outcome)}`);
+      const accepted = entry.outcome.outcome === 'accepted';
+      if (accepted) sequence += 1;
+      const as = accepted && sequence !== index + 1 ? ` as #${sequence}` : '';
+      lines.push(`  ${String(index + 1).padStart(3)}  ${entry.event}${payload}  ${outcomeText(entry.outcome)}${as}`);
     });
   }
   lines.push('', 'Decisions');

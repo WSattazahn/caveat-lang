@@ -86,6 +86,19 @@ test('the command replays events and lists refusals, which change nothing', asyn
   });
 });
 
+test('prompt-injection limit 6: after a refusal, an accepted event names the #N the decisions cite', async () => {
+  const [first, second, third] = reads.split('\n');
+  await withFiles({ 'events.jsonl': `${first}\n${second}\n{"event":"read","payload":{"value":99}}\n${third}\n` }, async file => {
+    const result = run(example, file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^thermostat_history\.cav after 4 events \(sequence 3\)/);
+    assert.match(result.stdout, / {4}1 {2}read \{"value":17\} {2}accepted\n {4}2 {2}read \{"value":25\} {2}accepted\n/);
+    assert.match(result.stdout, / {4}3 {2}read \{"value":99\} {2}refused \(input\/bound_exceeded\): [^\n]*\n {4}4 {2}read \{"value":17\} {2}accepted as #3\n/);
+    assert.match(result.stdout, /#3 read: /);
+    assert.doesNotMatch(result.stdout, /#4 /);
+  });
+});
+
 test('without events, the command explains the initial session', () => {
   const result = run(example);
   assert.equal(result.status, 0, result.stderr);
