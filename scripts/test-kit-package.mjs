@@ -55,7 +55,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md', 'docs/AUTHORING_CARD.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff'];
+const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'ledgers', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
