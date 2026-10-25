@@ -487,6 +487,12 @@ export interface Snapshot {
    * absent when no series is irreversible (spec/caveat-foreclosure-0.1.md).
    */
   irreversible?: Record<string, string[]>;
+  /**
+   * Reversible series and the actions each forecloses while its current
+   * revision is in force, in source order; absent when none does
+   * (spec/caveat-foreclosure-0.2.md).
+   */
+  forecloses?: Record<string, string[]>;
   /** First-observation order; present after neutral observation, otherwise derived from stance relations. */
   observations?: string[];
   observation_qualifications: Record<string, Provenance>;

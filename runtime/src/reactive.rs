@@ -614,9 +614,13 @@ pub enum Directive {
         limit: usize,
         /// `reopened by …`. See spec/caveat-reopening-triggers-0.1.md.
         triggers: Vec<ReopeningTrigger>,
-        /// `irreversible [forecloses ACTION, …]`: the actions it forecloses.
-        /// See spec/caveat-foreclosure-0.1.md.
-        irreversible: Option<Vec<String>>,
+        /// `irreversible`. See spec/caveat-foreclosure-0.1.md.
+        irreversible: bool,
+        /// `forecloses ACTION, …`: for an irreversible series, the actions it
+        /// forecloses once committed; for any other, the actions it
+        /// forecloses while its current revision is in force. See
+        /// spec/caveat-foreclosure-0.2.md.
+        forecloses: Vec<String>,
     },
     /// `renewable EVIDENCE limit N;` or `renewable EVIDENCE window N;`
     Renewable {
@@ -1729,6 +1733,10 @@ pub struct ReactiveSnapshot {
     /// See spec/caveat-foreclosure-0.1.md.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub irreversible: BTreeMap<String, Vec<String>>,
+    /// Reversible series and the actions each forecloses while in force, in
+    /// source order. See spec/caveat-foreclosure-0.2.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub forecloses: BTreeMap<String, Vec<String>>,
     pub observation_qualifications: BTreeMap<String, Provenance>,
     pub examination_qualifications: BTreeMap<String, Provenance>,
     pub reopening_qualifications: BTreeMap<String, Provenance>,
@@ -1790,6 +1798,9 @@ pub struct ReactiveSession {
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
     irreversible: Arc<BTreeMap<String, Vec<String>>>,
+    /// Reversible series that foreclose actions while in force, and those
+    /// actions, from the source. See spec/caveat-foreclosure-0.2.md.
+    foreclosures: Arc<BTreeMap<String, Vec<String>>>,
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
@@ -2058,6 +2069,7 @@ impl ReactiveSession {
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             irreversible: Arc::default(),
+            foreclosures: Arc::default(),
             renewals: Arc::default(),
             observations: Arc::default(),
             identifiers: Arc::default(),
@@ -2202,9 +2214,16 @@ impl ReactiveSession {
                         },
                     );
                 }
-                Directive::Decisions { irreversible, .. } => {
-                    if let Some(forecloses) = irreversible {
+                Directive::Decisions {
+                    irreversible,
+                    forecloses,
+                    ..
+                } => {
+                    if *irreversible {
                         Arc::make_mut(&mut session.irreversible)
+                            .insert(name.clone(), forecloses.clone());
+                    } else if !forecloses.is_empty() {
+                        Arc::make_mut(&mut session.foreclosures)
                             .insert(name.clone(), forecloses.clone());
                     }
                     Arc::make_mut(&mut session.decision_series).insert(
@@ -6905,7 +6924,7 @@ impl ReactiveSession {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        for (series, forecloses) in self.irreversible.iter() {
+        for (series, forecloses) in self.irreversible.iter().chain(self.foreclosures.iter()) {
             for action in forecloses {
                 if !self.decision_series.contains_key(action)
                     && !committed.contains(action.as_str())
@@ -6919,15 +6938,53 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// The committed irreversible revision that forecloses `action`, if any:
-    /// the earliest by sequence, then by series name.
+    /// The revision that forecloses `action`, if any: a committed
+    /// irreversible revision, or the current revision of a reversible series
+    /// while it is in force (committed and not reopened). The earliest by
+    /// sequence, then by series name. See spec/caveat-foreclosure-0.2.md.
     fn foreclosing(&self, action: &str) -> Option<&str> {
-        self.irreversible
+        let closes = |forecloses: &Vec<String>| forecloses.iter().any(|closed| closed == action);
+        let irreversible = self
+            .irreversible
             .iter()
-            .filter(|(_, forecloses)| forecloses.iter().any(|closed| closed == action))
-            .filter_map(|(series, _)| self.decision_series.get(series)?.revisions.first())
-            .min_by_key(|revision| revision.sequence)
-            .map(|revision| revision.id.as_str())
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                Some((name, self.decision_series.get(name)?.revisions.first()?))
+            });
+        let in_force = self
+            .foreclosures
+            .iter()
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                let series = self.decision_series.get(name)?;
+                let current = series.current.as_deref()?;
+                if self.is_open(current) {
+                    return None;
+                }
+                Some((
+                    name,
+                    series
+                        .revisions
+                        .iter()
+                        .find(|revision| revision.id == current)?,
+                ))
+            });
+        irreversible
+            .chain(in_force)
+            .min_by(|(a, first), (b, second)| {
+                first.sequence.cmp(&second.sequence).then_with(|| a.cmp(b))
+            })
+            .map(|(_, revision)| revision.id.as_str())
+    }
+
+    /// Whether a commitment is reopened.
+    fn is_open(&self, commitment: &str) -> bool {
+        matches!(
+            self.symbols
+                .get(commitment)
+                .and_then(|id| self.graph.nodes.get(id)),
+            Some(NodeKind::Commitment { open: true, .. })
+        )
     }
 
     /// Every `unqualify` of a program, after procedures are specialized.
@@ -7688,6 +7745,7 @@ impl ReactiveSession {
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
+            forecloses: (*self.foreclosures).clone(),
             observation_qualifications: (*self.observation_qualifications).clone(),
             examination_qualifications: (*self.examination_qualifications).clone(),
             reopening_qualifications: (*self.reopening_qualifications).clone(),
@@ -8141,7 +8199,9 @@ pub(crate) fn parse_directive_at(
             ),
             ["decisions", name, "limit", limit, rest @ ..] => {
                 // spec/caveat-foreclosure-0.1.md: `irreversible [forecloses
-                // ACTION, …]` comes before any `reopened by`.
+                // ACTION, …]` comes before any `reopened by`, and
+                // spec/caveat-foreclosure-0.2.md: so may `forecloses ACTION, …`
+                // without `irreversible`.
                 let (irreversible, rest) = match rest {
                     ["irreversible", tail @ ..] => {
                         if limit.parse::<usize>() != Ok(1) {
@@ -8149,47 +8209,53 @@ pub(crate) fn parse_directive_at(
                                 "an irreversible series holds one revision: decisions {name} limit 1 irreversible"
                             ));
                         }
+                        (true, tail)
+                    }
+                    _ => (false, rest),
+                };
+                let (forecloses, rest) = match rest {
+                    ["forecloses", tail @ ..] => {
                         let end = tail
                             .windows(2)
                             .position(|pair| pair == ["reopened", "by"])
                             .unwrap_or(tail.len());
-                        let (foreclosure, rest) = tail.split_at(end);
-                        let forecloses = match foreclosure {
-                            [] => Vec::new(),
-                            ["forecloses", actions @ ..] if !actions.is_empty() => {
-                                let mut forecloses = Vec::<String>::new();
-                                for action in actions.join(" ").split(',') {
-                                    let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
-                                        [action] => identifier(action)?,
-                                        _ => return Err(format!(
-                                            "forecloses takes decision names separated by commas, not {}",
-                                            action.trim()
-                                        )),
-                                    };
-                                    if action == *name {
-                                        return Err(format!("{name} cannot foreclose itself"));
-                                    }
-                                    if forecloses.contains(&action) {
-                                        return Err(format!("duplicate foreclosed decision {action}"));
-                                    }
-                                    forecloses.push(action);
-                                }
-                                forecloses
+                        let (actions, rest) = tail.split_at(end);
+                        if actions.is_empty() {
+                            return Err(format!(
+                                "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                                rest.join(" ")
+                            ));
+                        }
+                        let mut forecloses = Vec::<String>::new();
+                        for action in actions.join(" ").split(',') {
+                            let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
+                                [action] => identifier(action)?,
+                                _ => return Err(format!(
+                                    "forecloses takes decision names separated by commas, not {}",
+                                    action.trim()
+                                )),
+                            };
+                            if action == *name {
+                                return Err(format!("{name} cannot foreclose itself"));
                             }
-                            _ => return Err(format!(
-                                "decisions expects NAME limit 1 irreversible [forecloses ACTION, …] [reopened by STREAM, …], not {}",
-                                foreclosure.join(" ")
-                            )),
-                        };
-                        (Some(forecloses), rest)
+                            if forecloses.contains(&action) {
+                                return Err(format!("duplicate foreclosed decision {action}"));
+                            }
+                            forecloses.push(action);
+                        }
+                        (forecloses, rest)
                     }
-                    _ if rest.contains(&"forecloses") && !rest.starts_with(&["reopened", "by"]) => {
-                        return Err(format!(
-                            "forecloses follows irreversible: decisions {name} limit 1 irreversible forecloses ACTION, …"
-                        ));
-                    }
-                    _ => (None, rest),
+                    _ => (Vec::new(), rest),
                 };
+                if (irreversible || !forecloses.is_empty())
+                    && !rest.is_empty()
+                    && !rest.starts_with(&["reopened", "by"])
+                {
+                    return Err(format!(
+                        "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                        rest.join(" ")
+                    ));
+                }
                 let triggers = match rest {
                     [] => Vec::new(),
                     ["reopened", "by", triggers @ ..] if !triggers.is_empty() => triggers
@@ -8239,6 +8305,7 @@ pub(crate) fn parse_directive_at(
                         .map_err(|_| "decision limit must be an unsigned integer".to_string())?,
                     triggers,
                     irreversible,
+                    forecloses,
                 })
             }
             _ => Err("decisions expects NAME limit CAPACITY [reopened by STREAM, …]".into()),

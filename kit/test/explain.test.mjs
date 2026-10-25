@@ -247,6 +247,41 @@ test('explain and dependents show retired and departed records', async () => {
   session.close();
 });
 
+test('a reversible decision forecloses while in force, and explain says so', async () => {
+  const source = `claim out_of_scope;
+evidence review from "a review";
+evidence recheck from "a second look";
+decisions no_rewrite limit 4 forecloses rewrite;
+decisions rewrite limit 4;
+event rule_out;
+event rewrite_it;
+event reconsider;
+on rule_out reveal review supports out_of_scope;
+on rule_out commit no_rewrite because enough citing qualified(1, review);
+on rewrite_it commit rewrite because enough using 1;
+on reconsider reveal recheck opposes out_of_scope;
+on reconsider reopen no_rewrite because recheck;
+`;
+  const events = ['rule_out', 'rewrite_it'].map(event => JSON.stringify({ event })).join('\n');
+  const lifted = ['rule_out', 'reconsider', 'rewrite_it'].map(event => JSON.stringify({ event })).join('\n');
+  await withFiles({ 'rule.cav': source, 'events.jsonl': events, 'lifted.jsonl': lifted }, async file => {
+    const result = run(file('rule.cav'), file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, / {2}no_rewrite: 1 of at most 4, forecloses rewrite\n/);
+    assert.match(result.stdout, / {2}rewrite: 0 of at most 4, foreclosed by no_rewrite@1\n/);
+    assert.match(result.stdout, /rewrite_it {2}refused \(evaluation\/foreclosed\): .*rewrite is foreclosed by no_rewrite@1/);
+    const json = JSON.parse(run('--json', file('rule.cav'), file('events.jsonl')).stdout);
+    const series = Object.fromEntries(json.decisions.map(item => [item.name, item]));
+    assert.equal('irreversible' in series.no_rewrite, false);
+    assert.deepEqual(series.no_rewrite.forecloses, ['rewrite']);
+    assert.deepEqual(series.rewrite.foreclosed_by, ['no_rewrite@1']);
+    const after = JSON.parse(run('--json', file('rule.cav'), file('lifted.jsonl')).stdout);
+    const reopened = Object.fromEntries(after.decisions.map(item => [item.name, item]));
+    assert.equal('foreclosed_by' in reopened.rewrite, false);
+    assert.equal(reopened.rewrite.current, 'rewrite@1');
+  });
+});
+
 test('an irreversible decision shows what it forecloses, and a refused commit names it', async () => {
   const source = `scene "Dropping the old table can't be undone.";
 claim safe;

@@ -635,6 +635,21 @@ a commit of `rollback` is refused as `foreclosed`, and the message names
 foreclosure. Caveat records the declaration; it does not check that the action
 really can't be undone. See [foreclosure](../spec/caveat-foreclosure-0.1.md).
 
+A decision that can be undone may rule options out too, for as long as it
+stands (1.4 draft):
+
+```caveat
+decisions no_rewrite limit 4 forecloses rewrite;
+```
+
+While `no_rewrite`'s current revision is committed and not reopened, a commit
+of `rewrite` is refused as `foreclosed`, naming `no_rewrite@1`. Reopening
+`no_rewrite`, by a rule, a trigger or a withdrawal through a hold, lifts it; a
+new revision forecloses again. Write this instead of a
+`when committed(no_rewrite) and not reopened(no_rewrite) reject …` guard on
+every rule that commits `rewrite`. See
+[foreclosure 0.2](../spec/caveat-foreclosure-0.2.md).
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source
