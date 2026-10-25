@@ -360,6 +360,14 @@ and failures are `dispatch`'s, and after the same events either way the session
 is the same. Read the view it returns: calling `session.view()` after it builds
 the same view again.
 
+To ask what an event would do without doing it, call
+`session.whatIf(event, payload)`. It returns exactly what `dispatchView` would,
+from a copy of the session that is then dropped, so the session is unchanged
+whatever the answer: for example, which decisions withdrawing some evidence
+would reopen, or whether a commitment would be refused. It takes the same
+`{ fields }` option. A fatal answer throws but leaves the session usable
+([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
+
 A runtime keeps the last few programs it loaded, so opening or restoring the
 same source again reuses the loaded program instead of parsing and checking it
 again. The session is the same either way.
