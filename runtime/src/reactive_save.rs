@@ -1518,7 +1518,8 @@ impl ReactiveSession {
                     target:
                         EvidenceSelector::Named(evidence)
                         | EvidenceSelector::Latest(evidence)
-                        | EvidenceSelector::Occurrence { evidence, .. },
+                        | EvidenceSelector::Occurrence { evidence, .. }
+                        | EvidenceSelector::Every(evidence),
                     ..
                 } => {
                     possible.insert((WITHDRAWN.to_string(), evidence.clone()));
@@ -3517,6 +3518,16 @@ impl ReactiveSession {
                 evidence: source, ..
             } => named(reported, source),
             EvidenceSelector::Caveated { .. } => true,
+            // A reading of a stream that reads from the named evidence counts
+            // too (spec/caveat-untrusted-sources-0.1.md).
+            EvidenceSelector::Every(source) => {
+                named(reported, source)
+                    || occurrence_parts(reported).is_some_and(|(stream, _)| {
+                        self.reading_streams
+                            .get(stream)
+                            .is_some_and(|readings| readings.template == *source)
+                    })
+            }
         };
         // A reopening of a series the program can hold may also name causes
         // deferred by earlier events, at a release or when a withdrawal
