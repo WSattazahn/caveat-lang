@@ -183,6 +183,19 @@ session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-la
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 ```
 
+`caveat review --all <directory>` reviews a set of past ledgers: every
+`NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
+only `.cav` beside `events.jsonl`. It reviews each revision that has an
+outcome or consulted a past review, and with `--json` prints one object per
+line. A program records that it read a past review with ordinary evidence
+whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
+a review lists it under Consulted, and `--all` says what that review found.
+It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+
+```sh
+npx --no-install caveat-lang review --all ledgers/
+```
+
 ## Check, replay, start
 
 ```sh
