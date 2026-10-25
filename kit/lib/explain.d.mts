@@ -314,6 +314,40 @@ export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'reas
 /** The dependents report as text for a person. Events is how many led to the snapshot. */
 export declare function formatDependents(report: DependentsFormatInput, title?: string, events?: number): string;
 
+export declare const UNDO_SCHEMA: 'caveat-undo/0.1';
+
+/**
+ * The undo list (spec/caveat-untrusted-sources-0.1.md, draft for 1.4): every
+ * decision revision whose frozen grounds hold withdrawn evidence.
+ */
+export interface UndoReport {
+  schema: 'caveat-undo/0.1';
+  sequence: number;
+  /** The snapshot's withdrawal ledger, in its order. */
+  withdrawals: Withdrawal[];
+  /** Revisions resting on withdrawn evidence, in the order `explain` lists them. */
+  decisions: UndoDecision[];
+}
+
+export interface UndoDecision {
+  series: string;
+  id: string;
+  value: number | null;
+  status: RevisionStatus;
+  /** Present for an irreversible series: the revision cannot be called back. */
+  irreversible?: true;
+  /** Present when an outcome was recorded (spec/caveat-outcomes-0.1.md). */
+  outcome?: ExplainedRevision['outcome'];
+  /** The withdrawals of evidence in the revision's grounds, in ledger order. */
+  withdrawn: Withdrawal[];
+}
+
+/** Every revision, current or past, resting on withdrawn evidence. Reads the snapshot only. */
+export declare function undoList(snapshot: Snapshot): UndoReport;
+
+/** The undo list as text for a person. Events is how many led to the snapshot. */
+export declare function formatUndoList(report: UndoReport, title?: string, events?: number): string;
+
 /** An events file: one `{"event": NAME}` per line, with an optional `"payload"`. */
 export interface EventLine {
   event: string;
