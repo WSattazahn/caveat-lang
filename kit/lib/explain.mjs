@@ -587,6 +587,50 @@ export function formatDependents(report, title = 'the program', events = 0) {
   return lines.join('\n');
 }
 
+export const UNDO_SCHEMA = 'caveat-undo/0.1';
+
+/**
+ * Every decision revision in `snapshot`, current or past, whose frozen
+ * grounds hold withdrawn evidence, with the withdrawals it rests on: the
+ * undo list (spec/caveat-untrusted-sources-0.1.md). Grounds, not lineage, as
+ * `rests_on_withdrawn` reads them. It reopens nothing and judges nothing.
+ */
+export function undoList(snapshot) {
+  const withdrawals = (snapshot.withdrawals ?? [])
+    .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+  const decisions = explain(snapshot).decisions.flatMap(series => series.revisions
+    .filter(revision => revision.withdrawn.length)
+    .map(revision => {
+      const evidence = new Set(revision.withdrawn.map(item => item.evidence));
+      return {
+        series: series.name, id: revision.id, value: revision.value, status: revision.status,
+        ...(series.irreversible ? { irreversible: true } : {}),
+        ...(revision.outcome ? { outcome: revision.outcome } : {}),
+        withdrawn: withdrawals.filter(item => evidence.has(item.evidence)),
+      };
+    }));
+  return { schema: UNDO_SCHEMA, sequence: snapshot.sequence, withdrawals, decisions };
+}
+
+/** The undo list as text for a person: in force first, then reopened, then superseded. */
+export function formatUndoList(report, title = 'the program', events = 0) {
+  const lines = [`What rests on withdrawn evidence in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
+  const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event} because ${item.because}`;
+  lines.push('', 'Withdrawals');
+  if (!report.withdrawals.length) lines.push('  nothing');
+  for (const item of report.withdrawals) lines.push(`  ${withdrawalText(item)}`);
+  for (const [status, heading] of [['in force', 'In force, not reopened'], ['reopened', 'Reopened'], ['superseded', 'Superseded']]) {
+    const items = report.decisions.filter(item => item.status === status);
+    lines.push('', heading);
+    if (!items.length) lines.push('  nothing');
+    for (const item of items) {
+      lines.push(`  ${item.id} = ${show(item.value)}${item.irreversible ? '  irreversible' : ''}${item.outcome ? `  outcome ${show(item.outcome.value)} at #${item.outcome.sequence}` : ''}`);
+      for (const withdrawal of item.withdrawn) lines.push(`    rests on ${withdrawalText(withdrawal)}`);
+    }
+  }
+  return lines.join('\n');
+}
+
 /**
  * Parses an events file: one JSON object per line, `{"event": NAME}` with an
  * optional `"payload"` object. Blank lines are skipped. Throws an Error that
