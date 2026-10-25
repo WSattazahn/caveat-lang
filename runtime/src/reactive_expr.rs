@@ -145,6 +145,62 @@ pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
 /// spec/caveat-outcomes-0.1.md.
 pub const OUTCOME: &str = "outcome";
 
+/// The name of `carries_any(…)`: whether evidence carries any caveat, or any
+/// of consequence at least a level. It reaches the host as a `carries`
+/// predicate whose caveat is [`ANY_CAVEAT`], followed by the level when one is
+/// given. See spec/caveat-carries-any-0.1.md.
+pub const CARRIES_ANY: &str = "carries_any";
+
+/// The caveat part of a `carries` predicate kind that `carries_any(…)` asks:
+/// `carries:*` for any caveat, `carries:*material` for one of consequence
+/// `material` or above. No declared caveat is spelled with `*`.
+pub const ANY_CAVEAT: &str = "*";
+
+const CONSEQUENCE_WORDS: [&str; 5] = ["negligible", "low", "material", "high", "catastrophic"];
+
+/// `carries_any(TARGET [, LEVEL])` from its arguments as an ordinary call
+/// reads them: `TARGET` is evidence, `latest(NAME)`, `occurrence(E, I)` or
+/// `reading(STREAM, I)`, and `LEVEL` a consequence word.
+fn carries_any_form(arguments: &[Expr]) -> Result<Node, String> {
+    let usage = "carries_any expects carries_any(EVIDENCE) or carries_any(EVIDENCE, CONSEQUENCE), where EVIDENCE may be latest(NAME), occurrence(E, I) or reading(STREAM, I)";
+    let (target, level) = match arguments {
+        [target] => (target, None),
+        [target, level] => (target, Some(level)),
+        _ => return Err(usage.into()),
+    };
+    let level = match level.map(|level| &level.node) {
+        None => String::new(),
+        Some(Node::Variable(word)) if CONSEQUENCE_WORDS.contains(&word.as_str()) => word.clone(),
+        Some(_) => {
+            return Err(format!(
+                "carries_any's second argument is a consequence: one of {}",
+                CONSEQUENCE_WORDS.join(", ")
+            ))
+        }
+    };
+    let kind = format!("carries:{ANY_CAVEAT}{level}");
+    match &target.node {
+        Node::Variable(name) if plain_identifier(name) => Ok(Node::Predicate(kind, name.clone())),
+        Node::Latest(name) => Ok(Node::Predicate(format!("{AT_LATEST}{kind}"), name.clone())),
+        Node::UserCall(selector, parts) if selector == "occurrence" || selector == "reading" => {
+            match parts.as_slice() {
+                [evidence, index] => match &evidence.node {
+                    Node::Variable(evidence) if plain_identifier(evidence) => Ok(
+                        Node::AtOccurrence(kind, evidence.clone(), Box::new(index.clone())),
+                    ),
+                    _ => Err(format!(
+                        "{selector}(…) in carries_any names plain evidence first"
+                    )),
+                },
+                _ => Err(format!(
+                    "{selector}(…) in carries_any takes evidence and an index"
+                )),
+            }
+        }
+        _ => Err(usage.into()),
+    }
+}
+
 /// What `in_basis(…)` asks about: a revision of a decision series and a
 /// reference to evidence. See spec/caveat-in-basis-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2924,6 +2980,18 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after predicate target")?;
             return Ok(Node::Predicate(name, target));
         }
+        // `carries_any(…)` is read as a call and resolved when source
+        // functions are known, since a 1.3 program may define `fn
+        // carries_any` (see `Expander::walk`). The strict parser has no
+        // source functions, so it resolves it here.
+        if name == CARRIES_ANY && !self.allow_user_functions {
+            self.allow_user_functions = true;
+            let arguments = self.call_arguments(nesting);
+            self.allow_user_functions = false;
+            let arguments = arguments?;
+            self.expect(TokenKind::RightParen, "')' after carries_any's arguments")?;
+            return carries_any_form(&arguments);
+        }
         let function = Function::named(&name);
         if function.is_none() && (!self.allow_user_functions || !plain_identifier(&name)) {
             return Err(format!("unknown expression function {name}"));
@@ -2959,6 +3027,21 @@ impl Parser {
         } else {
             Ok(Node::UserCall(name, arguments))
         }
+    }
+
+    /// Comma-separated expressions up to, not including, a closing `)`.
+    fn call_arguments(&mut self, nesting: usize) -> Result<Vec<Expr>, String> {
+        let mut arguments = Vec::new();
+        if self.peek() != Some(&TokenKind::RightParen) {
+            loop {
+                arguments.push(self.expression(0, nesting)?);
+                if self.peek() != Some(&TokenKind::Comma) {
+                    break;
+                }
+                self.cursor += 1;
+            }
+        }
+        Ok(arguments)
     }
 
     fn graph_identifier(&mut self, context: &str) -> Result<String, String> {
@@ -3239,6 +3322,9 @@ fn infer_function(
     let mut calls = Vec::new();
     collect_calls(&definition.body, &mut calls);
     for callee in calls {
+        if callee == CARRIES_ANY && !functions.contains_key(CARRIES_ANY) {
+            return Err("pure source functions cannot query graph predicates".into());
+        }
         infer_function(callee, functions, result_types, active)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
@@ -3493,6 +3579,17 @@ impl Expander<'_> {
                     .collect::<Result<_, _>>()?,
                 Box::new(self.walk(body, parameters)?),
             ),
+            // `carries_any(…)` is the predicate unless the program defines a
+            // source function of that name, whose calls keep their 1.3
+            // meaning (docs/COMPATIBILITY.md).
+            Node::UserCall(name, arguments)
+                if name == CARRIES_ANY && !self.functions.contains_key(CARRIES_ANY) =>
+            {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                return self.walk(&Expr::new(carries_any_form(arguments)?)?, parameters);
+            }
             Node::UserCall(name, arguments) => {
                 if name == "elapsed" {
                     return Err("elapsed() requires no arguments".into());
