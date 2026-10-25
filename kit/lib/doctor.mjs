@@ -173,6 +173,26 @@ export async function doctor({ runtimeDirectory = defaultRuntimeDirectory(), pac
       check(`runtime.${name}`, 'fail', `Cannot use ${name}: ${messageOf(error)}`);
     }
   }
+  // build-info.json names each runtime file's SHA-256 by its build path: a
+  // packed kit keeps it beside the files under pkg-reactive/, a repository
+  // build one directory up under the runtime directory's own name.
+  const checkArtifacts = (metadata, beside) => {
+    const artifacts = metadata.runtimeArtifacts;
+    if (!artifacts || typeof artifacts !== 'object') {
+      check('runtime.hashes', 'warn', 'build-info.json lists no runtime file hashes; the measured hashes above are unchecked');
+      return;
+    }
+    const folder = beside ? 'pkg-reactive' : path.basename(result.runtime.directory);
+    const differ = [], unlisted = [];
+    for (const { name, sha256: measured } of result.runtime.files) {
+      const expected = artifacts[`${folder}/${name}`];
+      if (typeof expected !== 'string') unlisted.push(name);
+      else if (expected.toLowerCase() !== measured) differ.push(`${name} is sha256 ${measured}, build-info.json expects ${expected}`);
+    }
+    if (differ.length) check('runtime.hashes', 'fail', `Runtime files differ from build-info.json: ${differ.join('; ')}. Reinstall the package, or pass --runtime to a runtime you trust`);
+    else if (unlisted.length) check('runtime.hashes', 'warn', `build-info.json lists no hash for ${unlisted.join(' and ')}; ${unlisted.length > 1 ? 'they are' : 'it is'} unchecked`);
+    else if (result.runtime.files.length) check('runtime.hashes', 'pass', 'Runtime file hashes match build-info.json');
+  };
   const metadataPaths = [path.join(result.runtime.directory, 'build-info.json'), path.join(result.runtime.directory, '..', 'build-info.json')];
   let metadataPath;
   for (const candidate of metadataPaths) if (await exists(candidate)) { metadataPath = candidate; break; }
@@ -186,6 +206,7 @@ export async function doctor({ runtimeDirectory = defaultRuntimeDirectory(), pac
       result.runtime.buildInfo = metadata;
       check('runtime.build', metadata.clean && metadata.compiled ? 'pass' : 'warn',
         `Build ${metadata.revision}; clean=${metadata.clean}, compiled=${metadata.compiled}, host=${metadata.host} (local metadata, not authenticated)`);
+      checkArtifacts(metadata, path.dirname(metadataPath) === result.runtime.directory);
     } catch (error) { check('runtime.build', 'fail', `Malformed build-info.json: ${messageOf(error)}`); }
   }
   if (runtimeFilesValid && supportedNode) {

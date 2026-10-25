@@ -3,13 +3,14 @@
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
+// caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
 // caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -17,7 +18,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
-import { dependents, explain, formatDependents, formatExplanation, parseEvents } from '../lib/explain.mjs';
+import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
 import { formatReview, review } from '../lib/review.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
@@ -34,6 +35,7 @@ Usage:
   caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
+  caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
   caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
                     [--records [--save <save.json>]] <program.cav>
@@ -74,6 +76,11 @@ read), alone and together, and says which evidence it was decided on
 decisively, which only changed its value, and which of its retained caveats
 an outcome says came true (spec/caveat-review-0.1.md). It never changes a session or judges the
 decision. Exit status as for explain; 2 also when there is no such revision.
+
+undo-list sends the events the same way, then lists every decision revision,
+current or past, whose grounds hold withdrawn evidence: in force first, then
+reopened, then superseded (spec/caveat-untrusted-sources-0.1.md). It reopens
+nothing. Exit status as for explain.
 
 validate loads a program and lists its events, histories and displayed values.
   Exit status: 0 it loads, 2 it does not.
@@ -147,6 +154,7 @@ const COMMANDS = {
   explain: [1, 2, 'name a program and, optionally, an events file'],
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
   review: [3, 3, 'name a program, a revision such as choose@1 and an events file'],
+  'undo-list': [2, 2, 'name a program and an events file'],
   validate: [1, 1, 'name one program'],
   check: [1, 1, 'name one program'],
   types: [1, 1, 'name one program'],
@@ -283,6 +291,21 @@ async function dependentsOf(options) {
   else {
     console.log(formatDependents(result, path.basename(program), sent.length));
     if (failed) console.log(`\nEvent ${sent.length} failed; the answer above is about the session before it.`);
+  }
+  return failed ? 1 : 0;
+}
+
+async function undoListOf(options) {
+  const [program, eventsFile] = options.files;
+  const opened = await openProgram(options, program, eventsFile);
+  if (!opened) return 2;
+  const { sent, snapshot, failed } = sendAll(opened.session, opened.events);
+  const result = undoList(snapshot);
+  const events = sent.map(({ event, payload, outcome }) => ({ event, payload, outcome }));
+  if (options.json) console.log(JSON.stringify({ program, events, ...result }, null, 2));
+  else {
+    console.log(formatUndoList(result, path.basename(program), sent.length));
+    if (failed) console.log(`\nEvent ${sent.length} failed; the list above is of the session before it.`);
   }
   return failed ? 1 : 0;
 }
@@ -488,9 +511,18 @@ async function init(options) {
     console.error(`${existing.map(name => path.join(directory, name)).join(', ')} already exist${existing.length === 1 ? 's' : ''}; nothing written`);
     return 2;
   }
+  if (existsSync(directory) && !statSync(directory).isDirectory()) {
+    console.error(`${directory} is a file, not a directory; give init a directory to write the starter files in`);
+    return 2;
+  }
   const templates = fileURLToPath(new URL('../templates/', import.meta.url));
-  await mkdir(directory, { recursive: true });
-  for (const name of TEMPLATES) await writeFile(path.join(directory, name), await readFile(path.join(templates, name)));
+  try {
+    await mkdir(directory, { recursive: true });
+    for (const name of TEMPLATES) await writeFile(path.join(directory, name), await readFile(path.join(templates, name)), { flag: 'wx' });
+  } catch (error) {
+    console.error(`cannot write the starter files in ${directory}: ${error.message}`);
+    return 2;
+  }
   const where = directory === '.' ? '' : ` in ${directory}`;
   console.log([
     `Wrote ${TEMPLATES.slice(0, -1).join(', ')} and ${TEMPLATES.at(-1)}${where}, the program from docs/GETTING_STARTED.md.`,
@@ -599,7 +631,7 @@ async function main() {
   }
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
-    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf,
+    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, 'undo-list': undoListOf,
     validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
     mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];
