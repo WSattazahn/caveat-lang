@@ -2616,6 +2616,101 @@
      "ok": 1
     }
    ]
+  },
+  {
+   "type": "merge",
+   "pr": 343,
+   "title": "Threat model: records hold evidence in plain text, so protect them like the data",
+   "merged_at": "2026-10-25T12:12:00Z",
+   "head": "a6f217ccc9027cfa0cb83a05ed1fdd644ae3acf3",
+   "merge_commit": "dee56d93d44f35bfbfc432b3018e5375ec6cfd57",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
   }
  ]
 }
