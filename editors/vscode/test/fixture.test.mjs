@@ -1,10 +1,11 @@
-// Checks the caret assertions in fixtures/scopes.cav (format in its header).
+// Checks the caret assertions in the fixtures (format in scopes.cav's header).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { has, scopesOf } from './tokenize.mjs';
 
-const fixture = new URL('./fixtures/scopes.cav', import.meta.url);
+// Each fixture, and how many assertions it holds at least.
+const fixtures = [['scopes.cav', 80], ['nested.cav', 8]];
 
 // [{line, column, length, scopes, forbidden, source}] from the caret lines.
 function assertionsIn(text) {
@@ -31,10 +32,10 @@ function assertionsIn(text) {
   return { lines, assertions };
 }
 
-test('the fixture highlights as annotated', async () => {
-  const text = readFileSync(fixture, 'utf8').replace(/\r\n/g, '\n');
+for (const [name, least] of fixtures) test(`${name} highlights as annotated`, async () => {
+  const text = readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const { lines, assertions } = assertionsIn(text);
-  assert.ok(assertions.length >= 80, `only ${assertions.length} assertions were read`);
+  assert.ok(assertions.length >= least, `only ${assertions.length} assertions were read`);
   const scopes = await scopesOf(text);
   const offsets = [];
   lines.reduce((offset, line, number) => ((offsets[number] = offset), offset + line.length + 1), 0);
