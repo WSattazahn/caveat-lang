@@ -64,9 +64,11 @@ deterministic within a session: `flow@1`, `flow@2`, and so on. The new node copi
 the template's canonical source string and receives the source-authored
 `supports` or `opposes` relation to the named claim. Template qualifications are
 linked to the new node, and transitive qualification of its template caveats and
-the claim it bears on is retained. The `withdrawn` caveat of a
-[withdrawal](caveat-withdrawal-0.1.md) is not: it is about the template's own
-observation.
+the claim it bears on is retained. When the template is
+[renewable](caveat-renewal-0.1.md), the caveats qualifying its current
+occurrence when the sample is taken are linked too (from 1.4.0). The
+`withdrawn` caveat of a [withdrawal](caveat-withdrawal-0.1.md) is not: it is
+about an observation already made, not this one.
 
 The recorded value combines the expression's provenance, the sampling guard's
 provenance, the new occurrence's evidence identity, and its inherited caveats.
@@ -238,6 +240,11 @@ uses the same sampling, reopening, and revision semantics to revise a control
 decision from repeated instrument readings.
 
 ## Changes
+
+- 2026-10-25 (1.4.0): a sample from a renewable template also links the
+  caveats qualifying the occurrence current when it is taken
+  ([Renewal 0.1](caveat-renewal-0.1.md), finding D024). Streams whose
+  template is not renewable are unchanged.
 
 - 2026-10-05 (rc.15, specified): a reading stream may declare `window N` in
   place of `limit N`
