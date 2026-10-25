@@ -1,0 +1,82 @@
+name: Caveat PR ledger
+description: Record what each merged pull request rested on (its checks, reviews and author agent) in Caveat, and list the merges that rested on anything later found wrong.
+author: WSattazahn
+branding:
+  icon: book-open
+  color: gray-dark
+
+inputs:
+  command:
+    description: "record (the default), backfill, wrong, rested-on, affected or show"
+    default: record
+  pr:
+    description: The pull request number for record, show, wrong and rested-on.
+    default: ${{ github.event.pull_request.number }}
+  check:
+    description: For wrong and rested-on, the check name.
+  review:
+    description: For wrong and rested-on, the reviewer's login.
+  author:
+    description: For wrong and rested-on, the author (a coding agent's name, or a login).
+  from:
+    description: For wrong, the first pull request number the finding covers.
+  to:
+    description: For wrong, the last pull request number the finding covers.
+  note:
+    description: For wrong, what was found.
+  last:
+    description: For backfill, how many recently merged pull requests to record.
+  base:
+    description: For backfill, the base branch (default main).
+  branch:
+    description: The branch that holds the record.
+    default: caveat-pr-ledger
+  path:
+    description: The folder on that branch that holds the record.
+    default: pr-ledger
+  token:
+    description: A token that can read pull requests, checks and statuses, and push to the record's branch.
+    default: ${{ github.token }}
+  caveat-version:
+    description: The caveat-lang release to run.
+    default: 1.3.0
+  caveat-sha256:
+    description: The SHA-256 of that release's npm tarball; the step stops when the download differs.
+    default: 5c3eb33e973fb000a117e5944bd9d7aa72a1371119e7e1735d83d152c449f136
+
+runs:
+  using: composite
+  steps:
+    - name: Install the caveat-lang runtime, pinned by checksum
+      shell: bash
+      env:
+        CAVEAT_VERSION: ${{ inputs.caveat-version }}
+        CAVEAT_SHA256: ${{ inputs.caveat-sha256 }}
+      run: |
+        set -euo pipefail
+        [[ "$CAVEAT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "caveat-version must be a version"; exit 1; }
+        [[ "$CAVEAT_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "caveat-sha256 must be 64 hex digits"; exit 1; }
+        kit="$RUNNER_TEMP/caveat-pr-ledger-kit"
+        mkdir -p "$kit"
+        curl -fsSL --retry 3 -o "$kit/caveat-lang.tgz" "https://registry.npmjs.org/caveat-lang/-/caveat-lang-$CAVEAT_VERSION.tgz"
+        echo "$CAVEAT_SHA256  $kit/caveat-lang.tgz" | sha256sum --check --strict
+        tar -xzf "$kit/caveat-lang.tgz" -C "$kit"
+        echo "CAVEAT_PR_LEDGER_KIT=$kit/package" >> "$GITHUB_ENV"
+    - name: Run the PR ledger
+      shell: bash
+      env:
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_PR: ${{ inputs.pr }}
+        INPUT_CHECK: ${{ inputs.check }}
+        INPUT_REVIEW: ${{ inputs.review }}
+        INPUT_AUTHOR: ${{ inputs.author }}
+        INPUT_FROM: ${{ inputs.from }}
+        INPUT_TO: ${{ inputs.to }}
+        INPUT_NOTE: ${{ inputs.note }}
+        INPUT_LAST: ${{ inputs.last }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: node "$GITHUB_ACTION_PATH/action.mjs"
