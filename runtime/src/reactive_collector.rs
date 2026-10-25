@@ -389,6 +389,18 @@ impl ReactiveSession {
                     .unwrap_or_else(|| action.clone());
                 CollectorOwner::Record(current)
             }
+            Effect::Withdraw {
+                target: EvidenceSelector::Every(name),
+                ..
+            } => {
+                if !self.windowed() {
+                    return;
+                }
+                for occurrence in self.every_occurrence(name).unwrap_or_default() {
+                    self.collector_dirty(CollectorOwner::Record(occurrence));
+                }
+                return;
+            }
             Effect::Withdraw { target, .. } => {
                 let Some(name) = self.withdrawal_target(target) else {
                     return;
