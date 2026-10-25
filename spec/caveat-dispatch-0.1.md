@@ -102,6 +102,37 @@ legacy diagnostics; they are not part of the structured policy message.
 The runtime emits no `stage` field. Host transport failures may identify their
 I/O stage; a stage must never be used to guess a runtime rejection origin.
 
+## The what-if path
+
+`what_if_view_outcome` (in the developer kit
+`session.whatIf(event, payload)`) returns what `dispatch_view_outcome` would
+return for the event, and changes nothing. It runs the event on a copy of the
+session, the same copy-on-write copy an event's transaction already works on,
+and drops the copy whatever the outcome. `what_if_view_fields_outcome` (in the
+kit, `whatIf(event, payload, { fields })`) is the same with a
+[field selection](caveat-view-0.1.md#selected-fields).
+
+It answers questions a host would otherwise need a second session for: what
+would withdrawing this evidence reopen, would this commitment be refused, what
+would this tick do. [Dependents 0.1](caveat-dependents-0.1.md) says from a
+snapshot what rests on a piece of evidence; the what-if path says what the
+program would do about it.
+
+- An accepted or rejected answer is, byte for byte, what
+  `dispatch_view_outcome` would then return for the same event and payload.
+- The session is unchanged: its snapshot, view, save, sequence, archive and
+  the kit's delta base are what they were. Asking is not an event, and a
+  later `dispatch_view_delta_outcome` is unaffected by it.
+- A fatal error is thrown as `dispatch_outcome` throws it, but it is the
+  copy's: the session it was asked of stays usable. The kit throws
+  `CaveatError("fatal")` and keeps the session open. A WebAssembly trap still
+  makes the whole runtime instance unusable, as on any path.
+- A runtime build that predates it has no `what_if_view_outcome`, and the kit
+  throws `CaveatError("load")` without touching the session.
+
+It is an additional entry point. No program's meaning, no existing entry point
+and no output changes.
+
 ## Origins and the initial code catalog
 
 | Origin | Code | Classified failure site |
@@ -351,3 +382,12 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-25: the [what-if path](#the-what-if-path),
+  `what_if_view_outcome` and `what_if_view_fields_outcome`, in the developer
+  kit `session.whatIf`, runs an event on a dropped copy of the session and
+  returns what `dispatch_view_outcome` would. It is the assumption-based truth
+  maintenance question "what would hold if this were withdrawn", answered for
+  one session by running the program rather than by tracking every context. A
+  sweep of every scenario in the repository, asking before each event, found
+  every answer equal to the event's outcome and every session unchanged. No
+  existing entry point, output or code changes.
