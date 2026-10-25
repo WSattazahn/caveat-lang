@@ -21,6 +21,7 @@ export const DECLARED_CAPABILITIES = {
     'examples/agent-evidence/test_lifecycle.py',
     'examples/agent-evidence/test_qualification.py',
     'examples/handoff/host.mjs',
+    'examples/intel-betrayal/host.mjs',
     'examples/readiness/run.mjs',
     'lib/demo.mjs',
     'lib/doctor.mjs',
