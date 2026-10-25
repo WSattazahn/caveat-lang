@@ -97,6 +97,7 @@ test('a payload or field the kit refuses throws before the runtime, and the sess
     assert.throws(() => session.whatIf('read', { value: Number.NaN }), error => error instanceof CaveatError && error.kind === 'payload');
     assert.throws(() => session.whatIf('read', { value: 1 }, { fields: ['nope'] }), TypeError);
     assert.throws(() => session.whatIf(''), TypeError);
+    assert.throws(() => session.whatIf('read', { value: 1 }, { agent: 'a' }), TypeError);
     assert.equal(session.state, 'open');
     assert.equal(session.dispatchView('read', { value: 17 }).outcome, 'accepted');
   } finally { session.close(); }

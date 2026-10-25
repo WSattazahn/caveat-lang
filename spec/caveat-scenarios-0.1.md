@@ -62,7 +62,9 @@ in a parsed scenario file; they stay in runtime conformance tests. A payload
 number that parses as non-finite, such as `1e999`, makes the file invalid,
 because standard JSON would silently send it as `null`. Negative zero is sent
 as `0`. `repeat` sends the same event 1 to 10,000 times, and every repetition
-must have the expected outcome.
+must have the expected outcome. From the 1.4 draft, an optional `agent` names
+the agent that sends the event ([Agents 0.1](caveat-agents-0.1.md)); resumed
+sessions are sent it too.
 
 Without `rejected`, the event must be accepted. Otherwise:
 

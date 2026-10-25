@@ -43,7 +43,8 @@ export type KnownRejectionCode =
   | 'not_retained'
   | 'reason_spent'
   | 'provenance_limit'
-  | 'evaluation_limit';
+  | 'evaluation_limit'
+  | 'wrong_agent';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -126,6 +127,16 @@ export interface SaveOptions {
   positional?: boolean;
 }
 
+/**
+ * Options for sending one event. `agent` says which declared agent sent it
+ * (spec/caveat-agents-0.1.md); a program that declares none refuses any agent
+ * as `input/wrong_agent`. A runtime build without agents throws
+ * `CaveatError("load")` for an event sent with one.
+ */
+export interface DispatchOptions {
+  agent?: string;
+}
+
 /** One program's session. Made by `runtime.open` or `runtime.restore`. */
 export declare class CaveatSession {
   #private;
@@ -136,20 +147,20 @@ export declare class CaveatSession {
    * `CaveatError("fatal")` and the session is unusable from then on. A payload
    * JSON would change throws `CaveatError("payload")` and changes nothing.
    */
-  dispatch(event: string, payload?: object): DispatchOutcome;
+  dispatch(event: string, payload?: object, options?: DispatchOptions): DispatchOutcome;
   /** The same transaction as `dispatch`, with the view in place of the snapshot. */
-  dispatchView(event: string, payload?: object): DispatchViewOutcome;
+  dispatchView(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
   /**
    * The same, with only the named view fields (plus `schema`, `sequence` and
    * `last_event`), each exactly as `view()` has it. The runtime builds no
    * other field. An unknown or repeated name throws `TypeError`.
    */
-  dispatchView(event: string, payload: object, options: { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
+  dispatchView(event: string, payload: object, options: DispatchOptions & { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   /**
    * The same transaction as `dispatch`, with the View 0.2 delta in place of
    * the snapshot. See spec/caveat-view-0.2.md.
    */
-  dispatchViewDelta(event: string, payload?: object): DispatchViewDeltaOutcome;
+  dispatchViewDelta(event: string, payload?: object, options?: DispatchOptions): DispatchViewDeltaOutcome;
   /**
    * What `dispatchView` would return, run on a copy of the session that is
    * then dropped. The session is unchanged whatever the outcome; a fatal
@@ -263,6 +274,10 @@ export interface RuntimeSessionHandle {
   dispatch_view_outcome?(event: string, payload: string): string;
   dispatch_view_delta_outcome?(event: string, payload: string): string;
   dispatch_view_fields_outcome?(event: string, payload: string, fields: string): string;
+  dispatch_outcome_as?(event: string, payload: string, agent: string): string;
+  dispatch_view_outcome_as?(event: string, payload: string, agent: string): string;
+  dispatch_view_delta_outcome_as?(event: string, payload: string, agent: string): string;
+  dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   what_if_view_outcome?(event: string, payload: string): string;
   what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;
   snapshot(): string;
@@ -326,6 +341,14 @@ export interface ProgramInterface {
   evidence: string[];
   caveats: string[];
   claims: string[];
+  /** From 1.4: the declared agents, in name order; absent when there are none (spec/caveat-agents-0.1.md). */
+  agents?: InterfaceAgent[];
+}
+
+/** An agent, and the events its declaration says it sends, in declared order. */
+export interface InterfaceAgent {
+  name: string;
+  sends: string[];
 }
 
 export interface InterfaceEvent {
@@ -490,6 +513,8 @@ export interface Snapshot {
   retention_reasons?: Record<string, Record<string, string>>;
   scheduled_qualifications: ScheduledQualification[];
   last_event: string | null;
+  /** The agent the host said sent the last event; absent when it named none. */
+  last_agent?: string;
   values: Record<string, number>;
   qualified_values: Record<string, QualifiedValue>;
   commitment_bases: Record<string, CommitmentBasis>;
@@ -609,6 +634,8 @@ export interface ReadingOccurrence {
   ordinal: number;
   sequence: number;
   event: string;
+  /** The agent the host said sent the event; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   value: number;
   provenance: Provenance;
   /** Relation and claim are both absent for a neutral reading, otherwise both present. */
@@ -667,6 +694,8 @@ export interface DecisionJournalEntry {
   change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   sequence: number;
   event: string;
+  /** The agent the host said sent the event; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   /** Absent in older saves. */
   elapsed?: number;
   /** The commitment's frozen `using` value, if it had one. */
@@ -699,6 +728,8 @@ export interface Withdrawal {
   because: string;
   sequence: number;
   event: string;
+  /** The agent the host said sent the event; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 /** One taken-back qualification: the occurrence whose live relation by `caveat` the event marked. */
@@ -707,6 +738,8 @@ export interface TakeBack {
   caveat: string;
   sequence: number;
   event: string;
+  /** The agent the host said sent the event; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 export interface PermissionRecord {
