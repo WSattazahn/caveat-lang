@@ -166,6 +166,22 @@ export const groups = [
     // A caveat or evidence may be named `materialized`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'on e reopen d because @;', 'caveat @ consequence low;'],
   },
+  {
+    name: 'untrusted sources',
+    words: ['once'],
+    probe: ['on e commit d because enough retaining c because @ ok;', 'on e commit d because enough retaining c because @ ok, k because j;'],
+    scope: 'keyword.other',
+    // Evidence may be named `once`, and a reason may name it.
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on e commit d because enough retaining c because @;', 'evidence @ from "a note";'],
+  },
+  {
+    name: 'withdrawing every reading',
+    words: ['every'],
+    probe: ['on e withdraw @ s because bad;'],
+    scope: 'keyword.other',
+    // Evidence may be named `every`.
+    notKeyword: ['state @ = 1;', 'on e withdraw @ because bad;'],
+  },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',

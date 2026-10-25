@@ -996,6 +996,35 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                 offsets.push(*offset);
             }
         }
+        // `withdraw every NAME because …` and `retaining C because once E`
+        // (spec/caveat-untrusted-sources-0.1.md) came after modules, so a
+        // module may still declare `every` or `once`. `every` is the word
+        // after `withdraw` when a name and `because` follow it; `once` is the
+        // word after a retained caveat's `because` when a name follows it and
+        // ends the item.
+        let mut retaining = false;
+        for (index, (offset, word)) in words.iter().enumerate() {
+            let next = |step: usize| words.get(index + step).map(|(_, word)| *word);
+            if *word == "every"
+                && index > 0
+                && words[index - 1].1 == "withdraw"
+                && next(2) == Some("because")
+            {
+                offsets.push(*offset);
+            }
+            if *word == "retaining" {
+                retaining = true;
+            } else if retaining
+                && *word == "once"
+                && index > 0
+                && words[index - 1].1 == "because"
+                && next(1).is_some_and(|name| {
+                    name.ends_with(',') || next(2).is_none_or(|after| after.starts_with(','))
+                })
+            {
+                offsets.push(*offset);
+            }
+        }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the
