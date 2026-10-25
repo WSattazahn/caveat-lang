@@ -962,6 +962,12 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                 }
             }
         }
+        // `irreversible strict` (spec/caveat-strict-irreversible-0.1.md)
+        // came after modules, so a module may still declare `strict`. The
+        // clause word sits straight after `irreversible`.
+        if let ["decisions", _, "limit", _, "irreversible", "strict", ..] = shape.as_slice() {
+            offsets.push(words[5].0);
+        }
         // `hold SERIES because …` and `release SERIES because …`
         // (spec/caveat-holds-0.1.md) came after modules, so a module may
         // still declare `hold` or `release`. The verb is two words before a
