@@ -66,6 +66,8 @@ jobs:
         run: node --test scripts/pages-gate.test.mjs
       - name: npm publication gate refuses untested, mismatched or unattested packages
         run: node --test scripts/release-publish.test.mjs
+      - name: Release bill of materials covers every compiled-in crate and refuses gaps
+        run: node --test scripts/release-sbom.test.mjs
       - name: Distribution closeout check refuses unexplained channel or registry mismatches
         run: node --test scripts/check-distribution.test.mjs
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
@@ -409,6 +411,14 @@ jobs:
             test-results/kit-package/*/SHA256SUMS
           if-no-files-found: error
           retention-days: 90
+      - name: Write the release bill of materials for the tested candidate, as the GitHub release will
+        if: steps.kit_package.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tarballs < <(find test-results/kit-package -name 'caveat-lang-*.tgz' -type f)
+          test "${#tarballs[@]}" -eq 1
+          node scripts/release-sbom.mjs --tarball "${tarballs[0]}" --revision HEAD --out test-results/caveat-lang.cdx.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
