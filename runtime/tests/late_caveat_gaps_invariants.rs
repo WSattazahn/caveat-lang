@@ -310,6 +310,22 @@ fn the_detector_reports_exactly_the_values_a_1_0_save_left_without_a_late_caveat
                     continue;
                 }
                 accepted += 1;
+                // Every event's save restores, to the same snapshot (D021).
+                let saved_game = game.save_json().unwrap();
+                let restored_game = ReactiveSession::restore_json(SOURCE, &saved_game)
+                    .unwrap_or_else(|error| {
+                        panic!("run {run}: {trail:?}: restore after the event: {error}")
+                    });
+                assert_eq!(
+                    restored_game.save_json().unwrap(),
+                    saved_game,
+                    "run {run}: {trail:?}: save round trip"
+                );
+                assert_eq!(
+                    snapshot(&restored_game),
+                    snapshot(&game),
+                    "run {run}: {trail:?}: snapshot after restore"
+                );
             }
             let shown = snapshot(&game);
             let expected = model(&shown);

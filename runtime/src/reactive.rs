@@ -6552,6 +6552,11 @@ impl ReactiveSession {
         if because.is_empty() {
             return Ok(());
         }
+        // Causes reopen it, and are journaled, in the order they were first
+        // observed, whatever order they arrive in: a withdrawal breaking
+        // through a hold names its cause before the deferred ones, and a hold
+        // defers causes in the order they come (D021).
+        let because = self.in_observation_order(because.iter());
         self.end_hold(action);
         let current = current.to_string();
         self.collector_reopens(&current, &because);
