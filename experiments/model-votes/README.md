@@ -7,14 +7,16 @@ is their consensus. This experiment asks what an agent's record should say
 when its decisions are made that way and one of the models later turns out to
 be unreliable.
 
-[`votes.cav`](votes.cav) answers with the multi-source pattern and
-`withdraw every` from [Untrusted Sources 0.1](../../spec/caveat-untrusted-sources-0.1.md),
-the 1.4 draft:
+[`votes.cav`](votes.cav) answers with `withdraw every` from
+[Untrusted Sources 0.1](../../spec/caveat-untrusted-sources-0.1.md) and
+`only_if` from [Only If 0.1](../../spec/caveat-only-if-0.1.md), both 1.4
+drafts:
 
-- Each decision is grounded on the votes that agreed, and only on those. A
-  dissenting vote is not in the grounds. `explain` lists it under "could also
-  have been influenced by", because the rule that chose the agreeing set read
-  it.
+- Each decision is grounded on the votes that agreed, and only on those. Its
+  `using` adds one `only_if(MODEL_AGREES, VOTE)` term per model. The condition
+  chose the vote without being a ground, so a dissenting vote is in the
+  lineage only, and `explain` lists it under "could also have been influenced
+  by".
 - `distrust` withdraws every vote the model cast, on every case, in one step.
 - A decision that the withdrawn vote tipped, one that falls below two agreeing
   votes without it, is reopened. A decision that still has two agreeing votes
@@ -33,13 +35,12 @@ undo list reopens case A and keeps case B in force, each with the withdrawn
 vote named. `kit/test/model-votes.test.mjs` runs the scenarios and checks that
 undo list.
 
-## What the program has to work around
+## What it needed
 
-- The grounds of a decision come from its `using` expression, and a value
-  computed with `if(...)` is grounded on everything its condition read. So
-  `using if(m1_yes, latest(m1_vote), 0) + ...` would ground the decision on
-  the dissenting votes too. The program writes one rule per set of agreeing
-  models instead, because a rule's condition does not ground the decision.
-- That takes one rule for each quorum of agreeing models: four for two of
-  three, and sixteen for three of five. The language has no way yet to ground a
-  decision on "the members of a kind that satisfy a condition".
+The first version of this program, before Only If 0.1, needed one rule per
+set of agreeing models: four for two of three, and sixteen for three of five.
+That was because a value computed with `if(...)` is grounded on everything its
+condition read, so `using if(m1_yes, latest(m1_vote), 0) + ...` grounded the
+decision on the dissenting votes too. Only a rule's `when` condition stayed
+out of the grounds. `only_if` gives an expression the same choice, which makes
+it one term per model.

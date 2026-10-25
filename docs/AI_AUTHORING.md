@@ -858,6 +858,13 @@ recipient from another, nest a routed `for` per event parameter; each
 decision's grounds then name both readings
 ([section 1](../spec/caveat-untrusted-sources-0.1.md#1-one-action-on-several-sources)).
 
+When several sources vote and a decision should rest on the ones that agreed,
+add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
+`if(...)` would make every vote it read a ground, dissenters included.
+`only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
+([Only If 0.1](../spec/caveat-only-if-0.1.md); the
+[model-votes experiment](../experiments/model-votes/README.md)).
+
 ## What a withdrawal adds to a decision's grounds
 
 A withdrawal needs a reason: `withdraw latest(checks) because recheck`. Every
