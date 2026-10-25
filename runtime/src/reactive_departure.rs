@@ -456,7 +456,11 @@ impl ReactiveSession {
             .collect()
     }
 
-    pub(crate) fn inherit(&self, into: &mut Provenance, from: &Provenance) -> Result<(), String> {
+    pub(crate) fn inherit(
+        &self,
+        into: &mut Provenance,
+        from: &Provenance,
+    ) -> Result<(), EvalError> {
         if self.windowed() {
             into.merge_inherited(from)
         } else {

@@ -132,6 +132,8 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
 | `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit ([Renewal 0.1](caveat-renewal-0.1.md)). |
 | `limit` | `scheduled_limit` | A `qualify … after` would schedule a qualification while 4,096 are already waiting ([Late Qualification 0.1](caveat-late-qualification-0.1.md)). |
+| `limit` | `provenance_limit` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, would give a value a lineage of more than 1,024 identifiers or more than 65,536 bytes of their names (from 1.4.0). |
+| `limit` | `evaluation_limit` | One expression evaluated by the event would visit more than 65,536 nodes, as a `fold_history` over a long stream with a heavy step does (from 1.4.0). |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -351,3 +353,24 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-25 (1.4.0): `limit/provenance_limit` classifies an event whose
+  evaluation would give a value a lineage of more than 1,024 identifiers, or
+  more than 65,536 bytes of their names; `limit/evaluation_limit` classifies
+  an event in which one expression's evaluation would visit more than 65,536
+  nodes. Before them, each such event was fatal `unclassified` on 1.0.0 to
+  1.3.0: a host lost the session, although the runtime had already rolled the
+  event back. Finding D022 reached the first on the 513th event of a program
+  whose state summed `qualified` reads of two renewables, each renewed every
+  event, so the lineage grew by two occurrences a step; finding D023 reached
+  the second on the 99th event of a program that folded a 256-reading stream
+  with a step calling a function of some 670 nodes. Both now refuse the event
+  with the text the fatal error carried, and the session goes on: the refused
+  event changed nothing, trying it again refuses it the same way, and an event
+  that stays under the cap is accepted. The origin is `limit`, as for
+  `history_limit`, because the exhausted resource is a capacity of the
+  runtime, not a condition the program wrote or a value it computed. One code
+  covers both provenance bounds because they bound one resource, a value's
+  lineage. Both caps are unchanged; the regression cases are
+  `runtime/tests/d022_provenance_limit.rs` and
+  `runtime/tests/d023_evaluation_limit.rs`, and the save sweep over every
+  tracked program is byte-identical with 1.3.0.
