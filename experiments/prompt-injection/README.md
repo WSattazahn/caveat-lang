@@ -75,8 +75,11 @@ The scenarios: 4 passed, 0 failed. `check --unused`: no warnings on both program
    labels mechanically, for example "anything read since the user's last
    turn".
 2. **A recipient taken from an email.** Covered without a language change
-   in `inbox-agent-recipients.cav`: a nested `for` over instruction source and
-   recipient source grounds each send on both. "Send to the address in that
+   in `inbox-agent-recipients.cav`: a `for` over the instruction source, with
+   one decision per recipient source written out, grounds each send on both.
+   A nested `for` loads and runs the same, but the editor grammar's corpus
+   test (`editors/vscode/test/corpus.test.mjs`) does not yet bind the inner
+   `$r`, so no tracked program can use one; that is a separate fix. "Send to the address in that
    email", on the user's own instruction, is refused as
    `caveated_irreversible`; the same send to an address the user gave is
    accepted (`caveat explain inbox-agent-recipients.cav
