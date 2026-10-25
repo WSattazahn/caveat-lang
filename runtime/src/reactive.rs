@@ -5432,7 +5432,14 @@ impl ReactiveSession {
                 let withdrawn = self
                     .withdrawal_of(&readings.template)
                     .map(|_| self.symbols[WITHDRAWN]);
-                let inherited = self
+                // A reading from renewable evidence also inherits what
+                // qualifies the occurrence current now (D024): a doubt raised
+                // about this occurrence reaches what is read from it. A
+                // stream's template cannot be unqualified, so every such
+                // qualification is live. Caveats about an earlier occurrence
+                // are not taken away: spec/caveat-renewal-0.1.md.
+                let current = self.symbols[self.occurrence(&readings.template)];
+                let mut inherited = self
                     .graph
                     .edges
                     .iter()
@@ -5446,6 +5453,26 @@ impl ReactiveSession {
                     .map(|edge| edge.from)
                     .filter(|caveat| Some(*caveat) != withdrawn)
                     .collect::<Vec<_>>();
+                if current != template {
+                    let live = self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.to == current && edge.relation == Relation::Qualifies)
+                        .filter(|edge| {
+                            matches!(
+                                self.graph.nodes.get(&edge.from),
+                                Some(NodeKind::Caveat { .. })
+                            )
+                        })
+                        .map(|edge| edge.from)
+                        .filter(|caveat| {
+                            Some(caveat) != self.symbols.get(WITHDRAWN)
+                                && !inherited.contains(caveat)
+                        })
+                        .collect::<BTreeSet<_>>();
+                    inherited.extend(live);
+                }
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
                     source,
