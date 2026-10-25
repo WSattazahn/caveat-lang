@@ -117,6 +117,45 @@ impl NativeSession {
         self.with(|inner| inner.dispatch_view_delta_outcome(event, payload_json))
     }
 
+    fn dispatch_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: &str,
+    ) -> PyResult<String> {
+        self.with(|inner| inner.dispatch_outcome_as(event, payload_json, agent))
+    }
+
+    fn dispatch_view_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: &str,
+    ) -> PyResult<String> {
+        self.with(|inner| inner.dispatch_view_outcome_as(event, payload_json, agent))
+    }
+
+    fn dispatch_view_fields_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        fields_json: &str,
+        agent: &str,
+    ) -> PyResult<String> {
+        self.with(|inner| {
+            inner.dispatch_view_fields_outcome_as(event, payload_json, fields_json, agent)
+        })
+    }
+
+    fn dispatch_view_delta_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: &str,
+    ) -> PyResult<String> {
+        self.with(|inner| inner.dispatch_view_delta_outcome_as(event, payload_json, agent))
+    }
+
     fn snapshot(&mut self) -> PyResult<String> {
         self.with(|inner| Ok(inner.snapshot()))
     }
