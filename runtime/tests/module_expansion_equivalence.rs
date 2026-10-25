@@ -234,6 +234,34 @@ fn a_bundle_runs_as_its_flat_twin() {
                 snapshot(&right),
                 "{at}: the snapshots differ"
             );
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_left = left.save_json().unwrap();
+            let restored_left = ReactiveSession::restore_json(&bundled, &saved_left)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_left.save_json().unwrap(),
+                saved_left,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_left),
+                snapshot(&left),
+                "{at}: snapshot after restore"
+            );
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_right = right.save_json().unwrap();
+            let restored_right = ReactiveSession::restore_json(&twin, &saved_right)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_right.save_json().unwrap(),
+                saved_right,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_right),
+                snapshot(&right),
+                "{at}: snapshot after restore"
+            );
             if bundled_outcome["outcome"] == "accepted" {
                 accepted += 1;
                 let effects = bundled_outcome["snapshot"]["effects"].as_array().unwrap();
