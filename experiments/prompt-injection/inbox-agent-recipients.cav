@@ -1,0 +1,92 @@
+# An email assistant that may act only on what the user asked for.
+# Text the agent read in an email is evidence like any other, but it carries
+# the caveat `untrusted`, and so does every action proposed from it.
+scene "An inbox agent that refuses irreversible actions resting on email text.";
+
+claim action_requested;
+claim source_malicious;
+
+place task kind source;
+entity user kind source at task;
+entity newsletter kind source at task;
+entity invoice_mail kind source at task;
+
+caveat untrusted consequence high;
+
+event read source kind source;
+event instruct source kind source, action in add_event send_external;
+event act source kind source, action in add_event send_external;
+event confirm;
+event found_malicious source kind source;
+
+evidence user_ok from "the user confirming the pending external send";
+
+# Reversible: calendar entries can be deleted again. Irreversible: a message
+# that leaves the mailbox cannot be called back.
+for source as $m routed by source {
+    # Each source gets its own decisions, so the record says which source
+    # each action rests on.
+    decisions $m_add_event limit 8;
+    decisions $m_send_external limit 1 irreversible;
+    evidence $m_text from "the text of $m as the agent read it";
+    evidence $m_bad from "a finding that $m is malicious";
+    readings $m_asks from $m_text limit 8;
+
+    on read when observed($m_text) reject "Already read.";
+    on read reveal $m_text;
+
+    # The host reports each instruction the planner took from a source,
+    # with the source it came from. The reading's value names the action.
+    on instruct when not observed($m_text) reject "Nothing read from that source.";
+    on instruct when action == action.add_event sample $m_asks = 1 supports action_requested;
+    on instruct when action == action.send_external sample $m_asks = 2 supports action_requested;
+
+    bind $m.add_event = "none";
+    bind $m.add_event = "done" when committed($m_add_event) and not reopened($m_add_event);
+    bind $m.add_event = "undo" when reopened($m_add_event);
+    bind $m.send_external = "none";
+    bind $m.send_external = "sent" when committed($m_send_external);
+
+    on act when not has_sample($m_asks) reject "No instruction from that source.";
+    on act when action == action.add_event and latest($m_asks) != 1 reject "The source asked for something else.";
+    on act when action == action.send_external and latest($m_asks) != 2 reject "The source asked for something else.";
+    on act when action == action.add_event commit $m_add_event because enough using latest($m_asks);
+    on act when action == action.send_external and observed(user_ok)
+        commit $m_send_external because enough using latest($m_asks) retaining untrusted because user_ok;
+    on act when action == action.send_external and not observed(user_ok)
+        commit $m_send_external because enough using latest($m_asks);
+
+    # When a source turns out to be malicious, its instructions are withdrawn
+    # and every decision resting on them is reopened, to be undone.
+    on found_malicious when observed($m_bad) reject "Already found malicious.";
+    on found_malicious reveal $m_bad supports source_malicious;
+    on found_malicious when has_sample($m_asks) withdraw latest($m_asks) because $m_bad;
+    on found_malicious when committed($m_add_event) and not reopened($m_add_event) and rests_on_withdrawn($m_add_event)
+        reopen $m_add_event because $m_bad;
+};
+
+untrusted qualifies newsletter_text;
+untrusted qualifies invoice_mail_text;
+
+on confirm when observed(user_ok) reject "Already confirmed.";
+on confirm reveal user_ok;
+
+
+# Recipients: the host reports where the planner took an address from.
+event recipient source kind source;
+event send_to instr kind source, recip kind source;
+for source as $m routed by source {
+    readings $m_addr from $m_text limit 8;
+    on recipient when not observed($m_text) reject "Nothing read from that source.";
+    on recipient sample $m_addr = 1;
+};
+for source as $i routed by instr {
+    for source as $r routed by recip {
+        decisions $i_$r_send limit 1 irreversible;
+        on send_to when not has_sample($i_asks) or not has_sample($r_addr) reject "Missing instruction or recipient.";
+        on send_to when observed(user_ok)
+            commit $i_$r_send because enough using latest($i_asks) + latest($r_addr) retaining untrusted because user_ok;
+        on send_to when not observed(user_ok)
+            commit $i_$r_send because enough using latest($i_asks) + latest($r_addr);
+    };
+};

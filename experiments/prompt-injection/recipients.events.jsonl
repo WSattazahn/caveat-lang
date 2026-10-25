@@ -1,0 +1,7 @@
+{"event":"read","payload":{"source":"user"}}
+{"event":"read","payload":{"source":"invoice_mail"}}
+{"event":"instruct","payload":{"source":"user","action":"send_external"}}
+{"event":"recipient","payload":{"source":"invoice_mail"}}
+{"event":"send_to","payload":{"instr":"user","recip":"invoice_mail"}}
+{"event":"recipient","payload":{"source":"user"}}
+{"event":"send_to","payload":{"instr":"user","recip":"user"}}

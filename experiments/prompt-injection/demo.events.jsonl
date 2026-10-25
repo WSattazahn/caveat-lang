@@ -1,0 +1,7 @@
+{"event":"read","payload":{"source":"newsletter"}}
+{"event":"instruct","payload":{"source":"newsletter","action":"add_event"}}
+{"event":"act","payload":{"source":"newsletter","action":"add_event"}}
+{"event":"read","payload":{"source":"invoice_mail"}}
+{"event":"instruct","payload":{"source":"invoice_mail","action":"send_external"}}
+{"event":"act","payload":{"source":"invoice_mail","action":"send_external"}}
+{"event":"found_malicious","payload":{"source":"newsletter"}}
