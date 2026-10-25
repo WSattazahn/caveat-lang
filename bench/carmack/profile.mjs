@@ -46,6 +46,8 @@ function pass(workload, source, fields) {
     for (const [event, payload] of workload.events) {
       t = now();
       const outcome = session.dispatchView(event, payload, options);
+      // Read every member, as a host reading the whole view would.
+      if (outcome.outcome === 'accepted') for (const key of Object.keys(outcome.view)) void outcome.view[key];
       const elapsed = us(now() - t);
       if (outcome.outcome !== 'accepted') throw new Error(`${workload.name}: ${event} ${JSON.stringify(payload)} was ${outcome.code}`);
       (byKind[event] ??= []).push(elapsed);
