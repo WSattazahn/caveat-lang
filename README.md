@@ -15,14 +15,14 @@ original grounds. Your application stores the events; Caveat does not sign
 them or authenticate the evidence, so it complements your platform's identity,
 permission and logging controls rather than replacing them.
 
-The published release is **1.2.0**, the second minor release of 1.x. See the
-[1.2.0 release record](docs/releases/v1.2.0.md) for what it adds and the
+The published release is **1.3.0**, the third minor release of 1.x. See the
+[1.3.0 release record](docs/releases/v1.3.0.md) for what it adds and the
 [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
 
-> npm publication verified 2026-10-20T18:13:57.170Z: exact **caveat-lang@1.2.0**,
-> tested Linux artifact SHA256 `02f5fd5333c042be5aa3d4aaa0a27b0a91a9de16b6f34a8d5187569afc727a8b`.
-> Published by `publish-npm.yml` from tag `v1.2.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.2.0 on 2026-10-20.
-> [Publication record](docs/releases/v1.2.0-npm-publication.json).
+> npm publication verified 2026-10-24T21:57:39.727Z: exact **caveat-lang@1.3.0**,
+> tested Linux artifact SHA256 `5c3eb33e973fb000a117e5944bd9d7aa72a1371119e7e1735d83d152c449f136`.
+> Published by `publish-npm.yml` from tag `v1.3.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.3.0 on 2026-10-24.
+> [Publication record](docs/releases/v1.3.0-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -30,12 +30,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published release, **1.2.0**, in an empty directory with Node 20 or
+Try the published release, **1.3.0**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.2.0
+npm install caveat-lang@1.3.0
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -89,7 +89,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With 1.2.0 installed, use `npx --no-install caveat-lang doctor` to check it and
+With 1.3.0 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -263,7 +263,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@1.2.0", "mcp"]
+      "args": ["-y", "caveat-lang@1.3.0", "mcp"]
     }
   }
 }
@@ -321,6 +321,14 @@ save and selected view fields, and two refusal codes, both for the new syntax.
 A program that loads on 1.1.0 gives the same results on 1.2.0, and every 1.0.x
 and 1.1.0 save restores as it was recorded. The
 [1.2.0 verified publication record](docs/releases/v1.2.0.md) lists each
+addition.
+
+1.3.0 adds recorded outcomes: `resolve` records how a decision turned out,
+and `resolved` and `outcome` read it back, so a program can score its own
+forecasts. It adds two refusal codes, both for the new syntax. A program that
+loads on 1.2.0 gives the same results on 1.3.0, and every earlier save restores
+as it was recorded. The
+[1.3.0 verified publication record](docs/releases/v1.3.0.md) lists each
 addition.
 
 rc.20 clarified when to use each MCP tool, its
