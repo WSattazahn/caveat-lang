@@ -55,7 +55,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md', 'docs/AUTHORING_CARD.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types'];
+const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -71,6 +71,8 @@ const SMALL_EXAMPLES = [['reviewer-decision', 'rely'], ['boss-stance', 'boss']]
 const READINESS = ['README.md', 'readiness.cav', 'readiness.scenarios.json', 'run.mjs'].map(file => `examples/readiness/${file}`);
 // The procedure argument-kind example (1.2.x): evidence versus reading streams.
 const PROCEDURE_HANDLES = ['README.md', 'handles.cav', 'handles.scenarios.json'].map(file => `examples/procedure-handles/${file}`);
+// The sub-agent handoff example (1.4): a program, its scenarios and a host on caveat-lang/handoff.
+const HANDOFF = ['README.md', 'handoff.cav', 'handoff.scenarios.json', 'host.mjs'].map(file => `examples/handoff/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -140,7 +142,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
@@ -434,6 +436,19 @@ const readinessReport = JSON.parse(readinessRun.stdout);
 assert.deepEqual(readinessReport.steps.map(step => step.step),
   ['approve', 'unrelated', 'restart', 'reopen', 'unchanged', 'refusal', 'storage_failure', 'new_approval', 'history']);
 report.checks.readiness = { scenarios: 4, departed: readinessReport.steps.at(-1).departed };
+
+// The handoff example as its README runs it: the folder copied out of the
+// installed package, its scenarios, then host.mjs on caveat-lang/handoff.
+const handoff = path.join(consumer, 'handoff');
+await mkdir(handoff);
+for (const file of HANDOFF) await copyFile(path.join(installed, file), path.join(handoff, path.basename(file)));
+const handoffScenarios = node([path.join(installed, 'bin', 'caveat.mjs'), 'test', 'handoff.scenarios.json'], handoff);
+assert.equal(handoffScenarios.status, 0, handoffScenarios.stdout + handoffScenarios.stderr);
+const handoffRun = node(['host.mjs', '--json'], handoff);
+assert.equal(handoffRun.status, 0, handoffRun.stdout + handoffRun.stderr);
+const handoffReport = JSON.parse(handoffRun.stdout);
+assert.deepEqual(handoffReport.conflicts.map(item => [item.event, item.outcome]), [['sub_edit', 'evaluation/decision_in_force']]);
+report.checks.handoff = { scenarios: 11, refused_outside_scope: handoffReport.steps.filter(step => step.outcome === 'input/unknown_event').length };
 
 // The stabilization trial (Path to 1.0, E2): the installed package drives a
 // deploy gate through the starter, with a refusal from each origin, a doubt
