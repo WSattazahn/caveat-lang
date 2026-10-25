@@ -753,7 +753,7 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
         } => using
             .iter()
             .chain(citing)
-            .chain(reasons.iter().map(|(_, _, read)| read))
+            .chain(reasons.iter().map(|(_, _, read, _)| read))
             .collect(),
         Effect::Emit { .. }
         | Effect::Reject { .. }
@@ -1257,7 +1257,8 @@ fn withdrawal_reads_through<'d>(
 /// `for` blocks and defines are expanded, as C006 and C008 are.
 ///
 /// A name is *withdrawable* when some `withdraw` names it: evidence, an
-/// occurrence of it, or a reading stream. A state or stream *carries* the
+/// occurrence of it, or a reading stream; `withdraw every` names the evidence
+/// and each stream read from it. A state or stream *carries* the
 /// names its `set` or `sample` values read, and what those carry in turn. A
 /// commit *reads* what its `using`, `citing` and retention reasons name, and
 /// what those carry.
@@ -1274,6 +1275,7 @@ fn withdrawal_reads_through<'d>(
 fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
     let mut defines = HashMap::default();
     let mut declared = HashMap::default();
+    let mut streams_from: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut steps = Vec::new();
     for statement in statements {
         match parse_directive_at(statement.text.trim(), statement.at) {
@@ -1282,6 +1284,9 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
             }
             Some(Ok(Directive::Decisions { name, .. })) => {
                 declared.insert(name, statement.at);
+            }
+            Some(Ok(Directive::Readings { name, template, .. })) => {
+                streams_from.entry(template).or_default().push(name);
             }
             Some(Ok(Directive::Rule(rule))) => steps.push(Step {
                 event: Some(rule.event),
@@ -1323,13 +1328,10 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
     for step in &steps {
         match &step.effect {
             Effect::Withdraw { target, .. } => {
-                let name = match target {
-                    EvidenceSelector::Named(name) | EvidenceSelector::Latest(name) => name,
-                    EvidenceSelector::Occurrence { evidence, .. } => evidence,
-                    EvidenceSelector::Caveated { state, .. } => state,
-                };
-                let events = withdrawn_on.entry(name.clone()).or_default();
-                events.extend(step.event.clone());
+                for name in withdrawn_names(target, &streams_from) {
+                    let events = withdrawn_on.entry(name.clone()).or_default();
+                    events.extend(step.event.clone());
+                }
             }
             Effect::Set { name, value, .. } => {
                 carries
@@ -1378,7 +1380,7 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
         for expression in using
             .iter()
             .chain(citing)
-            .chain(reasons.iter().map(|(_, _, read)| read))
+            .chain(reasons.iter().map(|(_, _, read, _)| read))
         {
             read.extend(sources(expression));
         }
@@ -1420,7 +1422,7 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
             .iter()
             .map(|name| format!("`{name}`"))
             .collect::<Vec<_>>();
-        let related = withdrawal_sites(&steps, &unguarded);
+        let related = withdrawal_sites(&steps, &streams_from, &unguarded);
         let on = step
             .event
             .as_ref()
@@ -1468,7 +1470,11 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
             .iter()
             .map(|name| format!("`{name}`"))
             .collect::<Vec<_>>();
-        let related = withdrawal_sites(&steps, &names.iter().cloned().collect::<Vec<_>>());
+        let related = withdrawal_sites(
+            &steps,
+            &streams_from,
+            &names.iter().cloned().collect::<Vec<_>>(),
+        );
         found.push(Diagnostic {
             code: WITHDRAWAL_NOT_REOPENED.0,
             name: WITHDRAWAL_NOT_REOPENED.1,
@@ -1489,21 +1495,36 @@ fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
     found
 }
 
+/// The names a `withdraw` target withdraws. `every NAME` withdraws NAME and,
+/// when NAME is evidence, each reading stream declared `from` it.
+fn withdrawn_names<'a>(
+    target: &'a EvidenceSelector,
+    streams_from: &'a BTreeMap<String, Vec<String>>,
+) -> Vec<&'a String> {
+    match target {
+        EvidenceSelector::Named(name) | EvidenceSelector::Latest(name) => vec![name],
+        EvidenceSelector::Occurrence { evidence, .. } => vec![evidence],
+        EvidenceSelector::Caveated { state, .. } => vec![state],
+        EvidenceSelector::Every(name) => std::iter::once(name)
+            .chain(streams_from.get(name).into_iter().flatten())
+            .collect(),
+    }
+}
+
 /// Where each of `names` is withdrawn, as related locations, each once.
-fn withdrawal_sites(steps: &[Step], names: &[String]) -> Vec<Related> {
+fn withdrawal_sites(
+    steps: &[Step],
+    streams_from: &BTreeMap<String, Vec<String>>,
+    names: &[String],
+) -> Vec<Related> {
     let mut sites = Vec::new();
     for name in names {
         for step in steps {
             let Effect::Withdraw { target, .. } = &step.effect else {
                 continue;
             };
-            let target = match target {
-                EvidenceSelector::Named(target) | EvidenceSelector::Latest(target) => target,
-                EvidenceSelector::Occurrence { evidence, .. } => evidence,
-                EvidenceSelector::Caveated { state, .. } => state,
-            };
             let note = format!("`{name}` is withdrawn here");
-            if target == name
+            if withdrawn_names(target, streams_from).contains(&name)
                 && !sites
                     .iter()
                     .any(|site: &Related| site.line == step.at.line && site.note == note)

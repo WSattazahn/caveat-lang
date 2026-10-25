@@ -31,13 +31,13 @@ export function classify(text) {
   return classes;
 }
 
-// [start, end) of each statement, ending at a `;` outside strings, comments
-// and braces.
-export function statementSpans(text, classes = classify(text)) {
+// [start, end) of each statement in [from, to), ending at a `;` outside
+// strings, comments and braces.
+export function statementSpans(text, classes = classify(text), from = 0, to = text.length) {
   const spans = [];
   let start = null;
   let braces = 0;
-  for (let index = 0; index < text.length; index++) {
+  for (let index = from; index < to; index++) {
     const ch = text[index];
     if (classes[index] === 'string') { if (start === null) start = index; continue; }
     if (classes[index] === 'comment') continue;
@@ -60,20 +60,27 @@ export function codeOf(text, classes, [start, end]) {
   return out;
 }
 
-// Every `for KIND as $NAME { ... }` statement, routed by P or not: its range
-// up to the closing brace, where the binding is, and the body between the
-// braces. Like repeat.rs, the body ends at the last `}` of the statement.
-export function forBlocks(text, classes = classify(text)) {
+// Every `for KIND as $NAME { ... }` statement, routed by P or not, at the top
+// level or in a block's body (spec/caveat-nested-repetition-0.1.md): its range
+// up to the closing brace, where the binding is, the body between the braces,
+// the names bound in the body (its own and every enclosing block's), and the
+// blocks nested in it. Like repeat.rs, the body ends at the last `}` of the
+// statement.
+export function forBlocks(text, classes = classify(text), from = 0, to = text.length, outer = []) {
   const blocks = [];
-  for (const span of statementSpans(text, classes)) {
+  for (const span of statementSpans(text, classes, from, to)) {
     const code = codeOf(text, classes, span);
     const header = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+[A-Za-z_]\w*)?\s*\{/.exec(code);
     if (!header) continue;
     const open = span[0] + code.indexOf('{');
     const close = span[0] + code.lastIndexOf('}');
+    const bound = [...outer, header[3]];
+    const nested = forBlocks(text, classes, open + 1, close, bound);
     blocks.push({
       kind: header[1],
       binding: header[3],
+      bound,
+      nested,
       bindingAt: span[0] + header.index + header[0].lastIndexOf(header[2]),
       start: span[0],
       end: close + 1,
@@ -84,12 +91,22 @@ export function forBlocks(text, classes = classify(text)) {
   return blocks;
 }
 
-// Each `$` in a block body, comments and quoted text included: where it is,
-// and how long the substituted part is (the `$` plus the longest bound name
-// that prefixes the identifier run; 0 where the runtime refuses the name).
+// Each block above and every block nested in it, outermost first.
+export function allForBlocks(text, classes = classify(text)) {
+  const all = block => [block, ...block.nested.flatMap(all)];
+  return forBlocks(text, classes).flatMap(all);
+}
+
+// Each `$` in a block body, comments and quoted text included, outside the
+// blocks nested in it: where it is, and how long the substituted part is (the
+// `$` plus the longest bound name that prefixes the identifier run; 0 where
+// the runtime refuses the name).
 export function substitutions(text, block) {
   const found = [];
+  const names = [...block.bound, 'index'];
   for (let index = block.bodyStart; index < block.bodyEnd; index++) {
+    const inner = block.nested.find(nested => index >= nested.start && index < nested.end);
+    if (inner) { index = inner.end - 1; continue; }
     if (text[index] !== '$') continue;
     let end = index + 1;
     if (end < text.length && identifierStart(text[end])) {
@@ -97,7 +114,7 @@ export function substitutions(text, block) {
       while (end < text.length && identifierChar(text[end])) end += 1;
     }
     const word = text.slice(index + 1, end);
-    const bound = [block.binding, 'index'].filter(name => word.startsWith(name)).sort((a, b) => b.length - a.length)[0];
+    const bound = names.filter(name => word.startsWith(name)).sort((a, b) => b.length - a.length)[0];
     found.push({ index, length: bound ? bound.length + 1 : 0, word });
   }
   return found;

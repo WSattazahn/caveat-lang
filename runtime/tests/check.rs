@@ -2620,3 +2620,49 @@ fn withdrawal_warnings_can_be_allowed_on_purpose() {
         [("C010", line_of(&source, "on decide commit"))]
     );
 }
+
+#[test]
+fn withdraw_every_names_the_evidence_and_each_stream_read_from_it() {
+    let source = r#"claim fresh;
+evidence source from "a feed";
+evidence flag from "the feed was found unreliable";
+readings feed from source limit 4;
+decisions act limit 4;
+event arrive value min 0 max 100;
+event decide;
+event distrust;
+on arrive sample feed = value supports fresh;
+on decide commit act because enough using latest(feed);
+on distrust reveal flag;
+on distrust withdraw every source because flag;
+"#;
+    let report = check_withdrawals(source);
+    assert_eq!(
+        withdrawal_codes(&report),
+        [
+            ("C011", line_of(source, "decisions act")),
+            ("C010", line_of(source, "on decide commit")),
+        ]
+    );
+    let commit = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.code == "C010")
+        .unwrap();
+    assert!(
+        commit
+            .related
+            .iter()
+            .any(|site| site.line == line_of(source, "on distrust withdraw")),
+        "{:?}",
+        commit.related
+    );
+    let guarded = source.replace(
+        "on decide commit",
+        "on decide when withdrawn(latest(feed)) reject \"Withdrawn.\";\non decide commit",
+    );
+    assert_eq!(
+        withdrawal_codes(&check_withdrawals(&guarded)),
+        [("C011", line_of(&guarded, "decisions act"))]
+    );
+}

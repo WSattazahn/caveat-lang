@@ -1,0 +1,174 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "inbox-agent.cav",
+ "scenarios": [
+  {
+   "id": "PI01",
+   "title": "An instruction hidden in an email cannot send data out",
+   "steps": [
+    {
+     "send": "read",
+     "payload": {
+      "source": "user"
+     }
+    },
+    {
+     "send": "read",
+     "payload": {
+      "source": "invoice_mail"
+     }
+    },
+    {
+     "send": "instruct",
+     "payload": {
+      "source": "invoice_mail",
+      "action": "send_external"
+     }
+    },
+    {
+     "send": "act",
+     "payload": {
+      "source": "invoice_mail",
+      "action": "send_external"
+     },
+     "rejected": {
+      "origin": "evaluation",
+      "code": "caveated_irreversible"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/invoice_mail/send_external": "none"
+     }
+    }
+   ]
+  },
+  {
+   "id": "PI02",
+   "title": "The user's own request to send is accepted",
+   "steps": [
+    {
+     "send": "read",
+     "payload": {
+      "source": "user"
+     }
+    },
+    {
+     "send": "instruct",
+     "payload": {
+      "source": "user",
+      "action": "send_external"
+     }
+    },
+    {
+     "send": "act",
+     "payload": {
+      "source": "user",
+      "action": "send_external"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/user/send_external": "sent"
+     }
+    }
+   ]
+  },
+  {
+   "id": "PI03",
+   "title": "A send from email text goes ahead only once the user confirms, and the record says so",
+   "steps": [
+    {
+     "send": "read",
+     "payload": {
+      "source": "invoice_mail"
+     }
+    },
+    {
+     "send": "instruct",
+     "payload": {
+      "source": "invoice_mail",
+      "action": "send_external"
+     }
+    },
+    {
+     "send": "confirm",
+     "payload": {}
+    },
+    {
+     "send": "act",
+     "payload": {
+      "source": "invoice_mail",
+      "action": "send_external"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/invoice_mail/send_external": "sent",
+      "/commitment_grounds/invoice_mail_send_external@1": {
+       "evidence": {
+        "$set": [
+         "invoice_mail_asks@1",
+         "user_ok"
+        ]
+       },
+       "caveats": [
+        "untrusted"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "PI04",
+   "title": "A reversible action from email goes ahead; finding the sender malicious marks it to undo",
+   "steps": [
+    {
+     "send": "read",
+     "payload": {
+      "source": "newsletter"
+     }
+    },
+    {
+     "send": "instruct",
+     "payload": {
+      "source": "newsletter",
+      "action": "add_event"
+     }
+    },
+    {
+     "send": "act",
+     "payload": {
+      "source": "newsletter",
+      "action": "add_event"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/newsletter/add_event": "done",
+      "/commitment_grounds/newsletter_add_event@1": {
+       "evidence": [
+        "newsletter_asks@1"
+       ],
+       "caveats": [
+        "untrusted"
+       ]
+      }
+     }
+    },
+    {
+     "send": "found_malicious",
+     "payload": {
+      "source": "newsletter"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/newsletter/add_event": "undo"
+     }
+    }
+   ]
+  }
+ ]
+}

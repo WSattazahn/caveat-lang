@@ -68,8 +68,10 @@ const blockComment = (marker, scope) => ({
 
 // Statement rules come before the template rule, so a statement that starts
 // with a template (`$b_sounding supports charted_$b;`) is still read whole.
+// A body may hold `for` blocks (spec/caveat-nested-repetition-0.1.md).
 const blockBody = [
   { include: '#block-comments' },
+  { include: '#for-block' },
   { include: '#block-strings' },
   { include: '#block-relation-statement' },
   { include: '#block-rule-statement' },
@@ -415,6 +417,10 @@ export const grammar = {
         // `materialized CAVEAT, …` (spec/caveat-outcomes-0.1.md); elsewhere both are names.
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}resolve\b(?=[ \t]+(?:revision[ \t]*\(|[A-Za-z_][\w:$]*[ \t]*=(?!=)))` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}materialized\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]*[;,])` },
+        // `withdraw every NAME because …` and `retaining C because once E`
+        // (spec/caveat-untrusted-sources-0.1.md); elsewhere both are names.
+        { name: 'keyword.other.caveat', match: String.raw`(?<=\bwithdraw[ \t])every\b(?=[ \t]+[A-Za-z_$][\w:$]*[ \t]+because\b)` },
+        { name: 'keyword.other.caveat', match: String.raw`(?<=\bbecause[ \t])once\b(?=[ \t]+[A-Za-z_$][\w:$]*[ \t]*[;,])` },
         { name: 'keyword.operator.logical.caveat', match: String.raw`${notProperty}(?:and|or|not)\b` },
         { name: 'constant.language.boolean.caveat', match: String.raw`${notProperty}(?:true|false)\b` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(modifiers)})\b` },

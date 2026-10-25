@@ -1,0 +1,25 @@
+# Highlighting cases for a for block inside a for block
+# (spec/caveat-nested-repetition-0.1.md), checked by test/fixture.test.mjs in
+# the format fixtures/scopes.cav describes. They live apart from scopes.cav,
+# which runtime/tests/routed_repetition.rs also expands with the Repetition
+# 0.1 rules, which refuse a nested block.
+
+ entity slot_one kind slot at sea;
+ for reef as $c {
+#^^^ keyword.control.repeat meta.block.repeat
+   for slot as $k {
+#  ^^^ keyword.control.repeat meta.block.repeat
+#      ^^^^ entity.name.type.kind
+#              ^^ variable.parameter.template !variable.other.template
+     state $c_ack_$k = $index;
+#          ^^ variable.other.template meta.block.repeat
+#            ^^^^^ !variable.other.template
+#                 ^^ variable.other.template
+#                      ^^^^^^ variable.other.template
+   };
+#  ^ punctuation.section.block.end meta.block.repeat
+   state $c_slots = 1;
+#        ^^ variable.other.template meta.block.repeat
+ };
+#^ punctuation.section.block.end meta.block.repeat
+# ^ !meta.block.repeat
