@@ -1,6 +1,6 @@
 # Related work
 
-Caveat builds on ideas that predate it. This note places it beside nine of
+Caveat builds on ideas that predate it. This note places it beside ten of
 them. It is not a benchmark and not a ranking. These systems solve different
 problems and are not interchangeable products. Caveat claims none of the ideas
 below as its own invention.
@@ -15,8 +15,9 @@ in its own documented behavior. Each comparison is marked:
   it as established.
 
 Sources were read on 2026-10-10, those for the last two entries on
-2026-10-12, and the assumption-based TMS and Hyperon sources on 2026-10-25.
-Caveat's behavior is summarized in [What is checked, and how](VERIFICATION.md).
+2026-10-12, and those for the TMS, Hyperon and Watson entries on
+2026-10-25. Caveat's behavior is summarized in
+[What is checked, and how](VERIFICATION.md).
 
 ## Truth maintenance (Doyle, 1979; de Kleer, 1986)
 
@@ -164,6 +165,29 @@ confidence, how certain that estimate is
   implementation. The two could be combined: a program could carry a PLN
   strength as an ordinary value beside Caveat's lineage;
   [Caveat alongside probabilities](PROBABILITIES.md) shows how with any score.
+
+## Watson's DeepQA and Elemental Cognition
+
+David Ferrucci et al., "Building Watson: An Overview of the DeepQA Project",
+*AI Magazine* 31(3), 2010, pp. 59–79
+([doi:10.1609/aimag.v31i3.2303](https://doi.org/10.1609/aimag.v31i3.2303)).
+DeepQA generated candidate answers, gathered and scored evidence for each,
+and answered with a confidence. Elemental Cognition's later work
+(Jennifer Chu-Carroll, David Ferrucci et al., "Beyond LLMs: Advancing the
+Landscape of Complex Reasoning", [arXiv 2402.08064](https://arxiv.org/abs/2402.08064),
+a preprint, 2024) puts a symbolic reasoning engine at the core and uses
+language models around it, to acquire knowledge and to talk with users.
+
+- **[checked]** Caveat generates no answers and scores none. A program states
+  its rules, and each event an agent or host sends is accepted or refused by
+  them ([Dispatch 0.1](../spec/caveat-dispatch-0.1.md)). An accepted
+  decision keeps the grounds and caveats it was made on
+  ([decision journal](../spec/caveat-decision-journal-0.1.md)).
+- **[unverified]** Caveat fits the same split at a smaller scale: a language
+  model proposes an observation or a decision, and Caveat records what it
+  rests on and refuses what the rules do not allow. We have not compared it
+  with Elemental Cognition's engine, which also solves constraints and
+  optimizes, which Caveat does not.
 
 ## W3C PROV
 
