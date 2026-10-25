@@ -194,17 +194,15 @@ mod tests {
 
     #[test]
     fn fatal_has_only_raw_outcome_and_stops_the_trace() {
-        // Value provenance past its 65,536 name bytes is a fault no catalog
-        // code classifies.
-        let (left, right) = ("a".repeat(32_768), "b".repeat(32_768));
+        // A bound text past its 65,536 bytes is a fault no catalog code
+        // classifies: the number's text adds 17 bytes to a 65,520-byte
+        // literal. Value provenance past its name bytes served here until it
+        // became `limit/provenance_limit` (D022).
+        let wide = "A".repeat(65_520);
         let source = format!(
-            "evidence {left} from left_sensor; evidence {right} from right_sensor; \
-             evidence extra from extra_sensor; \
-             state n = 0; state wide_left = 0; state wide_right = 0; event crash; event later; \
-             on crash set n = 1; on crash reveal {left}; on crash reveal {right}; \
-             on crash reveal extra; on crash set wide_left = qualified(1, {left}); \
-             on crash set wide_right = qualified(2, {right}); \
-             on crash set n = wide_left + wide_right + qualified(0, extra); \
+            "state n = 0; state big = 0 min 0 max 2000000; event crash; event later; \
+             on crash set n = 1; on crash set big = 1234567.123456789; \
+             bind wide.text = \"{wide}\" + text(big); \
              on later set n = 2;"
         );
         let output = run(&input(&source, &["crash", "later"])).unwrap();

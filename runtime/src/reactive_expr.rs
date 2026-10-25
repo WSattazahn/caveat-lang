@@ -40,6 +40,12 @@ pub enum EvalFailure {
     /// A function argument outside its domain, such as a negative `sqrt`.
     Domain,
     Requirement,
+    /// A value's lineage would hold more identifiers, or more name bytes,
+    /// than a provenance may; refused as `limit/provenance_limit` (D022).
+    ProvenanceLimit,
+    /// One expression's evaluation would visit more nodes than the budget
+    /// allows; refused as `limit/evaluation_limit` (D023).
+    EvaluationLimit,
     Other,
 }
 
@@ -480,7 +486,7 @@ impl Provenance {
     pub fn from_names(
         evidence: impl IntoIterator<Item = String>,
         caveats: impl IntoIterator<Item = String>,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, EvalError> {
         let mut result = Self::default();
         let mut count = 0;
         let mut bytes = 0;
@@ -518,7 +524,7 @@ impl Provenance {
 
     /// Merge `other` as inherited through a qualification: its names are
     /// inherited here unless this value read them itself.
-    pub fn merge_inherited(&mut self, other: &Self) -> Result<(), String> {
+    pub fn merge_inherited(&mut self, other: &Self) -> Result<(), EvalError> {
         let mut inherited = other.clone();
         inherited.inherited = inherited.evidence.clone();
         self.merge(&inherited)
@@ -572,7 +578,7 @@ impl Provenance {
     }
 
     /// A marker counts as one identifier, its history's name as its bytes.
-    fn size(&self) -> Result<(usize, usize), String> {
+    fn size(&self) -> Result<(usize, usize), EvalError> {
         let count = self
             .evidence
             .len()
@@ -588,12 +594,12 @@ impl Provenance {
     }
 
     /// Recheck public fields at a trust boundary before accepting host metadata.
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), EvalError> {
         self.size().map(|_| ())
     }
 
     /// Union is deterministic and preserves both dependency categories.
-    pub fn union(&self, other: &Self) -> Result<Self, String> {
+    pub fn union(&self, other: &Self) -> Result<Self, EvalError> {
         self.validate()?;
         other.validate()?;
         let mut result = self.clone();
@@ -604,14 +610,14 @@ impl Provenance {
     /// An overflow leaves `self` unchanged. No identifier is silently dropped.
     /// A name either side read itself is read here, so `inherited` keeps only
     /// names neither side read; markers for one history join.
-    pub fn merge(&mut self, other: &Self) -> Result<(), String> {
+    pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
         let mut check = |name: &String| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
-            Ok::<(), String>(())
+            Ok::<(), EvalError>(())
         };
         let mut evidence = false;
         for name in other.evidence.added_to(&self.evidence) {
@@ -660,7 +666,7 @@ impl Provenance {
 /// Add what one read rests on to an evaluation's provenance, which only
 /// reads have built: a read resting on nothing changes nothing, and the
 /// first read's provenance, once checked, is the whole of it.
-fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), String> {
+fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), EvalError> {
     if read.is_empty() && read.inherited.is_empty() && read.kept.is_empty() {
         return Ok(());
     }
@@ -673,11 +679,17 @@ fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), 
     provenance.merge(read)
 }
 
-fn provenance_identifier_error() -> String {
-    format!("value provenance exceeds limit {MAX_PROVENANCE_IDENTIFIERS} identifiers")
+/// Both provenance bounds are the same resource, a value's lineage, so both
+/// are refused as `limit/provenance_limit`. The texts are unchanged from
+/// when they were fatal.
+fn provenance_identifier_error() -> EvalError {
+    EvalError::new(
+        EvalFailure::ProvenanceLimit,
+        format!("value provenance exceeds limit {MAX_PROVENANCE_IDENTIFIERS} identifiers"),
+    )
 }
 
-fn check_provenance_size(count: usize, bytes: usize, additional: usize) -> Result<(), String> {
+fn check_provenance_size(count: usize, bytes: usize, additional: usize) -> Result<(), EvalError> {
     if count > MAX_PROVENANCE_IDENTIFIERS {
         return Err(provenance_identifier_error());
     }
@@ -685,8 +697,9 @@ fn check_provenance_size(count: usize, bytes: usize, additional: usize) -> Resul
         .checked_add(additional)
         .is_none_or(|total| total > MAX_PROVENANCE_BYTES)
     {
-        return Err(format!(
-            "value provenance exceeds limit {MAX_PROVENANCE_BYTES} name bytes"
+        return Err(EvalError::new(
+            EvalFailure::ProvenanceLimit,
+            format!("value provenance exceeds limit {MAX_PROVENANCE_BYTES} name bytes"),
         ));
     }
     Ok(())
@@ -708,7 +721,7 @@ impl<T> Tracked<T> {
 
     /// Numeric finiteness is checked by expression evaluation; this generic
     /// constructor checks only the dependency metadata.
-    pub fn new(value: T, provenance: Provenance) -> Result<Self, String> {
+    pub fn new(value: T, provenance: Provenance) -> Result<Self, EvalError> {
         provenance.validate()?;
         Ok(Self { value, provenance })
     }
@@ -1905,40 +1918,36 @@ impl Expr {
         latest: &impl Fn(&str) -> Result<Tracked<f64>, String>,
     ) -> Result<Tracked<Value>, String> {
         self.evaluate_tracked_with_histories(
-            numbers,
-            predicate,
-            qualify,
+            &|name| numbers(name).map_err(EvalError::from),
+            &|kind, name| predicate(kind, name).map_err(EvalError::from),
+            &|evidence, caveats| qualify(evidence, caveats).map_err(EvalError::from),
             &|name, query| match query {
                 HistoryRead::Latest => latest(name).map_err(EvalError::from),
                 _ => Err("history operation requires an indexed history host".into()),
             },
         )
+        .map_err(String::from)
     }
 
     /// Evaluate bounded history computations without exposing mutable archives.
     pub fn evaluate_tracked_with_histories(
         &self,
-        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
-        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
-        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
-    ) -> Result<Tracked<Value>, String> {
-        self.evaluate_tracked_with_identifiers(
-            numbers,
-            predicate,
-            &|evidence, caveats| qualify(evidence, caveats).map_err(EvalError::from),
-            history,
-            &|_| Err("id_text requires a session that holds identifiers".into()),
-        )
-        .map_err(String::from)
+    ) -> Result<Tracked<Value>, EvalError> {
+        self.evaluate_tracked_with_identifiers(numbers, predicate, qualify, history, &|_| {
+            Err("id_text requires a session that holds identifiers".into())
+        })
     }
 
     /// As `evaluate_tracked_with_histories`, with `identifiers` giving the text
     /// of an identifier handle for `id_text`. See spec/caveat-identifiers-0.1.md.
     pub fn evaluate_tracked_with_identifiers(
         &self,
-        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
-        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
@@ -1961,7 +1970,7 @@ impl Expr {
                 read_into(&provenance, &tracked.provenance)?;
                 Ok(tracked.value)
             },
-            &|evidence, caveats| Ok(read_into(&provenance, &qualify(evidence, caveats)?)?),
+            &|evidence, caveats| read_into(&provenance, &qualify(evidence, caveats)?),
             &|name, query| {
                 let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;
@@ -1979,8 +1988,8 @@ impl Expr {
 
     fn evaluate_values(
         &self,
-        numbers: &dyn Fn(&str) -> Result<Option<f64>, String>,
-        predicate: &dyn Fn(&str, &str) -> Result<bool, String>,
+        numbers: &dyn Fn(&str) -> Result<Option<f64>, EvalError>,
+        predicate: &dyn Fn(&str, &str) -> Result<bool, EvalError>,
         qualify: &QualificationSink<'_>,
         history: &dyn Fn(&str, HistoryRead) -> Result<f64, EvalError>,
         identifiers: &dyn Fn(f64) -> Result<String, String>,
@@ -1988,9 +1997,10 @@ impl Expr {
     ) -> Result<Value, EvalError> {
         let budget = remaining.get();
         if budget == 0 {
-            return Err(
-                format!("expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes").into(),
-            );
+            return Err(EvalError::new(
+                EvalFailure::EvaluationLimit,
+                format!("expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes"),
+            ));
         }
         remaining.set(budget - 1);
         match &self.node {
@@ -3658,6 +3668,7 @@ mod tests {
                 2.0,
                 Provenance::from_names([occurrence], ["uncertainty".into()])?,
             )
+            .map_err(String::from)
         };
         let first = expression
             .evaluate_tracked_with_history(
@@ -3762,7 +3773,9 @@ mod tests {
                 &|_| Ok(None),
                 &|_, _| Ok(Tracked::plain(false)),
                 &|_, _| Ok(Provenance::default()),
-                &|_| Tracked::new(3.0, provenance(&["readings#2"], &["risk"])),
+                &|_| {
+                    Tracked::new(3.0, provenance(&["readings#2"], &["risk"])).map_err(String::from)
+                },
             )
             .unwrap();
         assert_eq!(result.value, Value::Number(0.0));
@@ -3923,6 +3936,7 @@ mod tests {
                 _ => Err("unselected branch was evaluated".into()),
             }, &|_, _| Ok(Tracked::plain(false)), &|evidence, caveats| {
                 Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                    .map_err(String::from)
             }).unwrap();
             assert_eq!(result.value, Value::Text("7".into()));
             assert_eq!(result.provenance, provenance(&["condition", "selected"], &["caution", "risk"]));
@@ -3934,6 +3948,7 @@ mod tests {
                 &|_, _| Ok(Tracked::plain(false)),
                 &|evidence, caveats| {
                     Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                        .map_err(String::from)
                 },
             )
             .unwrap();
@@ -3982,6 +3997,7 @@ mod tests {
             &|_, _| Ok(Tracked::plain(false)),
             &|evidence, caveats| {
                 Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                    .map_err(String::from)
             },
         )
         .unwrap();
@@ -4166,6 +4182,7 @@ mod tests {
                             if name == "left" { left } else { right },
                             provenance(&[name], &[]),
                         )
+                        .map_err(String::from)
                     },
                     &|_, _| Err("unexpected qualification".into()),
                 )
@@ -4291,6 +4308,7 @@ mod tests {
                 &|_, _| Ok(Tracked::plain(false)),
                 &|evidence, caveats| {
                     Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                        .map_err(String::from)
                 },
             )
             .unwrap();
@@ -4316,6 +4334,7 @@ mod tests {
                     &|_, _| Ok(Tracked::plain(false)),
                     &|evidence, caveats| {
                         Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                            .map_err(String::from)
                     },
                 )
                 .unwrap();
@@ -4349,6 +4368,7 @@ mod tests {
         assert!(full
             .merge(&provenance(&[], &["additional"]))
             .unwrap_err()
+            .message
             .contains("identifiers"));
         assert_eq!(full, before);
         assert!(Provenance::from_names(
@@ -4362,6 +4382,7 @@ mod tests {
         assert!(oversized
             .merge(&provenance(&[], &["x"]))
             .unwrap_err()
+            .message
             .contains("name bytes"));
         assert_eq!(oversized, full_bytes);
         assert!(Provenance::from_names(["a".repeat(MAX_PROVENANCE_BYTES + 1)], []).is_err());

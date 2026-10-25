@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
 import { defaultRuntimeDirectory } from '../lib/node.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { textOverflow } from './fatal-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
@@ -26,7 +26,7 @@ on assess commit plan because enough using latest(values);
 on refuse set touched = 1;
 on refuse reject "fixture policy";
 on fault set touched = 7;
-${provenanceOverflow('on fault')}
+${textOverflow('on fault')}
 bind display.value = touched;
 `;
 const events = [
