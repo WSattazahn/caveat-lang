@@ -1,7 +1,9 @@
+#[cfg(feature = "games")]
 use caveat_runtime::action_runtime::{ActionExecution, WorldCommand};
 use caveat_runtime::source_library::{FunctionValue, SourceLibrary};
 #[cfg(feature = "games")]
 use caveat_runtime::web::Web3DSession;
+#[cfg(feature = "games")]
 use caveat_runtime::world3d::World3D;
 #[cfg(feature = "games")]
 use caveat_runtime::world3d::{PlaceAnchor3D, Vec3, WorldEvent3D};
@@ -321,6 +323,7 @@ fn a_late_source_policy_failure_rolls_back_the_entire_web_action() {
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn a_late_source_policy_failure_rolls_back_direct_native_world_execution() {
     let execution = ActionExecution {
