@@ -9,7 +9,7 @@ import { CaveatError } from './session.mjs';
 export const SERVE_SCHEMA = 'caveat-serve/0.1';
 
 const FIELDS = {
-  dispatch: ['event', 'payload', 'snapshot', 'view'],
+  dispatch: ['event', 'payload', 'agent', 'snapshot', 'view'],
   snapshot: [],
   view: [],
   drainArchive: [],
@@ -83,15 +83,20 @@ export function createServer({ runtime, source, program = null, restore = null }
       if (request.payload !== undefined && !isObject(request.payload)) throw new RequestError('"payload" must be an object');
       if (request.snapshot !== undefined && typeof request.snapshot !== 'boolean') throw new RequestError('"snapshot" must be true or false');
       if (request.view !== undefined && typeof request.view !== 'boolean') throw new RequestError('"view" must be true or false');
+      if (request.agent !== undefined && (typeof request.agent !== 'string' || !request.agent)) throw new RequestError('"agent" must be a non-empty string');
       const payload = request.payload ?? {};
       let result;
-      try { result = session.dispatch(request.event, payload); } catch (error) {
+      try {
+        result = request.agent === undefined
+          ? session.dispatch(request.event, payload)
+          : session.dispatch(request.event, payload, { agent: request.agent });
+      } catch (error) {
         if (error instanceof CaveatError && error.kind === 'payload') throw new RequestError(error.message);
         throw error;
       }
       const { schema: _schema, snapshot, ...outcome } = result;
       const after = snapshot ?? session.snapshot();
-      events.push({ event: request.event, payload, outcome,
+      events.push({ event: request.event, payload, ...(request.agent === undefined ? {} : { agent: request.agent }), outcome,
         ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
       return {
         ...outcome,

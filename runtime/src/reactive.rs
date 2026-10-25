@@ -662,6 +662,11 @@ pub enum Directive {
     Identifiers {
         limit: usize,
     },
+    /// `agent NAME [sends EVENT, …];` See spec/caveat-agents-0.1.md.
+    Agent {
+        name: String,
+        sends: Vec<String>,
+    },
     Function(FunctionDef),
     Binding(Binding),
     Cue(Cue),
@@ -829,6 +834,10 @@ pub struct ReadingOccurrence {
     pub ordinal: u64,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
     pub value: f64,
     pub provenance: Provenance,
     /// Both absent for a neutral reading: spec/caveat-neutral-sample-0.1.md.
@@ -1559,6 +1568,10 @@ pub struct Withdrawal {
     pub because: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
 }
 
 /// One taken-back qualification: the occurrence whose live `qualifies`
@@ -1571,6 +1584,10 @@ pub struct TakeBack {
     pub caveat: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
 }
 
 /// One change to a decision, in the order it happened. See
@@ -1586,6 +1603,10 @@ pub struct JournalEntry {
     pub change: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
     /// Source-controlled elapsed time at this change. Absent in older saves.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub elapsed: Option<f64>,
@@ -1750,6 +1771,10 @@ pub struct ReactiveSnapshot {
     pub retention_reasons: BTreeMap<String, BTreeMap<String, String>>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
+    /// The agent the host said sent the last event; left out when it named
+    /// none. See spec/caveat-agents-0.1.md.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_agent: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
@@ -1929,6 +1954,14 @@ pub struct ReactiveSession {
     /// The events accepted since the program loaded, for a replay save: none
     /// once they outgrow one, or in a session restored from a state save.
     replay: Option<Arc<replay_save::ReplayLog>>,
+    /// Each declared agent and the events it `sends`, in source order. Empty
+    /// in a program that declares none. See spec/caveat-agents-0.1.md.
+    agents: Arc<BTreeMap<String, Vec<String>>>,
+    /// Each event some agent `sends`, and every agent that sends it. An event
+    /// not listed here may be sent by any agent, or by none.
+    senders: Arc<BTreeMap<String, BTreeSet<String>>>,
+    /// The agent the host said sent the last accepted event, if it named one.
+    last_agent: Option<String>,
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -2157,6 +2190,9 @@ impl ReactiveSession {
             scenes: Arc::new(map.scenes),
             effects: Vec::new(),
             replay: Some(Arc::default()),
+            agents: Arc::default(),
+            senders: Arc::default(),
+            last_agent: None,
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -2297,6 +2333,20 @@ impl ReactiveSession {
                 | Directive::Readings { .. }
                 | Directive::Decisions { .. }
                 | Directive::Identifiers { .. } => {}
+                Directive::Agent { name, sends } => {
+                    if Arc::make_mut(&mut session.agents)
+                        .insert(name.clone(), sends.clone())
+                        .is_some()
+                    {
+                        return Err(format!("duplicate agent {name}"));
+                    }
+                    for event in sends {
+                        Arc::make_mut(&mut session.senders)
+                            .entry(event.clone())
+                            .or_default()
+                            .insert(name.clone());
+                    }
+                }
                 Directive::JournalWindow { limit } => {
                     if session.journal_window.is_some() {
                         return Err("duplicate journal window".into());
@@ -2538,6 +2588,14 @@ impl ReactiveSession {
                         parameter.name
                     ));
                 }
+            }
+        }
+        for (agent, sends) in session.agents.iter() {
+            if let Some(event) = sends
+                .iter()
+                .find(|event| !session.events.contains_key(*event))
+            {
+                return Err(format!("agent {agent} sends undeclared event {event}"));
             }
         }
         for (name, control) in session.controls.iter() {
@@ -4237,7 +4295,7 @@ impl ReactiveSession {
         let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, None)
             .map_err(|error| error.to_string())?;
         Ok(self.snapshot())
     }
@@ -4250,7 +4308,18 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchOutcome, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_outcome_as_json(event, payload_json, None)
+    }
+
+    /// `dispatch_outcome_json` for an event the host says `agent` sent. See
+    /// spec/caveat-agents-0.1.md. `None` is `dispatch_outcome_json`.
+    pub fn dispatch_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<DispatchOutcome, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchOutcome::accepted(self.snapshot())),
             Err(failure) => failure.outcome(),
         }
@@ -4264,7 +4333,17 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchViewOutcome<'_>, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_view_outcome_as_json(event, payload_json, None)
+    }
+
+    /// `dispatch_view_outcome_json` for an event the host says `agent` sent.
+    pub fn dispatch_view_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<DispatchViewOutcome<'_>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchViewOutcome::accepted(self.view())),
             Err(failure) => failure.view_outcome(),
         }
@@ -4279,7 +4358,18 @@ impl ReactiveSession {
         payload_json: &str,
         fields: ViewFields,
     ) -> Result<DispatchViewOutcome<'_, ReactiveViewSelection<'_>>, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_view_fields_outcome_as_json(event, payload_json, fields, None)
+    }
+
+    /// `dispatch_view_fields_outcome_json` for an event the host says `agent` sent.
+    pub fn dispatch_view_fields_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        fields: ViewFields,
+        agent: Option<&str>,
+    ) -> Result<DispatchViewOutcome<'_, ReactiveViewSelection<'_>>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchViewOutcome::accepted(self.view_fields(fields))),
             Err(failure) => failure.view_outcome(),
         }
@@ -4291,9 +4381,10 @@ impl ReactiveSession {
         &mut self,
         event: &str,
         payload_json: &str,
+        agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
         let (payload, new_identifiers) = self.resolve_payload(event, payload_json)?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, agent)
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its
@@ -4397,7 +4488,7 @@ impl ReactiveSession {
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let _profile = event_profile::Scope::enter(EventPhase::ApplyWrapper);
-        self.apply_classified(event, parameters, Vec::new())
+        self.apply_classified(event, parameters, Vec::new(), None)
             .map_err(|error| error.to_string())
     }
 
@@ -4408,6 +4499,7 @@ impl ReactiveSession {
         event: &str,
         parameters: &BTreeMap<String, f64>,
         new_identifiers: Vec<String>,
+        agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
         // Declared before staged state: its guard outlives implicit rollback
         // destruction, while successful assignment drops the old state in place.
@@ -4420,6 +4512,7 @@ impl ReactiveSession {
                 format!("undeclared event {event}"),
             )
         })?;
+        self.check_agent(event, agent)?;
         if signature.len() != parameters.len()
             || parameters
                 .keys()
@@ -4519,6 +4612,7 @@ impl ReactiveSession {
                 identifiers.push(text);
             }
         }
+        next.last_agent = agent.map(str::to_string);
         match next.run_event(self, event, parameters) {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
@@ -4527,7 +4621,12 @@ impl ReactiveSession {
                 archive.append(&mut next.archive);
                 *self = next;
                 self.archive = archive;
-                self.record_replay(event, parameters);
+                if agent.is_some() {
+                    // A replay save names no agent: spec/caveat-agents-0.1.md.
+                    self.replay = None;
+                } else {
+                    self.record_replay(event, parameters);
+                }
                 Ok(())
             }
             Err(error) => {
@@ -4537,6 +4636,47 @@ impl ReactiveSession {
                 Err(error)
             }
         }
+    }
+
+    /// Whether the host may say `agent` sent `event`: an agent must be one
+    /// the program declares, and an event some agent `sends` takes only those
+    /// agents. See spec/caveat-agents-0.1.md.
+    fn check_agent(&self, event: &str, agent: Option<&str>) -> Result<(), DispatchFailure> {
+        let wrong = |message: String| {
+            DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::WrongAgent, message)
+        };
+        if let Some(agent) = agent {
+            if !self.agents.contains_key(agent) {
+                return Err(wrong(if self.agents.is_empty() {
+                    format!(
+                        "this program declares no agents, so it cannot take an event from {agent}"
+                    )
+                } else {
+                    format!("undeclared agent {agent}")
+                }));
+            }
+        }
+        if let Some(senders) = self.senders.get(event) {
+            let listed = senders
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .join(", ");
+            match agent {
+                None => {
+                    return Err(wrong(format!(
+                        "event {event} is sent only by {listed}; say which agent sent it"
+                    )))
+                }
+                Some(agent) if !senders.contains(agent) => {
+                    return Err(wrong(format!(
+                        "event {event} is sent only by {listed}, not {agent}"
+                    )))
+                }
+                Some(_) => {}
+            }
+        }
+        Ok(())
     }
 
     /// The body of `apply`, run on the transaction's copy: `old` is the
@@ -4655,7 +4795,7 @@ impl ReactiveSession {
         let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, None)
             .map_err(|error| error.to_string())?;
         Ok(self.view())
     }
@@ -4825,7 +4965,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &Parameters,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers(
+        expression.evaluate_grounds_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
@@ -5563,6 +5703,7 @@ impl ReactiveSession {
                         .last_event
                         .clone()
                         .expect("sampling occurs during dispatch"),
+                    agent: self.last_agent.clone(),
                     value: number,
                     provenance,
                     relation: stance
@@ -6177,6 +6318,7 @@ impl ReactiveSession {
                     change: "committed".into(),
                     sequence: self.sequence,
                     event: self.last_event.clone().unwrap_or_default(),
+                    agent: self.last_agent.clone(),
                     elapsed: Some(self.elapsed),
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
@@ -6428,6 +6570,7 @@ impl ReactiveSession {
             change: "resolved".into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6606,6 +6749,7 @@ impl ReactiveSession {
             change: change.into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6666,6 +6810,7 @@ impl ReactiveSession {
             change: "reopened".into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6805,6 +6950,7 @@ impl ReactiveSession {
                 caveat: caveat.to_string(),
                 sequence: self.sequence,
                 event: event.clone(),
+                agent: self.last_agent.clone(),
             });
         }
         // An observation's or predicate's record holds what it took through a
@@ -7292,6 +7438,7 @@ impl ReactiveSession {
             because: because.clone(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
         });
         self.apply_qualification(&evidence, WITHDRAWN, guard)?;
         // apply_qualification reported a qualify: this is a withdrawal.
@@ -7981,6 +8128,7 @@ impl ReactiveSession {
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
+            last_agent: self.last_agent.clone(),
             values: self
                 .states
                 .names()
@@ -8367,6 +8515,7 @@ pub(crate) fn parse_directive_at(
             | "renewable"
             | "journal"
             | "identifiers"
+            | "agent"
             | "proc"
             | "define"
     ) {
@@ -8409,6 +8558,35 @@ pub(crate) fn parse_directive_at(
                     .map_err(|_| "journal window must be an unsigned integer")?,
             }),
             _ => Err("journal expects window N".into()),
+        },
+        "agent" => match words.as_slice() {
+            ["agent", name] => Ok(Directive::Agent {
+                name: identifier(name)?,
+                sends: Vec::new(),
+            }),
+            ["agent", name, "sends", events @ ..] if !events.is_empty() => {
+                let mut sends = Vec::<String>::new();
+                for event in events.join(" ").split(',') {
+                    let event = match event.split_whitespace().collect::<Vec<_>>()[..] {
+                        [event] => identifier(event)?,
+                        _ => {
+                            return Err(format!(
+                                "sends takes event names separated by commas, not {}",
+                                event.trim()
+                            ))
+                        }
+                    };
+                    if sends.contains(&event) {
+                        return Err(format!("agent {name} lists event {event} twice"));
+                    }
+                    sends.push(event);
+                }
+                Ok(Directive::Agent {
+                    name: identifier(name)?,
+                    sends,
+                })
+            }
+            _ => Err("agent expects NAME [sends EVENT, …]".into()),
         },
         "identifiers" => match words.as_slice() {
             ["identifiers", "limit", limit] => Ok(Directive::Identifiers {

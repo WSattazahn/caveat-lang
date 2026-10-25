@@ -243,6 +243,19 @@ session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-la
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 ```
 
+`caveat review --all <directory>` reviews a set of past ledgers: every
+`NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
+only `.cav` beside `events.jsonl`. It reviews each revision that has an
+outcome or consulted a past review, and with `--json` prints one object per
+line. A program records that it read a past review with ordinary evidence
+whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
+a review lists it under Consulted, and `--all` says what that review found.
+It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+
+```sh
+npx --no-install caveat-lang review --all ledgers/
+```
+
 ## Check, replay, start
 
 ```sh
@@ -346,6 +359,14 @@ is what `session.view()` then returns, or the same rejected outcome as
 and failures are `dispatch`'s, and after the same events either way the session
 is the same. Read the view it returns: calling `session.view()` after it builds
 the same view again.
+
+To ask what an event would do without doing it, call
+`session.whatIf(event, payload)`. It returns exactly what `dispatchView` would,
+from a copy of the session that is then dropped, so the session is unchanged
+whatever the answer: for example, which decisions withdrawing some evidence
+would reopen, or whether a commitment would be refused. It takes the same
+`{ fields }` option. A fatal answer throws but leaves the session usable
+([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
 
 A runtime keeps the last few programs it loaded, so opening or restoring the
 same source again reuses the loaded program instead of parsing and checking it

@@ -47,6 +47,7 @@ pub enum RejectionCode {
     ReasonSpent,
     ProvenanceLimit,
     EvaluationLimit,
+    WrongAgent,
 }
 
 #[derive(Debug, Serialize)]
@@ -328,6 +329,7 @@ mod tests {
             (RejectionOrigin::Evaluation, RejectionCode::AlreadyResolved),
             (RejectionOrigin::Evaluation, RejectionCode::NotRetained),
             (RejectionOrigin::Evaluation, RejectionCode::ReasonSpent),
+            (RejectionOrigin::Input, RejectionCode::WrongAgent),
         ];
         let failures = || {
             codes

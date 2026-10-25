@@ -123,7 +123,7 @@ function observers(events) {
     if (entry.outcome?.outcome !== 'accepted' || !Array.isArray(entry.effects) || !Number.isSafeInteger(entry.sequence)) continue;
     for (const effect of entry.effects) {
       const id = effect.kind === 'reveal' ? effect.evidence : effect.kind === 'sample' ? effect.id : null;
-      if (typeof id === 'string' && !found.has(id)) found.set(id, { sequence: entry.sequence, event: entry.event, payload: entry.payload ?? {} });
+      if (typeof id === 'string' && !found.has(id)) found.set(id, { sequence: entry.sequence, event: entry.event, ...agentOf(entry), payload: entry.payload ?? {} });
     }
   }
   return found;
@@ -131,14 +131,20 @@ function observers(events) {
 
 const unobserved = { sequence: null, event: null, payload: null };
 
+// The agent a record or event names, as a field to spread: none when it names
+// none, so a program without agents explains as before
+// (spec/caveat-agents-0.1.md).
+const agentOf = record => (typeof record?.agent === 'string' ? { agent: record.agent } : {});
+const by = item => (typeof item?.agent === 'string' ? ` by ${item.agent}` : '');
+
 export function explain(snapshot, events = [], { archive = [] } = {}) {
   const observedBy = observers(events);
   const qualifiedBy = caveatsByEvidence(snapshot);
   const held = heldRecords(snapshot);
   const archivedNames = archiveResolver(snapshot, archive);
   // Withdrawn observations (spec/caveat-withdrawal-0.1.md), by evidence.
-  const withdrawals = new Map((snapshot.withdrawals ?? []).map(({ evidence, because, sequence, event }) =>
-    [evidence, { because, sequence, event }]));
+  const withdrawals = new Map((snapshot.withdrawals ?? []).map(item =>
+    [item.evidence, { because: item.because, sequence: item.sequence, event: item.event, ...agentOf(item) }]));
   // Retired records of windowed histories (spec/caveat-windows-0.1.md): shown
   // as they were, with the sequence at which they retired.
   const retired = snapshot.retired ?? {};
@@ -163,6 +169,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
     return {
       id: relation.from, relation: relation.relation, claim: relation.to,
       value: reading?.value ?? null, sequence: reading?.sequence ?? null, event: reading?.event ?? null,
+      ...agentOf(reading),
       caveats: qualifiedBy[relation.from] ?? [],
       withdrawn: withdrawals.get(relation.from) ?? null,
       ...retiredAt(relation.from),
@@ -174,7 +181,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
   const commitments = new Map((snapshot.commitments ?? []).map(item => [item.action, item]));
   const describe = (id, current, outcome) => {
     const history = journal.filter(entry => entry.commitment === id).map(entry => ({
-      change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
+      change: entry.change, sequence: entry.sequence, event: entry.event, ...agentOf(entry), because: entry.because, caveats: entry.caveats,
       // An outcome's entry says what it was (spec/caveat-outcomes-0.1.md).
       ...(entry.outcome !== undefined ? { outcome: entry.outcome } : {}),
       ...(entry.materialized?.length ? { materialized: entry.materialized } : {}),
@@ -325,7 +332,7 @@ export function formatExplanation(report, title = 'the program') {
       const accepted = entry.outcome.outcome === 'accepted';
       if (accepted) sequence += 1;
       const as = accepted && sequence !== index + 1 ? ` as #${sequence}` : '';
-      lines.push(`  ${String(index + 1).padStart(3)}  ${entry.event}${payload}  ${outcomeText(entry.outcome)}${as}`);
+      lines.push(`  ${String(index + 1).padStart(3)}  ${entry.event}${by(entry)}${payload}  ${outcomeText(entry.outcome)}${as}`);
     });
   }
   lines.push('', 'Decisions');
@@ -358,7 +365,7 @@ export function formatExplanation(report, title = 'the program') {
       for (const item of revision.observed_by ?? []) {
         if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
-        lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${payload}`);
+        lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${by(item)}${payload}`);
       }
       // A caveat retained with a reason is listed with it even when grounds
       // evidence also carries it (spec/caveat-retention-reasons-0.1.md).
@@ -393,7 +400,7 @@ export function formatExplanation(report, title = 'the program') {
         const unrecorded = entry.source_sha256 === null ? '  (source not recorded)' : '';
         const resolved = entry.outcome === undefined ? '' : ` = ${show(entry.outcome)}`;
         const materialized = entry.materialized?.length ? `; materialized: ${list(entry.materialized)}` : '';
-        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change}${resolved} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${materialized}${unrecorded}`);
+        lines.push(`      #${entry.sequence} ${entry.event}${by(entry)}: ${entry.change}${resolved} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${materialized}${unrecorded}`);
       }
     }
   }
@@ -401,7 +408,7 @@ export function formatExplanation(report, title = 'the program') {
   if (!report.evidence.length) lines.push('  none observed');
   for (const item of report.evidence) {
     const value = item.value === null ? '' : ` = ${show(item.value)}`;
-    const when = item.sequence === null ? '' : `  (#${item.sequence} ${item.event})`;
+    const when = item.sequence === null ? '' : `  (#${item.sequence} ${item.event}${by(item)})`;
     const withdrawn = item.withdrawn ? `  ${withdrawnNote(item.withdrawn)}` : '';
     const stance = item.relation === null ? 'observed (no stance)' : `${item.relation} ${item.claim}`;
     lines.push(`  ${item.id}${value} ${stance}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}${retiredNote(item)}`);
@@ -513,13 +520,13 @@ export function dependents(snapshot, subject, {archive = []} = {}) {
     : resolved.ids;
   const withdrawals = (snapshot.withdrawals ?? [])
     .filter(item => withdrawalIds.has(item.evidence))
-    .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+    .map(item => ({ evidence: item.evidence, because: item.because, sequence: item.sequence, event: item.event, ...agentOf(item) }));
   // Reverse the reason edge as well as showing withdrawals of the subject.
   // An extra retained caveat never fabricates an evidence qualification.
   const reasonIds = resolved.kind === 'caveat' ? withdrawalIds : resolved.ids;
   const reasonForWithdrawals = (snapshot.withdrawals ?? [])
     .filter(item => reasonIds.has(item.because))
-    .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+    .map(item => ({ evidence: item.evidence, because: item.because, sequence: item.sequence, event: item.event, ...agentOf(item) }));
   const claims = (snapshot.relations ?? [])
     .filter(item => reasonIds.has(item.from) && ['supports', 'opposes'].includes(item.relation))
     .map(({ from, relation, to }) => ({ evidence: from, relation, claim: to }));
@@ -544,7 +551,7 @@ export function dependents(snapshot, subject, {archive = []} = {}) {
   const changes = (snapshot.decision_journal ?? []).flatMap(entry => {
     const names = resolved.kind === 'caveat' ? entry.caveats : entry.because;
     const found = (names ?? []).filter(name => resolved.ids.has(name));
-    return found.length ? [{ sequence: entry.sequence, event: entry.event, commitment: entry.commitment, change: entry.change, via: found,
+    return found.length ? [{ sequence: entry.sequence, event: entry.event, ...agentOf(entry), commitment: entry.commitment, change: entry.change, via: found,
       withdrawn: withdrawnVia({ via: found }, { evidence: entry.because }), source_sha256: source(entry.sequence) }] : [];
   });
   const values = Object.entries(snapshot.qualified_values ?? {}).flatMap(([name, value]) => {
@@ -586,7 +593,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
   const through = names => (report.kind === 'caveat' ? `caveat ${list(names)}` : list(names));
   const label = { retained: 'retaining:', grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by', 'may rest on': 'may rest on' };
   const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
-  const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event} because ${item.because}`;
+  const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event}${by(item)} because ${item.because}`;
   const section = (heading, items, line) => {
     lines.push('', heading);
     if (!items.length) lines.push('  nothing');
@@ -601,7 +608,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
   if (report.reasonForWithdrawals?.length) section('Withdrawals resting on this reason', report.reasonForWithdrawals, withdrawalText);
   if (report.claims?.length) section('Claims', report.claims, item => `${item.evidence} ${item.relation} ${item.claim}`);
   section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${item.basis === 'retained' ? list(item.via) : through(item.via)}`);
-  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}${item.source_sha256 === null ? '  (source not recorded)' : ''}`);
+  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}${by(item)}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}${item.source_sha256 === null ? '  (source not recorded)' : ''}`);
   section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   section('Displayed', report.displayed, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   formatArchive(lines, report.archive);
@@ -654,7 +661,8 @@ export function formatUndoList(report, title = 'the program', events = 0) {
 
 /**
  * Parses an events file: one JSON object per line, `{"event": NAME}` with an
- * optional `"payload"` object. Blank lines are skipped. Throws an Error that
+ * optional `"payload"` object and an optional `"agent"` that sent it
+ * (spec/caveat-agents-0.1.md). Blank lines are skipped. Throws an Error that
  * names the line.
  */
 export function parseEvents(text) {
@@ -664,10 +672,11 @@ export function parseEvents(text) {
     let record;
     try { record = JSON.parse(line); } catch (error) { throw new Error(`line ${index + 1}: not JSON: ${error.message}`); }
     if (!record || typeof record !== 'object' || Array.isArray(record)) throw new Error(`line ${index + 1}: expected an object`);
-    const extra = Object.keys(record).filter(key => key !== 'event' && key !== 'payload');
+    const extra = Object.keys(record).filter(key => key !== 'event' && key !== 'payload' && key !== 'agent');
     if (extra.length) throw new Error(`line ${index + 1}: unknown field ${extra[0]}`);
     if (typeof record.event !== 'string' || !record.event) throw new Error(`line ${index + 1}: "event" must name an event`);
-    events.push({ event: record.event, payload: record.payload ?? {} });
+    if ('agent' in record && (typeof record.agent !== 'string' || !record.agent)) throw new Error(`line ${index + 1}: "agent" must name an agent`);
+    events.push({ event: record.event, payload: record.payload ?? {}, ...agentOf(record) });
   });
   return events;
 }
