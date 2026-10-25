@@ -238,6 +238,12 @@ of the session before it), and 2 when the program or the events file cannot be
 used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
 the same report as data, and `formatExplanation` renders it as text.
 
+A decision keeps the caveats it was made with, so a `qualify` that reaches its
+grounds later does not change its record. `--later-caveats` (from 1.5; from
+code, `explain(snapshot, events, { laterCaveats: true })`) adds a line under
+each such decision, "E has since been qualified with C", and the report's
+`qualified_since`. Without it, the output is as before.
+
 `caveat dependents` asks the reverse question: what rests on one piece of
 evidence, reading stream or caveat. It lists:
 

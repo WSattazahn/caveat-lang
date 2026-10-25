@@ -205,6 +205,48 @@ test('a withdrawn observation is marked where a decision rests on it, which keep
   assert.match(text, /checks@1 = 1 supports safe .*withdrawn at #3 because recheck/);
 });
 
+const LATER = `claim effect;
+    evidence study from "a study"; evidence critique from "a critique";
+    caveat disputed consequence material;
+    state ok = 0; decisions conclude limit 2;
+    event publish; event decide; event dispute; event recheck;
+    on publish reveal study supports effect;
+    on publish set ok = qualified(1, study);
+    on decide commit conclude because enough using ok;
+    on dispute reveal critique;
+    on dispute qualify study with disputed;
+    on recheck when committed(conclude) reopen conclude because critique;
+    on recheck when committed(conclude) and reopened(conclude) commit conclude because enough using ok;`;
+
+test('with laterCaveats, explain lists the caveats a later qualify placed on a decision\'s grounds', async () => {
+  const session = real.open(LATER);
+  for (const event of ['publish', 'decide', 'dispute', 'recheck']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  const plain = explain(snapshot);
+  assert.equal(plain.decisions[0].revisions[0].qualified_since, undefined, 'off by default');
+  assert.doesNotMatch(formatExplanation(plain), /has since been qualified/);
+
+  const report = explain(snapshot, [], { laterCaveats: true });
+  const [first, second] = report.decisions[0].revisions;
+  assert.deepEqual(first.grounds.caveats, [], 'the record keeps its own caveats');
+  assert.deepEqual(first.qualified_since, [{ evidence: 'study', caveats: ['disputed'] }]);
+  assert.deepEqual(second.grounds.caveats, ['disputed']);
+  assert.deepEqual(second.qualified_since, [], 'a decision made after the qualify already holds it');
+  assert.match(formatExplanation(report), /based on study\n {6}study has since been qualified with disputed/);
+
+  await withFiles({ 'later.cav': LATER, 'events.jsonl': ['publish', 'decide', 'dispute'].map(event => JSON.stringify({ event })).join('\n') }, file => {
+    const before = run(file('later.cav'), file('events.jsonl'));
+    const after = run('--later-caveats', file('later.cav'), file('events.jsonl'));
+    assert.equal(after.status, 0, after.stderr);
+    assert.doesNotMatch(before.stdout, /has since been qualified/);
+    assert.match(after.stdout, /study has since been qualified with disputed/);
+    assert.equal(after.stdout.replace(/\n {6}study has since been qualified with disputed/, ''), before.stdout);
+    assert.match(spawnSync(process.execPath, [cli, 'check', '--later-caveats', file('later.cav')], { encoding: 'utf8' }).stderr,
+      /unknown option --later-caveats for check/);
+  });
+});
+
 test('a permission is shown as what permitted a decision, apart from what it rests on', async () => {
   const { dependents } = await import('../lib/explain.mjs');
   const session = real.open(`identifiers limit 8; claim ready; claim may_merge;

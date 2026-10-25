@@ -135,6 +135,12 @@ export interface ExplainedRevision {
   /** Grounds withdrawn since the decision was made. */
   withdrawn: Withdrawal[];
   /**
+   * With `laterCaveats`: for each grounds evidence that a later `qualify`
+   * reached, the caveats it carries now that the record does not hold. The
+   * record keeps its own caveats; absent without the option.
+   */
+  qualified_since?: { evidence: string; caveats: string[] }[];
+  /**
    * For each grounds evidence, in grounds order, the accepted event whose
    * `reveal` or `sample` effect first observed it, with its payload. Present
    * when the events given to `explain` carry their effects; all null when
@@ -226,6 +232,12 @@ export interface ExplainOptions {
    * payloads or prove the supplied archive is exhaustive.
    */
   archive?: ArchiveEntry[];
+  /**
+   * Also list, under each revision, the caveats a later `qualify` placed on
+   * its grounds evidence (`qualified_since`). Off by default, so the report
+   * and its text stay as before.
+   */
+  laterCaveats?: boolean;
 }
 
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */

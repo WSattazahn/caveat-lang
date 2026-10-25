@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
-// caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+// caveat explain [--runtime <dir>] [--json] [--later-caveats] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
 // caveat review [--runtime <dir>] [--json] --all <directory>
@@ -34,7 +34,8 @@ const USAGE = `CAVEAT Language — Programs that remember why.
 
 Usage:
   caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
-  caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+  caveat-lang explain [--runtime <dir>] [--json] [--later-caveats] <program.cav>
+                      [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
   caveat-lang review [--runtime <dir>] [--json] --all <directory>
@@ -64,6 +65,8 @@ explain sends the events, one JSON object per line such as
 {"event": "read", "payload": {"value": 17}}, then shows each decision with what
 it rests on and its history, the evidence and its caveats, and why each
 displayed value is what it is. Refused events are listed and change nothing.
+With --later-caveats it also says, under each decision, which of its grounds a
+later qualify has reached ("E has since been qualified with C").
   Exit status: 0 explained, 1 an event failed fatally (the explanation is of
   the session before it), 2 the program or events file could not be used.
 
@@ -162,6 +165,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
                    holds without such a caveat
   --withdrawals    (check) also report commits on sources the program can
                    withdraw that nothing guards or reopens
+  --later-caveats  (explain) also show the caveats a later qualify placed on
+                   each decision's grounds
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -215,7 +220,7 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, withdrawals: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, withdrawals: false, laterCaveats: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
@@ -224,6 +229,7 @@ function parseArguments(argv) {
     else if (argument === '--unused' && command === 'check') options.unused = true;
     else if (argument === '--records' && command === 'check') options.records = true;
     else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
+    else if (argument === '--later-caveats' && command === 'explain') options.laterCaveats = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
       if (!options.save) return { error: '--save needs a save file' };
@@ -320,7 +326,7 @@ async function explainProgram(options) {
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
   const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
-  const result = explain(snapshot, sent, { archive });
+  const result = explain(snapshot, sent, { archive, laterCaveats: options.laterCaveats });
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
     console.log(formatExplanation(result, path.basename(program)));
