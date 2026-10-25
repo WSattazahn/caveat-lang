@@ -1,6 +1,7 @@
 {
   "workload": "release-gate",
   "measure": "Median time per event for the release-gate workload in WebAssembly, dispatch with the whole view, on CI's Ubuntu runner.",
-  "target_us": null,
-  "deadline": null
+  "target_us": 11,
+  "deadline": "2027-04-30",
+  "set": "2026-10-25"
 }
