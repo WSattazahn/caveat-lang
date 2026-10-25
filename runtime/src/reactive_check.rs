@@ -746,7 +746,7 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
         } => using
             .iter()
             .chain(citing)
-            .chain(reasons.iter().map(|(_, _, read)| read))
+            .chain(reasons.iter().map(|(_, _, read, _)| read))
             .collect(),
         Effect::Emit { .. }
         | Effect::Reject { .. }
