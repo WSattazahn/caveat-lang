@@ -74,6 +74,7 @@ on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
 | To | Start with |
 | --- | --- |
 | Try Caveat by hand | [Getting started](kit/docs/GETTING_STARTED.md) |
+| Give an agent an undo list in 15 minutes | [An agent with an undo list](docs/tutorials/agent-undo-list/README.md) |
 | Give an agent Caveat's tools over MCP | [MCP server](#mcp-server) |
 | Integrate Caveat into an agent or application | [Agent quickstart](kit/docs/AGENT_START.md) and the [Python client](kit/examples/agent-evidence/README.md) |
 | Write Caveat source | [The language in brief](kit/docs/REFERENCE.md) and the [authoring guide](docs/AI_AUTHORING.md) |

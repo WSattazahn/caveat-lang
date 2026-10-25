@@ -1,0 +1,73 @@
+scene "A support agent's actions, each kept with what it rested on.";
+
+# What the agent can learn, and where it came from. A source is a label.
+claim package_lost;
+evidence carrier from "the carrier tracking API";
+evidence orders from "the order database";
+evidence customer from "the customer's message";
+evidence recheck from "a second carrier lookup";
+
+readings scan_gap from carrier limit 8;     # days since the last carrier scan
+readings order_total from orders limit 8;   # what the customer paid
+readings complaints from customer limit 8;  # 1 for each "where is my package?"
+
+# Each action the agent may take is a decision, kept with its grounds.
+decisions refund limit 4;
+decisions carrier_claim limit 4;
+decisions apology_credit limit 4;
+
+# Tool results the agent reports.
+event carrier_lookup days min 0 max 365;
+event order_lookup total min 0 max 100000;
+event customer_message;
+
+# Actions the agent asks to take.
+event issue_refund;
+event file_claim;
+event send_credit;
+
+# A correction: a second lookup shows the carrier's data was wrong.
+event carrier_correction days min 0 max 365;
+
+on carrier_lookup when days >= 7 sample scan_gap = days supports package_lost;
+on carrier_lookup when days < 7 sample scan_gap = days opposes package_lost;
+on order_lookup sample order_total = total;
+on customer_message sample complaints = 1 supports package_lost;
+
+on issue_refund when not has_sample(scan_gap) or not has_sample(order_total)
+    reject "Look up the order and the tracking first.";
+on issue_refund when latest(scan_gap) < 7 reject "The carrier does not show the package as lost.";
+on issue_refund when committed(refund) and not reopened(refund) reject "Already refunded.";
+on issue_refund commit refund because enough citing latest(scan_gap), latest(order_total);
+
+on file_claim when not has_sample(scan_gap) reject "Look up the tracking first.";
+on file_claim when latest(scan_gap) < 7 reject "The carrier does not show the package as lost.";
+on file_claim when committed(carrier_claim) and not reopened(carrier_claim) reject "Already filed.";
+on file_claim commit carrier_claim because enough citing latest(scan_gap);
+
+on send_credit when not has_sample(complaints) reject "The customer has not written in.";
+on send_credit when committed(apology_credit) and not reopened(apology_credit) reject "Already sent.";
+on send_credit commit apology_credit because enough citing latest(complaints);
+
+# Reopen an action if it rests on withdrawn evidence, giving the reason.
+proc reopen_if_withdrawn(d decisions, why evidence) {
+    when committed(d) and not reopened(d) and rests_on_withdrawn(d) reopen d because why;
+};
+
+# The correction withdraws the bad reading, reopens every action that rested
+# on it, and records the new reading. Nothing is erased.
+on carrier_correction when not has_sample(scan_gap) reject "No tracking to correct.";
+on carrier_correction when not observed(recheck) reveal recheck opposes package_lost;
+on carrier_correction withdraw latest(scan_gap) because recheck;
+on carrier_correction call reopen_if_withdrawn(refund, recheck);
+on carrier_correction call reopen_if_withdrawn(carrier_claim, recheck);
+on carrier_correction call reopen_if_withdrawn(apology_credit, recheck);
+on carrier_correction when days >= 7 sample scan_gap = days supports package_lost;
+on carrier_correction when days < 7 sample scan_gap = days opposes package_lost;
+
+bind undo.refund = "keep" when committed(refund) and not reopened(refund);
+bind undo.refund = "undo" when reopened(refund);
+bind undo.carrier_claim = "keep" when committed(carrier_claim) and not reopened(carrier_claim);
+bind undo.carrier_claim = "undo" when reopened(carrier_claim);
+bind undo.apology_credit = "keep" when committed(apology_credit) and not reopened(apology_credit);
+bind undo.apology_credit = "undo" when reopened(apology_credit);
