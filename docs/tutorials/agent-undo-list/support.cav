@@ -65,9 +65,12 @@ on carrier_correction call reopen_if_withdrawn(apology_credit, recheck);
 on carrier_correction when days >= 7 sample scan_gap = days supports package_lost;
 on carrier_correction when days < 7 sample scan_gap = days opposes package_lost;
 
+bind undo.refund = "not taken";
 bind undo.refund = "keep" when committed(refund) and not reopened(refund);
 bind undo.refund = "undo" when reopened(refund);
+bind undo.carrier_claim = "not taken";
 bind undo.carrier_claim = "keep" when committed(carrier_claim) and not reopened(carrier_claim);
 bind undo.carrier_claim = "undo" when reopened(carrier_claim);
+bind undo.apology_credit = "not taken";
 bind undo.apology_credit = "keep" when committed(apology_credit) and not reopened(apology_credit);
 bind undo.apology_credit = "undo" when reopened(apology_credit);

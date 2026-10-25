@@ -159,7 +159,8 @@ on carrier_correction call reopen_if_withdrawn(apology_credit, recheck);
 ```
 
 The last lines of the file `bind` a displayed value, `undo.refund` and so on,
-to `"keep"` or `"undo"`, so a user interface can show it.
+to `"not taken"`, `"keep"` or `"undo"`, so a user interface can show it. The
+last binding whose condition holds wins.
 
 Check that it loads:
 
@@ -314,7 +315,9 @@ Solutions for 2 and 3 are in [`solutions/`](solutions/).
 
 1. Make the apology credit also cite the carrier reading
    (`citing latest(complaints), latest(scan_gap)`). Run step 7 again: now it's
-   on the undo list too. Also add `or not has_sample(scan_gap)` to the
+   on the undo list too. (The "based on" line lists grounds sorted by name;
+   the "committed because" line lists them in the order they were observed.)
+   Also add `or not has_sample(scan_gap)` to the
    credit's first guard: without it, a credit asked for before any carrier
    lookup is refused as a runtime error (`evaluation/expression`) instead of
    with your message. Run step 9 again as well: S01 now fails, because it
