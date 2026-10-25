@@ -58,6 +58,38 @@ So the two answer different questions. The score says how likely fraud is.
 Caveat says which score a decision used, what was known to be wrong with it
 at the time, and what happened when the score was taken back.
 
+## A worked example: a conformal interval
+
+Conformal prediction wraps a model's prediction in an interval that contains
+the true value at a stated rate, such as 90% of the time, provided the cases
+used to calibrate it are exchangeable with the new ones (Angelopoulos and
+Bates, "A Gentle Introduction to Conformal Prediction and Distribution-Free
+Uncertainty Quantification", [arXiv 2107.07511](https://arxiv.org/abs/2107.07511)).
+Both conditions are caveats in Caveat's sense: they say when the number can
+be wrong. So the interval's bound becomes a reading, and the guarantee's
+terms become caveats on its evidence:
+
+```caveat
+claim demand_bounded;
+evidence forecast from "the demand model's conformal interval at 90% coverage";
+caveat misses_one_in_ten consequence material;
+caveat assumes_exchangeable consequence material;
+misses_one_in_ten qualifies forecast;
+assumes_exchangeable qualifies forecast;
+readings upper_bounds from forecast limit 8;
+decisions stock limit 8 reopened by upper_bounds;
+event predict high min 0 max 100000;
+on predict sample upper_bounds = high supports demand_bounded;
+on predict when not committed(stock) or reopened(stock)
+    commit stock because enough using latest(upper_bounds);
+```
+
+Each stocking decision then records the interval bound it used and carries
+both caveats, and a new forecast reopens it. If the calibration data turn
+out not to match the new cases, a program can withdraw the readings, and the
+decisions made on them show it. Caveat does not compute the interval or
+check the coverage; the tool that made the interval does.
+
 ## Where the number and the reasons meet
 
 - **The program states the threshold.** `latest(scores) >= 0.9` is ordinary
@@ -72,6 +104,19 @@ at the time, and what happened when the score was taken back.
 - **Caveat consequences are not likelihoods.** A caveat's consequence is one
   of five declared levels, from `negligible` to `catastrophic`. It says how
   much the caveat matters, not how likely it is to apply.
+
+## Dependence, not cause
+
+Caveat records what a decision's evaluation read and rested on: its grounds,
+and separately the evidence that "could also have been influenced" it, such
+as a reading a guard looked at. That is dependence, not cause. It does not
+say that changing the evidence would have changed the decision, or by how
+much, and it says nothing about cause in the world (Judea Pearl's
+distinction; see Pearl, *Causality*, 2nd ed., Cambridge University Press,
+2009). A what-if check, which runs an event on a copy of the session and
+drops the copy, asks a counterfactual question, but about the program: what
+this program would do if an event happened now, such as a withdrawal. It is not a claim about what
+would have happened in the world.
 
 ## Out of scope
 
