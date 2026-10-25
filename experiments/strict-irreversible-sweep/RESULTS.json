@@ -1,7 +1,7 @@
 {
   "note": "Strict Irreversible 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-strict-irreversible-0.1.md, \"Corpus sweep\".",
-  "revision": "999383d34820f09ed1bedec7065e453880d2c288",
-  "programs": 203,
+  "revision": "73018db4e9beaed0028d658932565550c438b2a1",
+  "programs": 204,
   "irreversible_series": [
     {
       "path": "experiments/prompt-injection/inbox-agent-recipients.cav",

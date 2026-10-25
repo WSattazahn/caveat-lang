@@ -108,8 +108,8 @@ without `strict` does not restore onto a source that adds it.
 
 ## Corpus sweep
 
-`node experiments/strict-irreversible-sweep/sweep.mjs` reads the 203 tracked
-programs on main at 2f59ed7 ([RESULTS.json](../experiments/strict-irreversible-sweep/RESULTS.json)):
+`node experiments/strict-irreversible-sweep/sweep.mjs` reads the 204 tracked
+programs on main at 2575a33 ([RESULTS.json](../experiments/strict-irreversible-sweep/RESULTS.json)):
 
 - 5 irreversible series: 2 in `kit/examples/handoff/handoff.cav`
   (`notify_customers`, `ship`) and 3 in the prompt-injection experiment
