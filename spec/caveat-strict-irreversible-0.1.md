@@ -1,8 +1,6 @@
 # CAVEAT Strict Irreversible 0.1 (draft) — an irreversible commit that reads its whole basis
 
-**Status:** draft for 1.4, not yet under the [compatibility commitment](../docs/COMPATIBILITY.md). It adds to [Foreclosure 0.1](caveat-foreclosure-0.1.md) and
-changes no program that loads today: the new word only appears in a form
-that does not load in 1.3.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.4. It adds to [Foreclosure 0.1](caveat-foreclosure-0.1.md) and changes no program that loads today: the new word only appears in a form that does not load in 1.3.
 
 [Foreclosure 0.1](caveat-foreclosure-0.1.md) refuses an irreversible commit
 whose **grounds** carry an unretained caveat of consequence `material` or
