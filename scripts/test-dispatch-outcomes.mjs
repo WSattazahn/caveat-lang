@@ -679,16 +679,13 @@ try {
       });
     }
 
-    // Value provenance past its 65,536 name bytes is a fault no catalog code
-    // classifies. id_text of a non-handle served here until F309.
-    const left = 'a'.repeat(32768);
-    const right = 'b'.repeat(32768);
-    const overflow = rule => `evidence ${left} from left_sensor; evidence ${right} from right_sensor;
-      evidence extra from extra_sensor; state wide_left = 0; state wide_right = 0; state wide = 0;
-      ${rule} reveal ${left}; ${rule} reveal ${right}; ${rule} reveal extra;
-      ${rule} set wide_left = qualified(1, ${left}); ${rule} set wide_right = qualified(2, ${right});
-      ${rule} set wide = wide_left + wide_right + qualified(0, extra);`;
-    for (const [name, rule] of [['provenance-overflow', 'on run'], ['guarded-provenance-overflow', 'on run when output > 0']]) {
+    // A bound text past its 65,536 bytes is a fault no catalog code
+    // classifies. Value provenance past its name bytes served here until it
+    // became limit/provenance_limit (D022); id_text of a non-handle until F309.
+    const overflow = rule => `state big = 0 min 0 max 2000000;
+      ${rule} set big = 1234567.123456789;
+      bind wide.text = "${'A'.repeat(65520)}" + text(big);`;
+    for (const [name, rule] of [['text-overflow', 'on run'], ['guarded-text-overflow', 'on run when output > 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;
           on run set output = 1; ${overflow(rule)}`);

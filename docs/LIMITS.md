@@ -121,16 +121,17 @@ identifiers and 65,536 bytes of names
 records count as one marker per history
 ([Lineage Compaction 0.1](../spec/caveat-lineage-compaction-0.1.md)). A
 state that adds two new renewable occurrences to its own lineage every event
-cost about 250 µs per event at 200 names and about 590 µs near 1,000. Today
-an event that would take a value past the cap ends the session as a fatal
-`unclassified` outcome rather than refusing the event. That is a known gap,
-being worked on.
+cost about 250 µs per event at 200 names and about 590 µs near 1,000. An
+event that would take a value past the cap is refused with
+`limit/provenance_limit`, and the session goes on (from 1.4.0; before it,
+such an event ended the session as fatal `unclassified`).
 
 **Expression work.** One expression evaluates at most 65,536 nodes, and a
 history fold reads at most 256 records
 ([Reactive 0.6](../spec/caveat-reactive-0.6.md)). A fold whose reducer is large can
-reach the node cap once its stream holds enough readings. Today that also
-ends the session as fatal `unclassified`, the same known gap.
+reach the node cap once its stream holds enough readings. Such an event is
+refused with `limit/evaluation_limit` (from 1.4.0; before it, fatal
+`unclassified`).
 
 **Other per-event caps.** Procedure calls nest at most 64 deep
 (`limit/depth_limit`); at most 4,096 delayed qualifications wait at once
