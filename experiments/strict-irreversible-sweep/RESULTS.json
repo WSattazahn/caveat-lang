@@ -1,0 +1,44 @@
+{
+  "note": "Strict Irreversible 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-strict-irreversible-0.1.md, \"Corpus sweep\".",
+  "revision": "063f0729bf2d403bf7ebd0c4b8f6abbf9b00e57a",
+  "programs": 200,
+  "irreversible_series": [
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "series": "notify_customers"
+    },
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "series": "ship"
+    }
+  ],
+  "strict_series": [],
+  "names_spelled_strict": [],
+  "irreversible_commit_rules": [
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "event": "main_notify",
+      "series": "notify_customers",
+      "guard": false,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "event": "main_ship",
+      "series": "ship",
+      "guard": false,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "event": "main_ship_on_linux",
+      "series": "ship",
+      "guard": false,
+      "permitted": false,
+      "retaining": true
+    }
+  ],
+  "rules_strict_would_read_more_of": 0
+}

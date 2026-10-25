@@ -103,7 +103,7 @@ export const groups = [
   {
     name: 'clauses',
     words: ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to',
-      'via', 'through', 'toward', 'noting', 'irreversible', 'forecloses'],
+      'via', 'through', 'toward', 'noting', 'irreversible', 'strict', 'forecloses'],
     probe: 'x @ y;',
     scope: 'keyword.other',
   },

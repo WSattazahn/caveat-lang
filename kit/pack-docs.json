@@ -66,6 +66,7 @@
     "spec/caveat-nested-repetition-0.1.md",
     "spec/caveat-holds-0.1.md",
     "spec/caveat-foreclosure-0.1.md",
+    "spec/caveat-strict-irreversible-0.1.md",
     "spec/caveat-outcomes-0.1.md",
     "spec/caveat-review-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
