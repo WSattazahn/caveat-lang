@@ -1,0 +1,9 @@
+{
+  "programs": 204,
+  "mentions_only_if": [
+    {
+      "file": "experiments/model-votes/votes.cav",
+      "written_for_profile": true
+    }
+  ]
+}

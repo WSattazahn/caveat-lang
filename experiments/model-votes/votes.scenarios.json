@@ -1,0 +1,355 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "votes.cav",
+ "scenarios": [
+  {
+   "id": "MV01",
+   "title": "Each decision is grounded on the votes that agreed, and only on those",
+   "steps": [
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m3",
+      "verdict": 0
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m3",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_b"
+     }
+    },
+    {
+     "expect": {
+      "/commitment_grounds/case_a_approve@1/evidence": [
+       "case_a_m1_vote@1",
+       "case_a_m2_vote@1"
+      ],
+      "/commitment_grounds/case_b_approve@1/evidence": [
+       "case_b_m1_vote@1",
+       "case_b_m2_vote@1",
+       "case_b_m3_vote@1"
+      ],
+      "/bindings/case_a/approval": "approved",
+      "/bindings/case_b/approval": "approved"
+     }
+    }
+   ]
+  },
+  {
+   "id": "MV02",
+   "title": "Distrusting a model reopens the decision its vote tipped; the one with votes to spare holds",
+   "steps": [
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m3",
+      "verdict": 0
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m3",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_b"
+     }
+    },
+    {
+     "send": "distrust",
+     "payload": {
+      "model": "m2"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/case_a/approval": "reopened: a withdrawn vote tipped it",
+      "/bindings/case_b/approval": "holds without the withdrawn vote",
+      "/commitment_grounds/case_a_approve@1/evidence": [
+       "case_a_m1_vote@1",
+       "case_a_m2_vote@1"
+      ]
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     },
+     "rejected": "Fewer than two models agree."
+    }
+   ]
+  },
+  {
+   "id": "MV03",
+   "title": "Distrusting a model that dissented changes no decision",
+   "steps": [
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m3",
+      "verdict": 0
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_b",
+      "model": "m3",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_b"
+     }
+    },
+    {
+     "send": "distrust",
+     "payload": {
+      "model": "m3"
+     }
+    },
+    {
+     "expect": {
+      "/bindings/case_a/approval": "approved",
+      "/bindings/case_b/approval": "holds without the withdrawn vote"
+     }
+    }
+   ]
+  },
+  {
+   "id": "MV04",
+   "title": "One vote is not a quorum, a model votes once per case, and a model is found unreliable once",
+   "steps": [
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     },
+     "rejected": "Fewer than two models agree."
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 0
+     },
+     "rejected": "That model already voted on that case."
+    },
+    {
+     "send": "distrust",
+     "payload": {
+      "model": "m1"
+     }
+    },
+    {
+     "send": "distrust",
+     "payload": {
+      "model": "m1"
+     },
+     "rejected": "Already found unreliable."
+    }
+   ]
+  },
+  {
+   "id": "MV05",
+   "title": "A model distrusted before the vote is counted leaves too few agreeing votes",
+   "steps": [
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m1",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m2",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "distrust",
+     "payload": {
+      "model": "m2"
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     },
+     "rejected": "Fewer than two models agree."
+    },
+    {
+     "send": "vote",
+     "payload": {
+      "case": "case_a",
+      "model": "m3",
+      "verdict": 1
+     }
+    },
+    {
+     "send": "decide",
+     "payload": {
+      "case": "case_a"
+     }
+    },
+    {
+     "expect": {
+      "/commitment_grounds/case_a_approve@1/evidence": [
+       "case_a_m1_vote@1",
+       "case_a_m3_vote@1"
+      ],
+      "/bindings/case_a/approval": "approved"
+     }
+    }
+   ]
+  }
+ ]
+}

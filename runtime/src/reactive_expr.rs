@@ -145,6 +145,83 @@ pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
 /// spec/caveat-outcomes-0.1.md.
 pub const OUTCOME: &str = "outcome";
 
+/// The name of `only_if(CONDITION, VALUE)`. See spec/caveat-only-if-0.1.md.
+pub const ONLY_IF: &str = "only_if";
+
+/// What one evaluation may still do: its node budget and, when it computes
+/// grounds, whether the reads of an `only_if` condition are left out of them.
+struct Budget {
+    nodes: Cell<usize>,
+    quiet_conditions: bool,
+    quiet: Cell<bool>,
+}
+
+impl Budget {
+    fn get(&self) -> usize {
+        self.nodes.get()
+    }
+
+    fn set(&self, nodes: usize) {
+        self.nodes.set(nodes)
+    }
+}
+
+/// The name of `carries_any(…)`: whether evidence carries any caveat, or any
+/// of consequence at least a level. It reaches the host as a `carries`
+/// predicate whose caveat is [`ANY_CAVEAT`], followed by the level when one is
+/// given. See spec/caveat-carries-any-0.1.md.
+pub const CARRIES_ANY: &str = "carries_any";
+
+/// The caveat part of a `carries` predicate kind that `carries_any(…)` asks:
+/// `carries:*` for any caveat, `carries:*material` for one of consequence
+/// `material` or above. No declared caveat is spelled with `*`.
+pub const ANY_CAVEAT: &str = "*";
+
+const CONSEQUENCE_WORDS: [&str; 5] = ["negligible", "low", "material", "high", "catastrophic"];
+
+/// `carries_any(TARGET [, LEVEL])` from its arguments as an ordinary call
+/// reads them: `TARGET` is evidence, `latest(NAME)`, `occurrence(E, I)` or
+/// `reading(STREAM, I)`, and `LEVEL` a consequence word.
+fn carries_any_form(arguments: &[Expr]) -> Result<Node, String> {
+    let usage = "carries_any expects carries_any(EVIDENCE) or carries_any(EVIDENCE, CONSEQUENCE), where EVIDENCE may be latest(NAME), occurrence(E, I) or reading(STREAM, I)";
+    let (target, level) = match arguments {
+        [target] => (target, None),
+        [target, level] => (target, Some(level)),
+        _ => return Err(usage.into()),
+    };
+    let level = match level.map(|level| &level.node) {
+        None => String::new(),
+        Some(Node::Variable(word)) if CONSEQUENCE_WORDS.contains(&word.as_str()) => word.clone(),
+        Some(_) => {
+            return Err(format!(
+                "carries_any's second argument is a consequence: one of {}",
+                CONSEQUENCE_WORDS.join(", ")
+            ))
+        }
+    };
+    let kind = format!("carries:{ANY_CAVEAT}{level}");
+    match &target.node {
+        Node::Variable(name) if plain_identifier(name) => Ok(Node::Predicate(kind, name.clone())),
+        Node::Latest(name) => Ok(Node::Predicate(format!("{AT_LATEST}{kind}"), name.clone())),
+        Node::UserCall(selector, parts) if selector == "occurrence" || selector == "reading" => {
+            match parts.as_slice() {
+                [evidence, index] => match &evidence.node {
+                    Node::Variable(evidence) if plain_identifier(evidence) => Ok(
+                        Node::AtOccurrence(kind, evidence.clone(), Box::new(index.clone())),
+                    ),
+                    _ => Err(format!(
+                        "{selector}(…) in carries_any names plain evidence first"
+                    )),
+                },
+                _ => Err(format!(
+                    "{selector}(…) in carries_any takes evidence and an index"
+                )),
+            }
+        }
+        _ => Err(usage.into()),
+    }
+}
+
 /// What `in_basis(…)` asks about: a revision of a decision series and a
 /// reference to evidence. See spec/caveat-in-basis-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -799,6 +876,9 @@ enum Node {
     Qualified(Box<Expr>, String, Vec<String>),
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     Require(Box<Expr>, Box<Expr>),
+    /// `only_if(CONDITION, VALUE)`: VALUE when CONDITION holds, else 0. The
+    /// condition is lineage, not grounds (spec/caveat-only-if-0.1.md).
+    OnlyIf(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -966,7 +1046,9 @@ impl Expr {
             Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
                 visit(child)
             }
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 visit(left);
                 visit(right);
             }
@@ -1088,7 +1170,9 @@ impl Expr {
                 value.collect_reads(reads);
             }
             Node::Unary(_, child) => child.collect_reads(reads),
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 left.collect_reads(reads);
                 right.collect_reads(reads);
             }
@@ -1169,7 +1253,9 @@ impl Expr {
                 value.collect_sources(sources);
             }
             Node::Unary(_, value) => value.collect_sources(sources),
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 left.collect_sources(sources);
                 right.collect_sources(sources);
             }
@@ -1246,7 +1332,9 @@ impl Expr {
             Node::Qualified(value, _, _) | Node::Unary(_, value) => {
                 value.collect_record_reads(records)
             }
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 left.collect_record_reads(records);
                 right.collect_record_reads(records);
             }
@@ -1315,7 +1403,9 @@ impl Expr {
             Node::Qualified(value, _, _) | Node::Unary(_, value) => {
                 value.collect_histories(histories)
             }
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 left.collect_histories(histories);
                 right.collect_histories(histories);
             }
@@ -1412,6 +1502,7 @@ impl Expr {
                 Node::Binary(*operator, child(left), child(right))
             }
             Node::Require(condition, value) => Node::Require(child(condition), child(value)),
+            Node::OnlyIf(condition, value) => Node::OnlyIf(child(condition), child(value)),
             Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
             Node::HistoryAt(history, index) => Node::HistoryAt(rename(history), child(index)),
             Node::Fold(history, initial, reducer) => {
@@ -1501,9 +1592,9 @@ impl Expr {
                     || caveats.iter().any(|caveat| caveat.contains(word))
             }
             Node::Unary(_, operand) => child(operand),
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
-                child(left) || child(right)
-            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => child(left) || child(right),
             Node::If(condition, yes, no) => child(condition) || child(yes) || child(no),
             Node::HistoryAt(history, index) => history.contains(word) || child(index),
             Node::AtOccurrence(kind, evidence, index) => {
@@ -1560,6 +1651,7 @@ impl Expr {
             | Node::AtOccurrence(_, _, child) => child.collect_caveat_reads(examined, extras),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
+            | Node::OnlyIf(left, right)
             | Node::ExpandedFold(_, left, right) => {
                 left.collect_caveat_reads(examined, extras);
                 right.collect_caveat_reads(examined, extras);
@@ -1608,6 +1700,7 @@ impl Expr {
             }
             Node::Binary(Binary::And | Binary::Or, left, _)
             | Node::Require(left, _)
+            | Node::OnlyIf(left, _)
             | Node::If(left, _, _) => left.qualified_unconditionally(evidence),
             Node::Binary(_, left, right) => {
                 left.qualified_unconditionally(evidence);
@@ -1653,7 +1746,9 @@ impl Expr {
             | Node::Fold(_, child, _) => child.depth + 1,
             Node::ExpandedFold(_, initial, body) => initial.depth.max(body.depth) + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
-            Node::Require(condition, value) => condition.depth.max(value.depth) + 1,
+            Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
+                condition.depth.max(value.depth) + 1
+            }
             Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
             Node::Function(_, children)
             | Node::UserCall(_, children)
@@ -1813,6 +1908,15 @@ impl Expr {
                     .require(ValueType::Bool)?;
                 value.validate_calls(numeric, predicate, user_call)
             }
+            Node::OnlyIf(condition, value) => {
+                condition
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Bool)?;
+                value
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
+                Ok(ValueType::Number)
+            }
             Node::Unary(operator, child) => {
                 let expected = match operator {
                     Unary::Not => ValueType::Bool,
@@ -1952,33 +2056,71 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
+        self.tracked(numbers, predicate, qualify, history, identifiers, false)
+    }
+
+    /// As `evaluate_tracked_with_identifiers`, for a value's grounds: the
+    /// reads of an `only_if` condition are not kept, since the condition
+    /// chose the value without being what it rests on (its lineage keeps
+    /// them). See spec/caveat-only-if-0.1.md.
+    pub fn evaluate_grounds_with_identifiers(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+        identifiers: &impl Fn(f64) -> Result<String, String>,
+    ) -> Result<Tracked<Value>, EvalError> {
+        self.tracked(numbers, predicate, qualify, history, identifiers, true)
+    }
+
+    fn tracked(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+        identifiers: &impl Fn(f64) -> Result<String, String>,
+        quiet_conditions: bool,
+    ) -> Result<Tracked<Value>, EvalError> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
         let provenance = RefCell::new(Provenance::default());
+        let budget = Budget {
+            nodes: Cell::new(MAX_EVALUATED_NODES),
+            quiet_conditions,
+            quiet: Cell::new(false),
+        };
+        let keep = |read: &Provenance| {
+            if budget.quiet.get() {
+                return Ok(());
+            }
+            read_into(&provenance, read)
+        };
         let value = self.evaluate_values(
             &|name| {
                 let Some(tracked) = numbers(name)? else {
                     return Ok(None);
                 };
                 let value = finite(tracked.value)?;
-                read_into(&provenance, &tracked.provenance)?;
+                keep(&tracked.provenance)?;
                 Ok(Some(value))
             },
             &|kind, name| {
                 let tracked = predicate(kind, name)?;
-                read_into(&provenance, &tracked.provenance)?;
+                keep(&tracked.provenance)?;
                 Ok(tracked.value)
             },
-            &|evidence, caveats| read_into(&provenance, &qualify(evidence, caveats)?),
+            &|evidence, caveats| keep(&qualify(evidence, caveats)?),
             &|name, query| {
                 let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;
-                read_into(&provenance, &tracked.provenance)?;
+                keep(&tracked.provenance)?;
                 Ok(value)
             },
             identifiers,
-            &Cell::new(MAX_EVALUATED_NODES),
+            &budget,
         )?;
         Ok(Tracked {
             value,
@@ -1993,7 +2135,7 @@ impl Expr {
         qualify: &QualificationSink<'_>,
         history: &dyn Fn(&str, HistoryRead) -> Result<f64, EvalError>,
         identifiers: &dyn Fn(f64) -> Result<String, String>,
-        remaining: &Cell<usize>,
+        remaining: &Budget,
     ) -> Result<Value, EvalError> {
         let budget = remaining.get();
         if budget == 0 {
@@ -2181,6 +2323,33 @@ impl Expr {
                     ));
                 }
                 value.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+            }
+            Node::OnlyIf(condition, value) => {
+                // In grounds, the condition's reads are not kept: it chose
+                // the value without being what the value rests on.
+                let quiet = remaining.quiet.get();
+                remaining.quiet.set(quiet || remaining.quiet_conditions);
+                let holds = condition.evaluate_values(
+                    numbers,
+                    predicate,
+                    qualify,
+                    history,
+                    identifiers,
+                    remaining,
+                );
+                remaining.quiet.set(quiet);
+                if holds?.boolean()? {
+                    value.evaluate_values(
+                        numbers,
+                        predicate,
+                        qualify,
+                        history,
+                        identifiers,
+                        remaining,
+                    )
+                } else {
+                    Ok(Value::Number(0.0))
+                }
             }
             Node::UserCall(name, _) => {
                 Err(format!("source function {name} must be expanded before evaluation").into())
@@ -2736,6 +2905,23 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after conditional expression")?;
             return Ok(node);
         }
+        // `only_if(CONDITION, VALUE)`. A 1.x program may define `fn only_if`;
+        // its calls become that function's at link (spec/caveat-only-if-0.1.md).
+        if name == ONLY_IF {
+            let start = self.cursor;
+            let parsed = (|| {
+                let condition = self.expression(0, nesting)?;
+                self.expect(TokenKind::Comma, "',' after the only_if condition")?;
+                let value = self.expression(0, nesting)?;
+                self.expect(TokenKind::RightParen, "')' after the only_if value")?;
+                Ok::<_, String>(Node::OnlyIf(Box::new(condition), Box::new(value)))
+            })();
+            match parsed {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         if name == "qualified" {
             let value = self.expression(0, nesting)?;
             self.expect(TokenKind::Comma, "',' before qualification evidence")?;
@@ -2924,6 +3110,18 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after predicate target")?;
             return Ok(Node::Predicate(name, target));
         }
+        // `carries_any(…)` is read as a call and resolved when source
+        // functions are known, since a 1.3 program may define `fn
+        // carries_any` (see `Expander::walk`). The strict parser has no
+        // source functions, so it resolves it here.
+        if name == CARRIES_ANY && !self.allow_user_functions {
+            self.allow_user_functions = true;
+            let arguments = self.call_arguments(nesting);
+            self.allow_user_functions = false;
+            let arguments = arguments?;
+            self.expect(TokenKind::RightParen, "')' after carries_any's arguments")?;
+            return carries_any_form(&arguments);
+        }
         let function = Function::named(&name);
         if function.is_none() && (!self.allow_user_functions || !plain_identifier(&name)) {
             return Err(format!("unknown expression function {name}"));
@@ -2959,6 +3157,21 @@ impl Parser {
         } else {
             Ok(Node::UserCall(name, arguments))
         }
+    }
+
+    /// Comma-separated expressions up to, not including, a closing `)`.
+    fn call_arguments(&mut self, nesting: usize) -> Result<Vec<Expr>, String> {
+        let mut arguments = Vec::new();
+        if self.peek() != Some(&TokenKind::RightParen) {
+            loop {
+                arguments.push(self.expression(0, nesting)?);
+                if self.peek() != Some(&TokenKind::Comma) {
+                    break;
+                }
+                self.cursor += 1;
+            }
+        }
+        Ok(arguments)
     }
 
     fn graph_identifier(&mut self, context: &str) -> Result<String, String> {
@@ -3193,7 +3406,7 @@ fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
             collect_calls(left, calls);
             collect_calls(right, calls);
         }
-        Node::Require(condition, value) => {
+        Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
             collect_calls(condition, calls);
             collect_calls(value, calls);
         }
@@ -3239,6 +3452,9 @@ fn infer_function(
     let mut calls = Vec::new();
     collect_calls(&definition.body, &mut calls);
     for callee in calls {
+        if callee == CARRIES_ANY && !functions.contains_key(CARRIES_ANY) {
+            return Err("pure source functions cannot query graph predicates".into());
+        }
         infer_function(callee, functions, result_types, active)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
@@ -3474,6 +3690,19 @@ impl Expander<'_> {
                 Box::new(self.walk(condition, parameters)?),
                 Box::new(self.walk(value, parameters)?),
             ),
+            // A program may define `fn only_if`; its calls keep their meaning
+            // (spec/caveat-only-if-0.1.md).
+            Node::OnlyIf(condition, value) if self.functions.contains_key(ONLY_IF) => {
+                let call = Node::UserCall(
+                    ONLY_IF.into(),
+                    vec![condition.as_ref().clone(), value.as_ref().clone()],
+                );
+                return self.walk(&Expr::new(call)?, parameters);
+            }
+            Node::OnlyIf(condition, value) => Node::OnlyIf(
+                Box::new(self.walk(condition, parameters)?),
+                Box::new(self.walk(value, parameters)?),
+            ),
             Node::If(condition, yes, no) => Node::If(
                 Box::new(self.walk(condition, parameters)?),
                 Box::new(self.walk(yes, parameters)?),
@@ -3493,6 +3722,17 @@ impl Expander<'_> {
                     .collect::<Result<_, _>>()?,
                 Box::new(self.walk(body, parameters)?),
             ),
+            // `carries_any(…)` is the predicate unless the program defines a
+            // source function of that name, whose calls keep their 1.3
+            // meaning (docs/COMPATIBILITY.md).
+            Node::UserCall(name, arguments)
+                if name == CARRIES_ANY && !self.functions.contains_key(CARRIES_ANY) =>
+            {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                return self.walk(&Expr::new(carries_any_form(arguments)?)?, parameters);
+            }
             Node::UserCall(name, arguments) => {
                 if name == "elapsed" {
                     return Err("elapsed() requires no arguments".into());

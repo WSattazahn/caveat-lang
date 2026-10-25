@@ -579,7 +579,12 @@ does in `withdraw`, `qualify`, `unqualify` and `reopen … because`, and in
 `observed`, `withdrawn` and `carries`. An N that names no reading the stream
 holds refuses an effect as `expression` and makes a predicate false.
 `carries(latest(STREAM), C)` asks whether the current reading carries `C`,
-for example in a guard that refuses to flag a reading twice.
+for example in a guard that refuses to flag a reading twice. To ask whether
+it carries any caveat at all, write `carries_any(latest(STREAM))`, or
+`carries_any(latest(STREAM), material)` for any of consequence `material` or
+above, `withdrawn` included, rather than listing caveats by name: a caveat
+declared later is then covered too (1.4 draft,
+[carries any](../spec/caveat-carries-any-0.1.md)).
 `in_basis(DECISION, E)` is true when the decision's current revision rests on
 `E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
 asks the same of the Kth revision. A later reading is never in an earlier
@@ -872,6 +877,13 @@ When an action takes two sources, such as an instruction from one email and a
 recipient from another, nest a routed `for` per event parameter; each
 decision's grounds then name both readings
 ([section 1](../spec/caveat-untrusted-sources-0.1.md#1-one-action-on-several-sources)).
+
+When several sources vote and a decision should rest on the ones that agreed,
+add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
+`if(...)` would make every vote it read a ground, dissenters included.
+`only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
+([Only If 0.1](../spec/caveat-only-if-0.1.md); the
+[model-votes experiment](../experiments/model-votes/README.md)).
 
 ## What a withdrawal adds to a decision's grounds
 
