@@ -30,6 +30,7 @@
     "test:trail-rescue-page": "node scripts/test-trail-rescue-page.mjs",
     "test:kit": "npm --prefix kit test",
     "test:ledger": "node kit/bin/caveat.mjs check --strict ledger/project.cav && node kit/bin/caveat.mjs test ledger/project.scenarios.json && node ledger/replay-check.mjs",
+    "test:release-gate": "node kit/bin/caveat.mjs check --strict --unused scripts/release-gate/release-gate.cav && node kit/bin/caveat.mjs test scripts/release-gate/release-gate.scenarios.json && node --test scripts/release-publish.test.mjs scripts/release-gate/release-gate.test.mjs",
     "test:kit-browser": "node scripts/test-kit-browser.mjs",
     "test:kit-package": "node scripts/test-kit-package.mjs",
     "check:notices": "node scripts/third-party-notices.mjs --check",
