@@ -246,10 +246,14 @@ function sendAll(session, events, each = () => {}) {
   const sent = [];
   const archive = [];
   let snapshot = session.snapshot();
-  for (const { event, payload, line } of events) {
+  for (const { event, payload, agent, line } of events) {
+    // An event an agent sent keeps its agent (spec/caveat-agents-0.1.md).
+    const from = agent === undefined ? {} : { agent };
     try {
-      const { snapshot: after, ...outcome } = session.dispatch(event, payload);
-      sent.push({ event, payload, outcome,
+      const { snapshot: after, ...outcome } = agent === undefined
+        ? session.dispatch(event, payload)
+        : session.dispatch(event, payload, from);
+      sent.push({ event, payload, ...from, outcome,
         ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
       if (outcome.outcome === 'accepted') {
         snapshot = after;
@@ -258,7 +262,7 @@ function sendAll(session, events, each = () => {}) {
       each({ event, payload, line, outcome, snapshot: outcome.outcome === 'accepted' ? after : null });
     } catch (error) {
       const outcome = { outcome: 'fatal', kind: error.kind ?? null, message: error.message };
-      sent.push({ event, payload, outcome });
+      sent.push({ event, payload, ...from, outcome });
       each({ event, payload, line, outcome, snapshot: null });
       return { sent, snapshot, archive, failed: true };
     }

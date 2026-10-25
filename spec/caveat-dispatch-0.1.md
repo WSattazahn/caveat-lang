@@ -110,6 +110,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `policy` | `not_permitted` | A commit's `permitted by` clause found its grant missing, withdrawn, or for another value ([Permission 0.1](caveat-permission-0.1.md)). |
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range, or a fractional `dt` for an integer clock inside its range ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `input` | `wrong_agent` | The host named an agent the program does not declare, or sent an event some agent `sends` with no agent or another one ([Agents 0.1](caveat-agents-0.1.md), from 1.4.0). |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range, or a clock event would make the session clock nonfinite, or take an integer clock's reading outside `±(2^53 − 1)` ([Elapsed 0.1](caveat-elapsed-0.1.md)). |
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |

@@ -36,6 +36,10 @@ pub struct ReactiveSave {
     pub sequence: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_event: Option<String>,
+    /// The agent the host said sent the last event. Saves made before
+    /// spec/caveat-agents-0.1.md, or of sessions no agent sent to, have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_agent: Option<String>,
     #[serde(default)]
     pub elapsed: f64,
     /// States that differ from the value the program gives them when it loads.
@@ -637,6 +641,7 @@ impl ReactiveSession {
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
+            last_agent: self.last_agent.clone(),
             elapsed: self.elapsed,
             states: self
                 .states
@@ -803,7 +808,9 @@ impl ReactiveSession {
             return Err(format!("sequence must be at most {MAX_SAVED_SEQUENCE}"));
         }
         self.sequence = save.sequence;
+        self.check_saved_agents(save)?;
         self.last_event = save.last_event.clone();
+        self.last_agent = save.last_agent.clone();
         self.elapsed = save.elapsed;
         self.identifiers = Arc::new(Identifiers::restore(
             self.identifiers.limit(),
@@ -824,6 +831,69 @@ impl ReactiveSession {
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         self.settle_archive_provenance(None, false);
+        Ok(())
+    }
+
+    /// Each agent a save records must be one the program declares and one
+    /// that may send the event it is recorded on, and the records of one
+    /// event name one agent: a host can send nothing else. See
+    /// spec/caveat-agents-0.1.md. Like the rest of restore, this checks that
+    /// the save is possible, not who really sent what.
+    fn check_saved_agents(&self, save: &ReactiveSave) -> Result<(), String> {
+        let mut records: Vec<(u64, &str, Option<&str>)> = Vec::new();
+        records.extend(
+            save.decision_journal
+                .iter()
+                .map(|entry| (entry.sequence, entry.event.as_str(), entry.agent.as_deref())),
+        );
+        for stream in save.reading_streams.values() {
+            records.extend(stream.occurrences.iter().map(|reading| {
+                (
+                    reading.sequence,
+                    reading.event.as_str(),
+                    reading.agent.as_deref(),
+                )
+            }));
+        }
+        records.extend(save.withdrawals.iter().map(|withdrawal| {
+            (
+                withdrawal.sequence,
+                withdrawal.event.as_str(),
+                withdrawal.agent.as_deref(),
+            )
+        }));
+        records.extend(save.taken_back.iter().map(|record| {
+            (
+                record.sequence,
+                record.event.as_str(),
+                record.agent.as_deref(),
+            )
+        }));
+        if let Some(event) = &save.last_event {
+            records.push((save.sequence, event.as_str(), save.last_agent.as_deref()));
+        } else if save.last_agent.is_some() {
+            return Err("agents: a last agent without a last event".into());
+        }
+        let mut by_sequence: HashMap<u64, Option<&str>> = HashMap::default();
+        for (sequence, event, agent) in records {
+            if let Some(agent) = agent {
+                if !self.agents.contains_key(agent) {
+                    return Err(format!("agents: undeclared agent {agent}"));
+                }
+            }
+            if let Some(senders) = self.senders.get(event) {
+                if !agent.is_some_and(|agent| senders.contains(agent)) {
+                    return Err(format!(
+                        "agents: event {event} at sequence {sequence} is not recorded with an agent that sends it"
+                    ));
+                }
+            }
+            if *by_sequence.entry(sequence).or_insert(agent) != agent {
+                return Err(format!(
+                    "agents: the records of sequence {sequence} name different agents"
+                ));
+            }
+        }
         Ok(())
     }
 

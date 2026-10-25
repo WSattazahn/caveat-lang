@@ -90,6 +90,21 @@ function viewFields(options) {
   return JSON.stringify(fields);
 }
 
+// The agent an options object names, or null when it names none. See
+// spec/caveat-agents-0.1.md. Checked before the runtime is called.
+function agentOption(options) {
+  if (options === undefined || options === null) return null;
+  if (typeof options !== 'object') throw new TypeError('dispatch options must be an object');
+  const { agent } = options;
+  if (agent === undefined || agent === null) return null;
+  if (typeof agent !== 'string' || !agent) throw new TypeError('agent must be a non-empty string');
+  return agent;
+}
+
+// A runtime build that predates agents throws CaveatError("load") for an
+// event sent with one, and the session is untouched.
+const predatesAgents = method => new CaveatError('load', `this runtime build has no ${method}; it predates agents`);
+
 function validOutcome(outcome, accepted = 'snapshot') {
   if (!outcome || outcome.schema !== DISPATCH_SCHEMA) return false;
   if (outcome.outcome === 'accepted') return isPlainObject(outcome[accepted]);
@@ -185,12 +200,19 @@ export class CaveatSession {
   // code, message}. Throws CaveatError("fatal") for everything else. An
   // accepted snapshot is parsed when it is first read, and snapshot() reuses
   // it until the session changes rather than building it again.
-  dispatch(event, payload = {}) {
+  //
+  // dispatch(event, payload, { agent }) says which agent sent the event, for
+  // a program that declares agents (spec/caveat-agents-0.1.md).
+  dispatch(event, payload = {}, options = {}) {
     this.#usable();
+    const agent = agentOption(options);
+    if (agent !== null && typeof this.#inner.dispatch_outcome_as !== 'function') throw predatesAgents('dispatch_outcome_as');
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     let raw;
-    try { raw = this.#inner.dispatch_outcome(event, text); } catch (error) { this.#lastSnapshot = null; throw this.#fail(error); }
+    try {
+      raw = agent === null ? this.#inner.dispatch_outcome(event, text) : this.#inner.dispatch_outcome_as(event, text, agent);
+    } catch (error) { this.#lastSnapshot = null; throw this.#fail(error); }
     const accepted = acceptedSnapshotText(raw);
     if (accepted !== null) {
       this.#lastSnapshot = accepted;
@@ -223,6 +245,9 @@ export class CaveatSession {
   dispatchView(event, payload = {}, options = {}) {
     this.#usable();
     const fields = viewFields(options);
+    const agent = agentOption(options);
+    if (agent !== null && fields === null && typeof this.#inner.dispatch_view_outcome_as !== 'function') throw predatesAgents('dispatch_view_outcome_as');
+    if (agent !== null && fields !== null && typeof this.#inner.dispatch_view_fields_outcome_as !== 'function') throw predatesAgents('dispatch_view_fields_outcome_as');
     if (typeof this.#inner.dispatch_view_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no dispatch_view_outcome; it predates dispatchView');
     }
@@ -234,9 +259,15 @@ export class CaveatSession {
     this.#lastSnapshot = null;
     let raw;
     try {
-      raw = fields === null
-        ? this.#inner.dispatch_view_outcome(event, text)
-        : this.#inner.dispatch_view_fields_outcome(event, text, fields);
+      if (agent === null) {
+        raw = fields === null
+          ? this.#inner.dispatch_view_outcome(event, text)
+          : this.#inner.dispatch_view_fields_outcome(event, text, fields);
+      } else {
+        raw = fields === null
+          ? this.#inner.dispatch_view_outcome_as(event, text, agent)
+          : this.#inner.dispatch_view_fields_outcome_as(event, text, fields, agent);
+      }
     } catch (error) { throw this.#fail(error); }
     let outcome;
     try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatchView returned text that is not JSON')); }
@@ -291,16 +322,22 @@ export class CaveatSession {
   // after it, or the rejected outcome dispatch() returns, with no delta. A
   // runtime build that predates it throws CaveatError("load") and the session
   // is untouched.
-  dispatchViewDelta(event, payload = {}) {
+  dispatchViewDelta(event, payload = {}, options = {}) {
     this.#usable();
+    const agent = agentOption(options);
     if (typeof this.#inner.dispatch_view_delta_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no dispatch_view_delta_outcome; it predates dispatchViewDelta');
     }
+    if (agent !== null && typeof this.#inner.dispatch_view_delta_outcome_as !== 'function') throw predatesAgents('dispatch_view_delta_outcome_as');
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     this.#lastSnapshot = null;
     let raw;
-    try { raw = this.#inner.dispatch_view_delta_outcome(event, text); } catch (error) { throw this.#fail(error); }
+    try {
+      raw = agent === null
+        ? this.#inner.dispatch_view_delta_outcome(event, text)
+        : this.#inner.dispatch_view_delta_outcome_as(event, text, agent);
+    } catch (error) { throw this.#fail(error); }
     let outcome;
     try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatchViewDelta returned text that is not JSON')); }
     if (!validOutcome(outcome, 'delta')) {

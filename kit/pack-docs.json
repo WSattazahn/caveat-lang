@@ -73,6 +73,7 @@
     "spec/caveat-untrusted-sources-0.1.md",
     "spec/caveat-carries-any-0.1.md",
     "spec/caveat-only-if-0.1.md",
+    "spec/caveat-agents-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]
