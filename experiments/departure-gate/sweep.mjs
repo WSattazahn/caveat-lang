@@ -32,6 +32,7 @@ const newerThanBaseline = {
   'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
   'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
   'experiments/model-votes/votes.cav': /\bwithdraw every\b/,
+  'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b/,
 };
 
 

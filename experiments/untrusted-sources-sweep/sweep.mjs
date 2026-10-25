@@ -117,7 +117,7 @@ const repeated = [...byStream].filter(([, count]) => count > 1).map(([key, count
 });
 // Programs written for this profile after it merged; the sweep's numbers are
 // of the corpus before it.
-const writtenForProfile = new Set(['experiments/model-votes/votes.cav']);
+const writtenForProfile = new Set(['experiments/model-votes/votes.cav', 'kit/examples/intel-betrayal/intel.cav']);
 const before = list => list.filter(({ file }) => !writtenForProfile.has(file));
 assert.deepEqual(before(withdraws.every), [], 'a tracked program writes `withdraw every`, which does not load on 1.3.0');
 assert.deepEqual(before(once), [], 'a tracked program writes `because once`, which does not load on 1.3.0');
