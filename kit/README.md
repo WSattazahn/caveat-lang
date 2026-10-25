@@ -172,8 +172,10 @@ The exit statuses are those of `explain`, and 2 also means the program
 declares no such name. From code, `dependents(snapshot, name)` in
 `caveat-lang/explain` returns the report.
 
-`caveat review` asks which of a revision's grounds it was decided on. It
-replays the events without the events that observed them, alone and
+`caveat review` asks which evidence a revision was decided on: its grounds,
+and the control outside them, such as evidence only the deciding rule's
+`when` condition read. It replays the events without the events that
+observed them, alone and
 together, and lists the evidence without which the deciding event commits
 nothing, the evidence that only moved the value, and the retained caveats
 the revision's outcome says came true. It gives no scores and changes no
