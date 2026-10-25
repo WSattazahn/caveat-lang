@@ -4809,7 +4809,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &Parameters,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers(
+        expression.evaluate_grounds_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
