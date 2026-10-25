@@ -268,6 +268,28 @@
  };
 #^ punctuation.section.block.end meta.block.repeat
 
+# Nested repetition
+
+ entity slot_one kind slot at sea;
+ for reef as $c {
+#^^^ keyword.control.repeat meta.block.repeat
+   for slot as $k {
+#  ^^^ keyword.control.repeat meta.block.repeat
+#      ^^^^ entity.name.type.kind
+#              ^^ variable.parameter.template !variable.other.template
+     state $c_ack_$k = $index;
+#          ^^ variable.other.template meta.block.repeat
+#            ^^^^^ !variable.other.template
+#                 ^^ variable.other.template
+#                      ^^^^^^ variable.other.template
+   };
+#  ^ punctuation.section.block.end meta.block.repeat
+   state $c_slots = 1;
+#        ^^ variable.other.template meta.block.repeat
+ };
+#^ punctuation.section.block.end meta.block.repeat
+# ^ !meta.block.repeat
+
 # Profile statements in a for body
 
  entity buoy_one kind buoy at harbor;

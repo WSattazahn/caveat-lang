@@ -6,14 +6,14 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { root, trackedCavFiles } from './corpus.mjs';
 import {
-  classify, forBlocks, identifiers, numbers, relations, statementHeads, substitutions,
+  allForBlocks, classify, identifiers, numbers, relations, statementHeads, substitutions,
 } from './reference.mjs';
 import { has, scopesOf } from './tokenize.mjs';
 import { expectedHeadScope, highlightedWords, isBuiltin } from './expectations.mjs';
 
 const files = trackedCavFiles();
 
-const totals = { files: 0, strings: 0, comments: 0, blocks: 0, substitutions: 0, heads: 0, relations: 0, builtins: 0, properties: 0, numbers: 0 };
+const totals = { files: 0, strings: 0, comments: 0, blocks: 0, nested: 0, substitutions: 0, heads: 0, relations: 0, builtins: 0, properties: 0, numbers: 0 };
 
 function position(text, index) {
   const before = text.slice(0, index);
@@ -59,14 +59,16 @@ for (const file of files) {
         cls === 'comment' ? 'a comment is not a comment' : 'a comment scope outside a comment');
     }
 
-    // A `for` block is one region from `for` to its closing brace. Inside it,
-    // each `$` plus the bound name it substitutes is a template, the rest of
-    // the name is not, and the header's binding is a parameter.
-    const blocks = forBlocks(text, classes);
+    // A `for` block, nested or not, is one region from `for` to its closing
+    // brace. Inside it, each `$` plus the bound name it substitutes is a
+    // template, the rest of the name is not, and the header's binding is a
+    // parameter.
+    const blocks = allForBlocks(text, classes);
     const inBlock = new Array(text.length).fill(false);
     const templated = new Array(text.length).fill(false);
     for (const block of blocks) {
       totals.blocks += 1;
+      totals.nested += block.nested.length;
       inBlock.fill(true, block.start, block.end);
       for (let index = block.bindingAt; index <= block.bindingAt + block.binding.length; index++) {
         check(has(scopes[index], 'variable.parameter.template'), index, 'the binding is not a template parameter');
