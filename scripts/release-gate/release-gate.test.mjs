@@ -114,6 +114,14 @@ test('randomized run histories get the same answer from both', async () => {
   assert.ok(answers.size >= 8, `the histories reach every kind of answer (${[...answers].join(' | ')})`);
 });
 
+test('1.3.0: a rerun of the failed jobs (attempt 2) is the run, with attempt 1\'s candidate artifact', async () => {
+  const release = history.releases.find(entry => entry.tag === 'v1.3.0');
+  assert.equal(release.runs[0].run_attempt, 2);
+  const { caveat, legacy } = await both(release, release.revision);
+  assert.equal(caveat, 'allowed: run 40131781029, artifact 12575775253');
+  assert.equal(legacy, caveat);
+});
+
 test('the gate keeps a record that explains why the release was allowed', async () => {
   const release = history.releases.find(entry => entry.tag === 'v1.3.0');
   const result = await gateRuntimeCandidate({ api: github(release), repository, revision: release.revision, kit });
