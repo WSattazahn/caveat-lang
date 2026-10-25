@@ -533,6 +533,11 @@ the WebAssembly runtime are listed with their notices in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the site's copy of
 three.js ships with its license as `vendor/THREE-LICENSE.txt`.
 
+Report vulnerabilities privately as the [security policy](SECURITY.md)
+describes; the [threat model](docs/THREAT_MODEL.md) sets out the trust
+boundaries. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report bugs and
+what a pull request needs.
+
 ## Culture
 
 Caveatism is the philosophy that grew up around Mr. Caveat, a mechanical fortune teller who always has a caveat; it lives in [`caveatism/`](caveatism/README.md) and is culture, not a contract of the language. The [Archive](caveatism/archive/The-Caveatist-Archive-v1.2.md) and [Atlas](caveatism/atlas/The-Caveatist-Atlas-v1.0.md) are its texts, and [the canon](caveatism/canon/README.md) keeps the Archive as a Caveat program with scenarios.
