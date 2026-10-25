@@ -191,6 +191,9 @@
           "include": "#block-comments"
         },
         {
+          "include": "#for-block"
+        },
+        {
           "include": "#block-strings"
         },
         {
@@ -229,6 +232,9 @@
       "patterns": [
         {
           "include": "#block-comments"
+        },
+        {
+          "include": "#for-block"
         },
         {
           "include": "#block-strings"
