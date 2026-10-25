@@ -30,6 +30,12 @@ entity check_rustfmt kind source at repo;  # check: rustfmt
 entity author_claude_code kind source at repo;  # author: Claude Code
 entity author_wsattazahn kind source at repo;  # author: WSattazahn
 entity check_legacy_door_3d_qa kind source at repo;  # check: Legacy Door 3D QA
+entity check_build_the_runtime kind source at repo;  # check: build the runtime
+entity check_profile_footprint_and_target kind source at repo;  # check: profile, footprint and target
+entity check_replay_macos_latest kind source at repo;  # check: replay / macos-latest
+entity check_replay_ubuntu_24_04 kind source at repo;  # check: replay / ubuntu-24.04
+entity check_replay_windows_latest kind source at repo;  # check: replay / windows-latest
+entity check_replay_is_byte_identical_everywher kind source at repo;  # check: replay is byte-identical everywhere
 
 evidence merges_seen from "GitHub's record that a pull request merged";
 renewable merges_seen limit 64;
@@ -44,7 +50,7 @@ decisions main limit 64;   # one revision per merge; value: the pull request num
 event pr number min 1 max 999999999;   # a merged pull request's record begins
 event saw name kind source, ok min 0 max 1;   # 1 passed, approved or wrote it; 0 failed or asked for changes
 event merge;                           # the pull request merged on what was sent since `pr`
-event wrong name kind source, index min 1 max 41;   # that source's Nth reading was later found wrong
+event wrong name kind source, index min 1 max 33;   # that source's Nth reading was later found wrong
 
 on pr set basis = number;
 on merge when observed(merges_seen) renew merges_seen;
@@ -54,7 +60,7 @@ on wrong reveal finding;
 
 for source as $s routed by name {
     evidence $s_report from "what GitHub said about $s on each pull request";
-    readings $s from $s_report limit 41;
+    readings $s from $s_report limit 33;
     on saw when ok == 1 sample $s = 1 supports sound;
     on saw when ok == 0 sample $s = 0 opposes sound;
     # Only what passed or approved is what the merge rested on.
