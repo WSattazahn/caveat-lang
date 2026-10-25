@@ -3901,7 +3901,7 @@ impl ReactiveSession {
                     ));
                 }
             }
-            return Ok(self.latest(name)?);
+            return self.latest(name);
         }
         // Counting records is a qualified observation of membership. Include
         // every reached record's basis and guards for leaving history unchanged.
@@ -3929,10 +3929,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
-            return Ok(Tracked::new(
-                value,
-                self.with_current_withdrawals(provenance)?,
-            )?);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         if let Some(series) = self.decision_series.get(name) {
             let mut provenance = Provenance::default();
@@ -3963,10 +3960,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
-            return Ok(Tracked::new(
-                value,
-                self.with_current_withdrawals(provenance)?,
-            )?);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
     }
@@ -4002,23 +3996,23 @@ impl ReactiveSession {
                 format!("outcome({label}): {} has no outcome", revision.id),
             ));
         };
-        Ok(Tracked::new(outcome.value, self.outcome_lineage(outcome)?)?)
+        Tracked::new(outcome.value, self.outcome_lineage(outcome)?)
     }
 
     /// An outcome's frozen lineage, with the caveats its evidence carries
     /// now, so that a later qualification or withdrawal reaches it.
-    fn outcome_lineage(&self, outcome: &Outcome) -> Result<Provenance, String> {
+    fn outcome_lineage(&self, outcome: &Outcome) -> Result<Provenance, EvalError> {
         let mut lineage = outcome.lineage.clone();
         for evidence in &outcome.because {
             lineage.merge(&self.qualify_core(evidence, &[])?)?;
         }
-        self.with_current_withdrawals(lineage)
+        Ok(self.with_current_withdrawals(lineage)?)
     }
 
     /// `resolved(SERIES)`, or `resolved` of a revision `SERIES@K`: true, on
     /// the outcome's lineage, when the revision has an outcome. See
     /// spec/caveat-outcomes-0.1.md.
-    fn resolved_predicate(&self, name: &str) -> Result<Tracked<bool>, String> {
+    fn resolved_predicate(&self, name: &str) -> Result<Tracked<bool>, EvalError> {
         let (series, revision) = match self.decision_series.get(name) {
             Some(series) => (series, series.current.clone()),
             None => {
@@ -4041,7 +4035,7 @@ impl ReactiveSession {
         }
     }
 
-    fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
+    fn latest(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
         if let Some(stream) = self.reading_streams.get(name) {
             let reading = stream
                 .occurrences
@@ -4074,7 +4068,7 @@ impl ReactiveSession {
                 })?,
             );
         }
-        Err(format!("unknown history {name}"))
+        Err(format!("unknown history {name}").into())
     }
 
     fn retain_skipped_effect(
@@ -4812,7 +4806,7 @@ impl ReactiveSession {
         )
     }
 
-    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -5048,7 +5042,7 @@ impl ReactiveSession {
         }
     }
 
-    fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+    fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         let mut provenance = self.qualify_core(evidence, extras)?;
         if let Some(observation) = self.observation_qualifications.get(evidence) {
             provenance.merge(observation)?;
@@ -5089,7 +5083,7 @@ impl ReactiveSession {
     /// The evidence, the caveats that qualify it and the claims it bears on,
     /// and any explicit extras: what a qualified value is *about*, without the
     /// guard that revealed the evidence.
-    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         self.qualify_core_with(evidence, extras, true)
     }
 
@@ -5101,6 +5095,7 @@ impl ReactiveSession {
         evidence: &str,
     ) -> Result<Provenance, String> {
         self.qualify_core_with(evidence, &[], false)
+            .map_err(String::from)
     }
 
     fn qualify_core_with(
@@ -5108,14 +5103,14 @@ impl ReactiveSession {
         evidence: &str,
         extras: &[String],
         honor_take_back: bool,
-    ) -> Result<Provenance, String> {
+    ) -> Result<Provenance, EvalError> {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
         if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
-            return Err(format!(
-                "cannot qualify a value with unobserved evidence {evidence}"
-            ));
+            return Err(
+                format!("cannot qualify a value with unobserved evidence {evidence}").into(),
+            );
         }
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
@@ -5141,7 +5136,7 @@ impl ReactiveSession {
         Provenance::from_names([evidence.into()], caveats)
     }
 
-    fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+    fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -7466,7 +7461,7 @@ impl ReactiveSession {
     /// caveat when it was added, so when the value is computed does not
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
-    fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
+    fn read_live(&self, provenance: &mut Provenance) -> Result<(), EvalError> {
         let reached = self
             .live_late_relations(provenance)
             .into_iter()
@@ -7532,7 +7527,7 @@ impl ReactiveSession {
         kind: &str,
         name: &str,
         grounds: bool,
-    ) -> Result<Option<Tracked<bool>>, String> {
+    ) -> Result<Option<Tracked<bool>>, EvalError> {
         let withdrawn: Vec<&Withdrawal> = match kind {
             WITHDRAWN => self.withdrawal_of(name).into_iter().collect(),
             "withdrawn_latest" => self
@@ -7614,8 +7609,9 @@ impl ReactiveSession {
     /// revision's record, as `committed(…)` asked of it does; a revision or a
     /// reference that names nothing held answers false. See
     /// spec/caveat-in-basis-0.1.md.
-    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, String> {
-        let malformed = || format!("in_basis received a malformed target {target}");
+    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, EvalError> {
+        let malformed =
+            || EvalError::from(format!("in_basis received a malformed target {target}"));
         let mut parts = target.splitn(3, '|');
         let (Some(revision), Some(kind), Some(reference)) =
             (parts.next(), parts.next(), parts.next())
