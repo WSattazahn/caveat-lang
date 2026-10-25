@@ -643,6 +643,10 @@ pub enum Directive {
         /// forecloses while its current revision is in force. See
         /// spec/caveat-foreclosure-0.2.md.
         forecloses: Vec<String>,
+        /// `irreversible strict`: its commits check every caveat in their
+        /// lineage, not only in their grounds. See
+        /// spec/caveat-strict-irreversible-0.1.md.
+        strict: bool,
     },
     /// `renewable EVIDENCE limit N;` or `renewable EVIDENCE window N;`
     Renewable {
@@ -1823,6 +1827,9 @@ pub struct ReactiveSession {
     /// Reversible series that foreclose actions while in force, and those
     /// actions, from the source. See spec/caveat-foreclosure-0.2.md.
     foreclosures: Arc<BTreeMap<String, Vec<String>>>,
+    /// Irreversible series declared `strict`, from the source. See
+    /// spec/caveat-strict-irreversible-0.1.md.
+    strict_irreversible: Arc<BTreeSet<String>>,
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
@@ -2092,6 +2099,7 @@ impl ReactiveSession {
             decision_series: Arc::default(),
             irreversible: Arc::default(),
             foreclosures: Arc::default(),
+            strict_irreversible: Arc::default(),
             renewals: Arc::default(),
             observations: Arc::default(),
             identifiers: Arc::default(),
@@ -2239,6 +2247,7 @@ impl ReactiveSession {
                 Directive::Decisions {
                     irreversible,
                     forecloses,
+                    strict,
                     ..
                 } => {
                     if *irreversible {
@@ -2247,6 +2256,9 @@ impl ReactiveSession {
                     } else if !forecloses.is_empty() {
                         Arc::make_mut(&mut session.foreclosures)
                             .insert(name.clone(), forecloses.clone());
+                    }
+                    if *strict {
+                        Arc::make_mut(&mut session.strict_irreversible).insert(name.clone());
                     }
                     Arc::make_mut(&mut session.decision_series).insert(
                         name.clone(),
@@ -6028,9 +6040,19 @@ impl ReactiveSession {
                 // material or above that it rests on. See
                 // spec/caveat-foreclosure-0.1.md, "An irreversible decision".
                 if self.irreversible.contains_key(action) {
+                    // A strict series reads its lineage too: the guard, a
+                    // permission grant and the rest of its control. See
+                    // spec/caveat-strict-irreversible-0.1.md.
+                    let strict = self.strict_irreversible.contains(action);
                     let unretained = grounds
                         .caveats
                         .iter()
+                        .chain(
+                            provenance
+                                .caveats
+                                .iter()
+                                .filter(|caveat| strict && !grounds.caveats.contains(*caveat)),
+                        )
                         .filter(|caveat| !retaining.contains(*caveat))
                         .filter_map(|caveat| {
                             let consequence = self.graph.consequence(self.symbols[caveat]);
@@ -8406,16 +8428,21 @@ pub(crate) fn parse_directive_at(
                 // ACTION, …]` comes before any `reopened by`, and
                 // spec/caveat-foreclosure-0.2.md: so may `forecloses ACTION, …`
                 // without `irreversible`.
-                let (irreversible, rest) = match rest {
+                let (irreversible, strict, rest) = match rest {
                     ["irreversible", tail @ ..] => {
                         if limit.parse::<usize>() != Ok(1) {
                             return Err(format!(
                                 "an irreversible series holds one revision: decisions {name} limit 1 irreversible"
                             ));
                         }
-                        (true, tail)
+                        // spec/caveat-strict-irreversible-0.1.md: `strict`
+                        // comes straight after `irreversible`.
+                        match tail {
+                            ["strict", tail @ ..] => (true, true, tail),
+                            _ => (true, false, tail),
+                        }
                     }
-                    _ => (false, rest),
+                    _ => (false, false, rest),
                 };
                 let (forecloses, rest) = match rest {
                     ["forecloses", tail @ ..] => {
@@ -8451,6 +8478,11 @@ pub(crate) fn parse_directive_at(
                     }
                     _ => (Vec::new(), rest),
                 };
+                if !irreversible && rest.contains(&"strict") && !rest.starts_with(&["reopened", "by"]) {
+                    return Err(format!(
+                        "strict follows irreversible: decisions {name} limit 1 irreversible strict"
+                    ));
+                }
                 if (irreversible || !forecloses.is_empty())
                     && !rest.is_empty()
                     && !rest.starts_with(&["reopened", "by"])
@@ -8510,6 +8542,7 @@ pub(crate) fn parse_directive_at(
                     triggers,
                     irreversible,
                     forecloses,
+                    strict,
                 })
             }
             _ => Err("decisions expects NAME limit CAPACITY [reopened by STREAM, …]".into()),

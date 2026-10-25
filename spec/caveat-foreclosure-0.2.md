@@ -52,7 +52,7 @@ because its review was withdrawn, a trigger fired or a rule reopened it,
 ## Syntax
 
 ```text
-decisions NAME limit N [irreversible] [forecloses ACTION, ACTION, …] [reopened by TRIGGER, TRIGGER, …];
+decisions NAME limit N [irreversible [strict]] [forecloses ACTION, ACTION, …] [reopened by TRIGGER, TRIGGER, …];
 ```
 
 `forecloses` may now follow `limit N` directly. With `irreversible` before
@@ -120,7 +120,8 @@ revision.
   committed first keeps the other out until it is reopened.
 
 A reversible foreclosure has no rule about caveats. `caveated_irreversible`
-stays a rule of irreversible series only.
+and `strict` ([Strict Irreversible 0.1](caveat-strict-irreversible-0.1.md))
+stay rules of irreversible series only.
 
 ### Codes
 
