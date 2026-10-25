@@ -48,6 +48,11 @@ Each event costs well under a millisecond on this program, which is far more
 than the same rule written as plain application code. Caveat is meant for the
 decisions an application records, not for inner loops.
 
+The glowcap benchmark's round-6 replay program, a larger game policy, took
+51.6 µs median per event plus view, measured after its fuzz runs, and its
+policy, adapter and runtime came to 482,716 bytes gzipped (about 483 KB)
+([results](../experiments/glowcap/RESULTS.md)).
+
 Memory and save size grow with retained history. Window sizes alone do not
 bound live memory or saves; see the
 [history integration guide](../kit/docs/HISTORY.md). A host that opens many
