@@ -29,6 +29,8 @@ const newerThanBaseline = {
   'kit/examples/handoff/handoff.cav': /\birreversible\b/,
   'experiments/false-completion-delivery/delivery.cav': /\bnoting\b/,
   'experiments/narrowed-test-gates/required.cav': /\bnoting\b/,
+  'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
+  'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
 };
 
 
