@@ -50,6 +50,7 @@ test('the example: one decisive item, a decisive pair, and the caveat that came 
   assert.deepEqual(report.decisive[0].caveats, ['self_reported']);
   assert.deepEqual(report.value_only.map(item => [item.evidence, item.value]), [[['references'], 3], [['trial'], 3]]);
   assert.deepEqual(report.not_decisive, []);
+  assert.deepEqual(report.control, []);
   assert.deepEqual(report.outside_grounds, ['analyst']);
   assert.equal(report.outcome.value, 0);
   assert.deepEqual(report.came_true, [{ caveat: 'self_reported', carried_by: ['uptime_report'], decisive: true }]);
@@ -95,6 +96,57 @@ test('grounds observed by one event are one unit; grounds observed by the decidi
   assert.deepEqual(report.entangled, ['c']);
   assert.deepEqual(report.search, { mode: 'exhaustive', units: 1, replays: 1, limit: 8 });
   assert.match(formatReview(report), /1 replay searched every combination of 1 observing event\./);
+});
+
+// The why-demo finding: evidence read only by the deciding rule's guard is
+// control, not grounds, and the decision can still hinge on it.
+const guarded = `claim refund_warranted;
+evidence order_record from "the order system";
+evidence customer_email from "the customer's own email";
+evidence photo from "a photo the customer attached";
+evidence risk_flag from "the fraud screen";
+evidence chargeback from "the bank's fraud report";
+caveat self_reported consequence material;
+caveat unverified_photo consequence low;
+self_reported qualifies customer_email;
+unverified_photo qualifies photo;
+decisions refund limit 4;
+state support = 0 min 0 max 10;
+state amount = 0 min 0 max 200;
+event read_order; event read_email; event read_photo; event read_risk; event decide; event fraud_found;
+on read_order reveal order_record supports refund_warranted;
+on read_order set support = support + qualified(1, order_record);
+on read_order set amount = amount + qualified(40, order_record);
+on read_email reveal customer_email supports refund_warranted;
+on read_email set support = support + qualified(2, customer_email);
+on read_photo reveal photo supports refund_warranted;
+on read_photo set support = support + qualified(1, photo);
+on read_photo set amount = amount + qualified(40, photo);
+on read_risk reveal risk_flag opposes refund_warranted;
+on decide when support >= 3 commit refund because enough using amount
+  retaining self_reported, unverified_photo;
+on decide when support < 3 reject "Not enough support to refund.";
+on fraud_found reveal chargeback opposes refund_warranted;
+on fraud_found resolve refund = 0 because chargeback materialized self_reported;
+`;
+
+test('evidence read only by the deciding guard is replayed too, as control', () => {
+  const events = ['read_order', 'read_email', 'read_photo', 'read_risk', 'decide', 'fraud_found']
+    .map(event => ({ event, payload: {} }));
+  const report = review(opener(guarded), events, 'refund@1');
+  assert.deepEqual(report.grounds.map(item => item.evidence), ['order_record', 'photo']);
+  assert.deepEqual(report.control, ['customer_email']);
+  assert.deepEqual(report.decisive.map(item => item.evidence), [['customer_email'], ['order_record', 'photo']]);
+  assert.equal(report.decisive[0].because.message, 'Not enough support to refund.');
+  assert.deepEqual(report.decisive[0].caveats, ['self_reported']);
+  assert.deepEqual(report.value_only.map(item => [item.evidence, item.value]), [[['order_record'], 40], [['photo'], 40]]);
+  assert.deepEqual(report.outside_grounds, ['risk_flag']);
+  assert.deepEqual(report.came_true, [{ caveat: 'self_reported', carried_by: ['customer_email'], decisive: true }]);
+  assert.deepEqual(report.search, { mode: 'exhaustive', units: 3, replays: 4, limit: 8 });
+  const text = formatReview(report, 'refund.cav');
+  assert.match(text, /\n {2}control outside its grounds: customer_email\n/);
+  assert.match(text, /Observed before the decision, outside its lineage: risk_flag/);
+  assert.match(text, /Came true: self_reported \(carried by customer_email, decisive\)/);
 });
 
 test('past the limit, each unit is replayed alone and the report says so', () => {

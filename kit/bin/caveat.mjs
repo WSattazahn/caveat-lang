@@ -72,10 +72,10 @@ displayed values that cite it. Exit status as for explain; 2 also when the
 program declares no such name.
 
 review sends the events the same way, then replays them without the events
-that observed a revision's grounds, alone and together, and says which
-evidence it was decided on decisively, which only changed its value, and
-which of its retained caveats an outcome says came true
-(spec/caveat-review-0.1.md). It never changes a session or judges the
+that observed a revision's grounds and control (such as evidence its guard
+read), alone and together, and says which evidence it was decided on
+decisively, which only changed its value, and which of its retained caveats
+an outcome says came true (spec/caveat-review-0.1.md). It never changes a session or judges the
 decision. Exit status as for explain; 2 also when there is no such revision.
 
 review --all reviews every revision with an outcome, or that consulted a past
