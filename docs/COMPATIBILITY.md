@@ -59,8 +59,9 @@ checks that the two agree.
   implements yet.
 - The 1.4 drafts `caveat-review-0.1.md`, `caveat-ledger-sets-0.1.md`,
   `caveat-untrusted-sources-0.1.md`, `caveat-strict-irreversible-0.1.md`,
-  `caveat-carries-any-0.1.md`, `caveat-only-if-0.1.md` and
-  `caveat-agents-0.1.md`, which become stable when a 1.x release ships them.
+  `caveat-carries-any-0.1.md`, `caveat-only-if-0.1.md`,
+  `caveat-agents-0.1.md` and `caveat-foreclosure-0.2.md`, which become stable
+  when a 1.x release ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
