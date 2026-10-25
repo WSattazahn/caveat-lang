@@ -1,0 +1,10 @@
+{
+  "note": "Untrusted Sources 0.1: every tracked program validated and every tracked scenario file run under a released CLI and this checkout. See README.md.",
+  "revision": "fe89cabdbe5d8bb95371aeb59d9383249972a806",
+  "baseline": "CAVEAT Language 1.3.0",
+  "programs": 203,
+  "programs_loading": 172,
+  "scenario_files": 70,
+  "scenario_files_passing": 49,
+  "differences": []
+}
