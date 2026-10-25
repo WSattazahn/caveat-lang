@@ -73,5 +73,22 @@ export declare function reviewLedgers(
   options?: { limit?: number },
 ): (LedgerReview | LedgerError)[];
 
+export interface CaveatCount {
+  retained: number;
+  came_true: number;
+}
+
+export interface LedgerSummary {
+  schema: 'caveat-ledger-summary/0.1';
+  revisions: number;
+  caveats: (CaveatCount & { caveat: string; by_evidence: (CaveatCount & { evidence: string })[] })[];
+}
+
+/** How often each caveat came true across the reviewed revisions with an outcome. */
+export declare function summarizeLedgers(entries: readonly (LedgerReview | LedgerError)[]): LedgerSummary;
+
+/** Text lines for a summary; none when no caveat was retained. */
+export declare function formatSummary(summary: LedgerSummary): string[];
+
 /** Text lines for what a review consulted. */
 export declare function formatConsulted(consulted: readonly Consulted[]): string[];

@@ -82,13 +82,40 @@ Each ledger's events are sent to a fresh session, as `explain` does. Every
 revision of a decision series that has an outcome (Outcomes 0.1), or that
 consulted a past review (section 2), is reviewed as Review 0.1 says.
 
-Text output is each review, with its Consulted lines, then
-`N revisions reviewed in M ledgers.` `--json` prints one
+Text output is each review, with its Consulted lines, then the summary
+(section 1.1), then `N revisions reviewed in M ledgers.` `--json` prints one
 `caveat-ledger-review/0.1` object per line: the review's fields, with
 `schema` replaced and `program`, `events` (the paths) and `program_sha256`
-(the program's source SHA-256, as saves bind it) added. A ledger whose
-program does not load is reported on standard error and reviewed no
-further.
+(the program's source SHA-256, as saves bind it) added. Its last line is the
+`caveat-ledger-summary/0.1` object. A ledger whose program does not load is
+reported on standard error and reviewed no further.
+
+### 1.1 The summary
+
+Each review says what came true in one decision. The summary says it across
+the set, so a reader can see a pattern without adding up reviews by hand. A
+demo found the need: one reader took two of four overturned refunds as one
+pattern, when both rested on the same carrier's scan.
+
+Over the reviewed revisions that have an outcome, for each caveat that
+qualifies a piece of their grounds, it counts the revisions it was in
+(`retained`) and those whose review says it came true (`came_true`). It also
+counts both by each piece of evidence that carried it into the grounds
+(`by_evidence`), where `came_true` counts a revision only when that evidence
+carried the caveat that came true. Caveats and evidence are in name order.
+
+```text
+Across the set (4 revisions with an outcome)
+  depot_scan: came true in 2 of 4; carried by northway_scan, 0 of 2; carried by zephyr_scan, 2 of 2
+```
+
+The text block is left out when no caveat qualifies any grounds. The JSON
+object is `{ schema, revisions, caveats: [{ caveat, retained, came_true,
+by_evidence: [{ evidence, retained, came_true }] }] }`.
+
+It counts and does not judge. Two of two is a count of two decisions, not a
+rate. It says nothing of revisions without an outcome, and nothing of why a
+caveat came true.
 
 Exit status: 0 after the reviews; 1 when an event failed fatally in a
 reviewed ledger (its reviews are of the session before it); 2 when the
@@ -148,6 +175,8 @@ while this profile is a draft:
 | `reviewWithConsulted(open, events, revision, options)` | `review(…)` with `consulted` |
 | `reviewLedgers(open, ledgers, options)` | an entry per reviewed revision, or `{ error }` per ledger that cannot be used; `ledgers` are `{ program, events_file, source, events }` |
 | `formatConsulted(consulted)` | the Consulted lines |
+| `summarizeLedgers(entries)` | the `caveat-ledger-summary/0.1` object for `reviewLedgers` entries |
+| `formatSummary(summary)` | the summary's text lines |
 
 Finding files is the command's: the library reads no files.
 
@@ -169,8 +198,10 @@ Finding files is the command's: the library reads no files.
 - `kit/test/ledgers.test.mjs`: the source form, a set with a revision that
   has an outcome and a later one that consulted its review, unresolved
   reviews, consulted evidence after the deciding event and in the lineage,
-  a program that does not load, and the command over a directory.
+  a program that does not load, the summary by carrying evidence, and the
+  command over a directory.
 
 ## Changes
 
 - 2026-10-25: drafted and implemented for 1.4, from the learn-from-ledger demo.
+- 2026-10-25: the summary (section 1.1), from the harder learn-from-ledger test.

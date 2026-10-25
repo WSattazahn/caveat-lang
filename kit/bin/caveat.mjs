@@ -21,7 +21,7 @@ import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.m
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
 import { formatReview } from '../lib/review.mjs';
-import { formatConsulted, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
+import { formatConsulted, formatSummary, reviewLedgers, reviewWithConsulted, summarizeLedgers } from '../lib/ledgers.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
@@ -387,6 +387,9 @@ async function reviewAll(options) {
     else console.log([formatReview(entry, entry.program), ...formatConsulted(entry.consulted), ''].join('\n'));
   }
   const reviewed = entries.filter(entry => !entry.error);
+  const summary = summarizeLedgers(entries);
+  if (options.json) console.log(JSON.stringify(summary));
+  else for (const line of formatSummary(summary)) console.log(line);
   if (!options.json) console.log(`${reviewed.length} revision${reviewed.length === 1 ? '' : 's'} reviewed in ${ledgers.length} ledger${ledgers.length === 1 ? '' : 's'}.`);
   if (unusable) return 2;
   return reviewed.some(entry => entry.fatal !== null) ? 1 : 0;
