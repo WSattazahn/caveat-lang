@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { explain, formatExplanation, parseEvents, EXPLAIN_SCHEMA } from '../lib/explain.mjs';
 import { real, repo, thermostat } from './helpers.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { textOverflow } from './fatal-fixture.mjs';
 
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
 const example = path.join(repo, 'examples', 'thermostat_history.cav');
@@ -86,6 +86,19 @@ test('the command replays events and lists refusals, which change nothing', asyn
   });
 });
 
+test('prompt-injection limit 6: after a refusal, an accepted event names the #N the decisions cite', async () => {
+  const [first, second, third] = reads.split('\n');
+  await withFiles({ 'events.jsonl': `${first}\n${second}\n{"event":"read","payload":{"value":99}}\n${third}\n` }, async file => {
+    const result = run(example, file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^thermostat_history\.cav after 4 events \(sequence 3\)/);
+    assert.match(result.stdout, / {4}1 {2}read \{"value":17\} {2}accepted\n {4}2 {2}read \{"value":25\} {2}accepted\n/);
+    assert.match(result.stdout, / {4}3 {2}read \{"value":99\} {2}refused \(input\/bound_exceeded\): [^\n]*\n {4}4 {2}read \{"value":17\} {2}accepted as #3\n/);
+    assert.match(result.stdout, /#3 read: /);
+    assert.doesNotMatch(result.stdout, /#4 /);
+  });
+});
+
 test('without events, the command explains the initial session', () => {
   const result = run(example);
   assert.equal(result.status, 0, result.stderr);
@@ -106,7 +119,7 @@ test('a full history refuses the event and the replay continues', async () => {
 });
 
 test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n' + provenanceOverflow('on read when value > 1.5');
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n' + textOverflow('on read when value > 1.5');
   await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
     const result = run(file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);
