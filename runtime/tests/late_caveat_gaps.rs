@@ -255,6 +255,22 @@ bind view.first = first + latest_trust;
             } else if game.dispatch_json(event, "{}").is_err() {
                 continue;
             }
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_game = game.save_json().unwrap();
+            let restored_game =
+                ReactiveSession::restore_json(SOURCE, &saved_game).unwrap_or_else(|error| {
+                    panic!("run {run} after {trail:?}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_game.save_json().unwrap(),
+                saved_game,
+                "run {run} after {trail:?}: save round trip"
+            );
+            assert_eq!(
+                serde_json::to_value(restored_game.snapshot()).unwrap(),
+                serde_json::to_value(game.snapshot()).unwrap(),
+                "run {run} after {trail:?}: snapshot after restore"
+            );
             assert_eq!(game.late_caveat_gaps(), [], "run {run} after {trail:?}");
             let shown = serde_json::to_value(game.snapshot()).unwrap();
             if shown["qualified_values"]["recalled"]["provenance"]["caveats"]
