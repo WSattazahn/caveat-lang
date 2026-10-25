@@ -58,6 +58,25 @@ test('init writes exactly the files the getting-started guide has you write', as
   });
 });
 
+// Found by the Primeagen test: init given a file, or a directory it cannot
+// create, printed a raw Node stack trace.
+test('init refuses a file and an unwritable directory with one line and status 2', async () => {
+  await inDirectory(async directory => {
+    const file = path.join(directory, 'notes.cav');
+    await writeFile(file, 'mine');
+    const onFile = caveat(['init', file]);
+    assert.equal(onFile.status, 2);
+    assert.equal(onFile.stderr, `${file} is a file, not a directory; give init a directory to write the starter files in\n`);
+    assert.equal(await readFile(file, 'utf8'), 'mine');
+
+    const blocked = path.join(file, 'project');
+    const below = caveat(['init', blocked]);
+    assert.equal(below.status, 2);
+    assert.match(below.stderr, new RegExp(`^cannot write the starter files in ${blocked.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}: E[A-Z]+`));
+    assert.doesNotMatch(below.stderr, /\n\s+at /, 'no stack trace');
+  });
+});
+
 test('validate lists what a program declares, and fails on one that does not load', async () => {
   await inDirectory(async directory => {
     const program = path.join(kit, 'templates', 'umbrella.cav');
