@@ -1,5 +1,7 @@
 # CAVEAT Language
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15891/badge)](https://www.bestpractices.dev/projects/15891)
+
 **A decision ledger for agents.**
 
 Caveat is an embeddable decision runtime with a small rules language. It

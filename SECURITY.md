@@ -46,7 +46,10 @@ MCP server reach files or processes it should not, is a security report. The tru
   [npm provenance](https://docs.npmjs.com/generating-provenance-statements);
   check it with `npm audit signatures` after installing.
 - Each GitHub release attaches the published tarball and its `SHA256SUMS`,
-  and `docs/releases/` records the tested tarball's SHA256.
+  and `docs/releases/` records the tested tarball's SHA256. Releases from
+  1.4.0 also attach a CycloneDX software bill of materials
+  (`caveat-lang-VERSION.cdx.json`) listing the package and every Rust crate
+  compiled into it, with their SHA-256 checksums.
 - The package has no npm dependencies. The Rust crates compiled into its
   WebAssembly runtime are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
   and [PACKAGE_SECURITY.md](docs/PACKAGE_SECURITY.md) describes the dependency
