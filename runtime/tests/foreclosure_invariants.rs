@@ -569,6 +569,34 @@ fn an_irreversible_decision_names_its_caveats_and_closes_what_it_forecloses() {
                 }
                 d_record = Some(grounds);
             }
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_game = game.save_json().unwrap();
+            let restored_game = ReactiveSession::restore_json(&source, &saved_game)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_game.save_json().unwrap(),
+                saved_game,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_game),
+                snapshot(&game),
+                "{at}: snapshot after restore"
+            );
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_twin = twin.save_json().unwrap();
+            let restored_twin = ReactiveSession::restore_json(&twin_source, &saved_twin)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_twin.save_json().unwrap(),
+                saved_twin,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_twin),
+                snapshot(&twin),
+                "{at}: snapshot after restore"
+            );
             before = shown;
         }
     }
