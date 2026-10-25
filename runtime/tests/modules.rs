@@ -1517,6 +1517,27 @@ fn a_changed_trigger_survives_a_module_that_declares_its_name() {
 }
 
 #[test]
+fn a_strict_irreversible_survives_a_module_that_declares_strict() {
+    // `irreversible strict` arrives in 1.4
+    // (spec/caveat-strict-irreversible-0.1.md). A module may name a series
+    // `strict` and keep the clause word.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             decisions strict limit 4;\n\
+             decisions pay limit 1 irreversible strict forecloses strict;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(source.contains("decisions m__strict limit 4;"), "{source}");
+    assert!(
+        source.contains("decisions m__pay limit 1 irreversible strict forecloses m__strict;"),
+        "{source}"
+    );
+}
+
+#[test]
 fn a_hold_survives_a_module_that_declares_its_words() {
     // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
     // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
@@ -1779,6 +1800,7 @@ const POSITIONAL: &[&str] = &[
     "resolve",
     "materialized",
     "once",
+    "strict",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
