@@ -248,9 +248,11 @@ the effect records and reports nothing, and the event is not refused.
 
 Nothing else changes: every frozen basis and grounds, the archives and the
 journal stay as they were. A reading sampled later, from the same stream or
-template, is a new observation and is not withdrawn. A program that keeps a
-source out for good rejects further instructions from it, as the experiment
-does with `observed($m_bad)`.
+template, is a new observation and gets no withdrawal record of its own; it
+still carries `withdrawn` wherever its lineage holds a withdrawn occurrence,
+such as the evidence itself under a guard on it, as with plain `withdraw`. A
+program that keeps a source out for good rejects further instructions from it,
+as the experiment does with `observed($m_bad)`.
 
 ### Snapshot, save and views
 
