@@ -1,8 +1,28 @@
 {
   "note": "Strict Irreversible 0.1 corpus sweep. Source text only; no program is run. See spec/caveat-strict-irreversible-0.1.md, \"Corpus sweep\".",
-  "revision": "063f0729bf2d403bf7ebd0c4b8f6abbf9b00e57a",
-  "programs": 200,
+  "revision": "b595ffdb879c5ea50a7fd3024e9e133a4b27c05e",
+  "programs": 203,
   "irreversible_series": [
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "series": "$m_send_external"
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "series": "$i_user_send"
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "series": "$i_newsletter_send"
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "series": "$i_invoice_mail_send"
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent.cav",
+      "series": "$m_send_external"
+    },
     {
       "path": "kit/examples/handoff/handoff.cav",
       "series": "notify_customers"
@@ -15,6 +35,86 @@
   "strict_series": [],
   "names_spelled_strict": [],
   "irreversible_commit_rules": [
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "act",
+      "series": "$m_send_external",
+      "guard": true,
+      "permitted": false,
+      "retaining": true
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "act",
+      "series": "$m_send_external",
+      "guard": true,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_user_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": true
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_user_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_newsletter_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": true
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_newsletter_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_invoice_mail_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": true
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to",
+      "series": "$i_invoice_mail_send",
+      "guard": true,
+      "permitted": false,
+      "retaining": false
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent.cav",
+      "event": "act",
+      "series": "$m_send_external",
+      "guard": true,
+      "permitted": false,
+      "retaining": true
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent.cav",
+      "event": "act",
+      "series": "$m_send_external",
+      "guard": true,
+      "permitted": false,
+      "retaining": false
+    },
     {
       "path": "kit/examples/handoff/handoff.cav",
       "event": "main_notify",
@@ -40,5 +140,5 @@
       "retaining": true
     }
   ],
-  "rules_strict_would_read_more_of": 0
+  "rules_strict_would_read_more_of": 10
 }
