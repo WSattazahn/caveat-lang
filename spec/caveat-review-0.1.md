@@ -14,8 +14,8 @@ same source and the same events make the same session
 ([A3](../docs/RESTORE_TRUST_BOUNDARY.md)). So "would this have been decided
 without that evidence?" has an exact answer: send the events again, leaving
 out the event that observed it, and see whether the event that decided still
-commits. The review does this for each part of the grounds and, when there
-are few enough, for every combination.
+commits. The review does this for each piece of evidence the revision read
+and, when there are few enough, for every combination.
 
 It does not give blame scores or weights. Caveat's decisions are rules over
 evidence, not weighted sums, so any percentage would be a number the review
@@ -76,7 +76,7 @@ Value only (without these, it is decided with another value)
   trial: choose@1 would be 3
 
 Not decisive: nothing
-Observed before the decision, outside its grounds: analyst
+Observed before the decision, outside its lineage: analyst
 Came true: self_reported (carried by uptime_report, decisive); the revision is still in force
 
 4 replays searched every combination of 3 observing events.
@@ -106,13 +106,23 @@ The review sends all the events to a fresh session, as `explain` does, and
 reads the revision from that session. The **deciding event** is the event
 whose journal entry `committed` made the revision.
 
-The revision's grounds evidence is grouped by the accepted event whose
+The evidence tested is the revision's **lineage** evidence: its grounds,
+then its **control**, the lineage evidence outside the grounds. Control is
+what the commit read without basing its value on it: the deciding rule's
+`when` guard ([Explanations 0.2](caveat-explanations-0.2.md): "The rule's
+`when` guard is control, not content"), a `permitted by` grant, a series
+predecessor's basis. A decision can hinge on control. A rule
+`on decide when support >= 3 commit refund because enough using amount`
+is grounded on what `amount` read, but without the evidence that brought
+`support` to 3 it commits nothing.
+
+The tested evidence is grouped by the accepted event whose
 `reveal` or `sample` first observed it, the same event `explain` reports as
 `observed_by`. Each group is a **unit**: leaving out the event leaves out
-everything it did, so grounds observed by one event can only be judged
-together. Grounds observed by the deciding event itself are **entangled**
-and are not dropped, since that would drop the decision. Grounds no event
-observed are listed as **unobserved**.
+everything it did, so evidence observed by one event can only be judged
+together. Evidence observed by the deciding event itself is **entangled**
+and is not dropped, since that would drop the decision. Evidence no event
+observed is listed as **unobserved**.
 
 For each set of units the review replays every event except the units'
 events, in their original order, in a fresh session, and asks whether the
@@ -136,10 +146,11 @@ early. With more, each unit is replayed alone, and the report says that
 combinations were not searched. `search.replays` counts the replays run.
 
 When the revision has an outcome, the review lists each `materialized`
-caveat as **came true**, with the grounds evidence that carries it now and
+caveat as **came true**, with the tested evidence that carries it now and
 whether any carrier is decisive. `withdrawn` is the revision's grounds
 withdrawn since, as `explain` reports them. **Outside grounds** lists
-evidence observed before the deciding event that is not in the grounds.
+evidence observed before the deciding event that is in neither the grounds
+nor the control: what the decision read nothing of.
 
 What the review is not:
 
@@ -161,6 +172,7 @@ What the review is not:
 | `revision`, `value`, `status` | as `explain` reports the revision |
 | `decided_by` | `{ sequence, event }` of the deciding event |
 | `grounds` | `{ evidence, caveats }` for each grounds evidence, caveats as they are now |
+| `control` | lineage evidence names outside the grounds, tested like the grounds |
 | `retained` | the revision's retained caveats |
 | `outcome` | the revision's outcome (Outcomes 0.1), or null |
 | `decisive` | `{ evidence, without, because, caveats }`; `without` lists `{ sequence, event }` left out |
@@ -204,10 +216,12 @@ grouping grounds by the event that observed them.
   each with `explain`; `kit/lib/review.d.mts` types it.
 - `kit/bin/caveat.mjs` adds the `review` command; `kit/README.md` lists it.
 - `kit/test/review.test.mjs` covers the example above, a program that cannot
-  decide without its evidence, entangled and grouped grounds, the single
+  decide without its evidence, a decision that hinges on evidence only its
+  guard read, entangled and grouped grounds, the single
   mode past the limit, an unknown revision, and that the reviewed session's
   replay leaves the full run unchanged.
 
 ## Changes
 
 - 2026-10-24: drafted and implemented; retargeted from 1.3 to 1.4, since 1.3.0 ships without it.
+- 2026-10-25: tests the revision's control (lineage outside its grounds) as well as its grounds, and reports it as `control`. A demo found the first draft listing the evidence a refund hinged on, read only by the deciding guard, as outside its grounds.
