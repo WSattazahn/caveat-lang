@@ -97,9 +97,9 @@ export interface ExplainedSeries {
   revisions: ExplainedRevision[];
   /** Present when the series is declared irreversible (spec/caveat-foreclosure-0.1.md). */
   irreversible?: true;
-  /** The actions an irreversible series forecloses, in source order; present when it declares any. */
+  /** The actions the series forecloses, in source order; present when it declares any. An irreversible series forecloses them once committed, any other while its current revision is in force (spec/caveat-foreclosure-0.2.md). */
   forecloses?: string[];
-  /** The committed irreversible revisions that foreclose this decision, in commit order; present when there are any. */
+  /** The revisions that foreclose this decision now, in commit order: committed irreversible revisions, and current revisions in force of series that foreclose it; present when there are any. */
   foreclosed_by?: string[];
 }
 

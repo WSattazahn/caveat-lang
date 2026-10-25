@@ -288,6 +288,38 @@ impl WebReactiveSession {
         }
     }
 
+    /// What `dispatch_view_outcome` would return for this event, run on a copy
+    /// of the session that is then dropped: this session, its save and its
+    /// delta base are unchanged, whatever the outcome. See
+    /// spec/caveat-dispatch-0.1.md, "The what-if path".
+    pub fn what_if_view_outcome(&self, event: &str, payload_json: &str) -> Result<String, String> {
+        let mut copy = self.inner.clone();
+        match copy.dispatch_view_outcome_json(event, payload_json) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
+    /// `what_if_view_outcome` with only the view fields `fields_json` names,
+    /// as `dispatch_view_fields_outcome` takes them.
+    pub fn what_if_view_fields_outcome(
+        &self,
+        event: &str,
+        payload_json: &str,
+        fields_json: &str,
+    ) -> Result<String, String> {
+        let fields = crate::reactive::ViewFields::from_json(fields_json)?;
+        let mut copy = self.inner.clone();
+        match copy.dispatch_view_fields_outcome_json(event, payload_json, fields) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
     /// The per-event view, as compact JSON. See spec/caveat-view-0.1.md.
     pub fn view(&self) -> String {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")

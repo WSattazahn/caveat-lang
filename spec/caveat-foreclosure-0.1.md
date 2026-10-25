@@ -80,7 +80,7 @@ These do not load, each with its own message:
 | Source | Message |
 | --- | --- |
 | `irreversible` with a limit other than 1 | `an irreversible series holds one revision: decisions NAME limit 1 irreversible` |
-| `forecloses` without `irreversible` before it | `forecloses follows irreversible: decisions NAME limit 1 irreversible forecloses ACTION, …` |
+| `forecloses` without `irreversible` before it (until 1.4: [Foreclosure 0.2](caveat-foreclosure-0.2.md) gives it a meaning) | `forecloses follows irreversible: decisions NAME limit 1 irreversible forecloses ACTION, …` |
 | an `ACTION` that is not a series and that no `commit` names | `NAME forecloses ACTION, which is not a decision` |
 | `ACTION` equal to `NAME` | `NAME cannot foreclose itself` |
 | the same `ACTION` twice | `duplicate foreclosed decision ACTION` |
@@ -341,3 +341,6 @@ No accepted program changes.
 - 2026-10-18: implemented on its branch.
 - 2026-10-18: the bug hunt's random check added; no finding.
 - 2026-10-19: checked with Holds 0.1 and Nested Repetition 0.1 on `main`.
+- 2026-10-25: [Foreclosure 0.2](caveat-foreclosure-0.2.md), a 1.4 draft,
+  answers question 5: a reversible series may foreclose while it is in force.
+  The load error for `forecloses` without `irreversible` goes with it.

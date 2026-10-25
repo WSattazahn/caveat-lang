@@ -161,6 +161,14 @@ export declare class CaveatSession {
    * the snapshot. See spec/caveat-view-0.2.md.
    */
   dispatchViewDelta(event: string, payload?: object, options?: DispatchOptions): DispatchViewDeltaOutcome;
+  /**
+   * What `dispatchView` would return, run on a copy of the session that is
+   * then dropped. The session is unchanged whatever the outcome; a fatal
+   * outcome throws but leaves it usable. See spec/caveat-dispatch-0.1.md,
+   * "The what-if path".
+   */
+  whatIf(event: string, payload?: object): DispatchViewOutcome;
+  whatIf(event: string, payload: object, options: { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   snapshotText(): string;
   snapshot(): Snapshot;
   viewText(options?: { schema?: '0.1' | '0.2' }): string;
@@ -270,6 +278,8 @@ export interface RuntimeSessionHandle {
   dispatch_view_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_delta_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
+  what_if_view_outcome?(event: string, payload: string): string;
+  what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;
   snapshot(): string;
   snapshot_compact?(): string;
   view(): string;
@@ -515,6 +525,12 @@ export interface Snapshot {
    * absent when no series is irreversible (spec/caveat-foreclosure-0.1.md).
    */
   irreversible?: Record<string, string[]>;
+  /**
+   * Reversible series and the actions each forecloses while its current
+   * revision is in force, in source order; absent when none does
+   * (spec/caveat-foreclosure-0.2.md).
+   */
+  forecloses?: Record<string, string[]>;
   /** First-observation order; present after neutral observation, otherwise derived from stance relations. */
   observations?: string[];
   observation_qualifications: Record<string, Provenance>;

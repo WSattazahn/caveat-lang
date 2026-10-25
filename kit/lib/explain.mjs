@@ -211,20 +211,34 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
     };
   };
   // Irreversible series, what they foreclose, and which committed revision
-  // forecloses each action (spec/caveat-foreclosure-0.1.md). All absent for a
-  // program that declares none.
+  // forecloses each action (spec/caveat-foreclosure-0.1.md); reversible series
+  // that foreclose while their current revision is in force
+  // (spec/caveat-foreclosure-0.2.md). All absent for a program that declares
+  // none.
   const irreversible = snapshot.irreversible ?? {};
-  const foreclosing = name => Object.entries(irreversible)
-    .filter(([, actions]) => actions.includes(name))
-    .map(([series]) => snapshot.decision_series?.[series]?.revisions?.[0])
-    .filter(Boolean)
-    .sort((a, b) => a.sequence - b.sequence || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-    .map(revision => revision.id);
+  const reversible = snapshot.forecloses ?? {};
+  const inForce = series => {
+    const current = snapshot.decision_series?.[series]?.current;
+    const revision = snapshot.decision_series?.[series]?.revisions?.find(item => item.id === current);
+    return revision && !commitments.get(current)?.open ? revision : undefined;
+  };
+  const foreclosing = name => [
+    ...Object.entries(irreversible)
+      .filter(([, actions]) => actions.includes(name))
+      .map(([series]) => [series, snapshot.decision_series?.[series]?.revisions?.[0]]),
+    ...Object.entries(reversible)
+      .filter(([, actions]) => actions.includes(name))
+      .map(([series]) => [series, inForce(series)]),
+  ]
+    .filter(([, revision]) => revision)
+    .sort(([a, first], [b, second]) => first.sequence - second.sequence || (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, revision]) => revision.id);
   const foreclosure = name => {
     const by = foreclosing(name);
+    const forecloses = irreversible[name] ?? reversible[name];
     return {
       ...(Object.hasOwn(irreversible, name) ? { irreversible: true } : {}),
-      ...(irreversible[name]?.length ? { forecloses: irreversible[name] } : {}),
+      ...(forecloses?.length ? { forecloses } : {}),
       ...(by.length ? { foreclosed_by: by } : {}),
     };
   };
