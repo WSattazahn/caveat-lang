@@ -640,6 +640,16 @@ a commit of `rollback` is refused as `foreclosed`, and the message names
 foreclosure. Caveat records the declaration; it does not check that the action
 really can't be undone. See [foreclosure](../spec/caveat-foreclosure-0.1.md).
 
+That check reads only the commit's grounds. Evidence that a `when` guard or a
+`permitted by` grant read is not checked, so a payout gated on
+`support >= 3` can rest on an unchecked email without naming it. Write
+`irreversible strict` (from 1.4, [strict irreversible](../spec/caveat-strict-irreversible-0.1.md))
+to check every caveat in the commit's lineage:
+
+```caveat
+decisions payout limit 1 irreversible strict;
+```
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source
