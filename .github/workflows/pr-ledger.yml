@@ -1,0 +1,65 @@
+name: PR ledger
+
+# This repository's own record of what each merge rested on, kept by
+# actions/pr-ledger on the caveat-pr-ledger branch. A merge records itself; a
+# manual run records a finding, lists the merges that rested on anything
+# found wrong, or backfills.
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "backfill, wrong, affected, rested-on or show"
+        required: true
+        default: affected
+      pr:
+        description: "A pull request number (show, wrong, rested-on)"
+      check:
+        description: "A check name (wrong, rested-on)"
+      review:
+        description: "A reviewer's login (wrong, rested-on)"
+      author:
+        description: "An author or coding agent (wrong, rested-on)"
+      from:
+        description: "The first pull request a finding covers (wrong)"
+      to:
+        description: "The last pull request a finding covers (wrong)"
+      note:
+        description: "What was found (wrong)"
+      last:
+        description: "How many merges to record (backfill)"
+
+permissions:
+  contents: write
+  pull-requests: read
+  checks: read
+  statuses: read
+
+concurrency:
+  group: pr-ledger
+  cancel-in-progress: false
+
+jobs:
+  ledger:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
+    runs-on: ubuntu-24.04
+    steps:
+      # The base branch's copy of the Action; the pull request's code is never checked out.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: actions/pr-ledger
+      - uses: ./actions/pr-ledger
+        with:
+          command: ${{ github.event_name == 'workflow_dispatch' && inputs.command || 'record' }}
+          pr: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.pull_request.number }}
+          check: ${{ inputs.check }}
+          review: ${{ inputs.review }}
+          author: ${{ inputs.author }}
+          from: ${{ inputs.from }}
+          to: ${{ inputs.to }}
+          note: ${{ inputs.note }}
+          last: ${{ inputs.last }}
