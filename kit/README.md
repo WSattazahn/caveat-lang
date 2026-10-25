@@ -417,6 +417,29 @@ and reports each that no longer applies. The
 [handoff example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/handoff/README.md)
 runs a main agent and two sub-agents.
 
+## Carry a save onto a changed program
+
+A save restores only with the exact source that wrote it, so a patched
+program, such as a game's next release, refuses every earlier save.
+`caveat-lang/saves` carries a replay save over without changing it or
+loosening restore: `savedEvents(runtime, oldSource, saved)` restores the
+save with the source that wrote it, then reads its events back with each
+member by name. `carrySave(runtime, oldSource, saved, newSource)` sends
+those events to a new session of the changed program, which decides each one
+afresh, and reports each event it refused as a conflict that changed nothing.
+
+```js
+import { carrySave } from 'caveat-lang/saves';
+
+const { session, conflicts } = carrySave(runtime, shippedSource, playerSave, patchedSource);
+for (const item of conflicts) console.log(`${item.event} no longer applies: ${item.outcome.message}`);
+```
+
+A state save holds no events, so `savedEvents` refuses it as `restore`. A
+host whose sessions outgrow the replay save (about 4 KB of events) keeps its
+own log of accepted events and replays that instead, as
+`replayOnto` in `caveat-lang/handoff` does.
+
 ## Retain history outside the live session
 
 Windowed programs have `session.drainArchive()` and the `session.undrained`
