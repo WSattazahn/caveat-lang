@@ -116,6 +116,35 @@ test('missing build metadata warns, and malformed metadata fails without disguis
   });
 });
 
+// Found by the Primeagen test: doctor printed the measured hashes and passed
+// a runtime whose JavaScript adapter had been edited.
+test('runtime files that differ from the hashes build-info.json lists fail; matching ones pass', async () => {
+  await inDirectory(async directory => {
+    const runtimeDirectory = await runtimeFixture(directory);
+    const digest = async name => createHash('sha256').update(await readFile(path.join(runtimeDirectory, name))).digest('hex');
+    const metadata = { revision: '0'.repeat(40), clean: true, compiled: true, host: 'test',
+      runtimeArtifacts: { 'pkg-reactive/caveat_runtime.js': await digest('caveat_runtime.js'),
+        'pkg-reactive/caveat_runtime_bg.wasm': await digest('caveat_runtime_bg.wasm') } };
+    await writeFile(path.join(runtimeDirectory, 'build-info.json'), JSON.stringify(metadata));
+    const matching = await doctor({ runtimeDirectory, env: {} });
+    assert.equal(status(matching, 'runtime.hashes'), 'pass', JSON.stringify(matching.checks));
+    assert.equal(matching.ok, true, JSON.stringify(matching.checks));
+
+    await writeFile(path.join(runtimeDirectory, 'caveat_runtime.js'), `${await readFile(path.join(runtimeDirectory, 'caveat_runtime.js'), 'utf8')}// tampered\n`);
+    const tampered = await doctor({ runtimeDirectory, env: {} });
+    assert.equal(status(tampered, 'runtime.hashes'), 'fail');
+    assert.equal(tampered.ok, false);
+    assert.match(formatDoctor(tampered), /caveat_runtime\.js is sha256 [0-9a-f]{64}, build-info\.json expects/);
+    assert.equal(status(tampered, 'runtime.session'), 'pass', 'the session still runs, so the report says which check failed');
+
+    delete metadata.runtimeArtifacts;
+    await writeFile(path.join(runtimeDirectory, 'build-info.json'), JSON.stringify(metadata));
+    const unlisted = await doctor({ runtimeDirectory, env: {} });
+    assert.equal(status(unlisted, 'runtime.hashes'), 'warn');
+    assert.equal(unlisted.ok, true);
+  });
+});
+
 async function executableFixture(directory, owner, name, relative = 'bin/cli.mjs') {
   const packageDirectory = path.join(directory, 'node_modules', owner);
   const target = path.join(packageDirectory, relative);
