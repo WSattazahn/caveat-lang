@@ -286,7 +286,8 @@ pub enum Effect {
     },
     /// `withdraw EVIDENCE because REASON;` or `withdraw latest(STREAM) …`:
     /// record that an observation is no longer stood behind. The target is
-    /// `Named` or `Latest`. See spec/caveat-withdrawal-0.1.md.
+    /// `Named`, `Latest`, `Occurrence` or `Every`. See
+    /// spec/caveat-withdrawal-0.1.md.
     Withdraw {
         target: EvidenceSelector,
         because: String,
@@ -323,8 +324,10 @@ pub enum Effect {
         retaining: Vec<String>,
         /// `retaining C because E`: each caveat that names a reason, with that
         /// evidence and `qualified(1, E)` to read it. See
-        /// spec/caveat-retention-reasons-0.1.md.
-        reasons: Vec<(String, String, Expr)>,
+        /// spec/caveat-retention-reasons-0.1.md. The flag is `because once E`,
+        /// a reason no other commitment may hold. See
+        /// spec/caveat-untrusted-sources-0.1.md.
+        reasons: Vec<(String, String, Expr, bool)>,
     },
     /// `reopen D because E`, and from 1.2 `hold D because E` and
     /// `release D because E`, which share its target and selector. See
@@ -401,6 +404,11 @@ pub enum EvidenceSelector {
         evidence: String,
         index: Box<Expr>,
     },
+    /// `withdraw every NAME`: every held, observed occurrence of a reading
+    /// stream or of evidence and the streams that read from it, listed when
+    /// the effect runs. Only `withdraw` takes it. See
+    /// spec/caveat-untrusted-sources-0.1.md.
+    Every(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -490,7 +498,7 @@ fn expand_effect(
             ..
         } => {
             let scope = permission.as_mut().and_then(|clause| clause.scope.as_mut());
-            let reasons = reasons.iter_mut().map(|(_, _, reading)| reading);
+            let reasons = reasons.iter_mut().map(|(_, _, reading, _)| reading);
             for value in using
                 .iter_mut()
                 .chain(citing.iter_mut())
@@ -1064,7 +1072,7 @@ impl<'a> OrderStep<'a> {
             } => {
                 expressions.extend(using);
                 expressions.extend(citing);
-                expressions.extend(reasons.iter().map(|(_, _, reading)| reading));
+                expressions.extend(reasons.iter().map(|(_, _, reading, _)| reading));
                 if let Some(clause) = permission {
                     if let EvidenceSelector::Named(grant) = &clause.grant {
                         uses.push((
@@ -3300,6 +3308,15 @@ impl ReactiveSession {
                         EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(name) => {
+                            if !self.reading_streams.contains_key(name) {
+                                self.require_kind(name, "evidence").map_err(|_| {
+                                    format!(
+                                        "withdraw every {name}: name a reading stream or evidence"
+                                    )
+                                })?
+                            }
+                        }
                         EvidenceSelector::Caveated { .. } => {
                             return Err("withdraw names evidence or latest(STREAM)".into())
                         }
@@ -3352,7 +3369,7 @@ impl ReactiveSession {
                     reasons,
                     ..
                 } => {
-                    for (_, evidence, reading) in reasons {
+                    for (_, evidence, reading, _) in reasons {
                         self.require_kind(evidence, "evidence").map_err(|_| {
                             format!("retaining … because names evidence, not {evidence}")
                         })?;
@@ -3373,7 +3390,8 @@ impl ReactiveSession {
                             }
                             EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
                             EvidenceSelector::Caveated { .. }
-                            | EvidenceSelector::Occurrence { .. } => {
+                            | EvidenceSelector::Occurrence { .. }
+                            | EvidenceSelector::Every(_) => {
                                 return Err("permitted by names evidence or latest(STREAM)".into())
                             }
                         }
@@ -3423,6 +3441,7 @@ impl ReactiveSession {
                         }
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
                     }
                 }
                 // An outcome is of a revision of a series
@@ -3452,6 +3471,7 @@ impl ReactiveSession {
                         }
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
                     }
                     for caveat in &resolution.materialized {
                         if self.require_kind(caveat, "caveat").is_err() {
@@ -4094,6 +4114,24 @@ impl ReactiveSession {
             return Ok(());
         }
         if guard.is_empty() {
+            return Ok(());
+        }
+        // `withdraw every` could have withdrawn each occurrence it lists.
+        if let Effect::Withdraw {
+            target: EvidenceSelector::Every(name),
+            ..
+        } = effect
+        {
+            let mut guard = guard.clone();
+            self.freeze_observation(&mut guard);
+            for occurrence in self.every_occurrence(name)? {
+                Arc::make_mut(&mut self.predicate_qualifications)
+                    .entry(WITHDRAWN.into())
+                    .or_default()
+                    .entry(occurrence)
+                    .or_default()
+                    .merge(&guard)?;
+            }
             return Ok(());
         }
         let target = match effect {
@@ -5573,6 +5611,24 @@ impl ReactiveSession {
                     self.take_back(evidence, caveat, only.as_deref())?
                 }
             }
+            Effect::Withdraw {
+                target: EvidenceSelector::Every(name),
+                because,
+            } => {
+                // The reason first, even when nothing is listed. See
+                // spec/caveat-untrusted-sources-0.1.md.
+                let because = self.occurrence(because).to_string();
+                if !self.predicate("observed", &because)? {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!("cannot withdraw because unobserved evidence {because}"),
+                    ));
+                }
+                for evidence in self.every_occurrence(name)? {
+                    self.withdraw_occurrence(evidence, &because, guard)?;
+                }
+            }
             Effect::Withdraw { target, because } => {
                 let unobserved = |message: String| {
                     DispatchFailure::rejected(
@@ -5603,29 +5659,7 @@ impl ReactiveSession {
                         )));
                     }
                 }
-                if !self
-                    .withdrawals
-                    .iter()
-                    .any(|withdrawal| withdrawal.evidence == evidence)
-                {
-                    self.add_pin(&because);
-                    if self.windowed() {
-                        Arc::make_mut(&mut self.withdrawal_reasons)
-                            .insert(evidence.clone(), because.clone());
-                        self.collector.withdrawal(&evidence, &because, true);
-                    }
-                    Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
-                        evidence: evidence.clone(),
-                        because: because.clone(),
-                        sequence: self.sequence,
-                        event: self.last_event.clone().unwrap_or_default(),
-                    });
-                    self.apply_qualification(&evidence, WITHDRAWN, guard)?;
-                    // apply_qualification reported a qualify: this is a withdrawal.
-                    self.effects.pop();
-                    self.effects
-                        .push(EffectReport::Withdraw { evidence, because });
-                }
+                self.withdraw_occurrence(evidence, &because, guard)?;
             }
             Effect::Renew { evidence } => {
                 self.history_room(evidence)?;
@@ -5903,10 +5937,27 @@ impl ReactiveSession {
                 // A retained caveat's reason is read as `qualified(1, E)` and
                 // joins the grounds. See spec/caveat-retention-reasons-0.1.md.
                 let mut retention = BTreeMap::new();
-                for (caveat, evidence, reading) in reasons {
+                for (caveat, evidence, reading, _) in reasons {
                     provenance.merge(&self.evaluate(reading, parameters)?.provenance)?;
                     grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
                     retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
+                }
+                // A `once` reason backs one commitment: none the session holds
+                // may have it as a reason already. See
+                // spec/caveat-untrusted-sources-0.1.md.
+                for (caveat, ..) in reasons.iter().filter(|(.., once)| *once) {
+                    let occurrence = &retention[caveat];
+                    if let Some((by, _)) = self
+                        .retention_reasons
+                        .iter()
+                        .find(|(_, held)| held.values().any(|reason| reason == occurrence))
+                    {
+                        return Err(DispatchFailure::rejected(
+                            RejectionOrigin::Evaluation,
+                            RejectionCode::ReasonSpent,
+                            format!("{occurrence} is already the reason of a caveat {by} retains"),
+                        ));
+                    }
                 }
                 // An irreversible commit names each caveat of consequence
                 // material or above that it rests on. See
@@ -6317,6 +6368,7 @@ impl ReactiveSession {
         parameters: &Parameters,
     ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
         Ok(match because {
+            EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
             EvidenceSelector::Named(name) => {
                 let name = self.occurrence(name).to_string();
                 if !self.predicate("observed", &name)? {
@@ -7122,12 +7174,85 @@ impl ReactiveSession {
 
     /// The occurrence a withdrawal names now: named evidence's current
     /// occurrence, or the stream's current reading.
+    /// Withdraw one observed occurrence for an observed reason, unless it is
+    /// withdrawn already. See spec/caveat-withdrawal-0.1.md.
+    fn withdraw_occurrence(
+        &mut self,
+        evidence: String,
+        because: &str,
+        guard: &Provenance,
+    ) -> Result<(), DispatchFailure> {
+        if self
+            .withdrawals
+            .iter()
+            .any(|withdrawal| withdrawal.evidence == evidence)
+        {
+            return Ok(());
+        }
+        let because = because.to_string();
+        self.add_pin(&because);
+        if self.windowed() {
+            Arc::make_mut(&mut self.withdrawal_reasons).insert(evidence.clone(), because.clone());
+            self.collector.withdrawal(&evidence, &because, true);
+        }
+        Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
+            evidence: evidence.clone(),
+            because: because.clone(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+        });
+        self.apply_qualification(&evidence, WITHDRAWN, guard)?;
+        // apply_qualification reported a qualify: this is a withdrawal.
+        self.effects.pop();
+        self.effects
+            .push(EffectReport::Withdraw { evidence, because });
+        Ok(())
+    }
+
+    /// What `withdraw every NAME` lists: a reading stream's held readings,
+    /// oldest first; or evidence's held occurrences, first to current, then
+    /// the held readings of each stream that reads from it, in name order.
+    /// Only observed ones. See spec/caveat-untrusted-sources-0.1.md.
+    fn every_occurrence(&self, name: &str) -> Result<Vec<String>, String> {
+        let mut listed = Vec::new();
+        let streams = if self.reading_streams.contains_key(name) {
+            vec![name]
+        } else {
+            match self.renewals.get(name) {
+                Some(renewal) => listed.extend(renewal.occurrences.iter().cloned()),
+                None => listed.push(name.to_string()),
+            }
+            self.reading_streams
+                .iter()
+                .filter(|(_, stream)| stream.template == name)
+                .map(|(stream, _)| stream.as_str())
+                .collect()
+        };
+        for stream in streams {
+            listed.extend(
+                self.reading_streams[stream]
+                    .occurrences
+                    .iter()
+                    .map(|reading| reading.id.clone()),
+            );
+        }
+        let mut held = Vec::with_capacity(listed.len());
+        for occurrence in listed {
+            if !self.is_retired(&occurrence) && self.predicate("observed", &occurrence)? {
+                held.push(occurrence);
+            }
+        }
+        Ok(held)
+    }
+
     fn withdrawal_target(&self, target: &EvidenceSelector) -> Option<String> {
         match target {
             EvidenceSelector::Named(evidence) => Some(self.occurrence(evidence).to_string()),
             EvidenceSelector::Latest(stream) => self.reading_streams[stream].current.clone(),
             // Resolved when the effect runs; see `resolve_occurrence`.
-            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => None,
+            EvidenceSelector::Caveated { .. }
+            | EvidenceSelector::Occurrence { .. }
+            | EvidenceSelector::Every(_) => None,
         }
     }
 
@@ -7197,7 +7322,9 @@ impl ReactiveSession {
                 let reading = self.latest(stream)?;
                 (grant, Some(reading.value), reading.provenance)
             }
-            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => {
+            EvidenceSelector::Caveated { .. }
+            | EvidenceSelector::Occurrence { .. }
+            | EvidenceSelector::Every(_) => {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
@@ -7850,6 +7977,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                     evidence: rename(evidence),
                     index: Box::new(index.rename_symbols(names)),
                 },
+                EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
                 selector => selector.clone(),
             },
             because: rename(because),
@@ -7934,11 +8062,12 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             retaining: retaining.iter().map(rename).collect(),
             reasons: reasons
                 .iter()
-                .map(|(caveat, evidence, reading)| {
+                .map(|(caveat, evidence, reading, once)| {
                     (
                         rename(caveat),
                         rename(evidence),
                         reading.rename_symbols(names),
+                        *once,
                     )
                 })
                 .collect(),
@@ -7983,6 +8112,7 @@ fn rename_selector(
             evidence: rename(evidence),
             index: Box::new(index.rename_symbols(names)),
         },
+        EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
     }
 }
 
@@ -9115,11 +9245,18 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             let [reason] = reason else {
                 return Err("withdraw expects EVIDENCE because EVIDENCE".into());
             };
+            let every = match rest[..split] {
+                // `withdraw every because R` still names evidence `every`.
+                ["every", name] => Some(name),
+                _ => None,
+            };
             let target = match target
                 .strip_prefix("latest")
                 .map(str::trim)
                 .and_then(|rest| rest.strip_prefix('('))
             {
+                // spec/caveat-untrusted-sources-0.1.md.
+                _ if every.is_some() => EvidenceSelector::Every(identifier(every.unwrap())?),
                 Some(arguments) => EvidenceSelector::Latest(identifier(
                     arguments
                         .trim()
@@ -9250,7 +9387,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             };
             // `CAVEAT [because EVIDENCE], …`. See
             // spec/caveat-retention-reasons-0.1.md.
-            type Retained = (Vec<String>, Vec<(String, String, Expr)>);
+            type Retained = (Vec<String>, Vec<(String, String, Expr, bool)>);
             let parse_retained = |names: &[&str]| -> Result<Retained, String> {
                 if names.is_empty() {
                     return Err("retaining requires at least one caveat".into());
@@ -9259,17 +9396,20 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 for item in names.join(" ").split(',') {
                     match item.split_whitespace().collect::<Vec<_>>()[..] {
                         [caveat] => retained.push(identifier(caveat)?),
-                        [caveat, "because", evidence] => {
+                        // `because once E` (spec/caveat-untrusted-sources-0.1.md);
+                        // `because once` alone still names evidence `once`.
+                        [caveat, "because", evidence] | [caveat, "because", "once", evidence] => {
+                            let once = item.split_whitespace().count() == 4;
                             let (caveat, evidence) = (identifier(caveat)?, identifier(evidence)?);
                             let reading = reactive_expr::parse_unresolved(&format!(
                                 "qualified(1, {evidence})"
                             ))?;
                             retained.push(caveat.clone());
-                            reasons.push((caveat, evidence, reading));
+                            reasons.push((caveat, evidence, reading, once));
                         }
                         _ => {
                             return Err(format!(
-                                "retaining expects CAVEAT [because EVIDENCE], …, not {}",
+                                "retaining expects CAVEAT [because [once] EVIDENCE], …, not {}",
                                 item.trim()
                             ))
                         }

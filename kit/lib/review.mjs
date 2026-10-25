@@ -1,6 +1,7 @@
 // review: which evidence a decision hinged on (spec/caveat-review-0.1.md).
 // It replays the events without the events that observed parts of a
-// revision's grounds, and reports which absences mean the deciding event no
+// revision's lineage (its grounds, and the control it read outside them,
+// such as the deciding rule's `when` guard), and reports which absences mean the deciding event no
 // longer commits, which only change the committed value, and which change
 // nothing. It runs fresh sessions and never changes the one it reviews.
 import { explain } from './explain.mjs';
@@ -106,13 +107,17 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
   const caveatsOf = id => evidenceById.get(id)?.caveats ?? [];
   const observedAt = observerIndices(full.sent);
   const grounds = revision.grounds.evidence;
+  // Lineage evidence outside the grounds: read by the deciding rule's guard,
+  // a permission grant or a predecessor's basis. A decision can hinge on it.
+  const control = revision.lineage.evidence.filter(id => !grounds.includes(id));
+  const tested = [...grounds, ...control];
 
-  // Grounds observed by one earlier event form one unit: dropping the event
+  // Evidence observed by one earlier event forms one unit: dropping the event
   // drops them together.
   const byEvent = new Map();
   const entangled = [];
   const unobserved = [];
-  for (const id of grounds) {
+  for (const id of tested) {
     const index = observedAt.get(id);
     if (index === undefined) unobserved.push(id);
     else if (index === deciding) entangled.push(id);
@@ -153,6 +158,7 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
     status: revision.status,
     decided_by: { sequence: commit.sequence, event: commit.event },
     grounds: grounds.map(id => ({ evidence: id, caveats: caveatsOf(id) })),
+    control,
     retained: revision.retained,
     outcome,
     decisive: decisive.map(strip),
@@ -161,12 +167,12 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
     entangled,
     unobserved,
     came_true: materialized.map(caveat => {
-      const carriedBy = grounds.filter(id => caveatsOf(id).includes(caveat));
+      const carriedBy = tested.filter(id => caveatsOf(id).includes(caveat));
       return { caveat, carried_by: carriedBy, decisive: carriedBy.some(id => decisiveEvidence.has(id)) };
     }),
     withdrawn: revision.withdrawn,
     outside_grounds: report.evidence.map(item => item.id)
-      .filter(id => !grounds.includes(id) && (observedAt.get(id) ?? Infinity) < deciding),
+      .filter(id => !tested.includes(id) && (observedAt.get(id) ?? Infinity) < deciding),
     // The events after a fatal one are not sent; the review is of the session before it.
     fatal: full.sent.find(item => item.outcome.outcome === 'fatal')?.outcome.message ?? null,
     search: { mode: exhaustive ? 'exhaustive' : 'single', units: units.length, replays, limit },
@@ -189,6 +195,7 @@ export function formatReview(report, title = 'the program') {
   const lines = [`${title}: review of ${report.revision} = ${report.value}  ${report.status}`,
     `  decided at #${report.decided_by.sequence} ${report.decided_by.event}`,
     `  based on ${list(report.grounds.map(item => item.evidence))}${caveatNote(report.retained)}`];
+  if (report.control.length) lines.push(`  control outside its grounds: ${list(report.control)}`);
   if (report.outcome) {
     const { value, because, materialized = [], sequence, event } = report.outcome;
     lines.push(`  resolved at #${sequence} ${event} = ${value} because ${list(because)}${materialized.length ? `; materialized: ${materialized.join(', ')}` : ''}`);
@@ -204,9 +211,9 @@ export function formatReview(report, title = 'the program') {
   lines.push('', `Not decisive: ${list(report.not_decisive)}`);
   if (report.entangled.length) lines.push(`Observed by the deciding event, not separable: ${list(report.entangled)}`);
   if (report.unobserved.length) lines.push(`Not observed by any event given: ${list(report.unobserved)}`);
-  if (report.outside_grounds.length) lines.push(`Observed before the decision, outside its grounds: ${list(report.outside_grounds)}`);
+  if (report.outside_grounds.length) lines.push(`Observed before the decision, outside its lineage: ${list(report.outside_grounds)}`);
   for (const item of report.came_true) {
-    const carrier = item.carried_by.length ? `carried by ${list(item.carried_by)}${item.decisive ? ', decisive' : ''}` : 'retained, carried by no grounds evidence';
+    const carrier = item.carried_by.length ? `carried by ${list(item.carried_by)}${item.decisive ? ', decisive' : ''}` : 'retained, carried by no evidence in its lineage';
     lines.push(`Came true: ${item.caveat} (${carrier})${report.status === 'in force' ? '; the revision is still in force' : ''}`);
   }
   for (const item of report.withdrawn) lines.push(`Withdrawn since: ${item.evidence} at #${item.sequence} because ${item.because}`);

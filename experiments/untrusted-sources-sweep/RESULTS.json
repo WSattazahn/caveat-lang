@@ -1,0 +1,36 @@
+{
+  "programs": 203,
+  "withdraw_effects": {
+    "named": 92,
+    "latest": 22,
+    "occurrence": 0,
+    "every": []
+  },
+  "programs_with_withdraw": 53,
+  "streams_withdrawn_by_several_rules": [],
+  "retention_reasons": 4,
+  "because_once": [],
+  "names_every_or_once": [],
+  "nested_routed_blocks": [
+    {
+      "file": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "header": "for source as $r routed by recip"
+    }
+  ],
+  "events_naming_two_members_of_one_kind": [
+    {
+      "file": "experiments/prompt-injection/inbox-agent-recipients.cav",
+      "event": "send_to"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "event": "confront"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "event": "hold"
+    }
+  ],
+  "past_revision_questions": 0,
+  "programs_asking_about_past_revisions": 0
+}

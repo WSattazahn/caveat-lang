@@ -831,6 +831,48 @@ Before 1.1, the reason went into the grounds with
 two decisions. That still works, but nothing in the record pairs a caveat with
 its reason.
 
+## Act on text from a source that may turn out bad
+
+Draft for 1.4 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
+An agent that acts on text it read, such as an instruction in an email, gives
+that text a caveat and every action resting on it carries the caveat. Three
+forms keep such a program short:
+
+```caveat
+caveat untrusted consequence high;
+evidence mail from "the newsletter as the agent read it";
+evidence mail_bad from "a finding that the newsletter is malicious";
+evidence user_ok from "the user confirming one pending send";
+renewable user_ok limit 64;
+untrusted qualifies mail;
+readings asks from mail limit 8;
+decisions add_event limit 8;
+decisions send limit 1 irreversible;
+on confirm when observed(user_ok) renew user_ok;
+on confirm reveal user_ok;
+on act commit send because enough using latest(asks)
+    retaining untrusted because once user_ok;
+on found reveal mail_bad;
+on found withdraw every mail because mail_bad;
+on found when committed(add_event) and not reopened(add_event) and rests_on_withdrawn(add_event)
+    reopen add_event because mail_bad;
+```
+
+- `because once user_ok`: a confirmation backs one commitment. A second send
+  before the next `confirm` is refused as `evaluation/reason_spent`. Without
+  `once`, one confirmation covers every later send.
+- `withdraw every mail`: the text and every reading sampled from it are
+  withdrawn in one step, not only the latest.
+- `caveat undo-list PROGRAM EVENTS`, or `undoList(snapshot)` from
+  `caveat-lang/explain`, lists every revision, current or past, whose grounds
+  hold withdrawn evidence. The program reopens the current one; the list is
+  for the host to undo what already went out, and marks irreversible ones.
+
+When an action takes two sources, such as an instruction from one email and a
+recipient from another, nest a routed `for` per event parameter; each
+decision's grounds then name both readings
+([section 1](../spec/caveat-untrusted-sources-0.1.md#1-one-action-on-several-sources)).
+
 ## What a withdrawal adds to a decision's grounds
 
 A withdrawal needs a reason: `withdraw latest(checks) because recheck`. Every
