@@ -29,19 +29,19 @@
       "exact": true
     },
     "runtime_load_ms": {
-      "value": 49.77,
+      "value": 29.57,
       "unit": "ms",
       "allowed_growth": 0.5,
       "exact": false
     },
     "open_release-gate_ms": {
-      "value": 61.05,
+      "value": 81.62,
       "unit": "ms",
       "allowed_growth": 0.5,
       "exact": false
     },
     "open_ledger_ms": {
-      "value": 4.43,
+      "value": 7.75,
       "unit": "ms",
       "allowed_growth": 0.5,
       "exact": false
@@ -76,5 +76,6 @@
       "allowed_growth": 0.05,
       "exact": true
     }
-  }
+  },
+  "recorded_on": "sizes and memory in a local build, which match CI byte for byte; timings from CI run 40162748363 on ubuntu-24.04"
 }
