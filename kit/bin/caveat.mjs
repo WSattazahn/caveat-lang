@@ -3,6 +3,7 @@
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
+// caveat review [--runtime <dir>] [--json] --all <directory>
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
 // caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
@@ -11,7 +12,7 @@
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
 import { existsSync, statSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -19,7 +20,8 @@ import { fileURLToPath } from 'node:url';
 import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
-import { formatReview, review } from '../lib/review.mjs';
+import { formatReview } from '../lib/review.mjs';
+import { formatConsulted, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
@@ -35,6 +37,7 @@ Usage:
   caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
+  caveat-lang review [--runtime <dir>] [--json] --all <directory>
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
   caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
@@ -76,6 +79,15 @@ read), alone and together, and says which evidence it was decided on
 decisively, which only changed its value, and which of its retained caveats
 an outcome says came true (spec/caveat-review-0.1.md). It never changes a session or judges the
 decision. Exit status as for explain; 2 also when there is no such revision.
+
+review --all reviews every revision with an outcome, or that consulted a past
+review, in every ledger under a directory: each NAME.cav beside NAME.events.jsonl, and a directory holding one
+.cav and events.jsonl. With --json it prints one JSON object per line. Evidence
+whose source is "caveat-review:<program sha256>#<revision>" records a past
+review the program consulted; a review lists it, and --all says whether the
+directory holds that ledger and what its review says came true
+(spec/caveat-ledger-sets-0.1.md). Exit status: 0 reviewed, 1 an event failed
+fatally, 2 the directory holds no ledger or a ledger could not be used.
 
 undo-list sends the events the same way, then lists every decision revision,
 current or past, whose grounds hold withdrawn evidence: in force first, then
@@ -171,10 +183,11 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
+    else if (argument === '--all' && command === 'review') options.all = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
     else if (argument === '--records' && command === 'check') options.records = true;
@@ -196,7 +209,7 @@ function parseArguments(argv) {
     } else if (argument.startsWith('--')) return { error: `unknown option ${argument} for ${command}` };
     else options.files.push(argument);
   }
-  const [fewest, most, message] = COMMANDS[command];
+  const [fewest, most, message] = options.all ? [1, 1, 'name one directory of ledgers with --all'] : COMMANDS[command];
   if (options.files.length < fewest || options.files.length > most) return { error: message };
   if (options.save && !options.records) return { error: '--save is read with --records' };
   return options;
@@ -315,19 +328,68 @@ async function undoListOf(options) {
 }
 
 async function reviewOf(options) {
+  if (options.all) return reviewAll(options);
   const [program, revision, eventsFile] = options.files;
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
   opened.session.close();
   let result;
-  try { result = review(() => opened.runtime.open(opened.source), opened.events, revision); } catch (error) { console.error(error.message); return 2; }
+  try { result = reviewWithConsulted(() => opened.runtime.open(opened.source), opened.events, revision); } catch (error) { console.error(error.message); return 2; }
   const failed = result.fatal !== null;
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
-    console.log(formatReview(result, path.basename(program)));
+    console.log([formatReview(result, path.basename(program)), ...formatConsulted(result.consulted)].join('\n'));
     if (failed) console.log('\nAn event failed; the review above is of the session before it.');
   }
   return failed ? 1 : 0;
+}
+
+// The ledgers under `directory`, sorted by path: NAME.cav beside
+// NAME.events.jsonl, and a directory's only .cav beside events.jsonl.
+// Dot directories and node_modules are skipped.
+async function findLedgers(directory) {
+  const found = [];
+  const walk = async dir => {
+    const entries = (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
+    const names = new Set(entries.filter(entry => entry.isFile()).map(entry => entry.name));
+    const programs = [...names].filter(name => name.endsWith('.cav'));
+    for (const name of programs) {
+      const events = `${name.slice(0, -4)}.events.jsonl`;
+      if (names.has(events)) found.push({ program: path.join(dir, name), events_file: path.join(dir, events) });
+      else if (programs.length === 1 && names.has('events.jsonl')) found.push({ program: path.join(dir, name), events_file: path.join(dir, 'events.jsonl') });
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') await walk(path.join(dir, entry.name));
+    }
+  };
+  await walk(directory);
+  return found;
+}
+
+async function reviewAll(options) {
+  const [directory] = options.files;
+  let found;
+  try { found = await findLedgers(directory); } catch (error) { console.error(`cannot read ${directory}: ${error.message}`); return 2; }
+  if (!found.length) { console.error(`${directory} holds no ledger: name NAME.cav beside NAME.events.jsonl`); return 2; }
+  const runtime = await loadRuntime(options);
+  if (!runtime) return 2;
+  const ledgers = [];
+  let unusable = false;
+  for (const item of found) {
+    const inputs = await readInputs(item.program, item.events_file);
+    if (!inputs) { unusable = true; continue; }
+    ledgers.push({ ...item, source: inputs.source, events: inputs.events.map(({ event, payload }) => ({ event, payload })) });
+  }
+  const entries = reviewLedgers(source => runtime.open(source), ledgers);
+  for (const entry of entries) {
+    if (entry.error) { unusable = true; console.error(`${entry.program} does not load: ${entry.error}`); continue; }
+    if (options.json) console.log(JSON.stringify(entry));
+    else console.log([formatReview(entry, entry.program), ...formatConsulted(entry.consulted), ''].join('\n'));
+  }
+  const reviewed = entries.filter(entry => !entry.error);
+  if (!options.json) console.log(`${reviewed.length} revision${reviewed.length === 1 ? '' : 's'} reviewed in ${ledgers.length} ledger${ledgers.length === 1 ? '' : 's'}.`);
+  if (unusable) return 2;
+  return reviewed.some(entry => entry.fatal !== null) ? 1 : 0;
 }
 
 // As the source declares it: `target kind mushroom`, `sort in glowcap
