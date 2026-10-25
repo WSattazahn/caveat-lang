@@ -61,6 +61,7 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
+| caveat_dispatch | source, optional save, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.4.0) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
 authoring diagnostics, and `caveat_test` to assert behavior after events. A
@@ -116,6 +117,32 @@ good snapshot. Inspect each reported outcome. For `caveat_dependents`,
 record ID such as `readings@1`, or a caveat name; an unknown subject returns
 `exitCode: 2`.
 
+## Keeping one ledger across calls
+
+`caveat_dispatch` (from 1.4.0) lets an agent keep one ledger for a whole task
+without replaying its history each time. The first call sends the program and
+its first events and no `save`. Each result's `report.save` is the session's
+save text; the next call passes it back unchanged as `save`, with the same
+source, and sends only the new events. The server keeps nothing between calls,
+so the host or agent holds the ledger, and any number of independent ledgers
+can share one server.
+
+The report is `caveat-dispatch-step/0.1`: the `caveat-explain/0.1` report of
+the state after this call's events (named in `explainSchema`), plus `restored`
+(whether a save was restored) and `save`. Its `events` list only this call's
+events. For a reading observed in an earlier call, `observed_by` names the
+reading with `event`, `payload` and `sequence` set to `null`, since a save
+keeps state, not the event log; its grounds, caveats and withdrawals are kept.
+The departure archive is not part of a save (Departure 0.1), so archive history
+covers only this call.
+
+A save binds its exact source: with any other source, or text that is not a
+save, the call returns `exitCode: 2` with `restored: false` and the restore
+error. Restoring never repairs a save or checks its history; to change the
+program, replay the events against the new source instead. A fatal event stops
+the step with `exitCode: 1` and returns the explanation and save of the last
+good state. A save is limited to 2 MiB in both directions.
+
 Every completed operation returns `caveat-authoring/0.1` with operation,
 sourceSha256, runtime identity, exitCode and the existing report. Both the JSON
 text and structuredContent carry that same object. Read exitCode: a completed
@@ -128,7 +155,7 @@ No report authorizes an external action or authenticates its evidence.
 ## Limits and lifecycle
 
 Each call starts a fresh subprocess and runtime and retains no session handle,
-under either protocol. `tools/list` returns the same five tools in a fixed
+under either protocol. `tools/list` returns the same six tools in a fixed
 order; 2026-07-28 results mark it cacheable for an hour (`ttlMs: 3600000`,
 `cacheScope: "public"`), since the list changes only with the installed package.
 Only one call runs at once; concurrent calls receive a busy error. A tool gets
