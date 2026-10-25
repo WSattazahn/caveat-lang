@@ -1580,6 +1580,42 @@ fn an_outcome_survives_a_module_that_declares_its_words() {
     }
 }
 
+#[test]
+fn untrusted_sources_survive_a_module_that_declares_their_words() {
+    // `withdraw every NAME because …` and `retaining C because once E` arrive
+    // in 1.4 (spec/caveat-untrusted-sources-0.1.md). A module may name
+    // evidence `every` and `once` and keep both the words and the names.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim ready;\n\
+             caveat shaky consequence material;\n\
+             evidence every from \"a report\";\n\
+             evidence once from \"a confirmation\";\n\
+             evidence bad from \"a finding\";\n\
+             shaky qualifies every;\n\
+             decisions gate limit 4;\n\
+             event go;\n\
+             event drop;\n\
+             on go reveal every supports ready;\n\
+             on go reveal once;\n\
+             on go commit gate because enough using qualified(1, every) retaining shaky because once once;\n\
+             on drop reveal bad;\n\
+             on drop withdraw every every because bad;\n\
+             on drop withdraw every because once;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "on m__go commit m__gate because enough using qualified(1, m__every) retaining m__shaky because once m__once;",
+        "on m__drop withdraw every m__every because m__bad;",
+        "on m__drop withdraw m__every because m__once;",
+    ] {
+        assert!(source.contains(expected), "{expected}: {source}");
+    }
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1704,6 +1740,7 @@ const POSITIONAL: &[&str] = &[
     "release",
     "resolve",
     "materialized",
+    "once",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —

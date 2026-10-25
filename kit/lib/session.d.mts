@@ -41,6 +41,7 @@ export type KnownRejectionCode =
   | 'caveated_irreversible'
   | 'already_resolved'
   | 'not_retained'
+  | 'reason_spent'
   | 'wrong_agent';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
