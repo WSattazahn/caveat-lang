@@ -62,6 +62,10 @@
       "types": "./lib/handoff.d.mts",
       "default": "./lib/handoff.mjs"
     },
+    "./saves": {
+      "types": "./lib/saves.d.mts",
+      "default": "./lib/saves.mjs"
+    },
     "./serve": {
       "types": "./lib/serve.d.mts",
       "default": "./lib/serve.mjs"

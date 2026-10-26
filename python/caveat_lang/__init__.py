@@ -375,6 +375,15 @@ def _event_text(event: str) -> str:
     return event
 
 
+def _agent_text(agent: Optional[str]) -> Optional[str]:
+    if agent is None:
+        return None
+    if not isinstance(agent, str) or not agent:
+        raise ValueError("agent must be a non-empty string")
+    _string_text(agent, "agent name")
+    return agent
+
+
 # --- sessions ---------------------------------------------------------------
 
 Value = TypeVar("Value")
@@ -461,7 +470,9 @@ class Session:
         except FatalError as error:
             raise self._fail(error) from None
 
-    def dispatch(self, event: str, payload: Optional[Payload] = None) -> Union[Accepted, Rejected]:
+    def dispatch(
+        self, event: str, payload: Optional[Payload] = None, *, agent: Optional[str] = None
+    ) -> Union[Accepted, Rejected]:
         """Send one event and return ``Accepted`` with the snapshot, or ``Rejected``.
 
         The payload holds exactly the parameters the program declares for the
@@ -469,41 +480,73 @@ class Session:
         rejected as input/payload_invalid. A payload JSON cannot carry raises
         ``PayloadError`` and changes nothing. Any other failure raises
         ``FatalError``.
+
+        ``agent`` says which of the program's declared agents sent the event
+        (Agents 0.1). The program decides which agents may send it; any other
+        is rejected as input/wrong_agent.
         """
+        sender = _agent_text(agent)
+        if sender is None:
+            return self._dispatch(
+                lambda native, name, text: native.dispatch_outcome(name, text), "snapshot", Accepted, event, payload
+            )
         return self._dispatch(
-            lambda native, name, text: native.dispatch_outcome(name, text), "snapshot", Accepted, event, payload
+            lambda native, name, text: native.dispatch_outcome_as(name, text, sender), "snapshot", Accepted, event,
+            payload,
         )
 
     def dispatch_view(
-        self, event: str, payload: Optional[Payload] = None, *, fields: Optional[Iterable[ViewField]] = None
+        self,
+        event: str,
+        payload: Optional[Payload] = None,
+        *,
+        fields: Optional[Iterable[ViewField]] = None,
+        agent: Optional[str] = None,
     ) -> Union[AcceptedView, Rejected]:
         """``dispatch``, with the View 0.1 after the event in place of the snapshot.
 
         ``fields`` selects view fields (see ``VIEW_FIELDS``); the view then
         holds only those, plus schema, sequence and last_event. An unknown or
         repeated name raises ``ValueError`` before the event is sent.
+        ``agent`` is as for ``dispatch``.
         """
+        sender = _agent_text(agent)
         if fields is None:
+            if sender is None:
+                return self._dispatch(
+                    lambda native, name, text: native.dispatch_view_outcome(name, text),
+                    "view", AcceptedView, event, payload,
+                )
             return self._dispatch(
-                lambda native, name, text: native.dispatch_view_outcome(name, text),
+                lambda native, name, text: native.dispatch_view_outcome_as(name, text, sender),
                 "view", AcceptedView, event, payload,
             )
         chosen = _fields_text(fields)
 
         def send(native: NativeSession, name: str, text: str) -> str:
-            return native.dispatch_view_fields_outcome(name, text, chosen)
+            if sender is None:
+                return native.dispatch_view_fields_outcome(name, text, chosen)
+            return native.dispatch_view_fields_outcome_as(name, text, chosen, sender)
 
         return self._dispatch(send, "view", AcceptedView, event, payload)
 
-    def dispatch_view_delta(self, event: str, payload: Optional[Payload] = None) -> Union[AcceptedDelta, Rejected]:
+    def dispatch_view_delta(
+        self, event: str, payload: Optional[Payload] = None, *, agent: Optional[str] = None
+    ) -> Union[AcceptedDelta, Rejected]:
         """``dispatch``, with the View 0.2 delta of the event in place of the snapshot.
 
         Applied to ``view(schema="0.2")`` from before the event, the delta
-        gives the view after it.
+        gives the view after it. ``agent`` is as for ``dispatch``.
         """
+        sender = _agent_text(agent)
+        if sender is None:
+            return self._dispatch(
+                lambda native, name, text: native.dispatch_view_delta_outcome(name, text), "delta", AcceptedDelta,
+                event, payload,
+            )
         return self._dispatch(
-            lambda native, name, text: native.dispatch_view_delta_outcome(name, text), "delta", AcceptedDelta, event,
-            payload,
+            lambda native, name, text: native.dispatch_view_delta_outcome_as(name, text, sender), "delta",
+            AcceptedDelta, event, payload,
         )
 
     def snapshot(self) -> JsonObject:
