@@ -1070,6 +1070,125 @@
      "ok": 1
     }
    ]
+  },
+  {
+   "type": "merge",
+   "pr": 354,
+   "title": "Python package: agent= on every dispatch form (Agents 0.1)",
+   "merged_at": "2026-10-26T00:10:40Z",
+   "head": "27fa2ba6ff37b981c981ebb6bc13b1e232dab669",
+   "merge_commit": "868b748315c348e3d920565281af360c95dfa083",
+   "agent": true,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "check_same_bytes_as_the_npm_kit",
+     "ok": 1
+    },
+    {
+     "source": "check_source_distribution_builds_from_it",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_linux_aarch64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_linux_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_windows_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "check_wheel_macos_arm64_and_x86_64",
+     "ok": 1
+    },
+    {
+     "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
   }
  ]
 }
