@@ -1,7 +1,7 @@
 {
  "schema": "caveat-release-gate-history/0.1",
  "repository": "WSattazahn/caveat-lang",
- "capturedAt": "2026-10-26T17:35:24.444Z",
+ "capturedAt": "2026-10-26T23:14:41.293Z",
  "releases": [
   {
    "tag": "v0.1.0-rc.12",
@@ -2567,6 +2567,191 @@
       "workflow_run": {
        "id": 40356209909,
        "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "tag": "v1.4.1",
+   "revision": "5e31e83beb097499212965a142207cc800ff46b5",
+   "shipped_runtime_run": 40410425175,
+   "workflow": {
+    "id": 360309222,
+    "path": ".github/workflows/runtime.yml"
+   },
+   "runs": [
+    {
+     "id": 40410425175,
+     "workflow_id": 360309222,
+     "path": ".github/workflows/runtime.yml",
+     "event": "push",
+     "head_branch": "main",
+     "head_sha": "5e31e83beb097499212965a142207cc800ff46b5",
+     "status": "completed",
+     "conclusion": "success",
+     "run_attempt": 1,
+     "repository": {
+      "full_name": "WSattazahn/caveat-lang"
+     },
+     "head_repository": {
+      "full_name": "WSattazahn/caveat-lang"
+     }
+    }
+   ],
+   "artifacts": {
+    "40410425175": [
+     {
+      "id": 12693990782,
+      "name": "lean-runtime-comparison",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693886057,
+      "name": "light-the-way-webkit-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693876313,
+      "name": "light-the-way-chromium-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693826130,
+      "name": "glowcap-page-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693801790,
+      "name": "kit-security-receipts-1",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693766419,
+      "name": "departure-gates",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693760631,
+      "name": "slime-glow-wasm-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693735811,
+      "name": "moon-garden-3d-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693675832,
+      "name": "trail-rescue-policy-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693675714,
+      "name": "caveat-vscode-extension",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12693182597,
+      "name": "last-beacon-browser-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692993419,
+      "name": "view-delta-gate",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692812647,
+      "name": "moon-garden-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692747831,
+      "name": "mr-caveat-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692363200,
+      "name": "kit-package-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692314580,
+      "name": "browser-dist",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
+      }
+     },
+     {
+      "id": 12692303164,
+      "name": "kit-package-candidate",
+      "expired": false,
+      "workflow_run": {
+       "id": 40410425175,
+       "head_sha": "5e31e83beb097499212965a142207cc800ff46b5"
       }
      }
     ]
