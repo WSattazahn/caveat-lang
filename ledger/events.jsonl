@@ -171,3 +171,7 @@
 {"event": "find", "payload": {"number": 23}}
 {"event": "find", "payload": {"number": 24}}
 {"event": "find", "payload": {"number": 25}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
