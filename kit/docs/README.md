@@ -21,6 +21,10 @@ background, not required reading.
   ranges, the session clock, evidence that ages and decisions that are
   reconsidered.
 
+- [Caveat in a game](GAMES.md): for a game developer, story knowledge as
+  evidence, a player's choices as decisions, a betrayal as withdrawal, and the
+  game loop, saves and cost, with [the intel example](../examples/intel-betrayal/README.md).
+
 - [Project names and CLI commands](NAMES.md): the unambiguous `caveat-lang`
   command introduced in rc.7, the supported `caveat` shorthand and other projects with the
   same name.

@@ -8,7 +8,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { guideSteps } from './guide.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { textOverflow } from './fatal-fixture.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const cli = path.join(kit, 'bin', 'caveat.mjs');
@@ -55,6 +55,25 @@ test('init writes exactly the files the getting-started guide has you write', as
     assert.equal(again.status, 2);
     assert.match(again.stderr, /already exist; nothing written/);
     assert.equal(await readFile(path.join(target, 'umbrella.cav'), 'utf8'), 'mine');
+  });
+});
+
+// Found by the Primeagen test: init given a file, or a directory it cannot
+// create, printed a raw Node stack trace.
+test('init refuses a file and an unwritable directory with one line and status 2', async () => {
+  await inDirectory(async directory => {
+    const file = path.join(directory, 'notes.cav');
+    await writeFile(file, 'mine');
+    const onFile = caveat(['init', file]);
+    assert.equal(onFile.status, 2);
+    assert.equal(onFile.stderr, `${file} is a file, not a directory; give init a directory to write the starter files in\n`);
+    assert.equal(await readFile(file, 'utf8'), 'mine');
+
+    const blocked = path.join(file, 'project');
+    const below = caveat(['init', blocked]);
+    assert.equal(below.status, 2);
+    assert.match(below.stderr, new RegExp(`^cannot write the starter files in ${blocked.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}: E[A-Z]+`));
+    assert.doesNotMatch(below.stderr, /\n\s+at /, 'no stack trace');
   });
 });
 
@@ -257,7 +276,7 @@ test('replay prints one record per event, keeps file line numbers and stops at a
     assert.ok(records[1].snapshot && !records[3].snapshot && !('schema' in records[1]));
 
     const dividing = path.join(directory, 'dividing.cav');
-    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = 1;\n' + provenanceOverflow('on read when value > 1.5'));
+    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = 1;\n' + textOverflow('on read when value > 1.5'));
     await writeFile(events, [1, 2, 3].map(value => JSON.stringify({ event: 'read', payload: { value } })).join('\n'));
     const fatal = caveat(['replay', dividing, events]);
     assert.equal(fatal.status, 1);

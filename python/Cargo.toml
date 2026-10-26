@@ -1,0 +1,24 @@
+[package]
+name = "caveat-lang-python"
+version = "0.1.0"
+edition = "2021"
+description = "Python bindings for the CAVEAT runtime"
+license = "MIT"
+repository = "https://github.com/WSattazahn/caveat-lang"
+publish = false
+
+[lib]
+name = "_runtime"
+crate-type = ["cdylib"]
+
+[dependencies]
+# The reactive runtime the npm kit ships (dist/pkg-reactive): the same source,
+# built without the browser game sessions.
+caveat-runtime = { path = "../runtime", default-features = false }
+# abi3: one wheel per platform serves every CPython from 3.9 on.
+pyo3 = { version = "0.30", features = ["extension-module", "abi3-py39"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

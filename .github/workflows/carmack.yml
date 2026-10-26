@@ -1,0 +1,139 @@
+name: carmack
+
+# The Carmack checks (bench/carmack/README.md): where the time per event goes,
+# byte-identical replay on every platform, footprint against a baseline, and
+# one speed target. Replay is exact and fails on a difference. The timing and
+# footprint jobs report and never fail a pull request: shared runners are too
+# noisy for a timing gate, and a size growth is read from the summary.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'runtime/**'
+      - 'kit/lib/**'
+      - 'bench/carmack/**'
+      - 'ledger/project.cav'
+      - 'ledger/events.jsonl'
+      - 'examples/*.cav'
+      - 'caveatism/canon/archive.cav'
+      - 'scripts/build-web.mjs'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/carmack.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: carmack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build the runtime
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: carmack-runtime
+          path: dist/pkg-reactive
+          retention-days: 7
+
+  replay:
+    name: replay / ${{ matrix.os }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
+        with:
+          name: carmack-runtime
+          path: carmack-runtime
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the browsers
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Replay seeded sequences with a save and restore
+        shell: bash
+        run: |
+          browsers=""
+          if [[ "$RUNNER_OS" == "Linux" ]]; then browsers="--browsers chromium,firefox,webkit"; fi
+          node bench/carmack/replay.mjs --runtime carmack-runtime --out test-results/carmack $browsers
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: carmack-replay-${{ matrix.os }}
+          path: test-results/carmack/*.replay.json
+
+  replay-compare:
+    name: replay is byte-identical everywhere
+    needs: replay
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: carmack-replay-*
+          path: replays
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node bench/carmack/replay.mjs --compare replays | tee -a "$GITHUB_STEP_SUMMARY"
+
+  measure:
+    name: profile, footprint and target
+    needs: build
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - uses: actions/download-artifact@v7
+        with:
+          name: carmack-runtime
+          path: carmack-runtime
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the native phase profiler
+        run: cargo build --locked --release --manifest-path runtime/Cargo.toml --features event-phase-profile --example carmack_profile
+      - name: Where the time per event goes
+        run: node bench/carmack/profile.mjs --runtime carmack-runtime --native runtime/target/release/examples/carmack_profile
+      - name: Footprint against the baseline
+        run: node bench/carmack/footprint.mjs --runtime carmack-runtime
+      - name: Speed target
+        run: node bench/carmack/target.mjs
+      - name: Summary
+        if: always()
+        run: cat test-results/carmack/target.md test-results/carmack/footprint.md test-results/carmack/profile.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: carmack-measures
+          path: |
+            test-results/carmack/*.json
+            test-results/carmack/*.md

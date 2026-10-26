@@ -102,6 +102,37 @@ legacy diagnostics; they are not part of the structured policy message.
 The runtime emits no `stage` field. Host transport failures may identify their
 I/O stage; a stage must never be used to guess a runtime rejection origin.
 
+## The what-if path
+
+`what_if_view_outcome` (in the developer kit
+`session.whatIf(event, payload)`) returns what `dispatch_view_outcome` would
+return for the event, and changes nothing. It runs the event on a copy of the
+session, the same copy-on-write copy an event's transaction already works on,
+and drops the copy whatever the outcome. `what_if_view_fields_outcome` (in the
+kit, `whatIf(event, payload, { fields })`) is the same with a
+[field selection](caveat-view-0.1.md#selected-fields).
+
+It answers questions a host would otherwise need a second session for: what
+would withdrawing this evidence reopen, would this commitment be refused, what
+would this tick do. [Dependents 0.1](caveat-dependents-0.1.md) says from a
+snapshot what rests on a piece of evidence; the what-if path says what the
+program would do about it.
+
+- An accepted or rejected answer is, byte for byte, what
+  `dispatch_view_outcome` would then return for the same event and payload.
+- The session is unchanged: its snapshot, view, save, sequence, archive and
+  the kit's delta base are what they were. Asking is not an event, and a
+  later `dispatch_view_delta_outcome` is unaffected by it.
+- A fatal error is thrown as `dispatch_outcome` throws it, but it is the
+  copy's: the session it was asked of stays usable. The kit throws
+  `CaveatError("fatal")` and keeps the session open. A WebAssembly trap still
+  makes the whole runtime instance unusable, as on any path.
+- A runtime build that predates it has no `what_if_view_outcome`, and the kit
+  throws `CaveatError("load")` without touching the session.
+
+It is an additional entry point. No program's meaning, no existing entry point
+and no output changes.
+
 ## Origins and the initial code catalog
 
 | Origin | Code | Classified failure site |
@@ -110,6 +141,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `policy` | `not_permitted` | A commit's `permitted by` clause found its grant missing, withdrawn, or for another value ([Permission 0.1](caveat-permission-0.1.md)). |
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range, or a fractional `dt` for an integer clock inside its range ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `input` | `wrong_agent` | The host named an agent the program does not declare, or sent an event some agent `sends` with no agent or another one ([Agents 0.1](caveat-agents-0.1.md), from 1.4.0). |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range, or a clock event would make the session clock nonfinite, or take an integer clock's reading outside `±(2^53 − 1)` ([Elapsed 0.1](caveat-elapsed-0.1.md)). |
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
@@ -117,7 +149,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
-| `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0). |
+| `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0), or that a reversible decision in force forecloses ([Foreclosure 0.2](caveat-foreclosure-0.2.md), 1.4 draft). |
 | `evaluation` | `caveated_irreversible` | An executed `commit` of an irreversible series rests on a caveat of consequence `material` or above that its `retaining` clause does not name ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)), or an executed `resolve` names a series with no revision, or an index that names none ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
 | `evaluation` | `already_resolved` | An executed `resolve` names a revision that already has an outcome whose evidence is not withdrawn ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
@@ -132,6 +164,8 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
 | `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit ([Renewal 0.1](caveat-renewal-0.1.md)). |
 | `limit` | `scheduled_limit` | A `qualify … after` would schedule a qualification while 4,096 are already waiting ([Late Qualification 0.1](caveat-late-qualification-0.1.md)). |
+| `limit` | `provenance_limit` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, would give a value a lineage of more than 1,024 identifiers or more than 65,536 bytes of their names (from 1.4.0). |
+| `limit` | `evaluation_limit` | One expression evaluated by the event would visit more than 65,536 nodes, as a `fold_history` over a long stream with a heavy step does (from 1.4.0). |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -351,3 +385,33 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-25: the [what-if path](#the-what-if-path),
+  `what_if_view_outcome` and `what_if_view_fields_outcome`, in the developer
+  kit `session.whatIf`, runs an event on a dropped copy of the session and
+  returns what `dispatch_view_outcome` would. It is the assumption-based truth
+  maintenance question "what would hold if this were withdrawn", answered for
+  one session by running the program rather than by tracking every context. A
+  sweep of every scenario in the repository, asking before each event, found
+  every answer equal to the event's outcome and every session unchanged. No
+  existing entry point, output or code changes.
+- 2026-10-25 (1.4.0): `limit/provenance_limit` classifies an event whose
+  evaluation would give a value a lineage of more than 1,024 identifiers, or
+  more than 65,536 bytes of their names; `limit/evaluation_limit` classifies
+  an event in which one expression's evaluation would visit more than 65,536
+  nodes. Before them, each such event was fatal `unclassified` on 1.0.0 to
+  1.3.0: a host lost the session, although the runtime had already rolled the
+  event back. Finding D022 reached the first on the 513th event of a program
+  whose state summed `qualified` reads of two renewables, each renewed every
+  event, so the lineage grew by two occurrences a step; finding D023 reached
+  the second on the 99th event of a program that folded a 256-reading stream
+  with a step calling a function of some 670 nodes. Both now refuse the event
+  with the text the fatal error carried, and the session goes on: the refused
+  event changed nothing, trying it again refuses it the same way, and an event
+  that stays under the cap is accepted. The origin is `limit`, as for
+  `history_limit`, because the exhausted resource is a capacity of the
+  runtime, not a condition the program wrote or a value it computed. One code
+  covers both provenance bounds because they bound one resource, a value's
+  lineage. Both caps are unchanged; the regression cases are
+  `runtime/tests/d022_provenance_limit.rs` and
+  `runtime/tests/d023_evaluation_limit.rs`, and the save sweep over every
+  tracked program is byte-identical with 1.3.0.

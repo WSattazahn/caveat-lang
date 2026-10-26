@@ -1,6 +1,6 @@
 # Related work
 
-Caveat builds on ideas that predate it. This note places it beside eight of
+Caveat builds on ideas that predate it. This note places it beside ten of
 them. It is not a benchmark and not a ranking. These systems solve different
 problems and are not interchangeable products. Caveat claims none of the ideas
 below as its own invention.
@@ -14,11 +14,12 @@ in its own documented behavior. Each comparison is marked:
   it against the other system's full documentation or behavior. Do not repeat
   it as established.
 
-Sources were read on 2026-10-10, and those for the last two entries on
-2026-10-12. Caveat's behavior is summarized in
+Sources were read on 2026-10-10, those for the last two entries on
+2026-10-12, and those for the TMS, Hyperon and Watson entries on
+2026-10-25. Caveat's behavior is summarized in
 [What is checked, and how](VERIFICATION.md).
 
-## Truth maintenance (Doyle, 1979)
+## Truth maintenance (Doyle, 1979; de Kleer, 1986)
 
 Jon Doyle, "A Truth Maintenance System", *Artificial Intelligence* 12(3),
 1979. A truth maintenance system records a justification for each belief and
@@ -35,8 +36,34 @@ It is the clearest ancestor of "keep the reasons with the conclusion".
   ([decision journal](../spec/caveat-decision-journal-0.1.md)). Classic truth
   maintenance updates which beliefs hold. It does not keep a frozen record of
   an earlier decision beside the revised beliefs.
-- **[unverified]** Later TMS variants (assumption-based, de Kleer 1986) track
-  several contexts at once. We have not compared Caveat with them.
+
+Johan de Kleer, "An Assumption-Based TMS", *Artificial Intelligence* 28,
+1986, pp. 127–162. An assumption-based TMS (ATMS) labels each conclusion with
+the sets of assumptions, called environments, under which it holds, so it
+can answer for many contexts at once without switching between them. It
+recommends retracting through an assumption rather than by deleting a
+justification (section 4.9).
+
+- **[checked]** A Caveat value's lineage is one set of evidence and caveat
+  identities, combined by union
+  ([Explanations 0.2](../spec/caveat-explanations-0.2.md)). That is a single
+  environment per value. Caveat does not keep several environments for one
+  value, and does not answer queries across contexts the way an ATMS does.
+  The ATMS's worst case, labels that grow exponentially with the number of
+  contexts (de Kleer, section 4.8), does not arise.
+- **[checked]** Caveat's withdrawal follows the shape de Kleer recommends. It
+  removes no observation or record. It adds the `withdrawn` caveat to every
+  current value whose lineage or grounds include the evidence
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[checked]** The reverse question, what rests on a piece of evidence, is
+  answered from a snapshot by
+  [Dependents 0.1](../spec/caveat-dependents-0.1.md). It reports which
+  decisions and values rest on the evidence. It does not run the program to
+  show what a withdrawal would make it do.
+- **[unverified]** McAllester's logic-based TMS (LTMS) propagates clauses
+  rather than justifications (David McAllester, "Truth Maintenance", AAAI-90,
+  pp. 1109–1116, surveys the family). Caveat does no logical inference over
+  lineage, so we expect the comparison to be distant, but have not made it.
 
 ## Datalog provenance (provenance semirings)
 
@@ -116,6 +143,51 @@ neural networks.
   and check reasons, and computes no probabilities.
 - **[unverified]** Scallop has no decision journal or event rollback, as far
   as we know from the paper.
+
+## Probabilistic Logic Networks in OpenCog Hyperon
+
+Ben Goertzel et al., "OpenCog Hyperon: A Framework for AGI at the Human
+Level and Beyond" ([arXiv 2310.18318](https://arxiv.org/abs/2310.18318), a
+preprint, 2023), describes a rewrite of OpenCog around the MeTTa language.
+Its Probabilistic Logic Networks (PLN) give a statement a truth value with
+two parts: a strength, the estimated probability that it is true, and a
+confidence, how certain that estimate is
+([arXiv 2412.19524](https://arxiv.org/abs/2412.19524), a preprint).
+
+- **[checked]** Caveat scores no belief. A value carries the evidence and
+  caveats it rests on ([Explanations 0.2](../spec/caveat-explanations-0.2.md)),
+  and a caveat's consequence is one of five declared levels, from
+  `negligible` to `catastrophic`, not a probability. Withdrawing evidence marks what rests on it rather than lowering a number
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[unverified]** From the sources cited here, PLN revises truth values as
+  evidence accumulates and does not keep a frozen record of the basis an
+  earlier decision was made on. We have not read MeTTa's or PLN's
+  implementation. The two could be combined: a program could carry a PLN
+  strength as an ordinary value beside Caveat's lineage;
+  [Caveat alongside probabilities](PROBABILITIES.md) shows how with any score.
+
+## Watson's DeepQA and Elemental Cognition
+
+David Ferrucci et al., "Building Watson: An Overview of the DeepQA Project",
+*AI Magazine* 31(3), 2010, pp. 59–79
+([doi:10.1609/aimag.v31i3.2303](https://doi.org/10.1609/aimag.v31i3.2303)).
+DeepQA generated candidate answers, gathered and scored evidence for each,
+and answered with a confidence. Elemental Cognition's later work
+(Jennifer Chu-Carroll, David Ferrucci et al., "Beyond LLMs: Advancing the
+Landscape of Complex Reasoning", [arXiv 2402.08064](https://arxiv.org/abs/2402.08064),
+a preprint, 2024) puts a symbolic reasoning engine at the core and uses
+language models around it, to acquire knowledge and to talk with users.
+
+- **[checked]** Caveat generates no answers and scores none. A program states
+  its rules, and each event an agent or host sends is accepted or refused by
+  them ([Dispatch 0.1](../spec/caveat-dispatch-0.1.md)). An accepted
+  decision keeps the grounds and caveats it was made on
+  ([decision journal](../spec/caveat-decision-journal-0.1.md)).
+- **[unverified]** Caveat fits the same split at a smaller scale: a language
+  model proposes an observation or a decision, and Caveat records what it
+  rests on and refuses what the rules do not allow. We have not compared it
+  with Elemental Cognition's engine, which also solves constraints and
+  optimizes, which Caveat does not.
 
 ## W3C PROV
 

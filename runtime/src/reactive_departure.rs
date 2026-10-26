@@ -243,6 +243,7 @@ mod withdrawal_extraction_tests {
                     because: format!("reason{index}"),
                     sequence: index as u64 + 1,
                     event: format!("event{index}"),
+                    agent: None,
                 })
                 .collect(),
         )
@@ -456,7 +457,11 @@ impl ReactiveSession {
             .collect()
     }
 
-    pub(crate) fn inherit(&self, into: &mut Provenance, from: &Provenance) -> Result<(), String> {
+    pub(crate) fn inherit(
+        &self,
+        into: &mut Provenance,
+        from: &Provenance,
+    ) -> Result<(), EvalError> {
         if self.windowed() {
             into.merge_inherited(from)
         } else {

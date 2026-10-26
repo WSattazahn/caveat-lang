@@ -1,0 +1,9 @@
+{"event":"vote","payload":{"case":"case_a","model":"m1","verdict":1}}
+{"event":"vote","payload":{"case":"case_a","model":"m2","verdict":1}}
+{"event":"vote","payload":{"case":"case_a","model":"m3","verdict":0}}
+{"event":"decide","payload":{"case":"case_a"}}
+{"event":"vote","payload":{"case":"case_b","model":"m1","verdict":1}}
+{"event":"vote","payload":{"case":"case_b","model":"m2","verdict":1}}
+{"event":"vote","payload":{"case":"case_b","model":"m3","verdict":1}}
+{"event":"decide","payload":{"case":"case_b"}}
+{"event":"distrust","payload":{"model":"m2"}}
