@@ -1,7 +1,7 @@
 # Related work
 
-Caveat builds on ideas that predate it. This note places it beside ten of
-them. It is not a benchmark and not a ranking. These systems solve different
+Caveat builds on ideas that predate it. This note places it beside fourteen
+of them. It is not a benchmark and not a ranking. These systems solve different
 problems and are not interchangeable products. Caveat claims none of the ideas
 below as its own invention.
 
@@ -14,9 +14,10 @@ in its own documented behavior. Each comparison is marked:
   it against the other system's full documentation or behavior. Do not repeat
   it as established.
 
-Sources were read on 2026-10-10, those for the last two entries on
-2026-10-12, and those for the TMS, Hyperon and Watson entries on
-2026-10-25. Caveat's behavior is summarized in
+Sources were read on 2026-10-10, those for the W3C PROV and agent decision
+record entries on 2026-10-12, and those for the TMS, Hyperon and Watson
+entries and the four entries from bitemporal databases onward on 2026-10-25.
+Caveat's behavior is summarized in
 [What is checked, and how](VERIFICATION.md).
 
 ## Truth maintenance (Doyle, 1979; de Kleer, 1986)
@@ -240,6 +241,83 @@ Several 2026 projects record what an AI system decided and why:
   change's description and a third-party review of Semantica), none of these
   states that it keeps a past decision's frozen basis beside a retraction. We
   have not read their full documentation or code. Do not repeat this as a
+  finding.
+
+## Bitemporal databases
+
+Richard T. Snodgrass and Ilsoo Ahn, "Temporal Databases", *IEEE Computer*
+19(9), 1986, and the system-versioned and application-time tables of
+ISO/IEC 9075:2011 (SQL:2011). A bitemporal table records two times for each
+row: when a fact held (valid time) and when the database recorded it
+(transaction time). A correction closes the old row's transaction time
+instead of deleting it, so a query can ask what the database said as of an
+earlier moment.
+
+- **[checked]** Caveat's withdrawal also removes nothing. The observation,
+  its reading archives, every decision's frozen basis and the decision
+  journal stay as they were
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md), step 3).
+- **[checked]** Caveat orders its records by event and sequence number. A
+  withdrawal records when it happened, not since when the evidence was
+  wrong, so Caveat has no separate valid time
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md), step 1).
+- **[unverified]** A bitemporal table does not by itself mark the results
+  derived from a corrected row. Caveat adds the `withdrawn` caveat to every
+  current value whose lineage includes the evidence. We have not surveyed
+  temporal databases with triggers or derived views that do the same.
+
+## Legal citators
+
+Law publishers' citators, such as Westlaw's KeyCite and LexisNexis's
+Shepard's, mark how later courts treated a case. KeyCite's
+[Overruling Risk](https://www.thomsonreuters.com/en-us/help/westlaw-precision/tools/keycite-overruling-risk)
+warns about a point of law that has been "undermined because it relies on an
+overruled or otherwise invalid prior decision". An overruled opinion is not
+rewritten: it still reads as it was decided.
+
+- **[checked]** The shape is the same as Caveat's: withdrawing a source
+  flags what currently rests on it, and each past decision keeps the basis
+  it had. In Caveat the runtime computes this from lineage it recorded when
+  each value and decision was made, and a decision reopens only through an
+  authored `reopen … because …` policy
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[unverified]** The help page shows the warning, not how it is produced.
+  We understand citator flags to come from editors reading the citing
+  opinions, not from recorded dependencies, but have not confirmed it.
+
+## Retraction notices and retraction trackers
+
+A retracted paper stays published, marked as retracted. A nanopublication
+"is persistent, you can never edit nor delete it", and retracting one
+publishes a second, signed nanopublication that points at it
+([nanopub documentation](https://nanopub.readthedocs.io/en/latest/publishing/retraction.html)).
+Tools such as Guillaume Cabanac's Feet of Clay Detector and Nicholas
+DeVito's RetractoBot find papers that cite retracted work and alert readers
+or authors.
+
+- **[checked]** Caveat records a withdrawal with its reason as a separate
+  record, and removes nothing
+  ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)). Nanopublications
+  also sign the retraction. Caveat does not sign or authenticate records
+  ([Save 0.1, host trust boundary](../spec/caveat-save-0.1.md#host-trust-boundary)).
+- **[unverified]** The trackers work from citations, which say that a paper
+  mentions another, not that a conclusion used it. Caveat's lineage records
+  what an evaluation read. We have not read the trackers' methods.
+
+## Temporal knowledge graphs for agent memory (Graphiti)
+
+Preston Rasmussen et al., "Zep: A Temporal Knowledge Graph Architecture for
+Agent Memory" ([arXiv 2501.13956](https://arxiv.org/abs/2501.13956), a
+preprint). Its Graphiti library keeps a bitemporal graph of facts. When a
+new fact contradicts an edge, it sets the edge's `invalid_at` time instead of
+deleting it.
+
+- **[checked]** Both keep a fact that is no longer stood behind. Caveat
+  keeps the observation and adds the `withdrawn` caveat to it and to current
+  values that rest on it ([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)).
+- **[unverified]** We read a summary of the paper, not the paper or the
+  library. From that summary, Graphiti does not record decisions or mark
+  what was derived from an invalidated edge. Do not repeat this as a
   finding.
 
 ## What this note does not claim
