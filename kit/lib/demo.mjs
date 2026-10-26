@@ -37,8 +37,10 @@ function verifyDemo(steps) {
   }
   requireInvariant(revised.decision_series.assessment.current === 'assessment@2', 'the new assessment must commit assessment@2');
   requireInvariant(same(revised.commitment_grounds['assessment@2'], lastGrounds), 'revised decision grounds must be exactly observations@2');
+  // Its lineage holds the predecessor's basis, observations@1, so it carries
+  // `withdrawn` (D026); its grounds stay exactly observations@2.
   requireInvariant(same(revised.commitment_bases['assessment@2'], {
-    value: 92, provenance: { evidence: ['observations@1', 'observations@2', 'recheck'], caveats: [] },
+    value: 92, provenance: { evidence: ['observations@1', 'observations@2', 'recheck'], caveats: ['withdrawn'] },
   }), 'revised basis must retain supplied value 92 and its full lineage');
   requireInvariant(same(revised.reading_streams.observations.occurrences.map(item => [item.id, item.value]), [['observations@1', 85], ['observations@2', 92]]), 'both supplied readings must remain in the archive');
   const revisions = steps.at(-1).explanation.decisions.find(item => item.name === 'assessment').revisions;

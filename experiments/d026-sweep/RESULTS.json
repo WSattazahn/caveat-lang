@@ -1,0 +1,94 @@
+{
+  "runs": 20,
+  "steps": 30,
+  "programs": 181,
+  "skipped": [
+    "editors/vscode/test/fixtures/nested.cav",
+    "editors/vscode/test/fixtures/scopes.cav",
+    "examples/canonical_001.cav",
+    "examples/canonical_002.cav",
+    "examples/canonical_003.cav",
+    "examples/inference_contradiction.cav",
+    "examples/modules/crossing.cav",
+    "examples/modules/glow.cav",
+    "examples/modules/slime_glow.cav",
+    "examples/modules/weather.cav",
+    "examples/multistep_inference.cav",
+    "examples/resource_budget.cav",
+    "experiments/agent-adoption/v1/results/2026-10-02/A01/submission/invalid-because.cav",
+    "experiments/agent-adoption/v1/results/2026-10-02/A02/submission/diagnosis-invalid.cav",
+    "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/first.cav",
+    "experiments/agent-adoption/v1/results/2026-10-02/A03/submission/invalid-because.cav",
+    "experiments/agent-authoring/v1/runs/A1/versions/01.cav",
+    "experiments/agent-authoring/v1/runs/A2/versions/01.cav",
+    "experiments/agent-authoring/v1/runs/B1/versions/01.cav",
+    "experiments/agent-authoring/v1/runs/B2/versions/01.cav",
+    "experiments/agent-authoring/v1/runs/SMOKE/versions/02.cav",
+    "experiments/agent-authoring/v2/runs/B2/versions/01.cav",
+    "game/missing_dumpling.cav",
+    "game/moon_garden.cav",
+    "game/the_door.cav",
+    "game/the_door_round2.cav",
+    "game/the_last_beacon.cav",
+    "runtime/prelude.cav",
+    "tests/adversarial/contradiction.cav",
+    "tests/adversarial/cycle.cav",
+    "web/the_door_round2.cav"
+  ],
+  "identical": 168,
+  "gainedWithdrawn": [
+    {
+      "path": "docs/tutorials/agent-undo-list/hello.cav",
+      "events": 232
+    },
+    {
+      "path": "docs/tutorials/agent-undo-list/support.cav",
+      "events": 232
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/final/task.cav",
+      "events": 58
+    },
+    {
+      "path": "experiments/agent-authoring/rc7/trial01/first/task.cav",
+      "events": 24
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/decision.cav",
+      "events": 101
+    },
+    {
+      "path": "experiments/agent-decisions/001-departure-reason-mechanism/ledger-item4.cav",
+      "events": 233
+    },
+    {
+      "path": "experiments/agent-decisions/retest-rc19/d001-undeclared.cav",
+      "events": 78
+    },
+    {
+      "path": "experiments/prompt-injection/inbox-agent.cav",
+      "events": 22
+    },
+    {
+      "path": "kit/examples/intel-betrayal/intel.cav",
+      "events": 93
+    },
+    {
+      "path": "kit/examples/retractions/retraction.cav",
+      "events": 13
+    },
+    {
+      "path": "kit/examples/reviewer-decision/rely.cav",
+      "events": 25
+    },
+    {
+      "path": "kit/test/fixtures/starter/assessment.cav",
+      "events": 116
+    },
+    {
+      "path": "python/tests/fixtures/assessment.cav",
+      "events": 15
+    }
+  ],
+  "other": []
+}
