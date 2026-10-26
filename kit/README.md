@@ -274,9 +274,9 @@ npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 `caveat review --all <directory>` reviews a set of past ledgers: every
 `NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
 only `.cav` beside `events.jsonl`. It reviews each revision that has an
-outcome or consulted a past review, then sums up how often each caveat came
-true, in all and by the evidence that carried it. With `--json` it prints one
-object per line, the summary last. A program records that it read a past review with ordinary evidence
+outcome or consulted a past review. With `--json` it prints one object per
+line. `--summary` adds how often each caveat came true across the set, in all
+and by the evidence that carried it (with `--json`, as the last line). A program records that it read a past review with ordinary evidence
 whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
 a review lists it under Consulted, and `--all` says what that review found.
 It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).

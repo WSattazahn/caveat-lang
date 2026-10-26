@@ -198,13 +198,27 @@ test('caveat review --all finds ledgers under a directory and reports them', asy
     assert.match(text.stdout, /ticket-a\.cav: review of refund@1 = 80 {2}in force\n/);
     assert.match(text.stdout, /program\.cav: review of refund@1 = 80 {2}in force\n/);
     assert.match(text.stdout, /\nConsulted: lesson, the review of refund@1 of program [0-9a-f]{12}; [^\n]*ticket-a\.cav: self_reported came true, decisive\n/);
-    assert.match(text.stdout, /\nAcross the set \(1 revision with an outcome\)\n {2}self_reported: came true in 1 of 1; carried by customer_email, 1 of 1\n\n2 revisions reviewed in 2 ledgers\.\n$/);
+    assert.match(text.stdout, /, decisive\n\n2 revisions reviewed in 2 ledgers\.\n$/);
+    assert.doesNotMatch(text.stdout, /Across the set/);
+
+    const summed = caveat(['review', '--all', '--summary', directory]);
+    assert.equal(summed.status, 0, summed.stderr);
+    assert.equal(summed.stdout.replace(/Across the set[^]*?\n\n(?=2 revisions)/, ''), text.stdout);
+    assert.match(summed.stdout, /\nAcross the set \(1 revision with an outcome\)\n {2}self_reported: came true in 1 of 1; carried by customer_email, 1 of 1\n\n2 revisions reviewed in 2 ledgers\.\n$/);
 
     const json = caveat(['review', '--all', '--json', directory]);
     assert.equal(json.status, 0, json.stderr);
-    const all = json.stdout.trim().split('\n').map(line => JSON.parse(line));
+    const lines = json.stdout.trim().split('\n').map(line => JSON.parse(line));
+    assert.ok(lines.every(line => line.schema === LEDGER_REVIEW_SCHEMA));
+    const summedJson = caveat(['review', '--all', '--json', '--summary', directory]);
+    assert.equal(summedJson.status, 0, summedJson.stderr);
+    const all = summedJson.stdout.trim().split('\n').map(line => JSON.parse(line));
     assert.equal(all.at(-1).schema, LEDGER_SUMMARY_SCHEMA);
-    const lines = all.filter(line => line.schema === LEDGER_REVIEW_SCHEMA);
+    assert.deepEqual(all.slice(0, -1), lines);
+
+    const alone = caveat(['review', '--summary', path.join(directory, 'ticket-a.cav'), 'refund@1', path.join(directory, 'ticket-a.events.jsonl')]);
+    assert.equal(alone.status, 2);
+    assert.match(alone.stderr, /--summary is read with --all/);
     assert.deepEqual(lines.map(line => [path.relative(directory, line.program), line.revision]), [['ticket-a.cav', 'refund@1'], [path.join('ticket-b', 'program.cav'), 'refund@1']]);
     assert.equal(lines[1].consulted[0].found.program, path.join(directory, 'ticket-a.cav'));
 

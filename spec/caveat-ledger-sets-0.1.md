@@ -68,7 +68,7 @@ Consulted: lesson, the review of refund@1 of program 718016c155de; ledgers/ticke
 ## 1. Finding ledgers
 
 ```text
-caveat review [--runtime <dir>] [--json] --all <directory>
+caveat review [--runtime <dir>] [--json] [--summary] --all <directory>
 ```
 
 A **ledger** is a program and its record. Under the directory, searched
@@ -82,16 +82,19 @@ Each ledger's events are sent to a fresh session, as `explain` does. Every
 revision of a decision series that has an outcome (Outcomes 0.1), or that
 consulted a past review (section 2), is reviewed as Review 0.1 says.
 
-Text output is each review, with its Consulted lines, then the summary
-(section 1.1), then `N revisions reviewed in M ledgers.` `--json` prints one
+Text output is each review, with its Consulted lines, then, with
+`--summary`, the summary (section 1.1), then `N revisions reviewed in M
+ledgers.` `--json` prints one
 `caveat-ledger-review/0.1` object per line: the review's fields, with
 `schema` replaced and `program`, `events` (the paths) and `program_sha256`
-(the program's source SHA-256, as saves bind it) added. Its last line is the
-`caveat-ledger-summary/0.1` object. A ledger whose program does not load is
+(the program's source SHA-256, as saves bind it) added. With `--summary`, its
+last line is the `caveat-ledger-summary/0.1` object. A ledger whose program does not load is
 reported on standard error and reviewed no further.
 
 ### 1.1 The summary
 
+The summary is printed only with `--summary`, which is read only with
+`--all`, so the output of `review --all`, stable from 1.4.0, keeps its bytes.
 Each review says what came true in one decision. The summary says it across
 the set, so a reader can see a pattern without adding up reviews by hand. A
 demo found the need: one reader took two of four overturned refunds as one
@@ -199,9 +202,10 @@ Finding files is the command's: the library reads no files.
   has an outcome and a later one that consulted its review, unresolved
   reviews, consulted evidence after the deciding event and in the lineage,
   a program that does not load, the summary by carrying evidence, and the
-  command over a directory.
+  command over a directory with and without `--summary`.
 
 ## Changes
 
 - 2026-10-25: drafted and implemented for 1.4, from the learn-from-ledger demo.
 - 2026-10-25: the summary (section 1.1), from the harder learn-from-ledger test.
+- 2026-10-26: the summary is opt-in with `--summary`, since `review --all` is stable from 1.4.0.
