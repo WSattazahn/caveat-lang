@@ -79,4 +79,5 @@ bind pr.sweep = "not needed: the PR does not touch runtime/ or spec/";
 bind pr.sweep = "needed, and green" when needs_sweep and sweep_green;
 bind pr.sweep = "needed, and not green on this head" when needs_sweep and not sweep_green;
 bind pr.ledger = "no events owed" when has_sample(owed) and latest(owed) == 0;
-bind pr.ledger = number_text(latest(owed)) + " merged PRs owe ledger events" when has_sample(owed) and latest(owed) > 0;
+bind pr.ledger = "1 merged PR owes ledger events" when has_sample(owed) and latest(owed) == 1;
+bind pr.ledger = number_text(latest(owed)) + " merged PRs owe ledger events" when has_sample(owed) and latest(owed) > 1;
