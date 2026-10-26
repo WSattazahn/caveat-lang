@@ -6829,7 +6829,12 @@ impl ReactiveSession {
         self.retire_journal_entry();
         let mut caveats = BTreeSet::new();
         for evidence in &because {
-            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+            caveats.extend(
+                self.qualify_core(evidence, &[])?
+                    .caveats
+                    .into_iter()
+                    .map(String::from),
+            );
             Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
             self.effects.push(EffectReport::Reopen {
                 action: current.clone(),
@@ -6849,7 +6854,7 @@ impl ReactiveSession {
                 .get(&current)
                 .and_then(|basis| basis.value),
             because,
-            caveats: caveats.into_iter().map(String::from).collect(),
+            caveats: caveats.into_iter().collect(),
             permitted_by: None,
             outcome: None,
             materialized: Vec::new(),
