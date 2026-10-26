@@ -20,7 +20,7 @@ import {
   ScenarioFileError, expectAt, firstDifference, groundsViolation, match as matchExpected, parseScenarioFile, report, runScenarioFile,
 } from '../lib/scenarios.mjs';
 import { Real, RealModule, faulty, real, repo, scenarioFile, sourceReader, thermostat, trail } from './helpers.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { FATAL_EVENT, faulting } from './fatal-fixture.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
@@ -295,8 +295,8 @@ test('a session, a runtime and a CaveatError have exactly the declared members',
   capture(() => session.dispatch('read', { value: NaN }));
   session.close();
   capture(() => session.dispatch('read', { value: 17 }));
-  const fatal = real.open('state output = 0; event run; on run set output = 1;' + textOverflow('on run'));
-  capture(() => fatal.dispatch('run'));
+  const fatal = faulting().runtime.open(`state output = 0; event ${FATAL_EVENT};`);
+  capture(() => fatal.dispatch(FATAL_EVENT));
   const { runtime } = faulty({ dispatch: () => '{"schema":"caveat-dispatch/0.1","outcome":"maybe"}' });
   capture(() => runtime.open(thermostat).dispatch('read', { value: 17 }));
   assert.ok(errors.every(error => error instanceof CaveatError));
@@ -597,8 +597,8 @@ test('a server, its lines and its responses have the declared fields', () => {
   results.push(server.handle(JSON.stringify({ id: 9, op: 'restore', save: results[5].response.save })));
   assertShape('ServeSave', [server.save()], { complete: true });
   results.push(server.handle(JSON.stringify({ id: 10, op: 'close' })));
-  const fatal = createServer({ runtime: real, source: 'state output = 0; event run; on run set output = 1;' + textOverflow('on run') });
-  results.push(fatal.handle('{"op":"dispatch","event":"run"}'));
+  const fatal = createServer({ runtime: faulting().runtime, source: `state output = 0; event ${FATAL_EVENT};` });
+  results.push(fatal.handle(JSON.stringify({ op: 'dispatch', event: FATAL_EVENT })));
   assertShape('ServeResult', results, { complete: true });
   assert.deepEqual(sorted(results.map(result => String(result.exit))), ['0', '1', 'null']);
   assertShape('ServeResponse', results.map(result => result.response), { complete: true });
