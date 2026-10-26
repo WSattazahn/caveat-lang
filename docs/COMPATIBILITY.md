@@ -62,6 +62,8 @@ checks that the two agree.
   `caveat-carries-any-0.1.md`, `caveat-only-if-0.1.md`,
   `caveat-agents-0.1.md` and `caveat-foreclosure-0.2.md`, which become stable
   when a 1.x release ships them.
+- The 1.5 draft `caveat-across-members-0.1.md`, which becomes stable when a
+  1.x release ships it.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
