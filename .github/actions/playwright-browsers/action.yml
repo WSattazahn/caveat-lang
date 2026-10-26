@@ -1,9 +1,10 @@
 name: Playwright browsers
 description: >
   Install Playwright browsers and their system packages for the installed
-  playwright version. Browser downloads are cached, apt gives up on a
-  stalled mirror instead of hanging, and a failed or stalled install is
-  tried once more before the job fails.
+  playwright version. Browser downloads and the downloaded system packages
+  are cached, so a slow Ubuntu mirror is only paid for once per runner
+  image; apt gives up on a stalled connection and retries, and a failed
+  install is tried once more before the job fails.
 inputs:
   browsers:
     description: Space-separated browser names, as playwright install takes them
@@ -11,11 +12,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Make apt give up on a stalled mirror and retry
+    - name: Make apt retry stalled downloads, wait for its lock and keep packages
       shell: bash
       run: |
         printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
-          | sudo tee /etc/apt/apt.conf.d/80-ci-timeouts >/dev/null
+          'DPkg::Lock::Timeout "300";' 'Binary::apt::APT::Keep-Downloaded-Packages "true";' \
+          | sudo tee /etc/apt/apt.conf.d/80-ci-playwright >/dev/null
     - id: version
       name: Read the installed playwright version
       shell: bash
@@ -24,13 +26,34 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.playwright }}-${{ inputs.browsers }}
-    - name: Install ${{ inputs.browsers }} with system packages
+    - uses: actions/cache@v5
+      with:
+        path: ~/.cache/playwright-apt
+        key: playwright-apt-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ steps.version.outputs.playwright }}-${{ inputs.browsers }}
+        restore-keys: |
+          playwright-apt-${{ env.ImageOS }}-
+    - name: Install system packages for ${{ inputs.browsers }}
+      shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        # Packages from an earlier run skip the mirror; apt ignores any that are stale.
+        if compgen -G "$HOME/.cache/playwright-apt/*.deb" >/dev/null; then
+          sudo cp "$HOME"/.cache/playwright-apt/*.deb /var/cache/apt/archives/
+        fi
+        if ! npx playwright install-deps $BROWSERS; then
+          echo "::warning::playwright install-deps $BROWSERS failed; trying once more"
+          npx playwright install-deps $BROWSERS
+        fi
+        mkdir -p "$HOME/.cache/playwright-apt"
+        cp /var/cache/apt/archives/*.deb "$HOME/.cache/playwright-apt/" 2>/dev/null || true
+    - name: Download ${{ inputs.browsers }}
       shell: bash
       env:
         BROWSERS: ${{ inputs.browsers }}
       run: |
         # Each attempt is bounded; a stalled download fails here, not at the job limit.
-        if ! timeout --kill-after=30s 6m npx playwright install --with-deps $BROWSERS; then
-          echo "::warning::playwright install --with-deps $BROWSERS failed or stalled; trying once more"
-          timeout --kill-after=30s 6m npx playwright install --with-deps $BROWSERS
+        if ! timeout --kill-after=30s 5m npx playwright install $BROWSERS; then
+          echo "::warning::playwright install $BROWSERS failed or stalled; trying once more"
+          timeout --kill-after=30s 5m npx playwright install $BROWSERS
         fi
