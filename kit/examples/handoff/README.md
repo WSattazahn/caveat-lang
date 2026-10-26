@@ -35,9 +35,11 @@ node host.mjs
 
 ## What the host does
 
-The runtime does not know who sends an event: without help, a sub-agent could
-send `main_return` and release the main agent's hold (H10).
-`caveat-lang/handoff` keeps that boundary in the host.
+This program declares no agents, so the runtime does not know who sends an
+event: without help, a sub-agent could send `main_return` and release the
+main agent's hold (H10). `caveat-lang/handoff` keeps that boundary in the
+host. From the 1.4 draft a program can also keep it itself; see
+[Letting the program check the sender](#letting-the-program-check-the-sender).
 
 ```js
 import { replayOnto, scopeSession } from 'caveat-lang/handoff';
@@ -76,10 +78,36 @@ order: both write the one `reports` stream, so whichever is replayed last is
 and decision (`for agent as $g routed by agent`), and the order stops
 mattering.
 
+## Letting the program check the sender
+
+[Agents 0.1](../../docs/reference/spec/caveat-agents-0.1.md), a 1.4 draft,
+lets the program say which agent may send which event:
+
+```caveat
+agent main sends main_request, main_handoff, main_return;
+agent sub sends sub_edit, sub_report;
+```
+
+A scope made with `{ agent }` sends every event as that agent, so the
+runtime checks it and records it:
+
+```js
+const a = scopeSession(runtime.restore(source, ledger), subEvents, { agent: 'sub' });
+a.dispatch('main_return');      // refused as input/wrong_agent, by the program
+a.accepted;                     // [{event: "sub_edit", payload: {}, agent: "sub"}]
+```
+
+Each journal entry, reading and withdrawal the event wrote names `sub`, and
+`explain` shows `#6 sub_edit by sub: committed …`. `replayOnto` sends an
+entry that names an agent as that agent, so a merged ledger keeps who did
+what. `handoff.cav` itself is unchanged: adding the lines above to a copy is
+how to try it.
+
 ## What it does not do
 
 - A scoped session is a convention of the host, not authentication. Code
-  that holds the unscoped session can send anything.
+  that holds the unscoped session can send anything, and with agents declared
+  can name any agent: the agent is the host's word.
 - Every agent runs the same program: a save binds its source's SHA-256.
 - Only an irreversible decision forecloses. "We ruled out a rewrite" is a
   decision that can be undone, so `sub_rewrite` is refused by a guard with a

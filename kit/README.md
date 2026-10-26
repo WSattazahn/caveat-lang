@@ -271,6 +271,19 @@ session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-la
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 ```
 
+`caveat review --all <directory>` reviews a set of past ledgers: every
+`NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
+only `.cav` beside `events.jsonl`. It reviews each revision that has an
+outcome or consulted a past review, and with `--json` prints one object per
+line. A program records that it read a past review with ordinary evidence
+whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
+a review lists it under Consulted, and `--all` says what that review found.
+It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+
+```sh
+npx --no-install caveat-lang review --all ledgers/
+```
+
 ## Check, replay, start
 
 ```sh
@@ -375,6 +388,14 @@ and failures are `dispatch`'s, and after the same events either way the session
 is the same. Read the view it returns: calling `session.view()` after it builds
 the same view again.
 
+To ask what an event would do without doing it, call
+`session.whatIf(event, payload)`. It returns exactly what `dispatchView` would,
+from a copy of the session that is then dropped, so the session is unchanged
+whatever the answer: for example, which decisions withdrawing some evidence
+would reopen, or whether a commitment would be refused. It takes the same
+`{ fields }` option. A fatal answer throws but leaves the session usable
+([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
+
 A runtime keeps the last few programs it loaded, so opening or restoring the
 same source again reuses the loaded program instead of parsing and checking it
 again. The session is the same either way.
@@ -444,6 +465,29 @@ were accepted; `replayOnto(session, events)` sends those to another session
 and reports each that no longer applies. The
 [handoff example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/handoff/README.md)
 runs a main agent and two sub-agents.
+
+## Carry a save onto a changed program
+
+A save restores only with the exact source that wrote it, so a patched
+program, such as a game's next release, refuses every earlier save.
+`caveat-lang/saves` carries a replay save over without changing it or
+loosening restore: `savedEvents(runtime, oldSource, saved)` restores the
+save with the source that wrote it, then reads its events back with each
+member by name. `carrySave(runtime, oldSource, saved, newSource)` sends
+those events to a new session of the changed program, which decides each one
+afresh, and reports each event it refused as a conflict that changed nothing.
+
+```js
+import { carrySave } from 'caveat-lang/saves';
+
+const { session, conflicts } = carrySave(runtime, shippedSource, playerSave, patchedSource);
+for (const item of conflicts) console.log(`${item.event} no longer applies: ${item.outcome.message}`);
+```
+
+A state save holds no events, so `savedEvents` refuses it as `restore`. A
+host whose sessions outgrow the replay save (about 4 KB of events) keeps its
+own log of accepted events and replays that instead, as
+`replayOnto` in `caveat-lang/handoff` does.
 
 ## Retain history outside the live session
 

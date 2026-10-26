@@ -55,7 +55,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md', 'docs/AUTHORING_CARD.md', 'docs/GAMES.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff'];
+const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'review', 'ledgers', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types', 'handoff', 'saves'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -75,6 +75,8 @@ const PROCEDURE_HANDLES = ['README.md', 'handles.cav', 'handles.scenarios.json']
 const HANDOFF = ['README.md', 'handoff.cav', 'handoff.scenarios.json', 'host.mjs'].map(file => `examples/handoff/${file}`);
 // The game example (1.4): intel that carries its informant, and a host that saves and resumes.
 const INTEL = ['README.md', 'intel.cav', 'intel.scenarios.json', 'host.mjs'].map(file => `examples/intel-betrayal/${file}`);
+// The retracted-studies example (1.4): a program, its timeline and its scenarios.
+const RETRACTIONS = ['README.md', 'retraction.cav', 'retraction.events.jsonl', 'retraction.scenarios.json'].map(file => `examples/retractions/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -144,7 +146,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...INTEL, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...INTEL, ...RETRACTIONS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
