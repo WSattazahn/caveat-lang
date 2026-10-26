@@ -45,10 +45,7 @@ fn d025_a_text_past_the_limit_is_refused_and_the_session_goes_on() {
         assert_eq!(outcome(&mut session, "check")["outcome"], "accepted");
         let before = checkpoint(&session);
         assert_eq!(
-            before.0["bindings"]["wide"]["text"]
-                .as_str()
-                .unwrap()
-                .len(),
+            before.0["bindings"]["wide"]["text"].as_str().unwrap().len(),
             65_527
         );
         let refused = outcome(&mut session, "run");
@@ -61,7 +58,11 @@ fn d025_a_text_past_the_limit_is_refused_and_the_session_goes_on() {
             refused["message"]
         );
         // Rolled back: `output` and `big` keep their values, the binding its text.
-        assert_eq!(checkpoint(&session), before, "the refused event changed nothing");
+        assert_eq!(
+            checkpoint(&session),
+            before,
+            "the refused event changed nothing"
+        );
         // The session is usable: another event is accepted, and the save restores.
         assert_eq!(outcome(&mut session, "check")["outcome"], "accepted");
         let save = session.save_json().unwrap();
@@ -80,8 +81,10 @@ fn d025_the_view_path_refuses_the_same_way() {
     let source = program("on run");
     let mut session = ReactiveSession::from_source(&source).unwrap();
     let mut viewed = ReactiveSession::from_source(&source).unwrap();
-    let refused = serde_json::to_value(session.dispatch_outcome_json("run", "{}").unwrap()).unwrap();
-    let on_view = serde_json::to_value(viewed.dispatch_view_outcome_json("run", "{}").unwrap()).unwrap();
+    let refused =
+        serde_json::to_value(session.dispatch_outcome_json("run", "{}").unwrap()).unwrap();
+    let on_view =
+        serde_json::to_value(viewed.dispatch_view_outcome_json("run", "{}").unwrap()).unwrap();
     assert_eq!(on_view, refused);
     assert_eq!(refused["code"], "text_limit");
 }
@@ -94,5 +97,8 @@ fn d025_a_text_literal_past_the_limit_still_fails_to_load() {
         "A".repeat(65_537)
     );
     let error = ReactiveSession::from_source(&source).unwrap_err();
-    assert!(error.contains("exceeds source limit 65536 bytes"), "{error}");
+    assert!(
+        error.contains("exceeds source limit 65536 bytes"),
+        "{error}"
+    );
 }
