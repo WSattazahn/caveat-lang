@@ -12,6 +12,7 @@ pub mod presentation;
 pub mod reactive;
 mod reactive_archive;
 mod reactive_expr;
+pub mod chunked;
 pub mod repeat;
 pub mod session;
 pub mod source_library;
@@ -116,7 +117,7 @@ pub struct QualificationImpact {
 #[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
-    pub nodes: HashMap<NodeId, NodeKind>,
+    pub nodes: crate::chunked::IdTable<NodeKind>,
     pub edges: Vec<Edge>,
     /// The part whose declarations are being read right now.
     authoring: Option<String>,
