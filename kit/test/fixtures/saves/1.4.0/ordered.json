@@ -1,0 +1,434 @@
+{
+ "note": "Written by scripts/save-fixture.mjs from the installed release named here. Do not edit; regenerate from that release.",
+ "package": "caveat-lang@1.4.0",
+ "program": "programs/ordered.cav",
+ "events": "events/ordered.json",
+ "before": [
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  }
+ ],
+ "save": "{\"schema\":\"caveat-reactive-save/0.1\",\"source_id\":\"fnv1a64:1f49c74a6edae9b3:1676\",\"source_sha256\":\"e023d5a0e1879b4d96ed2093527b62b25613c6d38d76dc242b6e92741eb8f877\",\"sequence\":8,\"last_event\":\"measure\",\"elapsed\":0.0,\"states\":{\"a\":{\"value\":1.0,\"lineage\":{\"evidence\":[\"alpha\"]}},\"z\":{\"value\":1.0,\"lineage\":{\"evidence\":[\"zeta\"]}}},\"graph\":{\"nodes\":[{\"kind\":\"commitment\",\"name\":\"verdict@1\",\"reason\":\"enough\"},{\"kind\":\"occurrence\",\"name\":\"level@3\"},{\"kind\":\"occurrence\",\"name\":\"level@4\"},{\"kind\":\"occurrence\",\"name\":\"level@5\"}],\"relations\":[[\"zeta\",\"supports\",\"safe\"],[\"alpha\",\"supports\",\"safe\"],[\"verdict@1\",\"relies_on\",\"alpha\"],[\"verdict@1\",\"relies_on\",\"zeta\"],[\"level@3\",\"supports\",\"safe\"],[\"level@4\",\"supports\",\"safe\"],[\"level@5\",\"supports\",\"safe\"]]},\"commitment_bases\":{\"verdict@1\":{\"value\":2.0,\"provenance\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]}}},\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"]}},\"evidence_order\":{\"verdict@1\":[\"zeta\",\"alpha\"]},\"reading_streams\":{\"level\":{\"template\":\"gauge\",\"limit\":3,\"current\":\"level@5\",\"occurrences\":[{\"id\":\"level@3\",\"ordinal\":3,\"sequence\":6,\"event\":\"measure\",\"value\":30.0,\"provenance\":{\"evidence\":[\"level@3\"],\"caveats\":[]},\"relation\":\"supports\",\"claim\":\"safe\"},{\"id\":\"level@4\",\"ordinal\":4,\"sequence\":7,\"event\":\"measure\",\"value\":40.0,\"provenance\":{\"evidence\":[\"level@4\"],\"caveats\":[]},\"relation\":\"supports\",\"claim\":\"safe\"},{\"id\":\"level@5\",\"ordinal\":5,\"sequence\":8,\"event\":\"measure\",\"value\":50.0,\"provenance\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"relation\":\"supports\",\"claim\":\"safe\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@1\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"observation_qualifications\":{\"alpha\":{},\"level@3\":{},\"level@4\":{},\"level@5\":{},\"zeta\":{}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0.0,\"value\":2.0,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]}],\"effects\":[{\"kind\":\"retire\",\"history\":\"level\",\"record\":\"level@2\"},{\"kind\":\"sample\",\"stream\":\"level\",\"id\":\"level@5\",\"value\":50.0,\"relation\":\"supports\",\"target\":\"safe\"},{\"kind\":\"depart\",\"history\":\"level\",\"record\":\"level@2\"}]}",
+ "after": [
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":9,\"last_event\":\"age\",\"bindings\":{\"panel\":{\"level\":\"50\",\"verdict\":\"safe\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"alpha\",\"caveat\":\"stale\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@1\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@3\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "policy",
+   "code": "reject",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":9,\"last_event\":\"age\",\"bindings\":{\"panel\":{\"level\":\"50\",\"verdict\":\"safe\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"alpha\",\"caveat\":\"stale\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@1\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@3\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":10,\"last_event\":\"retract\",\"bindings\":{\"panel\":{\"level\":\"50\",\"verdict\":\"reconsider\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"reveal\",\"evidence\":\"audit\",\"relation\":\"supports\",\"target\":\"mistaken\"},{\"kind\":\"withdraw\",\"evidence\":\"zeta\",\"because\":\"audit\"},{\"kind\":\"reopen\",\"action\":\"verdict@1\",\"because\":\"audit\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@1\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@3\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":11,\"last_event\":\"decide\",\"bindings\":{\"panel\":{\"level\":\"50\",\"verdict\":\"safe\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"commit\",\"action\":\"verdict@2\",\"retained\":[\"stale\",\"withdrawn\"]}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"open\":false,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@3\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":12,\"last_event\":\"see_zeta\",\"bindings\":{\"panel\":{\"level\":\"50\",\"verdict\":\"safe\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@5\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"open\":false,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@3\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":13,\"last_event\":\"measure\",\"bindings\":{\"panel\":{\"level\":\"60\",\"verdict\":\"safe\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@6\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"retire\",\"history\":\"level\",\"record\":\"level@3\"},{\"kind\":\"sample\",\"stream\":\"level\",\"id\":\"level@6\",\"value\":60,\"relation\":\"supports\",\"target\":\"safe\"},{\"kind\":\"depart\",\"history\":\"level\",\"record\":\"level@3\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"open\":false,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@6\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":14,\"last_event\":\"retract\",\"bindings\":{\"panel\":{\"level\":\"60\",\"verdict\":\"reconsider\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@6\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"reopen\",\"action\":\"verdict@2\",\"because\":\"audit\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"open\":true,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[\"audit\"]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"reopened\",\"sequence\":14,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@6\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@2\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "input",
+   "code": "unknown_event",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":14,\"last_event\":\"retract\",\"bindings\":{\"panel\":{\"level\":\"60\",\"verdict\":\"reconsider\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@6\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"alpha\",\"audit\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"reopen\",\"action\":\"verdict@2\",\"because\":\"audit\"}],\"commitments\":[{\"action\":\"verdict@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"open\":true,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[\"audit\"]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"alpha\",\"zeta\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"reopened\",\"sequence\":14,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@6\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@2\",\"origin\":\"live\"}]}"
+  }
+ ],
+ "archive": [
+  {
+   "record": "level@1",
+   "history": "level",
+   "number": 1,
+   "retired_at": 7,
+   "departed_at": 7,
+   "relations": [
+    [
+     "level@1",
+     "supports",
+     "safe"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [],
+     "caveats": []
+    }
+   },
+   "reading": {
+    "id": "level@1",
+    "ordinal": 1,
+    "sequence": 4,
+    "event": "measure",
+    "value": 10,
+    "provenance": {
+     "evidence": [
+      "level@1"
+     ],
+     "caveats": []
+    },
+    "relation": "supports",
+    "claim": "safe"
+   },
+   "holders": []
+  },
+  {
+   "kind": "provenance",
+   "id": "71bb23bb1195768c7a3cc7b7197d866cc82e56dd3a4c794c0ea92775cc9026c6",
+   "history": "level",
+   "operation": "record",
+   "source_id": "fnv1a64:1f49c74a6edae9b3:1676",
+   "record": "level@1",
+   "departed_at": 7
+  },
+  {
+   "record": "level@2",
+   "history": "level",
+   "number": 2,
+   "retired_at": 8,
+   "departed_at": 8,
+   "relations": [
+    [
+     "level@2",
+     "supports",
+     "safe"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [],
+     "caveats": []
+    }
+   },
+   "reading": {
+    "id": "level@2",
+    "ordinal": 2,
+    "sequence": 5,
+    "event": "measure",
+    "value": 20,
+    "provenance": {
+     "evidence": [
+      "level@2"
+     ],
+     "caveats": []
+    },
+    "relation": "supports",
+    "claim": "safe"
+   },
+   "holders": []
+  },
+  {
+   "kind": "provenance",
+   "id": "7ba8e074add5b8fced309bebe8d65f4dfcbc5d8a84c5b5e266cf523bbd1ac54a",
+   "history": "level",
+   "operation": "record",
+   "source_id": "fnv1a64:1f49c74a6edae9b3:1676",
+   "record": "level@2",
+   "departed_at": 8
+  },
+  {
+   "record": "level@3",
+   "history": "level",
+   "number": 3,
+   "retired_at": 13,
+   "departed_at": 13,
+   "relations": [
+    [
+     "level@3",
+     "supports",
+     "safe"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [],
+     "caveats": []
+    }
+   },
+   "reading": {
+    "id": "level@3",
+    "ordinal": 3,
+    "sequence": 6,
+    "event": "measure",
+    "value": 30,
+    "provenance": {
+     "evidence": [
+      "level@3"
+     ],
+     "caveats": []
+    },
+    "relation": "supports",
+    "claim": "safe"
+   },
+   "holders": []
+  },
+  {
+   "kind": "provenance",
+   "id": "e8572b61e86ca13bc329a60ccfaede06c4c6e278b1bf865ec89f2c60ab216c77",
+   "history": "level",
+   "operation": "record",
+   "source_id": "fnv1a64:1f49c74a6edae9b3:1676",
+   "record": "level@3",
+   "departed_at": 13
+  }
+ ],
+ "view_v2": "{\"schema\":\"caveat-reactive-view/0.2\",\"sequence\":14,\"last_event\":\"retract\",\"bindings\":{\"panel\":{\"level\":\"60\",\"verdict\":\"reconsider\"}},\"binding_explanations\":{\"panel\":{\"level\":{\"evidence\":[\"level@6\"],\"caveats\":[]},\"verdict\":{\"evidence\":[\"zeta\",\"alpha\",\"audit\"],\"caveats\":[\"stale\",\"withdrawn\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"reopen\",\"action\":\"verdict@2\",\"because\":\"audit\"}],\"commitments\":[{\"action\":\"verdict@1\",\"reopened\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"audit\"]},{\"action\":\"verdict@2\",\"reopened\":true,\"retained\":[\"stale\",\"withdrawn\"],\"retained_authorship\":[{\"caveat\":\"stale\",\"written_by\":null,\"written_elsewhere\":null},{\"caveat\":\"withdrawn\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[\"audit\"]}],\"commitment_grounds\":{\"verdict@1\":{\"evidence\":[\"zeta\",\"alpha\"],\"caveats\":[]},\"verdict@2\":{\"evidence\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]}},\"decision_series\":{\"verdict\":{\"limit\":8,\"current\":\"verdict@2\",\"revisions\":[{\"id\":\"verdict@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"decide\"},{\"id\":\"verdict@2\",\"previous\":\"verdict@1\",\"ordinal\":2,\"sequence\":11,\"event\":\"decide\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@1\",\"change\":\"reopened\",\"sequence\":10,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"committed\",\"sequence\":11,\"event\":\"decide\",\"elapsed\":0,\"value\":2,\"because\":[\"zeta\",\"alpha\"],\"caveats\":[\"stale\",\"withdrawn\"]},{\"decision\":\"verdict\",\"commitment\":\"verdict@2\",\"change\":\"reopened\",\"sequence\":14,\"event\":\"retract\",\"elapsed\":0,\"value\":2,\"because\":[\"audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"zeta\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"alpha\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@1\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@4\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"level@5\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"stale\",\"relation\":\"qualifies\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"supports\",\"to\":\"mistaken\",\"origin\":\"live\"},{\"from\":\"withdrawn\",\"relation\":\"qualifies\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@1\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"stale\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"retains\",\"to\":\"withdrawn\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"alpha\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"audit\",\"origin\":\"live\"},{\"from\":\"verdict@2\",\"relation\":\"relies_on\",\"to\":\"zeta\",\"origin\":\"live\"},{\"from\":\"level@6\",\"relation\":\"supports\",\"to\":\"safe\",\"origin\":\"live\"},{\"from\":\"audit\",\"relation\":\"reopens\",\"to\":\"verdict@2\",\"origin\":\"live\"}]}",
+ "explain": {
+  "decisions": [
+   {
+    "name": "verdict",
+    "limit": 8,
+    "current": "verdict@2",
+    "revisions": [
+     {
+      "id": "verdict@1",
+      "value": 2,
+      "status": "superseded",
+      "grounds": {
+       "evidence": [
+        "alpha",
+        "zeta"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "alpha",
+        "zeta"
+       ],
+       "caveats": []
+      },
+      "retained": [],
+      "permission": null,
+      "withdrawn": [
+       {
+        "evidence": "zeta",
+        "because": "audit",
+        "sequence": 10,
+        "event": "retract"
+       }
+      ],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 3,
+        "event": "decide",
+        "because": [
+         "zeta",
+         "alpha"
+        ],
+        "caveats": [],
+        "source_sha256": "e023d5a0e1879b4d96ed2093527b62b25613c6d38d76dc242b6e92741eb8f877"
+       },
+       {
+        "change": "reopened",
+        "sequence": 10,
+        "event": "retract",
+        "because": [
+         "audit"
+        ],
+        "caveats": [],
+        "source_sha256": "e023d5a0e1879b4d96ed2093527b62b25613c6d38d76dc242b6e92741eb8f877"
+       }
+      ]
+     },
+     {
+      "id": "verdict@2",
+      "value": 2,
+      "status": "reopened",
+      "grounds": {
+       "evidence": [
+        "alpha",
+        "zeta"
+       ],
+       "caveats": [
+        "stale",
+        "withdrawn"
+       ]
+      },
+      "lineage": {
+       "evidence": [
+        "alpha",
+        "audit",
+        "zeta"
+       ],
+       "caveats": [
+        "stale",
+        "withdrawn"
+       ]
+      },
+      "retained": [
+       "stale",
+       "withdrawn"
+      ],
+      "permission": null,
+      "withdrawn": [
+       {
+        "evidence": "zeta",
+        "because": "audit",
+        "sequence": 10,
+        "event": "retract"
+       }
+      ],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 11,
+        "event": "decide",
+        "because": [
+         "zeta",
+         "alpha"
+        ],
+        "caveats": [
+         "stale",
+         "withdrawn"
+        ],
+        "source_sha256": "e023d5a0e1879b4d96ed2093527b62b25613c6d38d76dc242b6e92741eb8f877"
+       },
+       {
+        "change": "reopened",
+        "sequence": 14,
+        "event": "retract",
+        "because": [
+         "audit"
+        ],
+        "caveats": [],
+        "source_sha256": "e023d5a0e1879b4d96ed2093527b62b25613c6d38d76dc242b6e92741eb8f877"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "evidence": [
+   {
+    "id": "zeta",
+    "relation": "supports",
+    "claim": "safe",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [
+     "withdrawn"
+    ],
+    "withdrawn": {
+     "because": "audit",
+     "sequence": 10,
+     "event": "retract"
+    }
+   },
+   {
+    "id": "alpha",
+    "relation": "supports",
+    "claim": "safe",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [
+     "stale"
+    ],
+    "withdrawn": null
+   },
+   {
+    "id": "level@4",
+    "relation": "supports",
+    "claim": "safe",
+    "value": 40,
+    "sequence": 7,
+    "event": "measure",
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "level@5",
+    "relation": "supports",
+    "claim": "safe",
+    "value": 50,
+    "sequence": 8,
+    "event": "measure",
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "audit",
+    "relation": "supports",
+    "claim": "mistaken",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "level@6",
+    "relation": "supports",
+    "claim": "safe",
+    "value": 60,
+    "sequence": 13,
+    "event": "measure",
+    "caveats": [],
+    "withdrawn": null
+   }
+  ],
+  "displayed": [
+   {
+    "name": "panel.level",
+    "value": "60",
+    "cites": {
+     "evidence": [
+      "level@6"
+     ],
+     "caveats": []
+    }
+   },
+   {
+    "name": "panel.verdict",
+    "value": "reconsider",
+    "cites": {
+     "evidence": [
+      "alpha",
+      "audit",
+      "zeta"
+     ],
+     "caveats": [
+      "stale",
+      "withdrawn"
+     ]
+    }
+   }
+  ]
+ }
+}
