@@ -36,6 +36,20 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
+
+/// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
+/// for any caveat, or the least consequence it counts.
+fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
+    Ok(match level {
+        "" => None,
+        "negligible" => Some(Consequence::Negligible),
+        "low" => Some(Consequence::Low),
+        "material" => Some(Consequence::Material),
+        "high" => Some(Consequence::High),
+        "catastrophic" => Some(Consequence::Catastrophic),
+        _ => return Err(format!("carries_any names no consequence {level}")),
+    })
+}
 /// A predicate on a live state's grounds, not on an evidence alias.
 const HAS_CAVEAT: &str = "has_caveat:";
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
@@ -286,7 +300,8 @@ pub enum Effect {
     },
     /// `withdraw EVIDENCE because REASON;` or `withdraw latest(STREAM) …`:
     /// record that an observation is no longer stood behind. The target is
-    /// `Named` or `Latest`. See spec/caveat-withdrawal-0.1.md.
+    /// `Named`, `Latest`, `Occurrence` or `Every`. See
+    /// spec/caveat-withdrawal-0.1.md.
     Withdraw {
         target: EvidenceSelector,
         because: String,
@@ -323,8 +338,10 @@ pub enum Effect {
         retaining: Vec<String>,
         /// `retaining C because E`: each caveat that names a reason, with that
         /// evidence and `qualified(1, E)` to read it. See
-        /// spec/caveat-retention-reasons-0.1.md.
-        reasons: Vec<(String, String, Expr)>,
+        /// spec/caveat-retention-reasons-0.1.md. The flag is `because once E`,
+        /// a reason no other commitment may hold. See
+        /// spec/caveat-untrusted-sources-0.1.md.
+        reasons: Vec<(String, String, Expr, bool)>,
     },
     /// `reopen D because E`, and from 1.2 `hold D because E` and
     /// `release D because E`, which share its target and selector. See
@@ -401,6 +418,11 @@ pub enum EvidenceSelector {
         evidence: String,
         index: Box<Expr>,
     },
+    /// `withdraw every NAME`: every held, observed occurrence of a reading
+    /// stream or of evidence and the streams that read from it, listed when
+    /// the effect runs. Only `withdraw` takes it. See
+    /// spec/caveat-untrusted-sources-0.1.md.
+    Every(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -490,7 +512,7 @@ fn expand_effect(
             ..
         } => {
             let scope = permission.as_mut().and_then(|clause| clause.scope.as_mut());
-            let reasons = reasons.iter_mut().map(|(_, _, reading)| reading);
+            let reasons = reasons.iter_mut().map(|(_, _, reading, _)| reading);
             for value in using
                 .iter_mut()
                 .chain(citing.iter_mut())
@@ -614,9 +636,17 @@ pub enum Directive {
         limit: usize,
         /// `reopened by …`. See spec/caveat-reopening-triggers-0.1.md.
         triggers: Vec<ReopeningTrigger>,
-        /// `irreversible [forecloses ACTION, …]`: the actions it forecloses.
-        /// See spec/caveat-foreclosure-0.1.md.
-        irreversible: Option<Vec<String>>,
+        /// `irreversible`. See spec/caveat-foreclosure-0.1.md.
+        irreversible: bool,
+        /// `forecloses ACTION, …`: for an irreversible series, the actions it
+        /// forecloses once committed; for any other, the actions it
+        /// forecloses while its current revision is in force. See
+        /// spec/caveat-foreclosure-0.2.md.
+        forecloses: Vec<String>,
+        /// `irreversible strict`: its commits check every caveat in their
+        /// lineage, not only in their grounds. See
+        /// spec/caveat-strict-irreversible-0.1.md.
+        strict: bool,
     },
     /// `renewable EVIDENCE limit N;` or `renewable EVIDENCE window N;`
     Renewable {
@@ -631,6 +661,11 @@ pub enum Directive {
     /// `identifiers limit N;`
     Identifiers {
         limit: usize,
+    },
+    /// `agent NAME [sends EVENT, …];` See spec/caveat-agents-0.1.md.
+    Agent {
+        name: String,
+        sends: Vec<String>,
     },
     Function(FunctionDef),
     Binding(Binding),
@@ -799,6 +834,10 @@ pub struct ReadingOccurrence {
     pub ordinal: u64,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
     pub value: f64,
     pub provenance: Provenance,
     /// Both absent for a neutral reading: spec/caveat-neutral-sample-0.1.md.
@@ -1060,7 +1099,7 @@ impl<'a> OrderStep<'a> {
             } => {
                 expressions.extend(using);
                 expressions.extend(citing);
-                expressions.extend(reasons.iter().map(|(_, _, reading)| reading));
+                expressions.extend(reasons.iter().map(|(_, _, reading, _)| reading));
                 if let Some(clause) = permission {
                     if let EvidenceSelector::Named(grant) = &clause.grant {
                         uses.push((
@@ -1529,6 +1568,10 @@ pub struct Withdrawal {
     pub because: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
 }
 
 /// One taken-back qualification: the occurrence whose live `qualifies`
@@ -1541,6 +1584,10 @@ pub struct TakeBack {
     pub caveat: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
 }
 
 /// One change to a decision, in the order it happened. See
@@ -1556,6 +1603,10 @@ pub struct JournalEntry {
     pub change: String,
     pub sequence: u64,
     pub event: String,
+    /// The agent the host said sent the event, in a program that declares
+    /// agents. See spec/caveat-agents-0.1.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
     /// Source-controlled elapsed time at this change. Absent in older saves.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub elapsed: Option<f64>,
@@ -1720,6 +1771,10 @@ pub struct ReactiveSnapshot {
     pub retention_reasons: BTreeMap<String, BTreeMap<String, String>>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
+    /// The agent the host said sent the last event; left out when it named
+    /// none. See spec/caveat-agents-0.1.md.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_agent: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
@@ -1729,6 +1784,10 @@ pub struct ReactiveSnapshot {
     /// See spec/caveat-foreclosure-0.1.md.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub irreversible: BTreeMap<String, Vec<String>>,
+    /// Reversible series and the actions each forecloses while in force, in
+    /// source order. See spec/caveat-foreclosure-0.2.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub forecloses: BTreeMap<String, Vec<String>>,
     pub observation_qualifications: BTreeMap<String, Provenance>,
     pub examination_qualifications: BTreeMap<String, Provenance>,
     pub reopening_qualifications: BTreeMap<String, Provenance>,
@@ -1790,6 +1849,12 @@ pub struct ReactiveSession {
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
     irreversible: Arc<BTreeMap<String, Vec<String>>>,
+    /// Reversible series that foreclose actions while in force, and those
+    /// actions, from the source. See spec/caveat-foreclosure-0.2.md.
+    foreclosures: Arc<BTreeMap<String, Vec<String>>>,
+    /// Irreversible series declared `strict`, from the source. See
+    /// spec/caveat-strict-irreversible-0.1.md.
+    strict_irreversible: Arc<BTreeSet<String>>,
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
@@ -1889,6 +1954,14 @@ pub struct ReactiveSession {
     /// The events accepted since the program loaded, for a replay save: none
     /// once they outgrow one, or in a session restored from a state save.
     replay: Option<Arc<replay_save::ReplayLog>>,
+    /// Each declared agent and the events it `sends`, in source order. Empty
+    /// in a program that declares none. See spec/caveat-agents-0.1.md.
+    agents: Arc<BTreeMap<String, Vec<String>>>,
+    /// Each event some agent `sends`, and every agent that sends it. An event
+    /// not listed here may be sent by any agent, or by none.
+    senders: Arc<BTreeMap<String, BTreeSet<String>>>,
+    /// The agent the host said sent the last accepted event, if it named one.
+    last_agent: Option<String>,
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -1934,6 +2007,10 @@ impl ReactiveSession {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
+        Self::load_source(source).map_err(|error| crate::load_diagnostics::locate(source, error))
+    }
+
+    fn load_source(source: &str) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
@@ -2058,6 +2135,8 @@ impl ReactiveSession {
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             irreversible: Arc::default(),
+            foreclosures: Arc::default(),
+            strict_irreversible: Arc::default(),
             renewals: Arc::default(),
             observations: Arc::default(),
             identifiers: Arc::default(),
@@ -2115,6 +2194,9 @@ impl ReactiveSession {
             scenes: Arc::new(map.scenes),
             effects: Vec::new(),
             replay: Some(Arc::default()),
+            agents: Arc::default(),
+            senders: Arc::default(),
+            last_agent: None,
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -2202,10 +2284,21 @@ impl ReactiveSession {
                         },
                     );
                 }
-                Directive::Decisions { irreversible, .. } => {
-                    if let Some(forecloses) = irreversible {
+                Directive::Decisions {
+                    irreversible,
+                    forecloses,
+                    strict,
+                    ..
+                } => {
+                    if *irreversible {
                         Arc::make_mut(&mut session.irreversible)
                             .insert(name.clone(), forecloses.clone());
+                    } else if !forecloses.is_empty() {
+                        Arc::make_mut(&mut session.foreclosures)
+                            .insert(name.clone(), forecloses.clone());
+                    }
+                    if *strict {
+                        Arc::make_mut(&mut session.strict_irreversible).insert(name.clone());
                     }
                     Arc::make_mut(&mut session.decision_series).insert(
                         name.clone(),
@@ -2244,6 +2337,20 @@ impl ReactiveSession {
                 | Directive::Readings { .. }
                 | Directive::Decisions { .. }
                 | Directive::Identifiers { .. } => {}
+                Directive::Agent { name, sends } => {
+                    if Arc::make_mut(&mut session.agents)
+                        .insert(name.clone(), sends.clone())
+                        .is_some()
+                    {
+                        return Err(format!("duplicate agent {name}"));
+                    }
+                    for event in sends {
+                        Arc::make_mut(&mut session.senders)
+                            .entry(event.clone())
+                            .or_default()
+                            .insert(name.clone());
+                    }
+                }
                 Directive::JournalWindow { limit } => {
                     if session.journal_window.is_some() {
                         return Err("duplicate journal window".into());
@@ -2485,6 +2592,14 @@ impl ReactiveSession {
                         parameter.name
                     ));
                 }
+            }
+        }
+        for (agent, sends) in session.agents.iter() {
+            if let Some(event) = sends
+                .iter()
+                .find(|event| !session.events.contains_key(*event))
+            {
+                return Err(format!("agent {agent} sends undeclared event {event}"));
             }
         }
         for (name, control) in session.controls.iter() {
@@ -3059,14 +3174,14 @@ impl ReactiveSession {
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
                 self.require_latest(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
-                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    Some(caveat) => self.require_carried(caveat),
                     None => Err(format!("unknown epistemic predicate {kind}")),
                 };
             }
             if let Some(kind) = kind.strip_prefix(reactive_expr::AT_OCCURRENCE) {
                 self.require_renewable_occurrence(symbol)?;
                 return match kind.strip_prefix(CARRIES) {
-                    Some(caveat) => self.require_kind(caveat, "caveat"),
+                    Some(caveat) => self.require_carried(caveat),
                     None => Ok(()),
                 };
             }
@@ -3116,7 +3231,7 @@ impl ReactiveSession {
                 }
                 _ if kind.starts_with(CARRIES) => {
                     self.require_kind(symbol, "evidence")?;
-                    self.require_kind(&kind[CARRIES.len()..], "caveat")
+                    self.require_carried(&kind[CARRIES.len()..])
                 }
                 _ if kind.starts_with(HAS_CAVEAT) => self
                     .state_with_caveat(symbol, &kind[HAS_CAVEAT.len()..])
@@ -3281,6 +3396,15 @@ impl ReactiveSession {
                         EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(name) => {
+                            if !self.reading_streams.contains_key(name) {
+                                self.require_kind(name, "evidence").map_err(|_| {
+                                    format!(
+                                        "withdraw every {name}: name a reading stream or evidence"
+                                    )
+                                })?
+                            }
+                        }
                         EvidenceSelector::Caveated { .. } => {
                             return Err("withdraw names evidence or latest(STREAM)".into())
                         }
@@ -3333,7 +3457,7 @@ impl ReactiveSession {
                     reasons,
                     ..
                 } => {
-                    for (_, evidence, reading) in reasons {
+                    for (_, evidence, reading, _) in reasons {
                         self.require_kind(evidence, "evidence").map_err(|_| {
                             format!("retaining … because names evidence, not {evidence}")
                         })?;
@@ -3354,7 +3478,8 @@ impl ReactiveSession {
                             }
                             EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
                             EvidenceSelector::Caveated { .. }
-                            | EvidenceSelector::Occurrence { .. } => {
+                            | EvidenceSelector::Occurrence { .. }
+                            | EvidenceSelector::Every(_) => {
                                 return Err("permitted by names evidence or latest(STREAM)".into())
                             }
                         }
@@ -3404,6 +3529,7 @@ impl ReactiveSession {
                         }
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
                     }
                 }
                 // An outcome is of a revision of a series
@@ -3433,6 +3559,7 @@ impl ReactiveSession {
                         }
                         EvidenceSelector::Occurrence { evidence, index } => self
                             .validate_occurrence(evidence, index, &numeric, &validate_predicate)?,
+                        EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
                     }
                     for caveat in &resolution.materialized {
                         if self.require_kind(caveat, "caveat").is_err() {
@@ -3881,7 +4008,7 @@ impl ReactiveSession {
                     ));
                 }
             }
-            return Ok(self.latest(name)?);
+            return self.latest(name);
         }
         // Counting records is a qualified observation of membership. Include
         // every reached record's basis and guards for leaving history unchanged.
@@ -3909,10 +4036,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
-            return Ok(Tracked::new(
-                value,
-                self.with_current_withdrawals(provenance)?,
-            )?);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         if let Some(series) = self.decision_series.get(name) {
             let mut provenance = Provenance::default();
@@ -3943,10 +4067,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
             };
-            return Ok(Tracked::new(
-                value,
-                self.with_current_withdrawals(provenance)?,
-            )?);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
     }
@@ -3982,12 +4103,12 @@ impl ReactiveSession {
                 format!("outcome({label}): {} has no outcome", revision.id),
             ));
         };
-        Ok(Tracked::new(outcome.value, self.outcome_lineage(outcome)?)?)
+        Tracked::new(outcome.value, self.outcome_lineage(outcome)?)
     }
 
     /// An outcome's frozen lineage, with the caveats its evidence carries
     /// now, so that a later qualification or withdrawal reaches it.
-    fn outcome_lineage(&self, outcome: &Outcome) -> Result<Provenance, String> {
+    fn outcome_lineage(&self, outcome: &Outcome) -> Result<Provenance, EvalError> {
         let mut lineage = outcome.lineage.clone();
         for evidence in &outcome.because {
             lineage.merge(&self.qualify_core(evidence, &[])?)?;
@@ -3998,7 +4119,7 @@ impl ReactiveSession {
     /// `resolved(SERIES)`, or `resolved` of a revision `SERIES@K`: true, on
     /// the outcome's lineage, when the revision has an outcome. See
     /// spec/caveat-outcomes-0.1.md.
-    fn resolved_predicate(&self, name: &str) -> Result<Tracked<bool>, String> {
+    fn resolved_predicate(&self, name: &str) -> Result<Tracked<bool>, EvalError> {
         let (series, revision) = match self.decision_series.get(name) {
             Some(series) => (series, series.current.clone()),
             None => {
@@ -4021,7 +4142,7 @@ impl ReactiveSession {
         }
     }
 
-    fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
+    fn latest(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
         if let Some(stream) = self.reading_streams.get(name) {
             let reading = stream
                 .occurrences
@@ -4054,7 +4175,7 @@ impl ReactiveSession {
                 })?,
             );
         }
-        Err(format!("unknown history {name}"))
+        Err(format!("unknown history {name}").into())
     }
 
     fn retain_skipped_effect(
@@ -4075,6 +4196,24 @@ impl ReactiveSession {
             return Ok(());
         }
         if guard.is_empty() {
+            return Ok(());
+        }
+        // `withdraw every` could have withdrawn each occurrence it lists.
+        if let Effect::Withdraw {
+            target: EvidenceSelector::Every(name),
+            ..
+        } = effect
+        {
+            let mut guard = guard.clone();
+            self.freeze_observation(&mut guard);
+            for occurrence in self.every_occurrence(name)? {
+                Arc::make_mut(&mut self.predicate_qualifications)
+                    .entry(WITHDRAWN.into())
+                    .or_default()
+                    .entry(occurrence)
+                    .or_default()
+                    .merge(&guard)?;
+            }
             return Ok(());
         }
         let target = match effect {
@@ -4160,7 +4299,7 @@ impl ReactiveSession {
         let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, None)
             .map_err(|error| error.to_string())?;
         Ok(self.snapshot())
     }
@@ -4173,7 +4312,18 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchOutcome, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_outcome_as_json(event, payload_json, None)
+    }
+
+    /// `dispatch_outcome_json` for an event the host says `agent` sent. See
+    /// spec/caveat-agents-0.1.md. `None` is `dispatch_outcome_json`.
+    pub fn dispatch_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<DispatchOutcome, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchOutcome::accepted(self.snapshot())),
             Err(failure) => failure.outcome(),
         }
@@ -4187,7 +4337,17 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchViewOutcome<'_>, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_view_outcome_as_json(event, payload_json, None)
+    }
+
+    /// `dispatch_view_outcome_json` for an event the host says `agent` sent.
+    pub fn dispatch_view_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<DispatchViewOutcome<'_>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchViewOutcome::accepted(self.view())),
             Err(failure) => failure.view_outcome(),
         }
@@ -4202,7 +4362,18 @@ impl ReactiveSession {
         payload_json: &str,
         fields: ViewFields,
     ) -> Result<DispatchViewOutcome<'_, ReactiveViewSelection<'_>>, DispatchFatal> {
-        match self.dispatch_classified(event, payload_json) {
+        self.dispatch_view_fields_outcome_as_json(event, payload_json, fields, None)
+    }
+
+    /// `dispatch_view_fields_outcome_json` for an event the host says `agent` sent.
+    pub fn dispatch_view_fields_outcome_as_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        fields: ViewFields,
+        agent: Option<&str>,
+    ) -> Result<DispatchViewOutcome<'_, ReactiveViewSelection<'_>>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => Ok(DispatchViewOutcome::accepted(self.view_fields(fields))),
             Err(failure) => failure.view_outcome(),
         }
@@ -4214,9 +4385,10 @@ impl ReactiveSession {
         &mut self,
         event: &str,
         payload_json: &str,
+        agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
         let (payload, new_identifiers) = self.resolve_payload(event, payload_json)?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, agent)
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its
@@ -4320,7 +4492,7 @@ impl ReactiveSession {
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let _profile = event_profile::Scope::enter(EventPhase::ApplyWrapper);
-        self.apply_classified(event, parameters, Vec::new())
+        self.apply_classified(event, parameters, Vec::new(), None)
             .map_err(|error| error.to_string())
     }
 
@@ -4331,6 +4503,7 @@ impl ReactiveSession {
         event: &str,
         parameters: &BTreeMap<String, f64>,
         new_identifiers: Vec<String>,
+        agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
         // Declared before staged state: its guard outlives implicit rollback
         // destruction, while successful assignment drops the old state in place.
@@ -4340,9 +4513,16 @@ impl ReactiveSession {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::UnknownEvent,
-                format!("undeclared event {event}"),
+                format!(
+                    "undeclared event {event}{}",
+                    crate::load_diagnostics::suggestion(
+                        event,
+                        self.events.keys().map(String::as_str)
+                    )
+                ),
             )
         })?;
+        self.check_agent(event, agent)?;
         if signature.len() != parameters.len()
             || parameters
                 .keys()
@@ -4351,7 +4531,10 @@ impl ReactiveSession {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::PayloadInvalid,
-                format!("event {event} requires exactly its declared parameters"),
+                format!(
+                    "event {event} requires exactly its declared parameters{}",
+                    parameter_difference(signature, parameters)
+                ),
             ));
         }
         let handles = self.identifiers.len() + new_identifiers.len();
@@ -4442,6 +4625,7 @@ impl ReactiveSession {
                 identifiers.push(text);
             }
         }
+        next.last_agent = agent.map(str::to_string);
         match next.run_event(self, event, parameters) {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
@@ -4450,7 +4634,12 @@ impl ReactiveSession {
                 archive.append(&mut next.archive);
                 *self = next;
                 self.archive = archive;
-                self.record_replay(event, parameters);
+                if agent.is_some() {
+                    // A replay save names no agent: spec/caveat-agents-0.1.md.
+                    self.replay = None;
+                } else {
+                    self.record_replay(event, parameters);
+                }
                 Ok(())
             }
             Err(error) => {
@@ -4460,6 +4649,47 @@ impl ReactiveSession {
                 Err(error)
             }
         }
+    }
+
+    /// Whether the host may say `agent` sent `event`: an agent must be one
+    /// the program declares, and an event some agent `sends` takes only those
+    /// agents. See spec/caveat-agents-0.1.md.
+    fn check_agent(&self, event: &str, agent: Option<&str>) -> Result<(), DispatchFailure> {
+        let wrong = |message: String| {
+            DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::WrongAgent, message)
+        };
+        if let Some(agent) = agent {
+            if !self.agents.contains_key(agent) {
+                return Err(wrong(if self.agents.is_empty() {
+                    format!(
+                        "this program declares no agents, so it cannot take an event from {agent}"
+                    )
+                } else {
+                    format!("undeclared agent {agent}")
+                }));
+            }
+        }
+        if let Some(senders) = self.senders.get(event) {
+            let listed = senders
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .join(", ");
+            match agent {
+                None => {
+                    return Err(wrong(format!(
+                        "event {event} is sent only by {listed}; say which agent sent it"
+                    )))
+                }
+                Some(agent) if !senders.contains(agent) => {
+                    return Err(wrong(format!(
+                        "event {event} is sent only by {listed}, not {agent}"
+                    )))
+                }
+                Some(_) => {}
+            }
+        }
+        Ok(())
     }
 
     /// The body of `apply`, run on the transaction's copy: `old` is the
@@ -4578,7 +4808,7 @@ impl ReactiveSession {
         let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.apply_classified(event, &payload, new_identifiers)
+        self.apply_classified(event, &payload, new_identifiers, None)
             .map_err(|error| error.to_string())?;
         Ok(self.view())
     }
@@ -4748,7 +4978,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &Parameters,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers(
+        expression.evaluate_grounds_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
@@ -4774,7 +5004,7 @@ impl ReactiveSession {
         )
     }
 
-    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -4881,12 +5111,41 @@ impl ReactiveSession {
             ),
             _ if kind.starts_with(CARRIES) => {
                 self.predicate("observed", name)?
-                    && self
-                        .qualify_core(name, &[])?
-                        .caveats
-                        .contains(&kind[CARRIES.len()..])
+                    && self.carried(
+                        &self.qualify_core(name, &[])?.caveats,
+                        &kind[CARRIES.len()..],
+                    )
             }
             _ => return Err(format!("unknown graph predicate {kind}")),
+        })
+    }
+
+    /// The caveat a `carries` predicate asks about must be declared, unless
+    /// `carries_any(…)` asked it (spec/caveat-carries-any-0.1.md).
+    fn require_carried(&self, caveat: &str) -> Result<(), String> {
+        match caveat.strip_prefix(reactive_expr::ANY_CAVEAT) {
+            Some(level) => any_caveat_level(level).map(|_| ()),
+            None => self.require_kind(caveat, "caveat"),
+        }
+    }
+
+    /// Whether `caveats` hold the caveat a `carries` predicate asks about:
+    /// that caveat, or for `carries_any(…)` any caveat at all, or any of
+    /// consequence at least its level.
+    fn carried(&self, caveats: &BTreeSet<String>, caveat: &str) -> bool {
+        let Some(level) = caveat.strip_prefix(reactive_expr::ANY_CAVEAT) else {
+            return caveats.contains(caveat);
+        };
+        let Ok(level) = any_caveat_level(level) else {
+            return false;
+        };
+        caveats.iter().any(|name| {
+            level.is_none_or(|level| {
+                matches!(
+                    self.symbols.get(name).and_then(|id| self.graph.nodes.get(id)),
+                    Some(NodeKind::Caveat { consequence, .. }) if *consequence >= level
+                )
+            })
         })
     }
 
@@ -5010,7 +5269,7 @@ impl ReactiveSession {
         }
     }
 
-    fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+    fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         let mut provenance = self.qualify_core(evidence, extras)?;
         if let Some(observation) = self.observation_qualifications.get(evidence) {
             provenance.merge(observation)?;
@@ -5051,7 +5310,7 @@ impl ReactiveSession {
     /// The evidence, the caveats that qualify it and the claims it bears on,
     /// and any explicit extras: what a qualified value is *about*, without the
     /// guard that revealed the evidence.
-    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         self.qualify_core_with(evidence, extras, true)
     }
 
@@ -5063,6 +5322,7 @@ impl ReactiveSession {
         evidence: &str,
     ) -> Result<Provenance, String> {
         self.qualify_core_with(evidence, &[], false)
+            .map_err(String::from)
     }
 
     fn qualify_core_with(
@@ -5070,14 +5330,14 @@ impl ReactiveSession {
         evidence: &str,
         extras: &[String],
         honor_take_back: bool,
-    ) -> Result<Provenance, String> {
+    ) -> Result<Provenance, EvalError> {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
         if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
-            return Err(format!(
-                "cannot qualify a value with unobserved evidence {evidence}"
-            ));
+            return Err(
+                format!("cannot qualify a value with unobserved evidence {evidence}").into(),
+            );
         }
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
@@ -5103,7 +5363,7 @@ impl ReactiveSession {
         Provenance::from_names([evidence.into()], caveats)
     }
 
-    fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+    fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -5384,7 +5644,14 @@ impl ReactiveSession {
                 let withdrawn = self
                     .withdrawal_of(&readings.template)
                     .map(|_| self.symbols[WITHDRAWN]);
-                let inherited = self
+                // A reading from renewable evidence also inherits what
+                // qualifies the occurrence current now (D024): a doubt raised
+                // about this occurrence reaches what is read from it. A
+                // stream's template cannot be unqualified, so every such
+                // qualification is live. Caveats about an earlier occurrence
+                // are not taken away: spec/caveat-renewal-0.1.md.
+                let current = self.symbols[self.occurrence(&readings.template)];
+                let mut inherited = self
                     .graph
                     .edges
                     .iter()
@@ -5398,6 +5665,26 @@ impl ReactiveSession {
                     .map(|edge| edge.from)
                     .filter(|caveat| Some(*caveat) != withdrawn)
                     .collect::<Vec<_>>();
+                if current != template {
+                    let live = self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.to == current && edge.relation == Relation::Qualifies)
+                        .filter(|edge| {
+                            matches!(
+                                self.graph.nodes.get(&edge.from),
+                                Some(NodeKind::Caveat { .. })
+                            )
+                        })
+                        .map(|edge| edge.from)
+                        .filter(|caveat| {
+                            Some(caveat) != self.symbols.get(WITHDRAWN)
+                                && !inherited.contains(caveat)
+                        })
+                        .collect::<BTreeSet<_>>();
+                    inherited.extend(live);
+                }
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
                     source,
@@ -5429,6 +5716,7 @@ impl ReactiveSession {
                         .last_event
                         .clone()
                         .expect("sampling occurs during dispatch"),
+                    agent: self.last_agent.clone(),
                     value: number,
                     provenance,
                     relation: stance
@@ -5554,6 +5842,24 @@ impl ReactiveSession {
                     self.take_back(evidence, caveat, only.as_deref())?
                 }
             }
+            Effect::Withdraw {
+                target: EvidenceSelector::Every(name),
+                because,
+            } => {
+                // The reason first, even when nothing is listed. See
+                // spec/caveat-untrusted-sources-0.1.md.
+                let because = self.occurrence(because).to_string();
+                if !self.predicate("observed", &because)? {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!("cannot withdraw because unobserved evidence {because}"),
+                    ));
+                }
+                for evidence in self.every_occurrence(name)? {
+                    self.withdraw_occurrence(evidence, &because, guard)?;
+                }
+            }
             Effect::Withdraw { target, because } => {
                 let unobserved = |message: String| {
                     DispatchFailure::rejected(
@@ -5584,29 +5890,7 @@ impl ReactiveSession {
                         )));
                     }
                 }
-                if !self
-                    .withdrawals
-                    .iter()
-                    .any(|withdrawal| withdrawal.evidence == evidence)
-                {
-                    self.add_pin(&because);
-                    if self.windowed() {
-                        Arc::make_mut(&mut self.withdrawal_reasons)
-                            .insert(evidence.clone(), because.clone());
-                        self.collector.withdrawal(&evidence, &because, true);
-                    }
-                    Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
-                        evidence: evidence.clone(),
-                        because: because.clone(),
-                        sequence: self.sequence,
-                        event: self.last_event.clone().unwrap_or_default(),
-                    });
-                    self.apply_qualification(&evidence, WITHDRAWN, guard)?;
-                    // apply_qualification reported a qualify: this is a withdrawal.
-                    self.effects.pop();
-                    self.effects
-                        .push(EffectReport::Withdraw { evidence, because });
-                }
+                self.withdraw_occurrence(evidence, &because, guard)?;
             }
             Effect::Renew { evidence } => {
                 self.history_room(evidence)?;
@@ -5884,18 +6168,45 @@ impl ReactiveSession {
                 // A retained caveat's reason is read as `qualified(1, E)` and
                 // joins the grounds. See spec/caveat-retention-reasons-0.1.md.
                 let mut retention = BTreeMap::new();
-                for (caveat, evidence, reading) in reasons {
+                for (caveat, evidence, reading, _) in reasons {
                     provenance.merge(&self.evaluate(reading, parameters)?.provenance)?;
                     grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
                     retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
+                }
+                // A `once` reason backs one commitment: none the session holds
+                // may have it as a reason already. See
+                // spec/caveat-untrusted-sources-0.1.md.
+                for (caveat, ..) in reasons.iter().filter(|(.., once)| *once) {
+                    let occurrence = &retention[caveat];
+                    if let Some((by, _)) = self
+                        .retention_reasons
+                        .iter()
+                        .find(|(_, held)| held.values().any(|reason| reason == occurrence))
+                    {
+                        return Err(DispatchFailure::rejected(
+                            RejectionOrigin::Evaluation,
+                            RejectionCode::ReasonSpent,
+                            format!("{occurrence} is already the reason of a caveat {by} retains"),
+                        ));
+                    }
                 }
                 // An irreversible commit names each caveat of consequence
                 // material or above that it rests on. See
                 // spec/caveat-foreclosure-0.1.md, "An irreversible decision".
                 if self.irreversible.contains_key(action) {
+                    // A strict series reads its lineage too: the guard, a
+                    // permission grant and the rest of its control. See
+                    // spec/caveat-strict-irreversible-0.1.md.
+                    let strict = self.strict_irreversible.contains(action);
                     let unretained = grounds
                         .caveats
                         .iter()
+                        .chain(
+                            provenance
+                                .caveats
+                                .iter()
+                                .filter(|caveat| strict && !grounds.caveats.contains(*caveat)),
+                        )
                         .filter(|caveat| !retaining.contains(*caveat))
                         .filter_map(|caveat| {
                             let consequence = self.graph.consequence(self.symbols[caveat]);
@@ -6020,6 +6331,7 @@ impl ReactiveSession {
                     change: "committed".into(),
                     sequence: self.sequence,
                     event: self.last_event.clone().unwrap_or_default(),
+                    agent: self.last_agent.clone(),
                     elapsed: Some(self.elapsed),
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
@@ -6271,6 +6583,7 @@ impl ReactiveSession {
             change: "resolved".into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6298,6 +6611,7 @@ impl ReactiveSession {
         parameters: &Parameters,
     ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
         Ok(match because {
+            EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
             EvidenceSelector::Named(name) => {
                 let name = self.occurrence(name).to_string();
                 if !self.predicate("observed", &name)? {
@@ -6448,6 +6762,7 @@ impl ReactiveSession {
             change: change.into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6481,6 +6796,11 @@ impl ReactiveSession {
         if because.is_empty() {
             return Ok(());
         }
+        // Causes reopen it, and are journaled, in the order they were first
+        // observed, whatever order they arrive in: a withdrawal breaking
+        // through a hold names its cause before the deferred ones, and a hold
+        // defers causes in the order they come (D021).
+        let because = self.in_observation_order(because.iter());
         self.end_hold(action);
         let current = current.to_string();
         self.collector_reopens(&current, &because);
@@ -6503,6 +6823,7 @@ impl ReactiveSession {
             change: "reopened".into(),
             sequence: self.sequence,
             event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
             elapsed: Some(self.elapsed),
             value: self
                 .commitment_bases
@@ -6642,6 +6963,7 @@ impl ReactiveSession {
                 caveat: caveat.to_string(),
                 sequence: self.sequence,
                 event: event.clone(),
+                agent: self.last_agent.clone(),
             });
         }
         // An observation's or predicate's record holds what it took through a
@@ -6737,7 +7059,7 @@ impl ReactiveSession {
         evidence: &str,
         caveat: &str,
         guard: &Provenance,
-    ) -> Result<(), String> {
+    ) -> Result<(), EvalError> {
         let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
         // Once per live relation: after a take-back, qualifying again adds a
         // new one. See spec/caveat-take-back-0.1.md.
@@ -6823,7 +7145,7 @@ impl ReactiveSession {
 
     /// Apply every scheduled qualification whose time has come, in the order
     /// they were scheduled.
-    fn apply_due_qualifications(&mut self) -> Result<(), String> {
+    fn apply_due_qualifications(&mut self) -> Result<(), EvalError> {
         let elapsed = self.elapsed;
         let due = |scheduled: &ScheduledQualification| {
             elapsed - scheduled.scheduled_at >= scheduled.after
@@ -6905,7 +7227,7 @@ impl ReactiveSession {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        for (series, forecloses) in self.irreversible.iter() {
+        for (series, forecloses) in self.irreversible.iter().chain(self.foreclosures.iter()) {
             for action in forecloses {
                 if !self.decision_series.contains_key(action)
                     && !committed.contains(action.as_str())
@@ -6919,15 +7241,53 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// The committed irreversible revision that forecloses `action`, if any:
-    /// the earliest by sequence, then by series name.
+    /// The revision that forecloses `action`, if any: a committed
+    /// irreversible revision, or the current revision of a reversible series
+    /// while it is in force (committed and not reopened). The earliest by
+    /// sequence, then by series name. See spec/caveat-foreclosure-0.2.md.
     fn foreclosing(&self, action: &str) -> Option<&str> {
-        self.irreversible
+        let closes = |forecloses: &Vec<String>| forecloses.iter().any(|closed| closed == action);
+        let irreversible = self
+            .irreversible
             .iter()
-            .filter(|(_, forecloses)| forecloses.iter().any(|closed| closed == action))
-            .filter_map(|(series, _)| self.decision_series.get(series)?.revisions.first())
-            .min_by_key(|revision| revision.sequence)
-            .map(|revision| revision.id.as_str())
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                Some((name, self.decision_series.get(name)?.revisions.first()?))
+            });
+        let in_force = self
+            .foreclosures
+            .iter()
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                let series = self.decision_series.get(name)?;
+                let current = series.current.as_deref()?;
+                if self.is_open(current) {
+                    return None;
+                }
+                Some((
+                    name,
+                    series
+                        .revisions
+                        .iter()
+                        .find(|revision| revision.id == current)?,
+                ))
+            });
+        irreversible
+            .chain(in_force)
+            .min_by(|(a, first), (b, second)| {
+                first.sequence.cmp(&second.sequence).then_with(|| a.cmp(b))
+            })
+            .map(|(_, revision)| revision.id.as_str())
+    }
+
+    /// Whether a commitment is reopened.
+    fn is_open(&self, commitment: &str) -> bool {
+        matches!(
+            self.symbols
+                .get(commitment)
+                .and_then(|id| self.graph.nodes.get(id)),
+            Some(NodeKind::Commitment { open: true, .. })
+        )
     }
 
     /// Every `unqualify` of a program, after procedures are specialized.
@@ -7065,12 +7425,86 @@ impl ReactiveSession {
 
     /// The occurrence a withdrawal names now: named evidence's current
     /// occurrence, or the stream's current reading.
+    /// Withdraw one observed occurrence for an observed reason, unless it is
+    /// withdrawn already. See spec/caveat-withdrawal-0.1.md.
+    fn withdraw_occurrence(
+        &mut self,
+        evidence: String,
+        because: &str,
+        guard: &Provenance,
+    ) -> Result<(), DispatchFailure> {
+        if self
+            .withdrawals
+            .iter()
+            .any(|withdrawal| withdrawal.evidence == evidence)
+        {
+            return Ok(());
+        }
+        let because = because.to_string();
+        self.add_pin(&because);
+        if self.windowed() {
+            Arc::make_mut(&mut self.withdrawal_reasons).insert(evidence.clone(), because.clone());
+            self.collector.withdrawal(&evidence, &because, true);
+        }
+        Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
+            evidence: evidence.clone(),
+            because: because.clone(),
+            sequence: self.sequence,
+            event: self.last_event.clone().unwrap_or_default(),
+            agent: self.last_agent.clone(),
+        });
+        self.apply_qualification(&evidence, WITHDRAWN, guard)?;
+        // apply_qualification reported a qualify: this is a withdrawal.
+        self.effects.pop();
+        self.effects
+            .push(EffectReport::Withdraw { evidence, because });
+        Ok(())
+    }
+
+    /// What `withdraw every NAME` lists: a reading stream's held readings,
+    /// oldest first; or evidence's held occurrences, first to current, then
+    /// the held readings of each stream that reads from it, in name order.
+    /// Only observed ones. See spec/caveat-untrusted-sources-0.1.md.
+    fn every_occurrence(&self, name: &str) -> Result<Vec<String>, String> {
+        let mut listed = Vec::new();
+        let streams = if self.reading_streams.contains_key(name) {
+            vec![name]
+        } else {
+            match self.renewals.get(name) {
+                Some(renewal) => listed.extend(renewal.occurrences.iter().cloned()),
+                None => listed.push(name.to_string()),
+            }
+            self.reading_streams
+                .iter()
+                .filter(|(_, stream)| stream.template == name)
+                .map(|(stream, _)| stream.as_str())
+                .collect()
+        };
+        for stream in streams {
+            listed.extend(
+                self.reading_streams[stream]
+                    .occurrences
+                    .iter()
+                    .map(|reading| reading.id.clone()),
+            );
+        }
+        let mut held = Vec::with_capacity(listed.len());
+        for occurrence in listed {
+            if !self.is_retired(&occurrence) && self.predicate("observed", &occurrence)? {
+                held.push(occurrence);
+            }
+        }
+        Ok(held)
+    }
+
     fn withdrawal_target(&self, target: &EvidenceSelector) -> Option<String> {
         match target {
             EvidenceSelector::Named(evidence) => Some(self.occurrence(evidence).to_string()),
             EvidenceSelector::Latest(stream) => self.reading_streams[stream].current.clone(),
             // Resolved when the effect runs; see `resolve_occurrence`.
-            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => None,
+            EvidenceSelector::Caveated { .. }
+            | EvidenceSelector::Occurrence { .. }
+            | EvidenceSelector::Every(_) => None,
         }
     }
 
@@ -7140,7 +7574,9 @@ impl ReactiveSession {
                 let reading = self.latest(stream)?;
                 (grant, Some(reading.value), reading.provenance)
             }
-            EvidenceSelector::Caveated { .. } | EvidenceSelector::Occurrence { .. } => {
+            EvidenceSelector::Caveated { .. }
+            | EvidenceSelector::Occurrence { .. }
+            | EvidenceSelector::Every(_) => {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
@@ -7316,7 +7752,10 @@ impl ReactiveSession {
     /// A value newly read from history carries `withdrawn` if what it rests on
     /// has since been withdrawn, and the live caveats of the evidence the
     /// record lists. The record itself is unchanged.
-    fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
+    fn with_current_withdrawals(
+        &self,
+        mut provenance: Provenance,
+    ) -> Result<Provenance, EvalError> {
         self.read_live(&mut provenance)?;
         if provenance
             .evidence
@@ -7334,7 +7773,7 @@ impl ReactiveSession {
     /// caveat when it was added, so when the value is computed does not
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
-    fn read_live(&self, provenance: &mut Provenance) -> Result<(), String> {
+    fn read_live(&self, provenance: &mut Provenance) -> Result<(), EvalError> {
         let reached = self
             .live_late_relations(provenance)
             .into_iter()
@@ -7400,7 +7839,7 @@ impl ReactiveSession {
         kind: &str,
         name: &str,
         grounds: bool,
-    ) -> Result<Option<Tracked<bool>>, String> {
+    ) -> Result<Option<Tracked<bool>>, EvalError> {
         let withdrawn: Vec<&Withdrawal> = match kind {
             WITHDRAWN => self.withdrawal_of(name).into_iter().collect(),
             "withdrawn_latest" => self
@@ -7482,8 +7921,9 @@ impl ReactiveSession {
     /// revision's record, as `committed(…)` asked of it does; a revision or a
     /// reference that names nothing held answers false. See
     /// spec/caveat-in-basis-0.1.md.
-    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, String> {
-        let malformed = || format!("in_basis received a malformed target {target}");
+    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, EvalError> {
+        let malformed =
+            || EvalError::from(format!("in_basis received a malformed target {target}"));
         let mut parts = target.splitn(3, '|');
         let (Some(revision), Some(kind), Some(reference)) =
             (parts.next(), parts.next(), parts.next())
@@ -7688,6 +8128,7 @@ impl ReactiveSession {
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
+            forecloses: (*self.foreclosures).clone(),
             observation_qualifications: (*self.observation_qualifications).clone(),
             examination_qualifications: (*self.examination_qualifications).clone(),
             reopening_qualifications: (*self.reopening_qualifications).clone(),
@@ -7700,6 +8141,7 @@ impl ReactiveSession {
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
+            last_agent: self.last_agent.clone(),
             values: self
                 .states
                 .names()
@@ -7792,6 +8234,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                     evidence: rename(evidence),
                     index: Box::new(index.rename_symbols(names)),
                 },
+                EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
                 selector => selector.clone(),
             },
             because: rename(because),
@@ -7876,11 +8319,12 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             retaining: retaining.iter().map(rename).collect(),
             reasons: reasons
                 .iter()
-                .map(|(caveat, evidence, reading)| {
+                .map(|(caveat, evidence, reading, once)| {
                     (
                         rename(caveat),
                         rename(evidence),
                         reading.rename_symbols(names),
+                        *once,
                     )
                 })
                 .collect(),
@@ -7925,6 +8369,7 @@ fn rename_selector(
             evidence: rename(evidence),
             index: Box::new(index.rename_symbols(names)),
         },
+        EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
     }
 }
 
@@ -8083,6 +8528,7 @@ pub(crate) fn parse_directive_at(
             | "renewable"
             | "journal"
             | "identifiers"
+            | "agent"
             | "proc"
             | "define"
     ) {
@@ -8126,6 +8572,35 @@ pub(crate) fn parse_directive_at(
             }),
             _ => Err("journal expects window N".into()),
         },
+        "agent" => match words.as_slice() {
+            ["agent", name] => Ok(Directive::Agent {
+                name: identifier(name)?,
+                sends: Vec::new(),
+            }),
+            ["agent", name, "sends", events @ ..] if !events.is_empty() => {
+                let mut sends = Vec::<String>::new();
+                for event in events.join(" ").split(',') {
+                    let event = match event.split_whitespace().collect::<Vec<_>>()[..] {
+                        [event] => identifier(event)?,
+                        _ => {
+                            return Err(format!(
+                                "sends takes event names separated by commas, not {}",
+                                event.trim()
+                            ))
+                        }
+                    };
+                    if sends.contains(&event) {
+                        return Err(format!("agent {name} lists event {event} twice"));
+                    }
+                    sends.push(event);
+                }
+                Ok(Directive::Agent {
+                    name: identifier(name)?,
+                    sends,
+                })
+            }
+            _ => Err("agent expects NAME [sends EVENT, …]".into()),
+        },
         "identifiers" => match words.as_slice() {
             ["identifiers", "limit", limit] => Ok(Directive::Identifiers {
                 limit: limit
@@ -8141,55 +8616,73 @@ pub(crate) fn parse_directive_at(
             ),
             ["decisions", name, "limit", limit, rest @ ..] => {
                 // spec/caveat-foreclosure-0.1.md: `irreversible [forecloses
-                // ACTION, …]` comes before any `reopened by`.
-                let (irreversible, rest) = match rest {
+                // ACTION, …]` comes before any `reopened by`, and
+                // spec/caveat-foreclosure-0.2.md: so may `forecloses ACTION, …`
+                // without `irreversible`.
+                let (irreversible, strict, rest) = match rest {
                     ["irreversible", tail @ ..] => {
                         if limit.parse::<usize>() != Ok(1) {
                             return Err(format!(
                                 "an irreversible series holds one revision: decisions {name} limit 1 irreversible"
                             ));
                         }
+                        // spec/caveat-strict-irreversible-0.1.md: `strict`
+                        // comes straight after `irreversible`.
+                        match tail {
+                            ["strict", tail @ ..] => (true, true, tail),
+                            _ => (true, false, tail),
+                        }
+                    }
+                    _ => (false, false, rest),
+                };
+                let (forecloses, rest) = match rest {
+                    ["forecloses", tail @ ..] => {
                         let end = tail
                             .windows(2)
                             .position(|pair| pair == ["reopened", "by"])
                             .unwrap_or(tail.len());
-                        let (foreclosure, rest) = tail.split_at(end);
-                        let forecloses = match foreclosure {
-                            [] => Vec::new(),
-                            ["forecloses", actions @ ..] if !actions.is_empty() => {
-                                let mut forecloses = Vec::<String>::new();
-                                for action in actions.join(" ").split(',') {
-                                    let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
-                                        [action] => identifier(action)?,
-                                        _ => return Err(format!(
-                                            "forecloses takes decision names separated by commas, not {}",
-                                            action.trim()
-                                        )),
-                                    };
-                                    if action == *name {
-                                        return Err(format!("{name} cannot foreclose itself"));
-                                    }
-                                    if forecloses.contains(&action) {
-                                        return Err(format!("duplicate foreclosed decision {action}"));
-                                    }
-                                    forecloses.push(action);
-                                }
-                                forecloses
+                        let (actions, rest) = tail.split_at(end);
+                        if actions.is_empty() {
+                            return Err(format!(
+                                "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                                rest.join(" ")
+                            ));
+                        }
+                        let mut forecloses = Vec::<String>::new();
+                        for action in actions.join(" ").split(',') {
+                            let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
+                                [action] => identifier(action)?,
+                                _ => return Err(format!(
+                                    "forecloses takes decision names separated by commas, not {}",
+                                    action.trim()
+                                )),
+                            };
+                            if action == *name {
+                                return Err(format!("{name} cannot foreclose itself"));
                             }
-                            _ => return Err(format!(
-                                "decisions expects NAME limit 1 irreversible [forecloses ACTION, …] [reopened by STREAM, …], not {}",
-                                foreclosure.join(" ")
-                            )),
-                        };
-                        (Some(forecloses), rest)
+                            if forecloses.contains(&action) {
+                                return Err(format!("duplicate foreclosed decision {action}"));
+                            }
+                            forecloses.push(action);
+                        }
+                        (forecloses, rest)
                     }
-                    _ if rest.contains(&"forecloses") && !rest.starts_with(&["reopened", "by"]) => {
-                        return Err(format!(
-                            "forecloses follows irreversible: decisions {name} limit 1 irreversible forecloses ACTION, …"
-                        ));
-                    }
-                    _ => (None, rest),
+                    _ => (Vec::new(), rest),
                 };
+                if !irreversible && rest.contains(&"strict") && !rest.starts_with(&["reopened", "by"]) {
+                    return Err(format!(
+                        "strict follows irreversible: decisions {name} limit 1 irreversible strict"
+                    ));
+                }
+                if (irreversible || !forecloses.is_empty())
+                    && !rest.is_empty()
+                    && !rest.starts_with(&["reopened", "by"])
+                {
+                    return Err(format!(
+                        "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                        rest.join(" ")
+                    ));
+                }
                 let triggers = match rest {
                     [] => Vec::new(),
                     ["reopened", "by", triggers @ ..] if !triggers.is_empty() => triggers
@@ -8239,6 +8732,8 @@ pub(crate) fn parse_directive_at(
                         .map_err(|_| "decision limit must be an unsigned integer".to_string())?,
                     triggers,
                     irreversible,
+                    forecloses,
+                    strict,
                 })
             }
             _ => Err("decisions expects NAME limit CAPACITY [reopened by STREAM, …]".into()),
@@ -9048,11 +9543,18 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             let [reason] = reason else {
                 return Err("withdraw expects EVIDENCE because EVIDENCE".into());
             };
+            let every = match rest[..split] {
+                // `withdraw every because R` still names evidence `every`.
+                ["every", name] => Some(name),
+                _ => None,
+            };
             let target = match target
                 .strip_prefix("latest")
                 .map(str::trim)
                 .and_then(|rest| rest.strip_prefix('('))
             {
+                // spec/caveat-untrusted-sources-0.1.md.
+                _ if every.is_some() => EvidenceSelector::Every(identifier(every.unwrap())?),
                 Some(arguments) => EvidenceSelector::Latest(identifier(
                     arguments
                         .trim()
@@ -9183,7 +9685,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
             };
             // `CAVEAT [because EVIDENCE], …`. See
             // spec/caveat-retention-reasons-0.1.md.
-            type Retained = (Vec<String>, Vec<(String, String, Expr)>);
+            type Retained = (Vec<String>, Vec<(String, String, Expr, bool)>);
             let parse_retained = |names: &[&str]| -> Result<Retained, String> {
                 if names.is_empty() {
                     return Err("retaining requires at least one caveat".into());
@@ -9192,17 +9694,20 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 for item in names.join(" ").split(',') {
                     match item.split_whitespace().collect::<Vec<_>>()[..] {
                         [caveat] => retained.push(identifier(caveat)?),
-                        [caveat, "because", evidence] => {
+                        // `because once E` (spec/caveat-untrusted-sources-0.1.md);
+                        // `because once` alone still names evidence `once`.
+                        [caveat, "because", evidence] | [caveat, "because", "once", evidence] => {
+                            let once = item.split_whitespace().count() == 4;
                             let (caveat, evidence) = (identifier(caveat)?, identifier(evidence)?);
                             let reading = reactive_expr::parse_unresolved(&format!(
                                 "qualified(1, {evidence})"
                             ))?;
                             retained.push(caveat.clone());
-                            reasons.push((caveat, evidence, reading));
+                            reasons.push((caveat, evidence, reading, once));
                         }
                         _ => {
                             return Err(format!(
-                                "retaining expects CAVEAT [because EVIDENCE], …, not {}",
+                                "retaining expects CAVEAT [because [once] EVIDENCE], …, not {}",
                                 item.trim()
                             ))
                         }
@@ -9326,11 +9831,63 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     }
 }
 
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
+/// What a payload lacks and what it adds, for the refusal: "; missing
+/// chance; unexpected chanse".
+fn parameter_difference(signature: &[Parameter], parameters: &BTreeMap<String, f64>) -> String {
+    let missing: Vec<&str> = signature
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .filter(|name| !parameters.contains_key(*name))
+        .collect();
+    let unexpected: Vec<&str> = parameters
+        .keys()
+        .map(String::as_str)
+        .filter(|name| !signature.iter().any(|parameter| parameter.name == *name))
+        .collect();
+    let mut text = String::new();
+    if !missing.is_empty() {
+        text.push_str(&format!("; missing {}", missing.join(", ")));
+    }
+    if !unexpected.is_empty() {
+        text.push_str(&format!("; unexpected {}", unexpected.join(", ")));
+    }
+    text
+}
+
 enum PayloadValue {
     Number(f64),
     Text(String),
+}
+
+// By hand rather than `#[serde(untagged)]`, whose error names the Rust enum
+// ("did not match any variant of untagged enum PayloadValue"); this one says
+// what a parameter takes and what it was given.
+impl<'de> serde::Deserialize<'de> for PayloadValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = PayloadValue;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or text")
+            }
+            fn visit_f64<E>(self, value: f64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value))
+            }
+            fn visit_i64<E>(self, value: i64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_u64<E>(self, value: u64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_str<E>(self, value: &str) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value.to_string()))
+            }
+            fn visit_string<E>(self, value: String) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value))
+            }
+        }
+        deserializer.deserialize_any(Visitor)
+    }
 }
 
 struct Payload(BTreeMap<String, PayloadValue>);

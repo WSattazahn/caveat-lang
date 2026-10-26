@@ -555,6 +555,22 @@ fn the_latest_reading_is_qualified_and_taken_back_alone() {
                 }
             }
             live.retain(|target, _| held.contains(target) || target == "e");
+            // Every event's save restores, to the same save and snapshot (D021).
+            let saved_after = game.save_json().unwrap();
+            let restored_after = ReactiveSession::restore_json(SOURCE, &saved_after)
+                .unwrap_or_else(|error| {
+                    panic!("run {run} step {step}: restore after the event: {error}")
+                });
+            assert_eq!(
+                restored_after.save_json().unwrap(),
+                saved_after,
+                "run {run} step {step}: save round trip after the event"
+            );
+            assert_eq!(
+                snapshot(&restored_after),
+                shown,
+                "run {run} step {step}: snapshot after restore"
+            );
             before = shown;
         }
     }

@@ -21,14 +21,14 @@ const declarations = ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 
 const control = ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'];
 const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'];
 const modifiers = ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind',
-  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'noting', 'irreversible', 'forecloses'];
+  'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward', 'noting', 'irreversible', 'strict', 'forecloses'];
 // Epistemic predicates, expression functions and callable primitives: names
 // that are functions only where a call follows.
-export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified',
+export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'carries_any', 'qualified',
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a
@@ -36,7 +36,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
 // relation (`camera supports door_open`).
 export const profileHeads = ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer',
   'require', 'observe', 'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route',
-  'overview', 'start_at', 'program', 'origin'];
+  'overview', 'start_at', 'program', 'origin', 'agent'];
 // Clauses and action steps that mean something only inside those statements.
 const profileClauses = ['options', 'requires_open', 'steps'];
 const actionSteps = ['inspect', 'operate', 'open', 'through', 'move', 'observe'];
@@ -417,6 +417,10 @@ export const grammar = {
         // `materialized CAVEAT, …` (spec/caveat-outcomes-0.1.md); elsewhere both are names.
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}resolve\b(?=[ \t]+(?:revision[ \t]*\(|[A-Za-z_][\w:$]*[ \t]*=(?!=)))` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}materialized\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]*[;,])` },
+        // `withdraw every NAME because …` and `retaining C because once E`
+        // (spec/caveat-untrusted-sources-0.1.md); elsewhere both are names.
+        { name: 'keyword.other.caveat', match: String.raw`(?<=\bwithdraw[ \t])every\b(?=[ \t]+[A-Za-z_$][\w:$]*[ \t]+because\b)` },
+        { name: 'keyword.other.caveat', match: String.raw`(?<=\bbecause[ \t])once\b(?=[ \t]+[A-Za-z_$][\w:$]*[ \t]*[;,])` },
         { name: 'keyword.operator.logical.caveat', match: String.raw`${notProperty}(?:and|or|not)\b` },
         { name: 'constant.language.boolean.caveat', match: String.raw`${notProperty}(?:true|false)\b` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(modifiers)})\b` },

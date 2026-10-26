@@ -177,9 +177,14 @@ history read such as a division by zero or `latest` of an empty history
 whose sum would make the session clock nonfinite is refused as
 `{"origin": "evaluation", "code": "bound_exceeded"}`, and a `qualify … after`
 while 4,096 qualifications are already waiting as
-`{"origin": "limit", "code": "scheduled_limit"}`. Other runtime
-errors, such as a type error in an expression, are deliberately unclassified:
-they are fatal, and a fatal outcome never matches an expected rejection.
+`{"origin": "limit", "code": "scheduled_limit"}`. An event that would give a
+value a lineage of more than 1,024 identifiers is refused as
+`{"origin": "limit", "code": "provenance_limit"}`, and one in which an
+expression's evaluation would visit more than 65,536 nodes, as a
+`fold_history` over a long stream with a heavy step can, as
+`{"origin": "limit", "code": "evaluation_limit"}` (before 1.4, both were
+fatal). Other runtime errors are deliberately unclassified: they are fatal,
+and a fatal outcome never matches an expected rejection.
 
 A plain `commit`, made without a `decisions` declaration, can be made only
 once: committing it again, even after it was reopened, is refused as
@@ -574,7 +579,12 @@ does in `withdraw`, `qualify`, `unqualify` and `reopen … because`, and in
 `observed`, `withdrawn` and `carries`. An N that names no reading the stream
 holds refuses an effect as `expression` and makes a predicate false.
 `carries(latest(STREAM), C)` asks whether the current reading carries `C`,
-for example in a guard that refuses to flag a reading twice.
+for example in a guard that refuses to flag a reading twice. To ask whether
+it carries any caveat at all, write `carries_any(latest(STREAM))`, or
+`carries_any(latest(STREAM), material)` for any of consequence `material` or
+above, `withdrawn` included, rather than listing caveats by name: a caveat
+declared later is then covered too (1.4 draft,
+[carries any](../spec/caveat-carries-any-0.1.md)).
 `in_basis(DECISION, E)` is true when the decision's current revision rests on
 `E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
 asks the same of the Kth revision. A later reading is never in an earlier
@@ -634,6 +644,31 @@ a commit of `rollback` is refused as `foreclosed`, and the message names
 `drop_old_table@1`. It may still be reopened: that records doubt and keeps the
 foreclosure. Caveat records the declaration; it does not check that the action
 really can't be undone. See [foreclosure](../spec/caveat-foreclosure-0.1.md).
+
+That check reads only the commit's grounds. Evidence that a `when` guard or a
+`permitted by` grant read is not checked, so a payout gated on
+`support >= 3` can rest on an unchecked email without naming it. Write
+`irreversible strict` (from 1.4, [strict irreversible](../spec/caveat-strict-irreversible-0.1.md))
+to check every caveat in the commit's lineage:
+
+```caveat
+decisions payout limit 1 irreversible strict;
+```
+
+A decision that can be undone may rule options out too, for as long as it
+stands (1.4 draft):
+
+```caveat
+decisions no_rewrite limit 4 forecloses rewrite;
+```
+
+While `no_rewrite`'s current revision is committed and not reopened, a commit
+of `rewrite` is refused as `foreclosed`, naming `no_rewrite@1`. Reopening
+`no_rewrite`, by a rule, a trigger or a withdrawal through a hold, lifts it; a
+new revision forecloses again. Write this instead of a
+`when committed(no_rewrite) and not reopened(no_rewrite) reject …` guard on
+every rule that commits `rewrite`. See
+[foreclosure 0.2](../spec/caveat-foreclosure-0.2.md).
 
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
@@ -816,6 +851,55 @@ Before 1.1, the reason went into the grounds with
 two decisions. That still works, but nothing in the record pairs a caveat with
 its reason.
 
+## Act on text from a source that may turn out bad
+
+Draft for 1.4 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
+An agent that acts on text it read, such as an instruction in an email, gives
+that text a caveat and every action resting on it carries the caveat. Three
+forms keep such a program short:
+
+```caveat
+caveat untrusted consequence high;
+evidence mail from "the newsletter as the agent read it";
+evidence mail_bad from "a finding that the newsletter is malicious";
+evidence user_ok from "the user confirming one pending send";
+renewable user_ok limit 64;
+untrusted qualifies mail;
+readings asks from mail limit 8;
+decisions add_event limit 8;
+decisions send limit 1 irreversible;
+on confirm when observed(user_ok) renew user_ok;
+on confirm reveal user_ok;
+on act commit send because enough using latest(asks)
+    retaining untrusted because once user_ok;
+on found reveal mail_bad;
+on found withdraw every mail because mail_bad;
+on found when committed(add_event) and not reopened(add_event) and rests_on_withdrawn(add_event)
+    reopen add_event because mail_bad;
+```
+
+- `because once user_ok`: a confirmation backs one commitment. A second send
+  before the next `confirm` is refused as `evaluation/reason_spent`. Without
+  `once`, one confirmation covers every later send.
+- `withdraw every mail`: the text and every reading sampled from it are
+  withdrawn in one step, not only the latest.
+- `caveat undo-list PROGRAM EVENTS`, or `undoList(snapshot)` from
+  `caveat-lang/explain`, lists every revision, current or past, whose grounds
+  hold withdrawn evidence. The program reopens the current one; the list is
+  for the host to undo what already went out, and marks irreversible ones.
+
+When an action takes two sources, such as an instruction from one email and a
+recipient from another, nest a routed `for` per event parameter; each
+decision's grounds then name both readings
+([section 1](../spec/caveat-untrusted-sources-0.1.md#1-one-action-on-several-sources)).
+
+When several sources vote and a decision should rest on the ones that agreed,
+add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
+`if(...)` would make every vote it read a ground, dissenters included.
+`only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
+([Only If 0.1](../spec/caveat-only-if-0.1.md); the
+[model-votes experiment](../experiments/model-votes/README.md)).
+
 ## What a withdrawal adds to a decision's grounds
 
 A withdrawal needs a reason: `withdraw latest(checks) because recheck`. Every
@@ -849,6 +933,50 @@ and `recheck`, with the `withdrawn` caveat. Two things follow:
 - The withdrawn reading stays in the grounds only if `using` reads it.
   `if(withdrawn(latest(checks)), 0, latest(checks))` would be grounded on
   `recheck` alone; `0 * latest(checks)` keeps the reading there.
+
+## Results produced under a version
+
+A result often holds only for the dataset, calibration or code version it was
+produced under. Record the versions as a reading stream and compute each
+result from `latest(...)`, so the result's grounds name its exact version:
+
+<!-- versions-as-readings -->
+```caveat
+scene "An analysis rests on the dataset version it was run on.";
+claim effect;
+evidence release_note from "a released version of the dataset";
+evidence pipeline from "the analysis code";
+evidence erratum from "a finding that a version contains duplicated rows";
+readings versions from release_note limit 4;
+readings analysis from pipeline limit 8;
+decisions conclude limit 4;
+event release;
+event analyse estimate min 0 max 100;
+event decide;
+event erratum_v1;
+on release sample versions = 1;
+on analyse when not has_sample(versions) reject "No dataset.";
+on analyse sample analysis = estimate * latest(versions) supports effect;
+on decide when committed(conclude) and not reopened(conclude) reject "In force.";
+on decide commit conclude because enough using latest(analysis);
+on erratum_v1 reveal erratum;
+on erratum_v1 withdraw reading(versions, 1) because erratum;
+on erratum_v1 when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)
+    reopen conclude because erratum;
+```
+
+After `release`, `analyse 7`, `decide`, `erratum_v1`, `release`, `analyse 5`
+and `decide`, `conclude@1` is based on `analysis@1` and `versions@1` and is
+reopened by the erratum. `conclude@2` is based on `analysis@2` and `versions@2`
+only, with no `withdrawn` caveat. Withdrawing a version reopens only what was
+produced under it, with no rule that resets a result when a new version
+arrives.
+
+Don't use `renewable` evidence for versions. A renewed occurrence keeps its
+predecessor's basis in its lineage, so with `renewable dataset` the same
+timeline grounds `conclude@2` on both versions, the withdrawn one included.
+The [retracted studies example](../kit/examples/retractions/README.md) applies
+the same idea to published studies.
 
 ## Evidence from fresh authors
 

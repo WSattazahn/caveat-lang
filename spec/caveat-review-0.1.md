@@ -1,6 +1,6 @@
-# CAVEAT Review 0.1 (draft) — which evidence a decision hinged on
+# CAVEAT Review 0.1 — which evidence a decision hinged on
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4, building on [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit, as [Dependents 0.1](caveat-dependents-0.1.md) is: it adds no syntax, changes no program and no session, and a program means what it meant before.
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4, building on [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit, as [Dependents 0.1](caveat-dependents-0.1.md) is: it adds no syntax, changes no program and no session, and a program means what it meant before.
 
 [Outcomes 0.1](caveat-outcomes-0.1.md) records how a decision turned out
 next to the basis it was made on. That tells a review what the decision

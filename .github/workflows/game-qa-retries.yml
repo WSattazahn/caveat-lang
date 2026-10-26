@@ -1,0 +1,35 @@
+name: game QA retries
+
+# The game browser QA steps retry once and leave a warning. This counts
+# those warnings in runtime and pages runs over the last week and opens
+# (or comments on) an issue for any job and command that needed its retry
+# more than twice, so a test getting flakier is not hidden by the retry.
+on:
+  schedule:
+    - cron: '0 16 * * 1'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: game-qa-retries
+  cancel-in-progress: false
+
+jobs:
+  count:
+    name: count game QA retries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Open an issue for any game QA test retried more than twice this week
+        run: node scripts/game-qa-retries.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -25,6 +25,8 @@ export declare const DEPENDENTS_SCHEMA: 'caveat-dependents/0.1';
 export interface ExplainEvent {
   event: string;
   payload: unknown;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   outcome: ExplainEventOutcome;
 }
 
@@ -95,9 +97,9 @@ export interface ExplainedSeries {
   revisions: ExplainedRevision[];
   /** Present when the series is declared irreversible (spec/caveat-foreclosure-0.1.md). */
   irreversible?: true;
-  /** The actions an irreversible series forecloses, in source order; present when it declares any. */
+  /** The actions the series forecloses, in source order; present when it declares any. An irreversible series forecloses them once committed, any other while its current revision is in force (spec/caveat-foreclosure-0.2.md). */
   forecloses?: string[];
-  /** The committed irreversible revisions that foreclose this decision, in commit order; present when there are any. */
+  /** The revisions that foreclose this decision now, in commit order: committed irreversible revisions, and current revisions in force of series that foreclose it; present when there are any. */
   foreclosed_by?: string[];
 }
 
@@ -145,13 +147,15 @@ export interface ExplainedRevision {
 }
 
 export type GroundsObservation =
-  | { evidence: string; sequence: number; event: string; payload: unknown }
+  | { evidence: string; sequence: number; event: string; agent?: string; payload: unknown }
   | { evidence: string; sequence: null; event: null; payload: null };
 
 export interface RevisionChange {
   change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   because: string[];
   caveats: string[];
   /** For `resolved`, the outcome's value. */
@@ -174,6 +178,8 @@ export interface ExplainedEvidence {
   value: number | null;
   sequence: number | null;
   event: string | null;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   caveats: string[];
   withdrawn: WithdrawalNote | null;
   /** The sequence at which it retired from its window; absent while live. */
@@ -184,6 +190,8 @@ export interface WithdrawalNote {
   because: string;
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 export interface ExplainedDisplay {
@@ -260,6 +268,8 @@ export interface DependentDecision {
 export interface DependentChange {
   sequence: number;
   event: string;
+  /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
   commitment: string;
   change: 'committed' | 'reopened' | 'held' | 'deferred' | 'released' | 'resolved';
   via: string[];
@@ -314,10 +324,46 @@ export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'reas
 /** The dependents report as text for a person. Events is how many led to the snapshot. */
 export declare function formatDependents(report: DependentsFormatInput, title?: string, events?: number): string;
 
+export declare const UNDO_SCHEMA: 'caveat-undo/0.1';
+
+/**
+ * The undo list (spec/caveat-untrusted-sources-0.1.md, draft for 1.4): every
+ * decision revision whose frozen grounds hold withdrawn evidence.
+ */
+export interface UndoReport {
+  schema: 'caveat-undo/0.1';
+  sequence: number;
+  /** The snapshot's withdrawal ledger, in its order. */
+  withdrawals: Withdrawal[];
+  /** Revisions resting on withdrawn evidence, in the order `explain` lists them. */
+  decisions: UndoDecision[];
+}
+
+export interface UndoDecision {
+  series: string;
+  id: string;
+  value: number | null;
+  status: RevisionStatus;
+  /** Present for an irreversible series: the revision cannot be called back. */
+  irreversible?: true;
+  /** Present when an outcome was recorded (spec/caveat-outcomes-0.1.md). */
+  outcome?: ExplainedRevision['outcome'];
+  /** The withdrawals of evidence in the revision's grounds, in ledger order. */
+  withdrawn: Withdrawal[];
+}
+
+/** Every revision, current or past, resting on withdrawn evidence. Reads the snapshot only. */
+export declare function undoList(snapshot: Snapshot): UndoReport;
+
+/** The undo list as text for a person. Events is how many led to the snapshot. */
+export declare function formatUndoList(report: UndoReport, title?: string, events?: number): string;
+
 /** An events file: one `{"event": NAME}` per line, with an optional `"payload"`. */
 export interface EventLine {
   event: string;
   payload: unknown;
+  /** The agent that sent it, when the line names one (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 /** Parses an events file. Blank lines are skipped; throws an Error that names the line. */

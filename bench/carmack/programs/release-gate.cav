@@ -1,0 +1,108 @@
+# Release gate: per component, per check reports; per component decisions.
+
+claim releasable;
+place pipeline kind site;
+entity api kind component at pipeline;
+entity web kind component at pipeline;
+entity worker kind component at pipeline;
+entity tests kind check at pipeline;
+entity audit kind check at pipeline;
+entity review kind check at pipeline;
+entity wrong_config kind doubt at pipeline;
+entity flaky kind doubt at pipeline;
+# Decision numbers 1..8, the positions in a component's history.
+entity d1 kind slot at pipeline;
+entity d2 kind slot at pipeline;
+entity d3 kind slot at pipeline;
+entity d4 kind slot at pipeline;
+entity d5 kind slot at pipeline;
+entity d6 kind slot at pipeline;
+entity d7 kind slot at pipeline;
+entity d8 kind slot at pipeline;
+
+caveat wrong_config consequence material;
+caveat flaky consequence material;
+
+event report component kind component, check kind check, outcome in fail pass;
+# named_number 0 means "the latest report"; otherwise the report named
+# named_component/named_check#named_number.
+event withdraw component kind component, check kind check,
+    named_component kind component, named_check kind check, named_number min 0 max 8;
+event flag component kind component, check kind check, reason kind doubt;
+event unflag component kind component, check kind check, reason kind doubt;
+event decide component kind component;
+event acknowledge component kind component, decision kind slot;
+event freeze component kind component;
+event unfreeze component kind component;
+
+on withdraw when named_component != component or named_check != check
+    reject "That report belongs to another component or check.";
+on withdraw when named_number != floor(named_number) reject "Not a report number.";
+
+for component as $c routed by component {
+    decisions $c_gate limit 8 reopened by $c_tests, $c_audit, $c_review;
+
+    # A freeze holds a ship in force; reopenings wait for the release, except
+    # one caused by a withdrawn report in its basis (holds never keep those).
+    evidence $c_rollout from "the team's freeze of the $c rollout";
+    on freeze when not committed($c_gate) or reopened($c_gate) reject "No decision in force to freeze.";
+    on freeze when latest($c_gate) == 0 reject "Only a ship can be frozen.";
+    on freeze when on_hold($c_gate) reject "Already frozen.";
+    on freeze reveal $c_rollout;
+    on freeze hold $c_gate because $c_rollout;
+    on unfreeze when not committed($c_gate) or not on_hold($c_gate) reject "Not frozen.";
+    on unfreeze release $c_gate because $c_rollout;
+
+    # Ship decisions whose basis lost a report to a withdrawal since they were
+    # made or last acknowledged.
+    for slot as $s routed by decision {
+        state $c_listed_$s = 0 min 0 max 1;
+        on acknowledge when $c_listed_$s == 0 reject "That decision is not listed as shipped on a withdrawn report.";
+        on acknowledge set $c_listed_$s = 0;
+        bind $c.listed_$s = $c_listed_$s;
+    };
+
+    for check as $k routed by check {
+        evidence $c_$k_tool from "tool results for $c $k";
+        evidence $c_$k_recheck from "the agent's finding that a $c $k result was wrong";
+        readings $c_$k from $c_$k_tool limit 8;
+        on report when outcome == outcome.pass sample $c_$k = 1 supports releasable;
+        on report when outcome == outcome.fail sample $c_$k = 0 opposes releasable;
+
+        # The report a withdrawal names: the latest, or the numbered one.
+        define $c_$k_target = if(named_number == 0, history_count($c_$k), named_number);
+        on withdraw when $c_$k_target == 0 reject "That check has no report to withdraw.";
+        on withdraw when $c_$k_target > history_count($c_$k) reject "That check has no such report.";
+        on withdraw when withdrawn(reading($c_$k, $c_$k_target)) reject "That report is already withdrawn.";
+        for slot as $s {
+            on withdraw when history_count($c_gate) >= $index and history_at($c_gate, $index - 1) == 1
+                and in_basis(revision($c_gate, $index), reading($c_$k, $c_$k_target))
+                set $c_listed_$s = 1;
+        };
+        on withdraw reveal $c_$k_recheck;
+        on withdraw withdraw reading($c_$k, $c_$k_target) because $c_$k_recheck;
+        on withdraw when committed($c_gate) and not reopened($c_gate)
+            and in_basis($c_gate, reading($c_$k, $c_$k_target))
+            reopen $c_gate because reading($c_$k, $c_$k_target);
+
+        on flag when not has_sample($c_$k) reject "That check has no report to flag.";
+        on unflag when not has_sample($c_$k) reject "That check has no report.";
+        for doubt as $f routed by reason {
+            on flag when carries(latest($c_$k), $f) reject "That report already carries this flag.";
+            on flag qualify latest($c_$k) with $f;
+            on unflag when not carries(latest($c_$k), $f) reject "That report does not carry this flag.";
+            on unflag unqualify latest($c_$k) with $f;
+        };
+        on flag when committed($c_gate) and not reopened($c_gate) and in_basis($c_gate, latest($c_$k))
+            reopen $c_gate because latest($c_$k);
+        on unflag when committed($c_gate) and not reopened($c_gate) and in_basis($c_gate, latest($c_$k))
+            reopen $c_gate because latest($c_$k);
+
+        # A report counts towards ship only when it passed and carries no caveat.
+        define $c_$k_doubted = withdrawn(latest($c_$k)) or carries(latest($c_$k), wrong_config) or carries(latest($c_$k), flaky);
+        define $c_$k_ok = if(has_sample($c_$k), if($c_$k_doubted, 0, latest($c_$k)), 0);
+        bind $c.$k_count = history_count($c_$k);
+        bind $c.$k_pass = latest($c_$k) when has_sample($c_$k);
+    };
+    on decide commit $c_gate because enough using $c_tests_ok * $c_audit_ok * $c_review_ok;
+};

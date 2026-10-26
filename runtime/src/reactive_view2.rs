@@ -298,12 +298,24 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchViewDeltaOutcome, DispatchFatal> {
+        self.dispatch_view_delta_outcome_as_json_from(base, event, payload_json, None)
+    }
+
+    /// `dispatch_view_delta_outcome_json_from` for an event the host says
+    /// `agent` sent. See spec/caveat-agents-0.1.md.
+    pub fn dispatch_view_delta_outcome_as_json_from(
+        &mut self,
+        base: &mut ViewDeltaBase,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<DispatchViewDeltaOutcome, DispatchFatal> {
         let since = self.sequence;
         let before = match base.0.take() {
             Some((sequence, parts)) if sequence == since => parts,
             _ => view_parts(&self.view_v2()),
         };
-        match self.dispatch_classified(event, payload_json) {
+        match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => {
                 let view = self.view_v2();
                 let after = view_parts(&view);

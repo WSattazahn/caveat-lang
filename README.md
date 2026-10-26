@@ -1,11 +1,15 @@
 # CAVEAT Language
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15891/badge)](https://www.bestpractices.dev/projects/15891)
+
 **A decision ledger for agents.**
 
-Caveat is an embeddable decision runtime with a small rules language. It
-tracks evidence through computations, preserves the grounds of recorded
-decisions, and supports reconsideration under authored policies when evidence
-changes.
+Caveat is a rules language and a runtime for decisions that may need taking
+back. It tracks evidence through computations, preserves the grounds of
+recorded decisions, and reopens them under rules you write when evidence
+changes. [Limits](docs/LIMITS.md) says up front what it does not do (check
+that evidence is true, authenticate saves, know who sent an event) and what it
+costs.
 
 For teams that govern their agents, Caveat is also an audit trail for agent
 decisions. `caveat explain` shows what each decision rested on: its evidence
@@ -31,11 +35,53 @@ Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
 Try the published release, **1.3.0**, in an empty directory with Node 20 or
-later. No Rust installation is needed:
+later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
 npm install caveat-lang@1.3.0
+```
+
+Then paste this "hello, world": one piece of evidence, one decision resting on
+it, and one event that withdraws the evidence and reopens the decision.
+
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
+```
+
+Part of what it prints:
+
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision was reopened when the CI result it rested on was withdrawn, and
+it still says what it was first based on. For a fuller program with a caveat,
+scenarios and a displayed value, `init` writes the getting-started starter:
+
+```sh
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -70,6 +116,7 @@ on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
 | To | Start with |
 | --- | --- |
 | Try Caveat by hand | [Getting started](kit/docs/GETTING_STARTED.md) |
+| Give an agent an undo list in 15 minutes | [An agent with an undo list](docs/tutorials/agent-undo-list/README.md) |
 | Give an agent Caveat's tools over MCP | [MCP server](#mcp-server) |
 | Integrate Caveat into an agent or application | [Agent quickstart](kit/docs/AGENT_START.md) and the [Python client](kit/examples/agent-evidence/README.md) |
 | Write Caveat source | [The language in brief](kit/docs/REFERENCE.md) and the [authoring guide](docs/AI_AUTHORING.md) |
@@ -200,34 +247,19 @@ Citations may omit dependencies, so the check does not establish completeness.
 
 ## The evidence: the glowcap benchmark
 
-The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat twice, in TypeScript and in Caveat:
+The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat in Caveat and in a general-purpose language, against:
 
 - a frozen, pre-registered scenario suite;
 - sixteen change requests, twelve committed before either implementation changed for those rounds;
 - seeded differential fuzz comparing accepted and rejected events, views, and save/resume behavior.
 
-| Round | Change cost, Caveat vs TypeScript | Result |
-| --- | --- | --- |
-| 1 · first version | 55 vs 57 (CR1–4) | Parity. The weak spots became the language's work list. |
-| 3 · blind requests | 97 vs 53 (CR5–8) | TypeScript. Caveat's lineage fought the designer's meaning. |
-| 5 · replay after language changes | **71 vs 110** (CR1–8) | Caveat, with 134 lines against 164. Written knowing the requests. |
-| 6 · blind requests | **92 vs 103** (CR9–12) | TypeScript. Caveat passed two of four phases on the first run, capped regrowth at eight lives, and exceeded the 1 ms event budget. |
-| 6 · replay after language changes | **88 vs 103** (CR9–12 plus correction) | Lower change cost; mixed size (168 vs 233 lines, 12,701 vs 11,586 bytes). Three of four phases passed on the first run. Written knowing the requests. |
-| 7 · fresh authors, blind requests, rc.11 | 186 vs 282 (CR13–16) | TypeScript. Two of four phases on the first run against four; more regressions; no Caveat save stayed bounded with a fast resume in long play. Neither decision rule met. |
-
-Round 7 left [a work list](experiments/glowcap/RESULTS.md#round-7-fresh-authors-blind-requests-rc11): a save that forgets what the program forgot, ordered grounds, timing to the tick and the adapter glue. No claim that Caveat is better than TypeScript goes into the README, AGENTS, the site or other documents on the strength of this round.
+[The results file](experiments/glowcap/RESULTS.md) has every round's change cost, size, first-run passes and verdict, including the rounds Caveat did not win, and the decision rules each round was judged by. Each round's weak spots became the language's work list.
 
 The earlier losses led to [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
 
 Round 6 led to [incremental evaluation](spec/caveat-incremental-evaluation-0.1.md), a load-time [observation-order check](spec/caveat-observation-order-0.1.md), [procedures that take evidence](spec/caveat-procedure-symbols-0.1.md), [renewable evidence and timed caveats](spec/caveat-renewal-0.1.md), and [save/restore without event replay](spec/caveat-save-0.1.md). The replay passes all 38 scenarios and a separate twelve-life regrowth check beyond the old eight-life cap. Its evidence still has a declared limit of 1,024 lives per mushroom: the request for unlimited regrowth remains unmet. Its first save-format attempt exceeded the size limit; that failed run remains in the results.
 
-The replay's first 2,000-sequence fuzz found five disagreements in about 7.3 million events. JSON parsing changed some floating-point values by one unit in the last place, moving timed behavior across a boundary. Exact round-trip parsing fixed those timing differences. Final review then found the fuzz was hiding a decision-basis ordering bug by sorting that list. The adapter now uses the journal's ordered evidence, and an order-sensitive comparator checks it. That correction adds two changed lines to the original 86. The five captured sequences and both stricter 2,000-sequence fuzz runs now agree: 14,443,471 fuzz events with zero divergences. The blind round remains a TypeScript win, and this replay does not establish an adoption win under the same rule: size is mixed and only change cost is clearly better.
-
-What Caveat still costs, honestly:
-
-- 51.6 µs median per event plus view for the replay program, against 2.5 µs for TypeScript, measured after the fuzz;
-- 482,716 gzipped bytes (about 483 KB) for the Caveat policy, adapter and runtime;
-- rounds 4, 5 and the round-6 replay were written knowing the requests; round 7, the blind round with fresh authors that followed, went to TypeScript.
+What Caveat costs is in [Limits](docs/LIMITS.md), including the benchmark program's time per event and bundle size.
 
 ## A taste
 
@@ -451,7 +483,7 @@ and ordinary ability toggles retain that basis without growing a per-input
 history. Glow controls require a separate host-verified renderer capability;
 without it, the source reports the mushroom discovery without claiming light.
 Native and real WebAssembly tests exercise 10,001 ready toggles, early
-discovery, duplicate absorption, reset and source-only policy variation. Vessel's
+discovery, duplicate absorption, reset and source-only policy variation. The host's
 world contact, inventory transaction and visible glow remain host responsibilities.
 
 ## The Last Beacon — story experiment
@@ -532,6 +564,11 @@ Third-party components keep their own licenses: the Rust crates compiled into
 the WebAssembly runtime are listed with their notices in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the site's copy of
 three.js ships with its license as `vendor/THREE-LICENSE.txt`.
+
+Report vulnerabilities privately as the [security policy](SECURITY.md)
+describes; the [threat model](docs/THREAT_MODEL.md) sets out the trust
+boundaries. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report bugs and
+what a pull request needs.
 
 ## Culture
 

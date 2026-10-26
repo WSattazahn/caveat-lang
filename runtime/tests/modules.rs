@@ -1517,6 +1517,27 @@ fn a_changed_trigger_survives_a_module_that_declares_its_name() {
 }
 
 #[test]
+fn a_strict_irreversible_survives_a_module_that_declares_strict() {
+    // `irreversible strict` arrives in 1.4
+    // (spec/caveat-strict-irreversible-0.1.md). A module may name a series
+    // `strict` and keep the clause word.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             decisions strict limit 4;\n\
+             decisions pay limit 1 irreversible strict forecloses strict;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(source.contains("decisions m__strict limit 4;"), "{source}");
+    assert!(
+        source.contains("decisions m__pay limit 1 irreversible strict forecloses m__strict;"),
+        "{source}"
+    );
+}
+
+#[test]
 fn a_hold_survives_a_module_that_declares_its_words() {
     // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
     // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
@@ -1578,6 +1599,80 @@ fn an_outcome_survives_a_module_that_declares_its_words() {
     ] {
         assert!(source.contains(expected), "{expected}: {source}");
     }
+}
+
+#[test]
+fn untrusted_sources_survive_a_module_that_declares_their_words() {
+    // `withdraw every NAME because …` and `retaining C because once E` arrive
+    // in 1.4 (spec/caveat-untrusted-sources-0.1.md). A module may name
+    // evidence `every` and `once` and keep both the words and the names.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim ready;\n\
+             caveat shaky consequence material;\n\
+             evidence every from \"a report\";\n\
+             evidence once from \"a confirmation\";\n\
+             evidence bad from \"a finding\";\n\
+             shaky qualifies every;\n\
+             decisions gate limit 4;\n\
+             event go;\n\
+             event drop;\n\
+             on go reveal every supports ready;\n\
+             on go reveal once;\n\
+             on go commit gate because enough using qualified(1, every) retaining shaky because once once;\n\
+             on drop reveal bad;\n\
+             on drop withdraw every every because bad;\n\
+             on drop withdraw every because once;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "on m__go commit m__gate because enough using qualified(1, m__every) retaining m__shaky because once m__once;",
+        "on m__drop withdraw every m__every because m__bad;",
+        "on m__drop withdraw m__every because m__once;",
+    ] {
+        assert!(source.contains(expected), "{expected}: {source}");
+    }
+}
+
+#[test]
+fn only_if_survives_a_module_and_a_module_name_only_if() {
+    // `only_if(C, V)` arrives in 1.4 (spec/caveat-only-if-0.1.md). In a
+    // module the call keeps its word, and a module may also name a state
+    // `only_if` and read it.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             evidence a from \"a report\";\n\
+             readings r from a limit 2;\n\
+             state only_if = 1;\n\
+             state picked = 0;\n\
+             event go;\n\
+             on go reveal a;\n\
+             on go sample r = 1;\n\
+             on go set picked = only_if(only_if == 1, latest(r));\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    let expected = "on m__go set m__picked = only_if(m__only_if == 1, latest(m__r));";
+    assert!(source.contains(expected), "{expected}: {source}");
+    // A module that defines `fn only_if` calls its own function.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             fn only_if(x, y) = x + y;\n\
+             state picked = 0;\n\
+             event go;\n\
+             on go set picked = only_if(2, 3);\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    let expected = "on m__go set m__picked = m__only_if(2, 3);";
+    assert!(source.contains(expected), "{expected}: {source}");
 }
 
 // ── The grammar's own words ────────────────────────────────────────────────
@@ -1704,6 +1799,8 @@ const POSITIONAL: &[&str] = &[
     "release",
     "resolve",
     "materialized",
+    "once",
+    "strict",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
@@ -1712,6 +1809,8 @@ const POSITIONAL: &[&str] = &[
 /// runs, so the word cannot reach it. The test below checks that premise.
 const OUTSIDE_MODULES: &[&str] = &[
     "action",
+    // `agent NAME sends …` is the program's: link.rs refuses it in a module.
+    "agent",
     "choice",
     "converge",
     "infer",

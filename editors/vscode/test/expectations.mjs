@@ -10,7 +10,7 @@ export const groups = [
     name: 'statement heads of the other profiles',
     words: ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer', 'require', 'observe',
       'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route', 'overview',
-      'start_at', 'program', 'origin', 'rule'],
+      'start_at', 'program', 'origin', 'rule', 'agent'],
     // At a statement start, including in a `for` body.
     probe: ['@ x;', 'y; @ x;', 'for k as $r {\n  @ $r;\n};', 'for k as $r { @ $r_x; };'],
     scope: 'keyword.other.statement',
@@ -103,7 +103,7 @@ export const groups = [
   {
     name: 'clauses',
     words: ['from', 'limit', 'because', 'using', 'citing', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to',
-      'via', 'through', 'toward', 'noting', 'irreversible', 'forecloses'],
+      'via', 'through', 'toward', 'noting', 'irreversible', 'strict', 'forecloses'],
     probe: 'x @ y;',
     scope: 'keyword.other',
   },
@@ -166,6 +166,22 @@ export const groups = [
     // A caveat or evidence may be named `materialized`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'on e reopen d because @;', 'caveat @ consequence low;'],
   },
+  {
+    name: 'untrusted sources',
+    words: ['once'],
+    probe: ['on e commit d because enough retaining c because @ ok;', 'on e commit d because enough retaining c because @ ok, k because j;'],
+    scope: 'keyword.other',
+    // Evidence may be named `once`, and a reason may name it.
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on e commit d because enough retaining c because @;', 'evidence @ from "a note";'],
+  },
+  {
+    name: 'withdrawing every reading',
+    words: ['every'],
+    probe: ['on e withdraw @ s because bad;'],
+    scope: 'keyword.other',
+    // Evidence may be named `every`.
+    notKeyword: ['state @ = 1;', 'on e withdraw @ because bad;'],
+  },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',
@@ -194,7 +210,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome'],
+      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

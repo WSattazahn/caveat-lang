@@ -181,6 +181,34 @@ fn a_routed_block_runs_as_its_hand_selected_twin() {
                 snapshot(&plain),
                 "{at}: the snapshots differ"
             );
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_routed = routed.save_json().unwrap();
+            let restored_routed = ReactiveSession::restore_json(&routed_source, &saved_routed)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_routed.save_json().unwrap(),
+                saved_routed,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_routed),
+                snapshot(&routed),
+                "{at}: snapshot after restore"
+            );
+            // Every event's save restores, to the same snapshot (D021).
+            let saved_plain = plain.save_json().unwrap();
+            let restored_plain = ReactiveSession::restore_json(&plain_source, &saved_plain)
+                .unwrap_or_else(|error| panic!("{at}: restore after the event: {error}"));
+            assert_eq!(
+                restored_plain.save_json().unwrap(),
+                saved_plain,
+                "{at}: save round trip"
+            );
+            assert_eq!(
+                snapshot(&restored_plain),
+                snapshot(&plain),
+                "{at}: snapshot after restore"
+            );
             if left["outcome"] == "accepted" {
                 accepted += 1;
                 if left["snapshot"]["effects"]

@@ -21,7 +21,7 @@ const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a save object")]
 pub struct ReactiveSave {
     pub schema: String,
     /// The program this save belongs to; restoring checks it.
@@ -36,6 +36,10 @@ pub struct ReactiveSave {
     pub sequence: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_event: Option<String>,
+    /// The agent the host said sent the last event. Saves made before
+    /// spec/caveat-agents-0.1.md, or of sessions no agent sent to, have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_agent: Option<String>,
     #[serde(default)]
     pub elapsed: f64,
     /// States that differ from the value the program gives them when it loads.
@@ -129,7 +133,10 @@ fn deserialize_observations<'de, D: serde::Deserializer<'de>>(
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(
+    deny_unknown_fields,
+    expecting = "a state entry object such as {\"value\": 3}"
+)]
 pub struct SavedState {
     pub value: f64,
     #[serde(default, skip_serializing_if = "Compact::is_empty")]
@@ -231,7 +238,7 @@ fn full_map(records: &BTreeMap<String, Compact>) -> BTreeMap<String, Provenance>
 
 /// What events did to the graph, since the program loaded.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a graph object")]
 pub struct SavedGraph {
     /// Nodes events created, in order: occurrences of reading streams and
     /// renewable evidence, which are rebuilt from their names, and commitments.
@@ -257,7 +264,7 @@ pub enum SavedNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a resources object")]
 pub struct SavedResources {
     pub remaining: u64,
     pub spent: u64,
@@ -637,6 +644,7 @@ impl ReactiveSession {
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
+            last_agent: self.last_agent.clone(),
             elapsed: self.elapsed,
             states: self
                 .states
@@ -803,7 +811,9 @@ impl ReactiveSession {
             return Err(format!("sequence must be at most {MAX_SAVED_SEQUENCE}"));
         }
         self.sequence = save.sequence;
+        self.check_saved_agents(save)?;
         self.last_event = save.last_event.clone();
+        self.last_agent = save.last_agent.clone();
         self.elapsed = save.elapsed;
         self.identifiers = Arc::new(Identifiers::restore(
             self.identifiers.limit(),
@@ -827,12 +837,79 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// Each agent a save records must be one the program declares and one
+    /// that may send the event it is recorded on, and the records of one
+    /// event name one agent: a host can send nothing else. See
+    /// spec/caveat-agents-0.1.md. Like the rest of restore, this checks that
+    /// the save is possible, not who really sent what.
+    fn check_saved_agents(&self, save: &ReactiveSave) -> Result<(), String> {
+        let mut records: Vec<(u64, &str, Option<&str>)> = Vec::new();
+        records.extend(
+            save.decision_journal
+                .iter()
+                .map(|entry| (entry.sequence, entry.event.as_str(), entry.agent.as_deref())),
+        );
+        for stream in save.reading_streams.values() {
+            records.extend(stream.occurrences.iter().map(|reading| {
+                (
+                    reading.sequence,
+                    reading.event.as_str(),
+                    reading.agent.as_deref(),
+                )
+            }));
+        }
+        records.extend(save.withdrawals.iter().map(|withdrawal| {
+            (
+                withdrawal.sequence,
+                withdrawal.event.as_str(),
+                withdrawal.agent.as_deref(),
+            )
+        }));
+        records.extend(save.taken_back.iter().map(|record| {
+            (
+                record.sequence,
+                record.event.as_str(),
+                record.agent.as_deref(),
+            )
+        }));
+        if let Some(event) = &save.last_event {
+            records.push((save.sequence, event.as_str(), save.last_agent.as_deref()));
+        } else if save.last_agent.is_some() {
+            return Err("agents: a last agent without a last event".into());
+        }
+        let mut by_sequence: HashMap<u64, Option<&str>> = HashMap::default();
+        for (sequence, event, agent) in records {
+            if let Some(agent) = agent {
+                if !self.agents.contains_key(agent) {
+                    return Err(format!("agents: undeclared agent {agent}"));
+                }
+            }
+            if let Some(senders) = self.senders.get(event) {
+                if !agent.is_some_and(|agent| senders.contains(agent)) {
+                    return Err(format!(
+                        "agents: event {event} at sequence {sequence} is not recorded with an agent that sends it"
+                    ));
+                }
+            }
+            if *by_sequence.entry(sequence).or_insert(agent) != agent {
+                return Err(format!(
+                    "agents: the records of sequence {sequence} name different agents"
+                ));
+            }
+        }
+        Ok(())
+    }
+
     /// Departure markers, inherited grounds and the departure rule: see
     /// spec/caveat-lineage-compaction-0.1.md and spec/caveat-departure-0.1.md,
     /// "Save and restore".
     /// No foreclosed action is committed after the irreversible commitment
-    /// that forecloses it. A commit with no journal entry is placed by its
-    /// revision's sequence alone. See spec/caveat-foreclosure-0.1.md.
+    /// that forecloses it, or while a reversible revision that forecloses it
+    /// is in force: after its commit and before its reopening. A commit with
+    /// no journal entry is placed by its revision's sequence alone, and a
+    /// reopening the journal no longer holds ends nothing that can be
+    /// placed, so it is not checked. See spec/caveat-foreclosure-0.1.md and
+    /// spec/caveat-foreclosure-0.2.md.
     fn check_foreclosures_held(&self, save: &ReactiveSave) -> Result<(), String> {
         let journaled = |commitment: &str| {
             save.decision_journal
@@ -873,6 +950,47 @@ impl ReactiveSession {
                         return Err(format!(
                             "{commitment} is committed after {by}, which forecloses it"
                         ));
+                    }
+                }
+            }
+        }
+        let reopening = |commitment: &str| {
+            save.decision_journal
+                .iter()
+                .position(|entry| entry.commitment == commitment && entry.change == "reopened")
+                .map(|index| (save.decision_journal[index].sequence, Some(index)))
+        };
+        // Whether `(sequence, index)` comes after, or before, a point.
+        let after = |(later, later_index): (u64, Option<usize>),
+                     (at, index): (u64, Option<usize>)| {
+            later > at
+                || (later == at && matches!((index, later_index), (Some(a), Some(b)) if b > a))
+        };
+        for (series, forecloses) in self.foreclosures.iter() {
+            for (by, sequence, index) in commits(series) {
+                let current = save
+                    .decision_series
+                    .get(series)
+                    .is_some_and(|saved| saved.current.as_deref() == Some(by.as_str()));
+                let end = if save.graph.open.contains(&by) {
+                    match reopening(&by) {
+                        Some(end) => Some(end),
+                        None => continue,
+                    }
+                } else if current {
+                    None
+                } else {
+                    continue;
+                };
+                for action in forecloses {
+                    for (commitment, later, later_index) in commits(action) {
+                        let inside = after((later, later_index), (sequence, index))
+                            && end.is_none_or(|end| after(end, (later, later_index)));
+                        if inside {
+                            return Err(format!(
+                                "{commitment} is committed while {by}, which forecloses it, is in force"
+                            ));
+                        }
                     }
                 }
             }
@@ -1518,7 +1636,8 @@ impl ReactiveSession {
                     target:
                         EvidenceSelector::Named(evidence)
                         | EvidenceSelector::Latest(evidence)
-                        | EvidenceSelector::Occurrence { evidence, .. },
+                        | EvidenceSelector::Occurrence { evidence, .. }
+                        | EvidenceSelector::Every(evidence),
                     ..
                 } => {
                     possible.insert((WITHDRAWN.to_string(), evidence.clone()));
@@ -3517,6 +3636,16 @@ impl ReactiveSession {
                 evidence: source, ..
             } => named(reported, source),
             EvidenceSelector::Caveated { .. } => true,
+            // A reading of a stream that reads from the named evidence counts
+            // too (spec/caveat-untrusted-sources-0.1.md).
+            EvidenceSelector::Every(source) => {
+                named(reported, source)
+                    || occurrence_parts(reported).is_some_and(|(stream, _)| {
+                        self.reading_streams
+                            .get(stream)
+                            .is_some_and(|readings| readings.template == *source)
+                    })
+            }
         };
         // A reopening of a series the program can hold may also name causes
         // deferred by earlier events, at a release or when a withdrawal

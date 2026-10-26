@@ -430,6 +430,14 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     }
                     Some(name.clone())
                 }
+                // Who may send an event is the program's to say, as its
+                // budget is: spec/caveat-agents-0.1.md.
+                Directive::Agent { name, .. } => {
+                    return Err(format!(
+                        "module {} declares agent {name}; agents are declared by the program, not by a module",
+                        part.name
+                    ));
+                }
                 Directive::State { name, .. }
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }
@@ -954,6 +962,12 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                 }
             }
         }
+        // `irreversible strict` (spec/caveat-strict-irreversible-0.1.md)
+        // came after modules, so a module may still declare `strict`. The
+        // clause word sits straight after `irreversible`.
+        if let ["decisions", _, "limit", _, "irreversible", "strict", ..] = shape.as_slice() {
+            offsets.push(words[5].0);
+        }
         // `hold SERIES because …` and `release SERIES because …`
         // (spec/caveat-holds-0.1.md) came after modules, so a module may
         // still declare `hold` or `release`. The verb is two words before a
@@ -987,6 +1001,35 @@ fn tag_offsets(source: &str) -> Vec<usize> {
             } else if resolving && *word == "because" {
                 after_because = true;
             } else if resolving && after_because && *word == "materialized" {
+                offsets.push(*offset);
+            }
+        }
+        // `withdraw every NAME because …` and `retaining C because once E`
+        // (spec/caveat-untrusted-sources-0.1.md) came after modules, so a
+        // module may still declare `every` or `once`. `every` is the word
+        // after `withdraw` when a name and `because` follow it; `once` is the
+        // word after a retained caveat's `because` when a name follows it and
+        // ends the item.
+        let mut retaining = false;
+        for (index, (offset, word)) in words.iter().enumerate() {
+            let next = |step: usize| words.get(index + step).map(|(_, word)| *word);
+            if *word == "every"
+                && index > 0
+                && words[index - 1].1 == "withdraw"
+                && next(2) == Some("because")
+            {
+                offsets.push(*offset);
+            }
+            if *word == "retaining" {
+                retaining = true;
+            } else if retaining
+                && *word == "once"
+                && index > 0
+                && words[index - 1].1 == "because"
+                && next(1).is_some_and(|name| {
+                    name.ends_with(',') || next(2).is_none_or(|after| after.starts_with(','))
+                })
+            {
                 offsets.push(*offset);
             }
         }
@@ -1152,6 +1195,13 @@ fn rewrite(
         && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
             matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "elapsed")
         });
+    // `only_if(…)` reads the form beside a state or define named only_if,
+    // unless the module defines that function (spec/caveat-only-if-0.1.md).
+    let only_if_is_function = module.is_some()
+        && declared.iter().any(|name| name == "only_if")
+        && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
+            matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "only_if")
+        });
     let mut out = String::with_capacity(stripped.len());
     let mut chars = stripped.char_indices().peekable();
     let source = stripped.as_str();
@@ -1262,10 +1312,15 @@ fn rewrite(
             && !elapsed_is_function
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
+        let only_if_form = word == "only_if"
+            && !only_if_is_function
+            && !matches!(previous_word, Some("proc" | "call"))
+            && after_trivia(&source[end..]).starts_with('(');
         match module {
             Some(module)
                 if !member
                     && !clock_read
+                    && !only_if_form
                     && !is_reserved(word)
                     && declared.iter().any(|name| name == word) =>
             {

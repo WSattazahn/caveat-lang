@@ -66,8 +66,15 @@
     "spec/caveat-nested-repetition-0.1.md",
     "spec/caveat-holds-0.1.md",
     "spec/caveat-foreclosure-0.1.md",
+    "spec/caveat-strict-irreversible-0.1.md",
     "spec/caveat-outcomes-0.1.md",
     "spec/caveat-review-0.1.md",
+    "spec/caveat-ledger-sets-0.1.md",
+    "spec/caveat-untrusted-sources-0.1.md",
+    "spec/caveat-carries-any-0.1.md",
+    "spec/caveat-only-if-0.1.md",
+    "spec/caveat-agents-0.1.md",
+    "spec/caveat-foreclosure-0.2.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]
