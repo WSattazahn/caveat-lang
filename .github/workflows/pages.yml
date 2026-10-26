@@ -134,7 +134,7 @@ jobs:
     name: live evidence games QA
     needs: [candidate, deploy]
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
       PAGE_SOURCE_SHA: ${{ needs.candidate.outputs.source_sha }}
@@ -148,7 +148,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - name: Require the live build to name the tested source
         run: |
           node --input-type=module <<'NODE'
@@ -159,9 +161,9 @@ jobs:
           validateBuildInfo(await response.json(), process.env.PAGE_SOURCE_SHA);
           NODE
       - name: Play live Glowcap on desktop and mobile
-        run: npm run test:glowcap-page
+        run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play live Trail Rescue on desktop and mobile
-        run: npm run test:trail-rescue-page
+        run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -174,17 +176,25 @@ jobs:
     name: live Mr. Caveat QA
     needs: deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.1 pngjs@7
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Play live Missing Dumpling
         run: |
-          node <<'NODE'
+          # The live page can lag a fresh deploy, so a failed play is tried once more.
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           const {PNG}=require('pngjs');
           const fs=require('fs');
@@ -229,6 +239,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -239,17 +250,25 @@ jobs:
     name: live Moon Garden 2D QA
     needs: deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Play live Moon Garden
         run: |
-          node <<'NODE'
+          # The live page can lag a fresh deploy, so a failed play is tried once more.
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -271,22 +290,31 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
 
   visual-moon-3d:
     name: live Moon Garden 3D QA
     needs: deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Play live Moon Garden 3D
         run: |
-          node <<'NODE'
+          # The live page can lag a fresh deploy, so a failed play is tried once more.
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -303,23 +331,32 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
 
   visual-door:
     name: live legacy Door QA
     needs: [deploy, candidate]
     if: needs.candidate.outputs.legacy_door == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.1 pngjs@7
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Smoke-test live Door 3D
         run: |
-          node <<'NODE'
+          # The live page can lag a fresh deploy, so a failed play is tried once more.
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -337,3 +374,4 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
