@@ -1,8 +1,14 @@
 # Caveat
 
-> A programming language for programs that remember why: values carry evidence and caveats, a decision's grounds are frozen when it is made, and a decision that is reopened keeps its original reasons. Published preview on npm as `caveat-lang` (Node 20+, WebAssembly runtime, no Rust needed).
+> A rules language and runtime for decisions that may need taking back: a value keeps the evidence and caveats it was computed from, a committed decision keeps that basis, and when evidence is withdrawn a rule you write can reopen the decision while its original basis stays on record. On npm as `caveat-lang` (Node 20+, WebAssembly runtime, no npm dependencies, no Rust needed).
 
-Caveat records the evidence supplied to it; it does not authenticate that evidence or authorize external actions. No claim that Caveat is better than TypeScript is made on the strength of the Glowcap benchmark, which TypeScript won in its latest round.
+Caveat does not check that evidence is true, does not sign saves, and does not know who sent an event; it is slower than plain code. See Limits below before relying on it.
+
+## Start here
+
+- [Hello, world](https://github.com/WSattazahn/caveat-lang/blob/main/kit/README.md#hello-world): a 13-line program with one piece of evidence, one decision, and one withdrawal that reopens it, then `caveat-lang explain`. Install with `npm install caveat-lang` (pin the version the README names) and paste the block.
+- [The language in brief](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md): the syntax on one page. Read it before writing Caveat source; `--` is not a comment, use `#` or `//`.
+- [Limits](https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md): what Caveat does not do and what it costs, with the measurements.
 
 ## For agents
 
@@ -14,9 +20,8 @@ Caveat records the evidence supplied to it; it does not authenticate that eviden
 
 ## The language
 
-- [README](https://github.com/WSattazahn/caveat-lang/blob/main/README.md): what it does, the published version, the benchmark record.
-- [Why Caveat](https://github.com/WSattazahn/caveat-lang/blob/main/docs/WHY_CAVEAT.md): the same beat in TypeScript and in Caveat, and what the benchmark does not establish.
-- [The language in brief](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md): syntax.
+- [README](https://github.com/WSattazahn/caveat-lang/blob/main/README.md): what it does and the published version.
+- [Why Caveat](https://github.com/WSattazahn/caveat-lang/blob/main/docs/WHY_CAVEAT.md): what the language makes part of itself, and what the benchmark does not establish.
 - [Invariants](https://github.com/WSattazahn/caveat-lang/blob/main/docs/CAVEAT_ESSENCE.md): what must remain true.
 - [Specifications](https://github.com/WSattazahn/caveat-lang/tree/main/spec): the contracts, one file per profile, each with a Changes section.
 - [Release records](https://github.com/WSattazahn/caveat-lang/tree/main/docs/releases): verified npm publications, with provenance from rc.12 on.
@@ -32,6 +37,6 @@ Caveat records the evidence supplied to it; it does not authenticate that eviden
 
 ## Optional
 
-- [Glowcap benchmark results](https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md): seven rounds against TypeScript, protocol pre-registered.
+- [Glowcap benchmark results](https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md): every round of a pre-registered benchmark, with its change costs and verdicts.
 - [Lean conformance fragment](https://github.com/WSattazahn/caveat-lang/blob/main/proofs/lean/README.md): what is proved and what is not.
 - [Restore trust boundary](https://github.com/WSattazahn/caveat-lang/blob/main/docs/RESTORE_TRUST_BOUNDARY.md): what restore refuses and what it cannot verify.
