@@ -1599,9 +1599,10 @@ impl ReactiveSession {
     /// readings, renewable evidence for its occurrences. The mechanisms are a
     /// declared qualification, `qualify` in a rule or a procedure it reaches
     /// (specialized procedures included), `withdraw`'s generated `withdrawn`,
-    /// a reading inheriting its template's caveats, and a renewal carrying its
-    /// evidence's declared caveats. Guards are not evaluated: a pair is
-    /// possible, not proof that an event made it.
+    /// a reading inheriting its template's caveats, `sample ... with` putting
+    /// caveats on its reading, and a renewal carrying its evidence's declared
+    /// caveats. Guards are not evaluated: a pair is possible, not proof that
+    /// an event made it.
     fn qualification_sources(&self) -> (QualificationPairs, QualificationPairs) {
         let names: HashMap<NodeId, &str> = self
             .symbols
@@ -1641,6 +1642,16 @@ impl ReactiveSession {
                     ..
                 } => {
                     possible.insert((WITHDRAWN.to_string(), evidence.clone()));
+                }
+                // `sample ... with`: spec/caveat-reading-caveats-0.1.md.
+                Effect::Sample {
+                    stream,
+                    with: Some(with),
+                    ..
+                } => {
+                    for caveat in &with.caveats {
+                        possible.insert((caveat.clone(), stream.clone()));
+                    }
                 }
                 _ => {}
             }
@@ -1746,9 +1757,14 @@ impl ReactiveSession {
                     stream,
                     value,
                     stance,
+                    with,
                     ..
                 } => {
                     read(value);
+                    if let Some(condition) = with.as_ref().and_then(|with| with.condition.as_ref())
+                    {
+                        read(condition);
+                    }
                     let claims = bears.entry(stream.clone()).or_default();
                     claims.extend(stance.iter().map(|(_, claim)| claim.clone()));
                 }

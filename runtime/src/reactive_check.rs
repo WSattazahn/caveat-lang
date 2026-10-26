@@ -724,9 +724,12 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
     }
     match effect {
         Effect::Call { arguments, .. } => arguments.iter().collect(),
-        Effect::Sample { value, note, .. } => {
-            std::iter::once(value).chain(note.as_deref()).collect()
-        }
+        Effect::Sample {
+            value, note, with, ..
+        } => std::iter::once(value)
+            .chain(note.as_deref())
+            .chain(with.as_ref().and_then(|with| with.condition.as_ref()))
+            .collect(),
         Effect::Qualify { after, index, .. } => after.iter().chain(index.as_deref()).collect(),
         Effect::Unqualify { index, .. } => index.as_deref().into_iter().collect(),
         Effect::Withdraw { target, .. } => selector(target).into_iter().collect(),
