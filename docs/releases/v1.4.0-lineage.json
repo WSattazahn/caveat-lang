@@ -1,0 +1,369 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "1.4.0",
+  "state": "npm-and-mcp-distribution-verified",
+  "published": true,
+  "releaseTag": "v1.4.0",
+  "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/364",
+  "integrationBranch": "claude/stable-1-0-laf3ev",
+  "maintenanceBranch": null,
+  "integrationIdentity": "PR #364 merged the reviewed 1.4.0 candidate into main without squashing. The annotated tag v1.4.0 peels to the exact tested main revision 1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a. v1.3.0 still peels to 753c8e700b0cf9d6661c185e9ec0faa0ee5ae020, an ancestor of the 1.4.0 revision, and every PR merged to main between the two releases is in 1.4.0. 1.0.1 to 1.0.3 were cut from release/1.0.x and are not ancestors of 1.4.0; their fixes reached main before 1.1.0.",
+  "scope": "Verification of the exact CI-tested 1.4.0 package, the fourth minor release of 1.x, cut from main at the merge of PR #364. It adds the Agents, Untrusted Sources, Only If, Carries Any, Foreclosure 0.2 and Strict Irreversible profiles, the Review and Ledger Sets reports, four refusal codes and the D021 to D024 fixes, as docs/releases/v1.4.0.md lists. This record does not establish a later GitHub release or directory listing.",
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+  "publicationRecord": "v1.4.0-npm-publication.json",
+  "distribution": {
+    "verifiedAt": "2026-10-24T22:59:36.167Z",
+    "record": "v1.4.0-distribution.json",
+    "channels": [
+      "npm-latest",
+      "npm-next",
+      "registry"
+    ],
+    "version": "1.4.0",
+    "installPathRecord": "v1.4.0-mcp-install.json"
+  },
+  "publicationVerifiedAt": "2026-10-26T17:25:41.727Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/40367794496",
+  "publicationAttempt": 1,
+  "publicationArtifact": {
+    "id": 12671198231,
+    "name": "npm-publication-verification",
+    "digest": "sha256:2e64816dcd3f18016b1647a341f604a7b0f862ed14034303faaf0be93e38e2fc"
+  },
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/40356209909",
+  "runtimeRunAttempt": 1,
+  "runtimeRunNote": "Attempt 1 passed every job; Legacy Door 3D QA was skipped by its path filter because the release merge changed neither the runtime nor that game. The candidate artifact is attempt 1's and is the one published.",
+  "runtimeArtifact": {
+    "id": 12666247471,
+    "name": "kit-package-candidate",
+    "url": "https://github.com/WSattazahn/caveat-lang/actions/runs/40356209909/artifacts/12666247471"
+  },
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.4.0.tgz",
+    "bytes": 1487705,
+    "sha256": "186cc3f889f07575f87dfb974a1b73bf473bc7261c50e1d3ed7f4fcffd9d4b48",
+    "sha512": "6157cc5675485011d0911da6afe1d2d974508225f81bda31e954de60a429786d2d095393329ac04b1afde23b86f8d072f9186322404271678f8fd60bbded7fdd",
+    "integrity": "sha512-YVfMVnVIUBHQkR2mr+HS2XRQgiX4G9ox6VTeYKQpeG0tCVOTMprASxr94juG+NBy+RhjIkBCcWePj9YLve1/3Q=="
+  },
+  "stages": [
+    {
+      "id": "published-1.0.0",
+      "version": "1.0.0",
+      "revision": "e2a1350024352ca707e74491d9405507b166ca23",
+      "tag": "v1.0.0",
+      "published": true,
+      "record": "v1.0.0-npm-publication.json"
+    },
+    {
+      "id": "published-1.0.3",
+      "version": "1.0.3",
+      "revision": "f7131edaf03a8c0d34a34ced47c8ee51f4a555ff",
+      "tag": "v1.0.3",
+      "published": true,
+      "record": "v1.0.3-npm-publication.json",
+      "branch": "release/1.0.x",
+      "ancestorOfRelease": false
+    },
+    {
+      "id": "published-1.1.0",
+      "version": "1.1.0",
+      "revision": "8e25b301c67ab946b2071cdaee14d83b7ce2250a",
+      "tag": "v1.1.0",
+      "published": true,
+      "record": "v1.1.0-npm-publication.json",
+      "parents": [
+        "554f023c9355d6ce4ad5338ef325a3a0a9157e63",
+        "a77aed736647924833c187b085561dcb32bebb6a"
+      ]
+    },
+    {
+      "id": "published-1.2.0",
+      "version": "1.2.0",
+      "revision": "75dbaf5519de5b0dac5bd0c810fdb0bbbbc07966",
+      "parents": [
+        "e77dd23cdc4bb5b64945537c7f12f29bd9ace006",
+        "ac61381d7a5aca5079b947faf950e590c0f483d8"
+      ],
+      "tag": "v1.2.0",
+      "published": true,
+      "record": "v1.2.0-npm-publication.json"
+    },
+    {
+      "id": "published-1.3.0",
+      "version": "1.3.0",
+      "revision": "753c8e700b0cf9d6661c185e9ec0faa0ee5ae020",
+      "parents": [
+        "98bbee3f28e9dc2deed9120f74711371ee7e731a",
+        "727b26e539f3c2622c14669b0038f4aed12fc6aa"
+      ],
+      "tag": "v1.3.0",
+      "published": true,
+      "record": "v1.3.0-npm-publication.json"
+    },
+    {
+      "id": "two-false-completion-experiments-from-openai-codex-36718",
+      "revision": "51905e8fdee1522441a05dfbf63eeffaf23e58fa",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/319",
+      "mergedAs": "342474a"
+    },
+    {
+      "id": "review-0-1-which-evidence-a-decision-hinged-on-1-4-draft",
+      "revision": "187df9ecd2a1faf450259303eca881c6a7dfb7ca",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/316",
+      "mergedAs": "ffe0cdc"
+    },
+    {
+      "id": "caveat-lang-handoff-sessions-scoped-to-one-agent-s-events-an",
+      "revision": "d25e5821c2b41fb503c1ab94560ccb68d11c9d3e",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/318",
+      "mergedAs": "3dc8c20"
+    },
+    {
+      "id": "record-the-1-3-0-publication-and-its-ledger-events",
+      "revision": "c1e9e8a1e2881721f3583a769abe68c0e3679a5d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/320",
+      "mergedAs": "7328c8a"
+    },
+    {
+      "id": "override-undici-to-7-30-1-in-the-hosted-server-s-deploy-tool",
+      "revision": "c4dbf3bafc7a0199bcb1b68fee1e2296e17676df",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/321",
+      "mergedAs": "063f072"
+    },
+    {
+      "id": "a-prompt-injection-experiment-on-caveat-lang-1-3-0",
+      "revision": "a28275482d110e3f40fcddefd9a13db47d2feda8",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/322",
+      "mergedAs": "7c41c6f"
+    },
+    {
+      "id": "highlight-nested-for-blocks-in-the-vs-code-extension",
+      "revision": "a8a8bfd9a26f5702390ef8b2e535d4e5301b7e8f",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/325",
+      "mergedAs": "fe89cab"
+    },
+    {
+      "id": "review-tests-the-evidence-a-decision-s-guard-read-not-only-i",
+      "revision": "9f9c6f2c36e506e4089d2c68247f18df74efe4d8",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/323",
+      "mergedAs": "b531f58"
+    },
+    {
+      "id": "untrusted-sources-0-1-1-4-draft-withdraw-every-because-once",
+      "revision": "352045a70f83d8e6be55a009aa9046c3a0ebc618",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/328",
+      "mergedAs": "2f59ed7"
+    },
+    {
+      "id": "readme-honesty-pass-limits-up-front-syntax-shown-verify-step",
+      "revision": "37bf84fb8a3ef52c54efdb4cb9fb78ab08fe7d71",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/336",
+      "mergedAs": "71c563a"
+    },
+    {
+      "id": "add-a-pr-ledger-action-which-merges-rested-on-a-check-review",
+      "revision": "7a9afd8aaaabba8ca6878c80cc1967385907d37a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/337",
+      "mergedAs": "5d816c7"
+    },
+    {
+      "id": "add-a-security-policy-threat-model-and-a-bill-of-materials-o",
+      "revision": "fc5af2c4621ffd614f676ac4d62bd38275e1210a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/334",
+      "mergedAs": "66b09f1"
+    },
+    {
+      "id": "doctor-compares-runtime-hashes-init-errors-are-one-line",
+      "revision": "0b62af5e1bb035da1d574c8dd9fd7158162b5365",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/338",
+      "mergedAs": "af61d2e"
+    },
+    {
+      "id": "per-event-save-round-trips-in-every-randomized-check-untrust",
+      "revision": "2b2f365db61570935aa9dd59f43f07ebe24196cd",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/341",
+      "mergedAs": "0a2ebdb"
+    },
+    {
+      "id": "explain-names-an-accepted-event-s-n-after-a-refusal",
+      "revision": "921c590d9215d4daa81cffab7880904ad60169ea",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/326",
+      "mergedAs": "ec9b3fc"
+    },
+    {
+      "id": "a-game-developer-guide-and-the-intel-example",
+      "revision": "a3780b8733eab7c05472a0953d692a3932f12bc9",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/335",
+      "mergedAs": "d6a1d36"
+    },
+    {
+      "id": "refuse-the-provenance-and-evaluation-caps-instead-of-ending",
+      "revision": "f69c734b1a617a0687c3fc097197f984a05649f5",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/348",
+      "mergedAs": "2575a33"
+    },
+    {
+      "id": "readings-from-renewable-evidence-inherit-the-current-occurre",
+      "revision": "2a7f18abba695766d01985833522b16b21fa4c0d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/351",
+      "mergedAs": "41171fe"
+    },
+    {
+      "id": "decisions-name-limit-1-irreversible-strict",
+      "revision": "0bc1cc5bfee2f955ae69e435fd9a5335594c7ba2",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/329",
+      "mergedAs": "adab605"
+    },
+    {
+      "id": "threat-model-says-records-hold-evidence-in-plain-text",
+      "revision": "a6f217ccc9027cfa0cb83a05ed1fdd644ae3acf3",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/343",
+      "mergedAs": "dee56d9"
+    },
+    {
+      "id": "the-carmack-checks-time-per-event-replay-everywhere-footprin",
+      "revision": "da5c0de0f237c43e2f7264869c6e34c85e90661e",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/333",
+      "mergedAs": "3d2182a"
+    },
+    {
+      "id": "carries-any-a-check-for-any-caveat-1-4-draft",
+      "revision": "8dfa8596d862fc4e0d91e9b634cb8fd7813a0044",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/349",
+      "mergedAs": "0945e34"
+    },
+    {
+      "id": "only-if-and-decisions-grounded-on-several-models-votes-1-4-d",
+      "revision": "db4ce22ee34372eabff62854830c9bbf712c8689",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/340",
+      "mergedAs": "b1eb323"
+    },
+    {
+      "id": "caveat-lang-the-python-package-on-the-same-runtime",
+      "revision": "c570a19262ea2990c7a513fb4d498085a2ce4752",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/344",
+      "mergedAs": "b3a18bb"
+    },
+    {
+      "id": "agents-0-1-say-which-agent-sent-each-event-1-4-draft",
+      "revision": "3a08e2b6b80f63be5381135cca3a7112b6528eb1",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/331",
+      "mergedAs": "019c011"
+    },
+    {
+      "id": "ledger-sets-0-1-review-past-ledgers-and-say-a-decision-read",
+      "revision": "baef237463677c472cbec67905ef3c52c6b886da",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/330",
+      "mergedAs": "478114e"
+    },
+    {
+      "id": "a-what-if-check-session-whatif-with-related-work-probabiliti",
+      "revision": "b8b2b3f870b0846b8f082624e9dc1cac2e3eceec",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/339",
+      "mergedAs": "9dd6e93"
+    },
+    {
+      "id": "design-note-on-graded-belief",
+      "revision": "abca063ab1411e672d17524bdcf1630cf45739b7",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/347",
+      "mergedAs": "cffbea4"
+    },
+    {
+      "id": "a-reversible-decision-forecloses-while-in-force-1-4-draft",
+      "revision": "c033235ff0e4a212320a0c967a758e24071370b8",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/353",
+      "mergedAs": "1c07f84"
+    },
+    {
+      "id": "name-visible-behaviors-1-x-does-not-promise",
+      "revision": "378236ebdc070dccb6fa78f6bb6f7030a5586c3a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/356",
+      "mergedAs": "064d098"
+    },
+    {
+      "id": "python-package-agent-on-every-dispatch-form-agents-0-1",
+      "revision": "27fa2ba6ff37b981c981ebb6bc13b1e232dab669",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/354",
+      "mergedAs": "868b748"
+    },
+    {
+      "id": "carry-a-save-onto-a-changed-program-caveat-lang-saves",
+      "revision": "d416bb37fe470417611dc52b063ec43753e92572",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/350",
+      "mergedAs": "fa25638"
+    },
+    {
+      "id": "the-retracted-studies-example-and-the-versions-as-readings-p",
+      "revision": "e0627382de3ad5a4f3ea5631aef6be86c4fd4d23",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/324",
+      "mergedAs": "283f957"
+    },
+    {
+      "id": "place-caveat-beside-bitemporal-databases-legal-citators-retr",
+      "revision": "6277228f0de2e6696937253e9d599cbfd486ecc0",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/357",
+      "mergedAs": "d8e43fc"
+    },
+    {
+      "id": "make-the-game-browser-qa-jobs-sturdier",
+      "revision": "3c7f01a52033d1b0497f767ab83ef982b24c901c",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/358",
+      "mergedAs": "36ce0e8"
+    },
+    {
+      "id": "describe-binding-pointers-in-caveat-test-and-add-a-goose-mcp",
+      "revision": "e0b38b227390ffafe65103258fc8cca958653aa5",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/342",
+      "mergedAs": "50d263b"
+    },
+    {
+      "id": "lead-with-a-tested-hello-world-point-llms-txt-at-it",
+      "revision": "25b4c15c4cb2e9a037464b262c3bc882e81ceeb2",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/345",
+      "mergedAs": "cfcc9a1"
+    },
+    {
+      "id": "make-the-remaining-game-browser-checks-sturdy",
+      "revision": "f6ba2d08d2fddd6e7fc0e1d3110d324671e68c0d",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/362",
+      "mergedAs": "60aadc4"
+    },
+    {
+      "id": "add-the-carmack-stress-cases",
+      "revision": "60732ad35201a87b1e320bf179ed2d9bdd1c8329",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/352",
+      "mergedAs": "64a9f7a"
+    },
+    {
+      "id": "a-15-minute-tutorial-an-agent-with-an-undo-list",
+      "revision": "4cbcabb59dea2f80ac134e4fca247c664dc4e7be",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/346",
+      "mergedAs": "0989bc3"
+    },
+    {
+      "id": "load-and-usage-errors-say-where-and-suggest-the-name-meant",
+      "revision": "c6b0f6c1bb1981c6b232e0ccc93424031fbc3b50",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/363",
+      "mergedAs": "686face"
+    },
+    {
+      "id": "reviewed-1.4.0-candidate",
+      "revision": "dc044ded07e77844c884dd200304dda360b8418a",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/364"
+    },
+    {
+      "id": "published-1.4.0",
+      "version": "1.4.0",
+      "revision": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+      "parents": [
+        "686face1aa537e2700c6152ddf735336dfac439e",
+        "dc044ded07e77844c884dd200304dda360b8418a"
+      ],
+      "tag": "v1.4.0",
+      "published": true,
+      "record": "v1.4.0-npm-publication.json"
+    }
+  ]
+}
