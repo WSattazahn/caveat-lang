@@ -1,0 +1,122 @@
+scene "The Surgisphere retractions of June 2020: which conclusions rested on the retracted studies, and what happens to decisions already made on them?";
+
+# Claims the studies bear on.
+claim hcq_raises_mortality;      # hydroxychloroquine raises in-hospital deaths in COVID-19
+claim hcq_lowers_mortality;      # hydroxychloroquine lowers them
+claim acei_raises_mortality;     # ACE inhibitors or ARBs raise them
+
+evidence lancet_registry from "Mehra et al., Lancet, online 22 May 2020: registry analysis of 96,032 patients (Surgisphere data)";
+evidence nejm_registry from "Mehra et al., NEJM, online 1 May 2020: registry analysis of 8,910 patients (Surgisphere data)";
+evidence lancet_concern from "Lancet expression of concern, 3 June 2020";
+evidence nejm_concern from "NEJM expression of concern, 2 June 2020";
+evidence solidarity_dsmb from "WHO Solidarity data and safety monitoring board review of the trial's own mortality data, 3 June 2020";
+evidence lancet_retraction from "Lancet retraction by three of four authors, 4 June 2020: 'We can no longer vouch for the veracity of the primary data sources'";
+evidence nejm_retraction from "NEJM retraction, 4 June 2020: 'we are unable to validate the primary data sources'";
+evidence recovery_hcq from "RECOVERY trial hydroxychloroquine arm, randomized, no mortality benefit announced 5 June 2020 (final report: 1,561 vs 3,155 patients, NEJM 2020)";
+
+caveat observational consequence material;      # not randomized: confounding is possible
+caveat data_unverified consequence high;         # the journal has said the data may not be sound
+observational qualifies lancet_registry;
+observational qualifies nejm_registry;
+
+state lancet_ok = 0;
+state nejm_ok = 0;
+state recovery_ok = 0;
+
+# Conclusions drawn from the studies, and actions taken on them.
+decisions harm_signal limit 2;     # "HCQ raises in-hospital mortality"
+decisions acei_continue limit 2;   # "keep patients on ACE inhibitors or ARBs"
+decisions no_benefit limit 2;      # "HCQ gives no mortality benefit"
+decisions pause_arm limit 2;       # WHO: pause the Solidarity HCQ arm (25 May 2020)
+decisions guidance limit 3;        # an illustrative hospital, not a real one: do not give HCQ to inpatients
+
+event published study in lancet nejm;
+event conclude;
+event pause_announced;
+event concern study in lancet nejm;
+event dsmb_review;
+event retracted study in lancet nejm;
+event recovery_reported;
+event revise_guidance;
+
+on published when study == study.lancet and observed(lancet_registry) reject "Already published.";
+on published when study == study.nejm and observed(nejm_registry) reject "Already published.";
+on published when study == study.lancet reveal lancet_registry supports hcq_raises_mortality;
+on published when study == study.lancet set lancet_ok = qualified(1, lancet_registry);
+on published when study == study.nejm reveal nejm_registry opposes acei_raises_mortality;
+on published when study == study.nejm set nejm_ok = qualified(1, nejm_registry);
+
+on conclude when lancet_ok == 1 and not withdrawn(lancet_registry) and not committed(harm_signal)
+    commit harm_signal because enough using lancet_ok;
+on conclude when nejm_ok == 1 and not withdrawn(nejm_registry) and not committed(acei_continue)
+    commit acei_continue because enough using nejm_ok;
+on conclude when recovery_ok == 1 and not committed(no_benefit)
+    commit no_benefit because enough using recovery_ok;
+
+on pause_announced when lancet_ok != 1 reject "Nothing on record to pause on.";
+on pause_announced when committed(pause_arm) and not reopened(pause_arm) reject "Already paused.";
+on pause_announced when withdrawn(lancet_registry) reject "The study it would rest on is retracted.";
+on pause_announced commit pause_arm because enough using lancet_ok;
+
+# An expression of concern is a caveat, not a withdrawal: the study still stands, in doubt.
+on concern when study == study.lancet and not observed(lancet_registry) reject "No such study on record.";
+on concern when study == study.nejm and not observed(nejm_registry) reject "No such study on record.";
+on concern when study == study.lancet reveal lancet_concern;
+on concern when study == study.lancet qualify lancet_registry with data_unverified;
+on concern when study == study.nejm reveal nejm_concern;
+on concern when study == study.nejm qualify nejm_registry with data_unverified;
+
+# WHO resumed the arm after its own monitoring board's review.
+on dsmb_review when not committed(pause_arm) or reopened(pause_arm) reject "The arm is not paused.";
+on dsmb_review reveal solidarity_dsmb;
+on dsmb_review reopen pause_arm because solidarity_dsmb;
+
+# A retraction withdraws the study. Every conclusion and action that rested on it is reopened;
+# each keeps the grounds it was made on.
+on retracted when study == study.lancet and not observed(lancet_registry) reject "No such study on record.";
+on retracted when study == study.nejm and not observed(nejm_registry) reject "No such study on record.";
+on retracted when study == study.lancet and withdrawn(lancet_registry) reject "Already retracted.";
+on retracted when study == study.nejm and withdrawn(nejm_registry) reject "Already retracted.";
+on retracted when study == study.lancet reveal lancet_retraction;
+on retracted when study == study.lancet withdraw lancet_registry because lancet_retraction;
+on retracted when study == study.nejm reveal nejm_retraction;
+on retracted when study == study.nejm withdraw nejm_registry because nejm_retraction;
+on retracted when committed(harm_signal) and not reopened(harm_signal) and rests_on_withdrawn(harm_signal)
+    reopen harm_signal because lancet_retraction;
+on retracted when committed(acei_continue) and not reopened(acei_continue) and rests_on_withdrawn(acei_continue)
+    reopen acei_continue because nejm_retraction;
+on retracted when committed(no_benefit) and not reopened(no_benefit) and rests_on_withdrawn(no_benefit)
+    reopen no_benefit because lancet_retraction;
+on retracted when committed(guidance) and not reopened(guidance) and rests_on_withdrawn(guidance)
+    reopen guidance because lancet_retraction;
+# The pause was already reopened by the monitoring board; a past revision is asked directly.
+
+on recovery_reported when observed(recovery_hcq) reject "Already reported.";
+on recovery_reported reveal recovery_hcq opposes hcq_lowers_mortality;
+on recovery_reported set recovery_ok = qualified(1, recovery_hcq);
+
+# The illustrative hospital's guidance: first on the harm signal, later on the randomized trial.
+on revise_guidance when committed(guidance) and not reopened(guidance) reject "Guidance in force.";
+on revise_guidance when recovery_ok == 1
+    commit guidance because enough using recovery_ok;
+on revise_guidance when recovery_ok != 1 and lancet_ok == 1 and not withdrawn(lancet_registry)
+    commit guidance because enough using lancet_ok;
+
+bind harm.status = "no conclusion";
+bind harm.status = "HCQ raises mortality" when committed(harm_signal) and not reopened(harm_signal);
+bind harm.status = "HCQ raises mortality, but its study is under an expression of concern"
+    when committed(harm_signal) and not reopened(harm_signal) and carries(lancet_registry, data_unverified);
+bind harm.status = "flagged: rested on a retracted study" when reopened(harm_signal);
+bind acei.status = "no conclusion";
+bind acei.status = "keep ACE inhibitors" when committed(acei_continue) and not reopened(acei_continue);
+bind acei.status = "flagged: rested on a retracted study" when reopened(acei_continue);
+bind benefit.status = "no conclusion";
+bind benefit.status = "HCQ gives no mortality benefit" when committed(no_benefit) and not reopened(no_benefit);
+bind pause.status = "running";
+bind pause.status = "paused" when committed(pause_arm) and not reopened(pause_arm);
+bind pause.status = "resumed after review" when reopened(pause_arm);
+bind pause.status = "resumed; the pause rested on a since-retracted study"
+    when reopened(pause_arm) and rests_on_withdrawn(revision(pause_arm, 1));
+bind guidance.status = "none";
+bind guidance.status = "no HCQ for inpatients" when committed(guidance) and not reopened(guidance);
+bind guidance.status = "flagged: rested on a retracted study" when reopened(guidance);
