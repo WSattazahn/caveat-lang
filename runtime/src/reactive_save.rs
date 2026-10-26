@@ -553,7 +553,10 @@ impl ReactiveSession {
                 || names
                     .iter()
                     .any(|evidence| !grounds.evidence.contains(evidence))
-                || names.iter().map(String::as_str).eq(grounds.evidence.iter().map(Name::as_str))
+                || names
+                    .iter()
+                    .map(String::as_str)
+                    .eq(grounds.evidence.iter().map(Name::as_str))
             {
                 return Err(format!(
                     "evidence_order for {name} is not a reordering of its grounds' evidence"
@@ -1053,7 +1056,8 @@ impl ReactiveSession {
         // Kept caveats: see spec/caveat-take-back-0.1.md, "Snapshot and save".
         for (what, provenance) in &provenances {
             if let Some(caveat) = provenance.kept.iter().find(|caveat| {
-                !self.take_back_caveats.contains(caveat.as_str()) || !provenance.caveats.contains(*caveat)
+                !self.take_back_caveats.contains(caveat.as_str())
+                    || !provenance.caveats.contains(*caveat)
             }) {
                 return Err(format!(
                     "{what} keeps {caveat}, which is not a take-back caveat it carries"
@@ -3093,7 +3097,12 @@ impl ReactiveSession {
             self.check_provenance("decision journal", &provenance, observed, None)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
-                || entry.caveats != provenance.caveats.iter().map(|caveat| caveat.to_string()).collect::<Vec<_>>()
+                || entry.caveats
+                    != provenance
+                        .caveats
+                        .iter()
+                        .map(|caveat| caveat.to_string())
+                        .collect::<Vec<_>>()
                 || entry
                     .because
                     .iter()

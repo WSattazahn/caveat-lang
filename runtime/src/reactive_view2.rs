@@ -98,10 +98,7 @@ fn serialize_markers<S: Serializer>(
 /// Evidence in the frozen order: names the order lists first, in its order,
 /// then any it does not list, by name. Departed names have left `evidence`
 /// and so drop out; the rest keep their places.
-pub(super) fn ordered<'a>(
-    evidence: &'a NameSet,
-    order: Option<&[String]>,
-) -> Vec<&'a str> {
+pub(super) fn ordered<'a>(evidence: &'a NameSet, order: Option<&[String]>) -> Vec<&'a str> {
     let Some(order) = order else {
         return evidence.iter().map(Name::as_str).collect();
     };

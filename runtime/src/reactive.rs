@@ -5236,7 +5236,10 @@ impl ReactiveSession {
 
     /// Evidence names in first-observation order. Legacy sessions derive that
     /// order from their edges; neutral observations require an explicit ledger.
-    fn in_observation_order<S: AsRef<str>>(&self, evidence: impl Iterator<Item = S>) -> Vec<String> {
+    fn in_observation_order<S: AsRef<str>>(
+        &self,
+        evidence: impl Iterator<Item = S>,
+    ) -> Vec<String> {
         let ranks = self.observation_ranks();
         let mut named = evidence
             .map(|name| (ranks.rank(name.as_ref()), name.as_ref().to_string()))
@@ -6284,7 +6287,11 @@ impl ReactiveSession {
                 }
                 self.collector_reopens(
                     &name,
-                    &provenance.evidence.iter().map(|name| name.to_string()).collect::<Vec<_>>(),
+                    &provenance
+                        .evidence
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect::<Vec<_>>(),
                 );
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
@@ -6335,12 +6342,21 @@ impl ReactiveSession {
                     elapsed: Some(self.elapsed),
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
-                    caveats: grounds.caveats.iter().map(|name| name.to_string()).collect(),
+                    caveats: grounds
+                        .caveats
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect(),
                     permitted_by: permission.map(|record| record.grant),
                     outcome: None,
                     materialized: Vec::new(),
                 };
-                if !entry.because.iter().map(String::as_str).eq(grounds.evidence.iter().map(Name::as_str)) {
+                if !entry
+                    .because
+                    .iter()
+                    .map(String::as_str)
+                    .eq(grounds.evidence.iter().map(Name::as_str))
+                {
                     Arc::make_mut(&mut self.evidence_order)
                         .insert(name.clone(), entry.because.clone());
                 }
@@ -7580,7 +7596,11 @@ impl ReactiveSession {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
-        let caveats = lineage.caveats.iter().map(|name| name.to_string()).collect();
+        let caveats = lineage
+            .caveats
+            .iter()
+            .map(|name| name.to_string())
+            .collect();
         if let Some(withdrawal) = self.withdrawal_of(&grant) {
             return Err(refuse(format!(
                 "{grant} was withdrawn at #{} because {}",

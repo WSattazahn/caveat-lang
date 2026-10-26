@@ -427,7 +427,9 @@ impl ReactiveSession {
             if add {
                 *references.entry(name.to_string()).or_default() += 1;
             } else {
-                let count = references.get_mut(name.as_str()).expect("scheduled dependency");
+                let count = references
+                    .get_mut(name.as_str())
+                    .expect("scheduled dependency");
                 *count -= 1;
                 if *count == 0 {
                     references.remove(name.as_str());

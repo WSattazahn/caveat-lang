@@ -629,7 +629,7 @@ impl ReactiveSession {
     pub(crate) fn check_departure_index(&self) {
         if self.windowed() {
             let mut expected = BTreeMap::new();
-            self.for_each_pin(|name, _| *expected.entry(name.clone()).or_insert(0) += 1);
+            self.for_each_pin(|name, _| *expected.entry(name.to_string()).or_insert(0) += 1);
             debug_assert_eq!(*self.pin_counts, expected, "incremental pin counts");
             let reasons = self
                 .withdrawals

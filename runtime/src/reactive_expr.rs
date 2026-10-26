@@ -331,7 +331,7 @@ pub struct NameSet(Option<Arc<Names>>);
 /// allocating it: a value copies its inputs' names far more often than a name
 /// is made. It orders and compares by its text, so sets of names list in
 /// name order exactly as sets of strings do.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Name(Arc<str>);
 
 /// Copies of one name share its text, so the same text is found without
@@ -343,6 +343,12 @@ impl PartialEq for Name {
 }
 
 impl Eq for Name {}
+
+impl std::hash::Hash for Name {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
 
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -485,7 +491,8 @@ impl NameSet {
     }
 
     fn position(&self, name: &str) -> Result<usize, usize> {
-        self.names().binary_search_by(|held| held.as_str().cmp(name))
+        self.names()
+            .binary_search_by(|held| held.as_str().cmp(name))
     }
 
     /// The names this set would add to `ours`.
@@ -539,7 +546,8 @@ impl NameSet {
 
     /// The names here that `other` lacks, in name order.
     pub fn difference<'a>(&'a self, other: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
-        self.iter().filter(move |name| !other.contains(name.as_str()))
+        self.iter()
+            .filter(move |name| !other.contains(name.as_str()))
     }
 
     /// Add `name`; returns whether it was new. A name already held copies nothing.
