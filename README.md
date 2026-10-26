@@ -35,11 +35,53 @@ Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
 Try the published release, **1.3.0**, in an empty directory with Node 20 or
-later. No Rust installation is needed:
+later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
 npm install caveat-lang@1.3.0
+```
+
+Then paste this "hello, world": one piece of evidence, one decision resting on
+it, and one event that withdraws the evidence and reopens the decision.
+
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
+```
+
+Part of what it prints:
+
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision was reopened when the CI result it rested on was withdrawn, and
+it still says what it was first based on. For a fuller program with a caveat,
+scenarios and a displayed value, `init` writes the getting-started starter:
+
+```sh
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -74,6 +116,7 @@ on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
 | To | Start with |
 | --- | --- |
 | Try Caveat by hand | [Getting started](kit/docs/GETTING_STARTED.md) |
+| Give an agent an undo list in 15 minutes | [An agent with an undo list](docs/tutorials/agent-undo-list/README.md) |
 | Give an agent Caveat's tools over MCP | [MCP server](#mcp-server) |
 | Integrate Caveat into an agent or application | [Agent quickstart](kit/docs/AGENT_START.md) and the [Python client](kit/examples/agent-evidence/README.md) |
 | Write Caveat source | [The language in brief](kit/docs/REFERENCE.md) and the [authoring guide](docs/AI_AUTHORING.md) |
