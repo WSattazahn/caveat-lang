@@ -46,6 +46,9 @@ pub enum EvalFailure {
     /// One expression's evaluation would visit more nodes than the budget
     /// allows; refused as `limit/evaluation_limit` (D023).
     EvaluationLimit,
+    /// A text value would hold more bytes than a text may; refused as
+    /// `limit/text_limit` (D025).
+    TextLimit,
     Other,
 }
 
@@ -1280,10 +1283,14 @@ fn finite(value: f64) -> Result<f64, EvalError> {
     }
 }
 
-fn check_text_size(bytes: usize) -> Result<(), String> {
+/// A text past its byte limit is classified (D025): at evaluation it is
+/// refused as `limit/text_limit`; at load the kind is dropped with the
+/// message, as for every load error.
+fn check_text_size(bytes: usize) -> Result<(), EvalError> {
     if bytes > MAX_TEXT_BYTES {
-        Err(format!(
-            "expression text exceeds limit {MAX_TEXT_BYTES} bytes"
+        Err(EvalError::new(
+            EvalFailure::TextLimit,
+            format!("expression text exceeds limit {MAX_TEXT_BYTES} bytes"),
         ))
     } else {
         Ok(())
