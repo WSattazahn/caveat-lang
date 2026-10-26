@@ -61,9 +61,13 @@ function scenario(item, source) {
       for (let repetition = 0; repetition < (step.repeat ?? 1); repetition++) {
         // Turn through the three dispatch forms so each is compared.
         variant = (variant + 1) % 3;
-        const read = variant === 0 ? () => session.dispatch_outcome(step.send, text)
-          : variant === 1 ? () => session.dispatch_view_outcome(step.send, text)
-            : () => session.dispatch_view_delta_outcome(step.send, text);
+        const read = 'agent' in step
+          ? (variant === 0 ? () => session.dispatch_outcome_as(step.send, text, step.agent)
+            : variant === 1 ? () => session.dispatch_view_outcome_as(step.send, text, step.agent)
+              : () => session.dispatch_view_delta_outcome_as(step.send, text, step.agent))
+          : (variant === 0 ? () => session.dispatch_outcome(step.send, text)
+            : variant === 1 ? () => session.dispatch_view_outcome(step.send, text)
+              : () => session.dispatch_view_delta_outcome(step.send, text));
         const outcome = attempt(read);
         steps.push({ payload: text, outcome });
         if (outcome.error !== undefined) return { steps, fatal: true };
