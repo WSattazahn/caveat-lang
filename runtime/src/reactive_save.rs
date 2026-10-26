@@ -21,7 +21,7 @@ const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a save object")]
 pub struct ReactiveSave {
     pub schema: String,
     /// The program this save belongs to; restoring checks it.
@@ -133,7 +133,10 @@ fn deserialize_observations<'de, D: serde::Deserializer<'de>>(
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(
+    deny_unknown_fields,
+    expecting = "a state entry object such as {\"value\": 3}"
+)]
 pub struct SavedState {
     pub value: f64,
     #[serde(default, skip_serializing_if = "Compact::is_empty")]
@@ -235,7 +238,7 @@ fn full_map(records: &BTreeMap<String, Compact>) -> BTreeMap<String, Provenance>
 
 /// What events did to the graph, since the program loaded.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a graph object")]
 pub struct SavedGraph {
     /// Nodes events created, in order: occurrences of reading streams and
     /// renewable evidence, which are rebuilt from their names, and commitments.
@@ -261,7 +264,7 @@ pub enum SavedNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a resources object")]
 pub struct SavedResources {
     pub remaining: u64,
     pub spent: u64,

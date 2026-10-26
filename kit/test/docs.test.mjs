@@ -226,3 +226,26 @@ test('every excerpt on the one-page reference is from the worked example\'s prog
   }
   assert.ok(markdown.split(/\r?\n/).length <= 200, 'the one-page reference is longer than a page');
 });
+
+// The README's first example, as a newcomer pastes it: the program its
+// heredoc writes and the events its printf writes, explained, print the lines
+// the README shows.
+test('the README hello, world prints what the README shows', async () => {
+  const readme = await readFile(path.join(kit, 'README.md'), 'utf8');
+  const block = /<!-- hello-world -->\n```sh\n([\s\S]*?)\n```/.exec(readme)?.[1];
+  const shown = /<!-- hello-world-output -->\n```text\n([\s\S]*?)\n```/.exec(readme)?.[1];
+  assert.ok(block && shown, 'the README has its hello, world block and output');
+  const program = /^cat > hello\.cav <<'CAV'\n([\s\S]*?)\nCAV$/m.exec(block)?.[1];
+  const events = /^printf '%s\\n' ((?:'[^']*' ?)+)> events\.jsonl$/m.exec(block)?.[1].match(/'[^']*'/g).map(line => line.slice(1, -1));
+  assert.ok(program && events?.length, 'the block writes hello.cav and events.jsonl');
+  assert.match(block, /^npx --no-install caveat-lang explain hello\.cav events\.jsonl$/m);
+  const directory = path.join(repo, 'test-results', 'hello-world');
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, 'hello.cav'), `${program}\n`);
+  await writeFile(path.join(directory, 'events.jsonl'), `${events.join('\n')}\n`);
+  const result = spawnSync(process.execPath, [path.join(kit, 'bin', 'caveat.mjs'), 'explain', 'hello.cav', 'events.jsonl'], { cwd: directory, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.includes(`${shown}\n`), result.stdout);
+  const root = await readFile(path.join(repo, 'README.md'), 'utf8');
+  assert.ok(root.includes(`\`\`\`sh\n${block}\n\`\`\``) && root.includes(`\`\`\`text\n${shown}\n\`\`\``), 'the repository README shows the same hello, world');
+});

@@ -1,6 +1,6 @@
-# CAVEAT Untrusted Sources 0.1 (draft) — several sources, one confirmation per action, withdrawing a source, the undo list
+# CAVEAT Untrusted Sources 0.1 — several sources, one confirmation per action, withdrawing a source, the undo list
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4: specified on its branch, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4. It adds to
 [Withdrawal 0.1](caveat-withdrawal-0.1.md),
 [Retention Reasons 0.1](caveat-retention-reasons-0.1.md),
 [Past Revisions 0.1](caveat-past-revisions-0.1.md) and

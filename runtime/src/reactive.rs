@@ -2007,6 +2007,10 @@ impl ReactiveSession {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
+        Self::load_source(source).map_err(|error| crate::load_diagnostics::locate(source, error))
+    }
+
+    fn load_source(source: &str) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
@@ -4509,7 +4513,13 @@ impl ReactiveSession {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::UnknownEvent,
-                format!("undeclared event {event}"),
+                format!(
+                    "undeclared event {event}{}",
+                    crate::load_diagnostics::suggestion(
+                        event,
+                        self.events.keys().map(String::as_str)
+                    )
+                ),
             )
         })?;
         self.check_agent(event, agent)?;
@@ -4521,7 +4531,10 @@ impl ReactiveSession {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::PayloadInvalid,
-                format!("event {event} requires exactly its declared parameters"),
+                format!(
+                    "event {event} requires exactly its declared parameters{}",
+                    parameter_difference(signature, parameters)
+                ),
             ));
         }
         let handles = self.identifiers.len() + new_identifiers.len();
@@ -9818,11 +9831,63 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     }
 }
 
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
+/// What a payload lacks and what it adds, for the refusal: "; missing
+/// chance; unexpected chanse".
+fn parameter_difference(signature: &[Parameter], parameters: &BTreeMap<String, f64>) -> String {
+    let missing: Vec<&str> = signature
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .filter(|name| !parameters.contains_key(*name))
+        .collect();
+    let unexpected: Vec<&str> = parameters
+        .keys()
+        .map(String::as_str)
+        .filter(|name| !signature.iter().any(|parameter| parameter.name == *name))
+        .collect();
+    let mut text = String::new();
+    if !missing.is_empty() {
+        text.push_str(&format!("; missing {}", missing.join(", ")));
+    }
+    if !unexpected.is_empty() {
+        text.push_str(&format!("; unexpected {}", unexpected.join(", ")));
+    }
+    text
+}
+
 enum PayloadValue {
     Number(f64),
     Text(String),
+}
+
+// By hand rather than `#[serde(untagged)]`, whose error names the Rust enum
+// ("did not match any variant of untagged enum PayloadValue"); this one says
+// what a parameter takes and what it was given.
+impl<'de> serde::Deserialize<'de> for PayloadValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = PayloadValue;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or text")
+            }
+            fn visit_f64<E>(self, value: f64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value))
+            }
+            fn visit_i64<E>(self, value: i64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_u64<E>(self, value: u64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_str<E>(self, value: &str) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value.to_string()))
+            }
+            fn visit_string<E>(self, value: String) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value))
+            }
+        }
+        deserializer.deserialize_any(Visitor)
+    }
 }
 
 struct Payload(BTreeMap<String, PayloadValue>);

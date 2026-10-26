@@ -256,7 +256,7 @@ fn parse_statement(line: &str, position: Position) -> Result<Statement, String> 
                 commitment: (*commitment).into(),
                 because: (*because).into(),
             },
-            _ => return Err(format!("cannot parse statement: {line}")),
+            _ => return Err(crate::load_diagnostics::unparsed(line)),
         }
     };
     Ok(statement)

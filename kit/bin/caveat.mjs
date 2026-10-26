@@ -178,11 +178,38 @@ const COMMANDS = {
   demo: [1, 1, 'name the demonstration: agent'],
 };
 
+// Which command takes each option, as parseArguments reads them.
+const OPTIONS = ['--json', '--all', '--strict', '--unused', '--records', '--save', '--from', '--state', '--runtime'];
+function optionFor(option, command) {
+  return ({
+    '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
+    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--records': command === 'check', '--save': command === 'check',
+    '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
+  })[option];
+}
+
+// "; did you mean X?" for the candidate one or two edits from a mistyped
+// word, or nothing.
+function nearest(word, candidates) {
+  const distance = (a, b) => {
+    const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) rows[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+    }
+    return rows[a.length][b.length];
+  };
+  const limit = word.replace(/^--/, '').length >= 5 ? 2 : 1;
+  const best = candidates.map(candidate => [distance(word, candidate), candidate]).filter(([d]) => d <= limit).sort((a, b) => a[0] - b[0])[0];
+  return best ? `; did you mean ${best[1]}?` : '';
+}
+
 function parseArguments(argv) {
   const [command, ...rest] = argv;
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
-  if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
+  if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
   const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
@@ -206,7 +233,7 @@ function parseArguments(argv) {
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
       if (!options.runtime) return { error: '--runtime needs a directory' };
-    } else if (argument.startsWith('--')) return { error: `unknown option ${argument} for ${command}` };
+    } else if (argument.startsWith('--')) return { error: `unknown option ${argument} for ${command}${nearest(argument, OPTIONS.filter(option => optionFor(option, command)))}` };
     else options.files.push(argument);
   }
   const [fewest, most, message] = options.all ? [1, 1, 'name one directory of ledgers with --all'] : COMMANDS[command];
@@ -695,7 +722,7 @@ async function main() {
     console.log(`CAVEAT Language ${manifest.version}`);
     return 0;
   }
-  if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
+  if (options.error) { console.error(`${options.error}\nRun caveat-lang help for every command and option.`); return 2; }
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, 'undo-list': undoListOf,
     validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,

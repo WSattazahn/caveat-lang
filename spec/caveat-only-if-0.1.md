@@ -1,6 +1,6 @@
-# CAVEAT Only If 0.1 (draft) — a value chosen by a condition that is not its grounds
+# CAVEAT Only If 0.1 — a value chosen by a condition that is not its grounds
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4: specified on its branch, not yet in a release. It becomes stable when a 1.x release ships it. It adds to [Reactive 0.7](caveat-reactive-0.7.md) and [Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md), and it changes no program that loads today.
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4. It adds to [Reactive 0.7](caveat-reactive-0.7.md) and [Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md), and it changes no program that loads today.
 
 A decision keeps two records of what it read: its grounds, the evidence it
 was made on, and its lineage, everything that could have influenced it. A
