@@ -403,8 +403,8 @@ fn compact(
     let named = provenance
         .evidence
         .iter()
-        .filter(|name| departing.contains_key(*name))
-        .cloned()
+        .filter(|name| departing.contains_key(name.as_str()))
+        .map(|name| name.to_string())
         .collect::<Vec<_>>();
     for record in named {
         if let Some((_, caveats)) = live_take_backs.iter().find(|(name, _)| *name == record) {
@@ -420,7 +420,7 @@ fn names_any(provenance: &Provenance, departing: &BTreeMap<String, (String, u64)
     provenance
         .evidence
         .iter()
-        .any(|name| departing.contains_key(name))
+        .any(|name| departing.contains_key(name.as_str()))
 }
 
 impl ReactiveSession {
@@ -494,7 +494,7 @@ impl ReactiveSession {
 
     /// Enumerate pin sources only while loading/restoring or auditing the index.
     /// Event mutations update the index directly, never by rescanning these sources.
-    fn for_each_pin(&self, mut pin: impl FnMut(&String, &'static str)) {
+    fn for_each_pin(&self, mut pin: impl FnMut(&str, &'static str)) {
         for cell in self.states.cells.iter() {
             for name in cell.grounds.own_evidence() {
                 pin(name, "state grounds");
@@ -569,7 +569,7 @@ impl ReactiveSession {
     pub(crate) fn pins(&self) -> BTreeMap<String, BTreeSet<&'static str>> {
         let mut pins: BTreeMap<String, BTreeSet<&'static str>> = BTreeMap::new();
         self.for_each_pin(|name, by| {
-            pins.entry(name.clone()).or_default().insert(by);
+            pins.entry(name.to_string()).or_default().insert(by);
         });
         pins
     }
@@ -577,7 +577,7 @@ impl ReactiveSession {
     pub(crate) fn rebuild_departure_index(&mut self) {
         let mut counts = BTreeMap::new();
         if self.windowed() {
-            self.for_each_pin(|name, _| *counts.entry(name.clone()).or_insert(0) += 1);
+            self.for_each_pin(|name, _| *counts.entry(name.to_string()).or_insert(0) += 1);
         }
         self.pin_counts = Arc::new(counts);
         self.withdrawal_reasons = Arc::new(

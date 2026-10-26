@@ -174,22 +174,22 @@ impl Serialize for Compact {
         #[derive(Serialize)]
         struct Written<'a> {
             #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            evidence: &'a BTreeSet<String>,
+            evidence: &'a BTreeSet<Name>,
             #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            caveats: &'a BTreeSet<String>,
+            caveats: &'a BTreeSet<Name>,
             #[serde(skip_serializing_if = "BTreeMap::is_empty", serialize_with = "markers")]
             departed: &'a BTreeMap<String, crate::reactive_expr::Marker>,
             #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            inherited: &'a BTreeSet<String>,
+            inherited: &'a BTreeSet<Name>,
             #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            kept: &'a BTreeSet<String>,
+            kept: &'a BTreeSet<Name>,
         }
         Written {
-            evidence: &self.0.evidence,
-            caveats: &self.0.caveats,
+            evidence: &*self.0.evidence,
+            caveats: &*self.0.caveats,
             departed: &self.0.departed,
-            inherited: &self.0.inherited,
-            kept: &self.0.kept,
+            inherited: &*self.0.inherited,
+            kept: &*self.0.kept,
         }
         .serialize(serializer)
     }
@@ -553,7 +553,7 @@ impl ReactiveSession {
                 || names
                     .iter()
                     .any(|evidence| !grounds.evidence.contains(evidence))
-                || names.iter().eq(grounds.evidence.iter())
+                || names.iter().map(String::as_str).eq(grounds.evidence.iter().map(Name::as_str))
             {
                 return Err(format!(
                     "evidence_order for {name} is not a reordering of its grounds' evidence"
@@ -568,11 +568,11 @@ impl ReactiveSession {
             let Some(grounds) = self.commitment_grounds.get(&entry.commitment) else {
                 continue;
             };
-            let names = super::view2::ordered(&grounds.evidence, Some(&entry.because));
+            let names = super::view2::ordered(&*grounds.evidence, Some(&entry.because));
             if !names
                 .iter()
                 .copied()
-                .eq(grounds.evidence.iter().map(String::as_str))
+                .eq(grounds.evidence.iter().map(Name::as_str))
             {
                 let names = names.into_iter().map(String::from).collect();
                 orders.insert(entry.commitment.clone(), names);
@@ -681,11 +681,11 @@ impl ReactiveSession {
                 .iter()
                 .filter_map(|(name, grounds)| {
                     let order = self.evidence_order.get(name)?;
-                    let names = super::view2::ordered(&grounds.evidence, Some(order));
+                    let names = super::view2::ordered(&*grounds.evidence, Some(order));
                     (!names
                         .iter()
                         .copied()
-                        .eq(grounds.evidence.iter().map(String::as_str)))
+                        .eq(grounds.evidence.iter().map(Name::as_str)))
                     .then(|| (name.clone(), names.into_iter().map(String::from).collect()))
                 })
                 .collect(),
@@ -1053,7 +1053,7 @@ impl ReactiveSession {
         // Kept caveats: see spec/caveat-take-back-0.1.md, "Snapshot and save".
         for (what, provenance) in &provenances {
             if let Some(caveat) = provenance.kept.iter().find(|caveat| {
-                !self.take_back_caveats.contains(*caveat) || !provenance.caveats.contains(*caveat)
+                !self.take_back_caveats.contains(caveat.as_str()) || !provenance.caveats.contains(*caveat)
             }) {
                 return Err(format!(
                     "{what} keeps {caveat}, which is not a take-back caveat it carries"
@@ -1808,7 +1808,7 @@ impl ReactiveSession {
                 qualifiers
                     .entry(self.source_evidence(evidence).to_string())
                     .or_default()
-                    .extend(lineage.caveats.iter().cloned());
+                    .extend(lineage.caveats.iter().map(|caveat| caveat.to_string()));
             }
         }
         // A reading bears on what its stream's samples name, and, at most,
@@ -2311,7 +2311,7 @@ impl ReactiveSession {
         for name in &provenance.caveats {
             // A departed record's qualifications stay with what carried it,
             // so its history's marker can account for one.
-            let attachable = caveats.unpaired.contains(name)
+            let attachable = caveats.unpaired.contains(name.as_str())
                 || provenance
                     .evidence
                     .iter()
@@ -2321,7 +2321,7 @@ impl ReactiveSession {
                         caveats
                             .attachable
                             .get(evidence)
-                            .is_some_and(|attachable| attachable.contains(name))
+                            .is_some_and(|attachable| attachable.contains(name.as_str()))
                     });
             if !attachable {
                 return Err(format!("{what}: {name} cannot qualify any of its evidence"));
@@ -3093,7 +3093,7 @@ impl ReactiveSession {
             self.check_provenance("decision journal", &provenance, observed, None)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
-                || entry.caveats != provenance.caveats.iter().cloned().collect::<Vec<_>>()
+                || entry.caveats != provenance.caveats.iter().map(|caveat| caveat.to_string()).collect::<Vec<_>>()
                 || entry
                     .because
                     .iter()

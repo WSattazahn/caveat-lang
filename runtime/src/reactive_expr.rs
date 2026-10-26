@@ -327,10 +327,103 @@ pub struct Provenance {
 #[derive(Debug, Clone, Default)]
 pub struct NameSet(Option<Arc<Names>>);
 
+/// One graph name in a lineage. Copying it shares the text rather than
+/// allocating it: a value copies its inputs' names far more often than a name
+/// is made. It orders and compares by its text, so sets of names list in
+/// name order exactly as sets of strings do.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Name(Arc<str>);
+
+impl Name {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for Name {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for Name {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Name {
+    fn from(name: String) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<&String> for Name {
+    fn from(name: &String) -> Self {
+        Self(Arc::from(name.as_str()))
+    }
+}
+
+impl From<&str> for Name {
+    fn from(name: &str) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<Name> for String {
+    fn from(name: Name) -> Self {
+        name.0.to_string()
+    }
+}
+
+impl PartialEq<str> for Name {
+    fn eq(&self, other: &str) -> bool {
+        &*self.0 == other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        &*self.0 == *other
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        &*self.0 == other.as_str()
+    }
+}
+
+impl serde::Serialize for Name {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Name {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
 /// The names and, once asked, their total bytes.
 #[derive(Debug, Default)]
 struct Names {
-    names: BTreeSet<String>,
+    names: BTreeSet<Name>,
     bytes: OnceLock<usize>,
 }
 
@@ -343,7 +436,7 @@ impl Clone for Names {
     }
 }
 
-static NO_NAMES: BTreeSet<String> = BTreeSet::new();
+static NO_NAMES: BTreeSet<Name> = BTreeSet::new();
 
 impl NameSet {
     /// Whether both hold the very same set, so neither can add to the other.
@@ -358,7 +451,7 @@ impl NameSet {
     fn added_to<'a>(
         &'a self,
         ours: &'a Self,
-    ) -> std::collections::btree_set::Difference<'a, String> {
+    ) -> std::collections::btree_set::Difference<'a, Name> {
         if self.is_empty() || self.shares(ours) {
             NO_NAMES.difference(&NO_NAMES)
         } else {
@@ -370,8 +463,35 @@ impl NameSet {
     fn bytes(&self) -> usize {
         self.0.as_ref().map_or(0, |set| {
             *set.bytes
-                .get_or_init(|| set.names.iter().map(String::len).sum())
+                .get_or_init(|| set.names.iter().map(|name| name.len()).sum())
         })
+    }
+
+    /// Whether the set holds `name`, given as any text.
+    pub fn contains<Q: AsRef<str> + ?Sized>(&self, name: &Q) -> bool {
+        (**self).contains(name.as_ref())
+    }
+
+    /// Add `name`; returns whether it was new. A name already held copies nothing.
+    pub fn insert(&mut self, name: impl Into<Name>) -> bool {
+        let name = name.into();
+        if self.contains(name.as_str()) {
+            return false;
+        }
+        (**self).insert(name)
+    }
+
+    /// Remove `name`; returns whether it was held. A name not held copies nothing.
+    pub fn remove<Q: AsRef<str> + ?Sized>(&mut self, name: &Q) -> bool {
+        if !self.contains(name) {
+            return false;
+        }
+        (**self).remove(name.as_ref())
+    }
+
+    pub fn extend<N: Into<Name>>(&mut self, names: impl IntoIterator<Item = N>) {
+        let set = &mut **self;
+        set.extend(names.into_iter().map(Into::into));
     }
 
     /// Add every name of `other`, sharing its set when this one is empty and
@@ -396,20 +516,20 @@ impl Eq for NameSet {}
 
 impl PartialEq<BTreeSet<String>> for NameSet {
     fn eq(&self, other: &BTreeSet<String>) -> bool {
-        **self == *other
+        self.len() == other.len() && self.iter().zip(other).all(|(left, right)| left == right)
     }
 }
 
 impl std::ops::Deref for NameSet {
-    type Target = BTreeSet<String>;
+    type Target = BTreeSet<Name>;
 
-    fn deref(&self) -> &BTreeSet<String> {
+    fn deref(&self) -> &BTreeSet<Name> {
         self.0.as_ref().map_or(&NO_NAMES, |set| &set.names)
     }
 }
 
 impl std::ops::DerefMut for NameSet {
-    fn deref_mut(&mut self) -> &mut BTreeSet<String> {
+    fn deref_mut(&mut self) -> &mut BTreeSet<Name> {
         let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
         set.bytes = OnceLock::new();
         &mut set.names
@@ -424,13 +544,13 @@ impl serde::Serialize for NameSet {
 
 impl<'de> serde::Deserialize<'de> for NameSet {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        BTreeSet::deserialize(deserializer).map(Self::from)
+        BTreeSet::<Name>::deserialize(deserializer).map(Self::from)
     }
 }
 
 impl IntoIterator for NameSet {
-    type Item = String;
-    type IntoIter = std::collections::btree_set::IntoIter<String>;
+    type Item = Name;
+    type IntoIter = std::collections::btree_set::IntoIter<Name>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0
@@ -441,8 +561,8 @@ impl IntoIterator for NameSet {
 }
 
 impl<'a> IntoIterator for &'a NameSet {
-    type Item = &'a String;
-    type IntoIter = std::collections::btree_set::Iter<'a, String>;
+    type Item = &'a Name;
+    type IntoIter = std::collections::btree_set::Iter<'a, Name>;
 
     fn into_iter(self) -> Self::IntoIter {
         (**self).iter()
@@ -451,6 +571,12 @@ impl<'a> IntoIterator for &'a NameSet {
 
 impl From<BTreeSet<String>> for NameSet {
     fn from(names: BTreeSet<String>) -> Self {
+        names.into_iter().map(Name::from).collect()
+    }
+}
+
+impl From<BTreeSet<Name>> for NameSet {
+    fn from(names: BTreeSet<Name>) -> Self {
         Self((!names.is_empty()).then(|| {
             Arc::new(Names {
                 names,
@@ -460,9 +586,15 @@ impl From<BTreeSet<String>> for NameSet {
     }
 }
 
+impl FromIterator<Name> for NameSet {
+    fn from_iter<I: IntoIterator<Item = Name>>(names: I) -> Self {
+        Self::from(names.into_iter().collect::<BTreeSet<Name>>())
+    }
+}
+
 impl FromIterator<String> for NameSet {
     fn from_iter<I: IntoIterator<Item = String>>(names: I) -> Self {
-        Self::from(names.into_iter().collect::<BTreeSet<_>>())
+        names.into_iter().map(Name::from).collect()
     }
 }
 
@@ -593,7 +725,7 @@ impl Provenance {
     }
 
     /// The names this value read itself: `evidence` less `inherited`.
-    pub fn own_evidence(&self) -> impl Iterator<Item = &String> {
+    pub fn own_evidence(&self) -> impl Iterator<Item = &Name> {
         self.evidence
             .iter()
             .filter(|name| !self.inherited.contains(*name))
@@ -690,7 +822,7 @@ impl Provenance {
     pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
-        let mut check = |name: &String| {
+        let mut check = |name: &str| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
