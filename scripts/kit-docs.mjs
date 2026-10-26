@@ -14,7 +14,7 @@ export const KIT_DOCUMENTS = [
 ];
 
 const BLOCKS = {
-  'README.md': ['identity', 'starter'],
+  'README.md': ['identity', 'install', 'starter'],
   'docs/GETTING_STARTED.md': ['identity', 'install'],
   'docs/AGENT_START.md': ['identity', 'starter'],
   'docs/NAMES.md': ['identity'],

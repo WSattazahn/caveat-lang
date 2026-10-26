@@ -1,6 +1,6 @@
 # CAVEAT Across Members 0.1 (draft) — a sum, or "any", over a kind's members
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5: specified on its branch, not yet in a release. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put `for` where an expression goes, which does not load in 1.3.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5: specified on its branch, not yet in a release. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put `for` where an expression goes, which does not load in 1.4.
 
 A [`for` block](caveat-repetition-0.1.md) writes a statement once per member
 of a kind. An expression that reads every member is still written by hand.

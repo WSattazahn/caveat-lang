@@ -1,6 +1,6 @@
 # CAVEAT Foreclosure 0.2 — decisions that rule options out while in force
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4: it becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4. It adds to
 [Foreclosure 0.1](caveat-foreclosure-0.1.md),
 [Holds 0.1](caveat-holds-0.1.md) and
 [Dispatch 0.1](caveat-dispatch-0.1.md); it changes no program that loads

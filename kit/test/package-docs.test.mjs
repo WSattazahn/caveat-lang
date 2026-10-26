@@ -6,7 +6,7 @@ import { checkPackageDocuments, checkReadmeLinks, checkRegistryIdentity, package
 
 const previous = { name: 'caveat-lang', version: '0.1.0-rc.8' };
 const candidate = { name: 'caveat-lang', version: '0.1.0-rc.9' };
-const readme = manifest => `# CAVEAT Language\n\n${packageBlock(manifest, 'identity')}\n\nIntroduced in 0.1.0-rc.7, caveat-lang is the unambiguous command.\n\n${packageBlock(manifest, 'starter')}\n`;
+const readme = manifest => `# CAVEAT Language\n\n${packageBlock(manifest, 'identity')}\n\nIntroduced in 0.1.0-rc.7, caveat-lang is the unambiguous command.\n\n${packageBlock(manifest, 'install')}\n\n${packageBlock(manifest, 'starter')}\n`;
 
 test('a version change regenerates identity and install commands while retaining history', () => {
   const changed = renderPackageDocument('README.md', readme(previous), candidate);

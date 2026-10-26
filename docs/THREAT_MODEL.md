@@ -33,6 +33,7 @@ outside itself.
 | --- | --- | --- |
 | Program source (`.cav`) | Author, agent or MCP client | Untrusted text: parsed and checked, never executed as host code |
 | Events and scenario files | Host, agent or test author | Untrusted data: each event is accepted or refused as a whole |
+| Agent named on an event (from 1.4.0) | Host | The host's word, not authenticated: the runtime checks that the program lets that agent send the event and records the name, not who really sent it ([Agents 0.1](../spec/caveat-agents-0.1.md)) |
 | Saves | Whoever stored them | Untrusted data checked against the program, not authenticated |
 | MCP requests (stdio or HTTP) | Any connected client | Untrusted JSON-RPC with size, depth and time limits |
 | npm tarball and crates | The release workflow and crates.io | Verified by hash, provenance and audit before publishing |
@@ -50,6 +51,9 @@ outside itself.
 - **Resource exhaustion.** Each event and each procedure is bounded by a work
   limit (`MAX_EVENT_STEPS`, `MAX_PROCEDURE_STEPS` in
   [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it;
+  from 1.4.0 an expression whose lineage or evaluation would outgrow its
+  caps is refused as `limit/provenance_limit` or `limit/evaluation_limit`
+  instead of ending the session;
   streams and decision series have declared limits. Memory
   exhaustion traps the instance, and the kit reports it as `fatal` and loads a
   fresh one ([kit README](../kit/README.md)).
