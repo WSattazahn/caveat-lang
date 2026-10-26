@@ -2,7 +2,8 @@
 // record per occurrence, the first one kept; `withdrawn(E)` and
 // `withdrawn(latest(S))` ask that record for the current occurrence or
 // reading, so a renewal or a new reading starts clean; a current value
-// carries `withdrawn` exactly when its grounds hold a withdrawn occurrence;
+// carries `withdrawn` exactly when its lineage or grounds hold a withdrawn
+// occurrence, including evidence only a guard read (`v_g`);
 // and the graph and the records agree, each record with its
 // `withdrawn qualifies E` relation and each relation with its record.
 // Checked against the snapshot after every accepted event, with saves and
@@ -23,6 +24,7 @@ state v_e = 0;
 state v_s = 0;
 state v_h = 0;
 state v_mix = 0;
+state v_g = 0;
 event see_e;
 event see_f;
 event see_h;
@@ -35,6 +37,7 @@ event set_ve;
 event set_vs;
 event set_vh;
 event set_mix;
+event set_vg;
 event doubt_e;
 event undoubt_e;
 on see_e reveal e supports ok;
@@ -49,6 +52,8 @@ on set_ve when observed(e) set v_e = qualified(1, e);
 on set_vs when has_sample(s) set v_s = latest(s);
 on set_vh when observed(h) set v_h = qualified(1, h);
 on set_mix when observed(e) and has_sample(s) set v_mix = qualified(1, e) + latest(s);
+# Only the guard reads e: v_g is grounded on h alone, but e is in its lineage.
+on set_vg when observed(e) and observed(h) set v_g = qualified(1, h);
 on doubt_e when observed(e) qualify e with flaky;
 on undoubt_e unqualify e with flaky;
 bind view.wd_e = if(withdrawn(e), 1, 0);
@@ -58,11 +63,12 @@ bind view.hc_ve = if(has_caveat(v_e, withdrawn), 1, 0);
 bind view.hc_vs = if(has_caveat(v_s, withdrawn), 1, 0);
 bind view.hc_vh = if(has_caveat(v_h, withdrawn), 1, 0);
 bind view.hc_mix = if(has_caveat(v_mix, withdrawn), 1, 0);
+bind view.hc_vg = if(has_caveat(v_g, withdrawn), 1, 0);
 bind view.obs_e = if(observed(e), 1, 0);
 bind view.obs_h = if(observed(h), 1, 0);
 "#;
 
-const EVENTS: [&str; 14] = [
+const EVENTS: [&str; 15] = [
     "see_e",
     "see_f",
     "see_h",
@@ -75,6 +81,7 @@ const EVENTS: [&str; 14] = [
     "set_vs",
     "set_vh",
     "set_mix",
+    "set_vg",
     "doubt_e",
     "undoubt_e",
 ];
@@ -159,36 +166,54 @@ fn check(shown: &Value, at: &str) {
             "{at}: withdrawn(latest(s)) shown with no reading"
         ),
     }
-    // A current value carries `withdrawn` exactly when its grounds hold a
-    // withdrawn occurrence.
-    for (state, binding) in [
-        ("v_e", "hc_ve"),
-        ("v_s", "hc_vs"),
-        ("v_h", "hc_vh"),
-        ("v_mix", "hc_mix"),
-    ] {
-        let grounds = &shown["value_grounds"][state];
-        let evidence = grounds["evidence"]
+    // A state's grounds carry `withdrawn` exactly when they hold a withdrawn
+    // occurrence, and `has_caveat` asks its grounds (State Caveats 0.1). Its
+    // value carries `withdrawn` exactly when its lineage holds one, even
+    // evidence only a guard read (Withdrawal 0.1, "What `withdraw` does",
+    // step 2).
+    let occurrences = |provenance: &Value| {
+        provenance["evidence"]
             .as_array()
             .map(|list| {
                 list.iter()
                     .map(|item| item.as_str().unwrap().to_string())
                     .collect::<Vec<_>>()
             })
-            .unwrap_or_default();
-        let carries = grounds["caveats"]
+            .unwrap_or_default()
+    };
+    let has_withdrawn = |provenance: &Value| {
+        provenance["caveats"]
             .as_array()
-            .is_some_and(|list| list.iter().any(|caveat| caveat == "withdrawn"));
-        let rests_on_withdrawn = evidence
+            .is_some_and(|list| list.iter().any(|caveat| caveat == "withdrawn"))
+    };
+    for (state, binding) in [
+        ("v_e", "hc_ve"),
+        ("v_s", "hc_vs"),
+        ("v_h", "hc_vh"),
+        ("v_mix", "hc_mix"),
+        ("v_g", "hc_vg"),
+    ] {
+        let grounds = &shown["value_grounds"][state];
+        let rests_on_withdrawn = occurrences(grounds)
             .iter()
             .any(|occurrence| withdrawn.contains(occurrence));
         assert_eq!(
-            carries, rests_on_withdrawn,
+            has_withdrawn(grounds),
+            rests_on_withdrawn,
             "{at}: {state} grounds {grounds} against withdrawals {withdrawn:?}"
+        );
+        let lineage = &shown["qualified_values"][state]["provenance"];
+        let reached = occurrences(lineage)
+            .iter()
+            .any(|occurrence| withdrawn.contains(occurrence));
+        assert_eq!(
+            has_withdrawn(lineage),
+            reached,
+            "{at}: {state} lineage {lineage} against withdrawals {withdrawn:?}"
         );
         assert_eq!(
             bound(shown, binding),
-            flag(carries),
+            flag(rests_on_withdrawn),
             "{at}: has_caveat({state}, withdrawn)"
         );
     }
@@ -202,7 +227,7 @@ fn the_withdrawal_program_loads() {
 #[test]
 fn withdrawals_keep_one_record_and_reach_exactly_what_rests_on_them() {
     let mut seed: u64 = 0x9b05_688c_2b3e_6c1f;
-    let (mut accepted, mut withdrawals, mut repeats) = (0, 0, 0);
+    let (mut accepted, mut withdrawals, mut repeats, mut lineage_only) = (0, 0, 0, 0);
     for run in 0..300 {
         let mut game = ReactiveSession::from_source(SOURCE).unwrap();
         let mut trail = Vec::new();
@@ -240,6 +265,14 @@ fn withdrawals_keep_one_record_and_reach_exactly_what_rests_on_them() {
             let shown = snapshot(&game);
             let at = format!("run {run} step {step} after {event}: {trail:?}");
             check(&shown, &at);
+            // v_g carries `withdrawn` from evidence only its guard read.
+            if bound(&shown, "hc_vg") == Some(0.0)
+                && shown["qualified_values"]["v_g"]["provenance"]["caveats"]
+                    .as_array()
+                    .is_some_and(|list| list.iter().any(|caveat| caveat == "withdrawn"))
+            {
+                lineage_only += 1;
+            }
             let was = withdrawn_set(&before);
             let now = withdrawn_set(&shown);
             // A retract whose guard held withdrew its target, or found it
@@ -320,9 +353,16 @@ fn withdrawals_keep_one_record_and_reach_exactly_what_rests_on_them() {
             before = shown;
         }
     }
-    eprintln!("{accepted} accepted events, {withdrawals} withdrawals, {repeats} repeated");
+    eprintln!(
+        "{accepted} accepted events, {withdrawals} withdrawals, {repeats} repeated, \
+         {lineage_only} lineage-only"
+    );
     assert!(
         withdrawals > 400 && repeats > 300,
         "the alphabet barely withdrew: {withdrawals} / {repeats}"
+    );
+    assert!(
+        lineage_only > 50,
+        "a guard-only withdrawal barely reached v_g: {lineage_only}"
     );
 }
