@@ -779,46 +779,47 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
         .contains("depth"));
 }
 
-// A fault no catalog code classifies, so the event stays fatal: under `rule`,
-// two 32,768-byte evidence names and one more fill value provenance past its
-// 65,536 name bytes. `id_text` of a non-handle served as this example until it
-// became `evaluation/expression` (F309).
-fn provenance_overflow(rule: &str) -> String {
-    let (left, right) = ("a".repeat(32_768), "b".repeat(32_768));
+// A bound text past its 65,536 bytes was the last fault no catalog code
+// classified, so it ended the session: under `rule`, a number whose text adds
+// 17 bytes to a 65,520-byte bound text takes the binding past its 65,536
+// bytes, while the expression's own source stays within its 65,536. Since
+// D025 it is refused as `limit/text_limit` (runtime/tests/d025_text_limit.rs).
+// Value provenance past its name bytes served as the fatal example until it
+// became `limit/provenance_limit` (D022), and `id_text` of a non-handle before
+// that (F309). No program is known to reach a fatal outcome now; the fatal
+// report's shape is the outcome module's own test and the kit's faulting
+// runtime fixture.
+fn text_overflow(rule: &str) -> String {
+    let wide = "A".repeat(65_520);
     format!(
-        "evidence {left} from left_sensor; evidence {right} from right_sensor;\n\
-         evidence extra from extra_sensor;\n\
-         state wide_left = 0; state wide_right = 0; state wide = 0;\n\
-         {rule} reveal {left}; {rule} reveal {right}; {rule} reveal extra;\n\
-         {rule} set wide_left = qualified(1, {left});\n\
-         {rule} set wide_right = qualified(2, {right});\n\
-         {rule} set wide = wide_left + wide_right + qualified(0, extra);\n"
+        "state big = 0 min 0 max 2000000;\n\
+         {rule} set big = 1234567.123456789;\n\
+         bind wide.text = \"{wide}\" + text(big);\n"
     )
 }
 
 #[test]
-fn unclassified_expression_errors_are_fatal_and_atomic() {
+fn a_text_past_its_limit_is_refused_on_both_paths_and_changes_nothing() {
     for rule in ["on run", "on run when output > 0"] {
         let source = format!(
             "state output = 0; event run; on run set output = 1;\n{}",
-            provenance_overflow(rule)
+            text_overflow(rule)
         );
         let mut game = session(&source);
         let mut legacy = session(&source);
         let mut core = ReactiveSession::from_source(&source).unwrap();
         let before = checkpoint(&game);
-        let error = json(&game.dispatch_outcome("run", "{}").unwrap_err());
-        assert_eq!(error["schema"], SCHEMA);
-        assert_eq!(error["outcome"], "fatal");
-        assert_eq!(error["code"], "unclassified");
-        assert_eq!(error["message"], legacy.dispatch("run", "{}").unwrap_err());
-        assert!(error.get("origin").is_none());
-        assert!(error.get("snapshot").is_none());
+        let result = rejected(&mut game, "run", "{}", "limit", "text_limit");
+        assert_eq!(result["message"], legacy.dispatch("run", "{}").unwrap_err());
+        assert!(result["message"]
+            .as_str()
+            .unwrap()
+            .ends_with("expression text exceeds limit 65536 bytes"));
         assert_eq!(checkpoint(&game), before);
         assert_eq!(checkpoint(&legacy), before);
         assert_eq!(
-            serde_json::to_value(core.dispatch_outcome_json("run", "{}").unwrap_err()).unwrap(),
-            error,
+            serde_json::to_value(core.dispatch_outcome_json("run", "{}").unwrap()).unwrap(),
+            result,
         );
     }
 }
@@ -898,25 +899,24 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 }
 
 #[test]
-fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
+fn a_text_past_its_limit_is_the_same_refusal_on_the_view_path() {
     for rule in ["on run", "on run when output > 0"] {
         let source = format!(
             "state output = 0; event run; on run set output = 1;\n{}",
-            provenance_overflow(rule)
+            text_overflow(rule)
         );
         let mut game = session(&source);
         let mut viewed = session(&source);
         let mut core = ReactiveSession::from_source(&source).unwrap();
         let before = checkpoint(&viewed);
-        let fatal = viewed.dispatch_view_outcome("run", "{}").unwrap_err();
-        assert_eq!(fatal, game.dispatch_outcome("run", "{}").unwrap_err());
-        assert_eq!(json(&fatal)["outcome"], "fatal");
-        assert_eq!(json(&fatal)["code"], "unclassified");
+        let refused = viewed.dispatch_view_outcome("run", "{}").unwrap();
+        assert_eq!(refused, game.dispatch_outcome("run", "{}").unwrap());
+        assert_eq!(json(&refused)["outcome"], "rejected");
+        assert_eq!(json(&refused)["code"], "text_limit");
         assert_eq!(checkpoint(&viewed), before);
         assert_eq!(
-            serde_json::to_string(&core.dispatch_view_outcome_json("run", "{}").unwrap_err())
-                .unwrap(),
-            fatal
+            serde_json::to_string(&core.dispatch_view_outcome_json("run", "{}").unwrap()).unwrap(),
+            refused
         );
     }
 }

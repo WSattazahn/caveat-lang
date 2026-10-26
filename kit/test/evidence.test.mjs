@@ -8,7 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatFileReport, parseScenarioFile, runScenarioFile, ScenarioFileError } from '../lib/scenarios.mjs';
 import { real } from './helpers.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { faulting } from './fatal-fixture.mjs';
 
 const evidence = fileURLToPath(new URL('../../experiments/scenario-format/', import.meta.url));
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
@@ -59,18 +59,17 @@ for (const [name, [result, detail]] of Object.entries(expected)) {
   });
 }
 
-// The preserved fixture's peek no longer reaches a fatal error, so read it with
-// one that does: value provenance past its name-byte limit. The
-// file under experiments/ is unchanged.
+// The preserved fixture's peek no longer reaches a fatal error, and no program
+// does, so run it on a runtime whose sessions throw the fatal report for
+// `peek`. The file under experiments/ is unchanged.
 test('a fatal outcome never satisfies an expected rejection', async () => {
   const file = path.join(evidence, 'faults/neg-fatal-not-a-rejection.scenarios.json');
   const outcome = await runScenarioFile(parseScenarioFile(await readFile(file, 'utf8')), {
-    runtime: real, file: 'fatal',
+    runtime: faulting('peek').runtime, file: 'fatal',
     readSource: async relative => {
       const source = await readFile(path.resolve(path.dirname(file), relative), 'utf8');
       assert.match(source, /history_at\(sample, 5\)/);
-      return source.replace('on peek set level = history_at(sample, 5);',
-        'on peek set level = 7;\n' + provenanceOverflow('on peek'));
+      return source.replace('on peek set level = history_at(sample, 5);', 'on peek set level = 7;');
     },
   });
   const failed = outcome.scenarios.filter(scenario => !scenario.pass);

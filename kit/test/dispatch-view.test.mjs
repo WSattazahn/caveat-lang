@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CaveatError, createRuntime } from '../lib/session.mjs';
 import { Real, faulty, real, thermostat, trail } from './helpers.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { FATAL_EVENT, faulting } from './fatal-fixture.mjs';
 
 const state = session => ({ save: session.save(), snapshot: session.snapshotText(), view: session.viewText() });
 
@@ -111,6 +111,12 @@ const REFUSALS = [
   ['limit', 'history_limit', 'claim safe; evidence gauge from "a gauge"; readings depth from gauge limit 1; event read value min 0 max 9; on read sample depth = value supports safe;', [['read', { value: 1 }]], ['read', { value: 2 }]],
   ['limit', 'identifier_limit', 'identifiers limit 1; state head = 0; event pushed commit id; on pushed set head = commit; bind pr.head = id_text(head);', [['pushed', { commit: 'a' }]], ['pushed', { commit: 'b' }]],
   ['limit', 'renewal_limit', 'claim safe; evidence bite from "a bite"; renewable bite limit 1; event regrow; proc again() { renew bite; }; on regrow call again();', [], ['regrow']],
+  // D022: two renewables give a state's lineage two occurrences per step, so the 513th step would pass 1,024 identifiers.
+  ['limit', 'provenance_limit', 'claim c; evidence a from "a"; evidence b from "b"; renewable a limit 1024; renewable b limit 1024; state acc = 0 min 0 max 1000000; event step; on step renew a; on step renew b; on step reveal a supports c; on step reveal b supports c; on step set acc = acc + qualified(1, a) + qualified(1, b);', Array.from({ length: 512 }, () => ['step']), ['step']],
+  // D025: the number's text adds 17 bytes to a 65,520-byte bound text, past the 65,536 a text may hold.
+  ['limit', 'text_limit', `state big = 0 min 0 max 2000000; event run; on run set big = 1234567.123456789; bind wide.text = "${'A'.repeat(65520)}" + text(big);`, [], ['run']],
+  // D023: each reading costs the fold about 670 nodes, so the 99th read's fold would pass 65,536.
+  ['limit', 'evaluation_limit', `claim c; evidence probe from "a probe"; readings temps from probe limit 256; fn f(r) = ${Array.from({ length: 40 }, () => 'r').join(' + ')}; fn g(r) = ${Array.from({ length: 8 }, () => 'f(r)').join(' + ')}; fn heavy(total, reading) = total + g(reading); state s = 0 min -1000000000000 max 1000000000000; event read v min 0 max 1; on read sample temps = v supports c; on read set s = fold_history(temps, 0, heavy);`, Array.from({ length: 98 }, () => ['read', { v: 1 }]), ['read', { v: 1 }]],
 ];
 
 test('every refusal is the object dispatch() returns, and changes nothing', () => {
@@ -128,12 +134,16 @@ test('every refusal is the object dispatch() returns, and changes nothing', () =
 });
 
 test('a fatal outcome is the report dispatch() throws, and ends the session', () => {
-  for (const rule of ['on run', 'on run when output > 0']) {
-    const source = `state output = 0; event run; on run set output = 1; ${provenanceOverflow(rule)}`;
-    twins(source, (old, viewed) => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const { runtime } = faulting();
+  const source = `state output = 0; event run; event ${FATAL_EVENT}; on run set output = 1;`;
+  const old = runtime.open(source);
+  const viewed = runtime.open(source);
+  try {
+    {
       let expected;
-      assert.throws(() => old.dispatch('run'), error => { expected = error; return error.kind === 'fatal'; });
-      assert.throws(() => viewed.dispatchView('run'), error => {
+      assert.throws(() => old.dispatch(FATAL_EVENT), error => { expected = error; return error.kind === 'fatal'; });
+      assert.throws(() => viewed.dispatchView(FATAL_EVENT), error => {
         assert.ok(error instanceof CaveatError);
         assert.equal(error.kind, 'fatal');
         assert.equal(error.message, expected.message);
@@ -145,8 +155,8 @@ test('a fatal outcome is the report dispatch() throws, and ends the session', ()
       for (const call of ['dispatchView', 'dispatch', 'snapshot', 'view', 'save']) {
         assert.throws(() => viewed[call]('run'), error => error.kind === 'fatal', call);
       }
-    });
-  }
+    }
+  } finally { old.close(); viewed.close(); }
 });
 
 test('after a fatal outcome of either path, neither reaches the runtime', () => {

@@ -1,0 +1,14 @@
+{"event":"published","payload":{"study":"nejm"}}
+{"event":"conclude"}
+{"event":"published","payload":{"study":"lancet"}}
+{"event":"conclude"}
+{"event":"pause_announced"}
+{"event":"revise_guidance"}
+{"event":"concern","payload":{"study":"nejm"}}
+{"event":"concern","payload":{"study":"lancet"}}
+{"event":"dsmb_review"}
+{"event":"retracted","payload":{"study":"lancet"}}
+{"event":"retracted","payload":{"study":"nejm"}}
+{"event":"recovery_reported"}
+{"event":"conclude"}
+{"event":"revise_guidance"}

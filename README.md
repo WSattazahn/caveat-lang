@@ -19,14 +19,14 @@ original grounds. Your application stores the events; Caveat does not sign
 them or authenticate the evidence, so it complements your platform's identity,
 permission and logging controls rather than replacing them.
 
-The published release is **1.3.0**, the third minor release of 1.x. See the
-[1.3.0 release record](docs/releases/v1.3.0.md) for what it adds and the
+The published release is **1.4.0**, the fourth minor release of 1.x. See the
+[1.4.0 release record](docs/releases/v1.4.0.md) for what it adds and the
 [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
 
-> npm publication verified 2026-10-24T21:57:39.727Z: exact **caveat-lang@1.3.0**,
-> tested Linux artifact SHA256 `5c3eb33e973fb000a117e5944bd9d7aa72a1371119e7e1735d83d152c449f136`.
-> Published by `publish-npm.yml` from tag `v1.3.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.3.0 on 2026-10-24.
-> [Publication record](docs/releases/v1.3.0-npm-publication.json).
+> npm publication verified 2026-10-26T17:25:41.727Z: exact **caveat-lang@1.4.0**,
+> tested Linux artifact SHA256 `186cc3f889f07575f87dfb974a1b73bf473bc7261c50e1d3ed7f4fcffd9d4b48`.
+> Published by `publish-npm.yml` from tag `v1.4.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.4.0 on 2026-10-26.
+> [Publication record](docs/releases/v1.4.0-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -34,12 +34,54 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published release, **1.3.0**, in an empty directory with Node 20 or
-later. No Rust installation is needed:
+Try the published release, **1.4.0**, in an empty directory with Node 20 or
+later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.3.0
+npm install caveat-lang@1.4.0
+```
+
+Then paste this "hello, world": one piece of evidence, one decision resting on
+it, and one event that withdraws the evidence and reopens the decision.
+
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
+```
+
+Part of what it prints:
+
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision was reopened when the CI result it rested on was withdrawn, and
+it still says what it was first based on. For a fuller program with a caveat,
+scenarios and a displayed value, `init` writes the getting-started starter:
+
+```sh
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -74,6 +116,7 @@ on `rain_chance@1` and its `forecast_is_old` caveat after `sky` reopened it.
 | To | Start with |
 | --- | --- |
 | Try Caveat by hand | [Getting started](kit/docs/GETTING_STARTED.md) |
+| Give an agent an undo list in 15 minutes | [An agent with an undo list](docs/tutorials/agent-undo-list/README.md) |
 | Give an agent Caveat's tools over MCP | [MCP server](#mcp-server) |
 | Integrate Caveat into an agent or application | [Agent quickstart](kit/docs/AGENT_START.md) and the [Python client](kit/examples/agent-evidence/README.md) |
 | Write Caveat source | [The language in brief](kit/docs/REFERENCE.md) and the [authoring guide](docs/AI_AUTHORING.md) |
@@ -93,7 +136,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With 1.3.0 installed, use `npx --no-install caveat-lang doctor` to check it and
+With 1.4.0 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -252,7 +295,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@1.3.0", "mcp"]
+      "args": ["-y", "caveat-lang@1.4.0", "mcp"]
     }
   }
 }
@@ -318,6 +361,16 @@ forecasts. It adds two refusal codes, both for the new syntax. A program that
 loads on 1.2.0 gives the same results on 1.3.0, and every earlier save restores
 as it was recorded. The
 [1.3.0 verified publication record](docs/releases/v1.3.0.md) lists each
+addition.
+
+1.4.0 adds agents that may send only their own events, withdrawing everything
+an untrusted source said, `only_if`, `carries_any`, reversible foreclosure and
+a strict irreversible mode, and in the kit `review`, ledger sets, what-if runs,
+handoff and save helpers. It adds four refusal codes, two for new syntax and
+two for inputs that ended the session before, and fixes saves that would not
+restore (D021). A program that loads on 1.3.0 gives the same results on 1.4.0
+apart from those fixes, and every earlier save restores as it was recorded. The
+[1.4.0 verified publication record](docs/releases/v1.4.0.md) lists each
 addition.
 
 rc.20 clarified when to use each MCP tool, its

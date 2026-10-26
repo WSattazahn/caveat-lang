@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
 import { defaultRuntimeDirectory } from '../lib/node.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
@@ -26,7 +26,6 @@ on assess commit plan because enough using latest(values);
 on refuse set touched = 1;
 on refuse reject "fixture policy";
 on fault set touched = 7;
-${provenanceOverflow('on fault')}
 bind display.value = touched;
 `;
 const events = [
@@ -101,10 +100,12 @@ test('strict warnings, syntax errors and scenario assertion failures retain auth
 });
 
 test('policy refusal remains an outcome and fatal dispatch reports the last good snapshot', async () => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const runtimeDirectory = await faultingRuntimeDirectory();
   const sent = [...events, { event: 'fault' }, { event: 'read', payload: { value: 90 } }];
   const command = await cliFixture(source, sent);
-  const result = await bridge('explain', { source, events: sent });
-  const expected = command(['explain', '--json', 'inline.cav', 'events.jsonl']);
+  const result = await runAuthoringOperation('caveat_explain', { source, events: sent }, { runtimeDirectory });
+  const expected = command(['explain', '--runtime', runtimeDirectory, '--json', 'inline.cav', 'events.jsonl']);
   assert.equal(result.exitCode, 1);
   assert.deepEqual(result.report, JSON.parse(expected.stdout));
   assert.deepEqual(result.report.events.map(item => item.outcome.outcome), ['accepted', 'accepted', 'rejected', 'fatal']);

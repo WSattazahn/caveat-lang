@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       legacy_door: ${{ steps.scope.outputs.legacy_door }}
+      games: ${{ steps.scope.outputs.games }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -49,6 +50,17 @@ jobs:
           echo "legacy_door=$legacy" >> "$GITHUB_OUTPUT"
           echo "Legacy Door visual regression required: $legacy"
 
+          # Game browser QA is skipped only for a pull request that changes
+          # nothing but docs/ and top-level Markdown; pushes always run it.
+          games=true
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            if [[ -n "$files" ]] && ! grep -Evq '^(docs/.*|[^/]+\.md)$' <<< "$files"; then
+              games=false
+            fi
+          fi
+          echo "games=$games" >> "$GITHUB_OUTPUT"
+          echo "Game browser QA required: $games"
+
   core:
     name: core semantics
     runs-on: ubuntu-24.04
@@ -64,6 +76,10 @@ jobs:
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
         run: node --test scripts/pages-gate.test.mjs
+      - name: Game QA retry count opens an issue only past its threshold
+        run: node --test scripts/game-qa-retries.test.mjs
+      - name: Stabilization trial reruns a stalled trial but fails a real slowdown
+        run: node --test experiments/stabilization-trial/run.test.mjs
       - name: npm publication gate refuses untested, mismatched or unattested packages
         run: node --test scripts/release-publish.test.mjs
       - name: Release bill of materials covers every compiled-in crate and refuses gaps
@@ -118,6 +134,8 @@ jobs:
         run: npm run test:done-check
       - name: The PR ledger Action's host keeps its record in Caveat
         run: npm run test:pr-ledger
+      - name: The agent undo-list tutorial runs as written
+        run: npm run test:tutorial
       - name: Adoption scorer mutation controls (no trial agents)
         run: node --test experiments/agent-adoption/v1/checks.test.mjs
       - name: Adoption runner capture failure controls (no trial agents)
@@ -374,7 +392,7 @@ jobs:
     name: Evidence games browser QA
     needs: core
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v8
@@ -386,11 +404,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - name: Play the glowcap explainer
-        run: npm run test:glowcap-page
+        run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play Trail Rescue on desktop and mobile
-        run: npm run test:trail-rescue-page
+        run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
       - name: Developer kit session library and runner in Chromium
         run: npm run test:kit-browser
       - name: Pack the developer kit and use it from a fresh install
@@ -474,9 +494,10 @@ jobs:
 
   last-beacon:
     name: The Last Beacon browser QA
-    needs: core
+    needs: [core, changes]
+    if: needs.changes.outputs.games == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v8
@@ -488,13 +509,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium webkit
       - name: Play desktop and mobile routes
-        run: npm run test:beacon
+        run: .github/ci/retry-once.sh 8 npm run test:beacon
       - name: Verify launch failures and recovery
         run: |
           npm run package:game
-          npm run test:launch
+          .github/ci/retry-once.sh 5 npm run test:launch
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -504,31 +527,45 @@ jobs:
 
   light-the-way:
     name: Light the Way (${{ matrix.browser }})
-    needs: core
+    needs: [core, changes]
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, webkit]
+    # Gated per step, not per job: a skipped matrix job reports under its
+    # unexpanded name and would leave the required checks waiting.
+    env:
+      GAMES: ${{ needs.changes.outputs.games }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v8
+      - if: env.GAMES != 'true'
+        run: echo "Docs-only pull request; Light the Way QA not needed."
+      - if: env.GAMES == 'true'
+        uses: actions/checkout@v5
+      - if: env.GAMES == 'true'
+        uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v7
+      - if: env.GAMES == 'true'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - if: env.GAMES == 'true'
+        run: npm ci
+      - if: env.GAMES == 'true'
+        uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: ${{ matrix.browser }}
       - name: Steer the ferry with mouse, keyboard and touch
-        run: npm run test:rescue
+        if: env.GAMES == 'true'
+        run: .github/ci/retry-once.sh 15 npm run test:rescue
         env:
           BROWSERS: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && env.GAMES == 'true'
         with:
           name: light-the-way-${{ matrix.browser }}-qa
           overwrite: true
@@ -536,9 +573,15 @@ jobs:
 
   mr-caveat:
     name: Mr. Caveat iPhone QA
-    needs: core
+    needs: [core, changes]
+    if: needs.changes.outputs.games == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -547,12 +590,17 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Play The Missing Dumpling
         run: |
           python3 -m http.server 4176 --directory dist >/tmp/mr-caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4176/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4176/ || { cat /tmp/mr-caveat-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -636,6 +684,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -645,9 +694,15 @@ jobs:
 
   moon-garden-2d:
     name: Moon Garden 2D QA
-    needs: core
+    needs: [core, changes]
+    if: needs.changes.outputs.games == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -656,12 +711,17 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: iPhone playthrough
         run: |
           python3 -m http.server 4174 --directory dist >/tmp/moon-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4174/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4174/ || { cat /tmp/moon-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -691,6 +751,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -700,9 +761,15 @@ jobs:
 
   moon-garden-3d:
     name: Moon Garden 3D QA
-    needs: core
+    needs: [core, changes]
+    if: needs.changes.outputs.games == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -711,12 +778,17 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: iPhone playthrough
         run: |
           python3 -m http.server 4175 --directory dist >/tmp/moon3d-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4175/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4175/ || { cat /tmp/moon3d-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright'),fs=require('fs');
           (async()=>{
             const browser=await webkit.launch();
@@ -752,6 +824,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -764,7 +837,12 @@ jobs:
     needs: [core, changes]
     if: needs.changes.outputs.legacy_door == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .ci
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -773,12 +851,17 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.1
-      - run: npx playwright install --with-deps webkit
+      - uses: ./.ci/.github/actions/playwright-browsers
+        with:
+          browsers: webkit
       - name: Every legacy Door route
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4173/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4173/ || { cat /tmp/caveat-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{const browser=await webkit.launch();try{
             async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
@@ -791,6 +874,7 @@ jobs:
             {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.close()}
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:

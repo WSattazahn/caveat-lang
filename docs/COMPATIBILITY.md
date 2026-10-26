@@ -15,7 +15,7 @@ material or anything else that shares the repository.
 | Language | Syntax, and what an accepted program computes, decides, refuses and explains | [`spec/caveat-0.1.md`](../spec/caveat-0.1.md) and every implemented profile in `spec/`, listed under "Specifications" below |
 | Dispatch outcomes | `accepted` or `rejected`; every rejection's `origin` and `code`; a fatal error is neither | [Dispatch 0.1](../spec/caveat-dispatch-0.1.md), "Origins and codes" |
 | CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
-| Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, `./handoff` (sessions scoped to some events, and replay between sessions), and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
+| Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, `./handoff` (sessions scoped to some events, and replay between sessions), `./saves` (from 1.4.0: a replay save's events read back by name, and replayed onto a changed program), and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
@@ -42,10 +42,12 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `identifier_limit`, `renewal_limit`, `scheduled_limit`, from 1.1.0
 `already_committed`, from 1.2.0 `foreclosed` and
 `caveated_irreversible`, from 1.3.0 `already_resolved` and
-`not_retained`, and from 1.4.0 `reason_spent`. A 1.x release never
-renames or removes one, and never moves an input from one code to another. It
-may add a code only for an input that was refused or fatal before, or for new
-syntax. Hosts should treat an unknown code as a refusal.
+`not_retained`, and from 1.4.0 `reason_spent`, `provenance_limit`,
+`evaluation_limit` and `wrong_agent`, and from 1.4.1 `text_limit`. A 1.x
+release never renames or removes
+one, and never moves an input from one code to another. It may add a code only
+for an input that was refused or fatal before, or for new syntax. Hosts should
+treat an unknown code as a refusal.
 
 ### Specifications
 
@@ -56,9 +58,6 @@ checks that the two agree.
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
   implements yet.
-- The 1.4 drafts `caveat-review-0.1.md` and
-  `caveat-untrusted-sources-0.1.md`, which become stable when a 1.x release
-  ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
@@ -94,6 +93,53 @@ profiles define what the package does with it.
   profiles state.
 - **The verification record.** `caveat-verification-0.1` is a repository
   process CI runs; it promises nothing to a host.
+
+## Visible but not promised
+
+With enough users, every behavior a host can observe will be depended on by
+somebody, promised or not. This section names behaviors a host can see today
+that 1.x does not promise, and what to depend on instead. It narrows nothing
+above: where "What is stable", the versioning policy or a stable spec keeps
+something, that promise stands.
+
+- **Text written for people.** The text form of a report, printed without
+  `--json`, has no schema. `explain`'s text, and `formatExplanation` in
+  `caveat-lang/explain`, list each refused or fatal event with its `message`,
+  which "Diagnostics and messages" above leaves free to change, so those lines
+  change when a message does. Read `--json`, or the report the library
+  returns. The one message a host may match is a `policy` rejection's, which is
+  exactly the program's quoted literal ([Dispatch 0.1](../spec/caveat-dispatch-0.1.md),
+  "The view path"); a `check` diagnostic's `message` and `suggestion` are text
+  for people as well ([Check 0.1](../spec/caveat-check-0.1.md)).
+- **MCP tool descriptions.** The descriptions of the MCP tools and their
+  parameters are text for models and people, and a release may reword them.
+  The tools' names, arguments and results are what [MCP tools](../kit/docs/MCP.md)
+  defines.
+- **An input staying fatal.** A minor may give a code to an input that was
+  fatal before (see "Rejection origins and codes"), so a fatal outcome can
+  become a rejection. A host should treat a rejection whose code it does not
+  know as a refusal, as said above, and should not rely on an input staying
+  fatal to stop its own work.
+- **A limit refusing.** Refusals at the limits listed under "Limits" may turn
+  into acceptance when a 1.x raises the number. A host that needs a bound
+  writes it into the program, as a declared `limit` or a rule, where the
+  program keeps it.
+- **What is not there yet.** An unknown CLI option exits 2 today, and a minor
+  may give that option a meaning; minors also add exports, schemas, codes and
+  optional fields. Find out what an installed package can do from its
+  version (`caveat-lang --version`), not by provoking an error, and ignore
+  fields you do not know rather than refusing output that has them.
+- **Members the declarations do not name.** The TypeScript declarations in
+  `kit/lib/*.d.mts` are the library's shape. A property or method a returned
+  object happens to have, and the declarations do not name, may change or go.
+- **Starting material.** What `caveat-lang init` writes, and the files under
+  the package's `templates/` and `examples/`, are material to copy.
+  A release may change them; a project keeps the copy it made.
+- **Hosted services.** The hosted MCP server runs a published package under its
+  own settings, such as the scenario steps `caveat_test` may run per call and
+  which version it runs ([hosted MCP README](../hosted-mcp/README.md)). Those
+  are the service's settings, not the package's promise, and they can change
+  between releases.
 
 ## Versioning policy
 

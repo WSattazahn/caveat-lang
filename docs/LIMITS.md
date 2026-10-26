@@ -87,3 +87,72 @@ s.close();
 The `validate` programs are `state s0 = 0;` through `state s(N-1) = 0;`
 followed by `event go;`, one declaration per line, timed with
 `npx --no-install caveat-lang validate`.
+
+## Worst cases
+
+How expensive one event can get, and which cap stops it. Every cap below is
+per session or per event and is checked inside the event's transaction, so
+reaching one never leaves half an event applied. Times were measured
+2026-10-25 on the WebAssembly build from main in the same container, and are
+orders of magnitude only.
+
+**One withdrawal's reach.** A withdrawal adds the `withdrawn` caveat to every
+current value whose lineage or grounds hold the evidence
+([Withdrawal 0.1](../spec/caveat-withdrawal-0.1.md)), so it can touch every
+value the session holds. That is bounded by the program: its states and
+bindings are fixed when it loads, reading streams and decision series hold at
+most 1,024 records between them ([Reactive 0.5](../spec/caveat-reactive-0.5.md)),
+and windowed histories hold at most 65,536 ([compatibility](COMPATIBILITY.md#limits)).
+A withdrawal reopens nothing by itself. Each reopening is an authored step,
+from a rule or a declared trigger, and is charged to the event's budget of
+4,096 steps, past which the event is refused as `limit/work_limit`. A
+reopening does not set off further reopenings: triggers run only when a
+reading is sampled ([Reopening Triggers 0.1](../spec/caveat-reopening-triggers-0.1.md)).
+So one withdrawal reopens at most as many decisions as the program declares,
+and at most 1,024. With 500 decision series all resting on one piece of
+evidence, the event that withdrew it and reopened all 500 took about 68 ms;
+with 100 it took about 5 ms. The cost grows faster than the number of
+decisions.
+
+**Lineage growth.** Lineage only grows by union, so a value can rest on at
+most every name the session holds, and the runtime caps it at 1,024
+identifiers and 65,536 bytes of names
+([Reactive 0.4](../spec/caveat-reactive-0.4.md)). Departed windowed
+records count as one marker per history
+([Lineage Compaction 0.1](../spec/caveat-lineage-compaction-0.1.md)). A
+state that adds two new renewable occurrences to its own lineage every event
+cost about 250 µs per event at 200 names and about 590 µs near 1,000. An
+event that would take a value past the cap is refused with
+`limit/provenance_limit`, and the session goes on (from 1.4.0; before it,
+such an event ended the session as fatal `unclassified`).
+
+**Expression work.** One expression evaluates at most 65,536 nodes, and a
+history fold reads at most 256 records
+([Reactive 0.6](../spec/caveat-reactive-0.6.md)). A fold whose reducer is large can
+reach the node cap once its stream holds enough readings. Such an event is
+refused with `limit/evaluation_limit` (from 1.4.0; before it, fatal
+`unclassified`).
+
+**Text.** A text value, bound or computed, holds at most 65,536 bytes. An
+event whose expression would make a longer one is refused with
+`limit/text_limit`, and the session goes on (from 1.4.1; before it, such an
+event ended the session as fatal `unclassified`, finding D025). A text
+literal past the limit does not load.
+
+**Other per-event caps.** Procedure calls nest at most 64 deep
+(`limit/depth_limit`); at most 4,096 delayed qualifications wait at once
+(`limit/scheduled_limit`); a session holds at most 65,536 identifiers
+(`limit/identifier_limit`). These refuse the event
+([Dispatch 0.1](../spec/caveat-dispatch-0.1.md)).
+
+**What is not bounded per event.** Event time has no fixed bound, and saves,
+archives and memory grow with retained history
+([compatibility](COMPATIBILITY.md#limits)).
+
+**Smallest cause of a refusal.** Caveat reports what a refused event's
+guards read, which can be more than what caused the refusal. Finding the
+smallest set of evidence that explains a failure is a minimal-diagnosis
+problem (Reiter, "A theory of diagnosis from first principles", *Artificial
+Intelligence* 32, 1987). In general it is as hard as minimum hitting set,
+one of Karp's NP-complete problems (Karp, "Reducibility among combinatorial
+problems", 1972). Caveat does not try to compute it.

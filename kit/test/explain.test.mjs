@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { explain, formatExplanation, parseEvents, EXPLAIN_SCHEMA } from '../lib/explain.mjs';
 import { real, repo, thermostat } from './helpers.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
 const example = path.join(repo, 'examples', 'thermostat_history.cav');
@@ -86,6 +86,19 @@ test('the command replays events and lists refusals, which change nothing', asyn
   });
 });
 
+test('prompt-injection limit 6: after a refusal, an accepted event names the #N the decisions cite', async () => {
+  const [first, second, third] = reads.split('\n');
+  await withFiles({ 'events.jsonl': `${first}\n${second}\n{"event":"read","payload":{"value":99}}\n${third}\n` }, async file => {
+    const result = run(example, file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^thermostat_history\.cav after 4 events \(sequence 3\)/);
+    assert.match(result.stdout, / {4}1 {2}read \{"value":17\} {2}accepted\n {4}2 {2}read \{"value":25\} {2}accepted\n/);
+    assert.match(result.stdout, / {4}3 {2}read \{"value":99\} {2}refused \(input\/bound_exceeded\): [^\n]*\n {4}4 {2}read \{"value":17\} {2}accepted as #3\n/);
+    assert.match(result.stdout, /#3 read: /);
+    assert.doesNotMatch(result.stdout, /#4 /);
+  });
+});
+
 test('without events, the command explains the initial session', () => {
   const result = run(example);
   assert.equal(result.status, 0, result.stderr);
@@ -106,11 +119,13 @@ test('a full history refuses the event and the replay continues', async () => {
 });
 
 test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n' + provenanceOverflow('on read when value > 1.5');
-  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
-    const result = run(file('dividing.cav'), file('events.jsonl'));
+  // The fatal event is the fixture runtime's: no program reaches one.
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\nevent fault;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n';
+  const faulted = [{ event: 'read', payload: { value: 1 } }, { event: 'fault' }, { event: 'read', payload: { value: 3 } }].map(event => JSON.stringify(event)).join('\n');
+  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': faulted }, async file => {
+    const result = run('--runtime', await faultingRuntimeDirectory(), file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, / {4}2 {2}read \{"value":2\} {2}failed: /);
+    assert.match(result.stdout, / {4}2 {2}fault .*failed: /);
     assert.doesNotMatch(result.stdout, / {4}3 {2}read/);
     assert.match(result.stdout, /r@1 = 1 supports c/);
     assert.doesNotMatch(result.stdout, /r@2/);
@@ -245,6 +260,41 @@ test('explain and dependents show retired and departed records', async () => {
   assert.deepEqual(session.drainArchive(), []);
   assert.ok(records[1].holders.some(holder => holder.kind === 'commitment' && holder.name === 'trust@1' && holder.in === 'grounds'));
   session.close();
+});
+
+test('a reversible decision forecloses while in force, and explain says so', async () => {
+  const source = `claim out_of_scope;
+evidence review from "a review";
+evidence recheck from "a second look";
+decisions no_rewrite limit 4 forecloses rewrite;
+decisions rewrite limit 4;
+event rule_out;
+event rewrite_it;
+event reconsider;
+on rule_out reveal review supports out_of_scope;
+on rule_out commit no_rewrite because enough citing qualified(1, review);
+on rewrite_it commit rewrite because enough using 1;
+on reconsider reveal recheck opposes out_of_scope;
+on reconsider reopen no_rewrite because recheck;
+`;
+  const events = ['rule_out', 'rewrite_it'].map(event => JSON.stringify({ event })).join('\n');
+  const lifted = ['rule_out', 'reconsider', 'rewrite_it'].map(event => JSON.stringify({ event })).join('\n');
+  await withFiles({ 'rule.cav': source, 'events.jsonl': events, 'lifted.jsonl': lifted }, async file => {
+    const result = run(file('rule.cav'), file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, / {2}no_rewrite: 1 of at most 4, forecloses rewrite\n/);
+    assert.match(result.stdout, / {2}rewrite: 0 of at most 4, foreclosed by no_rewrite@1\n/);
+    assert.match(result.stdout, /rewrite_it {2}refused \(evaluation\/foreclosed\): .*rewrite is foreclosed by no_rewrite@1/);
+    const json = JSON.parse(run('--json', file('rule.cav'), file('events.jsonl')).stdout);
+    const series = Object.fromEntries(json.decisions.map(item => [item.name, item]));
+    assert.equal('irreversible' in series.no_rewrite, false);
+    assert.deepEqual(series.no_rewrite.forecloses, ['rewrite']);
+    assert.deepEqual(series.rewrite.foreclosed_by, ['no_rewrite@1']);
+    const after = JSON.parse(run('--json', file('rule.cav'), file('lifted.jsonl')).stdout);
+    const reopened = Object.fromEntries(after.decisions.map(item => [item.name, item]));
+    assert.equal('foreclosed_by' in reopened.rewrite, false);
+    assert.equal(reopened.rewrite.current, 'rewrite@1');
+  });
 });
 
 test('an irreversible decision shows what it forecloses, and a refused commit names it', async () => {

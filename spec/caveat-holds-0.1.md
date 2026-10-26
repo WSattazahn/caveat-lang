@@ -200,3 +200,12 @@ the 30 that do not load give the same error. No accepted program changes.
 ## Changes
 
 - 2026-10-19: specified and implemented for 1.2.
+- 2026-10-25: D021 fixed. A reopening with several causes reopened the
+  decision, and journaled it, in the order the causes arrived: a withdrawal
+  breaking through a hold before the reopenings it deferred, and a release in
+  the order the hold deferred them. The text above and the decision journal
+  say the order they were first observed, and restore checks that order, so a
+  save made after such a reopening did not restore on 1.2.0 to 1.3.0. The
+  runtime now orders the causes first, so the graph's relations, the effects
+  and the journal entry follow observation order. Only reopenings whose causes
+  arrived out of that order change. Tests: `runtime/tests/d021_journal_order.rs`.

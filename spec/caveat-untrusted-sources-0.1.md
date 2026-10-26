@@ -1,6 +1,6 @@
-# CAVEAT Untrusted Sources 0.1 (draft) — several sources, one confirmation per action, withdrawing a source, the undo list
+# CAVEAT Untrusted Sources 0.1 — several sources, one confirmation per action, withdrawing a source, the undo list
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4: specified on its branch, not yet in a release. It becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4. It adds to
 [Withdrawal 0.1](caveat-withdrawal-0.1.md),
 [Retention Reasons 0.1](caveat-retention-reasons-0.1.md),
 [Past Revisions 0.1](caveat-past-revisions-0.1.md) and
@@ -248,9 +248,11 @@ the effect records and reports nothing, and the event is not refused.
 
 Nothing else changes: every frozen basis and grounds, the archives and the
 journal stay as they were. A reading sampled later, from the same stream or
-template, is a new observation and is not withdrawn. A program that keeps a
-source out for good rejects further instructions from it, as the experiment
-does with `observed($m_bad)`.
+template, is a new observation and gets no withdrawal record of its own; it
+still carries `withdrawn` wherever its lineage holds a withdrawn occurrence,
+such as the evidence itself under a guard on it, as with plain `withdraw`. A
+program that keeps a source out for good rejects further instructions from it,
+as the experiment does with `observed($m_bad)`.
 
 ### Snapshot, save and views
 

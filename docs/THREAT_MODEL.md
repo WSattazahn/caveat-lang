@@ -33,6 +33,7 @@ outside itself.
 | --- | --- | --- |
 | Program source (`.cav`) | Author, agent or MCP client | Untrusted text: parsed and checked, never executed as host code |
 | Events and scenario files | Host, agent or test author | Untrusted data: each event is accepted or refused as a whole |
+| Agent named on an event (from 1.4.0) | Host | The host's word, not authenticated: the runtime checks that the program lets that agent send the event and records the name, not who really sent it ([Agents 0.1](../spec/caveat-agents-0.1.md)) |
 | Saves | Whoever stored them | Untrusted data checked against the program, not authenticated |
 | MCP requests (stdio or HTTP) | Any connected client | Untrusted JSON-RPC with size, depth and time limits |
 | npm tarball and crates | The release workflow and crates.io | Verified by hash, provenance and audit before publishing |
@@ -50,6 +51,10 @@ outside itself.
 - **Resource exhaustion.** Each event and each procedure is bounded by a work
   limit (`MAX_EVENT_STEPS`, `MAX_PROCEDURE_STEPS` in
   [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it;
+  from 1.4.0 an expression whose lineage or evaluation would outgrow its
+  caps is refused as `limit/provenance_limit` or `limit/evaluation_limit`
+  instead of ending the session, and from 1.4.1 a text value past 65,536
+  bytes as `limit/text_limit`;
   streams and decision series have declared limits. Memory
   exhaustion traps the instance, and the kit reports it as `fatal` and loads a
   fresh one ([kit README](../kit/README.md)).
@@ -96,10 +101,33 @@ outside itself.
   The GitHub release refuses bytes whose SHA-256 differs from the tested
   tarball.
 
+### Sensitive data in records
+
+Caveat keeps every source a decision used, in plain text. Saves, event logs,
+scenario files, `explain` and `dependents` output and the project's ledger hold
+evidence and caveat names, reading values, decision bases and the event
+history behind them. None of it is encrypted, redacted or access-controlled by
+Caveat.
+
+- Protect saves, event logs and ledgers as you protect the data their
+  evidence came from: the same access rules, retention and storage.
+- Do not put secrets, credentials or personal data in evidence, caveat or
+  stream names, or in reading values. Use an opaque identifier and keep the
+  mapping to the real record in the host, where its own controls apply.
+- Before sharing `explain` output or a save, for example in a bug report,
+  check what it names; the [security policy](../SECURITY.md) accepts a reduced
+  program instead.
+- The [PR ledger Action](../actions/pr-ledger/README.md) pushes its record to a
+  branch of the same repository, so on a public repository that record (pull
+  request numbers, check names, reviewers and authors) is public too.
+- Proving what a decision rested on without revealing the evidence is not a
+  1.x feature.
+
 ## Out of scope
 
 - The truth of evidence, readings and event senders a host supplies.
-- Keeping saves and event logs confidential or unaltered at rest.
+- Keeping saves, event logs and ledgers confidential or unaltered at rest;
+  see [Sensitive data in records](#sensitive-data-in-records).
 - Authorizing the actions a host takes on a decision.
 - Side channels such as timing differences between programs.
 - Vulnerabilities in Node.js, browsers, WebAssembly engines or Cloudflare.

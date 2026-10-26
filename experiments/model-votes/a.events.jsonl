@@ -1,0 +1,4 @@
+{"event":"vote","payload":{"case":"case_a","model":"m1","verdict":1}}
+{"event":"vote","payload":{"case":"case_a","model":"m2","verdict":1}}
+{"event":"vote","payload":{"case":"case_a","model":"m3","verdict":0}}
+{"event":"decide","payload":{"case":"case_a"}}

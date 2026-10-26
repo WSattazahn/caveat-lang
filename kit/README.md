@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.3.0`**.
+Package: **`caveat-lang@1.4.0`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -17,33 +17,61 @@ This package holds the runtime (a prebuilt 3.6 MB WebAssembly file), a
 Node and browser library and the CLI. It has no npm dependencies and needs
 Node 20 or later; no Rust installation is needed.
 
-## What a program looks like
+## Hello, world
 
-This is part of the program `caveat-lang init` writes:
+In an empty directory with Node 20 or later, install the package:
 
-```caveat
-claim rain_likely;
-evidence forecast from "the morning forecast";
-evidence sky from "a look at the sky";
-caveat forecast_is_old consequence material;
-forecast_is_old qualifies forecast;
+<!-- caveat-package:install -->
+```sh
+npm init -y
+npm install caveat-lang@1.4.0
+```
+<!-- /caveat-package:install -->
 
-readings rain_chance from forecast limit 4;
-decisions umbrella limit 4;
-event read_forecast chance min 0 max 100;
-event clear_sky;
+Then paste this. It writes a program with one piece of evidence, one decision
+resting on it, and one event that withdraws the evidence and reopens the
+decision, then asks why:
 
-on read_forecast sample rain_chance = chance supports rain_likely;
-on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
-  commit umbrella because enough using latest(rain_chance);
-on clear_sky when not observed(sky) reveal sky opposes rain_likely;
-on clear_sky when committed(umbrella) and not reopened(umbrella)
-  reopen umbrella because sky;
+<!-- hello-world -->
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
 ```
 
-[Caveat on one page](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md)
-(about 2,700 words, also in this package at `docs/REFERENCE.md`) is the syntax;
-read it before writing your own program.
+Part of what it prints:
+
+<!-- hello-world-output -->
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision to ship was reopened when the CI result it rested on was
+withdrawn, and it still says what it was first based on. The rest of Caveat
+is about saying which evidence carries which doubt, and which rules reopen
+what. [Caveat on one page](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md)
+(about 2,700 words, also in this package at `docs/REFERENCE.md`) is the
+syntax; read it before writing your own program.
 
 ## Limits
 
@@ -78,7 +106,7 @@ installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.3.0
+npm install caveat-lang@1.4.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -243,6 +271,19 @@ session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-la
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 ```
 
+`caveat review --all <directory>` reviews a set of past ledgers: every
+`NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
+only `.cav` beside `events.jsonl`. It reviews each revision that has an
+outcome or consulted a past review, and with `--json` prints one object per
+line. A program records that it read a past review with ordinary evidence
+whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
+a review lists it under Consulted, and `--all` says what that review found.
+It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+
+```sh
+npx --no-install caveat-lang review --all ledgers/
+```
+
 ## Check, replay, start
 
 ```sh
@@ -347,6 +388,14 @@ and failures are `dispatch`'s, and after the same events either way the session
 is the same. Read the view it returns: calling `session.view()` after it builds
 the same view again.
 
+To ask what an event would do without doing it, call
+`session.whatIf(event, payload)`. It returns exactly what `dispatchView` would,
+from a copy of the session that is then dropped, so the session is unchanged
+whatever the answer: for example, which decisions withdrawing some evidence
+would reopen, or whether a commitment would be refused. It takes the same
+`{ fields }` option. A fatal answer throws but leaves the session usable
+([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
+
 A runtime keeps the last few programs it loaded, so opening or restoring the
 same source again reuses the loaded program instead of parsing and checking it
 again. The session is the same either way.
@@ -416,6 +465,29 @@ were accepted; `replayOnto(session, events)` sends those to another session
 and reports each that no longer applies. The
 [handoff example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/handoff/README.md)
 runs a main agent and two sub-agents.
+
+## Carry a save onto a changed program
+
+A save restores only with the exact source that wrote it, so a patched
+program, such as a game's next release, refuses every earlier save.
+`caveat-lang/saves` carries a replay save over without changing it or
+loosening restore: `savedEvents(runtime, oldSource, saved)` restores the
+save with the source that wrote it, then reads its events back with each
+member by name. `carrySave(runtime, oldSource, saved, newSource)` sends
+those events to a new session of the changed program, which decides each one
+afresh, and reports each event it refused as a conflict that changed nothing.
+
+```js
+import { carrySave } from 'caveat-lang/saves';
+
+const { session, conflicts } = carrySave(runtime, shippedSource, playerSave, patchedSource);
+for (const item of conflicts) console.log(`${item.event} no longer applies: ${item.outcome.message}`);
+```
+
+A state save holds no events, so `savedEvents` refuses it as `restore`. A
+host whose sessions outgrow the replay save (about 4 KB of events) keeps its
+own log of accepted events and replays that instead, as
+`replayOnto` in `caveat-lang/handoff` does.
 
 ## Retain history outside the live session
 

@@ -8,7 +8,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { guideSteps } from './guide.mjs';
-import { provenanceOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const cli = path.join(kit, 'bin', 'caveat.mjs');
@@ -275,10 +275,11 @@ test('replay prints one record per event, keeps file line numbers and stops at a
     ]);
     assert.ok(records[1].snapshot && !records[3].snapshot && !('schema' in records[1]));
 
+    // The fatal event is the fixture runtime's: no program reaches one.
     const dividing = path.join(directory, 'dividing.cav');
-    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = 1;\n' + provenanceOverflow('on read when value > 1.5'));
-    await writeFile(events, [1, 2, 3].map(value => JSON.stringify({ event: 'read', payload: { value } })).join('\n'));
-    const fatal = caveat(['replay', dividing, events]);
+    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\nevent fault;\non read when value > 1.5 set share = 1;\n');
+    await writeFile(events, [{ event: 'read', payload: { value: 1 } }, { event: 'fault' }, { event: 'read', payload: { value: 3 } }].map(event => JSON.stringify(event)).join('\n'));
+    const fatal = caveat(['replay', '--runtime', await faultingRuntimeDirectory(), dividing, events]);
     assert.equal(fatal.status, 1);
     const last = fatal.stdout.trim().split('\n').map(line => JSON.parse(line));
     assert.deepEqual(last.map(record => record.record), ['initial', 'event', 'fatal']);
