@@ -1,0 +1,7 @@
+{"event": "order_lookup", "payload": {"total": 120}}
+{"event": "carrier_lookup", "payload": {"days": 9}}
+{"event": "customer_message"}
+{"event": "issue_refund"}
+{"event": "file_claim"}
+{"event": "send_credit"}
+{"event": "carrier_correction", "payload": {"days": 1}}

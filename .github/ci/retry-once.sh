@@ -2,7 +2,7 @@
 # Run a browser QA command once more if it fails or passes its time limit,
 # leaving a warning on the run so a flake stays visible. A real failure
 # fails both attempts.
-#   scripts/ci-retry-once.sh <minutes per attempt> <command> [args...]
+#   .github/ci/retry-once.sh <minutes per attempt> <command> [args...]
 set -uo pipefail
 minutes="$1"; shift
 timeout --kill-after=30s "${minutes}m" "$@" && exit 0
