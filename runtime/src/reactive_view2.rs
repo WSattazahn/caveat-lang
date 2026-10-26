@@ -12,7 +12,7 @@ use super::{
 };
 use crate::fast_hash::HashMap;
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
-use crate::reactive_expr::{departure_markers, Marker, Name};
+use crate::reactive_expr::{departure_markers, Marker, Name, NameSet};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -68,23 +68,23 @@ impl From<MapCommitment> for ViewCommitment {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OrderedGrounds<'a> {
     pub evidence: Vec<&'a str>,
-    pub caveats: &'a BTreeSet<Name>,
+    pub caveats: &'a NameSet,
     #[serde(
         skip_serializing_if = "no_markers",
         serialize_with = "serialize_markers"
     )]
     pub departed: &'a BTreeMap<String, Marker>,
     #[serde(skip_serializing_if = "no_names")]
-    pub inherited: &'a BTreeSet<Name>,
+    pub inherited: &'a NameSet,
     #[serde(skip_serializing_if = "no_names")]
-    pub kept: &'a BTreeSet<Name>,
+    pub kept: &'a NameSet,
 }
 
 fn no_markers(markers: &&BTreeMap<String, Marker>) -> bool {
     markers.is_empty()
 }
 
-fn no_names(names: &&BTreeSet<Name>) -> bool {
+fn no_names(names: &&NameSet) -> bool {
     names.is_empty()
 }
 
@@ -99,7 +99,7 @@ fn serialize_markers<S: Serializer>(
 /// then any it does not list, by name. Departed names have left `evidence`
 /// and so drop out; the rest keep their places.
 pub(super) fn ordered<'a>(
-    evidence: &'a BTreeSet<Name>,
+    evidence: &'a NameSet,
     order: Option<&[String]>,
 ) -> Vec<&'a str> {
     let Some(order) = order else {
@@ -223,10 +223,10 @@ impl ReactiveSession {
                         name.as_str(),
                         OrderedGrounds {
                             evidence: ordered(&grounds.evidence, order),
-                            caveats: &*grounds.caveats,
+                            caveats: &grounds.caveats,
                             departed: &grounds.departed,
-                            inherited: &*grounds.inherited,
-                            kept: &*grounds.kept,
+                            inherited: &grounds.inherited,
+                            kept: &grounds.kept,
                         },
                     )
                 })
@@ -259,10 +259,10 @@ impl ReactiveSession {
                             property.as_str(),
                             OrderedGrounds {
                                 evidence: evidence.into_iter().map(|(_, name)| name).collect(),
-                                caveats: &*explanation.caveats,
+                                caveats: &explanation.caveats,
                                 departed: &explanation.departed,
-                                inherited: &*explanation.inherited,
-                                kept: &*explanation.kept,
+                                inherited: &explanation.inherited,
+                                kept: &explanation.kept,
                             },
                         )
                     })

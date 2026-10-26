@@ -173,23 +173,23 @@ impl Serialize for Compact {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
         struct Written<'a> {
-            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            evidence: &'a BTreeSet<Name>,
-            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            caveats: &'a BTreeSet<Name>,
+            #[serde(skip_serializing_if = "NameSet::is_empty")]
+            evidence: &'a NameSet,
+            #[serde(skip_serializing_if = "NameSet::is_empty")]
+            caveats: &'a NameSet,
             #[serde(skip_serializing_if = "BTreeMap::is_empty", serialize_with = "markers")]
             departed: &'a BTreeMap<String, crate::reactive_expr::Marker>,
-            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            inherited: &'a BTreeSet<Name>,
-            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-            kept: &'a BTreeSet<Name>,
+            #[serde(skip_serializing_if = "NameSet::is_empty")]
+            inherited: &'a NameSet,
+            #[serde(skip_serializing_if = "NameSet::is_empty")]
+            kept: &'a NameSet,
         }
         Written {
-            evidence: &*self.0.evidence,
-            caveats: &*self.0.caveats,
+            evidence: &self.0.evidence,
+            caveats: &self.0.caveats,
             departed: &self.0.departed,
-            inherited: &*self.0.inherited,
-            kept: &*self.0.kept,
+            inherited: &self.0.inherited,
+            kept: &self.0.kept,
         }
         .serialize(serializer)
     }
@@ -568,7 +568,7 @@ impl ReactiveSession {
             let Some(grounds) = self.commitment_grounds.get(&entry.commitment) else {
                 continue;
             };
-            let names = super::view2::ordered(&*grounds.evidence, Some(&entry.because));
+            let names = super::view2::ordered(&grounds.evidence, Some(&entry.because));
             if !names
                 .iter()
                 .copied()
@@ -681,7 +681,7 @@ impl ReactiveSession {
                 .iter()
                 .filter_map(|(name, grounds)| {
                     let order = self.evidence_order.get(name)?;
-                    let names = super::view2::ordered(&*grounds.evidence, Some(order));
+                    let names = super::view2::ordered(&grounds.evidence, Some(order));
                     (!names
                         .iter()
                         .copied()
@@ -3181,7 +3181,7 @@ impl ReactiveSession {
                 // reopening cause (spec/caveat-holds-0.1.md).
                 let reopening = entry.change == "reopened";
                 let seen = reopened.entry(&entry.commitment).or_default();
-                let mut related_caveats = BTreeSet::new();
+                let mut related_caveats = NameSet::default();
                 for evidence in &entry.because {
                     if reopening {
                         if seen.contains(&evidence.as_str()) {

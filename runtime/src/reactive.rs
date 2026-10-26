@@ -12,7 +12,7 @@ use crate::presentation::Number;
 use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
-pub use crate::reactive_expr::{Marker, Name, Provenance, Tracked};
+pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -5112,7 +5112,7 @@ impl ReactiveSession {
             _ if kind.starts_with(CARRIES) => {
                 self.predicate("observed", name)?
                     && self.carried(
-                        &*self.qualify_core(name, &[])?.caveats,
+                        &self.qualify_core(name, &[])?.caveats,
                         &kind[CARRIES.len()..],
                     )
             }
@@ -5132,7 +5132,7 @@ impl ReactiveSession {
     /// Whether `caveats` hold the caveat a `carries` predicate asks about:
     /// that caveat, or for `carries_any(…)` any caveat at all, or any of
     /// consequence at least its level.
-    fn carried(&self, caveats: &BTreeSet<Name>, caveat: &str) -> bool {
+    fn carried(&self, caveats: &NameSet, caveat: &str) -> bool {
         let Some(level) = caveat.strip_prefix(reactive_expr::ANY_CAVEAT) else {
             return caveats.contains(caveat);
         };
