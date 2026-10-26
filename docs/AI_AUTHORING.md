@@ -934,6 +934,50 @@ and `recheck`, with the `withdrawn` caveat. Two things follow:
   `if(withdrawn(latest(checks)), 0, latest(checks))` would be grounded on
   `recheck` alone; `0 * latest(checks)` keeps the reading there.
 
+## Results produced under a version
+
+A result often holds only for the dataset, calibration or code version it was
+produced under. Record the versions as a reading stream and compute each
+result from `latest(...)`, so the result's grounds name its exact version:
+
+<!-- versions-as-readings -->
+```caveat
+scene "An analysis rests on the dataset version it was run on.";
+claim effect;
+evidence release_note from "a released version of the dataset";
+evidence pipeline from "the analysis code";
+evidence erratum from "a finding that a version contains duplicated rows";
+readings versions from release_note limit 4;
+readings analysis from pipeline limit 8;
+decisions conclude limit 4;
+event release;
+event analyse estimate min 0 max 100;
+event decide;
+event erratum_v1;
+on release sample versions = 1;
+on analyse when not has_sample(versions) reject "No dataset.";
+on analyse sample analysis = estimate * latest(versions) supports effect;
+on decide when committed(conclude) and not reopened(conclude) reject "In force.";
+on decide commit conclude because enough using latest(analysis);
+on erratum_v1 reveal erratum;
+on erratum_v1 withdraw reading(versions, 1) because erratum;
+on erratum_v1 when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)
+    reopen conclude because erratum;
+```
+
+After `release`, `analyse 7`, `decide`, `erratum_v1`, `release`, `analyse 5`
+and `decide`, `conclude@1` is based on `analysis@1` and `versions@1` and is
+reopened by the erratum. `conclude@2` is based on `analysis@2` and `versions@2`
+only, with no `withdrawn` caveat. Withdrawing a version reopens only what was
+produced under it, with no rule that resets a result when a new version
+arrives.
+
+Don't use `renewable` evidence for versions. A renewed occurrence keeps its
+predecessor's basis in its lineage, so with `renewable dataset` the same
+timeline grounds `conclude@2` on both versions, the withdrawn one included.
+The [retracted studies example](../kit/examples/retractions/README.md) applies
+the same idea to published studies.
+
 ## Evidence from fresh authors
 
 The [first authoring pilot](AI_AUTHORING_PILOT.md) supplied this guide, language
