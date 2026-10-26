@@ -42,7 +42,9 @@ impl<T: Clone> Chunked<T> {
     }
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + Clone + '_ {
-        self.chunks.iter().flat_map(|chunk| chunk.iter().map(|value| &**value))
+        self.chunks
+            .iter()
+            .flat_map(|chunk| chunk.iter().map(|value| &**value))
     }
 
     pub fn get(&self, index: usize) -> Option<&T> {
@@ -71,9 +73,7 @@ impl<T: Clone> Chunked<T> {
 
     pub fn push(&mut self, value: T) {
         match self.chunks.last_mut() {
-            Some(last) if last.len() < CHUNK => {
-                Arc::make_mut(last).push(Arc::new(value))
-            }
+            Some(last) if last.len() < CHUNK => Arc::make_mut(last).push(Arc::new(value)),
             _ => {
                 let mut chunk = Vec::with_capacity(CHUNK);
                 chunk.push(Arc::new(value));
@@ -91,7 +91,11 @@ impl<T: Clone> Chunked<T> {
             let need = count - out.len();
             let first = self.chunks.remove(0);
             if first.len() <= need {
-                out.extend(Arc::unwrap_or_clone(first).into_iter().map(Arc::unwrap_or_clone));
+                out.extend(
+                    Arc::unwrap_or_clone(first)
+                        .into_iter()
+                        .map(Arc::unwrap_or_clone),
+                );
             } else {
                 let mut values = Arc::unwrap_or_clone(first);
                 let rest = values.split_off(need);

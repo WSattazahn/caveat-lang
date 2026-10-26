@@ -4,12 +4,12 @@
 //! effects; an entire event publishes atomically or leaves the session intact.
 
 use crate::ast::{Program, Statement};
+use crate::chunked::Chunked;
 use crate::eval::ResourceLedger;
 use crate::fast_hash::{HashMap, HashSet};
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
-use crate::chunked::Chunked;
 use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };

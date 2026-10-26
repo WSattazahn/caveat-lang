@@ -1,6 +1,7 @@
 pub mod action_runtime;
 pub mod ast;
 pub mod caveat_rs;
+pub mod chunked;
 pub mod eval;
 pub mod game_session;
 pub mod graphics;
@@ -12,7 +13,6 @@ pub mod presentation;
 pub mod reactive;
 mod reactive_archive;
 mod reactive_expr;
-pub mod chunked;
 pub mod repeat;
 pub mod session;
 pub mod source_library;

@@ -1087,7 +1087,12 @@ impl ReactiveSession {
         // Departing journal entries are the oldest held: nothing pins one.
         let journal_departing = entries.values().filter(|(journal, _)| *journal).count();
         if journal_departing > 0 {
-            for (index, entry) in self.journal.drain_front(journal_departing).into_iter().enumerate() {
+            for (index, entry) in self
+                .journal
+                .drain_front(journal_departing)
+                .into_iter()
+                .enumerate()
+            {
                 let name = format!("journal@{}", self.journal_departed + index + 1);
                 if let Some((_, archived)) = entries.get_mut(&name) {
                     archived.journal_entry = Some(entry);
