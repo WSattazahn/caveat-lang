@@ -67,9 +67,9 @@ In Python 3.10 and later, `match outcome:` with
 
 | Method | Returns |
 | --- | --- |
-| `dispatch(event, payload=None)` | `Accepted` (snapshot) or `Rejected` |
-| `dispatch_view(event, payload=None, *, fields=None)` | `AcceptedView` (View 0.1, optionally only `fields`) or `Rejected` |
-| `dispatch_view_delta(event, payload=None)` | `AcceptedDelta` (View 0.2 delta) or `Rejected` |
+| `dispatch(event, payload=None, *, agent=None)` | `Accepted` (snapshot) or `Rejected` |
+| `dispatch_view(event, payload=None, *, fields=None, agent=None)` | `AcceptedView` (View 0.1, optionally only `fields`) or `Rejected` |
+| `dispatch_view_delta(event, payload=None, *, agent=None)` | `AcceptedDelta` (View 0.2 delta) or `Rejected` |
 | `snapshot()`, `snapshot_text()` | the state, as a dict or the runtime's text |
 | `view(schema="0.1")`, `view_text(schema="0.1")` | the per-event view, 0.1 or 0.2 |
 | `save(*, compact=False, positional=False)` | JSON text to store |
@@ -93,6 +93,20 @@ The package is typed (`py.typed`) and checks clean under `mypy --strict` and
 pyright. A session belongs to the thread that made it: open one session in
 each thread that needs one. Free-threaded Python builds keep the GIL on while
 the package is loaded.
+
+### Agents
+
+When a main agent and a sub-agent send events to one program, the program can
+say which agent may send which event
+([Agents 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-agents-0.1.md)),
+and `agent=` says who sent each one:
+
+```python
+session.dispatch("sub_report", {"n": 3}, agent="sub")
+```
+
+An event from an agent the program does not allow is rejected as
+`input/wrong_agent`, and an accepted event's records carry its agent.
 
 ### Payloads
 

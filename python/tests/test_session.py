@@ -20,6 +20,8 @@ from caveat_lang import _runtime
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "assessment.cav"
 SOURCE = FIXTURE.read_bytes().decode("utf-8")
 KIT_COPY = Path(__file__).resolve().parents[2] / "kit" / "examples" / "agent-evidence" / "assessment.cav"
+# A program that declares agents (Agents 0.1).
+AGENTS = (Path(__file__).resolve().parent / "fixtures" / "agents.cav").read_bytes().decode("utf-8")
 
 
 class FixtureTests(unittest.TestCase):
@@ -205,6 +207,51 @@ class LifecycleTests(unittest.TestCase):
         with self.assertRaises(caveat.FatalError):
             session.dispatch("observe", {"confidence": 1})
         self.assertEqual(session.state, "fatal")
+
+
+class AgentTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.session = caveat.open(AGENTS)
+        self.addCleanup(self.session.close)
+
+    def test_only_a_listed_agent_sends_an_event(self) -> None:
+        before = self.session.save()
+        for agent in (None, "sub", "mallory"):
+            outcome = self.session.dispatch("delegate", agent=agent)
+            assert isinstance(outcome, caveat.Rejected)
+            self.assertEqual((outcome.origin, outcome.code), ("input", "wrong_agent"))
+        self.assertEqual(self.session.save(), before)
+        accepted = self.session.dispatch("delegate", agent="main")
+        assert isinstance(accepted, caveat.Accepted)
+        self.assertEqual(accepted.snapshot["last_agent"], "main")
+
+    def test_every_dispatch_form_takes_an_agent(self) -> None:
+        self.session.dispatch("delegate", agent="main")
+        view = self.session.dispatch_view("sub_report", {"n": 3}, agent="sub")
+        self.assertIsInstance(view, caveat.AcceptedView)
+        chosen = self.session.dispatch_view("note", fields=["bindings"], agent="reviewer")
+        self.assertIsInstance(chosen, caveat.AcceptedView)
+        delta = self.session.dispatch_view_delta("main_return", agent="main")
+        self.assertIsInstance(delta, caveat.AcceptedDelta)
+        refused = self.session.dispatch_view_delta("main_return", agent="sub")
+        self.assertIsInstance(refused, caveat.Rejected)
+        self.assertIn('"agent":"sub"', json.dumps(self.session.snapshot(), separators=(",", ":")))
+
+    def test_an_agent_is_a_non_empty_string(self) -> None:
+        for agent in ("", "\ud800"):
+            with self.assertRaises(ValueError):
+                self.session.dispatch("delegate", agent=agent)
+        self.assertEqual(self.session.state, "open")
+
+    def test_a_program_without_agents_refuses_any(self) -> None:
+        with caveat.open(SOURCE) as session:
+            outcome = session.dispatch("assess", agent="main")
+            assert isinstance(outcome, caveat.Rejected)
+            self.assertEqual(outcome.code, "wrong_agent")
+
+    def test_interface_lists_the_agents(self) -> None:
+        agents = caveat.interface(AGENTS)["agents"]
+        self.assertEqual([agent["name"] for agent in agents], ["main", "reviewer", "sub"])
 
 
 class ProgramTests(unittest.TestCase):

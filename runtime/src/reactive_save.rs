@@ -21,7 +21,7 @@ const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a save object")]
 pub struct ReactiveSave {
     pub schema: String,
     /// The program this save belongs to; restoring checks it.
@@ -133,7 +133,10 @@ fn deserialize_observations<'de, D: serde::Deserializer<'de>>(
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(
+    deny_unknown_fields,
+    expecting = "a state entry object such as {\"value\": 3}"
+)]
 pub struct SavedState {
     pub value: f64,
     #[serde(default, skip_serializing_if = "Compact::is_empty")]
@@ -235,7 +238,7 @@ fn full_map(records: &BTreeMap<String, Compact>) -> BTreeMap<String, Provenance>
 
 /// What events did to the graph, since the program loaded.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a graph object")]
 pub struct SavedGraph {
     /// Nodes events created, in order: occurrences of reading streams and
     /// renewable evidence, which are rebuilt from their names, and commitments.
@@ -261,7 +264,7 @@ pub enum SavedNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, expecting = "a resources object")]
 pub struct SavedResources {
     pub remaining: u64,
     pub spent: u64,
@@ -901,8 +904,12 @@ impl ReactiveSession {
     /// spec/caveat-lineage-compaction-0.1.md and spec/caveat-departure-0.1.md,
     /// "Save and restore".
     /// No foreclosed action is committed after the irreversible commitment
-    /// that forecloses it. A commit with no journal entry is placed by its
-    /// revision's sequence alone. See spec/caveat-foreclosure-0.1.md.
+    /// that forecloses it, or while a reversible revision that forecloses it
+    /// is in force: after its commit and before its reopening. A commit with
+    /// no journal entry is placed by its revision's sequence alone, and a
+    /// reopening the journal no longer holds ends nothing that can be
+    /// placed, so it is not checked. See spec/caveat-foreclosure-0.1.md and
+    /// spec/caveat-foreclosure-0.2.md.
     fn check_foreclosures_held(&self, save: &ReactiveSave) -> Result<(), String> {
         let journaled = |commitment: &str| {
             save.decision_journal
@@ -943,6 +950,47 @@ impl ReactiveSession {
                         return Err(format!(
                             "{commitment} is committed after {by}, which forecloses it"
                         ));
+                    }
+                }
+            }
+        }
+        let reopening = |commitment: &str| {
+            save.decision_journal
+                .iter()
+                .position(|entry| entry.commitment == commitment && entry.change == "reopened")
+                .map(|index| (save.decision_journal[index].sequence, Some(index)))
+        };
+        // Whether `(sequence, index)` comes after, or before, a point.
+        let after = |(later, later_index): (u64, Option<usize>),
+                     (at, index): (u64, Option<usize>)| {
+            later > at
+                || (later == at && matches!((index, later_index), (Some(a), Some(b)) if b > a))
+        };
+        for (series, forecloses) in self.foreclosures.iter() {
+            for (by, sequence, index) in commits(series) {
+                let current = save
+                    .decision_series
+                    .get(series)
+                    .is_some_and(|saved| saved.current.as_deref() == Some(by.as_str()));
+                let end = if save.graph.open.contains(&by) {
+                    match reopening(&by) {
+                        Some(end) => Some(end),
+                        None => continue,
+                    }
+                } else if current {
+                    None
+                } else {
+                    continue;
+                };
+                for action in forecloses {
+                    for (commitment, later, later_index) in commits(action) {
+                        let inside = after((later, later_index), (sequence, index))
+                            && end.is_none_or(|end| after(end, (later, later_index)));
+                        if inside {
+                            return Err(format!(
+                                "{commitment} is committed while {by}, which forecloses it, is in force"
+                            ));
+                        }
                     }
                 }
             }

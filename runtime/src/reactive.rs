@@ -636,9 +636,13 @@ pub enum Directive {
         limit: usize,
         /// `reopened by …`. See spec/caveat-reopening-triggers-0.1.md.
         triggers: Vec<ReopeningTrigger>,
-        /// `irreversible [forecloses ACTION, …]`: the actions it forecloses.
-        /// See spec/caveat-foreclosure-0.1.md.
-        irreversible: Option<Vec<String>>,
+        /// `irreversible`. See spec/caveat-foreclosure-0.1.md.
+        irreversible: bool,
+        /// `forecloses ACTION, …`: for an irreversible series, the actions it
+        /// forecloses once committed; for any other, the actions it
+        /// forecloses while its current revision is in force. See
+        /// spec/caveat-foreclosure-0.2.md.
+        forecloses: Vec<String>,
         /// `irreversible strict`: its commits check every caveat in their
         /// lineage, not only in their grounds. See
         /// spec/caveat-strict-irreversible-0.1.md.
@@ -1780,6 +1784,10 @@ pub struct ReactiveSnapshot {
     /// See spec/caveat-foreclosure-0.1.md.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub irreversible: BTreeMap<String, Vec<String>>,
+    /// Reversible series and the actions each forecloses while in force, in
+    /// source order. See spec/caveat-foreclosure-0.2.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub forecloses: BTreeMap<String, Vec<String>>,
     pub observation_qualifications: BTreeMap<String, Provenance>,
     pub examination_qualifications: BTreeMap<String, Provenance>,
     pub reopening_qualifications: BTreeMap<String, Provenance>,
@@ -1841,6 +1849,9 @@ pub struct ReactiveSession {
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
     irreversible: Arc<BTreeMap<String, Vec<String>>>,
+    /// Reversible series that foreclose actions while in force, and those
+    /// actions, from the source. See spec/caveat-foreclosure-0.2.md.
+    foreclosures: Arc<BTreeMap<String, Vec<String>>>,
     /// Irreversible series declared `strict`, from the source. See
     /// spec/caveat-strict-irreversible-0.1.md.
     strict_irreversible: Arc<BTreeSet<String>>,
@@ -1996,6 +2007,10 @@ impl ReactiveSession {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
+        Self::load_source(source).map_err(|error| crate::load_diagnostics::locate(source, error))
+    }
+
+    fn load_source(source: &str) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
@@ -2120,6 +2135,7 @@ impl ReactiveSession {
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             irreversible: Arc::default(),
+            foreclosures: Arc::default(),
             strict_irreversible: Arc::default(),
             renewals: Arc::default(),
             observations: Arc::default(),
@@ -2270,11 +2286,15 @@ impl ReactiveSession {
                 }
                 Directive::Decisions {
                     irreversible,
+                    forecloses,
                     strict,
                     ..
                 } => {
-                    if let Some(forecloses) = irreversible {
+                    if *irreversible {
                         Arc::make_mut(&mut session.irreversible)
+                            .insert(name.clone(), forecloses.clone());
+                    } else if !forecloses.is_empty() {
+                        Arc::make_mut(&mut session.foreclosures)
                             .insert(name.clone(), forecloses.clone());
                     }
                     if *strict {
@@ -4493,7 +4513,13 @@ impl ReactiveSession {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::UnknownEvent,
-                format!("undeclared event {event}"),
+                format!(
+                    "undeclared event {event}{}",
+                    crate::load_diagnostics::suggestion(
+                        event,
+                        self.events.keys().map(String::as_str)
+                    )
+                ),
             )
         })?;
         self.check_agent(event, agent)?;
@@ -4505,7 +4531,10 @@ impl ReactiveSession {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Input,
                 RejectionCode::PayloadInvalid,
-                format!("event {event} requires exactly its declared parameters"),
+                format!(
+                    "event {event} requires exactly its declared parameters{}",
+                    parameter_difference(signature, parameters)
+                ),
             ));
         }
         let handles = self.identifiers.len() + new_identifiers.len();
@@ -7198,7 +7227,7 @@ impl ReactiveSession {
                 _ => None,
             })
             .collect::<HashSet<_>>();
-        for (series, forecloses) in self.irreversible.iter() {
+        for (series, forecloses) in self.irreversible.iter().chain(self.foreclosures.iter()) {
             for action in forecloses {
                 if !self.decision_series.contains_key(action)
                     && !committed.contains(action.as_str())
@@ -7212,15 +7241,53 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// The committed irreversible revision that forecloses `action`, if any:
-    /// the earliest by sequence, then by series name.
+    /// The revision that forecloses `action`, if any: a committed
+    /// irreversible revision, or the current revision of a reversible series
+    /// while it is in force (committed and not reopened). The earliest by
+    /// sequence, then by series name. See spec/caveat-foreclosure-0.2.md.
     fn foreclosing(&self, action: &str) -> Option<&str> {
-        self.irreversible
+        let closes = |forecloses: &Vec<String>| forecloses.iter().any(|closed| closed == action);
+        let irreversible = self
+            .irreversible
             .iter()
-            .filter(|(_, forecloses)| forecloses.iter().any(|closed| closed == action))
-            .filter_map(|(series, _)| self.decision_series.get(series)?.revisions.first())
-            .min_by_key(|revision| revision.sequence)
-            .map(|revision| revision.id.as_str())
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                Some((name, self.decision_series.get(name)?.revisions.first()?))
+            });
+        let in_force = self
+            .foreclosures
+            .iter()
+            .filter(|(_, forecloses)| closes(forecloses))
+            .filter_map(|(name, _)| {
+                let series = self.decision_series.get(name)?;
+                let current = series.current.as_deref()?;
+                if self.is_open(current) {
+                    return None;
+                }
+                Some((
+                    name,
+                    series
+                        .revisions
+                        .iter()
+                        .find(|revision| revision.id == current)?,
+                ))
+            });
+        irreversible
+            .chain(in_force)
+            .min_by(|(a, first), (b, second)| {
+                first.sequence.cmp(&second.sequence).then_with(|| a.cmp(b))
+            })
+            .map(|(_, revision)| revision.id.as_str())
+    }
+
+    /// Whether a commitment is reopened.
+    fn is_open(&self, commitment: &str) -> bool {
+        matches!(
+            self.symbols
+                .get(commitment)
+                .and_then(|id| self.graph.nodes.get(id)),
+            Some(NodeKind::Commitment { open: true, .. })
+        )
     }
 
     /// Every `unqualify` of a program, after procedures are specialized.
@@ -8061,6 +8128,7 @@ impl ReactiveSession {
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
+            forecloses: (*self.foreclosures).clone(),
             observation_qualifications: (*self.observation_qualifications).clone(),
             examination_qualifications: (*self.examination_qualifications).clone(),
             reopening_qualifications: (*self.reopening_qualifications).clone(),
@@ -8548,8 +8616,10 @@ pub(crate) fn parse_directive_at(
             ),
             ["decisions", name, "limit", limit, rest @ ..] => {
                 // spec/caveat-foreclosure-0.1.md: `irreversible [forecloses
-                // ACTION, …]` comes before any `reopened by`.
-                let (irreversible, rest) = match rest {
+                // ACTION, …]` comes before any `reopened by`, and
+                // spec/caveat-foreclosure-0.2.md: so may `forecloses ACTION, …`
+                // without `irreversible`.
+                let (irreversible, strict, rest) = match rest {
                     ["irreversible", tail @ ..] => {
                         if limit.parse::<usize>() != Ok(1) {
                             return Err(format!(
@@ -8558,60 +8628,61 @@ pub(crate) fn parse_directive_at(
                         }
                         // spec/caveat-strict-irreversible-0.1.md: `strict`
                         // comes straight after `irreversible`.
-                        let (strict, tail) = match tail {
-                            ["strict", tail @ ..] => (true, tail),
-                            _ => (false, tail),
-                        };
+                        match tail {
+                            ["strict", tail @ ..] => (true, true, tail),
+                            _ => (true, false, tail),
+                        }
+                    }
+                    _ => (false, false, rest),
+                };
+                let (forecloses, rest) = match rest {
+                    ["forecloses", tail @ ..] => {
                         let end = tail
                             .windows(2)
                             .position(|pair| pair == ["reopened", "by"])
                             .unwrap_or(tail.len());
-                        let (foreclosure, rest) = tail.split_at(end);
-                        let forecloses = match foreclosure {
-                            [] => Vec::new(),
-                            ["forecloses", actions @ ..] if !actions.is_empty() => {
-                                let mut forecloses = Vec::<String>::new();
-                                for action in actions.join(" ").split(',') {
-                                    let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
-                                        [action] => identifier(action)?,
-                                        _ => return Err(format!(
-                                            "forecloses takes decision names separated by commas, not {}",
-                                            action.trim()
-                                        )),
-                                    };
-                                    if action == *name {
-                                        return Err(format!("{name} cannot foreclose itself"));
-                                    }
-                                    if forecloses.contains(&action) {
-                                        return Err(format!("duplicate foreclosed decision {action}"));
-                                    }
-                                    forecloses.push(action);
-                                }
-                                forecloses
+                        let (actions, rest) = tail.split_at(end);
+                        if actions.is_empty() {
+                            return Err(format!(
+                                "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                                rest.join(" ")
+                            ));
+                        }
+                        let mut forecloses = Vec::<String>::new();
+                        for action in actions.join(" ").split(',') {
+                            let action = match action.split_whitespace().collect::<Vec<_>>()[..] {
+                                [action] => identifier(action)?,
+                                _ => return Err(format!(
+                                    "forecloses takes decision names separated by commas, not {}",
+                                    action.trim()
+                                )),
+                            };
+                            if action == *name {
+                                return Err(format!("{name} cannot foreclose itself"));
                             }
-                            _ => return Err(format!(
-                                "decisions expects NAME limit 1 irreversible [strict] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
-                                foreclosure.join(" ")
-                            )),
-                        };
-                        (Some((forecloses, strict)), rest)
+                            if forecloses.contains(&action) {
+                                return Err(format!("duplicate foreclosed decision {action}"));
+                            }
+                            forecloses.push(action);
+                        }
+                        (forecloses, rest)
                     }
-                    _ if rest.contains(&"forecloses") && !rest.starts_with(&["reopened", "by"]) => {
-                        return Err(format!(
-                            "forecloses follows irreversible: decisions {name} limit 1 irreversible forecloses ACTION, …"
-                        ));
-                    }
-                    _ if rest.contains(&"strict") && !rest.starts_with(&["reopened", "by"]) => {
-                        return Err(format!(
-                            "strict follows irreversible: decisions {name} limit 1 irreversible strict"
-                        ));
-                    }
-                    _ => (None, rest),
+                    _ => (Vec::new(), rest),
                 };
-                let (irreversible, strict) = match irreversible {
-                    Some((forecloses, strict)) => (Some(forecloses), strict),
-                    None => (None, false),
-                };
+                if !irreversible && rest.contains(&"strict") && !rest.starts_with(&["reopened", "by"]) {
+                    return Err(format!(
+                        "strict follows irreversible: decisions {name} limit 1 irreversible strict"
+                    ));
+                }
+                if (irreversible || !forecloses.is_empty())
+                    && !rest.is_empty()
+                    && !rest.starts_with(&["reopened", "by"])
+                {
+                    return Err(format!(
+                        "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …] [reopened by STREAM, …], not {}",
+                        rest.join(" ")
+                    ));
+                }
                 let triggers = match rest {
                     [] => Vec::new(),
                     ["reopened", "by", triggers @ ..] if !triggers.is_empty() => triggers
@@ -8661,6 +8732,7 @@ pub(crate) fn parse_directive_at(
                         .map_err(|_| "decision limit must be an unsigned integer".to_string())?,
                     triggers,
                     irreversible,
+                    forecloses,
                     strict,
                 })
             }
@@ -9759,11 +9831,63 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     }
 }
 
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
+/// What a payload lacks and what it adds, for the refusal: "; missing
+/// chance; unexpected chanse".
+fn parameter_difference(signature: &[Parameter], parameters: &BTreeMap<String, f64>) -> String {
+    let missing: Vec<&str> = signature
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .filter(|name| !parameters.contains_key(*name))
+        .collect();
+    let unexpected: Vec<&str> = parameters
+        .keys()
+        .map(String::as_str)
+        .filter(|name| !signature.iter().any(|parameter| parameter.name == *name))
+        .collect();
+    let mut text = String::new();
+    if !missing.is_empty() {
+        text.push_str(&format!("; missing {}", missing.join(", ")));
+    }
+    if !unexpected.is_empty() {
+        text.push_str(&format!("; unexpected {}", unexpected.join(", ")));
+    }
+    text
+}
+
 enum PayloadValue {
     Number(f64),
     Text(String),
+}
+
+// By hand rather than `#[serde(untagged)]`, whose error names the Rust enum
+// ("did not match any variant of untagged enum PayloadValue"); this one says
+// what a parameter takes and what it was given.
+impl<'de> serde::Deserialize<'de> for PayloadValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = PayloadValue;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or text")
+            }
+            fn visit_f64<E>(self, value: f64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value))
+            }
+            fn visit_i64<E>(self, value: i64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_u64<E>(self, value: u64) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Number(value as f64))
+            }
+            fn visit_str<E>(self, value: &str) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value.to_string()))
+            }
+            fn visit_string<E>(self, value: String) -> Result<PayloadValue, E> {
+                Ok(PayloadValue::Text(value))
+            }
+        }
+        deserializer.deserialize_any(Visitor)
+    }
 }
 
 struct Payload(BTreeMap<String, PayloadValue>);

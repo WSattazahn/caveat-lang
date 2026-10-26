@@ -1,0 +1,37 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "support.cav",
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "A wrong carrier reading reopens only the actions that rested on it, and they keep their grounds",
+      "steps": [
+        { "send": "order_lookup", "payload": { "total": 120 } },
+        { "send": "carrier_lookup", "payload": { "days": 9 } },
+        { "send": "customer_message" },
+        { "send": "issue_refund" },
+        { "send": "file_claim" },
+        { "send": "send_credit" },
+        { "checkpoint": "acted" },
+        { "send": "carrier_correction", "payload": { "days": 1 } },
+        { "expect": {
+            "/bindings/undo/refund": "undo",
+            "/bindings/undo/carrier_claim": "undo",
+            "/bindings/undo/apology_credit": "keep"
+        } },
+        { "same_as": "acted", "paths": ["/commitment_grounds/refund@1", "/commitment_grounds/carrier_claim@1"] },
+        { "send": "issue_refund", "rejected": "The carrier does not show the package as lost." }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "The agent cannot act before it has looked, and refused events change nothing",
+      "steps": [
+        { "send": "issue_refund", "rejected": "Look up the order and the tracking first." },
+        { "send": "carrier_lookup", "payload": { "days": 400 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "send_credit", "rejected": "The customer has not written in." },
+        { "expect": { "/decision_journal": [] } }
+      ]
+    }
+  ]
+}

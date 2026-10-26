@@ -31,6 +31,7 @@
     "test:kit": "npm --prefix kit test",
     "test:ledger": "node kit/bin/caveat.mjs check --strict ledger/project.cav && node kit/bin/caveat.mjs test ledger/project.scenarios.json && node ledger/replay-check.mjs",
     "test:pr-ledger": "node --test actions/pr-ledger/pr-ledger.test.mjs",
+    "test:tutorial": "node scripts/test-tutorial.mjs",
     "test:kit-browser": "node scripts/test-kit-browser.mjs",
     "test:kit-package": "node scripts/test-kit-package.mjs",
     "check:notices": "node scripts/third-party-notices.mjs --check",

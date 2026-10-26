@@ -280,6 +280,46 @@ export class CaveatSession {
     return outcome;
   }
 
+  // What dispatchView(event, payload, options) would return, run on a copy of
+  // the session that is then dropped: this session, its save, its snapshot
+  // and its view are unchanged, whatever the outcome. A fatal outcome throws
+  // CaveatError("fatal") but leaves this session usable, since the copy
+  // failed and not it; a trap still makes the whole runtime unusable. A
+  // runtime build that predates it throws CaveatError("load"). See
+  // spec/caveat-dispatch-0.1.md, "The what-if path".
+  whatIf(event, payload = {}, options = {}) {
+    this.#usable();
+    const fields = viewFields(options);
+    // Agents (spec/caveat-agents-0.1.md) are not on the what-if path yet, so
+    // an agent is refused rather than dropped.
+    if (agentOption(options) !== null) throw new TypeError('whatIf does not take an agent');
+    if (typeof this.#inner.what_if_view_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no what_if_view_outcome; it predates whatIf');
+    }
+    if (fields !== null && typeof this.#inner.what_if_view_fields_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no what_if_view_fields_outcome; it predates whatIf fields');
+    }
+    if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+    const text = payloadText(payload);
+    let raw;
+    try {
+      raw = fields === null
+        ? this.#inner.what_if_view_outcome(event, text)
+        : this.#inner.what_if_view_fields_outcome(event, text, fields);
+    } catch (error) {
+      if (isTrap(error)) throw this.#fail(error);
+      throw error instanceof CaveatError ? error : fatalFrom(error);
+    }
+    let outcome;
+    try { outcome = JSON.parse(raw); } catch { throw new CaveatError('fatal', 'whatIf returned text that is not JSON'); }
+    if (!validOutcome(outcome, 'view')) {
+      const error = new CaveatError('fatal', `unrecognised dispatch outcome: ${String(raw).slice(0, 200)}`);
+      error.received = outcome;
+      throw error;
+    }
+    return outcome;
+  }
+
   snapshotText() { return this.#json(() => this.#inner.snapshot(), 'snapshot').text; }
   // A fresh object each call, from the snapshot text kept until the session
   // changes. Compact text, where the runtime has it, parses faster than the

@@ -66,9 +66,14 @@ def scenario(item: Result, source: str) -> Result:
             for _ in range(step.get("repeat", 1)):
                 # Turn through the three dispatch forms so each is compared.
                 variant = (variant + 1) % 3
-                read = (session.dispatch_outcome, session.dispatch_view_outcome,
-                        session.dispatch_view_delta_outcome)[variant]
-                outcome = attempt(lambda: read(step["send"], text))
+                if "agent" in step:
+                    sent = (session.dispatch_outcome_as, session.dispatch_view_outcome_as,
+                            session.dispatch_view_delta_outcome_as)[variant]
+                    outcome = attempt(lambda: sent(step["send"], text, step["agent"]))
+                else:
+                    read = (session.dispatch_outcome, session.dispatch_view_outcome,
+                            session.dispatch_view_delta_outcome)[variant]
+                    outcome = attempt(lambda: read(step["send"], text))
                 steps.append({"payload": text, "outcome": outcome})
                 if "error" in outcome:
                     return {"steps": steps, "fatal": True}
