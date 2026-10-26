@@ -76,6 +76,8 @@ jobs:
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
         run: node --test scripts/pages-gate.test.mjs
+      - name: Game QA retry count opens an issue only past its threshold
+        run: node --test scripts/game-qa-retries.test.mjs
       - name: npm publication gate refuses untested, mismatched or unattested packages
         run: node --test scripts/release-publish.test.mjs
       - name: Release bill of materials covers every compiled-in crate and refuses gaps
