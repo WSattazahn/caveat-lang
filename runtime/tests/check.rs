@@ -2446,7 +2446,7 @@ fn a_commit_one_edit_from_a_decision_series_is_reported_only_when_asked() {
     let report = check_names(MISSPELLED_COMMIT);
     assert_eq!(
         codes(&report),
-        [("C010", line_of(MISSPELLED_COMMIT, "on read_forecast when"))]
+        [("C012", line_of(MISSPELLED_COMMIT, "on read_forecast when"))]
     );
     let warning = &report.diagnostics[0];
     assert_eq!(warning.name, "near-miss-commitment");

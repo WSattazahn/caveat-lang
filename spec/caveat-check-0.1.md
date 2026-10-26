@@ -17,7 +17,7 @@ session is in the state it is in. A clean check proves none of those.
 npx --no-install caveat check [--json] [--strict] [--unused] [--names] [--records [--save SAVE]] PROGRAM
 ```
 
-`--unused` adds C007 `unused-declaration`, `--names` adds C010
+`--unused` adds C007 `unused-declaration`, `--names` adds C012
 `near-miss-commitment`, and `--records` adds C008
 `record-reads-late-caveat`; each is reported only when asked for. With
 `--records`, `--save SAVE` adds C009 `save-lacks-late-caveat` for that save.
@@ -498,7 +498,7 @@ files, 290 of them in one version of Glowcap. They include each of the 16
 programs in which the corpus sweep of Caveat Sources 0.1 found a value that
 gained a caveat.
 
-### C010 `near-miss-commitment`
+### C012 `near-miss-commitment`
 
 **Status:** draft for 1.5.
 
@@ -583,7 +583,7 @@ without `program`, `loads` and `strict`, and
 
 ## Changes
 
-- 2026-10-26 (1.5, draft): C010 `near-miss-commitment` with `--names` or
+- 2026-10-26 (1.5, draft): C012 `near-miss-commitment` with `--names` or
   `{ names: true }`. A newcomer's `commit umbrela`, beside `decisions umbrella`,
   loaded, ran, passed `check --unused --strict` and left the advice at "No
   decision yet", with nothing reporting why. It is asked for, so every program

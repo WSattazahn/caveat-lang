@@ -394,7 +394,7 @@ on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
 `;
   const runtime = real;
   assert.deepEqual(runtime.check(source).diagnostics, []);
-  assert.deepEqual(runtime.check(source, { names: true }).diagnostics.map(item => [item.code, item.line]), [['C010', 7]]);
+  assert.deepEqual(runtime.check(source, { names: true }).diagnostics.map(item => [item.code, item.line]), [['C012', 7]]);
   const directory = await mkdtemp(path.join(tmpdir(), 'caveat-check-names-'));
   try {
     const file = path.join(directory, 'umbrella.cav');
@@ -403,7 +403,7 @@ on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
     assert.equal(plain.status, 0, plain.stdout + plain.stderr);
     const named = caveat(['check', '--strict', '--names', file]);
     assert.equal(named.status, 1, named.stderr);
-    assert.match(named.stdout, /C010 near-miss-commitment: `commit umbrela`/);
+    assert.match(named.stdout, /C012 near-miss-commitment: `commit umbrela`/);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

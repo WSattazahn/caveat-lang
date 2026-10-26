@@ -528,7 +528,7 @@ export function createRuntime(SessionClass, identity = {}) {
     },
     // Advisory warnings for a program that loads (spec/caveat-check-0.1.md).
     // A program that does not load throws as open does. `{ unused: true }`
-    // adds C007, `{ records: true }` C008 and `{ names: true }` C010, each
+    // adds C007, `{ records: true }` C008 and `{ names: true }` C012, each
     // reported only when asked for. `{ records: true, save }` also adds C009 for that save (its text);
     // a save that does not restore throws as restore does.
     check(source, options = {}) {

@@ -104,7 +104,7 @@ one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load. --unused also
 reports a claim, evidence, caveat or state that nothing else names (C007), such
 as one left behind by a rewrite. --names also reports a commit whose name is
-one or two edits from a declared decision series (C010), which loads and runs
+one or two edits from a declared decision series (C012), which loads and runs
 as a separate plain commitment. --records also reports each rule, procedure or
 binding that reads a decision's record in a program that qualifies evidence
 (C008): from 1.1 a later qualify of the evidence the record lists reaches a

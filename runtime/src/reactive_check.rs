@@ -55,7 +55,7 @@ const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
 const UNUSED_DECLARATION: (&str, &str) = ("C007", "unused-declaration");
 const RECORD_READS_LATE_CAVEAT: (&str, &str) = ("C008", "record-reads-late-caveat");
 const SAVE_LACKS_LATE_CAVEAT: (&str, &str) = ("C009", "save-lacks-late-caveat");
-const NEAR_MISS_COMMITMENT: (&str, &str) = ("C010", "near-miss-commitment");
+const NEAR_MISS_COMMITMENT: (&str, &str) = ("C012", "near-miss-commitment");
 const ALLOW: &str = "caveat check: allow";
 
 /// Which checks run beyond the default ones. Each is asked for, so a program
@@ -67,7 +67,7 @@ pub struct CheckOptions {
     /// C008 `record-reads-late-caveat`, and C009 `save-lacks-late-caveat`
     /// when a save is checked (`check_save_with`).
     pub records: bool,
-    /// C010 `near-miss-commitment`.
+    /// C012 `near-miss-commitment`.
     pub names: bool,
 }
 
@@ -720,7 +720,7 @@ fn unused_declarations(statements: &[Statement]) -> Vec<Diagnostic> {
         .collect()
 }
 
-/// C010. A `commit NAME` whose NAME is no declared decision series but is
+/// C012. A `commit NAME` whose NAME is no declared decision series but is
 /// one or two edits from one. Such a commit makes a plain commitment of that
 /// name, which loads and runs: nothing records it in the series, and
 /// `committed(SERIES)` stays false. A misspelled `reopen` or `committed(…)`

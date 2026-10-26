@@ -407,7 +407,7 @@ export interface InterfaceReadings {
 export interface CheckOptions {
   /** Also report C007 `unused-declaration`: a claim, evidence, caveat or state nothing else names. */
   unused?: boolean;
-  /** Also report C010 `near-miss-commitment`: a `commit` one or two edits from a declared decision series. */
+  /** Also report C012 `near-miss-commitment`: a `commit` one or two edits from a declared decision series. */
   names?: boolean;
   /**
    * Also report C008 `record-reads-late-caveat`: a rule, procedure or binding

@@ -115,7 +115,7 @@ impl WebReactiveSession {
 
     /// `check`, with the checks `options` asks for, as JSON:
     /// `{"unused": true}` adds C007, `{"records": true}` adds C008,
-    /// `{"names": true}` adds C010, and
+    /// `{"names": true}` adds C012, and
     /// `"save": TEXT` with `records` adds C009 for that save. An unknown
     /// option is an error, so a host learns this build does not have it.
     pub fn check_options(source: &str, options: &str) -> Result<String, String> {
