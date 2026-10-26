@@ -31,6 +31,21 @@ Configure your host to run Node with the absolute path to your installed CLI:
 }
 ```
 
+For goose, add the same command as a stdio extension in
+`~/.config/goose/config.yaml` (or through `goose configure`, "Add Extension",
+"Command-line Extension"):
+
+```yaml
+extensions:
+  caveat:
+    name: caveat
+    type: stdio
+    cmd: node
+    args: ["/absolute/project/node_modules/caveat-lang/bin/caveat.mjs", "mcp"]
+    enabled: true
+    timeout: 300
+```
+
 Replace that path with the actual installation (Windows JSON paths can use
 forward slashes). This is a host configuration example, not an automatic
 installation. `node` must resolve to Node 20 or newer. Either protocol works

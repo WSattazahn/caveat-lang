@@ -24,6 +24,18 @@ pub struct ProgramInterface {
     pub evidence: Vec<String>,
     pub caveats: Vec<String>,
     pub claims: Vec<String>,
+    /// The declared agents, in name order; left out when there are none. See
+    /// spec/caveat-agents-0.1.md.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub agents: Vec<InterfaceAgent>,
+}
+
+/// An agent and the events only it, or it among others, may send, in the
+/// order its declaration lists them.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct InterfaceAgent {
+    pub name: String,
+    pub sends: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -223,6 +235,14 @@ impl ReactiveSession {
             evidence: names("evidence"),
             caveats: names("caveat"),
             claims: names("claim"),
+            agents: self
+                .agents
+                .iter()
+                .map(|(name, sends)| InterfaceAgent {
+                    name: name.clone(),
+                    sends: sends.clone(),
+                })
+                .collect(),
         }
     }
 }

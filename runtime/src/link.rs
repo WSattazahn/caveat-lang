@@ -430,6 +430,14 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     }
                     Some(name.clone())
                 }
+                // Who may send an event is the program's to say, as its
+                // budget is: spec/caveat-agents-0.1.md.
+                Directive::Agent { name, .. } => {
+                    return Err(format!(
+                        "module {} declares agent {name}; agents are declared by the program, not by a module",
+                        part.name
+                    ));
+                }
                 Directive::State { name, .. }
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }
@@ -1187,6 +1195,13 @@ fn rewrite(
         && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
             matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "elapsed")
         });
+    // `only_if(…)` reads the form beside a state or define named only_if,
+    // unless the module defines that function (spec/caveat-only-if-0.1.md).
+    let only_if_is_function = module.is_some()
+        && declared.iter().any(|name| name == "only_if")
+        && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
+            matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "only_if")
+        });
     let mut out = String::with_capacity(stripped.len());
     let mut chars = stripped.char_indices().peekable();
     let source = stripped.as_str();
@@ -1297,10 +1312,15 @@ fn rewrite(
             && !elapsed_is_function
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
+        let only_if_form = word == "only_if"
+            && !only_if_is_function
+            && !matches!(previous_word, Some("proc" | "call"))
+            && after_trivia(&source[end..]).starts_with('(');
         match module {
             Some(module)
                 if !member
                     && !clock_read
+                    && !only_if_form
                     && !is_reserved(word)
                     && declared.iter().any(|name| name == word) =>
             {

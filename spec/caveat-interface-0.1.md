@@ -73,6 +73,7 @@ order.
 | `decisions` | Every decision series and how many revisions it keeps. |
 | `readings` | Every reading stream, the evidence its readings come from, and how many it keeps. |
 | `evidence`, `caveats`, `claims` | The names the program declares, including a `withdrawn` caveat the runtime declares for a program that withdraws. Occurrences that events create later (`soil@1`, `NAME@2`) are not listed. |
+| `agents` | From the 1.4 draft [Agents 0.1](caveat-agents-0.1.md): every declared agent and the events it `sends`. Left out when the program declares none. |
 
 ### Parameters
 

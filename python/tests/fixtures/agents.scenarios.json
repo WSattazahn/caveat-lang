@@ -1,0 +1,25 @@
+{
+ "schema": "caveat-scenarios/0.1",
+ "source": "agents.cav",
+ "scenarios": [
+  {
+   "id": "PY-AGENTS-01",
+   "title": "Each event comes from an agent allowed to send it, and records say which agent sent it",
+   "steps": [
+    { "send": "delegate", "rejected": { "origin": "input", "code": "wrong_agent" } },
+    { "send": "delegate", "agent": "sub", "rejected": { "origin": "input", "code": "wrong_agent" } },
+    { "send": "delegate", "agent": "mallory", "rejected": { "origin": "input", "code": "wrong_agent" } },
+    { "send": "delegate", "agent": "main" },
+    { "send": "sub_report", "agent": "sub", "payload": { "n": 3 } },
+    { "send": "sub_report", "agent": "sub", "payload": { "n": 11 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+    { "send": "main_return", "agent": "sub", "rejected": { "origin": "input", "code": "wrong_agent" } },
+    { "checkpoint": "returned" },
+    { "send": "note", "agent": "reviewer" },
+    { "send": "note" },
+    { "resume": true },
+    { "send": "main_return", "agent": "main" },
+    { "send": "sub_report", "agent": "sub", "payload": { "n": 5 }, "repeat": 3 }
+   ]
+  }
+ ]
+}

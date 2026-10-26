@@ -1,0 +1,69 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "caveat-lang"
+version = "0.1.0"
+description = "CAVEAT Language for Python: a decision ledger for agents. Values carry their evidence and caveats, decisions keep the grounds they were made on, and withdrawn evidence reopens them."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "OumuamuaWalt" }]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["caveat", "decision-ledger", "provenance", "evidence", "audit-trail", "agents", "ai-agents"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Interpreters",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/WSattazahn/caveat-lang/tree/main/python"
+Documentation = "https://github.com/WSattazahn/caveat-lang/blob/main/python/README.md"
+Source = "https://github.com/WSattazahn/caveat-lang"
+Issues = "https://github.com/WSattazahn/caveat-lang/issues"
+Changelog = "https://github.com/WSattazahn/caveat-lang/tree/main/docs/releases"
+
+[tool.maturin]
+module-name = "caveat_lang._runtime"
+python-packages = ["caveat_lang"]
+locked = true
+
+# A CycloneDX bill of materials for the Rust crates compiled in, kept in
+# the wheel at .dist-info/sboms (PEP 770).
+[tool.maturin.sbom]
+rust = true
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "A"]
+# Optional[X] and Union[X, Y] are kept: they read the same on every Python
+# this package supports.
+ignore = ["UP006", "UP007", "UP035", "UP045"]
+
+[tool.ruff.lint.per-file-ignores]
+# Each lambda there is called on the line that makes it.
+"tests/differential/trace.py" = ["B023"]

@@ -21,6 +21,11 @@ send, the checkpoint size and the archive size. They are the budgets a host
 sets for itself, as COMPATIBILITY.md's "Limits" asks; they are not promises
 of the package.
 
+The send budget is wall-clock time, and a shared CI runner can stall one
+synced write, so the whole trial runs again in a fresh store, up to three
+times, and passes when one trial keeps every send within budget. A real
+slowdown is slow in every trial and still fails.
+
 ```sh
 node experiments/stabilization-trial/run.mjs --package=node_modules/caveat-lang
 ```

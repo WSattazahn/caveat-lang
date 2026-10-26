@@ -90,9 +90,19 @@ save, which is larger. Clock events count as events.
 A save restores only with the exact source that wrote it. A patch to the
 game's `.cav` file is a different program, and every earlier save is refused
 as belonging to a different program. Keep each shipped source, so an old save
-can still be restored with the source that wrote it. Then replay the player's
-events onto the patched program, which decides each one afresh; keep your own
-log of accepted events once a game outgrows the replay save.
+can still be restored with the source that wrote it, and carry it onto the
+patch with `caveat-lang/saves`:
+
+```js
+import { carrySave } from 'caveat-lang/saves';
+
+const { session, conflicts } = carrySave(runtime, shippedSource, playerSave, patchedSource);
+```
+
+The patched program decides each saved event afresh; an event it now refuses
+comes back in `conflicts` and changes nothing. The save itself is never
+changed. A state save holds no events to replay, so keep your own log of
+accepted events once a game outgrows the replay save.
 
 ## Explaining a choice to the player
 
