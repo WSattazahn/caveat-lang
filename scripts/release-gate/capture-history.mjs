@@ -4,7 +4,10 @@
 // from come from its docs/releases/v*-npm-publication.json record. Only the
 // fields the gate reads are kept.
 //
-//   GITHUB_TOKEN=... node scripts/release-gate/capture-history.mjs > scripts/fixtures/release-gate-history.json
+//   GITHUB_TOKEN=... node scripts/release-gate/capture-history.mjs [TAG REVISION RUNTIME_RUN]... > scripts/fixtures/release-gate-history.json
+//
+// A release whose publication record is not on main yet can be named on the
+// command line: its tag, the tagged revision and the Runtime run it shipped from.
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,17 +50,25 @@ function found(value, key) {
 }
 
 const releases = [];
+async function capture(tag, revision, runtimeRun) {
+  const workflow = await api(`/repos/${repository}/actions/workflows/runtime.yml`);
+  const runs = await all(`/repos/${repository}/actions/workflows/runtime.yml/runs?event=push&branch=main&head_sha=${revision}`, 'workflow_runs');
+  const artifacts = {};
+  for (const { id } of runs) artifacts[id] = (await all(`/repos/${repository}/actions/runs/${id}/artifacts`, 'artifacts')).map(artifact);
+  releases.push({ tag, revision, shipped_runtime_run: Number.isSafeInteger(runtimeRun) ? runtimeRun : null,
+    workflow: pick(workflow, ['id', 'path']), runs: runs.map(run), artifacts });
+}
 const directory = path.join(root, 'docs', 'releases');
 for (const name of (await readdir(directory)).filter(file => /^v.*-npm-publication\.json$/.test(file)).sort()) {
   const text = await readFile(path.join(directory, name), 'utf8');
   const record = JSON.parse(text);
   if (record.publication?.workflow !== '.github/workflows/publish-npm.yml') continue;
   const runtimeRun = Number(/\/actions\/runs\/(\d+)/.exec(found(record, 'runtimeRun') ?? '')?.[1]);
-  const workflow = await api(`/repos/${repository}/actions/workflows/runtime.yml`);
-  const runs = await all(`/repos/${repository}/actions/workflows/runtime.yml/runs?event=push&branch=main&head_sha=${record.revision}`, 'workflow_runs');
-  const artifacts = {};
-  for (const { id } of runs) artifacts[id] = (await all(`/repos/${repository}/actions/runs/${id}/artifacts`, 'artifacts')).map(artifact);
-  releases.push({ tag: record.tag, revision: record.revision, shipped_runtime_run: Number.isSafeInteger(runtimeRun) ? runtimeRun : null,
-    workflow: pick(workflow, ['id', 'path']), runs: runs.map(run), artifacts });
+  await capture(record.tag, record.revision, runtimeRun);
+}
+const named = process.argv.slice(2);
+for (let index = 0; index + 2 < named.length; index += 3) {
+  const [tag, revision, run] = named.slice(index, index + 3);
+  if (!releases.some(release => release.tag === tag)) await capture(tag, revision, Number(run));
 }
 console.log(JSON.stringify({ schema: 'caveat-release-gate-history/0.1', repository, capturedAt: new Date().toISOString(), releases }, null, 1));

@@ -1,7 +1,7 @@
 {
  "schema": "caveat-release-gate-history/0.1",
  "repository": "WSattazahn/caveat-lang",
- "capturedAt": "2026-10-25T04:25:01.871Z",
+ "capturedAt": "2026-10-26T17:35:24.444Z",
  "releases": [
   {
    "tag": "v0.1.0-rc.12",
@@ -2382,6 +2382,191 @@
       "workflow_run": {
        "id": 40131781029,
        "head_sha": "753c8e700b0cf9d6661c185e9ec0faa0ee5ae020"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "tag": "v1.4.0",
+   "revision": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+   "shipped_runtime_run": 40356209909,
+   "workflow": {
+    "id": 360309222,
+    "path": ".github/workflows/runtime.yml"
+   },
+   "runs": [
+    {
+     "id": 40356209909,
+     "workflow_id": 360309222,
+     "path": ".github/workflows/runtime.yml",
+     "event": "push",
+     "head_branch": "main",
+     "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+     "status": "completed",
+     "conclusion": "success",
+     "run_attempt": 1,
+     "repository": {
+      "full_name": "WSattazahn/caveat-lang"
+     },
+     "head_repository": {
+      "full_name": "WSattazahn/caveat-lang"
+     }
+    }
+   ],
+   "artifacts": {
+    "40356209909": [
+     {
+      "id": 12667605237,
+      "name": "browser-dist",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12667551015,
+      "name": "light-the-way-webkit-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12667275761,
+      "name": "mr-caveat-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12667075379,
+      "name": "slime-glow-wasm-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666857376,
+      "name": "light-the-way-chromium-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666780400,
+      "name": "caveat-vscode-extension",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666771458,
+      "name": "view-delta-gate",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666337233,
+      "name": "glowcap-page-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666277473,
+      "name": "last-beacon-browser-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666277390,
+      "name": "kit-package-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12666247471,
+      "name": "kit-package-candidate",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665952859,
+      "name": "lean-runtime-comparison",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665802781,
+      "name": "trail-rescue-policy-report",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665788370,
+      "name": "moon-garden-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665728893,
+      "name": "kit-security-receipts-1",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665244835,
+      "name": "departure-gates",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
+      }
+     },
+     {
+      "id": 12665129582,
+      "name": "moon-garden-3d-visual-qa",
+      "expired": false,
+      "workflow_run": {
+       "id": 40356209909,
+       "head_sha": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a"
       }
      }
     ]
