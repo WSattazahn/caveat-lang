@@ -134,3 +134,11 @@
 {"event": "approve", "payload": {"item": 346}}
 {"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 345}}
+{"event": "find", "payload": {"number": 21}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "find", "payload": {"number": 22}}
+{"event": "find", "payload": {"number": 23}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "find", "payload": {"number": 24}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "find", "payload": {"number": 25}}

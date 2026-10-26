@@ -193,11 +193,13 @@ mod tests {
     }
 
     #[test]
-    fn fatal_has_only_raw_outcome_and_stops_the_trace() {
-        // A bound text past its 65,536 bytes is a fault no catalog code
-        // classifies: the number's text adds 17 bytes to a 65,520-byte
-        // literal. Value provenance past its name bytes served here until it
-        // became `limit/provenance_limit` (D022).
+    fn a_refused_event_keeps_the_trace_going() {
+        // A bound text past its 65,536 bytes was the fault no catalog code
+        // classified, and stopped the trace as fatal, until D025 made it
+        // `limit/text_limit`: the number's text adds 17 bytes to a
+        // 65,520-byte literal. No program is known to reach a fatal
+        // outcome now; `dispatch` above still keeps the fatal branch for
+        // a runtime fault.
         let wide = "A".repeat(65_520);
         let source = format!(
             "state n = 0; state big = 0 min 0 max 2000000; event crash; event later; \
@@ -207,11 +209,12 @@ mod tests {
         );
         let output = run(&input(&source, &["crash", "later"])).unwrap();
         let raw = serde_json::to_value(output).unwrap();
-        assert_eq!(raw["events"].as_array().unwrap().len(), 1);
-        let event = raw["events"][0].as_object().unwrap();
-        assert_eq!(event.len(), 1);
-        assert_eq!(event["outcome"]["outcome"], "fatal");
-        assert_eq!(event["outcome"]["code"], "unclassified");
+        let events = raw["events"].as_array().unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0]["outcome"]["outcome"], "rejected");
+        assert_eq!(events[0]["outcome"]["origin"], "limit");
+        assert_eq!(events[0]["outcome"]["code"], "text_limit");
+        assert_eq!(events[1]["outcome"]["outcome"], "accepted");
     }
 
     #[test]
