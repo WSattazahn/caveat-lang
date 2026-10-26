@@ -32,3 +32,14 @@ Where the 13 differ:
   already carried any declared or late caveat of that basis. Its grounds, and
   so `rests_on_withdrawn`, are unchanged. `caveat-lang demo agent` is one:
   its invariant in `kit/lib/demo.mjs` now expects it.
+
+## Saves
+
+`saves.mjs BEFORE_DIR AFTER_DIR` saves three such sessions (the tutorial's
+`hello.cav`, the agent demo's `assessment.cav`, `intel.cav`) on one runtime
+and restores them on the other, both ways. All six restore, accept and refuse
+the same further events, and match a fresh run on the target apart from
+`withdrawn`: a decision's basis is frozen, so a restored session keeps it as
+the saving runtime recorded it. So a 1.4.0 save restores on the fix, and a
+save from the fix restores on 1.4.0. The kit's save fixtures
+(`kit/test/fixtures/saves`) pass on the fix too.
