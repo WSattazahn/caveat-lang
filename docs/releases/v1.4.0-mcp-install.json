@@ -1,0 +1,106 @@
+{
+  "schema": "caveat-mcp-install-verification/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-26T17:50:00Z",
+  "name": "caveat-lang",
+  "version": "1.4.0",
+  "tag": "v1.4.0",
+  "revision": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+  "command": "npx -y caveat-lang@1.4.0 mcp",
+  "launch": {
+    "platform": "linux",
+    "cwd": "New empty directory",
+    "npmCache": "New empty npm cache",
+    "registry": "https://registry.npmjs.org",
+    "thirdPartyLifecycleScripts": false
+  },
+  "package": {
+    "resolved": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.4.0.tgz",
+    "integrity": "sha512-YVfMVnVIUBHQkR2mr+HS2XRQgiX4G9ox6VTeYKQpeG0tCVOTMprASxr94juG+NBy+RhjIkBCcWePj9YLve1/3Q==",
+    "buildRevision": "1c3d80e41fd2f1788ca41e9855b8d0bdb4f3b48a",
+    "freshInstallFromRegistry": true
+  },
+  "sdkClient": {
+    "client": "@modelcontextprotocol/sdk@1.32.1",
+    "server": {
+      "name": "caveat-lang",
+      "title": "CAVEAT Language",
+      "version": "1.4.0"
+    },
+    "catalog": {
+      "count": 5,
+      "sha256": "bf07d28a6af3bb1b72b7af1c1845c2f00be58cbd4c3afbd1e19a086e838ba44a"
+    },
+    "calls": [
+      {
+        "name": "caveat_validate",
+        "schema": "caveat-validate/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_check",
+        "schema": "caveat-check/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_test",
+        "schema": "caveat-scenario-report/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_explain",
+        "schema": "caveat-explain/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_dependents",
+        "schema": "caveat-dependents/0.1",
+        "exitCode": 0
+      }
+    ],
+    "invalidSource": true,
+    "virtualPathRefused": true,
+    "retry": true,
+    "stderr": 0,
+    "note": "scripts/test-mcp-client.mjs (at v1.3.0) checkMcpClient against the published package installed with a fresh cache: the catalog equals kit/lib/mcp.mjs at the tag, all five tools succeed on the umbrella template, invalid source returns exitCode 2, a path outside inline.cav is refused, and a retry succeeds. stderr is its length in characters."
+  },
+  "stateless": {
+    "protocolVersion": "2026-07-28",
+    "server": {
+      "name": "caveat-lang",
+      "version": "1.4.0",
+      "title": "CAVEAT Language"
+    },
+    "catalog": {
+      "count": 5,
+      "sha256": "2508d9f6794f418aa12c736721ecea7d58a79a5cacaf3be344e9c1a9b1efed54"
+    },
+    "discover": true,
+    "toolsCall": "validate",
+    "unsupportedVersion": -32022,
+    "note": "scripts/test-mcp-client.mjs checkMcpStatelessProbe (2026-07-28 server/discover path) against the same installed package."
+  },
+  "npx": {
+    "command": "npx -y caveat-lang@1.4.0 mcp",
+    "protocolVersion": "2025-11-25",
+    "serverInfo": {
+      "name": "caveat-lang",
+      "version": "1.4.0",
+      "title": "CAVEAT Language"
+    },
+    "toolNames": [
+      "caveat_validate",
+      "caveat_check",
+      "caveat_test",
+      "caveat_explain",
+      "caveat_dependents"
+    ],
+    "catalogSha256": "2508d9f6794f418aa12c736721ecea7d58a79a5cacaf3be344e9c1a9b1efed54",
+    "dependentsExitCode": 0
+  },
+  "limits": [
+    "This checks the published package from a Linux cloud host, not Glama rebuilding or rescoring, nor installation in a graphical MCP client.",
+    "The SDK catalog hash covers the SDK-parsed tool objects; the raw catalog hash covers tools/list as sent.",
+    "Both catalog hashes differ from 1.3.0's: 1.4.0 changes one description, that of caveat_test's scenarios parameter, which now explains binding pointers (PR #342). The five tool names, the schemas' structure and the annotations are unchanged."
+  ]
+}
