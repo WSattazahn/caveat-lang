@@ -780,19 +780,17 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
 }
 
 // A fault no catalog code classifies, so the event stays fatal: under `rule`,
-// two 32,768-byte evidence names and one more fill value provenance past its
-// 65,536 name bytes. `id_text` of a non-handle served as this example until it
-// became `evaluation/expression` (F309).
-fn provenance_overflow(rule: &str) -> String {
-    let (left, right) = ("a".repeat(32_768), "b".repeat(32_768));
+// a number whose text adds 17 bytes to a 65,520-byte bound text takes the
+// binding past its 65,536 bytes, while the expression's own source stays
+// within its 65,536. Value provenance past its name bytes served
+// as this example until it became `limit/provenance_limit` (D022), and
+// `id_text` of a non-handle before that (F309).
+fn text_overflow(rule: &str) -> String {
+    let wide = "A".repeat(65_520);
     format!(
-        "evidence {left} from left_sensor; evidence {right} from right_sensor;\n\
-         evidence extra from extra_sensor;\n\
-         state wide_left = 0; state wide_right = 0; state wide = 0;\n\
-         {rule} reveal {left}; {rule} reveal {right}; {rule} reveal extra;\n\
-         {rule} set wide_left = qualified(1, {left});\n\
-         {rule} set wide_right = qualified(2, {right});\n\
-         {rule} set wide = wide_left + wide_right + qualified(0, extra);\n"
+        "state big = 0 min 0 max 2000000;\n\
+         {rule} set big = 1234567.123456789;\n\
+         bind wide.text = \"{wide}\" + text(big);\n"
     )
 }
 
@@ -801,7 +799,7 @@ fn unclassified_expression_errors_are_fatal_and_atomic() {
     for rule in ["on run", "on run when output > 0"] {
         let source = format!(
             "state output = 0; event run; on run set output = 1;\n{}",
-            provenance_overflow(rule)
+            text_overflow(rule)
         );
         let mut game = session(&source);
         let mut legacy = session(&source);
@@ -902,7 +900,7 @@ fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
     for rule in ["on run", "on run when output > 0"] {
         let source = format!(
             "state output = 0; event run; on run set output = 1;\n{}",
-            provenance_overflow(rule)
+            text_overflow(rule)
         );
         let mut game = session(&source);
         let mut viewed = session(&source);

@@ -10,12 +10,16 @@ export declare const EXHAUSTIVE_LIMIT: 8;
 export interface ReviewEvent {
   event: string;
   payload?: object;
+  /** The agent that sent it; replays send it as that agent. */
+  agent?: string;
 }
 
 /** An event left out of a replay, by its sequence in the full run. */
 export interface ReviewDropped {
   sequence: number;
   event: string;
+  /** The agent that sent it, when it named one (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 /** Why the deciding event committed nothing in a replay. */
@@ -54,7 +58,7 @@ export interface Review {
   revision: string;
   value: number | null;
   status: RevisionStatus;
-  decided_by: { sequence: number; event: string };
+  decided_by: { sequence: number; event: string; agent?: string };
   grounds: { evidence: string; caveats: string[] }[];
   /**
    * Lineage evidence outside the grounds: read by the deciding rule's `when`

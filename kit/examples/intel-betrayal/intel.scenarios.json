@@ -1,0 +1,43 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "intel.cav",
+  "scenarios": [
+    {"id": "I01", "title": "A betrayal reopens the plan that rested on the traitor's word, and the plan keeps why it was made",
+     "steps": [
+       {"send": "intel", "payload": {"informant": "ocelot", "gate": "north", "says": "clear"}},
+       {"send": "go", "payload": {"gate": "north"}},
+       {"expect": {"/bindings/north/plan": "trusting your intel"}},
+       {"send": "betray", "payload": {"informant": "ocelot"}},
+       {"expect": {"/bindings/north/plan": "you were played",
+                   "/commitment_grounds/north_plan@1": {"evidence": ["north_ocelot@1"], "caveats": []}}},
+       {"send": "betray", "payload": {"informant": "ocelot"}, "rejected": "Already exposed."}
+     ]},
+    {"id": "I02", "title": "A plan made on an honest informant's word stays in force when someone else is exposed",
+     "steps": [
+       {"send": "intel", "payload": {"informant": "ocelot", "gate": "north", "says": "clear"}},
+       {"send": "intel", "payload": {"informant": "eva", "gate": "south", "says": "clear"}},
+       {"send": "go", "payload": {"gate": "south"}},
+       {"send": "betray", "payload": {"informant": "ocelot"}},
+       {"expect": {"/bindings/south/plan": "trusting your intel", "/bindings/north/plan": "none"}}
+     ]},
+    {"id": "I03", "title": "Everything the traitor said is withdrawn, not only the latest report",
+     "steps": [
+       {"send": "intel", "payload": {"informant": "eva", "gate": "north", "says": "guarded"}},
+       {"send": "intel", "payload": {"informant": "eva", "gate": "north", "says": "clear"}},
+       {"send": "go", "payload": {"gate": "north"}},
+       {"send": "intel", "payload": {"informant": "eva", "gate": "north", "says": "clear"}},
+       {"send": "betray", "payload": {"informant": "eva"}},
+       {"expect": {"/bindings/north/plan": "you were played"}},
+       {"send": "go", "payload": {"gate": "north"}, "rejected": "None of your intel says that gate is clear."}
+     ]},
+    {"id": "I04", "title": "You cannot set out without intel that the gate is clear, or twice on the same route",
+     "steps": [
+       {"send": "go", "payload": {"gate": "south"}, "rejected": "None of your intel says that gate is clear."},
+       {"send": "intel", "payload": {"informant": "eva", "gate": "south", "says": "guarded"}},
+       {"send": "go", "payload": {"gate": "south"}, "rejected": "None of your intel says that gate is clear."},
+       {"send": "intel", "payload": {"informant": "ocelot", "gate": "south", "says": "clear"}},
+       {"send": "go", "payload": {"gate": "south"}},
+       {"send": "go", "payload": {"gate": "south"}, "rejected": "You are already on that route."}
+     ]}
+  ]
+}

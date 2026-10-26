@@ -12,3 +12,8 @@
 /editors/vscode/LICENSE
 
 /scripts/fixtures/*/node_modules/
+/python/target/
+__pycache__/
+*.egg-info/
+/python/caveat_lang/*.so
+/python/caveat_lang/*.pyd

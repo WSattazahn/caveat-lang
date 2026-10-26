@@ -96,10 +96,33 @@ outside itself.
   The GitHub release refuses bytes whose SHA-256 differs from the tested
   tarball.
 
+### Sensitive data in records
+
+Caveat keeps every source a decision used, in plain text. Saves, event logs,
+scenario files, `explain` and `dependents` output and the project's ledger hold
+evidence and caveat names, reading values, decision bases and the event
+history behind them. None of it is encrypted, redacted or access-controlled by
+Caveat.
+
+- Protect saves, event logs and ledgers as you protect the data their
+  evidence came from: the same access rules, retention and storage.
+- Do not put secrets, credentials or personal data in evidence, caveat or
+  stream names, or in reading values. Use an opaque identifier and keep the
+  mapping to the real record in the host, where its own controls apply.
+- Before sharing `explain` output or a save, for example in a bug report,
+  check what it names; the [security policy](../SECURITY.md) accepts a reduced
+  program instead.
+- The [PR ledger Action](../actions/pr-ledger/README.md) pushes its record to a
+  branch of the same repository, so on a public repository that record (pull
+  request numbers, check names, reviewers and authors) is public too.
+- Proving what a decision rested on without revealing the evidence is not a
+  1.x feature.
+
 ## Out of scope
 
 - The truth of evidence, readings and event senders a host supplies.
-- Keeping saves and event logs confidential or unaltered at rest.
+- Keeping saves, event logs and ledgers confidential or unaltered at rest;
+  see [Sensitive data in records](#sensitive-data-in-records).
 - Authorizing the actions a host takes on a decision.
 - Side channels such as timing differences between programs.
 - Vulnerabilities in Node.js, browsers, WebAssembly engines or Cloudflare.

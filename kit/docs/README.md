@@ -21,6 +21,10 @@ background, not required reading.
   ranges, the session clock, evidence that ages and decisions that are
   reconsidered.
 
+- [Caveat in a game](GAMES.md): for a game developer, story knowledge as
+  evidence, a player's choices as decisions, a betrayal as withdrawal, and the
+  game loop, saves and cost, with [the intel example](../examples/intel-betrayal/README.md).
+
 - [Project names and CLI commands](NAMES.md): the unambiguous `caveat-lang`
   command introduced in rc.7, the supported `caveat` shorthand and other projects with the
   same name.
@@ -104,6 +108,12 @@ Background:
 - [Handoff example](../examples/handoff/README.md): a main agent hands work
   to sub-agents with the ledger, each in a session scoped to its own events,
   and merges their work by replay.
+
+## Retracted evidence
+
+- [Retracted studies](../examples/retractions/README.md): the 2020
+  Surgisphere retractions, where withdrawing each study flags every conclusion
+  drawn from it and decisions already made keep what they rested on.
 
 ## History and long-running sessions
 

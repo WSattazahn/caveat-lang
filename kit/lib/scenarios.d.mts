@@ -35,6 +35,8 @@ export type ScenarioStep = SendStep | ExpectStep | SameAsStep | CheckpointStep |
 export interface SendStep {
   send: string;
   payload?: JsonValue;
+  /** The agent that sends it, for a program that declares agents (spec/caveat-agents-0.1.md). */
+  agent?: string;
   /** Left out, the event must be accepted. `true` or a message: a policy rejection. */
   rejected?: true | string | ExpectedRejection;
   repeat?: number;
