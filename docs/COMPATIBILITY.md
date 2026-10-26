@@ -17,7 +17,7 @@ material or anything else that shares the repository.
 | CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
 | Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, `./handoff` (sessions scoped to some events, and replay between sessions), `./saves` (from 1.4.0: a replay save's events read back by name, and replayed onto a changed program), and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
-| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge, and from 1.4.0 `caveat_dispatch`, which continues one ledger through the save it returns | [MCP tools](../kit/docs/MCP.md) |
+| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge, and from 1.5.0 `caveat_dispatch`, which continues one ledger through the save it returns | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
 | Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Replay Save 0.2](../spec/caveat-replay-save-0.2.md) (from 1.2.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
 

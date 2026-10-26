@@ -61,7 +61,7 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
-| caveat_dispatch | source, optional save, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.4.0) |
+| caveat_dispatch | source, optional save, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.5.0) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
 authoring diagnostics, and `caveat_test` to assert behavior after events. A
@@ -119,7 +119,7 @@ record ID such as `readings@1`, or a caveat name; an unknown subject returns
 
 ## Keeping one ledger across calls
 
-`caveat_dispatch` (from 1.4.0) lets an agent keep one ledger for a whole task
+`caveat_dispatch` (from 1.5.0) lets an agent keep one ledger for a whole task
 without replaying its history each time. The first call sends the program and
 its first events and no `save`. Each result's `report.save` is the session's
 save text; the next call passes it back unchanged as `save`, with the same

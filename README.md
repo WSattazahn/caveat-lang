@@ -265,7 +265,7 @@ MCP client's configuration:
 | `caveat_test` | source, scenarios | Scenario results, invariant checks and check warnings |
 | `caveat_explain` | source, optional events | Decisions, their exact grounds, caveats and history |
 | `caveat_dependents` | source, subject, optional events | What depends on the named evidence, stream or caveat |
-| `caveat_dispatch` (from 1.4.0) | source, optional save, optional events | One step of a running ledger: the state after the events, and the save to pass back next time |
+| `caveat_dispatch` (from 1.5.0) | source, optional save, optional events | One step of a running ledger: the state after the events, and the save to pass back next time |
 
 Every tool works on inline source text and supplied events. The server has no
 file, network or persistent-session tools, and it runs each call in a fresh
