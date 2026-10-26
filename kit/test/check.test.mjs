@@ -379,3 +379,32 @@ bind ui.text = "seen often" when seen > 5 because other;
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+// Found by the Primeagen test: a misspelled commit target ran as a plain
+// commitment and every check stayed quiet.
+test('--names reports a commit that misspells a decision series, and only when asked', async () => {
+  const source = `claim rain_likely;
+evidence forecast from "the morning forecast";
+readings rain_chance from forecast limit 4;
+decisions umbrella limit 4;
+event read_forecast chance min 0 max 100;
+on read_forecast sample rain_chance = chance supports rain_likely;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrela because enough using latest(rain_chance);
+`;
+  const runtime = real;
+  assert.deepEqual(runtime.check(source).diagnostics, []);
+  assert.deepEqual(runtime.check(source, { names: true }).diagnostics.map(item => [item.code, item.line]), [['C010', 7]]);
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-check-names-'));
+  try {
+    const file = path.join(directory, 'umbrella.cav');
+    await writeFile(file, source);
+    const plain = caveat(['check', '--strict', file]);
+    assert.equal(plain.status, 0, plain.stdout + plain.stderr);
+    const named = caveat(['check', '--strict', '--names', file]);
+    assert.equal(named.status, 1, named.stderr);
+    assert.match(named.stdout, /C010 near-miss-commitment: `commit umbrela`/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

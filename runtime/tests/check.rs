@@ -2413,3 +2413,75 @@ fn a_record_read_can_be_allowed_on_purpose() {
         [("C008", line_of(&source, "bind view.plan"))]
     );
 }
+
+fn check_names(source: &str) -> CheckReport {
+    check_source_with(
+        source,
+        CheckOptions {
+            names: true,
+            ..Default::default()
+        },
+    )
+    .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
+}
+
+/// Found by the Primeagen test: `commit umbrela` loaded, ran and checked
+/// clean, made a plain commitment beside the `umbrella` series, and the
+/// program's advice never changed.
+const MISSPELLED_COMMIT: &str = r#"claim rain_likely;
+evidence forecast from "the morning forecast";
+readings rain_chance from forecast limit 4;
+decisions umbrella limit 4;
+event read_forecast chance min 0 max 100;
+on read_forecast sample rain_chance = chance supports rain_likely;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrela because enough using latest(rain_chance);
+bind advice.text = "No decision yet";
+bind advice.text = "Take the umbrella" when committed(umbrella);
+"#;
+
+#[test]
+fn a_commit_one_edit_from_a_decision_series_is_reported_only_when_asked() {
+    assert_eq!(codes(&check(MISSPELLED_COMMIT)), []);
+    let report = check_names(MISSPELLED_COMMIT);
+    assert_eq!(
+        codes(&report),
+        [("C010", line_of(MISSPELLED_COMMIT, "on read_forecast when"))]
+    );
+    let warning = &report.diagnostics[0];
+    assert_eq!(warning.name, "near-miss-commitment");
+    assert!(
+        warning.message.contains("`commit umbrela`"),
+        "{}",
+        warning.message
+    );
+    assert!(
+        warning.suggestion.contains("write `commit umbrella`"),
+        "{}",
+        warning.suggestion
+    );
+    assert_eq!(
+        warning.related[0].line,
+        line_of(MISSPELLED_COMMIT, "decisions umbrella")
+    );
+}
+
+#[test]
+fn a_series_commit_and_a_distinct_plain_commitment_are_not_reported() {
+    let source = r#"claim ok;
+evidence e from "x";
+decisions ship limit 2;
+event go;
+on go reveal e supports ok;
+on go commit ship because enough using 1;
+on go commit release_notes because enough using 1;
+"#;
+    assert_eq!(codes(&check_names(source)), []);
+    let allowed = MISSPELLED_COMMIT.replace(
+        "on read_forecast when",
+        "# caveat check: allow near-miss-commitment\non read_forecast when",
+    );
+    let report = check_names(&allowed);
+    assert_eq!(codes(&report), []);
+    assert_eq!(report.suppressed.len(), 1);
+}

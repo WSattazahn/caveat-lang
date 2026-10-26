@@ -6,7 +6,7 @@
 // caveat review [--runtime <dir>] [--json] --all <directory>
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--names] [--records [--save <save.json>]] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -40,7 +40,7 @@ Usage:
   caveat-lang review [--runtime <dir>] [--json] --all <directory>
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
-  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
+  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] [--names]
                     [--records [--save <save.json>]] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
@@ -103,7 +103,9 @@ not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load. --unused also
 reports a claim, evidence, caveat or state that nothing else names (C007), such
-as one left behind by a rewrite. --records also reports each rule, procedure or
+as one left behind by a rewrite. --names also reports a commit whose name is
+one or two edits from a declared decision series (C010), which loads and runs
+as a separate plain commitment. --records also reports each rule, procedure or
 binding that reads a decision's record in a program that qualifies evidence
 (C008): from 1.1 a later qualify of the evidence the record lists reaches a
 value set that way. With --save it also restores the save and reports each
@@ -153,6 +155,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
                    that nothing else in the program names
+  --names          (check) also report a commit that misspells a declared
+                   decision series
   --records        (check) also report reads of a decision's record that a
                    later qualify reaches from 1.1
   --save <file>    (check, with --records) also report the values that save
@@ -179,11 +183,11 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--strict', '--unused', '--records', '--save', '--from', '--state', '--runtime'];
+const OPTIONS = ['--json', '--all', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
-    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--records': command === 'check', '--save': command === 'check',
+    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
     '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
   })[option];
 }
@@ -210,13 +214,14 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, json: false, strict: false, unused: false, names: false, records: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--all' && command === 'review') options.all = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
+    else if (argument === '--names' && command === 'check') options.names = true;
     else if (argument === '--records' && command === 'check') options.records = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
@@ -474,7 +479,7 @@ async function checkProgram(options) {
   if (options.save) {
     try { save = await readFile(options.save, 'utf8'); } catch (error) { console.error(`cannot read ${options.save}: ${error.message}`); return 2; }
   }
-  const asked = { unused: options.unused, ...(options.records ? { records: true } : {}), ...(save !== undefined ? { save } : {}) };
+  const asked = { unused: options.unused, ...(options.names ? { names: true } : {}), ...(options.records ? { records: true } : {}), ...(save !== undefined ? { save } : {}) };
   let report;
   try { report = runtime.check(inputs.source, asked); } catch (error) {
     if (error.kind !== 'restore') return refuse(`does not load: ${error.message}`);

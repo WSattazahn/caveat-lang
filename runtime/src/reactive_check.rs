@@ -55,6 +55,7 @@ const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
 const UNUSED_DECLARATION: (&str, &str) = ("C007", "unused-declaration");
 const RECORD_READS_LATE_CAVEAT: (&str, &str) = ("C008", "record-reads-late-caveat");
 const SAVE_LACKS_LATE_CAVEAT: (&str, &str) = ("C009", "save-lacks-late-caveat");
+const NEAR_MISS_COMMITMENT: (&str, &str) = ("C010", "near-miss-commitment");
 const ALLOW: &str = "caveat check: allow";
 
 /// Which checks run beyond the default ones. Each is asked for, so a program
@@ -66,6 +67,8 @@ pub struct CheckOptions {
     /// C008 `record-reads-late-caveat`, and C009 `save-lacks-late-caveat`
     /// when a save is checked (`check_save_with`).
     pub records: bool,
+    /// C010 `near-miss-commitment`.
+    pub names: bool,
 }
 
 /// Loads the program, then looks for the patterns in
@@ -114,6 +117,9 @@ fn report(source: &str, options: CheckOptions, save: Option<&str>) -> Result<Che
     }
     if options.records {
         found.extend(record_reads(&session, &statements));
+    }
+    if options.names {
+        found.extend(near_miss_commitments(&statements));
     }
     if let Some(saved) = &saved {
         found.extend(saved_without_late_caveats(saved, &statements));
@@ -712,6 +718,66 @@ fn unused_declarations(statements: &[Statement]) -> Vec<Diagnostic> {
             }
         })
         .collect()
+}
+
+/// C010. A `commit NAME` whose NAME is no declared decision series but is
+/// one or two edits from one. Such a commit makes a plain commitment of that
+/// name, which loads and runs: nothing records it in the series, and
+/// `committed(SERIES)` stays false. A misspelled `reopen` or `committed(…)`
+/// already fails to load; a misspelled `commit` is the one that does not.
+fn near_miss_commitments(statements: &[Statement]) -> Vec<Diagnostic> {
+    let mut series: Vec<(String, Position)> = Vec::new();
+    for statement in statements {
+        if let [Token::Name(word), Token::Name(name), ..] = tokens(&statement.text).as_slice() {
+            if word == "decisions" {
+                series.push((name.clone(), statement.at));
+            }
+        }
+    }
+    let mut found = Vec::new();
+    for statement in statements {
+        let tokens = tokens(&statement.text);
+        for pair in tokens.windows(2) {
+            let [Token::Name(word), Token::Name(name)] = pair else {
+                continue;
+            };
+            if word != "commit" || series.iter().any(|(declared, _)| declared == name) {
+                continue;
+            }
+            let limit = (name.chars().count() / 3).clamp(1, 2);
+            let Some((near, at)) = series
+                .iter()
+                .map(|(declared, at)| {
+                    (declared, at, crate::load_diagnostics::edits(name, declared))
+                })
+                .filter(|(_, _, distance)| *distance <= limit)
+                .min_by_key(|(_, _, distance)| *distance)
+                .map(|(declared, at, _)| (declared, *at))
+            else {
+                continue;
+            };
+            found.push(Diagnostic {
+                code: NEAR_MISS_COMMITMENT.0,
+                name: NEAR_MISS_COMMITMENT.1,
+                severity: "warning",
+                line: statement.at.line,
+                column: statement.at.column,
+                message: format!(
+                    "`commit {name}` makes a plain commitment named `{name}`, which is not the decision series `{near}`: the series does not record it, and `committed({near})` stays false"
+                ),
+                suggestion: format!(
+                    "If you meant the series, write `commit {near}`. If `{name}` is a separate commitment on purpose, put `# {ALLOW} {}` on the line above.",
+                    NEAR_MISS_COMMITMENT.1
+                ),
+                related: vec![Related {
+                    line: at.line,
+                    column: at.column,
+                    note: format!("the decision series `{near}` is declared here"),
+                }],
+            });
+        }
+    }
+    found
 }
 
 /// The expressions an effect evaluates, taken or not.

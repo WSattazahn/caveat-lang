@@ -304,7 +304,10 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind. `--records` also reports where a program reads a decision's
+  left behind. `--names` (draft for 1.5) also reports a `commit` whose name
+  is one or two edits from a declared decision series: it would run as a
+  separate plain commitment and the series would never record it.
+  `--records` also reports where a program reads a decision's
   record in a place a later `qualify` reaches (1.1 changed what those reads
   carry). `--records --save SAVE` lists the values in a save written by a
   1.0.x runtime that are missing such a caveat.
