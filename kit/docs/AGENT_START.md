@@ -1,7 +1,7 @@
 # Start an agent integration
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.0`**.
+Package: **`caveat-lang@1.4.1`**.
 <!-- /caveat-package:identity -->
 
 Use Caveat when your application needs to keep a decision's evidence, carry its
@@ -18,7 +18,7 @@ place of the npm package specifier.
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent

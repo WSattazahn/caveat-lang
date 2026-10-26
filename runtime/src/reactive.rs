@@ -5533,8 +5533,11 @@ impl ReactiveSession {
                         provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
                     }
                 }
-                self.read_live(&mut provenance)?;
-                provenance
+                // The basis is frozen, but the evidence it lists is read as it
+                // stands now: a late caveat or a withdrawal of it reaches a
+                // value read through this predicate, as through `latest`.
+                // See spec/caveat-withdrawal-0.1.md, step 2.
+                self.with_current_withdrawals(provenance)?
             }
             _ => Provenance::default(),
         };

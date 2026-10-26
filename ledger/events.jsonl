@@ -166,5 +166,13 @@
 {"event": "main_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 140}}
 {"event": "ship_minor", "payload": {"version": 140}}
+{"event": "find", "payload": {"number": 21}}
+{"event": "find", "payload": {"number": 22}}
+{"event": "find", "payload": {"number": 23}}
+{"event": "find", "payload": {"number": 24}}
+{"event": "find", "payload": {"number": 25}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "ci_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 347}}
 {"event": "ci_run", "payload": {"green": 1}}
