@@ -48,6 +48,7 @@ pub enum RejectionCode {
     ProvenanceLimit,
     EvaluationLimit,
     WrongAgent,
+    TextLimit,
 }
 
 #[derive(Debug, Serialize)]
@@ -253,6 +254,7 @@ impl From<EvalError> for DispatchFailure {
             EvalFailure::EvaluationLimit => {
                 (RejectionOrigin::Limit, RejectionCode::EvaluationLimit)
             }
+            EvalFailure::TextLimit => (RejectionOrigin::Limit, RejectionCode::TextLimit),
             EvalFailure::Other => return error.message.into(),
         };
         Self::rejected(origin, code, error.message)

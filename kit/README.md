@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.0`**.
+Package: **`caveat-lang@1.4.1`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -24,7 +24,7 @@ In an empty directory with Node 20 or later, install the package:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 ```
 <!-- /caveat-package:install -->
 
@@ -106,7 +106,7 @@ installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
