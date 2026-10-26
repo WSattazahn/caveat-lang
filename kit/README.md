@@ -393,7 +393,8 @@ To ask what an event would do without doing it, call
 from a copy of the session that is then dropped, so the session is unchanged
 whatever the answer: for example, which decisions withdrawing some evidence
 would reopen, or whether a commitment would be refused. It takes the same
-`{ fields }` option. A fatal answer throws but leaves the session usable
+`{ fields }` and `{ agent }` options, so it can ask about an event only one
+agent may send. A fatal answer throws but leaves the session usable
 ([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
 
 A runtime keeps the last few programs it loaded, so opening or restoring the
