@@ -78,6 +78,8 @@ jobs:
         run: node --test scripts/pages-gate.test.mjs
       - name: Game QA retry count opens an issue only past its threshold
         run: node --test scripts/game-qa-retries.test.mjs
+      - name: Stabilization trial reruns a stalled trial but fails a real slowdown
+        run: node --test experiments/stabilization-trial/run.test.mjs
       - name: npm publication gate refuses untested, mismatched or unattested packages
         run: node --test scripts/release-publish.test.mjs
       - name: Release bill of materials covers every compiled-in crate and refuses gaps
@@ -404,9 +406,9 @@ jobs:
         with:
           browsers: chromium
       - name: Play the glowcap explainer
-        run: scripts/ci-retry-once.sh 4 npm run test:glowcap-page
+        run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play Trail Rescue on desktop and mobile
-        run: scripts/ci-retry-once.sh 4 npm run test:trail-rescue-page
+        run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
       - name: Developer kit session library and runner in Chromium
         run: npm run test:kit-browser
       - name: Pack the developer kit and use it from a fresh install
@@ -509,11 +511,11 @@ jobs:
         with:
           browsers: chromium webkit
       - name: Play desktop and mobile routes
-        run: scripts/ci-retry-once.sh 8 npm run test:beacon
+        run: .github/ci/retry-once.sh 8 npm run test:beacon
       - name: Verify launch failures and recovery
         run: |
           npm run package:game
-          scripts/ci-retry-once.sh 5 npm run test:launch
+          .github/ci/retry-once.sh 5 npm run test:launch
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -557,7 +559,7 @@ jobs:
           browsers: ${{ matrix.browser }}
       - name: Steer the ferry with mouse, keyboard and touch
         if: env.GAMES == 'true'
-        run: scripts/ci-retry-once.sh 15 npm run test:rescue
+        run: .github/ci/retry-once.sh 15 npm run test:rescue
         env:
           BROWSERS: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
@@ -577,7 +579,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: .ci
-          sparse-checkout: .github/actions
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -593,7 +595,10 @@ jobs:
         run: |
           python3 -m http.server 4176 --directory dist >/tmp/mr-caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4176/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4176/ || { cat /tmp/mr-caveat-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -677,6 +682,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -694,7 +700,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: .ci
-          sparse-checkout: .github/actions
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -710,7 +716,10 @@ jobs:
         run: |
           python3 -m http.server 4174 --directory dist >/tmp/moon-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4174/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4174/ || { cat /tmp/moon-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{
             const browser=await webkit.launch();
@@ -740,6 +749,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -757,7 +767,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: .ci
-          sparse-checkout: .github/actions
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -773,7 +783,10 @@ jobs:
         run: |
           python3 -m http.server 4175 --directory dist >/tmp/moon3d-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4175/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4175/ || { cat /tmp/moon3d-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright'),fs=require('fs');
           (async()=>{
             const browser=await webkit.launch();
@@ -809,6 +822,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -826,7 +840,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: .ci
-          sparse-checkout: .github/actions
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         with:
           name: browser-dist
@@ -842,7 +856,10 @@ jobs:
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
-          node <<'NODE'
+          # The page loads only once the server answers.
+          for attempt in $(seq 1 50); do curl -sf -o /dev/null http://127.0.0.1:4173/ && break; sleep 0.2; done
+          curl -sf -o /dev/null http://127.0.0.1:4173/ || { cat /tmp/caveat-http.log; exit 1; }
+          cat > play.cjs <<'NODE'
           const {webkit,devices}=require('playwright');
           (async()=>{const browser=await webkit.launch();try{
             async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
@@ -855,6 +872,7 @@ jobs:
             {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.close()}
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
+          .ci/.github/ci/retry-once.sh 6 node play.cjs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
