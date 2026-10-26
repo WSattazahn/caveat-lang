@@ -1,0 +1,36 @@
+name: Playwright browsers
+description: >
+  Install Playwright browsers and their system packages for the installed
+  playwright version. Browser downloads are cached, apt gives up on a
+  stalled mirror instead of hanging, and a failed or stalled install is
+  tried once more before the job fails.
+inputs:
+  browsers:
+    description: Space-separated browser names, as playwright install takes them
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Make apt give up on a stalled mirror and retry
+      shell: bash
+      run: |
+        printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+          | sudo tee /etc/apt/apt.conf.d/80-ci-timeouts >/dev/null
+    - id: version
+      name: Read the installed playwright version
+      shell: bash
+      run: echo "playwright=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v5
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.version.outputs.playwright }}-${{ inputs.browsers }}
+    - name: Install ${{ inputs.browsers }} with system packages
+      shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        # Each attempt is bounded; a stalled download fails here, not at the job limit.
+        if ! timeout --kill-after=30s 6m npx playwright install --with-deps $BROWSERS; then
+          echo "::warning::playwright install --with-deps $BROWSERS failed or stalled; trying once more"
+          timeout --kill-after=30s 6m npx playwright install --with-deps $BROWSERS
+        fi
