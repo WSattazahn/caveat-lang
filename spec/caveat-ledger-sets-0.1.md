@@ -1,6 +1,6 @@
-# CAVEAT Ledger Sets 0.1 (draft) — reviewing past ledgers, and saying a decision read one
+# CAVEAT Ledger Sets 0.1 — reviewing past ledgers, and saying a decision read one
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.4, building on [Review 0.1](caveat-review-0.1.md) and [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit: it adds no syntax, changes no program and no session, and a program means what it meant before.
+**Status:** stable from 1.4.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.4, building on [Review 0.1](caveat-review-0.1.md) and [Outcomes 0.1](caveat-outcomes-0.1.md). It is a report of the kit: it adds no syntax, changes no program and no session, and a program means what it meant before.
 
 An agent can learn from its own mistakes only the way a person does from
 notes: it reads what happened last time before it decides. Outcomes 0.1
