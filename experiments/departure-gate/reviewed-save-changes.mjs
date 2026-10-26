@@ -7,9 +7,20 @@
 // lists live, so it gains a later `qualify` of that evidence; it too only adds
 // caveats (experiments/caveat-sources-sweep/). Windowed programs either
 // changes are absent: their sweep compares outcomes only, which match. D020
-// changes no gated program's save.
+// changes no gated program's save. D026 (Withdrawal 0.1, step 2): a value read
+// through `committed`, `reopened` or `in_basis` reads the evidence the basis
+// lists as it stands now, so it gains a later withdrawal of it; it only adds
+// the `withdrawn` caveat and changes no refusal or fatal outcome
+// (experiments/d026-sweep/).
 export const reviewedSaveChanges = new Set([
+  'caveatism/canon/archive.cav',
+  'docs/tutorials/agent-undo-list/hello.cav',
   'experiments/agent-adoption/v1/evaluator/gold-tracker.cav',
+  'experiments/agent-adoption/v1/results/2026-10-02/A01/submission/first.cav',
+  'experiments/agent-adoption/v1/results/2026-10-02/A01/submission/tracker.cav',
+  'experiments/agent-adoption/v1/results/2026-10-02/A02/submission/first.cav',
+  'experiments/agent-adoption/v1/results/2026-10-02/A02/submission/tracker.cav',
+  'experiments/agent-adoption/v1/results/2026-10-02/A03/submission/tracker.cav',
   'experiments/agent-authoring/rc7/trial01/final/task.cav',
   'experiments/agent-authoring/rc7/trial01/first/task.cav',
   'experiments/agent-authoring/v1/runs/B1/candidate.cav',
@@ -25,11 +36,15 @@ export const reviewedSaveChanges = new Set([
   'experiments/agent-authoring/v2/runs/B2/final.cav',
   'experiments/agent-authoring/v2/runs/B2/versions/02.cav',
   'experiments/agent-decisions/001-departure-reason-mechanism/decision.cav',
+  'experiments/agent-decisions/001-departure-reason-mechanism/ledger-item4.cav',
   'experiments/agent-decisions/retest-rc19/d001-undeclared.cav',
+  'experiments/agent-ledger/ledger-identifiers.cav',
+  'kit/examples/agent-evidence/assessment.cav',
   'kit/examples/agent-evidence/grounded_assessment.cav',
   'kit/examples/agent-evidence/qualification.cav',
   'kit/examples/reviewer-decision/rely.cav',
   'kit/test/fixtures/saves/programs/frost.cav',
+  'python/tests/fixtures/assessment.cav',
   'runtime/tests/fixtures/f268-rc11-wide-grounds.cav',
 ]);
 

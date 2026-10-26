@@ -133,6 +133,12 @@ reach the node cap once its stream holds enough readings. Such an event is
 refused with `limit/evaluation_limit` (from 1.4.0; before it, fatal
 `unclassified`).
 
+**Text.** A text value, bound or computed, holds at most 65,536 bytes. An
+event whose expression would make a longer one is refused with
+`limit/text_limit`, and the session goes on (from 1.4.1; before it, such an
+event ended the session as fatal `unclassified`, finding D025). A text
+literal past the limit does not load.
+
 **Other per-event caps.** Procedure calls nest at most 64 deep
 (`limit/depth_limit`); at most 4,096 delayed qualifications wait at once
 (`limit/scheduled_limit`); a session holds at most 65,536 identifiers

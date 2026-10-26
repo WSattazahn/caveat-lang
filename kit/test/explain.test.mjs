@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { explain, formatExplanation, parseEvents, EXPLAIN_SCHEMA } from '../lib/explain.mjs';
 import { real, repo, thermostat } from './helpers.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
 const example = path.join(repo, 'examples', 'thermostat_history.cav');
@@ -119,11 +119,13 @@ test('a full history refuses the event and the replay continues', async () => {
 });
 
 test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n' + textOverflow('on read when value > 1.5');
-  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
-    const result = run(file('dividing.cav'), file('events.jsonl'));
+  // The fatal event is the fixture runtime's: no program reaches one.
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\nevent fault;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n';
+  const faulted = [{ event: 'read', payload: { value: 1 } }, { event: 'fault' }, { event: 'read', payload: { value: 3 } }].map(event => JSON.stringify(event)).join('\n');
+  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': faulted }, async file => {
+    const result = run('--runtime', await faultingRuntimeDirectory(), file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, / {4}2 {2}read \{"value":2\} {2}failed: /);
+    assert.match(result.stdout, / {4}2 {2}fault .*failed: /);
     assert.doesNotMatch(result.stdout, / {4}3 {2}read/);
     assert.match(result.stdout, /r@1 = 1 supports c/);
     assert.doesNotMatch(result.stdout, /r@2/);

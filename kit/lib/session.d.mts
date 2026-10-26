@@ -44,7 +44,8 @@ export type KnownRejectionCode =
   | 'reason_spent'
   | 'provenance_limit'
   | 'evaluation_limit'
-  | 'wrong_agent';
+  | 'wrong_agent'
+  | 'text_limit';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
