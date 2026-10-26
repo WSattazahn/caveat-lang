@@ -145,6 +145,10 @@ of the ledger is to find them on the project's own decisions.
   item code, checked by `permitted by latest(approvals) for CODE`. It works,
   and `explain` shows `permitted by approvals@3 for 101`, but a code table is
   a convention the program cannot check.
+- **The approvals stream is nearly full.** `approvals` holds at most 64
+  readings, and after 1.4.0 it holds 53, so the closeout recorded one
+  approval for the minor rather than one per merged PR; a fuller record
+  needs a larger limit or a second stream.
 - **A 1.0 sample needs a stance.** `sample approvals = item` must say what
   claim it bears on; `approved_by_owner` exists for that alone.
 
