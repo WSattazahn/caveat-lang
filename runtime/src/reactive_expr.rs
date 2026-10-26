@@ -1487,7 +1487,9 @@ impl Expr {
             Node::Qualified(value, _, _) | Node::Unary(_, value) => {
                 value.collect_withdrawal_reads(tested, bases)
             }
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
                 left.collect_withdrawal_reads(tested, bases);
                 right.collect_withdrawal_reads(tested, bases);
             }
