@@ -31,7 +31,10 @@ const newerThanBaseline = {
   'experiments/narrowed-test-gates/required.cav': /\bnoting\b/,
   'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
   'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
+  'experiments/model-votes/votes.cav': /\bwithdraw every\b/,
+  'bench/carmack/programs/release-gate.cav': /\bunqualify\b/,
   'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b/,
+  'python/tests/fixtures/agents.cav': /^agent \w+ sends\b/m,
 };
 
 
