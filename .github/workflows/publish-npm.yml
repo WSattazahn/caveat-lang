@@ -62,9 +62,20 @@ jobs:
           git fetch --no-tags --depth=1 origin "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           test "$(git cat-file -t "refs/tags/${RELEASE_TAG}")" = tag
           test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$GITHUB_SHA"
-      - name: Find the Runtime run that tested this revision
+      # The release gate is a Caveat program (scripts/release-gate/release-gate.cav),
+      # run on a released kit pinned by its SHA256 in scripts/release-gate/pin.json,
+      # not on the runtime being released.
+      - name: Install the released Caveat kit the release gate runs on
+        shell: bash
+        run: |
+          eval "$(node scripts/release-gate/pin.mjs --shell)"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gate-kit.tgz" "$GATE_KIT_TARBALL"
+          echo "$GATE_KIT_SHA256  $RUNNER_TEMP/gate-kit.tgz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/gate-kit" && tar -xzf "$RUNNER_TEMP/gate-kit.tgz" -C "$RUNNER_TEMP/gate-kit"
+          echo "CAVEAT_GATE_KIT=$RUNNER_TEMP/gate-kit/package" >> "$GITHUB_ENV"
+      - name: Find the Runtime run that tested this revision (the release gate decides and keeps its record)
         id: select
-        run: node scripts/release-publish.mjs select
+        run: node scripts/release-publish.mjs select candidate
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Download the exact tested package

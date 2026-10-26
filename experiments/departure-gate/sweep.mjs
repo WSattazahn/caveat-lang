@@ -39,6 +39,7 @@ const newerThanBaseline = {
   'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b/,
   'python/tests/fixtures/agents.cav': /^agent \w+ sends\b/m,
   'scripts/done-check/done.cav': /\bciting\b/,
+  'scripts/release-gate/release-gate.cav': /\bin_basis\b/,
 };
 
 
