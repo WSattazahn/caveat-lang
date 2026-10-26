@@ -7,6 +7,7 @@ Caveat does not check that evidence is true, does not sign saves, and does not k
 ## Start here
 
 - [Hello, world](https://github.com/WSattazahn/caveat-lang/blob/main/kit/README.md#hello-world): a 13-line program with one piece of evidence, one decision, and one withdrawal that reopens it, then `caveat-lang explain`. Install with `npm install caveat-lang` (pin the version the README names) and paste the block.
+- [An agent with an undo list](https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md): a 15-minute tutorial on the published package. A support agent refunds, files a claim and sends a credit; one source turns out wrong, and Caveat lists what to undo and why each action was taken.
 - [The language in brief](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md): the syntax on one page. Read it before writing Caveat source; `--` is not a comment, use `#` or `//`.
 - [Limits](https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md): what Caveat does not do and what it costs, with the measurements.
 

@@ -68,10 +68,16 @@ async function pages(api, path, key) {
   }
 }
 
+// runtime.yml plays the games on every change; pages.yml plays the live site.
+export const WORKFLOWS = ['runtime.yml', 'pages.yml'];
+
 export async function collect({ api, repository, since }) {
-  const runs = await pages(api,
-    `/repos/${repository}/actions/workflows/runtime.yml/runs?created=%3E%3D${since.toISOString().slice(0, 10)}`,
-    'workflow_runs');
+  const runs = [];
+  for (const workflow of WORKFLOWS) {
+    runs.push(...await pages(api,
+      `/repos/${repository}/actions/workflows/${workflow}/runs?created=%3E%3D${since.toISOString().slice(0, 10)}`,
+      'workflow_runs'));
+  }
   const checkRuns = [];
   for (const run of runs) {
     if (!run.check_suite_id) continue;
