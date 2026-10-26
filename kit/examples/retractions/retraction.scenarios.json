@@ -1,0 +1,66 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "retraction.cav",
+  "scenarios": [
+    {"id": "R01", "title": "The June 2020 timeline: both retractions flag every conclusion that rested on them, each keeps its grounds, and the trial-based conclusion stands",
+     "steps": [
+       {"send": "published", "payload": {"study": "nejm"}},
+       {"send": "conclude"},
+       {"send": "published", "payload": {"study": "lancet"}},
+       {"send": "conclude"},
+       {"send": "pause_announced"},
+       {"send": "revise_guidance"},
+       {"expect": {"/bindings/harm/status": "HCQ raises mortality", "/bindings/pause/status": "paused",
+                   "/bindings/guidance/status": "no HCQ for inpatients"}},
+       {"send": "concern", "payload": {"study": "nejm"}},
+       {"send": "concern", "payload": {"study": "lancet"}},
+       {"expect": {"/bindings/harm/status": "HCQ raises mortality, but its study is under an expression of concern",
+                   "/commitment_grounds/harm_signal@1": {"evidence": ["lancet_registry"], "caveats": ["observational"]}}},
+       {"send": "dsmb_review"},
+       {"expect": {"/bindings/pause/status": "resumed after review"}},
+       {"send": "retracted", "payload": {"study": "lancet"}},
+       {"send": "retracted", "payload": {"study": "nejm"}},
+       {"expect": {"/bindings/harm/status": "flagged: rested on a retracted study",
+                   "/bindings/acei/status": "flagged: rested on a retracted study",
+                   "/bindings/guidance/status": "flagged: rested on a retracted study",
+                   "/bindings/pause/status": "resumed; the pause rested on a since-retracted study",
+                   "/commitment_grounds/harm_signal@1": {"evidence": ["lancet_registry"], "caveats": ["observational"]},
+                   "/commitment_grounds/pause_arm@1": {"evidence": ["lancet_registry"], "caveats": ["observational"]},
+                   "/commitment_grounds/acei_continue@1": {"evidence": ["nejm_registry"], "caveats": ["observational"]}}},
+       {"send": "recovery_reported"},
+       {"send": "conclude"},
+       {"send": "revise_guidance"},
+       {"expect": {"/bindings/benefit/status": "HCQ gives no mortality benefit",
+                   "/bindings/guidance/status": "no HCQ for inpatients",
+                   "/bindings/harm/status": "flagged: rested on a retracted study",
+                   "/commitment_grounds/guidance@1": {"evidence": ["lancet_registry"], "caveats": ["observational"]},
+                   "/commitment_grounds/guidance@2": {"evidence": ["recovery_hcq"], "caveats": []}}}
+     ]},
+    {"id": "R02", "title": "A study retracted before anyone concluded from it supports no conclusion and no guidance",
+     "steps": [
+       {"send": "published", "payload": {"study": "lancet"}},
+       {"send": "retracted", "payload": {"study": "lancet"}},
+       {"send": "conclude"},
+       {"send": "revise_guidance"},
+       {"expect": {"/bindings/harm/status": "no conclusion", "/bindings/guidance/status": "none"}}
+     ]},
+    {"id": "R03", "title": "Retracting one study flags only what rested on it",
+     "steps": [
+       {"send": "published", "payload": {"study": "nejm"}},
+       {"send": "published", "payload": {"study": "lancet"}},
+       {"send": "conclude"},
+       {"send": "retracted", "payload": {"study": "nejm"}},
+       {"expect": {"/bindings/acei/status": "flagged: rested on a retracted study",
+                   "/bindings/harm/status": "HCQ raises mortality"}}
+     ]},
+    {"id": "R04", "title": "Refusals: nothing to retract, a concern about an unpublished study, a second retraction, an action on a retracted study",
+     "steps": [
+       {"send": "retracted", "payload": {"study": "lancet"}, "rejected": "No such study on record."},
+       {"send": "concern", "payload": {"study": "nejm"}, "rejected": "No such study on record."},
+       {"send": "published", "payload": {"study": "lancet"}},
+       {"send": "retracted", "payload": {"study": "lancet"}},
+       {"send": "retracted", "payload": {"study": "lancet"}, "rejected": "Already retracted."},
+       {"send": "pause_announced", "rejected": "The study it would rest on is retracted."}
+     ]}
+  ]
+}

@@ -29,11 +29,15 @@ const newerThanBaseline = {
   'kit/examples/handoff/handoff.cav': /\birreversible\b/,
   'experiments/false-completion-delivery/delivery.cav': /\bnoting\b/,
   'experiments/narrowed-test-gates/required.cav': /\bnoting\b/,
+  'kit/examples/retractions/retraction.cav': /\brests_on_withdrawn\(revision\(/,
   'experiments/prompt-injection/inbox-agent.cav': /\birreversible\b/,
   'experiments/prompt-injection/inbox-agent-recipients.cav': /\birreversible\b/,
   'docs/tutorials/agent-undo-list/support.cav': /\bd decisions, why evidence\)/,
   'docs/tutorials/agent-undo-list/solutions/order-correction.cav': /\bd decisions, why evidence\)/,
+  'experiments/model-votes/votes.cav': /\bwithdraw every\b/,
+  'bench/carmack/programs/release-gate.cav': /\bunqualify\b/,
   'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b/,
+  'python/tests/fixtures/agents.cav': /^agent \w+ sends\b/m,
 };
 
 

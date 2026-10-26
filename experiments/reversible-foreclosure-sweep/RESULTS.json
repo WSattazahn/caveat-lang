@@ -1,0 +1,15 @@
+{
+  "programs": 203,
+  "decisions_declarations": 168,
+  "programs_with_decisions": 138,
+  "new_syntax": [],
+  "names_spelled_forecloses": [],
+  "rejects_while_another_is_in_force": [
+    {
+      "path": "kit/examples/handoff/handoff.cav",
+      "event": "sub_rewrite",
+      "rejects_commit_of": "rewrite",
+      "while_in_force": "no_rewrite"
+    }
+  ]
+}

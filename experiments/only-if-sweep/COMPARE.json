@@ -1,0 +1,23 @@
+{
+  "note": "Untrusted Sources 0.1: every tracked program validated and every tracked scenario file run under a released CLI and this checkout. See README.md.",
+  "revision": "4c91994f6ea1574fedbe1d0526499244d77d6cd3",
+  "baseline": "CAVEAT Language 1.3.0",
+  "programs": 204,
+  "programs_loading": 173,
+  "scenario_files": 71,
+  "scenario_files_passing": 50,
+  "differences": [
+    {
+      "kind": "validate",
+      "file": "experiments/model-votes/votes.cav",
+      "baseline": 2,
+      "current": 0
+    },
+    {
+      "kind": "test",
+      "file": "experiments/model-votes/votes.scenarios.json",
+      "baseline": 1,
+      "current": 0
+    }
+  ]
+}

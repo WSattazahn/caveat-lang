@@ -118,8 +118,9 @@ function validateStep(step, where, names) {
   const [kind] = kinds;
   checkNote(step, where);
   if (kind === 'send') {
-    fields(step, ['send', 'payload', 'rejected', 'repeat', 'note'], where);
+    fields(step, ['send', 'payload', 'agent', 'rejected', 'repeat', 'note'], where);
     if (typeof step.send !== 'string' || !step.send) throw new ScenarioFileError(where, 'send names an event');
+    if ('agent' in step && (typeof step.agent !== 'string' || !step.agent)) throw new ScenarioFileError(where, 'agent names the agent that sends the event');
     if ('payload' in step) checkFinite(step.payload, where);
     if ('rejected' in step) checkRejected(step.rejected, where);
     if ('repeat' in step && !(Number.isInteger(step.repeat) && step.repeat >= 1 && step.repeat <= MAX_REPEAT)) {
@@ -436,7 +437,10 @@ async function runScenario(scenario, context) {
     const before = { save: read(entry, 'save'), view: read(entry, 'viewText') };
     let outcome;
     try {
-      outcome = entry.session.dispatch(send.send, 'payload' in send ? send.payload : {});
+      const payload = 'payload' in send ? send.payload : {};
+      outcome = 'agent' in send
+        ? entry.session.dispatch(send.send, payload, { agent: send.agent })
+        : entry.session.dispatch(send.send, payload);
     } catch (error) {
       if (error instanceof CaveatError) fatal(entry, error, { repetition });
       throw error;

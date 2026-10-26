@@ -164,6 +164,8 @@ const TAKE_BACK = `claim safe; evidence taste from "a taste"; caveat doubted con
   on sip reveal taste supports safe; on doubt qualify taste with doubted; on undoubt unqualify taste with doubted;`;
 // spec/caveat-foreclosure-0.1.md: an irreversible decision and what it forecloses.
 const FORECLOSURE = 'claim c; evidence e from "check"; decisions drop limit 1 irreversible forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit drop because enough using qualified(1, e);';
+// spec/caveat-foreclosure-0.2.md: a decision that forecloses while in force.
+const REVERSIBLE_FORECLOSURE = 'claim c; evidence e from "check"; decisions hold_off limit 2 forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit hold_off because enough using qualified(1, e);';
 // An outcome on a revision (spec/caveat-outcomes-0.1.md).
 const OUTCOME = 'claim c; evidence e from "check"; caveat doubt consequence low; decisions d limit 2; event go; event close; on go reveal e supports c; on go commit d because enough using qualified(1, e) retaining doubt; on close resolve d = 1 because e materialized doubt;';
 const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
@@ -176,6 +178,17 @@ const WINDOWED = `claim seen; evidence glimpse from "a glimpse";
   on decide when committed(trust) reopen trust because latest(sighting);
   on decide commit trust because enough using history_count(sighting);`;
 const WINDOWED_EVENTS = [['look'], ['decide'], ['look'], ['look'], ['decide']];
+// Events an agent sent, and the records that name it
+// (spec/caveat-agents-0.1.md). The third member of an event is its agent.
+const AGENTS = `claim c; evidence e from "a report"; evidence taste from "a taste"; evidence r from "a recheck";
+  caveat doubted consequence low; readings reports from e limit 4; decisions d limit 2;
+  agent main sends go, retract; agent sub sends report;
+  event report n min 0 max 9; event go; event sip; event doubt; event undoubt; event retract;
+  on report sample reports = n supports c; on go commit d because enough using latest(reports);
+  on sip reveal taste supports c; on doubt qualify taste with doubted; on undoubt unqualify taste with doubted;
+  on retract when not observed(r) reveal r opposes c; on retract withdraw latest(reports) because r;`;
+const AGENTS_EVENTS = [['report', { n: 3 }, 'sub'], ['go', {}, 'main'], ['sip', {}, 'sub'], ['doubt', {}, 'sub'], ['undoubt', {}, 'main'], ['retract', {}, 'main']];
+const sendAs = agent => (agent === undefined ? [] : [{ agent }]);
 
 // Each program with events, and the snapshot after every event.
 function sessionsOf() {
@@ -193,7 +206,9 @@ function sessionsOf() {
     // A retained caveat's reason (spec/caveat-retention-reasons-0.1.md).
     [RETENTION_REASON, [['go']]],
     [FORECLOSURE, [['go']]],
+    [REVERSIBLE_FORECLOSURE, [['go']]],
     [OUTCOME, [['go'], ['close']]],
+    [AGENTS, AGENTS_EVENTS],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];
@@ -203,8 +218,8 @@ function sessionsOf() {
     const session = real.open(source);
     snapshots.push(session.snapshot());
     views.push(session.view());
-    for (const [event, payload] of events) {
-      const outcome = session.dispatch(event, payload ?? {});
+    for (const [event, payload, agent] of events) {
+      const outcome = session.dispatch(event, payload ?? {}, ...sendAs(agent));
       if (outcome.outcome === 'accepted') snapshots.push(outcome.snapshot);
       views.push(session.view());
     }
@@ -465,7 +480,7 @@ test('the runtime contract and the options name what the library reads', async (
     groundsViolation({ commitment_grounds: { d: { caveats: ['c'] } }, commitment_bases: {} }),
   ], { complete: true });
   assert.equal(groundsViolation(snapshots.at(-1)), null);
-  assertShape('EventLine', parseEvents('{"event":"read","payload":{"value":17}}\n{"event":"warm"}\n'), { complete: true });
+  assertShape('EventLine', parseEvents('{"event":"read","payload":{"value":17}}\n{"event":"warm","agent":"main"}\n'), { complete: true });
 });
 
 test('a program interface has the declared shapes and kinds', () => {
@@ -475,7 +490,7 @@ test('a program interface has the declared shapes and kinds', () => {
     cue ping sound 440 0.2 0.5;
     on read sample soil = celsius supports frost_risk; on read set level = celsius;
     bind gauge.value = level; bind gauge.label = "cold" when level < 0; bind gauge.low = level < 0;`;
-  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail)];
+  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail), real.interface(AGENTS)];
   assertShape('ProgramInterface', interfaces, { complete: true });
   const parameters = interfaces.flatMap(found => found.events.flatMap(event => event.parameters));
   assertShape('InterfaceParameter', parameters, { complete: true });
@@ -488,6 +503,7 @@ test('a program interface has the declared shapes and kinds', () => {
   assertShape('InterfaceCue', interfaces.flatMap(found => found.cues), { complete: true });
   assertShape('InterfaceDecisions', interfaces.flatMap(found => found.decisions), { complete: true });
   assertShape('InterfaceReadings', interfaces.flatMap(found => found.readings), { complete: true });
+  assertShape('InterfaceAgent', interfaces.flatMap(found => found.agents ?? []), { complete: true });
 });
 
 // ---------------------------------------------------------------- reports
@@ -502,7 +518,9 @@ test('explain, dependents and check reports have the declared fields', () => {
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
+    [REVERSIBLE_FORECLOSURE, [['go']], 'e'],
     [OUTCOME, [['go'], ['close']], 'e'],
+    [AGENTS, AGENTS_EVENTS, 'reports'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).
     [WINDOWED, WINDOWED_EVENTS.slice(0, 4), 'sighting'],
@@ -511,12 +529,12 @@ test('explain, dependents and check reports have the declared fields', () => {
       [['look'], ['look'], ['look']], 's@1'],
   ]) {
     const session = real.open(source);
-    const traced = events.map(([event, payload]) => {
-      const { snapshot: after, ...outcome } = session.dispatch(event, payload ?? {});
-      return { event, payload: payload ?? {}, outcome,
+    const traced = events.map(([event, payload, agent]) => {
+      const { snapshot: after, ...outcome } = session.dispatch(event, payload ?? {}, ...sendAs(agent));
+      return { event, payload: payload ?? {}, ...(agent === undefined ? {} : { agent }), outcome,
         ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) };
     });
-    const sent = traced.map(({ event, payload, outcome }) => ({ event, payload, outcome }));
+    const sent = traced.map(({ event, payload, agent, outcome }) => ({ event, payload, ...(agent === undefined ? {} : { agent }), outcome }));
     explained.push(explain(session.snapshot(), sent));
     explained.push(explain(session.snapshot(), traced));
     rests.push(dependents(session.snapshot(), subject));

@@ -313,10 +313,6 @@ fn load_rules() {
             "an irreversible series holds one revision: decisions d limit 1 irreversible",
         ),
         (
-            "decisions d limit 2 forecloses other;",
-            "forecloses follows irreversible: decisions d limit 1 irreversible forecloses ACTION, …",
-        ),
-        (
             "decisions d limit 1 irreversible forecloses nowhere;",
             "d forecloses nowhere, which is not a decision",
         ),
@@ -330,7 +326,7 @@ fn load_rules() {
         ),
         (
             "decisions d limit 1 irreversible forecloses;",
-            "decisions expects NAME limit 1 irreversible",
+            "decisions expects NAME limit CAPACITY [irreversible] [forecloses ACTION, …]",
         ),
         (
             "decisions d limit 1 extra;",

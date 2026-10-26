@@ -35,11 +35,53 @@ Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
 Try the published release, **1.3.0**, in an empty directory with Node 20 or
-later. No Rust installation is needed:
+later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
 npm install caveat-lang@1.3.0
+```
+
+Then paste this "hello, world": one piece of evidence, one decision resting on
+it, and one event that withdraws the evidence and reopens the decision.
+
+```sh
+cat > hello.cav <<'CAV'
+claim safe_to_ship;
+evidence ci from "the CI run";
+evidence rerun from "a rerun of CI";
+readings tests from ci limit 2;
+decisions ship limit 2;
+
+event ci_passed;
+event ci_was_wrong;
+
+on ci_passed sample tests = 1 supports safe_to_ship;
+on ci_passed commit ship because enough using latest(tests);
+on ci_was_wrong reveal rerun opposes safe_to_ship;
+on ci_was_wrong withdraw latest(tests) because rerun;
+on ci_was_wrong reopen ship because rerun;
+CAV
+printf '%s\n' '{"event":"ci_passed"}' '{"event":"ci_was_wrong"}' > events.jsonl
+npx --no-install caveat-lang explain hello.cav events.jsonl
+```
+
+Part of what it prints:
+
+```text
+    ship@1 = 1  reopened
+      based on tests@1
+      tests@1: observed at #1 ci_passed
+      tests@1 has since been withdrawn at #2 because rerun
+      #1 ci_passed: committed because tests@1
+      #2 ci_was_wrong: reopened because rerun
+```
+
+The decision was reopened when the CI result it rested on was withdrawn, and
+it still says what it was first based on. For a fuller program with a caveat,
+scenarios and a displayed value, `init` writes the getting-started starter:
+
+```sh
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl

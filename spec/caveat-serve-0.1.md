@@ -34,7 +34,7 @@ are skipped.
 
 | `op` | Fields | Result fields |
 | --- | --- | --- |
-| `dispatch` | `event`, optional `payload` object, optional `snapshot: true`, optional `view: true` | `outcome` (`accepted` or `rejected`), `origin`, `code` and `message` when rejected, `sequence`, and `snapshot` and `view` when asked for |
+| `dispatch` | `event`, optional `payload` object, optional `agent` (the 1.4 draft [Agents 0.1](caveat-agents-0.1.md)), optional `snapshot: true`, optional `view: true` | `outcome` (`accepted` or `rejected`), `origin`, `code` and `message` when rejected, `sequence`, and `snapshot` and `view` when asked for |
 | `snapshot` | | `snapshot` |
 | `view` | | `view`: the [View 0.1](caveat-view-0.1.md) of the session, what a display needs without the snapshot's graph |
 | `drainArchive` | | `archive`: departed record entries and provenance nodes; empties the session's pending archive |

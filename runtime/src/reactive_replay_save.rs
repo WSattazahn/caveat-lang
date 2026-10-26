@@ -416,7 +416,7 @@ impl ReactiveSession {
         for (index, entry) in entries.into_iter().enumerate() {
             let payload = Value::Object(entry.payload).to_string();
             session
-                .dispatch_classified(&entry.event, &payload)
+                .dispatch_classified(&entry.event, &payload, None)
                 .map_err(|failure| {
                     refuse(format!(
                         "event {} ({}) is not accepted: {failure}",
