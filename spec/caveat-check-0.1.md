@@ -500,7 +500,7 @@ gained a caveat.
 
 ### C010 `commit-on-withdrawable` and C011 `withdrawal-not-reopened`
 
-**Status:** draft for 1.4.
+**Status:** draft for 1.5.
 
 Reported only with `--withdrawals`, or `runtime.check(source, { withdrawals:
 true })` from a script. Without it, a program checks, tests and exits exactly
@@ -651,7 +651,7 @@ adds C010 and C011.
 
 ## Changes
 
-- 2026-10-25 (1.4, draft): C010 `commit-on-withdrawable` and C011
+- 2026-10-26 (1.5, draft): C010 `commit-on-withdrawable` and C011
   `withdrawal-not-reopened` with `--withdrawals` or `{ withdrawals: true }`.
   Writing the retracted studies example by hand, the first draft committed a
   new decision on a retracted study, and nothing reported it; a decision with
