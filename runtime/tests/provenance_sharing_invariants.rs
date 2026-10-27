@@ -36,10 +36,10 @@ impl Model {
     }
 
     fn matches(&self, actual: &Provenance) -> bool {
-        *actual.evidence == self.evidence
-            && *actual.caveats == self.caveats
-            && *actual.inherited == self.inherited
-            && *actual.kept == self.kept
+        actual.evidence == self.evidence
+            && actual.caveats == self.caveats
+            && actual.inherited == self.inherited
+            && actual.kept == self.kept
             && actual.departed.is_empty()
     }
 }
@@ -151,8 +151,8 @@ fn shared_name_sets_never_leak_a_change_between_values() {
             let rebuilt =
                 Provenance::from_names(names(&model[i].evidence), names(&model[i].caveats))
                     .unwrap();
-            assert_eq!(*rebuilt.evidence, model[i].evidence, "{at}: from_names");
-            assert_eq!(*rebuilt.caveats, model[i].caveats, "{at}: from_names");
+            assert_eq!(rebuilt.evidence, model[i].evidence, "{at}: from_names");
+            assert_eq!(rebuilt.caveats, model[i].caveats, "{at}: from_names");
         }
     }
     eprintln!("{clones} clones, {merges} merges, {inherited_merges} inherited merges, {edits} edits ({shared_edits} on a cloned value), {round_trips} round trips");
