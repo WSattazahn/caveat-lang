@@ -37,10 +37,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: no-loop-osr, env: 'JSC_useWasmIPIntLoopOSR=0', args: '--pages 400 --replays 0' }
-          - { name: no-prologue-osr, env: 'JSC_useWasmIPIntPrologueOSR=0', args: '--pages 400 --replays 0' }
-          - { name: no-epilogue-osr, env: 'JSC_useWasmIPIntEpilogueOSR=0', args: '--pages 400 --replays 0' }
-          - { name: verbose-osr, env: 'JSC_verboseOSR=1', args: '--pages 400 --replays 0' }
+          - { name: webkit-latest, env: '', args: '--pages 400 --replays 0', playwright: '1.65.0' }
+          - { name: webkit-pinned, env: '', args: '--pages 400 --replays 0' }
         shard: [1, 2, 3]
     name: stress / ${{ matrix.config.name }} ${{ matrix.shard }}
     runs-on: ubuntu-24.04
@@ -55,6 +53,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - if: matrix.config.playwright
+        run: npm install --no-save playwright@${{ matrix.config.playwright }}
       - run: npx playwright install --with-deps webkit
       - if: matrix.config.instrument
         run: node bench/carmack/instrument-glue.mjs stress-runtime stress-runtime-i && rm -rf stress-runtime && mv stress-runtime-i stress-runtime
