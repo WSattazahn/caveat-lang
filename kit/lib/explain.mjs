@@ -207,6 +207,8 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
         .map(name => ({ evidence: name, ...withdrawals.get(name) })),
       ...(observedBy ? { observed_by: grounds.evidence.map(name => ({ evidence: name, ...(observedBy.get(name) ?? unobserved) })) } : {}),
       ...(outcome ? { outcome } : {}),
+      // The thresholds its commit named (spec/caveat-thresholds-0.1.md).
+      ...(snapshot.commitment_bases?.[id]?.thresholds ? { thresholds: snapshot.commitment_bases[id].thresholds } : {}),
       history,
     };
   };
@@ -362,6 +364,9 @@ export function formatExplanation(report, title = 'the program') {
       const retained = revision.retained ?? revision.grounds.caveats;
       const carried = carriedBy(report, revision.grounds.evidence, revision.grounds.caveats);
       lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: carried })}`);
+      if (revision.thresholds) {
+        lines.push(`      thresholds: ${Object.entries(revision.thresholds).map(([name, value]) => `${name} = ${show(value)}`).join(', ')}`);
+      }
       for (const item of revision.observed_by ?? []) {
         if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';

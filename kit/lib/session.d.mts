@@ -638,6 +638,8 @@ export interface QualifiedValue {
 export interface CommitmentBasis {
   value: number | null;
   provenance: Provenance;
+  /** 1.5 draft: the thresholds the commit named, with their values; absent when none (spec/caveat-thresholds-0.1.md). */
+  thresholds?: Record<string, number>;
 }
 
 export interface ReadingOccurrence {

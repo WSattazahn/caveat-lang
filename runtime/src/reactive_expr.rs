@@ -1105,6 +1105,9 @@ pub struct FunctionDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Number(Number),
+    /// A `threshold NAME = NUMBER;` read: its value, kept with its name so
+    /// that a commitment can list it. See spec/caveat-thresholds-0.1.md.
+    Threshold(String, Number),
     Elapsed,
     Bool(bool),
     Text(String),
@@ -1349,6 +1352,7 @@ impl Expr {
         }
         match &self.node {
             Node::Number(number) => bytes += number.value().to_string().len(),
+            Node::Threshold(name, _) => bytes += name.len(),
             Node::Text(text)
             | Node::Variable(text)
             | Node::Latest(text)
@@ -1382,7 +1386,7 @@ impl Expr {
                     index.collect_reads(reads);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
@@ -1483,7 +1487,7 @@ impl Expr {
                     index.collect_sources(sources);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => {
                 sources.insert("elapsed()".into());
             }
@@ -1558,8 +1562,12 @@ impl Expr {
                     index.collect_record_reads(records);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "committed" => {
                     records.insert(("committed", name.clone()));
@@ -1636,8 +1644,12 @@ impl Expr {
                     index.collect_histories(histories);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
             Node::Predicate(kind, name) => {
                 if kind == "has_sample" || kind == "withdrawn_latest" {
                     histories.insert(name.clone());
@@ -1694,10 +1706,74 @@ impl Expr {
         }
     }
 
+    /// A `threshold NAME = NUMBER;` read, as a define expands it. See
+    /// spec/caveat-thresholds-0.1.md.
+    pub fn threshold(name: &str, value: Number) -> Result<Self, String> {
+        Self::new(Node::Threshold(name.into(), value))
+    }
+
+    /// The threshold this expression is, if it is one.
+    pub fn as_threshold(&self) -> Option<(&str, f64)> {
+        match &self.node {
+            Node::Threshold(name, number) => Some((name, number.value())),
+            _ => None,
+        }
+    }
+
+    /// Every threshold the expression names, with its value, whichever
+    /// branch an evaluation takes.
+    pub fn collect_thresholds(&self, thresholds: &mut BTreeMap<String, f64>) {
+        if let Node::Threshold(name, number) = &self.node {
+            thresholds.insert(name.clone(), number.value());
+        }
+        let mut visit = |child: &Expr| child.collect_thresholds(thresholds);
+        match &self.node {
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
+                visit(child)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                visit(left);
+                visit(right);
+            }
+            Node::If(condition, yes, no) => {
+                visit(condition);
+                visit(yes);
+                visit(no);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                arguments.iter().for_each(visit);
+            }
+            Node::ExpandedCall(arguments, body) => {
+                arguments.iter().for_each(&mut visit);
+                visit(body);
+            }
+            Node::Fold(_, initial, _) => visit(initial),
+            Node::ExpandedFold(_, initial, body) => {
+                visit(initial);
+                visit(body);
+            }
+            Node::Qualified(value, _, _) => visit(value),
+            Node::InBasis(_, children) => children.iter().for_each(visit),
+            Node::Outcome(_, Some(index)) => visit(index),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::HistoryCount(_)
+            | Node::Outcome(_, None) => {}
+        }
+    }
+
     /// The number, if this expression is a number literal, signed or not.
     pub fn literal_number(&self) -> Option<f64> {
         match &self.node {
-            Node::Number(number) => Some(number.value()),
+            Node::Number(number) | Node::Threshold(_, number) => Some(number.value()),
             Node::Unary(Unary::Positive, inner) => inner.literal_number(),
             Node::Unary(Unary::Negative, inner) => inner.literal_number().map(|value| -value),
             _ => None,
@@ -1723,7 +1799,11 @@ impl Expr {
             Node::Outcome(series, index) => {
                 Node::Outcome(rename(series), index.as_ref().map(|index| child(index)))
             }
-            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Text(_) => self.node.clone(),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
@@ -1847,6 +1927,7 @@ impl Expr {
                 series.contains(word) || index.as_ref().is_some_and(|index| child(index))
             }
             Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
+            Node::Threshold(name, _) => name.contains(word),
             Node::Text(name)
             | Node::Variable(name)
             | Node::Latest(name)
@@ -1941,6 +2022,7 @@ impl Expr {
                 body.collect_caveat_reads(examined, extras);
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
@@ -1992,6 +2074,7 @@ impl Expr {
                 initial.qualified_unconditionally(evidence)
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
@@ -2068,7 +2151,7 @@ impl Expr {
                 }
                 Ok(ValueType::Number)
             }
-            Node::Number(_) => Ok(ValueType::Number),
+            Node::Number(_) | Node::Threshold(..) => Ok(ValueType::Number),
             Node::Elapsed => {
                 predicate("runtime_clock", "elapsed")?;
                 Ok(ValueType::Number)
@@ -2440,7 +2523,7 @@ impl Expr {
                     HistoryRead::Outcome(index),
                 )?)?))
             }
-            Node::Number(value) => Ok(Value::Number(value.value())),
+            Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
             Node::Elapsed => {
                 let value =
                     numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
@@ -3814,6 +3897,7 @@ impl Expander<'_> {
                 return self.walk(&Expr::new(call)?, parameters);
             }
             Node::Number(number) => Node::Number(number.clone()),
+            Node::Threshold(name, number) => Node::Threshold(name.clone(), number.clone()),
             Node::Elapsed => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture the runtime clock".into());

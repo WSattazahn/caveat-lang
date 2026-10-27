@@ -36,7 +36,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
 // relation (`camera supports door_open`).
 export const profileHeads = ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer',
   'require', 'observe', 'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route',
-  'overview', 'start_at', 'program', 'origin', 'agent'];
+  'overview', 'start_at', 'program', 'origin', 'agent', 'threshold'];
 // Clauses and action steps that mean something only inside those statements.
 const profileClauses = ['options', 'requires_open', 'steps'];
 const actionSteps = ['inspect', 'operate', 'open', 'through', 'move', 'observe'];

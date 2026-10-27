@@ -2408,6 +2408,20 @@ impl ReactiveSession {
             if basis.value.is_some_and(|value| !value.is_finite()) {
                 return Err(format!("commitment {name} basis is not a finite number"));
             }
+            // A listed threshold is one the source declares, at its value:
+            // spec/caveat-thresholds-0.1.md.
+            for (threshold, value) in &basis.thresholds {
+                let declared = self.define_rules.iter().find_map(|(_, expression)| {
+                    expression
+                        .as_threshold()
+                        .filter(|(declared, _)| declared == threshold)
+                });
+                if declared.is_none_or(|(_, declared)| declared != *value) {
+                    return Err(format!(
+                        "commitment {name} lists threshold {threshold} = {value}, which the source does not declare"
+                    ));
+                }
+            }
             self.check_provenance(
                 &format!("commitment {name}"),
                 &basis.provenance,

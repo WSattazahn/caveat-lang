@@ -363,7 +363,7 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
@@ -415,7 +415,7 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
@@ -699,7 +699,7 @@
       }
     },
     "profile-statement": {
-      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent)\\b(?!\\s*\\()",
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold)\\b(?!\\s*\\()",
       "beginCaptures": {
         "1": {
           "name": "keyword.other.statement.caveat"
@@ -749,7 +749,7 @@
       ]
     },
     "block-profile-statement": {
-      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent)\\b(?!\\s*\\()",
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold)\\b(?!\\s*\\()",
       "beginCaptures": {
         "1": {
           "name": "keyword.other.statement.caveat"
