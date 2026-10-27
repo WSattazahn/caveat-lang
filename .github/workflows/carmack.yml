@@ -71,9 +71,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # A stalled download once held this step for over 40 minutes; each try
+      # is cut off after 8 so a stall is retried instead of waiting 6 hours.
       - name: Install the browsers
         if: runner.os == 'Linux'
-        run: npx playwright install --with-deps chromium firefox webkit
+        timeout-minutes: 30
+        run: |
+          for attempt in 1 2 3; do
+            timeout 8m npx playwright install --with-deps chromium firefox webkit && exit 0
+            echo "Browser install attempt $attempt did not finish; retrying"
+          done
+          exit 1
       - name: Replay seeded sequences with a save and restore
         shell: bash
         run: |
