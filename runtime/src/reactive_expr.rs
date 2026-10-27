@@ -1782,6 +1782,7 @@ impl Expr {
             | Node::Predicate(..)
             | Node::Latest(_)
             | Node::HistoryCount(_)
+            | Node::GroundsOf(_)
             | Node::Outcome(_, None) => {}
         }
     }
