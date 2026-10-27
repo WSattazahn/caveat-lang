@@ -306,7 +306,7 @@ const commitmentMutations = {
     '                grounds.merge(&added)?;\n' +
     '                for entry in Arc::make_mut(&mut self.journal).iter_mut() {\n' +
     '                    if entry.change == "committed" && &entry.commitment == name {\n' +
-    '                        entry.caveats = grounds.caveats.iter().cloned().collect();\n' +
+    '                        entry.caveats = grounds.caveats.iter().map(|name| name.to_string()).collect();\n' +
     '                    }\n' +
     '                }\n' +
     '            }\n' +
