@@ -44,7 +44,7 @@ async function start() {
     $('run').disabled = false;
     await load('apartment');
   } catch (error) {
-    $('status').textContent = `The runtime did not load: ${error.message ?? error}`;
+    say(`The runtime did not load: ${error.message ?? error}`, 'fail');
   }
 }
 
@@ -80,6 +80,11 @@ function open(source) {
   }
 }
 
+function say(text, tone = '') {
+  $('status').textContent = text;
+  $('status').className = tone;
+}
+
 function run() {
   const source = $('program').value;
   const out = $('results');
@@ -87,9 +92,9 @@ function run() {
   $('report').hidden = true;
   lastReport = null;
   let events;
-  try { events = parseEvents($('events').value); } catch (error) { $('status').textContent = error.message; return; }
+  try { events = parseEvents($('events').value); } catch (error) { say(error.message, 'fail'); return; }
   let opened;
-  try { opened = open(source); } catch (error) { $('status').textContent = `The program does not load: ${error.message}`; return; }
+  try { opened = open(source); } catch (error) { say(`The program does not load: ${error.message}`, 'fail'); return; }
   const { session } = opened;
   const rows = [];
   const findings = [];
@@ -114,9 +119,8 @@ function run() {
   out.innerHTML = table(rows) + decisions(before) + findingsList(findings) + [...notes].map(note => `<p class="note">${esc(note)}</p>`).join('');
   if (!opened.probed) out.innerHTML += '<p class="note">R3 could not be checked: the checker could not add its display lines to this program.</p>';
   session.close();
-  $('status').textContent = findings.length
-    ? `${findings.length} rule ${findings.length === 1 ? 'failure' : 'failures'} found.`
-    : `Every rule held on ${rows.length} ${rows.length === 1 ? 'event' : 'events'}.`;
+  if (findings.length) say(`✗ ${findings.length} rule ${findings.length === 1 ? 'failure' : 'failures'} found.`, 'fail');
+  else say(`✓ Every rule held on ${rows.length} ${rows.length === 1 ? 'event' : 'events'}.`, 'pass');
   if (findings.length) {
     lastReport = { version, source, events: $('events').value, findings };
     $('report').hidden = false;
@@ -146,13 +150,14 @@ function decisions(snapshot) {
     for (const revision of record.revisions) {
       const grounds = snapshot.commitment_grounds?.[revision.id]?.evidence ?? [];
       const status = revision.id !== record.current ? 'superseded' : reopened.get(revision.id) ? 'reopened' : 'in force';
-      const marked = grounds.map(name => (withdrawn.has(name) ? `<s>${esc(name)}</s> (withdrawn)` : esc(name)));
+      const cls = { 'in force': 'force', reopened: 'reopened', superseded: 'superseded' }[status];
+      const chips = grounds.map(name => `<span class="chip${withdrawn.has(name) ? ' gone' : ''}" title="${withdrawn.has(name) ? 'withdrawn' : 'holds'}">${esc(name)}</span>`);
       const rests = snapshot.bindings?.[PROBE]?.[series];
-      const restsText = revision.id === record.current && rests !== undefined ? `; rests_on_withdrawn(${esc(series)}) = ${rests === 1}` : '';
-      lines.push(`<li><code>${esc(revision.id)}</code> ${status}, grounds: ${marked.join(', ') || 'none'}${restsText}</li>`);
+      const restsText = revision.id === record.current && rests !== undefined ? `<code>rests_on_withdrawn(${esc(series)})</code> = ${rests === 1}` : '';
+      lines.push(`<div class="dec"><b>${esc(revision.id)}</b><span class="st ${cls}">${status}</span><div class="chips">${chips.join('') || '<span class="note">no grounds</span>'}</div>${restsText}</div>`);
     }
   }
-  return lines.length ? `<h3>Decisions at the end</h3><ul>${lines.join('')}</ul>` : '';
+  return lines.length ? `<h3>Decisions at the end</h3><p class="note">Each with its grounds; crossed out means withdrawn.</p>${lines.join('')}` : '';
 }
 
 function findingsList(findings) {
