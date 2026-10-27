@@ -38,6 +38,8 @@ const newerThanBaseline = {
   'bench/carmack/programs/release-gate.cav': /\bunqualify\b/,
   'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b|\bsum\s*\(\s*for\s/,
   'python/tests/fixtures/agents.cav': /^agent \w+ sends\b/m,
+  'scripts/done-check/done.cav': /\bciting\b/,
+  'scripts/release-gate/release-gate.cav': /\bin_basis\b/,
 };
 
 
