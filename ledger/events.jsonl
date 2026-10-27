@@ -180,3 +180,6 @@
 {"event": "main_run", "payload": {"green": 1}}
 {"event": "approve", "payload": {"item": 141}}
 {"event": "ship_minor", "payload": {"version": 141}}
+{"event": "ci_run", "payload": {"green": 1}}
+{"event": "find", "payload": {"number": 27}}
+{"event": "find", "payload": {"number": 28}}

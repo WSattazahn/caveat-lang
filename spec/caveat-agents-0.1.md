@@ -143,15 +143,20 @@ compact save is the state save. A session no agent sent to saves as before.
 
 | Surface | How the agent is named |
 | --- | --- |
-| Kit session | `dispatch(event, payload, { agent })`; `dispatchView` and `dispatchViewDelta` take the same option. A runtime build without agents throws `CaveatError("load")` for an event sent with one, and the session is untouched. |
-| Handoff helper | `scopeSession(session, events, { agent })` sends every event as that agent and lists it on each `accepted` entry; `replayOnto` sends an entry that names an agent as that agent. |
+| Kit session | `dispatch(event, payload, { agent })`; `dispatchView`, `dispatchViewDelta` and `whatIf` take the same option. A runtime build without agents throws `CaveatError("load")` for an event sent with one, and the session is untouched. |
+| Handoff helper | `scopeSession(session, events, { agent })` sends every event as that agent and lists it on each `accepted` entry, and its `whatIf` asks as that agent; `replayOnto` sends an entry that names an agent as that agent. |
 | Scenarios | a `send` step's optional `"agent"`. |
 | `serve` | a `dispatch` request's optional `"agent"`. |
 | `explain`, `dependents`, `review` | an events file line's optional `"agent"`. |
 
 The runtime's WebAssembly session has `dispatch_outcome_as`,
-`dispatch_view_outcome_as`, `dispatch_view_fields_outcome_as` and
-`dispatch_view_delta_outcome_as`, each taking the agent last. The MCP tools
+`dispatch_view_outcome_as`, `dispatch_view_fields_outcome_as`,
+`dispatch_view_delta_outcome_as`, `what_if_view_outcome_as` and
+`what_if_view_fields_outcome_as`, each taking the agent last. The what-if
+forms answer what the dispatch form would return for that agent, and change
+nothing ([Dispatch 0.1](caveat-dispatch-0.1.md#the-what-if-path)); before
+them (1.4.0) the what-if path took no agent, so a host could not ask about
+an event some agent sends (D027). The MCP tools
 are unchanged in this draft: `caveat_test` runs scenarios, so its sends take
 `agent` with them, but `caveat_explain` and `caveat_dependents` take events
 without one.
@@ -193,4 +198,13 @@ compares the interface and the initial snapshot byte for byte.
   `check_agent`, the `_as` dispatch entry points, the records' `agent` fields;
   the restore check `check_saved_agents` in `runtime/src/reactive_save.rs`;
   `RejectionCode::WrongAgent`; the interface's `agents`.
-- Tests: `runtime/tests/agents.rs`, and the kit's `kit/test/agents.test.mjs`.
+- Tests: `runtime/tests/agents.rs`, and the kit's `kit/test/agents.test.mjs`;
+  the what-if forms in `runtime/tests/what_if.rs` and `kit/test/what-if.test.mjs`.
+
+## Changes
+
+- 2026-10-26: the what-if path takes an agent (`what_if_view_outcome_as`,
+  `what_if_view_fields_outcome_as`, `whatIf(event, payload, { agent })`, and
+  `whatIf` on a scoped session). Found by the Conway test of the 1.4 features
+  (D027): with every event of interest listed by an agent, `whatIf` could only
+  answer `wrong_agent`. Add-only, from 1.5.0.
