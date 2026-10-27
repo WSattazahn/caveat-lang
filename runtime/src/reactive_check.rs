@@ -159,7 +159,8 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         let text = &source[start..end];
         let at = position_of(source, start);
         if statement_words(text).first() != Some(&"for") {
-            for (text, at) in scan_statements_at(text, at)? {
+            let text = crate::repeat::expand_across(text, &kinds, &[])?;
+            for (text, at) in scan_statements_at(&text, at)? {
                 out.push(Statement {
                     text,
                     at,
@@ -298,8 +299,16 @@ impl<'a> Walk<'a> {
             let written = &header.body[inner..inner_end];
             let at = position_of(self.source, header.body_start + inner);
             if statement_words(written).first() != Some(&"for") {
+                // An across form expands first, keeping every block's binding
+                // in scope for its own substitution.
+                let bound = scope
+                    .iter()
+                    .map(|(binding, _)| *binding)
+                    .chain(kept.iter().copied().filter(|name| *name != "index"))
+                    .collect::<Vec<_>>();
+                let written = crate::repeat::expand_across(written, self.kinds, &bound)?;
                 out.push((
-                    crate::repeat::substitute_keeping(written, scope, &kept)?,
+                    crate::repeat::substitute_keeping(&written, scope, &kept)?,
                     at,
                 ));
                 continue;
