@@ -97,14 +97,18 @@
     .flow li{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:.3em .8em;font-size:.9rem}
     .flow li.arrow{border:0;background:none;padding:0;color:var(--muted)}
     footer{margin-top:3em;color:var(--muted);font-size:.9rem}
+    .cta{margin:.9em 0 0}
+    a.go{display:inline-block;background:var(--link);color:var(--bg);font-weight:700;text-decoration:none;padding:.7em 1.3em;border-radius:10px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+    a.go:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
   </style>
 </head>
 <body>
 <header>
   <h1>Try to break this</h1>
-  <p class="lede">CAVEAT Language makes agents smarter by remembering why. Here is
-  what it promises when evidence is taken back, in pictures, and a checker you
-  can run. Find a case it gets wrong and file it.</p>
+  <p class="lede">Caveat lets a program change its mind about a fact without
+  losing track of why it decided what it did. Here is that promise in two
+  pictures, and a checker you can run to try to break it.</p>
+  <p class="cta"><a class="go" href="#run">Try to break it ↓</a></p>
 </header>
 
 <main>
@@ -267,7 +271,7 @@
     to undo a withdrawal.</p>
   </details>
 
-  <h2>Run it</h2>
+  <h2 id="run">Run it</h2>
   <p class="hint">Pick an example or write your own. It runs in your browser on
   the WebAssembly runtime built from <span id="version">…</span>. Nothing is
   sent anywhere.</p>
