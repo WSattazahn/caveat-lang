@@ -44,6 +44,12 @@ node bench/carmack/replay.mjs --browsers chromium,firefox,webkit
 node bench/carmack/replay.mjs --compare test-results/carmack
 ```
 
+`webkit-stress.mjs` starts the runtime in 200 fresh WebKit pages and opens every replay program three times in each, failing on any WebAssembly trap. WebKit 26.0 (Playwright 1.55) trapped in about 1% of fresh pages inside session creation, with "call_indirect to a null table entry", "Out of bounds memory access" or "Unreachable code should not be executed". Our inputs reached the runtime intact, and the traps stopped when WebKit's baseline compiler or its tier-up was switched off (`JSC_useBBQJIT=0`, or its OSR entry points off), so it is an engine fault, not ours. WebKit 27.2 (Playwright 1.64.1) showed none in 800 pages against 6 in 1,200 on 26.0, so CI runs 27.2 and this check guards against a return.
+
+```sh
+node bench/carmack/webkit-stress.mjs --runtime dist/pkg-reactive --pages 200
+```
+
 ## 3. Footprint
 
 `footprint.mjs` measures the WebAssembly size raw and gzipped, what a host ships (runtime, glue and session library, gzipped), the kit library's size, start-up (loading the runtime and opening each workload's program in a fresh Node process, median of nine), WebAssembly memory per session after its workload, and the state save's size. Each is compared with `baseline.json` and its allowed growth. A release that grows a measure past its allowance either fixes it or records the new baseline in the same pull request with `--write-baseline`, so the growth is in the diff.

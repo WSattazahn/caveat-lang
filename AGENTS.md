@@ -20,9 +20,9 @@ says what the proofs and tests cover and where they stop.
   and `caveat test` against the program, and use `explain` or `dependents` to
   inspect what its decisions rest on.
 
-Identify the package version before following commands. The published 1.4.0 release provides `caveat-lang`
+Identify the package version before following commands. The published 1.4.1 release provides `caveat-lang`
 (with `caveat` supported shorthand), `doctor` and `demo agent`.
-The [verified publication record](docs/releases/v1.4.0.md) identifies its exact
+The [verified publication record](docs/releases/v1.4.1.md) identifies its exact
 tested artifact. Do not infer publication from a checkout's version.
 In a checkout with doctor support, after building, `node kit/bin/caveat.mjs doctor --json`
 checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the
@@ -86,7 +86,12 @@ Verify changed behavior and its consumers using `package.json` and the
 [runtime workflow](.github/workflows/runtime.yml). Build with `npm run build`
 before `npm run test:kit` or `npm run test:kit-package`; runtime changes also
 need the workflow's Rust and affected browser checks. Report the exact revision,
-commands and outcomes, including failures or checks not run.
+commands and outcomes, including failures or checks not run. Before calling a
+pull request done, ask [`scripts/done-check`](scripts/done-check/README.md)
+(`node scripts/done-check/done.mjs PR`): it is advisory, and says in Caveat
+whether the checks are green on a head that contains current main, whether a
+runtime change has its corpus and save sweep green, and which merged PRs still
+owe ledger events.
 
 Keep release records factual. Follow the
 [release procedure](docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)

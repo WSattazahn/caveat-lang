@@ -19,14 +19,15 @@ original grounds. Your application stores the events; Caveat does not sign
 them or authenticate the evidence, so it complements your platform's identity,
 permission and logging controls rather than replacing them.
 
-The published release is **1.4.0**, the fourth minor release of 1.x. See the
-[1.4.0 release record](docs/releases/v1.4.0.md) for what it adds and the
+The published release is **1.4.1**, a patch release of 1.4.0. See the
+[1.4.1 release record](docs/releases/v1.4.1.md) for what it fixes, the
+[1.4.0 release record](docs/releases/v1.4.0.md) for what 1.4 adds and the
 [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
 
-> npm publication verified 2026-10-26T17:25:41.727Z: exact **caveat-lang@1.4.0**,
-> tested Linux artifact SHA256 `186cc3f889f07575f87dfb974a1b73bf473bc7261c50e1d3ed7f4fcffd9d4b48`.
-> Published by `publish-npm.yml` from tag `v1.4.0` with an npm provenance attestation. Both `latest` and `next` were verified at 1.4.0 on 2026-10-26.
-> [Publication record](docs/releases/v1.4.0-npm-publication.json).
+> npm publication verified 2026-10-26T23:13:05.492Z: exact **caveat-lang@1.4.1**,
+> tested Linux artifact SHA256 `ecb535b181f5f33836f4730ed8c1c0c8ac9a1622eb55e3d43e3e3c3492f281f5`.
+> Published by `publish-npm.yml` from tag `v1.4.1` with an npm provenance attestation. Both `latest` and `next` were verified at 1.4.1 on 2026-10-26.
+> [Publication record](docs/releases/v1.4.1-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -34,12 +35,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published release, **1.4.0**, in an empty directory with Node 20 or
+Try the published release, **1.4.1**, in an empty directory with Node 20 or
 later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 ```
 
 Then paste this "hello, world": one piece of evidence, one decision resting on
@@ -136,7 +137,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With 1.4.0 installed, use `npx --no-install caveat-lang doctor` to check it and
+With 1.4.1 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -176,6 +177,8 @@ require adopting them.
 - **Late knowledge is one line.** A late qualification reaches current values built on the evidence and future values that read it. Archived readings and decisions already made keep what they knew.
 
 **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
+
+**[Try to break this](https://wsattazahn.github.io/caveat-lang/break.html).** One claim about withdrawal, as five rules a checker tests after every event of a program you write. If Caveat reopens too much or too little, the page fills in an issue for you.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
@@ -295,7 +298,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@1.4.0", "mcp"]
+      "args": ["-y", "caveat-lang@1.4.1", "mcp"]
     }
   }
 }
@@ -372,6 +375,14 @@ restore (D021). A program that loads on 1.3.0 gives the same results on 1.4.0
 apart from those fixes, and every earlier save restores as it was recorded. The
 [1.4.0 verified publication record](docs/releases/v1.4.0.md) lists each
 addition.
+
+1.4.1 fixes two things. A value read through `committed(D)`, `reopened(D)` or
+`in_basis(D, E)` now carries `withdrawn` when the decision's basis lists
+withdrawn evidence, as Withdrawal 0.1 always said (D026), and a computed text
+past its 65,536-byte limit is refused as `limit/text_limit` instead of ending
+the session (D025). Saves restore in both directions between 1.4.0 and 1.4.1.
+The [1.4.1 verified publication record](docs/releases/v1.4.1.md) has the
+details.
 
 rc.20 clarified when to use each MCP tool, its
 inputs and its results. It also fixed human-readable explanations of caveats

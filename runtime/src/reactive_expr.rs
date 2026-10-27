@@ -107,6 +107,9 @@ pub enum HistoryRead {
     /// `outcome(…)`: of the current revision, or of revision K, 1-based. See
     /// spec/caveat-outcomes-0.1.md.
     Outcome(Option<usize>),
+    /// `grounds_of(SERIES)`: the current revision's value, on its frozen
+    /// grounds and not its lineage. See spec/caveat-grounds-of-0.1.md.
+    Grounds,
 }
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 
@@ -147,6 +150,10 @@ pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
 /// The name of `outcome(…)`, a revision's outcome value. See
 /// spec/caveat-outcomes-0.1.md.
 pub const OUTCOME: &str = "outcome";
+
+/// The name of `grounds_of(SERIES)`, a revision's value on its grounds
+/// alone. See spec/caveat-grounds-of-0.1.md.
+pub const GROUNDS_OF: &str = "grounds_of";
 
 /// The name of `only_if(CONDITION, VALUE)`. See spec/caveat-only-if-0.1.md.
 pub const ONLY_IF: &str = "only_if";
@@ -313,13 +320,13 @@ pub struct Provenance {
     /// reopening qualification rather than read itself. A name it also read
     /// is not here. Only a program with a window keeps it, since only
     /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    #[serde(default, skip_serializing_if = "NameSet::is_empty")]
     pub inherited: NameSet,
     /// The take-back caveats among `caveats` that this value holds through a
     /// record rather than a live qualification, so no take-back removes them.
     /// Only a program that takes back keeps any; see
     /// spec/caveat-take-back-0.1.md.
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    #[serde(default, skip_serializing_if = "NameSet::is_empty")]
     pub kept: NameSet,
 }
 
@@ -330,10 +337,137 @@ pub struct Provenance {
 #[derive(Debug, Clone, Default)]
 pub struct NameSet(Option<Arc<Names>>);
 
-/// The names and, once asked, their total bytes.
+/// One graph name in a lineage. Copying it shares the text rather than
+/// allocating it: a value copies its inputs' names far more often than a name
+/// is made. It orders and compares by its text, so sets of names list in
+/// name order exactly as sets of strings do.
+#[derive(Debug, Clone)]
+pub struct Name(Arc<str>);
+
+/// Copies of one name share its text, so the same text is found without
+/// comparing it.
+impl PartialEq for Name {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0) || self.0 == other.0
+    }
+}
+
+impl Eq for Name {}
+
+impl std::hash::Hash for Name {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if Arc::ptr_eq(&self.0, &other.0) {
+            std::cmp::Ordering::Equal
+        } else {
+            self.0.cmp(&other.0)
+        }
+    }
+}
+
+impl Name {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for Name {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for Name {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Name {
+    fn from(name: String) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<&String> for Name {
+    fn from(name: &String) -> Self {
+        Self(Arc::from(name.as_str()))
+    }
+}
+
+impl From<&str> for Name {
+    fn from(name: &str) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<Name> for String {
+    fn from(name: Name) -> Self {
+        name.0.to_string()
+    }
+}
+
+impl PartialEq<str> for Name {
+    fn eq(&self, other: &str) -> bool {
+        &*self.0 == other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        &*self.0 == *other
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        &*self.0 == other.as_str()
+    }
+}
+
+impl serde::Serialize for Name {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Name {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The names in name order, each once, and, once asked, their total bytes.
+/// A lineage holds one to three names far more often than more, so a sorted
+/// list finds and joins them with less work than a tree.
 #[derive(Debug, Default)]
 struct Names {
-    names: BTreeSet<String>,
+    names: Vec<Name>,
     bytes: OnceLock<usize>,
 }
 
@@ -346,8 +480,6 @@ impl Clone for Names {
     }
 }
 
-static NO_NAMES: BTreeSet<String> = BTreeSet::new();
-
 impl NameSet {
     /// Whether both hold the very same set, so neither can add to the other.
     fn shares(&self, other: &Self) -> bool {
@@ -357,24 +489,126 @@ impl NameSet {
         }
     }
 
+    fn names(&self) -> &[Name] {
+        self.0.as_ref().map_or(&[], |set| &set.names)
+    }
+
+    /// The list to change, copied first when another value shares it.
+    fn names_mut(&mut self) -> &mut Vec<Name> {
+        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
+        set.bytes = OnceLock::new();
+        &mut set.names
+    }
+
+    fn position(&self, name: &str) -> Result<usize, usize> {
+        self.names()
+            .binary_search_by(|held| held.as_str().cmp(name))
+    }
+
     /// The names this set would add to `ours`.
-    fn added_to<'a>(
-        &'a self,
-        ours: &'a Self,
-    ) -> std::collections::btree_set::Difference<'a, String> {
-        if self.is_empty() || self.shares(ours) {
-            NO_NAMES.difference(&NO_NAMES)
-        } else {
-            self.difference(ours)
-        }
+    fn added_to<'a>(&'a self, ours: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
+        let skip = self.is_empty() || self.shares(ours);
+        self.names()
+            .iter()
+            .filter(move |name| !skip && !ours.contains(name.as_str()))
     }
 
     /// The names' total bytes, counted once per set.
     fn bytes(&self) -> usize {
         self.0.as_ref().map_or(0, |set| {
             *set.bytes
-                .get_or_init(|| set.names.iter().map(String::len).sum())
+                .get_or_init(|| set.names.iter().map(|name| name.len()).sum())
         })
+    }
+
+    pub fn len(&self) -> usize {
+        self.names().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.names().is_empty()
+    }
+
+    /// The names in name order.
+    pub fn iter(&self) -> std::slice::Iter<'_, Name> {
+        self.names().iter()
+    }
+
+    pub fn first(&self) -> Option<&Name> {
+        self.names().first()
+    }
+
+    /// The held name with this text.
+    pub fn get(&self, name: &str) -> Option<&Name> {
+        self.position(name).ok().map(|at| &self.names()[at])
+    }
+
+    /// Whether the set holds `name`, given as any text.
+    pub fn contains<Q: AsRef<str> + ?Sized>(&self, name: &Q) -> bool {
+        self.position(name.as_ref()).is_ok()
+    }
+
+    /// Whether every name here is also in `other`.
+    pub fn is_subset(&self, other: &Self) -> bool {
+        self.shares(other)
+            || (self.len() <= other.len() && self.iter().all(|name| other.contains(name.as_str())))
+    }
+
+    /// The names here that `other` lacks, in name order.
+    pub fn difference<'a>(&'a self, other: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
+        self.iter()
+            .filter(move |name| !other.contains(name.as_str()))
+    }
+
+    /// Add `name`; returns whether it was new. A name already held copies nothing.
+    pub fn insert(&mut self, name: impl Into<Name>) -> bool {
+        let name = name.into();
+        match self.position(name.as_str()) {
+            Ok(_) => false,
+            Err(at) => {
+                self.names_mut().insert(at, name);
+                true
+            }
+        }
+    }
+
+    /// Remove `name`; returns whether it was held. A name not held copies nothing.
+    pub fn remove<Q: AsRef<str> + ?Sized>(&mut self, name: &Q) -> bool {
+        match self.position(name.as_ref()) {
+            Ok(at) => {
+                self.names_mut().remove(at);
+                if self.names().is_empty() {
+                    self.0 = None;
+                }
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
+    /// Keep only the names `keep` accepts.
+    pub fn retain(&mut self, mut keep: impl FnMut(&Name) -> bool) {
+        if self.iter().all(&mut keep) {
+            return;
+        }
+        let names: Vec<Name> = self.iter().filter(|name| keep(name)).cloned().collect();
+        *self = Self::from_sorted(names);
+    }
+
+    pub fn extend<N: Into<Name>>(&mut self, names: impl IntoIterator<Item = N>) {
+        for name in names {
+            self.insert(name);
+        }
+    }
+
+    /// A set of names already in name order, each once.
+    fn from_sorted(names: Vec<Name>) -> Self {
+        Self((!names.is_empty()).then(|| {
+            Arc::new(Names {
+                names,
+                bytes: OnceLock::new(),
+            })
+        }))
     }
 
     /// Add every name of `other`, sharing its set when this one is empty and
@@ -384,56 +618,75 @@ impl NameSet {
         } else if self.is_empty() {
             *self = other.clone();
         } else if !other.is_subset(self) {
-            self.extend(other.iter().cloned());
+            let (left, right) = (self.names(), other.names());
+            let mut joined = Vec::with_capacity(left.len() + right.len());
+            let (mut i, mut j) = (0, 0);
+            while i < left.len() && j < right.len() {
+                match left[i].cmp(&right[j]) {
+                    std::cmp::Ordering::Less => {
+                        joined.push(left[i].clone());
+                        i += 1;
+                    }
+                    std::cmp::Ordering::Greater => {
+                        joined.push(right[j].clone());
+                        j += 1;
+                    }
+                    std::cmp::Ordering::Equal => {
+                        joined.push(left[i].clone());
+                        i += 1;
+                        j += 1;
+                    }
+                }
+            }
+            joined.extend_from_slice(&left[i..]);
+            joined.extend_from_slice(&right[j..]);
+            *self = Self::from_sorted(joined);
         }
     }
 }
 
 impl PartialEq for NameSet {
     fn eq(&self, other: &Self) -> bool {
-        self.shares(other) || **self == **other
+        self.shares(other) || self.names() == other.names()
     }
 }
 
 impl Eq for NameSet {}
 
+impl PartialOrd for NameSet {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Orders as sets of names do: by their names in order.
+impl Ord for NameSet {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.names().cmp(other.names())
+    }
+}
+
 impl PartialEq<BTreeSet<String>> for NameSet {
     fn eq(&self, other: &BTreeSet<String>) -> bool {
-        **self == *other
-    }
-}
-
-impl std::ops::Deref for NameSet {
-    type Target = BTreeSet<String>;
-
-    fn deref(&self) -> &BTreeSet<String> {
-        self.0.as_ref().map_or(&NO_NAMES, |set| &set.names)
-    }
-}
-
-impl std::ops::DerefMut for NameSet {
-    fn deref_mut(&mut self) -> &mut BTreeSet<String> {
-        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
-        set.bytes = OnceLock::new();
-        &mut set.names
+        self.len() == other.len() && self.iter().zip(other).all(|(left, right)| left == right)
     }
 }
 
 impl serde::Serialize for NameSet {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        (**self).serialize(serializer)
+        serializer.collect_seq(self.iter())
     }
 }
 
 impl<'de> serde::Deserialize<'de> for NameSet {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        BTreeSet::deserialize(deserializer).map(Self::from)
+        BTreeSet::<Name>::deserialize(deserializer).map(Self::from)
     }
 }
 
 impl IntoIterator for NameSet {
-    type Item = String;
-    type IntoIter = std::collections::btree_set::IntoIter<String>;
+    type Item = Name;
+    type IntoIter = std::vec::IntoIter<Name>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0
@@ -444,28 +697,38 @@ impl IntoIterator for NameSet {
 }
 
 impl<'a> IntoIterator for &'a NameSet {
-    type Item = &'a String;
-    type IntoIter = std::collections::btree_set::Iter<'a, String>;
+    type Item = &'a Name;
+    type IntoIter = std::slice::Iter<'a, Name>;
 
     fn into_iter(self) -> Self::IntoIter {
-        (**self).iter()
+        self.iter()
     }
 }
 
 impl From<BTreeSet<String>> for NameSet {
     fn from(names: BTreeSet<String>) -> Self {
-        Self((!names.is_empty()).then(|| {
-            Arc::new(Names {
-                names,
-                bytes: OnceLock::new(),
-            })
-        }))
+        Self::from_sorted(names.into_iter().map(Name::from).collect())
+    }
+}
+
+impl From<BTreeSet<Name>> for NameSet {
+    fn from(names: BTreeSet<Name>) -> Self {
+        Self::from_sorted(names.into_iter().collect())
+    }
+}
+
+impl FromIterator<Name> for NameSet {
+    fn from_iter<I: IntoIterator<Item = Name>>(names: I) -> Self {
+        let mut names: Vec<Name> = names.into_iter().collect();
+        names.sort_unstable();
+        names.dedup();
+        Self::from_sorted(names)
     }
 }
 
 impl FromIterator<String> for NameSet {
     fn from_iter<I: IntoIterator<Item = String>>(names: I) -> Self {
-        Self::from(names.into_iter().collect::<BTreeSet<_>>())
+        names.into_iter().map(Name::from).collect()
     }
 }
 
@@ -596,7 +859,7 @@ impl Provenance {
     }
 
     /// The names this value read itself: `evidence` less `inherited`.
-    pub fn own_evidence(&self) -> impl Iterator<Item = &String> {
+    pub fn own_evidence(&self) -> impl Iterator<Item = &Name> {
         self.evidence
             .iter()
             .filter(|name| !self.inherited.contains(*name))
@@ -680,8 +943,7 @@ impl Provenance {
 
     /// Union is deterministic and preserves both dependency categories.
     pub fn union(&self, other: &Self) -> Result<Self, EvalError> {
-        self.validate()?;
-        other.validate()?;
+        // merge checks both sides, this one first.
         let mut result = self.clone();
         result.merge(other)?;
         Ok(result)
@@ -693,7 +955,11 @@ impl Provenance {
     pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
-        let mut check = |name: &String| {
+        if other.is_empty() && other.inherited.is_empty() && other.kept.is_empty() {
+            // Nothing to add, and every inherited name here stays inherited.
+            return Ok(());
+        }
+        let mut check = |name: &str| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
@@ -846,6 +1112,9 @@ pub struct FunctionDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Number(Number),
+    /// A `threshold NAME = NUMBER;` read: its value, kept with its name so
+    /// that a commitment can list it. See spec/caveat-thresholds-0.1.md.
+    Threshold(String, Number),
     Elapsed,
     Bool(bool),
     Text(String),
@@ -872,6 +1141,9 @@ enum Node {
     /// index. See spec/caveat-outcomes-0.1.md.
     Outcome(String, Option<Box<Expr>>),
     Latest(String),
+    /// `grounds_of(SERIES)`: the current revision's value, with its frozen
+    /// grounds as basis. See spec/caveat-grounds-of-0.1.md.
+    GroundsOf(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
     Fold(String, Box<Expr>, String),
@@ -1090,9 +1362,11 @@ impl Expr {
         }
         match &self.node {
             Node::Number(number) => bytes += number.value().to_string().len(),
+            Node::Threshold(name, _) => bytes += name.len(),
             Node::Text(text)
             | Node::Variable(text)
             | Node::Latest(text)
+            | Node::GroundsOf(text)
             | Node::HistoryCount(text)
             | Node::UserCall(text, _)
             | Node::HistoryAt(text, _)
@@ -1123,7 +1397,7 @@ impl Expr {
                     index.collect_reads(reads);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
@@ -1141,7 +1415,7 @@ impl Expr {
                     reads.observed.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 reads.graph = true;
                 reads.graph_names.insert(name.clone());
             }
@@ -1224,13 +1498,14 @@ impl Expr {
                     index.collect_sources(sources);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
             Node::Elapsed => {
                 sources.insert("elapsed()".into());
             }
             Node::Variable(name)
             | Node::Predicate(_, name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => {
                 sources.insert(name.clone());
             }
@@ -1299,8 +1574,12 @@ impl Expr {
                     index.collect_record_reads(records);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "committed" => {
                     records.insert(("committed", name.clone()));
@@ -1312,6 +1591,10 @@ impl Expr {
             },
             Node::Latest(name) => {
                 records.insert(("latest", name.clone()));
+            }
+            // New in 1.5, so no 1.0.x runtime read a record through it.
+            Node::GroundsOf(name) => {
+                records.insert(("grounds_of", name.clone()));
             }
             Node::HistoryCount(name) => {
                 records.insert(("history_count", name.clone()));
@@ -1377,14 +1660,18 @@ impl Expr {
                     index.collect_histories(histories);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
             Node::Predicate(kind, name) => {
                 if kind == "has_sample" || kind == "withdrawn_latest" {
                     histories.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 histories.insert(name.clone());
             }
             Node::HistoryAt(name, index) => {
@@ -1455,8 +1742,12 @@ impl Expr {
                     index.collect_withdrawal_reads(tested, bases);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "withdrawn" | "withdrawn_latest" => {
                     tested.insert(name.clone());
@@ -1483,7 +1774,7 @@ impl Expr {
                     child.collect_withdrawal_reads(tested, bases);
                 }
             }
-            Node::Latest(_) | Node::HistoryCount(_) => {}
+            Node::Latest(_) | Node::GroundsOf(_) | Node::HistoryCount(_) => {}
             Node::HistoryAt(_, index) | Node::Fold(_, index, _) => {
                 index.collect_withdrawal_reads(tested, bases)
             }
@@ -1519,10 +1810,75 @@ impl Expr {
         }
     }
 
+    /// A `threshold NAME = NUMBER;` read, as a define expands it. See
+    /// spec/caveat-thresholds-0.1.md.
+    pub fn threshold(name: &str, value: Number) -> Result<Self, String> {
+        Self::new(Node::Threshold(name.into(), value))
+    }
+
+    /// The threshold this expression is, if it is one.
+    pub fn as_threshold(&self) -> Option<(&str, f64)> {
+        match &self.node {
+            Node::Threshold(name, number) => Some((name, number.value())),
+            _ => None,
+        }
+    }
+
+    /// Every threshold the expression names, with its value, whichever
+    /// branch an evaluation takes.
+    pub fn collect_thresholds(&self, thresholds: &mut BTreeMap<String, f64>) {
+        if let Node::Threshold(name, number) = &self.node {
+            thresholds.insert(name.clone(), number.value());
+        }
+        let mut visit = |child: &Expr| child.collect_thresholds(thresholds);
+        match &self.node {
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
+                visit(child)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                visit(left);
+                visit(right);
+            }
+            Node::If(condition, yes, no) => {
+                visit(condition);
+                visit(yes);
+                visit(no);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                arguments.iter().for_each(visit);
+            }
+            Node::ExpandedCall(arguments, body) => {
+                arguments.iter().for_each(&mut visit);
+                visit(body);
+            }
+            Node::Fold(_, initial, _) => visit(initial),
+            Node::ExpandedFold(_, initial, body) => {
+                visit(initial);
+                visit(body);
+            }
+            Node::Qualified(value, _, _) => visit(value),
+            Node::InBasis(_, children) => children.iter().for_each(visit),
+            Node::Outcome(_, Some(index)) => visit(index),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::HistoryCount(_)
+            | Node::GroundsOf(_)
+            | Node::Outcome(_, None) => {}
+        }
+    }
+
     /// The number, if this expression is a number literal, signed or not.
     pub fn literal_number(&self) -> Option<f64> {
         match &self.node {
-            Node::Number(number) => Some(number.value()),
+            Node::Number(number) | Node::Threshold(_, number) => Some(number.value()),
             Node::Unary(Unary::Positive, inner) => inner.literal_number(),
             Node::Unary(Unary::Negative, inner) => inner.literal_number().map(|value| -value),
             _ => None,
@@ -1548,8 +1904,13 @@ impl Expr {
             Node::Outcome(series, index) => {
                 Node::Outcome(rename(series), index.as_ref().map(|index| child(index)))
             }
-            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Text(_) => self.node.clone(),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
+            Node::GroundsOf(series) => Node::GroundsOf(rename(series)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
@@ -1672,9 +2033,11 @@ impl Expr {
                 series.contains(word) || index.as_ref().is_some_and(|index| child(index))
             }
             Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
+            Node::Threshold(name, _) => name.contains(word),
             Node::Text(name)
             | Node::Variable(name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => name.contains(word),
             Node::Predicate(kind, target) => kind.contains(word) || target.contains(word),
             Node::Qualified(value, evidence, caveats) => {
@@ -1766,11 +2129,13 @@ impl Expr {
                 body.collect_caveat_reads(examined, extras);
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -1817,12 +2182,14 @@ impl Expr {
                 initial.qualified_unconditionally(evidence)
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
             | Node::Predicate(_, _)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -1893,7 +2260,7 @@ impl Expr {
                 }
                 Ok(ValueType::Number)
             }
-            Node::Number(_) => Ok(ValueType::Number),
+            Node::Number(_) | Node::Threshold(..) => Ok(ValueType::Number),
             Node::Elapsed => {
                 predicate("runtime_clock", "elapsed")?;
                 Ok(ValueType::Number)
@@ -1938,6 +2305,10 @@ impl Expr {
             }
             Node::Latest(name) => {
                 predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
+            Node::GroundsOf(name) => {
+                predicate(GROUNDS_OF, name)?;
                 Ok(ValueType::Number)
             }
             Node::HistoryCount(name) => {
@@ -2265,7 +2636,7 @@ impl Expr {
                     HistoryRead::Outcome(index),
                 )?)?))
             }
-            Node::Number(value) => Ok(Value::Number(value.value())),
+            Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
             Node::Elapsed => {
                 let value =
                     numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
@@ -2329,6 +2700,9 @@ impl Expr {
                 )?))
             }
             Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
+            Node::GroundsOf(name) => {
+                Ok(Value::Number(finite(history(name, HistoryRead::Grounds)?)?))
+            }
             Node::HistoryCount(name) => {
                 Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
             }
@@ -3145,6 +3519,23 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
             return Ok(Node::Latest(history));
         }
+        // `grounds_of(SERIES)`. A program may define `fn grounds_of` and call
+        // it with any arguments: what is not the form is its call
+        // (spec/caveat-grounds-of-0.1.md).
+        if name == GROUNDS_OF {
+            let start = self.cursor;
+            let form = self
+                .graph_identifier("grounds_of series")
+                .and_then(|series| {
+                    self.expect(TokenKind::RightParen, "')' after the grounds_of series")?;
+                    Ok(series)
+                });
+            match form {
+                Ok(series) => return Ok(Node::GroundsOf(series)),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         // `withdrawn(latest(STREAM))`: whether the stream's current reading is
         // withdrawn. See spec/caveat-withdrawal-0.1.md.
         if name == "withdrawn" && self.peek() == Some(&TokenKind::Identifier("latest".into())) {
@@ -3639,6 +4030,7 @@ impl Expander<'_> {
                 return self.walk(&Expr::new(call)?, parameters);
             }
             Node::Number(number) => Node::Number(number.clone()),
+            Node::Threshold(name, number) => Node::Threshold(name.clone(), number.clone()),
             Node::Elapsed => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture the runtime clock".into());
@@ -3756,6 +4148,18 @@ impl Expander<'_> {
                     return Err("pure source functions cannot capture numeric history".into());
                 }
                 Node::Latest(name.clone())
+            }
+            // A program may define `fn grounds_of`; its calls keep their
+            // meaning (spec/caveat-grounds-of-0.1.md).
+            Node::GroundsOf(series) if self.functions.contains_key(GROUNDS_OF) => {
+                let call = Node::UserCall(GROUNDS_OF.into(), vec![revision_call(series, None)?]);
+                return self.walk(&Expr::new(call)?, parameters);
+            }
+            Node::GroundsOf(name) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::GroundsOf(name.clone())
             }
             Node::Qualified(value, evidence, caveats) => {
                 if parameters.is_some() {

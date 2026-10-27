@@ -290,22 +290,30 @@ export class CaveatSession {
   whatIf(event, payload = {}, options = {}) {
     this.#usable();
     const fields = viewFields(options);
-    // Agents (spec/caveat-agents-0.1.md) are not on the what-if path yet, so
-    // an agent is refused rather than dropped.
-    if (agentOption(options) !== null) throw new TypeError('whatIf does not take an agent');
+    // whatIf(event, payload, { agent }) asks what the event would do sent by
+    // that agent (spec/caveat-agents-0.1.md), as dispatchView would answer it.
+    const agent = agentOption(options);
     if (typeof this.#inner.what_if_view_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no what_if_view_outcome; it predates whatIf');
     }
     if (fields !== null && typeof this.#inner.what_if_view_fields_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no what_if_view_fields_outcome; it predates whatIf fields');
     }
+    if (agent !== null && fields === null && typeof this.#inner.what_if_view_outcome_as !== 'function') throw predatesAgents('what_if_view_outcome_as');
+    if (agent !== null && fields !== null && typeof this.#inner.what_if_view_fields_outcome_as !== 'function') throw predatesAgents('what_if_view_fields_outcome_as');
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     let raw;
     try {
-      raw = fields === null
-        ? this.#inner.what_if_view_outcome(event, text)
-        : this.#inner.what_if_view_fields_outcome(event, text, fields);
+      if (agent === null) {
+        raw = fields === null
+          ? this.#inner.what_if_view_outcome(event, text)
+          : this.#inner.what_if_view_fields_outcome(event, text, fields);
+      } else {
+        raw = fields === null
+          ? this.#inner.what_if_view_outcome_as(event, text, agent)
+          : this.#inner.what_if_view_fields_outcome_as(event, text, fields, agent);
+      }
     } catch (error) {
       if (isTrap(error)) throw this.#fail(error);
       throw error instanceof CaveatError ? error : fatalFrom(error);

@@ -12,7 +12,7 @@ use super::{
 };
 use crate::fast_hash::HashMap;
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
-use crate::reactive_expr::{departure_markers, Marker};
+use crate::reactive_expr::{departure_markers, Marker, Name, NameSet};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -68,23 +68,23 @@ impl From<MapCommitment> for ViewCommitment {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OrderedGrounds<'a> {
     pub evidence: Vec<&'a str>,
-    pub caveats: &'a BTreeSet<String>,
+    pub caveats: &'a NameSet,
     #[serde(
         skip_serializing_if = "no_markers",
         serialize_with = "serialize_markers"
     )]
     pub departed: &'a BTreeMap<String, Marker>,
     #[serde(skip_serializing_if = "no_names")]
-    pub inherited: &'a BTreeSet<String>,
+    pub inherited: &'a NameSet,
     #[serde(skip_serializing_if = "no_names")]
-    pub kept: &'a BTreeSet<String>,
+    pub kept: &'a NameSet,
 }
 
 fn no_markers(markers: &&BTreeMap<String, Marker>) -> bool {
     markers.is_empty()
 }
 
-fn no_names(names: &&BTreeSet<String>) -> bool {
+fn no_names(names: &&NameSet) -> bool {
     names.is_empty()
 }
 
@@ -98,23 +98,20 @@ fn serialize_markers<S: Serializer>(
 /// Evidence in the frozen order: names the order lists first, in its order,
 /// then any it does not list, by name. Departed names have left `evidence`
 /// and so drop out; the rest keep their places.
-pub(super) fn ordered<'a>(
-    evidence: &'a BTreeSet<String>,
-    order: Option<&[String]>,
-) -> Vec<&'a str> {
+pub(super) fn ordered<'a>(evidence: &'a NameSet, order: Option<&[String]>) -> Vec<&'a str> {
     let Some(order) = order else {
-        return evidence.iter().map(String::as_str).collect();
+        return evidence.iter().map(Name::as_str).collect();
     };
     let mut names = order
         .iter()
-        .filter_map(|name| evidence.get(name).map(String::as_str))
+        .filter_map(|name| evidence.get(name.as_str()).map(Name::as_str))
         .collect::<Vec<_>>();
     if names.len() < evidence.len() {
         let listed = order.iter().map(String::as_str).collect::<BTreeSet<_>>();
         names.extend(
             evidence
                 .iter()
-                .map(String::as_str)
+                .map(Name::as_str)
                 .filter(|name| !listed.contains(name)),
         );
     }

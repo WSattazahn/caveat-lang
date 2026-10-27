@@ -1,0 +1,88 @@
+{
+  "schema": "caveat.across-members-sweep/1",
+  "programs": 208,
+  "across_forms": [
+    {
+      "file": "kit/examples/intel-betrayal/intel.cav",
+      "form": "sum"
+    },
+    {
+      "file": "kit/examples/intel-betrayal/intel.cav",
+      "form": "sum"
+    }
+  ],
+  "names_sum_any_all": [],
+  "other_calls_sum_any_all": [],
+  "hand_written_member_sums": [
+    {
+      "file": "experiments/departure-gate/c3-windows.cav",
+      "kind": "memory",
+      "sum": "m1_support + m2_support + m3_support + m4_support + m5_support + m6_support"
+    },
+    {
+      "file": "experiments/departure-gate/c3-windows.cav",
+      "kind": "memory",
+      "sum": "m1_contradiction + m2_contradiction + m3_contradiction + m4_contradiction + m5_contradiction + m6_contradiction"
+    },
+    {
+      "file": "experiments/glowcap/round7/clock/C3.cav",
+      "kind": "memory",
+      "sum": "m1_support + m2_support + m3_support + m4_support + m5_support + m6_support"
+    },
+    {
+      "file": "experiments/glowcap/round7/clock/C3.cav",
+      "kind": "memory",
+      "sum": "m1_contradiction + m2_contradiction + m3_contradiction + m4_contradiction + m5_contradiction + m6_contradiction"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "kind": "memory",
+      "sum": "m1_support + m2_support + m3_support + m4_support + m5_support + m6_support"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C3/impl/glowcap.cav",
+      "kind": "memory",
+      "sum": "m1_contradiction + m2_contradiction + m3_contradiction + m4_contradiction + m5_contradiction + m6_contradiction"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "kind": "page",
+      "sum": "j1_s + j2_s + j3_s + j4_s + j5_s + j6_s"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "kind": "page",
+      "sum": "j1_c + j2_c + j3_c + j4_c + j5_c + j6_c"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "kind": "page",
+      "sum": "j5_s + j6_s"
+    },
+    {
+      "file": "game/light_the_way.cav",
+      "kind": "reef",
+      "sum": "reef_one_seen + reef_two_seen + reef_three_seen + reef_four_seen + reef_five_seen + reef_six_seen"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "kind": "memory",
+      "sum": "m1_support + m2_support + m3_support + m4_support + m5_support + m6_support"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "kind": "memory",
+      "sum": "m1_contradiction + m2_contradiction + m3_contradiction + m4_contradiction + m5_contradiction + m6_contradiction"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "kind": "memory",
+      "sum": "m1_support + m2_support + m3_support + m4_support + m5_support + m6_support"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "kind": "memory",
+      "sum": "m1_contradiction + m2_contradiction + m3_contradiction + m4_contradiction + m5_contradiction + m6_contradiction"
+    }
+  ]
+}

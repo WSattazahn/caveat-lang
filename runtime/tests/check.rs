@@ -2666,3 +2666,20 @@ on distrust withdraw every source because flag;
         [("C011", line_of(&guarded, "decisions act"))]
     );
 }
+
+/// `grounds_of(D)` reads `D`'s record as `latest(D)` does. See
+/// spec/caveat-grounds-of-0.1.md.
+#[test]
+fn grounds_of_is_a_read_of_the_decisions_record() {
+    let source = RECORD_READS.replace("latest(plan)", "grounds_of(plan)");
+    assert_eq!(codes(&check(&source)), []);
+    let report = check_records(&source);
+    assert_eq!(codes(&report), codes(&check_records(RECORD_READS)));
+    assert!(
+        report.diagnostics[2]
+            .message
+            .contains("through `grounds_of(plan)`, `history_count(plan)`"),
+        "{}",
+        report.diagnostics[2].message
+    );
+}

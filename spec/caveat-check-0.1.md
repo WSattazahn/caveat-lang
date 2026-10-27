@@ -424,8 +424,9 @@ find where that difference can show: in a program, and in a save.
 C008 reports a `rule`, `proc` or `bind` that reads a decision's record, in a
 program with at least one `qualify` effect, in a rule or a procedure. A
 `qualify … after` counts; an `unqualify` does not. A record is read by
-`committed(D)` or `reopened(D)`, or by `latest`, `history_count`,
-`history_at` or a fold of a decision series, in the rule's guard or any
+`committed(D)` or `reopened(D)`, or by `latest`, `grounds_of`
+(draft for 1.5), `history_count`, `history_at` or a fold of a decision
+series, in the rule's guard or any
 expression of its effect, in any step of a procedure, or in a binding's
 value, `when` condition or `because`. In a procedure, a `decisions`
 parameter counts as a decision series. Defines are read through, as C006

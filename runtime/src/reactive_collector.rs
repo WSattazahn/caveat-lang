@@ -425,12 +425,14 @@ impl ReactiveSession {
         let references = pending.entry(scheduled.evidence.clone()).or_default();
         for name in &scheduled.guard.evidence {
             if add {
-                *references.entry(name.clone()).or_default() += 1;
+                *references.entry(name.to_string()).or_default() += 1;
             } else {
-                let count = references.get_mut(name).expect("scheduled dependency");
+                let count = references
+                    .get_mut(name.as_str())
+                    .expect("scheduled dependency");
                 *count -= 1;
                 if *count == 0 {
-                    references.remove(name);
+                    references.remove(name.as_str());
                 }
             }
         }
@@ -467,7 +469,7 @@ impl ReactiveSession {
         let mut scanned = 0;
         let mut include = |provenance: &Provenance| {
             scanned += provenance.evidence.len();
-            references.extend(provenance.evidence.iter().cloned());
+            references.extend(provenance.evidence.iter().map(|name| name.to_string()));
         };
         match owner {
             CollectorOwner::State(name) => {
