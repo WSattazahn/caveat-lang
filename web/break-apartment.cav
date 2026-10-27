@@ -1,0 +1,81 @@
+scene "An assistant picks an apartment for someone moving with their dog.";
+
+claim maple_fits;   # Maple Street works for this person and their dog.
+claim oak_fits;     # Oak Avenue works for this person and their dog.
+
+evidence maple_pets from "Maple Street listing: pets welcome";
+evidence maple_rent from "Maple Street listing: $1,850 a month";
+evidence maple_commute from "Maps estimate: 22 minutes to work from Maple Street";
+evidence maple_gym from "Neighborhood review: a gym two blocks from Maple Street";
+evidence oak_pets from "Oak Avenue landlord, by email: dogs welcome";
+evidence oak_rent from "Oak Avenue listing: $2,050 a month";
+evidence oak_commute from "Maps estimate: 34 minutes to work from Oak Avenue";
+
+evidence landlord_reply from "Maple Street landlord, by email: no dogs, the listing is out of date";
+evidence traffic_recheck from "Maps estimate on an ordinary Tuesday: 41 minutes from Maple Street";
+evidence review_removed from "Review site notice: the gym review was removed as fake";
+
+# The listing's pet line is the listing's word, not the landlord's.
+caveat unconfirmed consequence material;
+unconfirmed qualifies maple_pets;
+# A single maps estimate depends on the day it was taken.
+caveat one_estimate consequence low;
+one_estimate qualifies maple_commute;
+one_estimate qualifies oak_commute;
+
+# 1 means Maple Street, 2 means Oak Avenue.
+decisions apartment limit 6;
+
+event gather;
+event decide;
+event landlord_answers;
+event traffic_rechecked;
+event review_flagged;
+
+on gather when observed(maple_pets) reject "The facts are already gathered.";
+on gather reveal maple_pets supports maple_fits;
+on gather reveal maple_rent supports maple_fits;
+on gather reveal maple_commute supports maple_fits;
+on gather reveal maple_gym supports maple_fits;
+on gather reveal oak_pets supports oak_fits;
+on gather reveal oak_rent supports oak_fits;
+on gather reveal oak_commute supports oak_fits;
+
+define maple_still_holds = not withdrawn(maple_pets) and not withdrawn(maple_commute);
+
+on decide when not observed(maple_pets) reject "Gather the facts first.";
+on decide when committed(apartment) and not reopened(apartment) reject "A decision is already in force; a correction has to reopen it first.";
+on decide when maple_still_holds
+    commit apartment because enough
+    using qualified(1, maple_pets) + qualified(0, maple_rent) + qualified(0, maple_commute);
+on decide when not maple_still_holds
+    commit apartment because enough
+    using qualified(2, oak_pets) + qualified(0, oak_rent) + qualified(0, oak_commute);
+
+# All three corrections share one reopen rule: reopen only if the decision
+# in force rests on what was just withdrawn. The runtime knows which facts that is.
+on landlord_answers when observed(landlord_reply) reject "The landlord already answered.";
+on landlord_answers reveal landlord_reply opposes maple_fits;
+on landlord_answers withdraw maple_pets because landlord_reply;
+on landlord_answers when committed(apartment) and not reopened(apartment) and rests_on_withdrawn(apartment)
+    reopen apartment because landlord_reply;
+
+on traffic_rechecked when observed(traffic_recheck) reject "The commute was already rechecked.";
+on traffic_rechecked reveal traffic_recheck opposes maple_fits;
+on traffic_rechecked withdraw maple_commute because traffic_recheck;
+on traffic_rechecked when committed(apartment) and not reopened(apartment) and rests_on_withdrawn(apartment)
+    reopen apartment because traffic_recheck;
+
+on review_flagged when observed(review_removed) reject "The review was already flagged.";
+on review_flagged reveal review_removed opposes maple_fits;
+on review_flagged withdraw maple_gym because review_removed;
+on review_flagged when committed(apartment) and not reopened(apartment) and rests_on_withdrawn(apartment)
+    reopen apartment because review_removed;
+
+bind choice.text = "not decided yet";
+bind choice.text = "Maple Street" when committed(apartment) and latest(apartment) == 1;
+bind choice.text = "Oak Avenue" when committed(apartment) and latest(apartment) == 2;
+bind choice.status = "no decision";
+bind choice.status = "in force" when committed(apartment) and not reopened(apartment);
+bind choice.status = "reopened" when reopened(apartment);
+bind choice.revisions = history_count(apartment);
