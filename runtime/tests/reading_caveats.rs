@@ -65,7 +65,7 @@ fn caveats(session: &mut ReactiveSession) -> BTreeSet<String> {
         .provenance
         .caveats
         .iter()
-        .cloned()
+        .map(|name| name.to_string())
         .collect()
 }
 
@@ -100,7 +100,14 @@ fn the_caveat_is_on_that_reading_alone() {
     let occurrences = &snapshot.reading_streams["beliefs"].occurrences;
     let carried = occurrences
         .iter()
-        .map(|occurrence| occurrence.provenance.caveats.iter().cloned().collect())
+        .map(|occurrence| {
+            occurrence
+                .provenance
+                .caveats
+                .iter()
+                .map(|name| name.to_string())
+                .collect()
+        })
         .collect::<Vec<BTreeSet<String>>>();
     assert_eq!(carried, vec![names(&["uncertain"]), names(&[])]);
     // Neither the template nor the claim is qualified.
@@ -309,7 +316,12 @@ on read set last = latest(beliefs);
     assert_eq!(caveats(&mut session), names(&["rough"]));
     let occurrences = &session.snapshot().reading_streams["beliefs"].occurrences;
     assert_eq!(
-        occurrences[0].provenance.caveats,
+        occurrences[0]
+            .provenance
+            .caveats
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<BTreeSet<String>>(),
         names(&["uncertain"]),
         "{occurrences:?}"
     );
