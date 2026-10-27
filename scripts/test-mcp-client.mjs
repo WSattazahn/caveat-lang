@@ -36,7 +36,7 @@ export async function checkMcpClient({ installed, directory }) {
   const scenarios = JSON.parse(await readFile(path.join(installed, 'templates', 'umbrella.scenarios.json'), 'utf8'));
   scenarios.source = 'inline.cav';
   const events = (await readFile(path.join(installed, 'templates', 'events.jsonl'), 'utf8')).trim().split(/\r?\n/).map(line => JSON.parse(line));
-  const names = ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_find'];
+  const names = ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_dispatch', 'caveat_find'];
   const calls = [];
   try {
     await client.connect(transport, { timeout: 15000 });
@@ -48,6 +48,7 @@ export async function checkMcpClient({ installed, directory }) {
       ['caveat_validate', { source }], ['caveat_check', { source }],
       ['caveat_test', { source, scenarios }], ['caveat_explain', { source, events }],
       ['caveat_dependents', { source, subject: 'rain_chance', events }],
+      ['caveat_dispatch', { source, events }],
       ['caveat_find', { source, records: [{ name: 'morning', events }], query: 'umbrella forecast' }],
     ]) {
       const result = await client.callTool({ name, arguments: args }, undefined, { timeout: 15000 });
@@ -61,6 +62,12 @@ export async function checkMcpClient({ installed, directory }) {
       if (name === 'caveat_explain') {
         assert.equal(value.report.decisions[0].revisions[0].status, 'reopened');
         assert.deepEqual(value.report.decisions[0].revisions[0].grounds.evidence, ['rain_chance@1']);
+      }
+      if (name === 'caveat_dispatch') {
+        const resumed = await client.callTool({ name, arguments: { source, save: value.report.save } }, undefined, { timeout: 15000 });
+        assert.equal(resumed.structuredContent.exitCode, 0, JSON.stringify(resumed));
+        assert.equal(resumed.structuredContent.report.restored, true);
+        assert.equal(resumed.structuredContent.report.sequence, value.report.sequence);
       }
       calls.push({ name, schema: value.report.schema, exitCode: value.exitCode });
     }
@@ -117,7 +124,7 @@ export async function checkMcpStatelessProbe({ installed, directory }) {
     const listed = (await rpc(2, 'tools/list', meta)).result;
     assert.deepEqual(serverInfo(listed), server);
     const catalog = checkCatalog(listed.tools, server);
-    assert.deepEqual(listed.tools.map(tool => tool.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_find']);
+    assert.deepEqual(listed.tools.map(tool => tool.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_dispatch', 'caveat_find']);
     assert.ok(Number.isInteger(listed.ttlMs) && listed.ttlMs >= 0 && ['public', 'private'].includes(listed.cacheScope));
     const source = await readFile(path.join(installed, 'templates', 'umbrella.cav'), 'utf8');
     const called = (await rpc(3, 'tools/call', { name: 'caveat_validate', arguments: { source }, ...meta })).result;

@@ -2,6 +2,7 @@
 import type { RuntimeIdentity, Snapshot } from './session.mjs';
 
 export declare const AUTHORING_SCHEMA: 'caveat-authoring/0.1';
+export declare const DISPATCH_STEP_SCHEMA: 'caveat-dispatch-step/0.1';
 export declare const AUTHORING_LIMITS: Readonly<Record<string, number>>;
 export declare class AuthoringError extends Error {
   constructor(kind: 'input' | 'limit' | 'runtime', message: string);

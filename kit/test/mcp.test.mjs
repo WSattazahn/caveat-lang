@@ -102,7 +102,7 @@ test('MCP negotiates its explicit profile, initializes before tools, and lists o
     assert.deepEqual(initialized.result.capabilities, { tools: {} });
     client.send(request(3, 'tools/list'));
     assert.deepEqual((await client.wait(3)).result.tools, MCP_TOOLS);
-    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_find']);
+    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_dispatch', 'caveat_find']);
     for (const tool of MCP_TOOLS) {
       assert.equal(tool.inputSchema.additionalProperties, false);
       assert.equal(tool.annotations.readOnlyHint, true);
@@ -235,7 +235,7 @@ test('MCP 2026-07-28 calls keep single-flight, cancellation, launch failure and 
   } finally { assert.equal(await bounded.close(), 0); }
 });
 
-test('all six tools execute fresh real workers and retain completed CLI-style outcomes', async () => {
+test('all seven tools execute fresh real workers and retain completed CLI-style outcomes', async () => {
   const client = connection();
   try {
     await client.initialize();

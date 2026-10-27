@@ -181,7 +181,7 @@ measure a model's confidence or authorize an external action.
 
 ## Use authoring tools from an MCP host
 
-This package can run `caveat-lang mcp` for the six authoring
+This package can run `caveat-lang mcp` for the seven authoring
 operations. It takes inline source and uses a fresh subprocess for
 each call. See [MCP setup and limits](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/MCP.md): it speaks MCP 2026-07-28
 and the 2025-11-25 profile.
@@ -316,10 +316,16 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind. `--records` also reports where a program reads a decision's
+  left behind. `--names` (draft for 1.5) also reports a `commit` whose name
+  is one or two edits from a declared decision series: it would run as a
+  separate plain commitment and the series would never record it.
+  `--records` also reports where a program reads a decision's
   record in a place a later `qualify` reaches (1.1 changed what those reads
   carry). `--records --save SAVE` lists the values in a save written by a
   1.0.x runtime that are missing such a caveat.
+  `--withdrawals` also reports each commit on something the program can
+  withdraw that nothing asks is withdrawn, and each decision on such a source
+  that no withdrawal reopens.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
@@ -405,7 +411,8 @@ To ask what an event would do without doing it, call
 from a copy of the session that is then dropped, so the session is unchanged
 whatever the answer: for example, which decisions withdrawing some evidence
 would reopen, or whether a commitment would be refused. It takes the same
-`{ fields }` option. A fatal answer throws but leaves the session usable
+`{ fields }` and `{ agent }` options, so it can ask about an event only one
+agent may send. A fatal answer throws but leaves the session usable
 ([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
 
 A runtime keeps the last few programs it loaded, so opening or restoring the

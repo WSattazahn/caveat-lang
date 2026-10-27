@@ -1538,6 +1538,24 @@ fn a_strict_irreversible_survives_a_module_that_declares_strict() {
 }
 
 #[test]
+fn a_threshold_survives_a_module_that_declares_threshold() {
+    // `threshold NAME = NUMBER` arrives in 1.5 (spec/caveat-thresholds-0.1.md).
+    // A module may declare a threshold, whose name is the module's own, and
+    // may name a state `threshold` and keep the statement word.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state threshold = 1;\n\
+             threshold bar = 0.5;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(source.contains("state m__threshold = 1;"), "{source}");
+    assert!(source.contains("threshold m__bar = 0.5;"), "{source}");
+}
+
+#[test]
 fn a_hold_survives_a_module_that_declares_its_words() {
     // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
     // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
@@ -1801,6 +1819,7 @@ const POSITIONAL: &[&str] = &[
     "materialized",
     "once",
     "strict",
+    "threshold",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
