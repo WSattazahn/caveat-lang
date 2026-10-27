@@ -293,13 +293,18 @@ impl WebReactiveSession {
     /// delta base are unchanged, whatever the outcome. See
     /// spec/caveat-dispatch-0.1.md, "The what-if path".
     pub fn what_if_view_outcome(&self, event: &str, payload_json: &str) -> Result<String, String> {
-        let mut copy = self.inner.clone();
-        match copy.dispatch_view_outcome_json(event, payload_json) {
-            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
-            Err(fatal) => {
-                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
-            }
-        }
+        self.what_if_view(event, payload_json, None)
+    }
+
+    /// `what_if_view_outcome` for an event the host says `agent` sent: what
+    /// `dispatch_view_outcome_as` would return. See spec/caveat-agents-0.1.md.
+    pub fn what_if_view_outcome_as(
+        &self,
+        event: &str,
+        payload_json: &str,
+        agent: &str,
+    ) -> Result<String, String> {
+        self.what_if_view(event, payload_json, Some(agent))
     }
 
     /// `what_if_view_outcome` with only the view fields `fields_json` names,
@@ -310,9 +315,45 @@ impl WebReactiveSession {
         payload_json: &str,
         fields_json: &str,
     ) -> Result<String, String> {
+        self.what_if_view_fields(event, payload_json, fields_json, None)
+    }
+
+    /// `what_if_view_fields_outcome` for an event the host says `agent` sent.
+    pub fn what_if_view_fields_outcome_as(
+        &self,
+        event: &str,
+        payload_json: &str,
+        fields_json: &str,
+        agent: &str,
+    ) -> Result<String, String> {
+        self.what_if_view_fields(event, payload_json, fields_json, Some(agent))
+    }
+
+    fn what_if_view(
+        &self,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<String, String> {
+        let mut copy = self.inner.clone();
+        match copy.dispatch_view_outcome_as_json(event, payload_json, agent) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
+    fn what_if_view_fields(
+        &self,
+        event: &str,
+        payload_json: &str,
+        fields_json: &str,
+        agent: Option<&str>,
+    ) -> Result<String, String> {
         let fields = crate::reactive::ViewFields::from_json(fields_json)?;
         let mut copy = self.inner.clone();
-        match copy.dispatch_view_fields_outcome_json(event, payload_json, fields) {
+        match copy.dispatch_view_fields_outcome_as_json(event, payload_json, fields, agent) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
                 Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
