@@ -144,8 +144,11 @@ test('caveat_dispatch keeps one ledger across calls through the save it returns'
 });
 
 test('caveat_dispatch saves the last good state after a fatal event and refuses a save for other source', async () => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const runtimeDirectory = await faultingRuntimeDirectory();
   const start = await bridge('dispatch', { source, events: events.slice(0, 2) });
-  const fatal = await bridge('dispatch', { source, save: start.report.save, events: [{ event: 'fault' }, { event: 'read', payload: { value: 90 } }] });
+  const fatal = await runAuthoringOperation('caveat_dispatch', { source, save: start.report.save,
+    events: [{ event: 'fault' }, { event: 'read', payload: { value: 90 } }] }, { runtimeDirectory });
   assert.equal(fatal.exitCode, 1);
   assert.deepEqual(fatal.report.events.map(item => item.outcome.outcome), ['fatal']);
   assert.equal(fatal.report.sequence, 2);
