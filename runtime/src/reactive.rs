@@ -4,6 +4,7 @@
 //! effects; an entire event publishes atomically or leaves the session intact.
 
 use crate::ast::{Program, Statement};
+use crate::chunked::Chunked;
 use crate::eval::ResourceLedger;
 use crate::fast_hash::{HashMap, HashSet};
 use crate::game_session::GameSymbol;
@@ -1646,7 +1647,7 @@ pub struct ReactiveView<'a> {
     pub commitments: Vec<MapCommitment>,
     pub commitment_grounds: &'a BTreeMap<String, Provenance>,
     pub decision_series: &'a BTreeMap<String, DecisionSeries>,
-    pub decision_journal: &'a [JournalEntry],
+    pub decision_journal: &'a Chunked<JournalEntry>,
     pub relations: Vec<MapRelation>,
 }
 
@@ -1729,7 +1730,7 @@ pub struct ReactiveViewSelection<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decision_series: Option<&'a BTreeMap<String, DecisionSeries>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub decision_journal: Option<&'a [JournalEntry]>,
+    pub decision_journal: Option<&'a Chunked<JournalEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<MapRelation>>,
 }
@@ -1912,7 +1913,7 @@ pub struct ReactiveSession {
     /// it was made; only where that differs from name order. View 0.2 shows
     /// grounds in this order. See spec/caveat-view-0.2.md.
     evidence_order: Arc<BTreeMap<String, Vec<String>>>,
-    journal: Arc<Vec<JournalEntry>>,
+    journal: Chunked<JournalEntry>,
     /// The histories declared with `window N` instead of `limit N`, and the
     /// journal's window. Fixed at load. See spec/caveat-windows-0.1.md.
     windows: Arc<BTreeSet<String>>,
@@ -2170,7 +2171,7 @@ impl ReactiveSession {
             binding_explanations: BTreeMap::new(),
             commitment_grounds: Arc::default(),
             evidence_order: Arc::default(),
-            journal: Arc::default(),
+            journal: Chunked::default(),
             windows: Arc::default(),
             journal_window: None,
             retired: Arc::default(),
@@ -4859,7 +4860,7 @@ impl ReactiveSession {
             commitments: pick("commitments").then(|| self.commitment_records(&names)),
             commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
             decision_series: pick("decision_series").then_some(&self.decision_series),
-            decision_journal: pick("decision_journal").then_some(self.journal.as_slice()),
+            decision_journal: pick("decision_journal").then_some(&self.journal),
             relations: pick("relations").then(|| self.relation_records(&names)),
         }
     }
@@ -6365,7 +6366,7 @@ impl ReactiveSession {
                 }
                 self.retire_journal_entry();
                 self.pin_journal_entry(&entry);
-                Arc::make_mut(&mut self.journal).push(entry);
+                self.journal.push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
                     retained: retained_names,
@@ -6615,7 +6616,7 @@ impl ReactiveSession {
             materialized: resolution.materialized.clone(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
@@ -6794,7 +6795,7 @@ impl ReactiveSession {
             materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
@@ -6860,7 +6861,7 @@ impl ReactiveSession {
             materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
@@ -8132,7 +8133,7 @@ impl ReactiveSession {
             binding_explanations: self.binding_explanations.clone(),
             value_grounds: self.states.grounds(),
             commitment_grounds: (*self.commitment_grounds).clone(),
-            decision_journal: (*self.journal).clone(),
+            decision_journal: self.journal.to_vec(),
             retired: (*self.retired).clone(),
             windows: self
                 .windows

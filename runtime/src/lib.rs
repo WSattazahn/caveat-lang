@@ -1,6 +1,7 @@
 pub mod action_runtime;
 pub mod ast;
 pub mod caveat_rs;
+pub mod chunked;
 pub mod eval;
 pub mod game_session;
 pub mod graphics;
@@ -116,7 +117,7 @@ pub struct QualificationImpact {
 #[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
-    pub nodes: HashMap<NodeId, NodeKind>,
+    pub nodes: crate::chunked::IdTable<NodeKind>,
     pub edges: Vec<Edge>,
     /// The part whose declarations are being read right now.
     authoring: Option<String>,

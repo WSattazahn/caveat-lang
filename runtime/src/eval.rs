@@ -170,7 +170,12 @@ impl Evaluator {
     }
     fn snapshot(&self) -> EpistemicSnapshot {
         EpistemicSnapshot {
-            nodes: self.graph.nodes.clone(),
+            nodes: self
+                .graph
+                .nodes
+                .iter()
+                .map(|(id, node)| (*id, node.clone()))
+                .collect(),
             edges: self.graph.edges.clone(),
             resources: self.resources.clone(),
         }
