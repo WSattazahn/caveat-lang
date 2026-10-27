@@ -85,6 +85,9 @@ jobs:
       - name: Start the runtime in 200 fresh WebKit pages
         if: runner.os == 'Linux'
         run: node bench/carmack/webkit-stress.mjs --runtime carmack-runtime --pages 200
+      - name: The break page recovers from a trap at session creation
+        if: runner.os == 'Linux'
+        run: node scripts/test-break-recovery.mjs --runtime carmack-runtime --browsers webkit,chromium
       - uses: actions/upload-artifact@v7
         if: always()
         with:

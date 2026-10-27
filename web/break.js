@@ -23,23 +23,25 @@ const $ = id => document.getElementById(id);
 const esc = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const eventsText = names => names.map(event => JSON.stringify({ event })).join('\n');
 
+const RUNTIME = {
+  module: new URL('./pkg-reactive/caveat_runtime.js', location.href).href,
+  wasm: new URL('./pkg-reactive/caveat_runtime_bg.wasm', location.href),
+};
+
 let runtime = null;
 let version = 'unknown';
 let lastReport = null;
 
 async function start() {
   try {
-    runtime = await loadRuntime({
-      module: new URL('./pkg-reactive/caveat_runtime.js', location.href).href,
-      wasm: new URL('./pkg-reactive/caveat_runtime_bg.wasm', location.href),
-    });
+    runtime = await loadRuntime(RUNTIME);
     const info = await fetch('./build-info.json').then(response => response.json()).catch(() => null);
     if (info?.revision) version = `main at ${info.revision.slice(0, 12)}`;
     $('version').textContent = version;
     for (const button of document.querySelectorAll('[data-example]')) {
       button.addEventListener('click', () => load(button.dataset.example));
     }
-    $('run').addEventListener('click', run);
+    $('run').addEventListener('click', () => run());
     $('report').addEventListener('click', report);
     $('run').disabled = false;
     await load('apartment');
@@ -80,7 +82,18 @@ function open(source) {
   }
 }
 
-function run() {
+// WebKit 26.0 can trap while starting a session, an engine fault in its
+// WebAssembly tier-up (bench/carmack/README.md), not the program's. A run is
+// deterministic, so a run that trapped is repeated once on a fresh instance.
+function retryAfterTrap(retried) {
+  if (retried || !runtime.trapped) return false;
+  $('status').textContent = 'The browser\'s WebAssembly engine faulted; running again on a fresh runtime.';
+  loadRuntime(RUNTIME).then(fresh => { runtime = fresh; run(true); },
+    error => { $('status').textContent = `The runtime did not reload: ${error.message ?? error}`; });
+  return true;
+}
+
+function run(retried = false) {
   const source = $('program').value;
   const out = $('results');
   out.innerHTML = '';
@@ -89,7 +102,10 @@ function run() {
   let events;
   try { events = parseEvents($('events').value); } catch (error) { $('status').textContent = error.message; return; }
   let opened;
-  try { opened = open(source); } catch (error) { $('status').textContent = `The program does not load: ${error.message}`; return; }
+  try { opened = open(source); } catch (error) {
+    if (!retryAfterTrap(retried)) $('status').textContent = `The program does not load: ${error.message}`;
+    return;
+  }
   const { session } = opened;
   const rows = [];
   const findings = [];
@@ -110,6 +126,10 @@ function run() {
     });
   } catch (error) {
     rows.push({ index: rows.length + 1, event: events[rows.length]?.event ?? '', outcome: { outcome: 'fatal', message: error.message }, failed: new Set() });
+  }
+  if (runtime.trapped) {
+    session.close();
+    if (retryAfterTrap(retried)) return;
   }
   out.innerHTML = table(rows) + decisions(before) + findingsList(findings) + [...notes].map(note => `<p class="note">${esc(note)}</p>`).join('');
   if (!opened.probed) out.innerHTML += '<p class="note">R3 could not be checked: the checker could not add its display lines to this program.</p>';
