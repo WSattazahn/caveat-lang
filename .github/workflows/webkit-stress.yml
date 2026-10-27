@@ -37,11 +37,13 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: plain-a, env: '', args: '--pages 400 --replays 0' }
-          - { name: instrumented-a, env: '', args: '--pages 400 --replays 0', instrument: true }
-          - { name: instrumented-b, env: '', args: '--pages 400 --replays 0', instrument: true }
-          - { name: instrumented-c, env: '', args: '--pages 400 --replays 0', instrument: true }
-    name: stress / ${{ matrix.config.name }}
+          - { name: default, env: '', args: '--pages 400 --replays 0' }
+          - { name: no-bbq, env: 'JSC_useBBQJIT=0', args: '--pages 400 --replays 0' }
+          - { name: no-omg, env: 'JSC_useOMGJIT=0', args: '--pages 400 --replays 0' }
+          - { name: no-jit, env: 'JSC_useBBQJIT=0 JSC_useOMGJIT=0', args: '--pages 400 --replays 0' }
+          - { name: no-osr, env: 'JSC_useWasmIPIntLoopOSR=0 JSC_useWasmIPIntPrologueOSR=0 JSC_useWasmIPIntEpilogueOSR=0 JSC_useWasmOSR=0', args: '--pages 400 --replays 0' }
+        shard: [1, 2, 3]
+    name: stress / ${{ matrix.config.name }} ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
