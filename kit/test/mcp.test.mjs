@@ -102,7 +102,7 @@ test('MCP negotiates its explicit profile, initializes before tools, and lists o
     assert.deepEqual(initialized.result.capabilities, { tools: {} });
     client.send(request(3, 'tools/list'));
     assert.deepEqual((await client.wait(3)).result.tools, MCP_TOOLS);
-    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents']);
+    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_dispatch']);
     for (const tool of MCP_TOOLS) {
       assert.equal(tool.inputSchema.additionalProperties, false);
       assert.equal(tool.annotations.readOnlyHint, true);
