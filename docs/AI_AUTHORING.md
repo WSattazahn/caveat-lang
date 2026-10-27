@@ -596,6 +596,15 @@ keep the words with the number: `sample node_min = minimum supports compatible
 noting range;`, where `range` is an `id` parameter. Decisions still compare the
 number. See [reading notes](../spec/caveat-reading-notes-0.1.md).
 
+When a reading is a probability or a score and some values of it are weak,
+say so on the reading as it is taken: `sample beliefs = p supports door_open
+with uncertain when p > 0.3 and p < 0.9;`. Only that reading carries
+`uncertain`, so an irreversible decision resting on it must retain it, and a
+sure reading carries nothing. Prefer this to declaring the caveat on the
+evidence, which marks every reading, or to a second rule that qualifies
+`latest(STREAM)` afterwards (1.5 draft,
+[reading caveats](../spec/caveat-reading-caveats-0.1.md)).
+
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:
 
