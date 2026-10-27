@@ -909,6 +909,12 @@ add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
 ([Only If 0.1](../spec/caveat-only-if-0.1.md); the
 [model-votes experiment](../experiments/model-votes/README.md)).
 
+When a decision reads another decision, `using latest(D)` carries `D`'s whole
+basis: after a reopening, that holds the predecessor's evidence, withdrawn or
+not. `using grounds_of(D)` carries `D`'s grounds alone, what `D` rested on,
+so the new decision carries `withdrawn` exactly when `rests_on_withdrawn(D)`
+is true. Draft for 1.5 ([Grounds Of 0.1](../spec/caveat-grounds-of-0.1.md)).
+
 ## What a withdrawal adds to a decision's grounds
 
 A withdrawal needs a reason: `withdraw latest(checks) because recheck`. Every
