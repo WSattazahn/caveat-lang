@@ -25,6 +25,7 @@ route, and exposing an informant reopens every plan that rested on their word.
 | A rumour that is doubted, not disproved | `qualify latest(S) with C`, a caveat; `unqualify` takes the doubt back |
 | A choice the player can't take back | `decisions D limit 1 irreversible forecloses OTHER` |
 | A cutscene that must not be interrupted | `hold D because E`; reopenings wait for `release` |
+| "Did any informant say so?", "how many guards saw you?" | `any(for informant as $i: …)`, `sum(for guard as $g: …)`: one term per member, so a new NPC is one `entity` line (draft, [across members](reference/spec/caveat-across-members-0.1.md)) |
 
 To withdraw everything one source said, write
 `withdraw every SOURCE because PROOF` (draft for 1.4, [untrusted

@@ -6,14 +6,14 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { root, trackedCavFiles } from './corpus.mjs';
 import {
-  allForBlocks, classify, identifiers, numbers, relations, statementHeads, substitutions,
+  acrossForms, allForBlocks, classify, identifiers, numbers, relations, statementHeads, substitutions,
 } from './reference.mjs';
 import { has, scopesOf } from './tokenize.mjs';
 import { expectedHeadScope, highlightedWords, isBuiltin } from './expectations.mjs';
 
 const files = trackedCavFiles();
 
-const totals = { files: 0, strings: 0, comments: 0, blocks: 0, nested: 0, substitutions: 0, heads: 0, relations: 0, builtins: 0, properties: 0, numbers: 0 };
+const totals = { files: 0, strings: 0, comments: 0, blocks: 0, nested: 0, across: 0, substitutions: 0, heads: 0, relations: 0, builtins: 0, properties: 0, numbers: 0 };
 
 function position(text, index) {
   const before = text.slice(0, index);
@@ -64,8 +64,16 @@ for (const file of files) {
     // template, the rest of the name is not, and the header's binding is a
     // parameter.
     const blocks = allForBlocks(text, classes);
+    const forms = acrossForms(text, classes);
     const inBlock = new Array(text.length).fill(false);
     const templated = new Array(text.length).fill(false);
+    // An across form's binding is a template parameter, wherever it is.
+    for (const form of forms) {
+      totals.across += 1;
+      for (let index = form.bindingAt; index <= form.bindingAt + form.binding.length; index++) {
+        check(has(scopes[index], 'variable.parameter.template'), index, 'the across binding is not a template parameter');
+      }
+    }
     for (const block of blocks) {
       totals.blocks += 1;
       totals.nested += block.nested.length;
@@ -73,7 +81,7 @@ for (const file of files) {
       for (let index = block.bindingAt; index <= block.bindingAt + block.binding.length; index++) {
         check(has(scopes[index], 'variable.parameter.template'), index, 'the binding is not a template parameter');
       }
-      for (const { index, length, word } of substitutions(text, block)) {
+      for (const { index, length, word } of substitutions(text, block, forms)) {
         totals.substitutions += 1;
         check(length > 0, index, `$${word} is not bound in this block`);
         templated.fill(true, index, index + length);
@@ -83,10 +91,24 @@ for (const file of files) {
         }
       }
     }
+    // Outside a block, an across form's expression substitutes its own name
+    // (spec/caveat-across-members-0.1.md).
+    const topForms = forms.filter(form => !inBlock[form.start]);
+    for (const form of topForms) {
+      for (let index = form.exprStart; index < form.end; index++) {
+        if (text[index] !== '$' || classes[index] === 'comment') continue;
+        const word = text.slice(index + 1).match(/^(?:[A-Za-z_]\w*)?/)[0];
+        const bound = [form.binding, 'index', ...topForms.filter(other => other !== form && index >= other.exprStart && index < other.end).map(other => other.binding)]
+          .filter(name => word.startsWith(name)).sort((a, b) => b.length - a.length)[0];
+        check(bound !== undefined, index, `$${word} is not bound in this across form`);
+        if (bound) templated.fill(true, index, index + bound.length + 1);
+      }
+    }
+    const inTopForm = index => topForms.some(form => index >= form.start && index < form.end);
     // Outside a block, `$NAME` in code is refused at load; in text it is text.
     const stray = new Array(text.length).fill(false);
     for (let index = 0; index < text.length; index++) {
-      if (text[index] !== '$' || inBlock[index] || classes[index] !== 'code') continue;
+      if (text[index] !== '$' || inBlock[index] || classes[index] !== 'code' || inTopForm(index)) continue;
       stray.fill(true, index, index + text.slice(index).match(/^\$(?:[A-Za-z_]\w*)?/)[0].length);
     }
     for (let index = 0; index < text.length; index++) {
