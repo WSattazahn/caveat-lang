@@ -304,9 +304,11 @@ const commitmentMutations = {
     '        for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {\n' +
     '            if grounds.evidence.contains(evidence) {\n' +
     '                grounds.merge(&added)?;\n' +
-    '                for entry in Arc::make_mut(&mut self.journal).iter_mut() {\n' +
-    '                    if entry.change == "committed" && &entry.commitment == name {\n' +
-    '                        entry.caveats = grounds.caveats.iter().map(|name| name.to_string()).collect();\n' +
+    '                for index in 0..self.journal.len() {\n' +
+    '                    if self.journal[index].change == "committed" && &self.journal[index].commitment == name {\n' +
+    '                        if let Some(entry) = self.journal.get_mut(index) {\n' +
+    '                            entry.caveats = grounds.caveats.iter().map(|name| name.to_string()).collect();\n' +
+    '                        }\n' +
     '                    }\n' +
     '                }\n' +
     '            }\n' +
