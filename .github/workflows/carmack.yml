@@ -71,7 +71,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # --with-deps fetches about 150 system packages from the Ubuntu mirror.
+      # --with-deps fetches over 150 system packages from the Ubuntu mirror.
       # On 2026-10-27 that mirror slowed to 1-60 s a package and held this step
       # for over 40 minutes (normally about 3); stop and fail instead of
       # waiting for the 6-hour job limit. Retrying in the step would not help:
