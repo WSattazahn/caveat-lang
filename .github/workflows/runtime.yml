@@ -118,6 +118,8 @@ jobs:
         run: npm run test:before-the-rain
       - name: Caveatist canon loads, checks clean and passes its scenarios
         run: npm run test:caveatism
+      - name: Try to break this page checker, its examples and mutation controls
+        run: npm run test:break
       - name: Installable Caveatist skill copy and plugin metadata
         run: |
           cmp caveatism/skills/caveatist/SKILL.md skills/caveatist/SKILL.md
