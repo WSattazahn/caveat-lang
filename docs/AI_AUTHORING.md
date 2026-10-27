@@ -596,6 +596,15 @@ keep the words with the number: `sample node_min = minimum supports compatible
 noting range;`, where `range` is an `id` parameter. Decisions still compare the
 number. See [reading notes](../spec/caveat-reading-notes-0.1.md).
 
+When a reading is a probability or a score and some values of it are weak,
+say so on the reading as it is taken: `sample beliefs = p supports door_open
+with uncertain when p > 0.3 and p < 0.9;`. Only that reading carries
+`uncertain`, so an irreversible decision resting on it must retain it, and a
+sure reading carries nothing. Prefer this to declaring the caveat on the
+evidence, which marks every reading, or to a second rule that qualifies
+`latest(STREAM)` afterwards (1.5 draft,
+[reading caveats](../spec/caveat-reading-caveats-0.1.md)).
+
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:
 
@@ -899,6 +908,12 @@ add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
 `only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
 ([Only If 0.1](../spec/caveat-only-if-0.1.md); the
 [model-votes experiment](../experiments/model-votes/README.md)).
+
+When a decision reads another decision, `using latest(D)` carries `D`'s whole
+basis: after a reopening, that holds the predecessor's evidence, withdrawn or
+not. `using grounds_of(D)` carries `D`'s grounds alone, what `D` rested on,
+so the new decision carries `withdrawn` exactly when `rests_on_withdrawn(D)`
+is true. Draft for 1.5 ([Grounds Of 0.1](../spec/caveat-grounds-of-0.1.md)).
 
 ## What a withdrawal adds to a decision's grounds
 

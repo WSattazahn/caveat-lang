@@ -239,6 +239,14 @@ impl ParameterDomain {
     }
 }
 
+/// The caveats a `sample ... with` puts on the reading it takes, and the
+/// condition under which it does: spec/caveat-reading-caveats-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadingCaveats {
+    pub caveats: Vec<String>,
+    pub condition: Option<Expr>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
     Call {
@@ -254,6 +262,9 @@ pub enum Effect {
         /// `noting EXPRESSION`: the text of the identifier it names, kept
         /// with the reading. See spec/caveat-reading-notes-0.1.md.
         note: Option<Box<Expr>>,
+        /// `with CAVEAT[, CAVEAT…] [when CONDITION]`: caveats on this
+        /// reading alone. See spec/caveat-reading-caveats-0.1.md.
+        with: Option<Box<ReadingCaveats>>,
     },
     Emit {
         name: String,
@@ -477,10 +488,15 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, note, .. } => {
+        Effect::Sample {
+            value, note, with, ..
+        } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
             if let Some(note) = note {
                 **note = reactive_expr::expand_with(note, functions, defines)?;
+            }
+            if let Some(condition) = with.as_mut().and_then(|with| with.condition.as_mut()) {
+                *condition = reactive_expr::expand_with(condition, functions, defines)?;
             }
         }
         Effect::Qualify { after, index, .. } => {
@@ -1086,9 +1102,12 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, note, .. } => {
+            Effect::Sample {
+                value, note, with, ..
+            } => {
                 expressions.push(value);
                 expressions.extend(note.as_deref());
+                expressions.extend(with.as_ref().and_then(|with| with.condition.as_ref()));
             }
             Effect::Commit {
                 using,
@@ -3213,14 +3232,16 @@ impl ReactiveSession {
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
                 )),
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF
                     if self.decision_series.contains_key(symbol) =>
                 {
                     Ok(())
                 }
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME => Err(format!(
-                    "{kind} names a decision series; {symbol} is not one"
-                )),
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF => {
+                    Err(format!(
+                        "{kind} names a decision series; {symbol} is not one"
+                    ))
+                }
                 reactive_expr::AT_REVISION_RESOLVED
                     if self.decision_series.contains_key(symbol) =>
                 {
@@ -3311,6 +3332,7 @@ impl ReactiveSession {
                     value,
                     stance,
                     note,
+                    with,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -3324,6 +3346,21 @@ impl ReactiveSession {
                             return Err(format!(
                                 "sample {stream} noting requires an identifier handle"
                             ));
+                        }
+                    }
+                    if let Some(with) = with {
+                        for caveat in &with.caveats {
+                            self.require_kind(caveat, "caveat")?;
+                            self.not_the_withdrawal_caveat(caveat, "sample with")?;
+                            self.not_a_take_back_caveat(caveat, "sample with")?;
+                        }
+                        if let Some(condition) = &with.condition {
+                            if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool
+                            {
+                                return Err(format!(
+                                    "sample {stream} with ... when requires a boolean condition"
+                                ));
+                            }
                         }
                     }
                 }
@@ -3986,6 +4023,9 @@ impl ReactiveSession {
         if let HistoryRead::Outcome(index) = query {
             return self.outcome_read(name, index);
         }
+        if query == HistoryRead::Grounds {
+            return self.grounds_read(name);
+        }
         if query == HistoryRead::Latest {
             if let Some(stream) = self.reading_streams.get(name) {
                 if stream.occurrences.is_empty() {
@@ -4034,7 +4074,9 @@ impl ReactiveSession {
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
@@ -4065,11 +4107,41 @@ impl ReactiveSession {
                         )
                     })?
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
+    }
+
+    /// `grounds_of(SERIES)`: the current revision's frozen `using` value, as
+    /// `latest(SERIES)` reads it, on the revision's frozen grounds instead of
+    /// its whole basis: what the commit rested on, without the predecessor's
+    /// basis, the reopening's witness and the guards. The series' current
+    /// head-selection dependencies and current withdrawals apply as for
+    /// `latest`. See spec/caveat-grounds-of-0.1.md.
+    fn grounds_read(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
+        let series = self
+            .decision_series
+            .get(name)
+            .ok_or_else(|| format!("grounds_of names a decision series; {name} is not one"))?;
+        let Some(current) = &series.current else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("decision series {name} has no commitment"),
+            ));
+        };
+        let value = self.commitment_bases[current].value.ok_or_else(|| {
+            EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("current decision {current} has no numeric using value"),
+            )
+        })?;
+        let mut provenance = self.commitment_grounds[current].clone();
+        self.inherit(&mut provenance, &series.selection_qualifications)?;
+        Tracked::new(value, self.with_current_withdrawals(provenance)?)
     }
 
     /// The outcome of a series' current revision, or of revision K. A
@@ -5602,6 +5674,7 @@ impl ReactiveSession {
                 value,
                 stance,
                 note,
+                with,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -5635,6 +5708,23 @@ impl ReactiveSession {
                         Value::Text(text) => Some(text),
                         _ => return Err("sample noting requires an identifier handle".into()),
                     },
+                    None => None,
+                };
+                // `with ... when`: the condition is part of what the reading
+                // rests on whichever way it falls, as a guard is
+                // (spec/caveat-reading-caveats-0.1.md).
+                let mut own: &[String] = with.as_deref().map_or(&[], |with| &with.caveats);
+                let condition = match with.as_deref().and_then(|with| with.condition.as_ref()) {
+                    Some(condition) => {
+                        let condition = self.evaluate(condition, parameters)?;
+                        let Value::Bool(applies) = condition.value else {
+                            return Err("sample with ... when requires a boolean condition".into());
+                        };
+                        if !applies {
+                            own = &[];
+                        }
+                        Some(condition.provenance)
+                    }
                     None => None,
                 };
                 let NodeKind::Evidence {
@@ -5691,6 +5781,12 @@ impl ReactiveSession {
                         .collect::<BTreeSet<_>>();
                     inherited.extend(live);
                 }
+                for caveat in own {
+                    let caveat = self.symbols[caveat];
+                    if !inherited.contains(&caveat) {
+                        inherited.push(caveat);
+                    }
+                }
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
                     source,
@@ -5704,6 +5800,9 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
+                if let Some(condition) = &condition {
+                    observation = observation.union(condition)?;
+                }
                 self.freeze_observation(&mut observation);
                 Arc::make_mut(&mut self.observation_qualifications)
                     .insert(name.clone(), observation);
@@ -8228,6 +8327,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             value,
             stance,
             note,
+            with,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
@@ -8237,6 +8337,15 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             note: note
                 .as_ref()
                 .map(|note| Box::new(note.rename_symbols(names))),
+            with: with.as_ref().map(|with| {
+                Box::new(ReadingCaveats {
+                    caveats: with.caveats.iter().map(&rename).collect(),
+                    condition: with
+                        .condition
+                        .as_ref()
+                        .map(|condition| condition.rename_symbols(names)),
+                })
+            }),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -8447,6 +8556,31 @@ fn source_identity(source: &str) -> String {
 fn source_digest(source: &str) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(source.as_bytes()))
+}
+
+/// `CAVEAT[, CAVEAT...] [when CONDITION]`, the words after a sample's
+/// `with`, or None when they do not have that shape: each caveat once, and
+/// a condition that parses.
+fn reading_caveats(words: &[&str]) -> Option<ReadingCaveats> {
+    let at = words.iter().position(|word| *word == "when");
+    let (list, condition) = match at {
+        Some(at) if at + 1 < words.len() => (
+            &words[..at],
+            Some(reactive_expr::parse_unresolved(&words[at + 1..].join(" ")).ok()?),
+        ),
+        Some(_) => return None,
+        None => (words, None),
+    };
+    let list = list.join(" ");
+    let mut caveats = Vec::new();
+    for caveat in list.split(',') {
+        let caveat = identifier(caveat.trim()).ok()?;
+        if caveat == "when" || caveats.contains(&caveat) {
+            return None;
+        }
+        caveats.push(caveat);
+    }
+    Some(ReadingCaveats { caveats, condition })
 }
 
 fn identifier(name: &str) -> Result<String, String> {
@@ -9614,8 +9748,23 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str =
-                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]";
+            // `with` is a word only where what follows parses as caveats:
+            // spec/caveat-reading-caveats-0.1.md. Before it, no 1.x program
+            // could have such words after a sample's value.
+            let with = rest
+                .iter()
+                .rposition(|word| *word == "with")
+                .and_then(|at| {
+                    if at == 0 {
+                        return None;
+                    }
+                    reading_caveats(&rest[at + 1..]).map(|with| (at, with))
+                });
+            let (rest, with) = match with {
+                Some((at, with)) => (&rest[..at], Some(Box::new(with))),
+                None => (rest, None),
+            };
             // `noting` is a word only where what follows parses: a 1.0
             // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
             let noting = rest
@@ -9657,10 +9806,11 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
                 note: note.map(Box::new),
+                with,
             })
         }
         ["sample", ..] => Err(
-            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]"
                 .into(),
         ),
         ["emit", name] => Ok(Effect::Emit {

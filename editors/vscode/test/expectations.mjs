@@ -35,6 +35,15 @@ export const groups = [
     scope: 'keyword.control',
     notKeyword: ['x @ y;', 'state @ = 1;', 'for k as $r {\n  on e when @ set x = 1;\n};'],
   },
+  // Only where an across form opens (spec/caveat-across-members-0.1.md). The
+  // words are not reserved, so anywhere else they are names.
+  {
+    name: 'across members',
+    words: ['sum', 'any', 'all'],
+    probe: ['define t = @(for k as $r: $r_x);', 'on e when @ ( for k as $r : $r_x == 1) set x = 1;', 'for k as $r {\n  define $r_t = @(for j as $s: $r_$s);\n};'],
+    scope: 'keyword.control',
+    notKeyword: ['x @ y;', 'state @ = 1;', 'define t = @(x);', 'define t = my_@(for k as $r: $r);'],
+  },
   {
     name: 'effects',
     words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'],
@@ -210,7 +219,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'],
+      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

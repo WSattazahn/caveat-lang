@@ -28,7 +28,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a
@@ -231,6 +231,7 @@ const profileStatement = context => ({
 
 const code = context => ({
   patterns: [
+    { include: '#across' },
     { include: context.declarations },
     { include: context.relations },
     { include: '#clause-values' },
@@ -348,6 +349,43 @@ export const grammar = {
       end: String.raw`\}`,
       endCaptures: { 0: { name: 'punctuation.section.block.end.caveat' } },
       patterns: blockBody,
+    },
+    // `sum(for KIND as $NAME: E)`, `any(…)`, `all(…)`
+    // (spec/caveat-across-members-0.1.md): E is a template of the form's
+    // name, quoted text too, to the `)` that closes the form. A comment in it
+    // is left out of the copies, so it substitutes nothing.
+    across: {
+      name: 'meta.across.caveat',
+      begin: String.raw`${notProperty}(sum|any|all)\s*(\()\s*(for)\s+(${name})\s+(as)\s+(\$${name})\s*(:)(?!:)`,
+      beginCaptures: {
+        1: { name: 'keyword.control.repeat.caveat' },
+        2: { name: 'punctuation.section.parens.begin.caveat' },
+        3: { name: 'keyword.control.repeat.caveat' },
+        4: { name: 'entity.name.type.kind.caveat' },
+        5: { name: 'keyword.control.caveat' },
+        6: { name: 'variable.parameter.template.caveat' },
+        7: { name: 'punctuation.separator.caveat' },
+      },
+      end: String.raw`\)`,
+      endCaptures: { 0: { name: 'punctuation.section.parens.end.caveat' } },
+      patterns: [{ include: '#across-expression' }],
+    },
+    'across-expression': {
+      patterns: [
+        { include: '#comments' },
+        { include: '#block-strings' },
+        { include: '#across' },
+        { include: '#across-parens' },
+        { include: '#template' },
+        { include: '#block-code' },
+      ],
+    },
+    'across-parens': {
+      begin: String.raw`\(`,
+      beginCaptures: { 0: { name: 'punctuation.section.parens.begin.caveat' } },
+      end: String.raw`\)`,
+      endCaptures: { 0: { name: 'punctuation.section.parens.end.caveat' } },
+      patterns: [{ include: '#across-expression' }],
     },
     'nested-block': {
       begin: String.raw`\{`,

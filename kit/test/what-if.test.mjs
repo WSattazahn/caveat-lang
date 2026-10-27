@@ -97,7 +97,7 @@ test('a payload or field the kit refuses throws before the runtime, and the sess
     assert.throws(() => session.whatIf('read', { value: Number.NaN }), error => error instanceof CaveatError && error.kind === 'payload');
     assert.throws(() => session.whatIf('read', { value: 1 }, { fields: ['nope'] }), TypeError);
     assert.throws(() => session.whatIf(''), TypeError);
-    assert.throws(() => session.whatIf('read', { value: 1 }, { agent: 'a' }), TypeError);
+    assert.throws(() => session.whatIf('read', { value: 1 }, { agent: '' }), TypeError);
     assert.equal(session.state, 'open');
     assert.equal(session.dispatchView('read', { value: 17 }).outcome, 'accepted');
   } finally { session.close(); }
@@ -192,4 +192,63 @@ test('the corpus: every scenario event, asked first, answers what it does and ch
   assert.ok(programs >= 20, `swept ${programs} programs`);
   assert.ok(events >= 200, `swept ${events} events`);
   console.log(`what-if corpus sweep: ${programs} programs, ${events} events`);
+});
+
+const HANDOFF = `
+claim plan_ok;
+evidence request from "the user's request";
+evidence report from "the sub-agent's report";
+readings reports from report limit 8;
+decisions plan limit 4;
+agent main sends delegate;
+agent sub sends sub_report;
+event delegate;
+event sub_report n min 0 max 10;
+event note;
+on delegate reveal request supports plan_ok;
+on delegate commit plan because enough citing qualified(1, request);
+on sub_report sample reports = n;
+`;
+
+test('with an agent, the answer is what the event would do sent by that agent', () => {
+  const asked = real.open(HANDOFF);
+  const plain = real.open(HANDOFF);
+  try {
+    for (const [event, payload, options] of [
+      ['delegate', {}, { agent: 'sub' }],
+      ['delegate', {}, undefined],
+      ['delegate', {}, { agent: 'main' }],
+      ['sub_report', { n: 3 }, { agent: 'sub', fields: ['commitments'] }],
+      ['sub_report', { n: 3 }, { agent: 'mallory' }],
+      ['note', {}, { agent: 'main' }],
+      ['note', {}, { fields: ['decision_journal'] }],
+      ['sub_report', { n: 4 }, { agent: 'sub', fields: ['decision_journal'] }],
+    ]) {
+      const answer = step(asked, plain, event, payload, options);
+      const agent = options?.agent;
+      const accepted = (event === 'delegate' && agent === 'main') || (event === 'sub_report' && agent === 'sub') || event === 'note';
+      assert.equal(answer.outcome, accepted ? 'accepted' : 'rejected', `${event} by ${agent}`);
+      if (!accepted) assert.equal(answer.code, 'wrong_agent', `${event} by ${agent}`);
+    }
+    assert.equal(asked.snapshot().last_agent, 'sub');
+  } finally { asked.close(); plain.close(); }
+});
+
+test('a runtime build without agents on the what-if path throws a load error for an agent and answers without one', () => {
+  class Older {
+    constructor(source) { this.inner = new Real(source); }
+  }
+  for (const name of Object.getOwnPropertyNames(Real.prototype)) {
+    if (name !== 'constructor' && !name.startsWith('what_if_view_outcome_as') && !name.startsWith('what_if_view_fields_outcome_as')) {
+      Older.prototype[name] = function (...args) { return this.inner[name](...args); };
+    }
+  }
+  const session = createRuntime(Older).open(HANDOFF);
+  try {
+    assert.throws(() => session.whatIf('delegate', {}, { agent: 'main' }), error => error instanceof CaveatError && error.kind === 'load' && /what_if_view_outcome_as/.test(error.message));
+    assert.throws(() => session.whatIf('delegate', {}, { agent: 'main', fields: ['bindings'] }), error => error instanceof CaveatError && error.kind === 'load' && /what_if_view_fields_outcome_as/.test(error.message));
+    assert.equal(session.state, 'open');
+    assert.equal(session.whatIf('note').outcome, 'accepted');
+    assert.equal(session.whatIf('delegate').code, 'wrong_agent');
+  } finally { session.close(); }
 });
