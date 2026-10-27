@@ -1,0 +1,15 @@
+{
+  "schema": "caveat-lean-grounds/0.1",
+  "program": "grounds.cav",
+  "grounds": [
+    {
+      "evidence": "lean_lemma",
+      "source": "LeanBridgeDemo.lean",
+      "theorem": "LeanBridgeDemo.lt_two_pow",
+      "statement": "∀ n : Nat, n < 2 ^ n",
+      "statement_sha256": "dce3fcfa98b0d5561444330419273108ef10d35bfe6845d968fa487144e2c58e",
+      "on_pass": "lean_checked",
+      "on_fail": "lean_failed"
+    }
+  ]
+}

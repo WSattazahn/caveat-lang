@@ -1,0 +1,162 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "grounds.cav",
+  "scenarios": [
+    {
+      "id": "L01",
+      "title": "A result on a checked lemma carries no caveat; one that also uses an unchecked lemma carries it",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "model_claimed"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "expect": {
+            "/bindings/status/lean": "checked",
+            "/bindings/status/checked_result": "rests on a checked proof",
+            "/bindings/status/combined_result": "needs review: rests on an unchecked lemma",
+            "/commitment_grounds/checked_result@1": {
+              "evidence": [
+                "lean_lemma"
+              ],
+              "caveats": []
+            },
+            "/commitment_grounds/combined_result@1": {
+              "evidence": {
+                "$set": [
+                  "lean_lemma",
+                  "model_lemma"
+                ]
+              },
+              "caveats": [
+                "unchecked"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "A changed Lean statement withdraws the lemma and reopens everything built on it",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "model_claimed"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "lean_failed",
+          "payload": {
+            "why": "changed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/status/lean": "statement changed",
+            "/bindings/status/checked_result": "reopened",
+            "/bindings/status/combined_result": "reopened"
+          }
+        },
+        {
+          "send": "derive",
+          "rejected": "No checked lemma to derive from."
+        }
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "A refuted unchecked lemma reopens only the result that used it",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "model_claimed"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "refute_model"
+        },
+        {
+          "expect": {
+            "/bindings/status/checked_result": "rests on a checked proof",
+            "/bindings/status/combined_result": "reopened"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "A broken proof is reported as broken",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "lean_failed",
+          "payload": {
+            "why": "broken"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/status/lean": "proof broken",
+            "/bindings/status/checked_result": "reopened",
+            "/bindings/status/combined_result": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "A fixed proof is checked again and a new result rests on the new occurrence",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "lean_failed",
+          "payload": {
+            "why": "broken"
+          }
+        },
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "expect": {
+            "/bindings/status/lean": "checked",
+            "/bindings/status/checked_result": "rests on a checked proof",
+            "/commitment_grounds/checked_result@2": {
+              "evidence": [
+                "lean_lemma@2"
+              ],
+              "caveats": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
