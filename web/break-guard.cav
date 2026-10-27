@@ -1,0 +1,37 @@
+scene "A merge decided on the test results, behind a gate only a guard reads.";
+
+claim safe_to_merge;
+evidence tests from "CI: all tests passed";
+evidence freeze_lifted from "Release notice: the code freeze is over";
+evidence rerun from "A second CI run on the same commit";
+evidence notice_fixed from "Release notice corrected: the freeze is still on";
+
+decisions merge limit 4;
+state merge_copy = 0;
+
+event observe;
+event decide;
+event tests_misread;
+event freeze_still_on;
+
+on observe reveal tests supports safe_to_merge;
+on observe reveal freeze_lifted;
+
+# The freeze notice only opens the gate: it is control, not grounds.
+on decide when observed(freeze_lifted)
+    commit merge because enough using qualified(1, tests);
+on decide set merge_copy = if(committed(merge), 1, 0);
+
+on tests_misread reveal rerun opposes safe_to_merge;
+on tests_misread withdraw tests because rerun;
+on tests_misread when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge)
+    reopen merge because rerun;
+
+on freeze_still_on reveal notice_fixed;
+on freeze_still_on withdraw freeze_lifted because notice_fixed;
+on freeze_still_on when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge)
+    reopen merge because notice_fixed;
+
+bind merge.status = "not decided";
+bind merge.status = "in force" when committed(merge) and not reopened(merge);
+bind merge.status = "reopened" when reopened(merge);
