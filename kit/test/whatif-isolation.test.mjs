@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { loadRuntimeFromDirectory, defaultRuntimeDirectory } from '../lib/node.mjs';
 import { loadRuntime } from '../lib/session.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { FATAL_MESSAGE, faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const starter = await readFile(new URL('../examples/agent-evidence/assessment.cav', import.meta.url), 'utf8');
 const source = `${starter}
@@ -30,7 +30,7 @@ on expire qualify tool with stale;
 on divide set bounded = 1 / denominator;
 on signal emit note;
 bind fixture.subject = id_text(subject);
-${textOverflow('on crash')}`;
+on crash set subject = 0;`;
 
 function capture(session) {
   return { save: session.save(), snapshot: session.snapshotText(), view: session.viewText() };
@@ -105,8 +105,10 @@ test('separate-runtime branches preserve all live fields through accepted and re
 });
 
 test('ordinary unclassified fatal ends only its branch', async () => {
+  // The branch runtime throws the fatal report for `crash`: no program
+  // reaches a fatal outcome on its own.
   const runtimeA = await loadRuntimeFromDirectory();
-  const runtimeB = await loadRuntimeFromDirectory();
+  const runtimeB = await loadRuntimeFromDirectory(await faultingRuntimeDirectory('crash'));
   const live = [runtimeA.open(source), runtimeA.open(source)];
   let branch;
   let sibling;
@@ -116,7 +118,7 @@ test('ordinary unclassified fatal ends only its branch', async () => {
     branch = runtimeB.restore(source, before[0].save);
     sibling = runtimeB.restore(source, before[0].save);
     assert.throws(() => branch.dispatch('crash'), error =>
-      error.kind === 'fatal' && error.report?.code === 'unclassified' && /expression text exceeds limit/.test(error.message));
+      error.kind === 'fatal' && error.report?.code === 'unclassified' && error.message.includes(FATAL_MESSAGE));
     assert.equal(branch.state, 'fatal');
     assert.equal(runtimeB.trapped, false);
     assert.equal(runtimeA.trapped, false);

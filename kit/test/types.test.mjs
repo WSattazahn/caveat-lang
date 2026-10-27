@@ -20,7 +20,7 @@ import {
   ScenarioFileError, expectAt, firstDifference, groundsViolation, match as matchExpected, parseScenarioFile, report, runScenarioFile,
 } from '../lib/scenarios.mjs';
 import { Real, RealModule, faulty, real, repo, scenarioFile, sourceReader, thermostat, trail } from './helpers.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { FATAL_EVENT, faulting } from './fatal-fixture.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
@@ -168,6 +168,8 @@ const FORECLOSURE = 'claim c; evidence e from "check"; decisions drop limit 1 ir
 const REVERSIBLE_FORECLOSURE = 'claim c; evidence e from "check"; decisions hold_off limit 2 forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit hold_off because enough using qualified(1, e);';
 // An outcome on a revision (spec/caveat-outcomes-0.1.md).
 const OUTCOME = 'claim c; evidence e from "check"; caveat doubt consequence low; decisions d limit 2; event go; event close; on go reveal e supports c; on go commit d because enough using qualified(1, e) retaining doubt; on close resolve d = 1 because e materialized doubt;';
+// A commit that names thresholds lists them (spec/caveat-thresholds-0.1.md).
+const THRESHOLDS = 'threshold bar = 0.5; evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 0.7; on go when latest(r) >= bar commit d because enough using latest(r);';
 const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
@@ -208,6 +210,7 @@ function sessionsOf() {
     [FORECLOSURE, [['go']]],
     [REVERSIBLE_FORECLOSURE, [['go']]],
     [OUTCOME, [['go'], ['close']]],
+    [THRESHOLDS, [['go']]],
     [AGENTS, AGENTS_EVENTS],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
@@ -295,8 +298,8 @@ test('a session, a runtime and a CaveatError have exactly the declared members',
   capture(() => session.dispatch('read', { value: NaN }));
   session.close();
   capture(() => session.dispatch('read', { value: 17 }));
-  const fatal = real.open('state output = 0; event run; on run set output = 1;' + textOverflow('on run'));
-  capture(() => fatal.dispatch('run'));
+  const fatal = faulting().runtime.open(`state output = 0; event ${FATAL_EVENT};`);
+  capture(() => fatal.dispatch(FATAL_EVENT));
   const { runtime } = faulty({ dispatch: () => '{"schema":"caveat-dispatch/0.1","outcome":"maybe"}' });
   capture(() => runtime.open(thermostat).dispatch('read', { value: 17 }));
   assert.ok(errors.every(error => error instanceof CaveatError));
@@ -517,9 +520,12 @@ test('explain, dependents and check reports have the declared fields', () => {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
+    // A take-back marks a relation and records it (spec/caveat-take-back-0.1.md).
+    ['claim c; evidence e from "check"; caveat doubt consequence low; event go; event undo; on go reveal e supports c; on go qualify e with doubt; on undo unqualify e with doubt;', [['go'], ['undo']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
     [REVERSIBLE_FORECLOSURE, [['go']], 'e'],
     [OUTCOME, [['go'], ['close']], 'e'],
+    [THRESHOLDS, [['go']], 'probe'],
     [AGENTS, AGENTS_EVENTS, 'reports'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).
@@ -597,8 +603,8 @@ test('a server, its lines and its responses have the declared fields', () => {
   results.push(server.handle(JSON.stringify({ id: 9, op: 'restore', save: results[5].response.save })));
   assertShape('ServeSave', [server.save()], { complete: true });
   results.push(server.handle(JSON.stringify({ id: 10, op: 'close' })));
-  const fatal = createServer({ runtime: real, source: 'state output = 0; event run; on run set output = 1;' + textOverflow('on run') });
-  results.push(fatal.handle('{"op":"dispatch","event":"run"}'));
+  const fatal = createServer({ runtime: faulting().runtime, source: `state output = 0; event ${FATAL_EVENT};` });
+  results.push(fatal.handle(JSON.stringify({ op: 'dispatch', event: FATAL_EVENT })));
   assertShape('ServeResult', results, { complete: true });
   assert.deepEqual(sorted(results.map(result => String(result.exit))), ['0', '1', 'null']);
   assertShape('ServeResponse', results.map(result => result.response), { complete: true });

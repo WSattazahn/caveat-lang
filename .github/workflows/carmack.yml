@@ -80,6 +80,11 @@ jobs:
           browsers=""
           if [[ "$RUNNER_OS" == "Linux" ]]; then browsers="--browsers chromium,firefox,webkit"; fi
           node bench/carmack/replay.mjs --runtime carmack-runtime --out test-results/carmack $browsers
+      # WebKit 26.0 trapped in about 1% of fresh pages at session creation;
+      # 200 fresh pages catch a return of that rate about four times in five.
+      - name: Start the runtime in 200 fresh WebKit pages
+        if: runner.os == 'Linux'
+        run: node bench/carmack/webkit-stress.mjs --runtime carmack-runtime --pages 200
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -14,14 +14,15 @@ session is in the state it is in. A clean check proves none of those.
 ## Running it
 
 ```sh
-npx --no-install caveat check [--json] [--strict] [--unused] [--names] [--records [--save SAVE]] PROGRAM
+npx --no-install caveat check [--json] [--strict] [--unused] [--names] [--records [--save SAVE]] [--withdrawals] PROGRAM
 ```
 
 `--unused` adds C007 `unused-declaration`, `--names` adds C012
 `near-miss-commitment`, and `--records` adds C008
 `record-reads-late-caveat`; each is reported only when asked for. With
 `--records`, `--save SAVE` adds C009 `save-lacks-late-caveat` for that save.
-Every other check always runs.
+`--withdrawals` adds C010 `commit-on-withdrawable` and C011
+`withdrawal-not-reopened`. Every other check always runs.
 
 | Exit status | When |
 | --- | --- |
@@ -424,8 +425,9 @@ find where that difference can show: in a program, and in a save.
 C008 reports a `rule`, `proc` or `bind` that reads a decision's record, in a
 program with at least one `qualify` effect, in a rule or a procedure. A
 `qualify … after` counts; an `unqualify` does not. A record is read by
-`committed(D)` or `reopened(D)`, or by `latest`, `history_count`,
-`history_at` or a fold of a decision series, in the rule's guard or any
+`committed(D)` or `reopened(D)`, or by `latest`, `grounds_of`
+(draft for 1.5), `history_count`, `history_at` or a fold of a decision
+series, in the rule's guard or any
 expression of its effect, in any step of a procedure, or in a binding's
 value, `when` condition or `because`. In a procedure, a `decisions`
 parameter counts as a decision series. Defines are read through, as C006
@@ -527,6 +529,102 @@ close to a series on purpose is allowed with
 
 Of the 181 tracked `.cav` files that load, it reports none.
 
+### C010 `commit-on-withdrawable` and C011 `withdrawal-not-reopened`
+
+**Status:** draft for 1.5.
+
+Reported only with `--withdrawals`, or `runtime.check(source, { withdrawals:
+true })` from a script. Without it, a program checks, tests and exits exactly
+as it did before ([compatibility](../docs/COMPATIBILITY.md)).
+
+A withdrawal marks a source wrong ([withdrawal](caveat-withdrawal-0.1.md)) and
+changes nothing else by itself. Two things the author must then write by hand
+are easy to leave out, and nothing reported either before:
+
+- a source that has been withdrawn still has a value, so a later commit that
+  reads it records a decision whose grounds carry the `withdrawn` caveat;
+- a decision made on the source before the withdrawal stays in force unless a
+  rule reopens it.
+
+Both are compared by name, after `for` blocks and `define`s are expanded, as
+C006 and C008 are. These terms are used:
+
+- A name is **withdrawable** when some `withdraw` names it: evidence,
+  `occurrence(E, N)` of it, or a reading stream through `latest(S)` or
+  `reading(S, N)`. A `withdraw caveated(STATE, C)` makes the state
+  withdrawable.
+- A state or stream **carries** the names its `set` and `sample` values read,
+  and what those carry in turn.
+- A commit **reads** what its `using`, `citing` and `retaining … because`
+  expressions name, and what those carry.
+- A guard **asks whether a name is withdrawn** when it reads `withdrawn(E)`,
+  `withdrawn(latest(S))`, `withdrawn(occurrence(E, N))`,
+  `withdrawn(reading(S, N))`, `carries(…, withdrawn)` or
+  `has_caveat(STATE, withdrawn)` of that name or of something that carries it.
+
+**C010** reports a commit that reads a withdrawable name when neither the
+commit's own guard and grounds, nor the guard of a `reject` on the same event,
+asks whether that name is withdrawn. The warning is at the commit's rule, or at
+its procedure. It names the withdrawable names and points to each `withdraw`
+of them.
+
+```caveat
+evidence study from "a registry study";
+evidence retraction from "the study's retraction";
+state study_ok = 0;
+decisions conclude limit 2;
+event published;
+event decide;
+event retracted;
+on published reveal study;
+on published set study_ok = qualified(1, study);
+on decide commit conclude because enough using study_ok;
+on retracted reveal retraction;
+on retracted withdraw study because retraction;
+```
+
+The commit of `conclude` is reported: `study_ok` carries `study`, which
+`retracted` withdraws. `on decide when withdrawn(study) reject "…";` before it,
+or `when not withdrawn(study)` on it, keeps it quiet.
+
+**C011** reports a decision series that some commit reads a withdrawable name
+for, when no `reopen` of the series asks about its basis, with
+`rests_on_withdrawn(SERIES)`, `rests_on_withdrawn(revision(SERIES, K))` or
+`in_basis(SERIES, …)`, and none runs on an event that withdraws one of those
+names. A `hold` reopens nothing and does not count. The warning is at the
+series' `decisions` declaration. In the program above, `conclude` is reported;
+
+```caveat
+on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)
+    reopen conclude because retraction;
+```
+
+keeps it quiet. An irreversible series is reported too: reopening it records
+doubt without undoing it ([foreclosure](caveat-foreclosure-0.1.md)).
+
+What these do not follow, so a warning can be wrong both ways:
+
+- A guard through another decision, such as `when not reopened(confirm)` where
+  `confirm` was reopened by the withdrawal, does not count as asking.
+- A `reject` on a different event does not guard the commit, even when that
+  event must come first.
+- A commit's control, what its guard and grant read outside its grounds, is
+  not read. Whether an irreversible commit may rest on a caveated input through
+  its guard is a separate question, for the spec on control caveats.
+- A procedure step's event is unknown, so only its own guard counts for C010,
+  and only a basis test counts for C011 when the reopening is in a procedure.
+
+Of the repository's 201 tracked `.cav` files, 171 load. With `--withdrawals`
+they report 20 C010 in 11 files and 1 C011. Among those reviewed: in
+`kit/examples/reviewer-decision/rely.cav` and the worked example's `frost.cav`,
+a decision reopened by a withdrawal can be committed again on the same
+withdrawn source; `kit/examples/handoff/handoff.cav` reports three such
+commits; and Before the Rain's `ruling`, `limit 1`, is reported by C011 on
+purpose, since the game reads `rests_on_withdrawn(ruling)` to judge the ruling
+afterwards. The retracted studies example
+([kit/examples/retractions](../kit/examples/retractions/README.md)) checks
+clean; without its `withdrawn` guard or one of its reopen rules, it does not.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -579,7 +677,8 @@ codes, names, locations and the fields above are stable. From a script,
 without `program`, `loads` and `strict`, and
 `runtime.check(source, { unused: true })` the report with C007. It throws a `CaveatError` of kind
 `load` for a program that does not load. `{ records: true }` adds C008, and
-`{ records: true, save }`, with a save's text, C009.
+`{ records: true, save }`, with a save's text, C009. `{ withdrawals: true }`
+adds C010 and C011.
 
 ## Changes
 
@@ -589,6 +688,13 @@ without `program`, `loads` and `strict`, and
   decision yet", with nothing reporting why. It is asked for, so every program
   checks, tests and exits exactly as it did under 1.3.
 
+
+- 2026-10-26 (1.5, draft): C010 `commit-on-withdrawable` and C011
+  `withdrawal-not-reopened` with `--withdrawals` or `{ withdrawals: true }`.
+  Writing the retracted studies example by hand, the first draft committed a
+  new decision on a retracted study, and nothing reported it; a decision with
+  no reopen rule would also have stayed in force silently. Both are asked for,
+  so every program checks, tests and exits exactly as it did before.
 - 2026-10-18 (1.1, draft): C008 `record-reads-late-caveat` with `--records`
   or `{ records: true }`, and C009 `save-lacks-late-caveat` with `--save` as
   well, the detector [Caveat Sources 0.1](caveat-caveat-sources-0.1.md)

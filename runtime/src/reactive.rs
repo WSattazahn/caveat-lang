@@ -12,7 +12,7 @@ use crate::presentation::Number;
 use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
-pub use crate::reactive_expr::{Marker, Provenance, Tracked};
+pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -239,6 +239,14 @@ impl ParameterDomain {
     }
 }
 
+/// The caveats a `sample ... with` puts on the reading it takes, and the
+/// condition under which it does: spec/caveat-reading-caveats-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadingCaveats {
+    pub caveats: Vec<String>,
+    pub condition: Option<Expr>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
     Call {
@@ -254,6 +262,9 @@ pub enum Effect {
         /// `noting EXPRESSION`: the text of the identifier it names, kept
         /// with the reading. See spec/caveat-reading-notes-0.1.md.
         note: Option<Box<Expr>>,
+        /// `with CAVEAT[, CAVEAT…] [when CONDITION]`: caveats on this
+        /// reading alone. See spec/caveat-reading-caveats-0.1.md.
+        with: Option<Box<ReadingCaveats>>,
     },
     Emit {
         name: String,
@@ -477,10 +488,15 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, note, .. } => {
+        Effect::Sample {
+            value, note, with, ..
+        } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
             if let Some(note) = note {
                 **note = reactive_expr::expand_with(note, functions, defines)?;
+            }
+            if let Some(condition) = with.as_mut().and_then(|with| with.condition.as_mut()) {
+                *condition = reactive_expr::expand_with(condition, functions, defines)?;
             }
         }
         Effect::Qualify { after, index, .. } => {
@@ -691,6 +707,12 @@ pub enum Directive {
         name: String,
         expression: Expr,
     },
+    /// `threshold NAME = NUMBER;`: a named number a commitment lists when
+    /// it reads it. See spec/caveat-thresholds-0.1.md.
+    Threshold {
+        name: String,
+        value: Number,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -825,6 +847,10 @@ pub type QualifiedValue = Tracked<f64>;
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
+    /// The thresholds the commit named, with their values. Left out when it
+    /// named none. See spec/caveat-thresholds-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub thresholds: BTreeMap<String, f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1086,9 +1112,12 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, note, .. } => {
+            Effect::Sample {
+                value, note, with, ..
+            } => {
                 expressions.push(value);
                 expressions.extend(note.as_deref());
+                expressions.extend(with.as_ref().and_then(|with| with.condition.as_ref()));
             }
             Effect::Commit {
                 using,
@@ -1844,6 +1873,11 @@ pub struct ReactiveSession {
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
     commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
+    /// Whether the source declares a threshold, and the thresholds each
+    /// enclosing guard of the effect running now names: what a commit lists
+    /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
+    has_thresholds: bool,
+    guard_thresholds: Vec<BTreeMap<String, f64>>,
     reading_streams: Arc<BTreeMap<String, ReadingStream>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     /// Irreversible series and the actions each forecloses, from the source.
@@ -2071,13 +2105,18 @@ impl ReactiveSession {
         reactive_expr::validate_functions(&functions)?;
         let mut defines = BTreeMap::new();
         for directive in &directives {
-            if let Directive::Define { name, expression } = directive {
-                if functions.contains_key(name) {
-                    return Err(format!("define {name} collides with a function"));
+            let (word, name, expression) = match directive {
+                Directive::Define { name, expression } => ("define", name, expression.clone()),
+                Directive::Threshold { name, value } => {
+                    ("threshold", name, Expr::threshold(name, value.clone())?)
                 }
-                if defines.insert(name.clone(), expression.clone()).is_some() {
-                    return Err(format!("duplicate define {name}"));
-                }
+                _ => continue,
+            };
+            if functions.contains_key(name) {
+                return Err(format!("{word} {name} collides with a function"));
+            }
+            if defines.insert(name.clone(), expression).is_some() {
+                return Err(format!("duplicate {word} {name}"));
             }
         }
         for directive in &mut directives {
@@ -2132,6 +2171,8 @@ impl ReactiveSession {
             last_event: None,
             states: States::default(),
             commitment_bases: Arc::default(),
+            has_thresholds: false,
+            guard_thresholds: Vec::new(),
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             irreversible: Arc::default(),
@@ -2319,6 +2360,11 @@ impl ReactiveSession {
             match directive {
                 Directive::Define { name, expression } => Arc::make_mut(&mut session.define_rules)
                     .push((name.clone(), expression.clone())),
+                Directive::Threshold { name, value } => {
+                    session.has_thresholds = true;
+                    Arc::make_mut(&mut session.define_rules)
+                        .push((name.clone(), Expr::threshold(name, value.clone())?))
+                }
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
                         return Err(format!(
@@ -3213,14 +3259,16 @@ impl ReactiveSession {
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
                 )),
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF
                     if self.decision_series.contains_key(symbol) =>
                 {
                     Ok(())
                 }
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME => Err(format!(
-                    "{kind} names a decision series; {symbol} is not one"
-                )),
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF => {
+                    Err(format!(
+                        "{kind} names a decision series; {symbol} is not one"
+                    ))
+                }
                 reactive_expr::AT_REVISION_RESOLVED
                     if self.decision_series.contains_key(symbol) =>
                 {
@@ -3311,6 +3359,7 @@ impl ReactiveSession {
                     value,
                     stance,
                     note,
+                    with,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -3324,6 +3373,21 @@ impl ReactiveSession {
                             return Err(format!(
                                 "sample {stream} noting requires an identifier handle"
                             ));
+                        }
+                    }
+                    if let Some(with) = with {
+                        for caveat in &with.caveats {
+                            self.require_kind(caveat, "caveat")?;
+                            self.not_the_withdrawal_caveat(caveat, "sample with")?;
+                            self.not_a_take_back_caveat(caveat, "sample with")?;
+                        }
+                        if let Some(condition) = &with.condition {
+                            if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool
+                            {
+                                return Err(format!(
+                                    "sample {stream} with ... when requires a boolean condition"
+                                ));
+                            }
                         }
                     }
                 }
@@ -3573,11 +3637,15 @@ impl ReactiveSession {
             }
         }
         for (name, expression) in self.define_rules.iter() {
+            let define = match expression.as_threshold() {
+                Some(_) => "threshold",
+                None => "define",
+            };
             if self.states.contains_key(name) || self.constants.contains_key(name) {
-                return Err(format!("define {name} collides with a state"));
+                return Err(format!("{define} {name} collides with a state"));
             }
             if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
-                return Err(format!("define {name} collides with a history"));
+                return Err(format!("{define} {name} collides with a history"));
             }
             if self
                 .events
@@ -3585,7 +3653,7 @@ impl ReactiveSession {
                 .flatten()
                 .any(|parameter| parameter.name == *name)
             {
-                return Err(format!("define {name} collides with an event parameter"));
+                return Err(format!("{define} {name} collides with an event parameter"));
             }
             // On its own a define may name any event parameter; each place it
             // is used is validated again with that place's parameters.
@@ -3986,6 +4054,9 @@ impl ReactiveSession {
         if let HistoryRead::Outcome(index) = query {
             return self.outcome_read(name, index);
         }
+        if query == HistoryRead::Grounds {
+            return self.grounds_read(name);
+        }
         if query == HistoryRead::Latest {
             if let Some(stream) = self.reading_streams.get(name) {
                 if stream.occurrences.is_empty() {
@@ -4034,7 +4105,9 @@ impl ReactiveSession {
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
@@ -4065,11 +4138,41 @@ impl ReactiveSession {
                         )
                     })?
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
+    }
+
+    /// `grounds_of(SERIES)`: the current revision's frozen `using` value, as
+    /// `latest(SERIES)` reads it, on the revision's frozen grounds instead of
+    /// its whole basis: what the commit rested on, without the predecessor's
+    /// basis, the reopening's witness and the guards. The series' current
+    /// head-selection dependencies and current withdrawals apply as for
+    /// `latest`. See spec/caveat-grounds-of-0.1.md.
+    fn grounds_read(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
+        let series = self
+            .decision_series
+            .get(name)
+            .ok_or_else(|| format!("grounds_of names a decision series; {name} is not one"))?;
+        let Some(current) = &series.current else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("decision series {name} has no commitment"),
+            ));
+        };
+        let value = self.commitment_bases[current].value.ok_or_else(|| {
+            EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("current decision {current} has no numeric using value"),
+            )
+        })?;
+        let mut provenance = self.commitment_grounds[current].clone();
+        self.inherit(&mut provenance, &series.selection_qualifications)?;
+        Tracked::new(value, self.with_current_withdrawals(provenance)?)
     }
 
     /// The outcome of a series' current revision, or of revision K. A
@@ -4920,10 +5023,21 @@ impl ReactiveSession {
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
         budget.spend()?;
+        let named = self.has_thresholds.then(|| {
+            let mut named = BTreeMap::new();
+            condition.collect_thresholds(&mut named);
+            named
+        });
         let condition = self.evaluate(condition, parameters)?;
         let guard = inherited.union(&condition.provenance)?;
         if condition.value == Value::Bool(true) {
-            self.apply_effect(effect, parameters, &guard, budget)
+            let Some(named) = named else {
+                return self.apply_effect(effect, parameters, &guard, budget);
+            };
+            self.guard_thresholds.push(named);
+            let applied = self.apply_effect(effect, parameters, &guard, budget);
+            self.guard_thresholds.pop();
+            applied
         } else {
             self.retain_skipped_effect(effect, &guard, budget)
         }
@@ -5132,7 +5246,7 @@ impl ReactiveSession {
     /// Whether `caveats` hold the caveat a `carries` predicate asks about:
     /// that caveat, or for `carries_any(…)` any caveat at all, or any of
     /// consequence at least its level.
-    fn carried(&self, caveats: &BTreeSet<String>, caveat: &str) -> bool {
+    fn carried(&self, caveats: &NameSet, caveat: &str) -> bool {
         let Some(level) = caveat.strip_prefix(reactive_expr::ANY_CAVEAT) else {
             return caveats.contains(caveat);
         };
@@ -5142,7 +5256,7 @@ impl ReactiveSession {
         caveats.iter().any(|name| {
             level.is_none_or(|level| {
                 matches!(
-                    self.symbols.get(name).and_then(|id| self.graph.nodes.get(id)),
+                    self.symbols.get(name.as_str()).and_then(|id| self.graph.nodes.get(id)),
                     Some(NodeKind::Caveat { consequence, .. }) if *consequence >= level
                 )
             })
@@ -5236,10 +5350,13 @@ impl ReactiveSession {
 
     /// Evidence names in first-observation order. Legacy sessions derive that
     /// order from their edges; neutral observations require an explicit ledger.
-    fn in_observation_order<'a>(&self, evidence: impl Iterator<Item = &'a String>) -> Vec<String> {
+    fn in_observation_order<S: AsRef<str>>(
+        &self,
+        evidence: impl Iterator<Item = S>,
+    ) -> Vec<String> {
         let ranks = self.observation_ranks();
         let mut named = evidence
-            .map(|name| (ranks.rank(name), name.clone()))
+            .map(|name| (ranks.rank(name.as_ref()), name.as_ref().to_string()))
             .collect::<Vec<_>>();
         named.sort();
         named.into_iter().map(|(_, name)| name).collect()
@@ -5498,8 +5615,11 @@ impl ReactiveSession {
                         provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
                     }
                 }
-                self.read_live(&mut provenance)?;
-                provenance
+                // The basis is frozen, but the evidence it lists is read as it
+                // stands now: a late caveat or a withdrawal of it reaches a
+                // value read through this predicate, as through `latest`.
+                // See spec/caveat-withdrawal-0.1.md, step 2.
+                self.with_current_withdrawals(provenance)?
             }
             _ => Provenance::default(),
         };
@@ -5596,6 +5716,7 @@ impl ReactiveSession {
                 value,
                 stance,
                 note,
+                with,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -5629,6 +5750,23 @@ impl ReactiveSession {
                         Value::Text(text) => Some(text),
                         _ => return Err("sample noting requires an identifier handle".into()),
                     },
+                    None => None,
+                };
+                // `with ... when`: the condition is part of what the reading
+                // rests on whichever way it falls, as a guard is
+                // (spec/caveat-reading-caveats-0.1.md).
+                let mut own: &[String] = with.as_deref().map_or(&[], |with| &with.caveats);
+                let condition = match with.as_deref().and_then(|with| with.condition.as_ref()) {
+                    Some(condition) => {
+                        let condition = self.evaluate(condition, parameters)?;
+                        let Value::Bool(applies) = condition.value else {
+                            return Err("sample with ... when requires a boolean condition".into());
+                        };
+                        if !applies {
+                            own = &[];
+                        }
+                        Some(condition.provenance)
+                    }
                     None => None,
                 };
                 let NodeKind::Evidence {
@@ -5685,6 +5823,12 @@ impl ReactiveSession {
                         .collect::<BTreeSet<_>>();
                     inherited.extend(live);
                 }
+                for caveat in own {
+                    let caveat = self.symbols[caveat];
+                    if !inherited.contains(&caveat) {
+                        inherited.push(caveat);
+                    }
+                }
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
                     source,
@@ -5698,6 +5842,9 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
+                if let Some(condition) = &condition {
+                    observation = observation.union(condition)?;
+                }
                 self.freeze_observation(&mut observation);
                 Arc::make_mut(&mut self.observation_qualifications)
                     .insert(name.clone(), observation);
@@ -6207,9 +6354,9 @@ impl ReactiveSession {
                                 .iter()
                                 .filter(|caveat| strict && !grounds.caveats.contains(*caveat)),
                         )
-                        .filter(|caveat| !retaining.contains(*caveat))
+                        .filter(|caveat| !retaining.iter().any(|name| *caveat == name))
                         .filter_map(|caveat| {
-                            let consequence = self.graph.consequence(self.symbols[caveat]);
+                            let consequence = self.graph.consequence(self.symbols[caveat.as_str()]);
                             (consequence >= Consequence::Material).then(|| {
                                 format!("{caveat} ({})", format!("{consequence:?}").to_lowercase())
                             })
@@ -6251,8 +6398,8 @@ impl ReactiveSession {
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
                     self.require_kind(caveat, "caveat")?;
-                    if !retained_names.contains(caveat) {
-                        retained_names.push(caveat.clone());
+                    if !retained_names.iter().any(|name| caveat == name) {
+                        retained_names.push(caveat.to_string());
                     }
                 }
                 let retained = retained_names
@@ -6279,18 +6426,38 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(
                         id,
                         Relation::ReliesOn,
-                        self.symbols[evidence],
+                        self.symbols[evidence.as_str()],
                     );
                 }
                 self.collector_reopens(
                     &name,
-                    &provenance.evidence.iter().cloned().collect::<Vec<_>>(),
+                    &provenance
+                        .evidence
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect::<Vec<_>>(),
                 );
+                // The thresholds the commit named: its own expressions and
+                // each enclosing guard (spec/caveat-thresholds-0.1.md).
+                let mut thresholds = BTreeMap::new();
+                if self.has_thresholds {
+                    for named in &self.guard_thresholds {
+                        thresholds.extend(named.iter().map(|(name, value)| (name.clone(), *value)));
+                    }
+                    for expression in using
+                        .iter()
+                        .chain(citing)
+                        .chain(reasons.iter().map(|(_, _, expression, _)| expression))
+                    {
+                        expression.collect_thresholds(&mut thresholds);
+                    }
+                }
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
                     CommitmentBasis {
                         value: used_value,
                         provenance,
+                        thresholds,
                     },
                 );
                 if let Some(record) = &permission {
@@ -6335,12 +6502,21 @@ impl ReactiveSession {
                     elapsed: Some(self.elapsed),
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
-                    caveats: grounds.caveats.iter().cloned().collect(),
+                    caveats: grounds
+                        .caveats
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect(),
                     permitted_by: permission.map(|record| record.grant),
                     outcome: None,
                     materialized: Vec::new(),
                 };
-                if !entry.because.iter().eq(grounds.evidence.iter()) {
+                if !entry
+                    .because
+                    .iter()
+                    .map(String::as_str)
+                    .eq(grounds.evidence.iter().map(Name::as_str))
+                {
                     Arc::make_mut(&mut self.evidence_order)
                         .insert(name.clone(), entry.because.clone());
                 }
@@ -6590,7 +6766,7 @@ impl ReactiveSession {
                 .get(&revision)
                 .and_then(|basis| basis.value),
             because,
-            caveats: cause_caveats.into_iter().collect(),
+            caveats: cause_caveats.into_iter().map(String::from).collect(),
             permitted_by: None,
             outcome: Some(number),
             materialized: resolution.materialized.clone(),
@@ -6769,7 +6945,7 @@ impl ReactiveSession {
                 .get(current)
                 .and_then(|basis| basis.value),
             because: self.in_observation_order(because.iter()),
-            caveats: caveats.into_iter().collect(),
+            caveats: caveats.into_iter().map(String::from).collect(),
             permitted_by: None,
             outcome: None,
             materialized: Vec::new(),
@@ -6810,7 +6986,12 @@ impl ReactiveSession {
         self.retire_journal_entry();
         let mut caveats = BTreeSet::new();
         for evidence in &because {
-            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+            caveats.extend(
+                self.qualify_core(evidence, &[])?
+                    .caveats
+                    .into_iter()
+                    .map(String::from),
+            );
             Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
             self.effects.push(EffectReport::Reopen {
                 action: current.clone(),
@@ -6904,7 +7085,7 @@ impl ReactiveSession {
                     && self.symbols.get(*caveat).is_some_and(|&from| {
                         provenance.evidence.iter().any(|name| {
                             self.symbols
-                                .get(name)
+                                .get(name.as_str())
                                 .is_some_and(|&to| self.has_live_relation(from, to))
                         })
                     })
@@ -6976,7 +7157,7 @@ impl ReactiveSession {
                     .any(|occurrence| lineage.evidence.contains(occurrence))
                 && !lineage.evidence.iter().any(|name| {
                     self.symbols
-                        .get(name)
+                        .get(name.as_str())
                         .is_some_and(|&id| self.has_live_relation(from, id))
                 })
         };
@@ -7580,7 +7761,11 @@ impl ReactiveSession {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
-        let caveats = lineage.caveats.iter().cloned().collect();
+        let caveats = lineage
+            .caveats
+            .iter()
+            .map(|name| name.to_string())
+            .collect();
         if let Some(withdrawal) = self.withdrawal_of(&grant) {
             return Err(refuse(format!(
                 "{grant} was withdrawn at #{} because {}",
@@ -7814,7 +7999,7 @@ impl ReactiveSession {
         let mut listed = provenance
             .evidence
             .iter()
-            .filter_map(|name| self.symbols.get(name).copied())
+            .filter_map(|name| self.symbols.get(name.as_str()).copied())
             .collect::<Vec<_>>();
         listed.sort_unstable();
         self.graph
@@ -8200,6 +8385,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             value,
             stance,
             note,
+            with,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
@@ -8209,6 +8395,15 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             note: note
                 .as_ref()
                 .map(|note| Box::new(note.rename_symbols(names))),
+            with: with.as_ref().map(|with| {
+                Box::new(ReadingCaveats {
+                    caveats: with.caveats.iter().map(&rename).collect(),
+                    condition: with
+                        .condition
+                        .as_ref()
+                        .map(|condition| condition.rename_symbols(names)),
+                })
+            }),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -8421,6 +8616,31 @@ fn source_digest(source: &str) -> String {
     format!("{:x}", Sha256::digest(source.as_bytes()))
 }
 
+/// `CAVEAT[, CAVEAT...] [when CONDITION]`, the words after a sample's
+/// `with`, or None when they do not have that shape: each caveat once, and
+/// a condition that parses.
+fn reading_caveats(words: &[&str]) -> Option<ReadingCaveats> {
+    let at = words.iter().position(|word| *word == "when");
+    let (list, condition) = match at {
+        Some(at) if at + 1 < words.len() => (
+            &words[..at],
+            Some(reactive_expr::parse_unresolved(&words[at + 1..].join(" ")).ok()?),
+        ),
+        Some(_) => return None,
+        None => (words, None),
+    };
+    let list = list.join(" ");
+    let mut caveats = Vec::new();
+    for caveat in list.split(',') {
+        let caveat = identifier(caveat.trim()).ok()?;
+        if caveat == "when" || caveats.contains(&caveat) {
+            return None;
+        }
+        caveats.push(caveat);
+    }
+    Some(ReadingCaveats { caveats, condition })
+}
+
 fn identifier(name: &str) -> Result<String, String> {
     let mut chars = name.chars();
     if !chars
@@ -8531,6 +8751,7 @@ pub(crate) fn parse_directive_at(
             | "agent"
             | "proc"
             | "define"
+            | "threshold"
     ) {
         return None;
     }
@@ -8538,6 +8759,14 @@ pub(crate) fn parse_directive_at(
         match keyword {
         "proc" => parse_procedure(line, position),
         "define" => parse_define(line),
+        "threshold" => match words.as_slice() {
+            ["threshold", name, "=", value] => Ok(Directive::Threshold {
+                name: identifier(name)?,
+                value: Number::parse(value)
+                    .map_err(|_| "threshold expects NAME = NUMBER".to_string())?,
+            }),
+            _ => Err("threshold expects NAME = NUMBER".into()),
+        },
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, clause @ ("limit" | "window"), limit] => {
@@ -9586,8 +9815,23 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str =
-                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]";
+            // `with` is a word only where what follows parses as caveats:
+            // spec/caveat-reading-caveats-0.1.md. Before it, no 1.x program
+            // could have such words after a sample's value.
+            let with = rest
+                .iter()
+                .rposition(|word| *word == "with")
+                .and_then(|at| {
+                    if at == 0 {
+                        return None;
+                    }
+                    reading_caveats(&rest[at + 1..]).map(|with| (at, with))
+                });
+            let (rest, with) = match with {
+                Some((at, with)) => (&rest[..at], Some(Box::new(with))),
+                None => (rest, None),
+            };
             // `noting` is a word only where what follows parses: a 1.0
             // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
             let noting = rest
@@ -9629,10 +9873,11 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
                 note: note.map(Box::new),
+                with,
             })
         }
         ["sample", ..] => Err(
-            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]"
                 .into(),
         ),
         ["emit", name] => Ok(Effect::Emit {

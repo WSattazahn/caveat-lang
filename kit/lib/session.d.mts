@@ -44,7 +44,8 @@ export type KnownRejectionCode =
   | 'reason_spent'
   | 'provenance_limit'
   | 'evaluation_limit'
-  | 'wrong_agent';
+  | 'wrong_agent'
+  | 'text_limit';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -165,10 +166,12 @@ export declare class CaveatSession {
    * What `dispatchView` would return, run on a copy of the session that is
    * then dropped. The session is unchanged whatever the outcome; a fatal
    * outcome throws but leaves it usable. See spec/caveat-dispatch-0.1.md,
-   * "The what-if path".
+   * "The what-if path". With `{ agent }`, what the event would do sent by
+   * that agent (spec/caveat-agents-0.1.md); a runtime build without agents
+   * on the what-if path throws `CaveatError("load")`.
    */
-  whatIf(event: string, payload?: object): DispatchViewOutcome;
-  whatIf(event: string, payload: object, options: { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
+  whatIf(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
+  whatIf(event: string, payload: object, options: DispatchOptions & { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   snapshotText(): string;
   snapshot(): Snapshot;
   viewText(options?: { schema?: '0.1' | '0.2' }): string;
@@ -280,6 +283,8 @@ export interface RuntimeSessionHandle {
   dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   what_if_view_outcome?(event: string, payload: string): string;
   what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;
+  what_if_view_outcome_as?(event: string, payload: string, agent: string): string;
+  what_if_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   snapshot(): string;
   snapshot_compact?(): string;
   view(): string;
@@ -298,7 +303,7 @@ export interface RuntimeSessionClass {
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
   check_with?(source: string, unused: boolean): string;
-  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "save"?: string}`. */
+  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "withdrawals"?: boolean, "save"?: string}`. */
   check_options?(source: string, options: string): string;
   interface?(source: string): string;
   /** True once the instance has failed to allocate memory; safe to read after a trap. */
@@ -421,6 +426,13 @@ export interface CheckOptions {
    * Throws `CaveatError("restore")` when it does not restore.
    */
   save?: string;
+  /**
+   * Also report C010 `commit-on-withdrawable`, a commit on a source the
+   * program can withdraw that nothing asks is withdrawn, and C011
+   * `withdrawal-not-reopened`, a decision committed on such a source that no
+   * rule reopens when it is withdrawn.
+   */
+  withdrawals?: boolean;
 }
 
 export interface CheckReport {
@@ -635,6 +647,8 @@ export interface QualifiedValue {
 export interface CommitmentBasis {
   value: number | null;
   provenance: Provenance;
+  /** 1.5 draft: the thresholds the commit named, with their values; absent when none (spec/caveat-thresholds-0.1.md). */
+  thresholds?: Record<string, number>;
 }
 
 export interface ReadingOccurrence {

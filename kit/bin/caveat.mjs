@@ -6,7 +6,7 @@
 // caveat review [--runtime <dir>] [--json] --all <directory>
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--names] [--records [--save <save.json>]] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--names] [--records [--save <save.json>]] [--withdrawals] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -41,7 +41,7 @@ Usage:
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
   caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] [--names]
-                    [--records [--save <save.json>]] <program.cav>
+                    [--records [--save <save.json>]] [--withdrawals] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] [--state <file>] <program.cav>
@@ -110,7 +110,10 @@ binding that reads a decision's record in a program that qualifies evidence
 (C008): from 1.1 a later qualify of the evidence the record lists reaches a
 value set that way. With --save it also restores the save and reports each
 value it holds without such a caveat (C009), as a 1.0.x runtime saved it; 2
-when the save does not restore.
+when the save does not restore. --withdrawals also reports each commit that
+reads something the program can withdraw without asking whether it is
+withdrawn (C010), and each decision committed on such a source that no rule
+reopens when it is withdrawn (C011).
 
 types prints TypeScript declarations for a program: each event's payload, the
 displayed values and their types, and its state, cue, decision, stream,
@@ -142,7 +145,7 @@ Its illustrative inputs are supplied, not independently verified. Output shows
 actual decision grounds and preserved history. It writes no files.
   Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
 
-mcp serves five authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
+mcp serves six authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
 It takes inline source, runs each call in a fresh subprocess, and exposes no
 persistent session or file access. stdout contains protocol messages only.
 
@@ -161,6 +164,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
                    later qualify reaches from 1.1
   --save <file>    (check, with --records) also report the values that save
                    holds without such a caveat
+  --withdrawals    (check) also report commits on sources the program can
+                   withdraw that nothing guards or reopens
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -214,7 +219,7 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, names: false, records: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
@@ -223,6 +228,7 @@ function parseArguments(argv) {
     else if (argument === '--unused' && command === 'check') options.unused = true;
     else if (argument === '--names' && command === 'check') options.names = true;
     else if (argument === '--records' && command === 'check') options.records = true;
+    else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
       if (!options.save) return { error: '--save needs a save file' };
@@ -479,7 +485,7 @@ async function checkProgram(options) {
   if (options.save) {
     try { save = await readFile(options.save, 'utf8'); } catch (error) { console.error(`cannot read ${options.save}: ${error.message}`); return 2; }
   }
-  const asked = { unused: options.unused, ...(options.names ? { names: true } : {}), ...(options.records ? { records: true } : {}), ...(save !== undefined ? { save } : {}) };
+  const asked = { unused: options.unused, ...(options.names ? { names: true } : {}), ...(options.records ? { records: true } : {}), ...(options.withdrawals ? { withdrawals: true } : {}), ...(save !== undefined ? { save } : {}) };
   let report;
   try { report = runtime.check(inputs.source, asked); } catch (error) {
     if (error.kind !== 'restore') return refuse(`does not load: ${error.message}`);

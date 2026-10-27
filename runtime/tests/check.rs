@@ -2414,6 +2414,276 @@ fn a_record_read_can_be_allowed_on_purpose() {
     );
 }
 
+fn check_withdrawals(source: &str) -> CheckReport {
+    check_source_with(
+        source,
+        CheckOptions {
+            withdrawals: true,
+            ..Default::default()
+        },
+    )
+    .unwrap_or_else(|error| panic!("check failed: {error}\n{source}"))
+}
+
+/// C010 and C011 alone, leaving out the checks that always run.
+fn withdrawal_codes(report: &CheckReport) -> Vec<(&str, usize)> {
+    codes(report)
+        .into_iter()
+        .filter(|(code, _)| matches!(*code, "C010" | "C011"))
+        .collect()
+}
+
+/// The retraction example's shape: a study carried by a state, a commit on
+/// that state, a withdrawal and a reopening rule.
+const RETRACTION: &str = r#"claim harms;
+evidence study from "a registry study";
+evidence retraction from "the study's retraction";
+state study_ok = 0;
+decisions conclude limit 2;
+event published;
+event decide;
+event retracted;
+on published reveal study supports harms;
+on published set study_ok = qualified(1, study);
+on decide when withdrawn(study) reject "Retracted.";
+on decide commit conclude because enough using study_ok;
+on retracted reveal retraction;
+on retracted withdraw study because retraction;
+on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)
+    reopen conclude because retraction;
+"#;
+
+#[test]
+fn withdrawal_checks_are_reported_only_when_asked_for() {
+    let source = RETRACTION
+        .replace("on decide when withdrawn(study) reject \"Retracted.\";\n", "")
+        .replace(
+            "on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)\n    reopen conclude because retraction;\n",
+            "",
+        );
+    assert_eq!(codes(&check(&source)), []);
+    assert_eq!(
+        codes(&check_withdrawals(&source)),
+        [
+            ("C011", line_of(&source, "decisions conclude")),
+            ("C010", line_of(&source, "on decide commit")),
+        ]
+    );
+}
+
+#[test]
+fn a_guarded_commit_that_a_withdrawal_reopens_is_not_reported() {
+    assert_eq!(codes(&check_withdrawals(RETRACTION)), []);
+}
+
+#[test]
+fn a_commit_on_a_withdrawable_source_through_a_state_is_reported_with_the_withdrawal() {
+    let source = RETRACTION.replace(
+        "on decide when withdrawn(study) reject \"Retracted.\";\n",
+        "",
+    );
+    let report = check_withdrawals(&source);
+    assert_eq!(
+        codes(&report),
+        [("C010", line_of(&source, "on decide commit"))]
+    );
+    let diagnostic = &report.diagnostics[0];
+    assert_eq!(diagnostic.name, "commit-on-withdrawable");
+    assert!(
+        diagnostic.message.contains("`study`"),
+        "{}",
+        diagnostic.message
+    );
+    assert_eq!(
+        diagnostic
+            .related
+            .iter()
+            .map(|related| (related.line, related.note.as_str()))
+            .collect::<Vec<_>>(),
+        [(
+            line_of(&source, "on retracted withdraw"),
+            "`study` is withdrawn here"
+        )]
+    );
+}
+
+#[test]
+fn a_guard_in_the_commit_or_a_caveat_test_on_what_carries_it_counts() {
+    let base = RETRACTION.replace(
+        "on decide when withdrawn(study) reject \"Retracted.\";\n",
+        "",
+    );
+    for guarded in [
+        base.replace("on decide commit", "on decide when not withdrawn(study) commit"),
+        base.replace("on decide commit", "on decide when not has_caveat(study_ok, withdrawn) commit"),
+        base.replace("on decide commit", "on decide when not carries(study, withdrawn) commit"),
+        base.replace(
+            "on decide commit conclude because enough using study_ok;",
+            "define fresh = not withdrawn(study);\non decide when fresh commit conclude because enough using study_ok;",
+        ),
+    ] {
+        assert_eq!(codes(&check_withdrawals(&guarded)), [], "{guarded}");
+    }
+    // A refusal on another event guards nothing here.
+    let elsewhere = base.replace(
+        "on retracted reveal retraction;",
+        "on retracted when withdrawn(study) reject \"Already.\";\non retracted reveal retraction;",
+    );
+    assert_eq!(
+        codes(&check_withdrawals(&elsewhere)),
+        [("C010", line_of(&elsewhere, "on decide commit"))]
+    );
+}
+
+#[test]
+fn a_reading_stream_is_followed_through_what_samples_from_it() {
+    let source = r#"claim effect;
+evidence release_note from "a dataset version";
+evidence pipeline from "the analysis";
+evidence erratum from "an erratum";
+readings versions from release_note limit 4;
+readings analysis from pipeline limit 8;
+decisions conclude limit 4;
+event release;
+event analyse estimate min 0 max 100;
+event decide;
+event erratum_v1;
+on release sample versions = 1;
+on analyse sample analysis = estimate * latest(versions) supports effect;
+on decide commit conclude because enough using latest(analysis);
+on erratum_v1 reveal erratum;
+on erratum_v1 withdraw reading(versions, 1) because erratum;
+"#;
+    assert_eq!(
+        withdrawal_codes(&check_withdrawals(source)),
+        [
+            ("C011", line_of(source, "decisions conclude")),
+            ("C010", line_of(source, "on decide commit")),
+        ]
+    );
+    let reopened = format!(
+        "{source}on erratum_v1 when committed(conclude) and not reopened(conclude) and in_basis(conclude, reading(versions, 1)) reopen conclude because erratum;\n"
+    );
+    assert_eq!(
+        withdrawal_codes(&check_withdrawals(&reopened)),
+        [("C010", line_of(&reopened, "on decide commit"))]
+    );
+}
+
+#[test]
+fn a_reopening_on_the_withdrawing_event_counts_and_a_hold_does_not() {
+    let on_event = RETRACTION.replace(
+        "and rests_on_withdrawn(conclude)\n    reopen",
+        "\n    reopen",
+    );
+    assert_eq!(codes(&check_withdrawals(&on_event)), []);
+    let held = RETRACTION.replace(
+        "on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)\n    reopen conclude because retraction;",
+        "on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude)\n    hold conclude because retraction;",
+    );
+    assert_eq!(
+        codes(&check_withdrawals(&held)),
+        [("C011", line_of(&held, "decisions conclude"))]
+    );
+}
+
+#[test]
+fn a_program_that_withdraws_nothing_is_not_reported() {
+    let source = RETRACTION
+        .replace("on retracted withdraw study because retraction;\n", "")
+        .replace(
+            "on decide when withdrawn(study) reject \"Retracted.\";\n",
+            "",
+        );
+    assert_eq!(codes(&check_withdrawals(&source)), []);
+}
+
+#[test]
+fn withdrawal_warnings_can_be_allowed_on_purpose() {
+    let source = RETRACTION
+        .replace(
+            "on decide when withdrawn(study) reject \"Retracted.\";\n",
+            "",
+        )
+        .replace(
+            "on decide commit",
+            "# caveat check: allow commit-on-withdrawable\non decide commit",
+        );
+    let report = check_withdrawals(&source);
+    assert_eq!(codes(&report), []);
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [("C010", line_of(&source, "on decide commit"))]
+    );
+}
+
+#[test]
+fn withdraw_every_names_the_evidence_and_each_stream_read_from_it() {
+    let source = r#"claim fresh;
+evidence source from "a feed";
+evidence flag from "the feed was found unreliable";
+readings feed from source limit 4;
+decisions act limit 4;
+event arrive value min 0 max 100;
+event decide;
+event distrust;
+on arrive sample feed = value supports fresh;
+on decide commit act because enough using latest(feed);
+on distrust reveal flag;
+on distrust withdraw every source because flag;
+"#;
+    let report = check_withdrawals(source);
+    assert_eq!(
+        withdrawal_codes(&report),
+        [
+            ("C011", line_of(source, "decisions act")),
+            ("C010", line_of(source, "on decide commit")),
+        ]
+    );
+    let commit = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.code == "C010")
+        .unwrap();
+    assert!(
+        commit
+            .related
+            .iter()
+            .any(|site| site.line == line_of(source, "on distrust withdraw")),
+        "{:?}",
+        commit.related
+    );
+    let guarded = source.replace(
+        "on decide commit",
+        "on decide when withdrawn(latest(feed)) reject \"Withdrawn.\";\non decide commit",
+    );
+    assert_eq!(
+        withdrawal_codes(&check_withdrawals(&guarded)),
+        [("C011", line_of(&guarded, "decisions act"))]
+    );
+}
+
+/// `grounds_of(D)` reads `D`'s record as `latest(D)` does. See
+/// spec/caveat-grounds-of-0.1.md.
+#[test]
+fn grounds_of_is_a_read_of_the_decisions_record() {
+    let source = RECORD_READS.replace("latest(plan)", "grounds_of(plan)");
+    assert_eq!(codes(&check(&source)), []);
+    let report = check_records(&source);
+    assert_eq!(codes(&report), codes(&check_records(RECORD_READS)));
+    assert!(
+        report.diagnostics[2]
+            .message
+            .contains("through `grounds_of(plan)`, `history_count(plan)`"),
+        "{}",
+        report.diagnostics[2].message
+    );
+}
+
 fn check_names(source: &str) -> CheckReport {
     check_source_with(
         source,

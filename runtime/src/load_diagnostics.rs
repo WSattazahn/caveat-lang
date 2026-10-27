@@ -90,6 +90,7 @@ const KEYWORDS: &[&str] = &[
     "scene",
     "start_at",
     "state",
+    "threshold",
 ];
 
 /// The message for a line no statement form matches: `--` is the most common

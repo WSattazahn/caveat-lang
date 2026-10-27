@@ -343,6 +343,49 @@ test('--records reports reads of a decision record; --save the values a save hol
   assert.throws(() => createRuntime(Older).check(RECORDS, { records: true }), /predates caveat check --records/);
 });
 
+// A commit on a study the program can retract, with no guard and no
+// reopening (spec/caveat-check-0.1.md, C010 and C011).
+const WITHDRAWALS = `claim harms;
+evidence study from "a registry study";
+evidence retraction from "the study's retraction";
+state study_ok = 0;
+decisions conclude limit 2;
+event published;
+event decide;
+event retracted;
+on published reveal study supports harms;
+on published set study_ok = qualified(1, study);
+on decide commit conclude because enough using study_ok;
+on retracted reveal retraction;
+on retracted withdraw study because retraction;
+`;
+
+test('--withdrawals reports a commit on a withdrawable source and a decision no withdrawal reopens', async () => {
+  await withProgram(WITHDRAWALS, async program => {
+    const plain = caveat(['check', '--strict', program]);
+    assert.equal(plain.status, 0, plain.stdout);
+    assert.equal(plain.stdout.trim(), 'frost.cav: no warnings.');
+
+    const json = caveat(['check', '--json', '--strict', '--withdrawals', program]);
+    assert.equal(json.status, 1, json.stderr);
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(report.diagnostics.map(warning => [warning.code, warning.name, warning.line]),
+      [['C011', 'withdrawal-not-reopened', 5], ['C010', 'commit-on-withdrawable', 11]]);
+    assert.deepEqual(report.diagnostics[1].related, [{ line: 13, column: 1, note: '`study` is withdrawn here' }]);
+    const text = caveat(['check', '--withdrawals', program]);
+    assert.equal(text.status, 0, text.stderr);
+    assert.match(text.stdout, /frost\.cav:11:1: warning C010 commit-on-withdrawable: this commit of `conclude` on `decide` reads `study`/);
+  });
+  assert.deepEqual(real.check(WITHDRAWALS).diagnostics, []);
+  assert.deepEqual(real.check(WITHDRAWALS, { withdrawals: true }).diagnostics.map(warning => warning.code), ['C011', 'C010']);
+  const fixed = WITHDRAWALS
+    .replace('on decide commit', 'on decide when withdrawn(study) reject "Retracted.";\non decide commit')
+    + 'on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude) reopen conclude because retraction;\n';
+  assert.deepEqual(real.check(fixed, { withdrawals: true }).diagnostics, []);
+  class Older { constructor(source) { this.inner = new Real(source); } static check(source) { return Real.check(source); } }
+  assert.throws(() => createRuntime(Older).check(WITHDRAWALS, { withdrawals: true }), /predates caveat check --withdrawals/);
+});
+
 // caveat test checks each program first (rc.15): round 7's C2 and C3 authors
 // met this binding only when it won at dispatch, as ungrounded_citation.
 test('caveat test prints check warnings with the run and still runs', async () => {

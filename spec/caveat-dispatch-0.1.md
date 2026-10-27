@@ -129,6 +129,12 @@ program would do about it.
   makes the whole runtime instance unusable, as on any path.
 - A runtime build that predates it has no `what_if_view_outcome`, and the kit
   throws `CaveatError("load")` without touching the session.
+- `what_if_view_outcome_as` and `what_if_view_fields_outcome_as` (in the kit,
+  `whatIf(event, payload, { agent })`) answer for an event the host says
+  `agent` sent, as `dispatch_view_outcome_as` would
+  ([Agents 0.1](caveat-agents-0.1.md#6-hosts)); from 1.5.0. Without an
+  agent the what-if path answers as a dispatch with no agent would, so in a
+  program that lists the event under some agent the answer is `wrong_agent`.
 
 It is an additional entry point. No program's meaning, no existing entry point
 and no output changes.
@@ -166,6 +172,7 @@ and no output changes.
 | `limit` | `scheduled_limit` | A `qualify … after` would schedule a qualification while 4,096 are already waiting ([Late Qualification 0.1](caveat-late-qualification-0.1.md)). |
 | `limit` | `provenance_limit` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, would give a value a lineage of more than 1,024 identifiers or more than 65,536 bytes of their names (from 1.4.0). |
 | `limit` | `evaluation_limit` | One expression evaluated by the event would visit more than 65,536 nodes, as a `fold_history` over a long stream with a heavy step does (from 1.4.0). |
+| `limit` | `text_limit` | A text value computed by the event, in a rule guard, an effect, a procedure argument or an active binding, would hold more than 65,536 bytes (from 1.4.1). |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -385,6 +392,9 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-26: the what-if path takes an agent, `what_if_view_outcome_as`
+  and `what_if_view_fields_outcome_as` (D027, from 1.5.0). No existing entry
+  point, output or code changes.
 - 2026-10-25: the [what-if path](#the-what-if-path),
   `what_if_view_outcome` and `what_if_view_fields_outcome`, in the developer
   kit `session.whatIf`, runs an event on a dropped copy of the session and
@@ -415,3 +425,12 @@ from an outcome schema match; the save contract governs restoration.
   `runtime/tests/d022_provenance_limit.rs` and
   `runtime/tests/d023_evaluation_limit.rs`, and the save sweep over every
   tracked program is byte-identical with 1.3.0.
+- 2026-10-26 (1.4.1): `limit/text_limit` classifies an event in which a text
+  value would hold more than 65,536 bytes. It was fatal `unclassified` on
+  1.0.0 to 1.4.0, the last such fault a program could reach: finding D025
+  reached it with a binding that joined a 65,520-byte literal to the 17-byte
+  text of a number. It now refuses the event with the text the fatal error
+  carried, and the session goes on, as the two caps above do; a text literal
+  past the limit still fails to load. The cap is unchanged; the regression
+  case is `runtime/tests/d025_text_limit.rs`, and the save sweep over every
+  tracked program is byte-identical with 1.4.0.
