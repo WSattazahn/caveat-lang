@@ -97,17 +97,52 @@ export function allForBlocks(text, classes = classify(text)) {
   return forBlocks(text, classes).flatMap(all);
 }
 
+// Every `sum(for KIND as $NAME: …)`, `any(…)` and `all(…)` in code
+// (spec/caveat-across-members-0.1.md), as runtime/src/repeat.rs
+// `expand_across` finds them: where its binding is, and the expression it
+// binds the name in, from the `:` to the `)` that closes the form, counting
+// parentheses in code.
+export function acrossForms(text, classes = classify(text)) {
+  const forms = [];
+  const header = /(?<![\w$.:])(?:sum|any|all)\s*\(\s*for\s+[A-Za-z_]\w*\s+as\s+(\$([A-Za-z_]\w*))\s*:(?!:)/g;
+  for (const match of text.matchAll(header)) {
+    if (classes.slice(match.index, match.index + match[0].length).some(cls => cls !== 'code')) continue;
+    const open = match.index + match[0].indexOf('(');
+    let depth = 0;
+    let close = -1;
+    for (let index = open; index < text.length && close < 0; index++) {
+      if (classes[index] !== 'code') continue;
+      if (text[index] === '(') depth += 1;
+      else if (text[index] === ')' && --depth === 0) close = index;
+    }
+    if (close < 0) continue;
+    forms.push({
+      binding: match[2],
+      bindingAt: match.index + match[0].lastIndexOf(match[1]),
+      start: match.index,
+      exprStart: match.index + match[0].length,
+      end: close + 1,
+    });
+  }
+  return forms;
+}
+
 // Each `$` in a block body, comments and quoted text included, outside the
 // blocks nested in it: where it is, and how long the substituted part is (the
 // `$` plus the longest bound name that prefixes the identifier run; 0 where
-// the runtime refuses the name).
-export function substitutions(text, block) {
+// the runtime refuses the name). In an across form's expression the form's
+// name is bound too, and a comment there is left out of the copies.
+export function substitutions(text, block, forms = acrossForms(text)) {
   const found = [];
-  const names = [...block.bound, 'index'];
+  const classes = classify(text);
   for (let index = block.bodyStart; index < block.bodyEnd; index++) {
     const inner = block.nested.find(nested => index >= nested.start && index < nested.end);
     if (inner) { index = inner.end - 1; continue; }
     if (text[index] !== '$') continue;
+    if (forms.some(form => form.bindingAt === index)) continue;
+    const around = forms.filter(form => index >= form.exprStart && index < form.end);
+    if (around.length > 0 && classes[index] === 'comment') continue;
+    const names = [...block.bound, 'index', ...around.map(form => form.binding)];
     let end = index + 1;
     if (end < text.length && identifierStart(text[end])) {
       end += 1;

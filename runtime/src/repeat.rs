@@ -34,7 +34,7 @@ pub fn expand(source: &str) -> Result<String, String> {
         .copied()
         .filter(|(start, end)| statement_words(&source[*start..*end]).first() == Some(&"for"))
         .collect();
-    if blocks.is_empty() {
+    if blocks.is_empty() && across_at(&blank_comments(source)).is_none() {
         return Ok(source.to_string());
     }
     let members = entity_kinds(source, &statements);
@@ -47,12 +47,198 @@ pub fn expand(source: &str) -> Result<String, String> {
     let mut out = String::with_capacity(source.len());
     let mut cursor = 0;
     for (start, end) in blocks {
-        out.push_str(&source[cursor..start]);
+        out.push_str(&expand_across(&source[cursor..start], &members, &[])?);
         out.push_str(&expand_block((start, end), &part, &[], true)?);
         cursor = end;
     }
-    out.push_str(&source[cursor..]);
+    out.push_str(&expand_across(&source[cursor..], &members, &[])?);
     Ok(out)
+}
+
+/// Across Members 0.1: each `sum(for KIND as $NAME: E)`, `any(…)` and
+/// `all(…)` in `text` outside quoted text and comments, replaced by E once
+/// per member of KIND, in declaration order, each copy in parentheses,
+/// joined by `+`, `or` or `and`, and the whole in parentheses. See
+/// spec/caveat-across-members-0.1.md. `scope` names the bindings of the
+/// blocks `text` is in, which the copies keep as written for those blocks
+/// to replace. Text with no such form is returned unchanged.
+pub(crate) fn expand_across(
+    text: &str,
+    kinds: &[(String, Vec<String>)],
+    scope: &[&str],
+) -> Result<String, String> {
+    let code = blank_comments(text);
+    let mut out = String::with_capacity(text.len());
+    let mut cursor = 0;
+    while let Some((start, operator, open)) = across_at(&code[cursor..]) {
+        let (start, open) = (cursor + start, cursor + open);
+        let close = closing_paren(&code, open).ok_or_else(|| {
+            format!(
+                "`{}` is not closed: its `(` has no matching `)`",
+                head(&text[start..])
+            )
+        })?;
+        // Comments in the expression are left out: its copies are joined on
+        // one line, where a comment would hide the copies after it.
+        let (kind, name, expression) = across_parts(&code[open + 1..close])?;
+        let written = format!("{}(for {kind} as ${name}: …)", &text[start..open]);
+        if name == "index" {
+            return Err(format!(
+                "`{written}`: $index is provided by the form and cannot be rebound"
+            ));
+        }
+        if scope.contains(&name) {
+            return Err(format!(
+                "`{written}` binds ${name}, which an enclosing for block binds too; give it another name"
+            ));
+        }
+        let Some((_, members)) = kinds.iter().find(|(declared, _)| declared == kind) else {
+            return Err(format!(
+                "no entity is declared `kind {kind}`, so `{written}` has nothing to expand"
+            ));
+        };
+        let inner = [scope, &[name][..]].concat();
+        let expression = expand_across(expression, kinds, &inner)?;
+        if blank_comments(&expression).trim().is_empty() {
+            return Err(format!("`{written}` has no expression after its `:`"));
+        }
+        let mut copies = Vec::with_capacity(members.len());
+        for (position, member) in members.iter().enumerate() {
+            if !scope.is_empty() && member.contains('$') {
+                return Err(format!(
+                    "`{written}`: entity `{member}` has a `$` in its name, which the enclosing for block would read as a binding; rename it"
+                ));
+            }
+            let index = (position + 1).to_string();
+            let copy = substitute(
+                &expression,
+                &[(name, member.as_str()), ("index", index.as_str())],
+                scope,
+            )?;
+            copies.push(format!("({})", copy.trim()));
+        }
+        out.push_str(&text[cursor..start]);
+        out.push('(');
+        out.push_str(&copies.join(operator));
+        out.push(')');
+        cursor = close + 1;
+    }
+    if cursor == 0 {
+        return Ok(text.to_string());
+    }
+    out.push_str(&text[cursor..]);
+    Ok(out)
+}
+
+/// The first `sum(for`, `any(for` or `all(for` in `code`, comments already
+/// blanked, outside quoted text: where its word starts, the operator that
+/// joins its copies, and where its `(` is. The word must not continue a
+/// longer name, as `my_sum` or `glow::any` would.
+fn across_at(code: &str) -> Option<(usize, &'static str, usize)> {
+    let (mut quoted, mut escaped) = (false, false);
+    for (at, ch) in code.char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        if ch == '"' {
+            quoted = true;
+            continue;
+        }
+        let rest = &code[at..];
+        let Some((word, operator)) = [("sum", " + "), ("any", " or "), ("all", " and ")]
+            .into_iter()
+            .find(|(word, _)| rest.starts_with(word))
+        else {
+            continue;
+        };
+        let before = code[..at].chars().next_back();
+        if before
+            .is_some_and(|before| is_identifier_char(before) || matches!(before, '$' | '.' | ':'))
+        {
+            continue;
+        }
+        let after = &rest[word.len()..];
+        let Some(paren) = after.find(|ch: char| !ch.is_whitespace()) else {
+            continue;
+        };
+        if !after[paren..].starts_with('(') {
+            continue;
+        }
+        let inside = after[paren + 1..].trim_start();
+        let opens_for = inside
+            .strip_prefix("for")
+            .is_some_and(|tail| tail.chars().next().is_some_and(char::is_whitespace));
+        if opens_for {
+            return Some((at, operator, at + word.len() + paren));
+        }
+    }
+    None
+}
+
+/// The `)` that closes the `(` at `open` in `code`, comments already
+/// blanked, counting parentheses outside quoted text.
+fn closing_paren(code: &str, open: usize) -> Option<usize> {
+    let (mut depth, mut quoted, mut escaped) = (0usize, false, false);
+    for (at, ch) in code[open..].char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        match ch {
+            '"' => quoted = true,
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + at);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The kind, the binding without its `$`, and the expression of the text
+/// inside an across form's parentheses, `for KIND as $NAME: E`, comments
+/// already blanked.
+fn across_parts(code: &str) -> Result<(&str, &str, &str), String> {
+    let refused = || {
+        format!(
+            "expected `for KIND as $NAME: EXPRESSION` inside the parentheses, found: {}",
+            head(code)
+        )
+    };
+    // The header ends at the first `:` that is not half of a `::`.
+    let colon = code
+        .char_indices()
+        .find(|(at, ch)| {
+            *ch == ':' && !code[at + 1..].starts_with(':') && !code[..*at].ends_with(':')
+        })
+        .map(|(at, _)| at)
+        .ok_or_else(refused)?;
+    let ["for", kind, "as", binding] = statement_words(&code[..colon])[..] else {
+        return Err(refused());
+    };
+    let name = binding.strip_prefix('$').ok_or_else(refused)?;
+    if !plain_name(kind) {
+        return Err(refused());
+    }
+    check_binding(name)?;
+    Ok((kind, name, &code[colon + 1..]))
 }
 
 /// The body at `start` of the part's source, `length` bytes long, with each
@@ -165,6 +351,7 @@ fn expand_block(
     // blocks' kept as written. What is left of `$index` is this block's.
     let scope = [outer, &[block.name][..]].concat();
     let body = expand_nested(part, (block.body_start, block.body.len()), &scope, route)?;
+    let body = expand_across(&body, part.kinds, &scope)?;
     // Which rules are routed is read from the body, once.
     let routed = match block.route.filter(|_| route) {
         Some(parameter) => Routing {
@@ -480,6 +667,7 @@ impl Part<'_> {
             false,
         )
         .ok()?;
+        let body = expand_across(&body, self.kinds, &[block.name]).ok()?;
         block
             .members
             .iter()

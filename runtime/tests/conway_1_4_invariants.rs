@@ -235,11 +235,10 @@ fn restored(game: &WebReactiveSession) -> WebReactiveSession {
     twin
 }
 
-/// Agents × what-if. The what-if path takes no agent (Agents 0.1 lists an
-/// `_as` form for dispatch, the view, the fields and the delta; the what-if
-/// path has none), so it answers as a dispatch with no agent would: an event
-/// some agent sends is always `wrong_agent`, whatever the agent would get.
-/// Pinned as the 1.4.0 behavior; see the finding that this test reported.
+/// Agents × what-if. The agentless what-if path answers as a dispatch with
+/// no agent would: an event some agent sends is always `wrong_agent`,
+/// whatever the agent would get (the 1.4.0 behavior, which stays). From
+/// D027, `what_if_view_outcome_as` answers as that agent's dispatch would.
 #[test]
 fn what_if_answers_an_agents_event_as_sent_by_nobody() {
     let mut game = session();
@@ -260,7 +259,23 @@ fn what_if_answers_an_agents_event_as_sent_by_nobody() {
             .unwrap(),
     );
     assert_eq!(theirs["outcome"], "accepted", "{theirs}");
-    // And the answer is, byte for byte, the agentless dispatch.
+    // Asked as the agent, the answer is that agent's dispatch, byte for byte,
+    // and asking still changes nothing (D027).
+    let asked_as = game
+        .what_if_view_outcome_as("send_it", "{}", "main")
+        .unwrap();
+    assert_eq!(
+        checkpoint(&game),
+        before,
+        "asking as an agent changed something"
+    );
+    let mut twin = restored(&game);
+    assert_eq!(
+        asked_as,
+        twin.dispatch_view_outcome_as("send_it", "{}", "main")
+            .unwrap()
+    );
+    // And the agentless answer is, byte for byte, the agentless dispatch.
     let mut twin = restored(&game);
     assert_eq!(
         game.what_if_view_outcome("send_it", "{}").unwrap(),

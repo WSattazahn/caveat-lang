@@ -238,7 +238,12 @@ Design points for the spec PR:
 - It needs no new refusal code. An undeclared caveat is a load-time error,
   as for `qualify`.
 - `unqualify` and take-back reach it as they reach any qualification of that
-  reading. Withdrawal works as it does today.
+  reading. Withdrawal works as it does today. (The spec narrowed this: a
+  take-back caveat cannot be named in `with`, so a doubt that must be taken
+  back stays a late `qualify`.)
+
+Specified and implemented as
+[Reading Caveats 0.1](../../spec/caveat-reading-caveats-0.1.md), a 1.5 draft.
 
 ### P2. A threshold the record names
 
@@ -299,4 +304,5 @@ The owner chose on 2026-10-25:
 
 Both stay opt-in: a program that uses neither loads, runs, saves and
 explains byte for byte as before. The renewable-evidence gap is already
-fixed for 1.4.0 (D024, above).
+fixed for 1.4.0 (D024, above). P1 is
+[Reading Caveats 0.1](../../spec/caveat-reading-caveats-0.1.md).

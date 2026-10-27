@@ -57,7 +57,7 @@ fn caveats(session: &mut ReactiveSession) -> BTreeSet<String> {
         .provenance
         .caveats
         .iter()
-        .cloned()
+        .map(|name| name.to_string())
         .collect()
 }
 

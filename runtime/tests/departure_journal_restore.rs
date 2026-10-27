@@ -1,7 +1,7 @@
 //! Journal fields are a projection of grounds, which can also carry departure
 //! markers and inherited-name bookkeeping. Restore preserves that full grounds
 //! provenance while checking every field the journal actually represents.
-use caveat_runtime::reactive::ReactiveSession;
+use caveat_runtime::reactive::{Name, ReactiveSession};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
@@ -63,7 +63,7 @@ fn authentic_journal_saves_keep_full_grounds_and_continue_identically() {
                 let grounds = &before.commitment_grounds[commitment];
                 assert_eq!(grounds.departed.contains_key("r"), marker);
                 assert_eq!(grounds.inherited.contains("other"), inherited);
-                let own: BTreeSet<_> = grounds.own_evidence().map(String::as_str).collect();
+                let own: BTreeSet<_> = grounds.own_evidence().map(Name::as_str).collect();
                 assert_eq!(
                     own,
                     if marker {
