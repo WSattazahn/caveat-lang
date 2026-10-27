@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { explain, formatExplanation, parseEvents, EXPLAIN_SCHEMA } from '../lib/explain.mjs';
 import { real, repo, thermostat } from './helpers.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
 const example = path.join(repo, 'examples', 'thermostat_history.cav');
@@ -60,6 +60,31 @@ test('explain reports what the snapshot records, decision by decision', () => {
   assert.match(text, /#2 read: reopened because temperature@2 \(caveats: calibration_offset\)/);
   // D007: the reading carries calibration_offset, so the author did not retain it.
   assert.doesNotMatch(text, /retaining: calibration_offset/);
+});
+
+test('a revision lists the thresholds its commit named, and others list none', () => {
+  // spec/caveat-thresholds-0.1.md: the graded-belief note's robot.
+  const source = `claim door_open; evidence estimator from "the state estimator";
+    readings beliefs from estimator limit 8; decisions plan limit 8 reopened by beliefs;
+    threshold go_bar = 0.9; threshold look_bar = 0.3; event belief p min 0 max 1;
+    on belief sample beliefs = p supports door_open;
+    on belief when not committed(plan) or reopened(plan) commit plan because enough
+      using if(latest(beliefs) >= go_bar, 2, if(latest(beliefs) >= look_bar, 1, 0));`;
+  const session = real.open(source);
+  session.dispatch('belief', { p: 0.55 });
+  const report = explain(session.snapshot(), []);
+  session.close();
+  const [revision] = report.decisions[0].revisions;
+  assert.deepEqual(revision.thresholds, { go_bar: 0.9, look_bar: 0.3 });
+  assert.match(formatExplanation(report, 'robot'),
+    /plan@1 = 1 {2}in force\n {6}based on beliefs@1\n {6}thresholds: go_bar = 0\.9, look_bar = 0\.3\n/);
+
+  const plain = real.open(thermostat);
+  plain.dispatch('read', { value: 17 });
+  const without = explain(plain.snapshot(), []);
+  plain.close();
+  assert.ok(without.decisions[0].revisions.every(item => !('thresholds' in item)));
+  assert.doesNotMatch(formatExplanation(without, 'thermostat'), /thresholds:/);
 });
 
 test('a session with no decisions, evidence or bindings says so', () => {
@@ -119,11 +144,13 @@ test('a full history refuses the event and the replay continues', async () => {
 });
 
 test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n' + textOverflow('on read when value > 1.5');
-  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
-    const result = run(file('dividing.cav'), file('events.jsonl'));
+  // The fatal event is the fixture runtime's: no program reaches one.
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\nevent fault;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\n';
+  const faulted = [{ event: 'read', payload: { value: 1 } }, { event: 'fault' }, { event: 'read', payload: { value: 3 } }].map(event => JSON.stringify(event)).join('\n');
+  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': faulted }, async file => {
+    const result = run('--runtime', await faultingRuntimeDirectory(), file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);
-    assert.match(result.stdout, / {4}2 {2}read \{"value":2\} {2}failed: /);
+    assert.match(result.stdout, / {4}2 {2}fault .*failed: /);
     assert.doesNotMatch(result.stdout, / {4}3 {2}read/);
     assert.match(result.stdout, /r@1 = 1 supports c/);
     assert.doesNotMatch(result.stdout, /r@2/);

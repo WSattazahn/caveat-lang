@@ -55,6 +55,8 @@ const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
 const UNUSED_DECLARATION: (&str, &str) = ("C007", "unused-declaration");
 const RECORD_READS_LATE_CAVEAT: (&str, &str) = ("C008", "record-reads-late-caveat");
 const SAVE_LACKS_LATE_CAVEAT: (&str, &str) = ("C009", "save-lacks-late-caveat");
+const COMMIT_ON_WITHDRAWABLE: (&str, &str) = ("C010", "commit-on-withdrawable");
+const WITHDRAWAL_NOT_REOPENED: (&str, &str) = ("C011", "withdrawal-not-reopened");
 const ALLOW: &str = "caveat check: allow";
 
 /// Which checks run beyond the default ones. Each is asked for, so a program
@@ -66,6 +68,8 @@ pub struct CheckOptions {
     /// C008 `record-reads-late-caveat`, and C009 `save-lacks-late-caveat`
     /// when a save is checked (`check_save_with`).
     pub records: bool,
+    /// C010 `commit-on-withdrawable` and C011 `withdrawal-not-reopened`.
+    pub withdrawals: bool,
 }
 
 /// Loads the program, then looks for the patterns in
@@ -118,6 +122,9 @@ fn report(source: &str, options: CheckOptions, save: Option<&str>) -> Result<Che
     if let Some(saved) = &saved {
         found.extend(saved_without_late_caveats(saved, &statements));
     }
+    if options.withdrawals {
+        found.extend(withdrawal_checks(&statements));
+    }
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
     let lines = source.lines().collect::<Vec<_>>();
@@ -159,7 +166,8 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         let text = &source[start..end];
         let at = position_of(source, start);
         if statement_words(text).first() != Some(&"for") {
-            for (text, at) in scan_statements_at(text, at)? {
+            let text = crate::repeat::expand_across(text, &kinds, &[])?;
+            for (text, at) in scan_statements_at(&text, at)? {
                 out.push(Statement {
                     text,
                     at,
@@ -298,8 +306,16 @@ impl<'a> Walk<'a> {
             let written = &header.body[inner..inner_end];
             let at = position_of(self.source, header.body_start + inner);
             if statement_words(written).first() != Some(&"for") {
+                // An across form expands first, keeping every block's binding
+                // in scope for its own substitution.
+                let bound = scope
+                    .iter()
+                    .map(|(binding, _)| *binding)
+                    .chain(kept.iter().copied().filter(|name| *name != "index"))
+                    .collect::<Vec<_>>();
+                let written = crate::repeat::expand_across(written, self.kinds, &bound)?;
                 out.push((
-                    crate::repeat::substitute_keeping(written, scope, &kept)?,
+                    crate::repeat::substitute_keeping(&written, scope, &kept)?,
                     at,
                 ));
                 continue;
@@ -724,9 +740,12 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
     }
     match effect {
         Effect::Call { arguments, .. } => arguments.iter().collect(),
-        Effect::Sample { value, note, .. } => {
-            std::iter::once(value).chain(note.as_deref()).collect()
-        }
+        Effect::Sample {
+            value, note, with, ..
+        } => std::iter::once(value)
+            .chain(note.as_deref())
+            .chain(with.as_ref().and_then(|with| with.condition.as_ref()))
+            .collect(),
         Effect::Qualify { after, index, .. } => after.iter().chain(index.as_deref()).collect(),
         Effect::Unqualify { index, .. } => index.as_deref().into_iter().collect(),
         Effect::Withdraw { target, .. } => selector(target).into_iter().collect(),
@@ -1195,6 +1214,342 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
             }
         })
         .collect()
+}
+
+/// One rule or procedure step as written: its event (none for a procedure
+/// step), guard and effect, at its statement.
+struct Step {
+    event: Option<String>,
+    condition: Expr,
+    effect: Effect,
+    at: Position,
+}
+
+/// The names `expression` reads (`Expr::collect_sources`), itself or through
+/// the defines it reads.
+fn sources_through<'d>(
+    expression: &Expr,
+    defines: &'d HashMap<String, Expr>,
+    seen: &mut HashSet<&'d str>,
+    sources: &mut BTreeSet<String>,
+) {
+    expression.collect_sources(sources);
+    let mut reads = Reads::default();
+    expression.collect_reads(&mut reads);
+    for read in &reads.names {
+        if let Some((define, value)) = defines.get_key_value(read.as_str()) {
+            if seen.insert(define.as_str()) {
+                sources_through(value, defines, seen, sources);
+            }
+        }
+    }
+}
+
+/// `Expr::collect_withdrawal_reads`, itself or through the defines it reads.
+fn withdrawal_reads_through<'d>(
+    expression: &Expr,
+    defines: &'d HashMap<String, Expr>,
+    seen: &mut HashSet<&'d str>,
+    tested: &mut BTreeSet<String>,
+    bases: &mut BTreeSet<String>,
+) {
+    expression.collect_withdrawal_reads(tested, bases);
+    let mut reads = Reads::default();
+    expression.collect_reads(&mut reads);
+    for read in &reads.names {
+        if let Some((define, value)) = defines.get_key_value(read.as_str()) {
+            if seen.insert(define.as_str()) {
+                withdrawal_reads_through(value, defines, seen, tested, bases);
+            }
+        }
+    }
+}
+
+/// C010 and C011, asked for with `withdrawals`. Compared by name after
+/// `for` blocks and defines are expanded, as C006 and C008 are.
+///
+/// A name is *withdrawable* when some `withdraw` names it: evidence, an
+/// occurrence of it, or a reading stream; `withdraw every` names the evidence
+/// and each stream read from it. A state or stream *carries* the
+/// names its `set` or `sample` values read, and what those carry in turn. A
+/// commit *reads* what its `using`, `citing` and retention reasons name, and
+/// what those carry.
+///
+/// C010: a commit reads a withdrawable name, and neither its own guard and
+/// grounds nor a `reject` on its event asks whether that name, or something
+/// that carries it, is withdrawn. After the withdrawal the commit records a
+/// decision on withdrawn grounds.
+///
+/// C011: a decision series is committed on a withdrawable name, and no
+/// `reopen` of it asks about its basis (`rests_on_withdrawn` or `in_basis`)
+/// or runs on an event that withdraws that name. A decision made before the
+/// withdrawal stays in force after it.
+fn withdrawal_checks(statements: &[Statement]) -> Vec<Diagnostic> {
+    let mut defines = HashMap::default();
+    let mut declared = HashMap::default();
+    let mut streams_from: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut steps = Vec::new();
+    for statement in statements {
+        match parse_directive_at(statement.text.trim(), statement.at) {
+            Some(Ok(Directive::Define { name, expression })) => {
+                defines.insert(name, expression);
+            }
+            Some(Ok(Directive::Decisions { name, .. })) => {
+                declared.insert(name, statement.at);
+            }
+            Some(Ok(Directive::Readings { name, template, .. })) => {
+                streams_from.entry(template).or_default().push(name);
+            }
+            Some(Ok(Directive::Rule(rule))) => steps.push(Step {
+                event: Some(rule.event),
+                condition: rule.condition,
+                effect: rule.effect,
+                at: statement.at,
+            }),
+            Some(Ok(Directive::Procedure(procedure))) => {
+                steps.extend(procedure.body.into_iter().map(|step| Step {
+                    event: None,
+                    condition: step.condition,
+                    effect: step.effect,
+                    at: statement.at,
+                }))
+            }
+            _ => {}
+        }
+    }
+    let sources = |expression: &Expr| {
+        let mut found = BTreeSet::new();
+        sources_through(expression, &defines, &mut HashSet::default(), &mut found);
+        found
+    };
+    let withdrawal_reads = |expression: &Expr| {
+        let (mut tested, mut bases) = (BTreeSet::new(), BTreeSet::new());
+        withdrawal_reads_through(
+            expression,
+            &defines,
+            &mut HashSet::default(),
+            &mut tested,
+            &mut bases,
+        );
+        (tested, bases)
+    };
+
+    // Each withdrawable name, with the events that withdraw it.
+    let mut withdrawn_on: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut carries: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for step in &steps {
+        match &step.effect {
+            Effect::Withdraw { target, .. } => {
+                for name in withdrawn_names(target, &streams_from) {
+                    let events = withdrawn_on.entry(name.clone()).or_default();
+                    events.extend(step.event.clone());
+                }
+            }
+            Effect::Set { name, value, .. } => {
+                carries
+                    .entry(name.clone())
+                    .or_default()
+                    .extend(sources(value));
+            }
+            Effect::Sample { stream, value, .. } => {
+                carries
+                    .entry(stream.clone())
+                    .or_default()
+                    .extend(sources(value));
+            }
+            _ => {}
+        }
+    }
+    if withdrawn_on.is_empty() {
+        return Vec::new();
+    }
+    let closure = |start: BTreeSet<String>| {
+        let mut reached = BTreeSet::new();
+        let mut pending = start.into_iter().collect::<Vec<_>>();
+        while let Some(name) = pending.pop() {
+            if reached.insert(name.clone()) {
+                pending.extend(carries.get(&name).into_iter().flatten().cloned());
+            }
+        }
+        reached
+    };
+
+    let mut found = Vec::new();
+    // Each series, with the withdrawable names its commits read.
+    let mut committed_on: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for step in &steps {
+        let Effect::Commit {
+            action,
+            using,
+            citing,
+            reasons,
+            ..
+        } = &step.effect
+        else {
+            continue;
+        };
+        let mut read = BTreeSet::new();
+        for expression in using
+            .iter()
+            .chain(citing)
+            .chain(reasons.iter().map(|(_, _, read, _)| read))
+        {
+            read.extend(sources(expression));
+        }
+        let withdrawable = closure(read)
+            .into_iter()
+            .filter(|name| withdrawn_on.contains_key(name))
+            .collect::<BTreeSet<_>>();
+        if withdrawable.is_empty() {
+            continue;
+        }
+        committed_on
+            .entry(action.clone())
+            .or_default()
+            .extend(withdrawable.iter().cloned());
+
+        // What this commit, or a refusal on its event, asks is withdrawn.
+        let mut asked = withdrawal_reads(&step.condition).0;
+        for expression in using.iter().chain(citing) {
+            asked.extend(withdrawal_reads(expression).0);
+        }
+        if let Some(event) = &step.event {
+            for other in &steps {
+                if other.event.as_ref() == Some(event)
+                    && matches!(other.effect, Effect::Reject { .. })
+                {
+                    asked.extend(withdrawal_reads(&other.condition).0);
+                }
+            }
+        }
+        let asked = closure(asked);
+        let unguarded = withdrawable
+            .into_iter()
+            .filter(|name| !asked.contains(name))
+            .collect::<Vec<_>>();
+        if unguarded.is_empty() {
+            continue;
+        }
+        let names = unguarded
+            .iter()
+            .map(|name| format!("`{name}`"))
+            .collect::<Vec<_>>();
+        let related = withdrawal_sites(&steps, &streams_from, &unguarded);
+        let on = step
+            .event
+            .as_ref()
+            .map(|event| format!(" on `{event}`"))
+            .unwrap_or_default();
+        found.push(Diagnostic {
+            code: COMMIT_ON_WITHDRAWABLE.0,
+            name: COMMIT_ON_WITHDRAWABLE.1,
+            severity: "warning",
+            line: step.at.line,
+            column: step.at.column,
+            message: format!(
+                "this commit of `{action}`{on} reads {}, which the program can withdraw, and nothing on this commit or its event asks whether it is withdrawn: after the withdrawal, the commit records a decision whose grounds carry the `withdrawn` caveat",
+                names.join(", ")
+            ),
+            suggestion: format!(
+                "If a withdrawn source should not support a new decision, refuse it first, for example `on EVENT when withdrawn({0}) reject \"…\";` (for a stream, `withdrawn(latest({0}))`), or guard the commit with `not withdrawn({0})`. If committing on it is intended, put `# {ALLOW} {1}` on the line above.",
+                unguarded[0],
+                COMMIT_ON_WITHDRAWABLE.1
+            ),
+            related,
+        });
+    }
+
+    for (series, names) in committed_on {
+        let reopened = steps.iter().any(|step| match &step.effect {
+            Effect::Reopen { action, form, .. }
+                if action == &series && *form != DecisionChange::Hold =>
+            {
+                withdrawal_reads(&step.condition).1.contains(&series)
+                    || step.event.as_ref().is_some_and(|event| {
+                        names.iter().any(|name| withdrawn_on[name].contains(event))
+                    })
+            }
+            _ => false,
+        });
+        if reopened {
+            continue;
+        }
+        let at = declared
+            .get(&series)
+            .copied()
+            .unwrap_or(Position { line: 1, column: 1 });
+        let listed = names
+            .iter()
+            .map(|name| format!("`{name}`"))
+            .collect::<Vec<_>>();
+        let related = withdrawal_sites(
+            &steps,
+            &streams_from,
+            &names.iter().cloned().collect::<Vec<_>>(),
+        );
+        found.push(Diagnostic {
+            code: WITHDRAWAL_NOT_REOPENED.0,
+            name: WITHDRAWAL_NOT_REOPENED.1,
+            severity: "warning",
+            line: at.line,
+            column: at.column,
+            message: format!(
+                "`{series}` is committed on {}, which the program can withdraw, and no rule reopens it when that happens: a revision made before the withdrawal stays in force after it",
+                listed.join(", ")
+            ),
+            suggestion: format!(
+                "If a withdrawal should reconsider `{series}`, reopen it on the withdrawing event, for example `when committed({series}) and not reopened({series}) and rests_on_withdrawn({series}) reopen {series} because REASON`. If it should stay in force, put `# {ALLOW} {}` on the line above its declaration.",
+                WITHDRAWAL_NOT_REOPENED.1
+            ),
+            related,
+        });
+    }
+    found
+}
+
+/// The names a `withdraw` target withdraws. `every NAME` withdraws NAME and,
+/// when NAME is evidence, each reading stream declared `from` it.
+fn withdrawn_names<'a>(
+    target: &'a EvidenceSelector,
+    streams_from: &'a BTreeMap<String, Vec<String>>,
+) -> Vec<&'a String> {
+    match target {
+        EvidenceSelector::Named(name) | EvidenceSelector::Latest(name) => vec![name],
+        EvidenceSelector::Occurrence { evidence, .. } => vec![evidence],
+        EvidenceSelector::Caveated { state, .. } => vec![state],
+        EvidenceSelector::Every(name) => std::iter::once(name)
+            .chain(streams_from.get(name).into_iter().flatten())
+            .collect(),
+    }
+}
+
+/// Where each of `names` is withdrawn, as related locations, each once.
+fn withdrawal_sites(
+    steps: &[Step],
+    streams_from: &BTreeMap<String, Vec<String>>,
+    names: &[String],
+) -> Vec<Related> {
+    let mut sites = Vec::new();
+    for name in names {
+        for step in steps {
+            let Effect::Withdraw { target, .. } = &step.effect else {
+                continue;
+            };
+            let note = format!("`{name}` is withdrawn here");
+            if withdrawn_names(target, streams_from).contains(&name)
+                && !sites
+                    .iter()
+                    .any(|site: &Related| site.line == step.at.line && site.note == note)
+            {
+                sites.push(Related {
+                    line: step.at.line,
+                    column: step.at.column,
+                    note,
+                });
+            }
+        }
+    }
+    sites
 }
 
 /// C003 and C004. Each rule written in a plain `for` block about its member,

@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.0`**.
+Package: **`caveat-lang@1.4.1`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -24,7 +24,7 @@ In an empty directory with Node 20 or later, install the package:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 ```
 <!-- /caveat-package:install -->
 
@@ -106,7 +106,7 @@ installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.0
+npm install caveat-lang@1.4.1
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -308,6 +308,9 @@ npx --no-install caveat-lang init my-project
   record in a place a later `qualify` reaches (1.1 changed what those reads
   carry). `--records --save SAVE` lists the values in a save written by a
   1.0.x runtime that are missing such a caveat.
+  `--withdrawals` also reports each commit on something the program can
+  withdraw that nothing asks is withdrawn, and each decision on such a source
+  that no withdrawal reopens.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
@@ -393,7 +396,8 @@ To ask what an event would do without doing it, call
 from a copy of the session that is then dropped, so the session is unchanged
 whatever the answer: for example, which decisions withdrawing some evidence
 would reopen, or whether a commitment would be refused. It takes the same
-`{ fields }` option. A fatal answer throws but leaves the session usable
+`{ fields }` and `{ agent }` options, so it can ask about an event only one
+agent may send. A fatal answer throws but leaves the session usable
 ([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
 
 A runtime keeps the last few programs it loaded, so opening or restoring the

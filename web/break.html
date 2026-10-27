@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:,">
+  <title>Try to break this — CAVEAT Language</title>
+  <meta name="description" content="One precise claim about withdrawing evidence in CAVEAT Language, five rules you can check, and a checker that runs in your browser. Find a case where it reopens too much or too little, and file it.">
+  <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/break.html">
+  <style>
+    :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b;--ok:#2d6a3e;--bad:#a3322a}
+    @media (prefers-color-scheme:dark){:root{--ink:#ece7de;--muted:#b3b0aa;--bg:#111a24;--code:#1b2733;--line:#2e3b48;--link:#9ccbe8;--ok:#8fd19e;--bad:#ff9a8f}}
+    *{box-sizing:border-box}
+    html{background:var(--bg)}
+    body{margin:0 auto;max-width:48rem;padding:24px 16px 48px;background:var(--bg);color:var(--ink);
+      font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;overflow-wrap:break-word}
+    h1{font-size:2.2rem;line-height:1.1;margin:.4em 0 .3em}
+    h2{font-size:1.3rem;margin:2em 0 .5em;padding-top:.6em;border-top:1px solid var(--line)}
+    h3{font-size:1.05rem;margin:1.4em 0 .4em}
+    a{color:var(--link)}
+    code,pre,textarea{font:15px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace}
+    code{background:var(--code);padding:0 .25em;border-radius:3px}
+    .lede{font-size:1.15rem}
+    .claim{border-left:4px solid #c9a24a;padding:.6em 1em;background:var(--code);font-size:1.1rem}
+    ol.rules li{margin:.5em 0}
+    textarea{width:100%;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px}
+    #program{height:22rem}
+    #events{height:9rem}
+    button{font:inherit;padding:.4em .9em;border-radius:6px;border:1px solid var(--line);background:var(--code);color:var(--ink);cursor:pointer;margin:.2em .3em .2em 0}
+    button.primary{border-color:var(--link);font-weight:600}
+    button:disabled{opacity:.5;cursor:default}
+    .scroll{overflow-x:auto}
+    table{border-collapse:collapse;margin:.6em 0;min-width:100%}
+    th,td{border-bottom:1px solid var(--line);padding:.3em .5em;text-align:left;vertical-align:top;font-size:.95rem}
+    td.ok{color:var(--ok)} td.bad{color:var(--bad);font-weight:700} td.na{color:var(--muted)}
+    .findings li{color:var(--bad)}
+    .note,#status{color:var(--muted)}
+    #status{font-weight:600}
+    footer{margin-top:3em;color:var(--muted);font-size:.9rem}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Try to break this</h1>
+  <p class="lede">CAVEAT Language makes agents smarter by remembering why. Below is
+  one precise claim about what happens when evidence is taken back, the five
+  rules it comes down to, and a checker that tests them in your browser. If you
+  find a case where Caveat reopens too much, too little, or rewrites the past,
+  please file it.</p>
+</header>
+
+<main>
+  <h2>The claim</h2>
+  <p class="claim">When a program withdraws a piece of evidence, Caveat erases
+  nothing, flags every current value that was computed from it, and lets the
+  program reopen exactly the decisions whose recorded grounds include it, while
+  each past decision keeps the basis it actually had.</p>
+
+  <ol class="rules">
+    <li><b>R1 Nothing recorded changes.</b> Every observation, every decision's
+    frozen basis and grounds, and every journal entry stay as they were. The
+    withdrawal is added as its own record.
+    (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-withdrawal-0.1.md#what-withdraw-does">Withdrawal 0.1</a>, step 3)</li>
+    <li><b>R2 Everything computed from it is flagged.</b> Every current value
+    whose lineage or grounds hold the withdrawn evidence carries the caveat
+    <code>withdrawn</code>, including values read through a decision that
+    rested on it. A value that never touched it does not.
+    (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-withdrawal-0.1.md#what-withdraw-does">step 2</a>)</li>
+    <li><b>R3 "Rests on" means grounds, exactly.</b>
+    <code>rests_on_withdrawn(D)</code> is true when, and only when, the current
+    revision of D has withdrawn evidence in its frozen grounds.
+    (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-withdrawal-0.1.md#predicates">Predicates</a>)</li>
+    <li><b>R4 Nothing reopens by itself.</b> A withdrawal changes no decision's
+    status. Only a rule or trigger the author wrote reopens one, and the
+    journal records it.</li>
+    <li><b>R5 A refused event withdraws nothing.</b> A withdrawal is part of
+    its event's transaction.</li>
+  </ol>
+
+  <h2>What is outside the claim</h2>
+  <ul>
+    <li><b>Evidence only a guard read.</b> A <code>when</code> condition is
+    control, not grounds, so withdrawing evidence that only opened a gate does
+    not make <code>rests_on_withdrawn</code> true. Values computed under that
+    guard still carry <code>withdrawn</code> through their lineage, and
+    <code>has_caveat(STATE, …)</code> answers from grounds. The guard example
+    below shows both. If you think this rule is wrong, a report that shows
+    the harm is welcome.</li>
+    <li>Whether the evidence was true, or whether the reason for withdrawing
+    it was good. Caveat records both and judges neither
+    (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md">Limits</a>).</li>
+    <li>A program whose own rules choose not to reopen. Caveat gives the
+    predicate; the author decides what it means.</li>
+    <li>Saves edited by hand (saves are not authenticated), events refused by
+    a resource cap, and undoing a withdrawal, which the language does not
+    offer.</li>
+  </ul>
+
+  <h2>Run it</h2>
+  <p>Start from an example or write your own program and events, one JSON
+  object per line. Everything runs here, in your browser, on the WebAssembly
+  runtime built from <span id="version">…</span>. Nothing is sent anywhere.</p>
+  <p>
+    <button type="button" data-example="apartment">Apartment example</button>
+    <button type="button" data-example="guard">Guard-only example</button>
+  </p>
+  <label for="program"><b>Program</b> (<code>.cav</code>)</label>
+  <textarea id="program" spellcheck="false"></textarea>
+  <label for="events"><b>Events</b> (<code>{"event": NAME, "payload": {…}}</code> per line)</label>
+  <textarea id="events" spellcheck="false"></textarea>
+  <p>
+    <button type="button" class="primary" id="run" disabled>Run and check</button>
+    <button type="button" id="report" hidden>Report this on GitHub</button>
+  </p>
+  <p id="status" role="status">Loading the runtime…</p>
+  <div id="results"></div>
+
+  <h2>How the checker works</h2>
+  <p>After every event it reads the runtime's own snapshot and tests each rule:
+  R1 compares every earlier record with the new snapshot, R2 compares each
+  value's lineage with the withdrawal records, R3 recomputes
+  "grounds hold withdrawn evidence" and compares it with the runtime's answer,
+  R4 looks for an authored reopening behind every decision that reopened, and
+  R5 checks that a refused event changed no withdrawal or decision. To ask the
+  runtime for R3, it adds one display line per decision to your program; those
+  lines change no state, evidence or decision. It checks the cases you run;
+  it is not a proof. The code is
+  <a href="break-check.js">break-check.js</a>.</p>
+
+  <h2>Reporting</h2>
+  <p>The report button opens a new GitHub issue with your program, events and
+  the failed rules filled in. You see it on GitHub before anything is
+  submitted. Every report gets a reply saying whether it is a bug, a
+  disagreement with a rule, or outside the claim, and why. A confirmed bug gets
+  a regression test named after it and a patch release, and its reporter is
+  credited in the release record unless they ask not to be. A disagreement with
+  a rule is a question about the language itself, decided in the open
+  (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/COMPATIBILITY.md">compatibility</a>).
+  You can also file one by hand with the
+  <a href="https://github.com/WSattazahn/caveat-lang/issues/new?template=break-report.md">break report template</a>.</p>
+</main>
+
+<footer>
+  <a href="about.html">About CAVEAT Language</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang">Source</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-withdrawal-0.1.md">Withdrawal 0.1</a>
+</footer>
+
+<script type="module" src="./break.js"></script>
+</body>
+</html>

@@ -303,7 +303,13 @@ These rules apply only to a program with a window.
 - A commitment's frozen basis and grounds, what it retains and relies on, and
   its journal entries are left as they are. Reading `committed(…)` or
   `reopened(…)` after a take-back carries what the commitment retains,
-  as a kept caveat.
+  as a kept caveat. So does `latest(SERIES)`, whose basis holds every
+  predecessor's ([Reactive 0.5](caveat-reactive-0.5.md)): a revision made
+  after the take-back still carries the caveat its predecessor was made
+  under, and an irreversible commit resting on it is refused
+  `caveated_irreversible`, since a take-back caveat cannot be retained. A
+  commit that means to rest on the revision's own grounds reads
+  `grounds_of(SERIES)` ([Grounds Of 0.1](caveat-grounds-of-0.1.md)).
 - A take-back reopens nothing and commits nothing. A program states what it
   means for its decisions, as it does for a withdrawal.
 - Permission records are frozen records and do not change.
@@ -358,6 +364,12 @@ the implementation.
 
 ## Changes
 
+- 2026-10-26: "Withdrawal, decisions and permission" says that `latest(SERIES)`
+  carries a kept take-back caveat through the lineage, what that means for an
+  irreversible commit, and that `grounds_of(SERIES)` reads the revision's own
+  grounds (the AI change review demo's friction item 1, triaged by the bug
+  hunt as the specified behavior). Test:
+  `runtime/tests/grounds_of.rs`, `a_reviewed_revision_releases_on_its_grounds_not_its_lineage`.
 - 2026-10-11: specified (rc.18 P3).
 - 2026-10-11: implemented (rc.18 P4). Tests: `runtime/tests/take_back.rs`
   (round 8 item 1, including CR20's doubt, renew and take-back) and the

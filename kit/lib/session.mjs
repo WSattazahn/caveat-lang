@@ -290,22 +290,30 @@ export class CaveatSession {
   whatIf(event, payload = {}, options = {}) {
     this.#usable();
     const fields = viewFields(options);
-    // Agents (spec/caveat-agents-0.1.md) are not on the what-if path yet, so
-    // an agent is refused rather than dropped.
-    if (agentOption(options) !== null) throw new TypeError('whatIf does not take an agent');
+    // whatIf(event, payload, { agent }) asks what the event would do sent by
+    // that agent (spec/caveat-agents-0.1.md), as dispatchView would answer it.
+    const agent = agentOption(options);
     if (typeof this.#inner.what_if_view_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no what_if_view_outcome; it predates whatIf');
     }
     if (fields !== null && typeof this.#inner.what_if_view_fields_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no what_if_view_fields_outcome; it predates whatIf fields');
     }
+    if (agent !== null && fields === null && typeof this.#inner.what_if_view_outcome_as !== 'function') throw predatesAgents('what_if_view_outcome_as');
+    if (agent !== null && fields !== null && typeof this.#inner.what_if_view_fields_outcome_as !== 'function') throw predatesAgents('what_if_view_fields_outcome_as');
     if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
     const text = payloadText(payload);
     let raw;
     try {
-      raw = fields === null
-        ? this.#inner.what_if_view_outcome(event, text)
-        : this.#inner.what_if_view_fields_outcome(event, text, fields);
+      if (agent === null) {
+        raw = fields === null
+          ? this.#inner.what_if_view_outcome(event, text)
+          : this.#inner.what_if_view_fields_outcome(event, text, fields);
+      } else {
+        raw = fields === null
+          ? this.#inner.what_if_view_outcome_as(event, text, agent)
+          : this.#inner.what_if_view_fields_outcome_as(event, text, fields, agent);
+      }
     } catch (error) {
       if (isTrap(error)) throw this.#fail(error);
       throw error instanceof CaveatError ? error : fatalFrom(error);
@@ -530,7 +538,8 @@ export function createRuntime(SessionClass, identity = {}) {
     // A program that does not load throws as open does. `{ unused: true }`
     // adds C007 and `{ records: true }` C008, each reported only when asked
     // for. `{ records: true, save }` also adds C009 for that save (its text);
-    // a save that does not restore throws as restore does.
+    // a save that does not restore throws as restore does. `{ withdrawals:
+    // true }` adds C010 and C011.
     check(source, options = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
@@ -539,6 +548,7 @@ export function createRuntime(SessionClass, identity = {}) {
       }
       const unused = options?.unused === true;
       const records = options?.records === true;
+      const withdrawals = options?.withdrawals === true;
       const save = options?.save;
       if (save !== undefined && typeof save !== 'string') throw new TypeError('save must be text');
       if (save !== undefined && !records) throw new TypeError('a save is checked with records: true');
@@ -548,12 +558,16 @@ export function createRuntime(SessionClass, identity = {}) {
       if (records && typeof SessionClass.check_options !== 'function') {
         throw new CaveatError('load', 'this runtime build has no records check; it predates caveat check --records');
       }
+      if (withdrawals && typeof SessionClass.check_options !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no withdrawals check; it predates caveat check --withdrawals');
+      }
       if (save !== undefined) {
         // The program must load first, so its error is reported as load.
         try { new SessionClass(source).free(); } catch (error) { throw failure(error, 'load'); }
         try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore'); }
       }
       try {
+        if (withdrawals) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, withdrawals, save })));
         if (records) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, save })));
         return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source));
       } catch (error) {

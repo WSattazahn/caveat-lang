@@ -3,7 +3,7 @@ description: >
   Install Playwright browsers and their system packages for the installed
   playwright version. Browser downloads and the downloaded system packages
   are cached, so a slow Ubuntu mirror is only paid for once per runner
-  image; apt gives up on a stalled connection and retries, and a failed
+  image; each install attempt is time-bounded, and a failed or stalled
   install is tried once more before the job fails.
 inputs:
   browsers:
@@ -41,9 +41,19 @@ runs:
         if compgen -G "$HOME/.cache/playwright-apt/*.deb" >/dev/null; then
           sudo cp "$HOME"/.cache/playwright-apt/*.deb /var/cache/apt/archives/
         fi
-        if ! npx playwright install-deps $BROWSERS; then
-          echo "::warning::playwright install-deps $BROWSERS failed; trying once more"
-          npx playwright install-deps $BROWSERS
+        # Run as root so the time bound can stop apt itself: an unprivileged timeout
+        # cannot kill root's apt-get, which then keeps the dpkg lock from the retry.
+        # A mirror connection can hang where apt's own timeouts never fire.
+        node_bin="$(command -v node)"
+        cli="$(dirname "$(node -p "require.resolve('playwright/package.json')")")/cli.js"
+        install_deps() {
+          sudo timeout --kill-after=30s 8m "$node_bin" "$cli" install-deps $BROWSERS
+        }
+        if ! install_deps; then
+          echo "::warning::playwright install-deps $BROWSERS failed or stalled; trying once more"
+          sudo pkill -KILL -x apt-get || true
+          sudo dpkg --configure -a
+          install_deps
         fi
         mkdir -p "$HOME/.cache/playwright-apt"
         cp /var/cache/apt/archives/*.deb "$HOME/.cache/playwright-apt/" 2>/dev/null || true

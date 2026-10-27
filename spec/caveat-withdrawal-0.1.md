@@ -149,3 +149,18 @@ This profile does not include:
   before this change that holds such a relation is still refused. Renewal
   already inherited only declared caveats, and no other effect copies a
   `withdrawn` relation.
+
+- 2026-10-26 (1.4.1): a value read through `committed(D)`, `reopened(D)` or
+  `in_basis(D, E)` carries `withdrawn` when the decision's basis lists
+  withdrawn evidence, as a value read through `latest(D)` did and as a late
+  `qualify` already reached it ([Late Qualification
+  0.1](caveat-late-qualification-0.1.md), D015). Before this, `bind status =
+  "in force" when committed(d)` listed the withdrawn evidence but did not
+  carry `withdrawn`, against step 2 above, in every release since 1.0.0
+  (finding D026, from the checker on the "Try to break this" page). The
+  decision's frozen basis, grounds and caveats are unchanged, and so is
+  `rests_on_withdrawn`. A revision committed after the withdrawal holds its
+  predecessor's basis in its lineage, so it now carries `withdrawn` there too,
+  as it already carried that basis's other caveats; its grounds are unchanged.
+  The corpus sweep is in `experiments/d026-sweep`. A program that withdraws
+  nothing a decision's basis lists is unchanged.

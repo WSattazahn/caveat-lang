@@ -1,0 +1,843 @@
+{
+ "note": "Written by scripts/save-fixture.mjs from the installed release named here. Do not edit; regenerate from that release.",
+ "package": "caveat-lang@1.4.1",
+ "program": "programs/readiness.cav",
+ "events": "events/readiness.json",
+ "before": [
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  },
+  {
+   "outcome": "accepted"
+  }
+ ],
+ "save": "{\"schema\":\"caveat-reactive-save/0.1\",\"source_id\":\"fnv1a64:bd7501a690044cef:4172\",\"source_sha256\":\"ea2eaffc448eebc24bd5dbe39a19c1d9f2c82e7bd1edee2b4bd00a8d08af2b66\",\"sequence\":18,\"last_event\":\"audit_mirror_lagged\",\"elapsed\":0.0,\"states\":{\"audit_findings\":{\"value\":0.0,\"lineage\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"candidate\":{\"value\":2.0},\"tested_revision\":{\"value\":2.0},\"tests_passed\":{\"value\":0.0,\"lineage\":{\"evidence\":[\"test_result\",\"test_result@10\",\"test_result@11\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"grounds\":{\"evidence\":[\"test_result@11\"]}}},\"graph\":{\"nodes\":[{\"kind\":\"commitment\",\"name\":\"release@1\",\"reason\":\"enough\"},{\"kind\":\"occurrence\",\"name\":\"test_result@4\"},{\"kind\":\"occurrence\",\"name\":\"test_result@5\"},{\"kind\":\"occurrence\",\"name\":\"test_result@6\"},{\"kind\":\"occurrence\",\"name\":\"test_result@7\"},{\"kind\":\"occurrence\",\"name\":\"test_result@8\"},{\"kind\":\"occurrence\",\"name\":\"test_result@9\"},{\"kind\":\"occurrence\",\"name\":\"test_result@10\"},{\"kind\":\"occurrence\",\"name\":\"test_result@11\"},{\"kind\":\"commitment\",\"name\":\"dependency_signoff@1\",\"reason\":\"enough\"}],\"relations\":[[\"test_result\",\"supports\",\"revision_tested\"],[\"release@1\",\"relies_on\",\"test_result\"],[\"wrong_configuration\",\"qualifies\",\"test_result\"],[\"test_result\",\"reopens\",\"release@1\"],[\"test_result@4\",\"supports\",\"revision_tested\"],[\"test_result@5\",\"opposes\",\"revision_tested\"],[\"test_result@6\",\"supports\",\"revision_tested\"],[\"test_result@7\",\"opposes\",\"revision_tested\"],[\"test_result@8\",\"supports\",\"revision_tested\"],[\"test_result@9\",\"opposes\",\"revision_tested\"],[\"test_result@10\",\"supports\",\"revision_tested\"],[\"test_result@11\",\"opposes\",\"revision_tested\"],[\"dependency_audit\",\"supports\",\"dependencies_cleared\"],[\"dependency_signoff@1\",\"relies_on\",\"dependency_audit\"],[\"mirror_lag\",\"qualifies\",\"dependency_audit\"]],\"open\":[\"release@1\"]},\"commitment_bases\":{\"dependency_signoff@1\":{\"value\":0.0,\"provenance\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]}},\"release@1\":{\"value\":1.0,\"provenance\":{\"evidence\":[\"test_result\"],\"caveats\":[]}}},\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"]},\"release@1\":{\"evidence\":[\"test_result\"]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"renewals\":{\"test_result\":[\"test_result\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\",\"test_result@10\",\"test_result@11\"]},\"identifiers\":[\"rev-1\",\"rev-2\"],\"observation_qualifications\":{\"dependency_audit\":{},\"test_result\":{},\"test_result@10\":{\"evidence\":[\"test_result\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@11\":{\"evidence\":[\"test_result\",\"test_result@10\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@4\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@5\":{\"evidence\":[\"test_result\",\"test_result@4\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@6\":{\"evidence\":[\"test_result\",\"test_result@4\",\"test_result@5\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@7\":{\"evidence\":[\"test_result\",\"test_result@4\",\"test_result@5\",\"test_result@6\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@8\":{\"evidence\":[\"test_result\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]},\"test_result@9\":{\"evidence\":[\"test_result\",\"test_result@4\",\"test_result@5\",\"test_result@6\",\"test_result@7\",\"test_result@8\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":2,\"from\":2,\"through\":3,\"departed_at\":15,\"archive_ref\":\"0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da\"}]}},\"reopening_qualifications\":{\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0.0,\"value\":1.0,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0.0,\"value\":1.0,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0.0,\"value\":0.0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"retired\":{\"test_result\":13},\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"dependency_audit\",\"caveat\":\"mirror_lag\"}]}",
+ "after": [
+  {
+   "outcome": "rejected",
+   "origin": "policy",
+   "code": "reject",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":18,\"last_event\":\"audit_mirror_lagged\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"dependency_audit\",\"caveat\":\"mirror_lag\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@4\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "policy",
+   "code": "reject",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":18,\"last_event\":\"audit_mirror_lagged\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"dependency_audit\",\"caveat\":\"mirror_lag\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@4\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":19,\"last_event\":\"test_reported\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"retire\",\"history\":\"test_result\",\"record\":\"test_result@4\"},{\"kind\":\"renew\",\"evidence\":\"test_result\",\"occurrence\":\"test_result@12\"},{\"kind\":\"reveal\",\"evidence\":\"test_result@12\",\"relation\":\"opposes\",\"target\":\"revision_tested\"},{\"kind\":\"depart\",\"history\":\"test_result\",\"record\":\"test_result@4\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":20,\"last_event\":\"test_configuration_wrong\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"test_result@12\",\"caveat\":\"wrong_configuration\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "policy",
+   "code": "reject",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":20,\"last_event\":\"test_configuration_wrong\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"qualify\",\"evidence\":\"test_result@12\",\"caveat\":\"wrong_configuration\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":21,\"last_event\":\"propose\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@5\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":22,\"last_event\":\"test_reported\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"reopened\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]}}},\"cues\":[],\"effects\":[{\"kind\":\"retire\",\"history\":\"test_result\",\"record\":\"test_result@5\"},{\"kind\":\"renew\",\"evidence\":\"test_result\",\"occurrence\":\"test_result@13\"},{\"kind\":\"reveal\",\"evidence\":\"test_result@13\",\"relation\":\"supports\",\"target\":\"revision_tested\"},{\"kind\":\"depart\",\"history\":\"test_result\",\"record\":\"test_result@5\"}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@1\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"test_result@13\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "accepted",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":23,\"last_event\":\"approve_release\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"approved\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\",\"test_result@10\",\"test_result@11\",\"test_result@12\",\"test_result@13\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":4,\"from\":2,\"through\":5,\"departed_at\":22,\"archive_ref\":\"767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0\"}]}}},\"cues\":[],\"effects\":[{\"kind\":\"commit\",\"action\":\"release@2\",\"retained\":[\"wrong_configuration\"]}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]},{\"action\":\"release@2\",\"open\":false,\"retained\":[\"wrong_configuration\"],\"retained_authorship\":[{\"caveat\":\"wrong_configuration\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]},\"release@2\":{\"evidence\":[\"test_result@13\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@2\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"},{\"id\":\"release@2\",\"previous\":\"release@1\",\"ordinal\":2,\"sequence\":23,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@2\",\"change\":\"committed\",\"sequence\":23,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result@13\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"test_result@13\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"retains\",\"to\":\"wrong_configuration\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@10\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@11\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@13\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@6\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@7\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@8\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@9\",\"origin\":\"live\"}]}"
+  },
+  {
+   "outcome": "rejected",
+   "origin": "input",
+   "code": "bound_exceeded",
+   "view": "{\"schema\":\"caveat-reactive-view/0.1\",\"sequence\":23,\"last_event\":\"approve_release\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"approved\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\",\"test_result@10\",\"test_result@11\",\"test_result@12\",\"test_result@13\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":4,\"from\":2,\"through\":5,\"departed_at\":22,\"archive_ref\":\"767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0\"}]}}},\"cues\":[],\"effects\":[{\"kind\":\"commit\",\"action\":\"release@2\",\"retained\":[\"wrong_configuration\"]}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"open\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"open\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]},{\"action\":\"release@2\",\"open\":false,\"retained\":[\"wrong_configuration\"],\"retained_authorship\":[{\"caveat\":\"wrong_configuration\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]},\"release@2\":{\"evidence\":[\"test_result@13\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@2\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"},{\"id\":\"release@2\",\"previous\":\"release@1\",\"ordinal\":2,\"sequence\":23,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@2\",\"change\":\"committed\",\"sequence\":23,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result@13\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"test_result@13\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"retains\",\"to\":\"wrong_configuration\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@10\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@11\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@13\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@6\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@7\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@8\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@9\",\"origin\":\"live\"}]}"
+  }
+ ],
+ "archive": [
+  {
+   "record": "test_result@2",
+   "history": "test_result",
+   "number": 2,
+   "retired_at": 14,
+   "departed_at": 14,
+   "relations": [
+    [
+     "test_result@2",
+     "supports",
+     "revision_tested"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [
+      "test_result"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ]
+    }
+   },
+   "holders": [
+    {
+     "kind": "qualification",
+     "name": "test_result@10",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@3",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@4",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@5",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@6",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@7",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@8",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@9",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "state",
+     "name": "tests_passed",
+     "in": "lineage"
+    }
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "b5478d8a4fede98b4c7ee50b698be0ff1885d7329cb2fe56060a8ac6de6ad0f5",
+   "history": "test_result",
+   "operation": "record",
+   "source_id": "fnv1a64:bd7501a690044cef:4172",
+   "record": "test_result@2",
+   "departed_at": 14
+  },
+  {
+   "record": "test_result@3",
+   "history": "test_result",
+   "number": 3,
+   "retired_at": 15,
+   "departed_at": 15,
+   "relations": [
+    [
+     "test_result@3",
+     "opposes",
+     "revision_tested"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [
+      "test_result"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ],
+     "departed": [
+      {
+       "history": "test_result",
+       "read": 1,
+       "from": 2,
+       "through": 2,
+       "departed_at": 14,
+       "archive_ref": "b5478d8a4fede98b4c7ee50b698be0ff1885d7329cb2fe56060a8ac6de6ad0f5"
+      }
+     ]
+    }
+   },
+   "holders": [
+    {
+     "kind": "qualification",
+     "name": "test_result@10",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@11",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@4",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@5",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@6",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@7",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@8",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@9",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "state",
+     "name": "tests_passed",
+     "in": "lineage"
+    }
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da",
+   "history": "test_result",
+   "operation": "union",
+   "parents": [
+    "ae3b7976434902347687b68dd47ea01f7fd15d72e93dbaeb92bae5459d99daeb",
+    "b5478d8a4fede98b4c7ee50b698be0ff1885d7329cb2fe56060a8ac6de6ad0f5"
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "ae3b7976434902347687b68dd47ea01f7fd15d72e93dbaeb92bae5459d99daeb",
+   "history": "test_result",
+   "operation": "record",
+   "source_id": "fnv1a64:bd7501a690044cef:4172",
+   "record": "test_result@3",
+   "departed_at": 15
+  },
+  {
+   "record": "test_result@4",
+   "history": "test_result",
+   "number": 4,
+   "retired_at": 19,
+   "departed_at": 19,
+   "relations": [
+    [
+     "test_result@4",
+     "supports",
+     "revision_tested"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [
+      "test_result"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ],
+     "departed": [
+      {
+       "history": "test_result",
+       "read": 2,
+       "from": 2,
+       "through": 3,
+       "departed_at": 15,
+       "archive_ref": "0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da"
+      }
+     ]
+    }
+   },
+   "holders": [
+    {
+     "kind": "qualification",
+     "name": "test_result@10",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@11",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@12",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@5",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@6",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@7",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@8",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@9",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "state",
+     "name": "tests_passed",
+     "in": "lineage"
+    }
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "497faffd63e5d58821aaa2f91acdcb1dddd428c39a728fa74ae90821c6634014",
+   "history": "test_result",
+   "operation": "union",
+   "parents": [
+    "0615009c6b3c910da6ba8d6f02c0d9af71433c7f9d679c7573b93b57fba6d9da",
+    "283a7cce2d3a66d4666f6508b75fd12a0465c8488b350d0035857395376a8847"
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "283a7cce2d3a66d4666f6508b75fd12a0465c8488b350d0035857395376a8847",
+   "history": "test_result",
+   "operation": "record",
+   "source_id": "fnv1a64:bd7501a690044cef:4172",
+   "record": "test_result@4",
+   "departed_at": 19
+  },
+  {
+   "record": "test_result@5",
+   "history": "test_result",
+   "number": 5,
+   "retired_at": 22,
+   "departed_at": 22,
+   "relations": [
+    [
+     "test_result@5",
+     "opposes",
+     "revision_tested"
+    ]
+   ],
+   "qualifications": {
+    "observation": {
+     "evidence": [
+      "test_result"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ],
+     "departed": [
+      {
+       "history": "test_result",
+       "read": 3,
+       "from": 2,
+       "through": 4,
+       "departed_at": 19,
+       "archive_ref": "497faffd63e5d58821aaa2f91acdcb1dddd428c39a728fa74ae90821c6634014"
+      }
+     ]
+    }
+   },
+   "holders": [
+    {
+     "kind": "qualification",
+     "name": "test_result@10",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@11",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@12",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@13",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@6",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@7",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@8",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "qualification",
+     "name": "test_result@9",
+     "in": "observation_qualifications"
+    },
+    {
+     "kind": "state",
+     "name": "tests_passed",
+     "in": "lineage"
+    }
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0",
+   "history": "test_result",
+   "operation": "union",
+   "parents": [
+    "497faffd63e5d58821aaa2f91acdcb1dddd428c39a728fa74ae90821c6634014",
+    "9bb7f44a0a661d9acc1de574f6d6b6bbfb5a3052ac606ceaa71377a49b57d21a"
+   ]
+  },
+  {
+   "kind": "provenance",
+   "id": "9bb7f44a0a661d9acc1de574f6d6b6bbfb5a3052ac606ceaa71377a49b57d21a",
+   "history": "test_result",
+   "operation": "record",
+   "source_id": "fnv1a64:bd7501a690044cef:4172",
+   "record": "test_result@5",
+   "departed_at": 22
+  }
+ ],
+ "view_v2": "{\"schema\":\"caveat-reactive-view/0.2\",\"sequence\":23,\"last_event\":\"approve_release\",\"bindings\":{\"dependencies\":{\"status\":\"signed off\"},\"release\":{\"status\":\"approved\"}},\"binding_explanations\":{\"dependencies\":{\"status\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[\"mirror_lag\"]}},\"release\":{\"status\":{\"evidence\":[\"test_result\",\"test_result@6\",\"test_result@7\",\"test_result@8\",\"test_result@9\",\"test_result@10\",\"test_result@11\",\"test_result@12\",\"test_result@13\"],\"caveats\":[\"wrong_configuration\"],\"departed\":[{\"history\":\"test_result\",\"read\":4,\"from\":2,\"through\":5,\"departed_at\":22,\"archive_ref\":\"767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0\"}]}}},\"cues\":[],\"effects\":[{\"kind\":\"commit\",\"action\":\"release@2\",\"retained\":[\"wrong_configuration\"]}],\"commitments\":[{\"action\":\"dependency_signoff@1\",\"reopened\":false,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[]},{\"action\":\"release@1\",\"reopened\":true,\"retained\":[],\"retained_authorship\":[],\"reopened_by\":[\"test_result\"]},{\"action\":\"release@2\",\"reopened\":false,\"retained\":[\"wrong_configuration\"],\"retained_authorship\":[{\"caveat\":\"wrong_configuration\",\"written_by\":null,\"written_elsewhere\":null}],\"reopened_by\":[]}],\"commitment_grounds\":{\"dependency_signoff@1\":{\"evidence\":[\"dependency_audit\"],\"caveats\":[]},\"release@1\":{\"evidence\":[\"test_result\"],\"caveats\":[]},\"release@2\":{\"evidence\":[\"test_result@13\"],\"caveats\":[]}},\"decision_series\":{\"dependency_signoff\":{\"limit\":32,\"current\":\"dependency_signoff@1\",\"revisions\":[{\"id\":\"dependency_signoff@1\",\"previous\":null,\"ordinal\":1,\"sequence\":17,\"event\":\"sign_off_dependencies\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}},\"release\":{\"limit\":32,\"current\":\"release@2\",\"revisions\":[{\"id\":\"release@1\",\"previous\":null,\"ordinal\":1,\"sequence\":3,\"event\":\"approve_release\"},{\"id\":\"release@2\",\"previous\":\"release@1\",\"ordinal\":2,\"sequence\":23,\"event\":\"approve_release\"}],\"selection_qualifications\":{\"evidence\":[],\"caveats\":[]}}},\"decision_journal\":[{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"committed\",\"sequence\":3,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@1\",\"change\":\"reopened\",\"sequence\":4,\"event\":\"test_configuration_wrong\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result\"],\"caveats\":[\"wrong_configuration\"]},{\"decision\":\"dependency_signoff\",\"commitment\":\"dependency_signoff@1\",\"change\":\"committed\",\"sequence\":17,\"event\":\"sign_off_dependencies\",\"elapsed\":0,\"value\":0,\"because\":[\"dependency_audit\"],\"caveats\":[]},{\"decision\":\"release\",\"commitment\":\"release@2\",\"change\":\"committed\",\"sequence\":23,\"event\":\"approve_release\",\"elapsed\":0,\"value\":1,\"because\":[\"test_result@13\"],\"caveats\":[]}],\"relations\":[{\"from\":\"test_result\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@1\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"test_result\",\"relation\":\"reopens\",\"to\":\"release@1\",\"origin\":\"live\"},{\"from\":\"test_result@6\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@7\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@8\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@9\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@10\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"test_result@11\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"dependency_audit\",\"relation\":\"supports\",\"to\":\"dependencies_cleared\",\"origin\":\"live\"},{\"from\":\"dependency_signoff@1\",\"relation\":\"relies_on\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"mirror_lag\",\"relation\":\"qualifies\",\"to\":\"dependency_audit\",\"origin\":\"live\"},{\"from\":\"test_result@12\",\"relation\":\"opposes\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"wrong_configuration\",\"relation\":\"qualifies\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"test_result@13\",\"relation\":\"supports\",\"to\":\"revision_tested\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"retains\",\"to\":\"wrong_configuration\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@10\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@11\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@12\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@13\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@6\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@7\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@8\",\"origin\":\"live\"},{\"from\":\"release@2\",\"relation\":\"relies_on\",\"to\":\"test_result@9\",\"origin\":\"live\"}]}",
+ "explain": {
+  "decisions": [
+   {
+    "name": "dependency_signoff",
+    "limit": 32,
+    "current": "dependency_signoff@1",
+    "revisions": [
+     {
+      "id": "dependency_signoff@1",
+      "value": 0,
+      "status": "in force",
+      "grounds": {
+       "evidence": [
+        "dependency_audit"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "dependency_audit"
+       ],
+       "caveats": []
+      },
+      "retained": [],
+      "permission": null,
+      "withdrawn": [],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 17,
+        "event": "sign_off_dependencies",
+        "because": [
+         "dependency_audit"
+        ],
+        "caveats": [],
+        "source_sha256": "ea2eaffc448eebc24bd5dbe39a19c1d9f2c82e7bd1edee2b4bd00a8d08af2b66"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "release",
+    "limit": 32,
+    "current": "release@2",
+    "revisions": [
+     {
+      "id": "release@1",
+      "value": 1,
+      "status": "superseded",
+      "grounds": {
+       "evidence": [
+        "test_result"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "test_result"
+       ],
+       "caveats": []
+      },
+      "retained": [],
+      "permission": null,
+      "withdrawn": [],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 3,
+        "event": "approve_release",
+        "because": [
+         "test_result"
+        ],
+        "caveats": [],
+        "source_sha256": "ea2eaffc448eebc24bd5dbe39a19c1d9f2c82e7bd1edee2b4bd00a8d08af2b66"
+       },
+       {
+        "change": "reopened",
+        "sequence": 4,
+        "event": "test_configuration_wrong",
+        "because": [
+         "test_result"
+        ],
+        "caveats": [
+         "wrong_configuration"
+        ],
+        "source_sha256": "ea2eaffc448eebc24bd5dbe39a19c1d9f2c82e7bd1edee2b4bd00a8d08af2b66"
+       }
+      ]
+     },
+     {
+      "id": "release@2",
+      "value": 1,
+      "status": "in force",
+      "grounds": {
+       "evidence": [
+        "test_result@13"
+       ],
+       "caveats": []
+      },
+      "lineage": {
+       "evidence": [
+        "test_result",
+        "test_result@10",
+        "test_result@11",
+        "test_result@12",
+        "test_result@13",
+        "test_result@6",
+        "test_result@7",
+        "test_result@8",
+        "test_result@9"
+       ],
+       "caveats": [
+        "wrong_configuration"
+       ],
+       "departed": [
+        {
+         "history": "test_result",
+         "read": 4,
+         "from": 2,
+         "through": 5,
+         "departed_at": 22,
+         "archive_ref": "767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0",
+         "departed_between": 4,
+         "archive_status": "complete",
+         "records": [
+          "test_result@2",
+          "test_result@3",
+          "test_result@4",
+          "test_result@5"
+         ]
+        }
+       ]
+      },
+      "retained": [
+       "wrong_configuration"
+      ],
+      "permission": null,
+      "withdrawn": [],
+      "history": [
+       {
+        "change": "committed",
+        "sequence": 23,
+        "event": "approve_release",
+        "because": [
+         "test_result@13"
+        ],
+        "caveats": [],
+        "source_sha256": "ea2eaffc448eebc24bd5dbe39a19c1d9f2c82e7bd1edee2b4bd00a8d08af2b66"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "evidence": [
+   {
+    "id": "test_result",
+    "relation": "supports",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [
+     "wrong_configuration"
+    ],
+    "withdrawn": null,
+    "retired_at": 13
+   },
+   {
+    "id": "test_result@6",
+    "relation": "supports",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@7",
+    "relation": "opposes",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@8",
+    "relation": "supports",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@9",
+    "relation": "opposes",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@10",
+    "relation": "supports",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@11",
+    "relation": "opposes",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   },
+   {
+    "id": "dependency_audit",
+    "relation": "supports",
+    "claim": "dependencies_cleared",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [
+     "mirror_lag"
+    ],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@12",
+    "relation": "opposes",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [
+     "wrong_configuration"
+    ],
+    "withdrawn": null
+   },
+   {
+    "id": "test_result@13",
+    "relation": "supports",
+    "claim": "revision_tested",
+    "value": null,
+    "sequence": null,
+    "event": null,
+    "caveats": [],
+    "withdrawn": null
+   }
+  ],
+  "displayed": [
+   {
+    "name": "dependencies.status",
+    "value": "signed off",
+    "cites": {
+     "evidence": [
+      "dependency_audit"
+     ],
+     "caveats": [
+      "mirror_lag"
+     ]
+    }
+   },
+   {
+    "name": "release.status",
+    "value": "approved",
+    "cites": {
+     "evidence": [
+      "test_result",
+      "test_result@10",
+      "test_result@11",
+      "test_result@12",
+      "test_result@13",
+      "test_result@6",
+      "test_result@7",
+      "test_result@8",
+      "test_result@9"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ],
+     "departed": [
+      {
+       "history": "test_result",
+       "read": 4,
+       "from": 2,
+       "through": 5,
+       "departed_at": 22,
+       "archive_ref": "767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0",
+       "departed_between": 4,
+       "archive_status": "complete",
+       "records": [
+        "test_result@2",
+        "test_result@3",
+        "test_result@4",
+        "test_result@5"
+       ]
+      }
+     ]
+    },
+    "lineage": {
+     "evidence": [
+      "test_result",
+      "test_result@10",
+      "test_result@11",
+      "test_result@12",
+      "test_result@13",
+      "test_result@6",
+      "test_result@7",
+      "test_result@8",
+      "test_result@9"
+     ],
+     "caveats": [
+      "wrong_configuration"
+     ],
+     "departed": [
+      {
+       "history": "test_result",
+       "read": 4,
+       "from": 2,
+       "through": 5,
+       "departed_at": 22,
+       "archive_ref": "767d54b5762bfd51920e528a2eeda9b6a27eb52d92135783e32724c03f8c7bf0",
+       "departed_between": 4,
+       "archive_status": "complete",
+       "records": [
+        "test_result@2",
+        "test_result@3",
+        "test_result@4",
+        "test_result@5"
+       ]
+      }
+     ]
+    }
+   }
+  ]
+ }
+}
