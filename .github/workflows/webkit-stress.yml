@@ -37,12 +37,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: default, env: '' }
-          - { name: no-omg, env: 'JSC_useOMGJIT=0' }
-          - { name: no-bbq, env: 'JSC_useBBQJIT=0' }
-          - { name: no-jit, env: 'JSC_useBBQJIT=0 JSC_useOMGJIT=0' }
-          - { name: no-osr, env: 'JSC_useWasmIPIntLoopOSR=0 JSC_useWasmIPIntPrologueOSR=0 JSC_useWasmIPIntEpilogueOSR=0 JSC_useWasmOSR=0' }
-          - { name: no-fastmem, env: 'JSC_useWasmFastMemory=0' }
+          - { name: default, env: '', args: '--pages 200 --replays 6' }
+          - { name: garbage-5, env: '', args: '--pages 150 --replays 0 --garbage 5' }
+          - { name: garbage-20, env: '', args: '--pages 150 --replays 0 --garbage 20' }
+          - { name: collect-continuously, env: 'JSC_collectContinuously=1', args: '--pages 40 --replays 2' }
+          - { name: gc-stress, env: 'JSC_slowPathAllocsBetweenGCs=1000', args: '--pages 40 --replays 2' }
     name: stress / ${{ matrix.config.name }}
     runs-on: ubuntu-24.04
     steps:
@@ -59,4 +58,4 @@ jobs:
       - run: npx playwright install --with-deps webkit
       - name: Stress
         shell: bash
-        run: env ${{ matrix.config.env }} node bench/carmack/webkit-stress.mjs --runtime stress-runtime --pages 80 --replays 4
+        run: env ${{ matrix.config.env }} node bench/carmack/webkit-stress.mjs --runtime stress-runtime ${{ matrix.config.args }}

@@ -17,6 +17,7 @@ const runtimeDir = path.resolve(arg('runtime', 'dist/pkg-reactive'));
 const pages = Number(arg('pages', 30));
 const replays = Number(arg('replays', 2));
 const browserName = arg('browser', 'webkit');
+const garbage = Number(arg('garbage', 0));
 const REPLAY_PROGRAMS = ['bench/carmack/programs/release-gate.cav', 'ledger/project.cav', 'examples/thermostat_history.cav', 'examples/ventilation_controller.cav', 'examples/slime_glow_ability.cav', 'examples/squeeze_affordance.cav', 'caveatism/canon/archive.cav'];
 const programs = REPLAY_PROGRAMS.map((name) => ({ name, source: readFileSync(path.join(ROOT, name), 'utf8') }));
 
@@ -46,7 +47,11 @@ try {
     const page = await browser.newPage();
     try {
       await page.goto(`${base}/`);
-      const result = await page.evaluate(async () => {
+      const result = await page.evaluate(async (garbage) => {
+        // Garbage: churn the JS heap so collections land inside wasm calls.
+        let keep = [];
+        const churn = () => { for (let i = 0; i < garbage * 2000; i += 1) keep.push({ i, s: `x${i}`, a: [i, i + 1] }); if (keep.length > garbage * 20000) keep = []; };
+        let timer = garbage ? setInterval(churn, 1) : null;
         const ns = await import('/runtime/caveat_runtime.js');
         await ns.default({ module_or_path: new URL('/runtime/caveat_runtime_bg.wasm', location.href) });
         const list = await (await fetch('/programs.json')).json();
@@ -55,15 +60,17 @@ try {
         for (let round = 0; round < 3; round += 1) {
           for (const program of list) {
             try {
+              if (garbage) churn();
               new ns.WebReactiveSession(program.source).free();
               opened += 1;
             } catch (error) {
-              if (error instanceof WebAssembly.RuntimeError) return { trap: String(error.message), program: program.name, round, opened, memory: memory() };
+              if (error instanceof WebAssembly.RuntimeError) { clearInterval(timer); return { trap: String(error.message), program: program.name, round, opened, memory: memory() }; }
             }
           }
         }
+        clearInterval(timer);
         return { opened };
-      });
+      }, garbage);
       startups += 1;
       if (result.trap) { failures.push({ kind: 'startup', page: i, ...result }); console.log(`page ${i}: TRAP ${result.trap} (${result.program}, round ${result.round}, after ${result.opened})`); }
     } catch (error) {
@@ -96,5 +103,5 @@ try {
   await browser.close();
   server.close();
 }
-console.log(`SUMMARY ${browserName} ${version} jsc=${JSON.stringify(jsc)} pages=${startups}/${pages} replays=${replays} failures=${failures.length}`);
+console.log(`SUMMARY ${browserName} ${version} jsc=${JSON.stringify(jsc)} garbage=${garbage} pages=${startups}/${pages} replays=${replays} failures=${failures.length}`);
 process.exit(0);
