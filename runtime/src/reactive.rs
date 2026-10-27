@@ -12,7 +12,7 @@ use crate::presentation::Number;
 use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
-pub use crate::reactive_expr::{Marker, Provenance, Tracked};
+pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -5132,7 +5132,7 @@ impl ReactiveSession {
     /// Whether `caveats` hold the caveat a `carries` predicate asks about:
     /// that caveat, or for `carries_any(…)` any caveat at all, or any of
     /// consequence at least its level.
-    fn carried(&self, caveats: &BTreeSet<String>, caveat: &str) -> bool {
+    fn carried(&self, caveats: &NameSet, caveat: &str) -> bool {
         let Some(level) = caveat.strip_prefix(reactive_expr::ANY_CAVEAT) else {
             return caveats.contains(caveat);
         };
@@ -5142,7 +5142,7 @@ impl ReactiveSession {
         caveats.iter().any(|name| {
             level.is_none_or(|level| {
                 matches!(
-                    self.symbols.get(name).and_then(|id| self.graph.nodes.get(id)),
+                    self.symbols.get(name.as_str()).and_then(|id| self.graph.nodes.get(id)),
                     Some(NodeKind::Caveat { consequence, .. }) if *consequence >= level
                 )
             })
@@ -5236,10 +5236,13 @@ impl ReactiveSession {
 
     /// Evidence names in first-observation order. Legacy sessions derive that
     /// order from their edges; neutral observations require an explicit ledger.
-    fn in_observation_order<'a>(&self, evidence: impl Iterator<Item = &'a String>) -> Vec<String> {
+    fn in_observation_order<S: AsRef<str>>(
+        &self,
+        evidence: impl Iterator<Item = S>,
+    ) -> Vec<String> {
         let ranks = self.observation_ranks();
         let mut named = evidence
-            .map(|name| (ranks.rank(name), name.clone()))
+            .map(|name| (ranks.rank(name.as_ref()), name.as_ref().to_string()))
             .collect::<Vec<_>>();
         named.sort();
         named.into_iter().map(|(_, name)| name).collect()
@@ -6210,9 +6213,9 @@ impl ReactiveSession {
                                 .iter()
                                 .filter(|caveat| strict && !grounds.caveats.contains(*caveat)),
                         )
-                        .filter(|caveat| !retaining.contains(*caveat))
+                        .filter(|caveat| !retaining.iter().any(|name| *caveat == name))
                         .filter_map(|caveat| {
-                            let consequence = self.graph.consequence(self.symbols[caveat]);
+                            let consequence = self.graph.consequence(self.symbols[caveat.as_str()]);
                             (consequence >= Consequence::Material).then(|| {
                                 format!("{caveat} ({})", format!("{consequence:?}").to_lowercase())
                             })
@@ -6254,8 +6257,8 @@ impl ReactiveSession {
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
                     self.require_kind(caveat, "caveat")?;
-                    if !retained_names.contains(caveat) {
-                        retained_names.push(caveat.clone());
+                    if !retained_names.iter().any(|name| caveat == name) {
+                        retained_names.push(caveat.to_string());
                     }
                 }
                 let retained = retained_names
@@ -6282,12 +6285,16 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.graph).relate(
                         id,
                         Relation::ReliesOn,
-                        self.symbols[evidence],
+                        self.symbols[evidence.as_str()],
                     );
                 }
                 self.collector_reopens(
                     &name,
-                    &provenance.evidence.iter().cloned().collect::<Vec<_>>(),
+                    &provenance
+                        .evidence
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect::<Vec<_>>(),
                 );
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
@@ -6338,12 +6345,21 @@ impl ReactiveSession {
                     elapsed: Some(self.elapsed),
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
-                    caveats: grounds.caveats.iter().cloned().collect(),
+                    caveats: grounds
+                        .caveats
+                        .iter()
+                        .map(|name| name.to_string())
+                        .collect(),
                     permitted_by: permission.map(|record| record.grant),
                     outcome: None,
                     materialized: Vec::new(),
                 };
-                if !entry.because.iter().eq(grounds.evidence.iter()) {
+                if !entry
+                    .because
+                    .iter()
+                    .map(String::as_str)
+                    .eq(grounds.evidence.iter().map(Name::as_str))
+                {
                     Arc::make_mut(&mut self.evidence_order)
                         .insert(name.clone(), entry.because.clone());
                 }
@@ -6593,7 +6609,7 @@ impl ReactiveSession {
                 .get(&revision)
                 .and_then(|basis| basis.value),
             because,
-            caveats: cause_caveats.into_iter().collect(),
+            caveats: cause_caveats.into_iter().map(String::from).collect(),
             permitted_by: None,
             outcome: Some(number),
             materialized: resolution.materialized.clone(),
@@ -6772,7 +6788,7 @@ impl ReactiveSession {
                 .get(current)
                 .and_then(|basis| basis.value),
             because: self.in_observation_order(because.iter()),
-            caveats: caveats.into_iter().collect(),
+            caveats: caveats.into_iter().map(String::from).collect(),
             permitted_by: None,
             outcome: None,
             materialized: Vec::new(),
@@ -6813,7 +6829,12 @@ impl ReactiveSession {
         self.retire_journal_entry();
         let mut caveats = BTreeSet::new();
         for evidence in &because {
-            caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+            caveats.extend(
+                self.qualify_core(evidence, &[])?
+                    .caveats
+                    .into_iter()
+                    .map(String::from),
+            );
             Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
             self.effects.push(EffectReport::Reopen {
                 action: current.clone(),
@@ -6907,7 +6928,7 @@ impl ReactiveSession {
                     && self.symbols.get(*caveat).is_some_and(|&from| {
                         provenance.evidence.iter().any(|name| {
                             self.symbols
-                                .get(name)
+                                .get(name.as_str())
                                 .is_some_and(|&to| self.has_live_relation(from, to))
                         })
                     })
@@ -6979,7 +7000,7 @@ impl ReactiveSession {
                     .any(|occurrence| lineage.evidence.contains(occurrence))
                 && !lineage.evidence.iter().any(|name| {
                     self.symbols
-                        .get(name)
+                        .get(name.as_str())
                         .is_some_and(|&id| self.has_live_relation(from, id))
                 })
         };
@@ -7583,7 +7604,11 @@ impl ReactiveSession {
                 return Err("permitted by names evidence or latest(STREAM)".into())
             }
         };
-        let caveats = lineage.caveats.iter().cloned().collect();
+        let caveats = lineage
+            .caveats
+            .iter()
+            .map(|name| name.to_string())
+            .collect();
         if let Some(withdrawal) = self.withdrawal_of(&grant) {
             return Err(refuse(format!(
                 "{grant} was withdrawn at #{} because {}",
@@ -7817,7 +7842,7 @@ impl ReactiveSession {
         let mut listed = provenance
             .evidence
             .iter()
-            .filter_map(|name| self.symbols.get(name).copied())
+            .filter_map(|name| self.symbols.get(name.as_str()).copied())
             .collect::<Vec<_>>();
         listed.sort_unstable();
         self.graph
