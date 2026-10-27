@@ -178,6 +178,8 @@ require adopting them.
 
 **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
 
+**[Try to break this](https://wsattazahn.github.io/caveat-lang/break.html).** One claim about withdrawal, as five rules a checker tests after every event of a program you write. If Caveat reopens too much or too little, the page fills in an issue for you.
+
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
 Start with **Change what you know** at the top of that page. Make a decision in one click, learn something new in a second, and see what changed, why the decision reopened, and the original reasons it kept.
