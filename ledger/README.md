@@ -146,9 +146,14 @@ of the ledger is to find them on the project's own decisions.
   and `explain` shows `permitted by approvals@3 for 101`, but a code table is
   a convention the program cannot check.
 - **The approvals stream is nearly full.** `approvals` holds at most 64
-  readings, and after 1.4.0 it holds 53, so the closeout recorded one
-  approval for the minor rather than one per merged PR; a fuller record
+  readings, and after 1.4.1 it holds 54, so each closeout records one
+  approval for the release rather than one per merged PR; a fuller record
   needs a larger limit or a second stream.
+- **A patch from main is a `ship_minor`.** 1.4.1 was cut from `main`, so it
+  is recorded as `ship_minor` 141 on main's Runtime run, which supersedes
+  1.4.0 in `minor_release`; `release` and `ship` stay the 1.0.x line's, cut
+  from a release branch. The series name says minor because no patch had
+  shipped from main when it was written.
 - **A 1.0 sample needs a stance.** `sample approvals = item` must say what
   claim it bears on; `approved_by_owner` exists for that alone.
 
