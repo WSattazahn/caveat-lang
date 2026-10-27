@@ -75,3 +75,61 @@ export declare function reviewLedgers(
 
 /** Text lines for what a review consulted. */
 export declare function formatConsulted(consulted: readonly Consulted[]): string[];
+
+export declare const FIND_SCHEMA: 'caveat-find/0.1';
+
+/** A query's words: lowercased, split on white space. */
+export declare function queryWords(query: string): string[];
+
+export interface FindLedger extends Ledger {
+  /** The text query words match as the program's; defaults to `program`. */
+  name?: string;
+}
+
+export type FoundSearch =
+  | { program: string; events: string; program_sha256: string; revisions: number;
+      fatal: { index: number; event: string; message: string } | null }
+  | { program: string; events: string; error: string };
+
+export interface FoundDecision {
+  program: string;
+  events: string;
+  program_sha256: string;
+  series: string;
+  revision: string;
+  current: boolean;
+  value: unknown;
+  status: 'in force' | 'reopened' | 'superseded';
+  grounds: { evidence: string[]; caveats: string[] };
+  retained: string[];
+  retention_reasons?: Record<string, string>;
+  withdrawn: { evidence: string; because?: string; sequence?: number; event?: string }[];
+  decided: { sequence: number; event: string } | null;
+  outcome: Record<string, unknown> | null;
+  /** Each grounds evidence's declared source text, or null. */
+  sources: Record<string, string | null>;
+  history: Record<string, unknown>[];
+  /** For each word, the terms it matched, as `KIND TEXT`. */
+  matched: Record<string, string[]>;
+}
+
+export interface FindReport {
+  schema: 'caveat-find/0.1';
+  query: string;
+  words: string[];
+  searched: FoundSearch[];
+  found: FoundDecision[];
+}
+
+/**
+ * The decision revisions, in every ledger, whose terms hold every word of
+ * `query` (spec/caveat-find-0.1.md). Throws when the query has no word.
+ */
+export declare function findDecisions(
+  open: (source: string) => CaveatSession,
+  ledgers: readonly FindLedger[],
+  query: string,
+): FindReport;
+
+/** The found decisions as text, ending with a count. */
+export declare function formatFound(report: FindReport): string;

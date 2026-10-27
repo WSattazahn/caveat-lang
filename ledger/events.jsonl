@@ -189,4 +189,5 @@
 {"event": "find", "payload": {"number": 29}}
 {"event": "approve", "payload": {"item": 368}}
 {"event": "ci_run", "payload": {"green": 1}}
+{"event": "approve", "payload": {"item": 381}}
 {"event": "ci_run", "payload": {"green": 1}}
