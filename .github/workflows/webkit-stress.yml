@@ -37,11 +37,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: default, env: '', args: '--pages 200 --replays 6' }
-          - { name: garbage-5, env: '', args: '--pages 150 --replays 0 --garbage 5' }
-          - { name: garbage-20, env: '', args: '--pages 150 --replays 0 --garbage 20' }
-          - { name: collect-continuously, env: 'JSC_collectContinuously=1', args: '--pages 40 --replays 2' }
-          - { name: gc-stress, env: 'JSC_slowPathAllocsBetweenGCs=1000', args: '--pages 40 --replays 2' }
+          - { name: plain-a, env: '', args: '--pages 400 --replays 0' }
+          - { name: instrumented-a, env: '', args: '--pages 400 --replays 0', instrument: true }
+          - { name: instrumented-b, env: '', args: '--pages 400 --replays 0', instrument: true }
+          - { name: instrumented-c, env: '', args: '--pages 400 --replays 0', instrument: true }
     name: stress / ${{ matrix.config.name }}
     runs-on: ubuntu-24.04
     steps:
@@ -56,6 +55,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps webkit
+      - if: matrix.config.instrument
+        run: node bench/carmack/instrument-glue.mjs stress-runtime stress-runtime-i && rm -rf stress-runtime && mv stress-runtime-i stress-runtime
       - name: Stress
         shell: bash
         run: env ${{ matrix.config.env }} node bench/carmack/webkit-stress.mjs --runtime stress-runtime ${{ matrix.config.args }}

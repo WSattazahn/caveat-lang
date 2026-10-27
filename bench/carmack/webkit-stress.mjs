@@ -64,6 +64,7 @@ try {
               new ns.WebReactiveSession(program.source).free();
               opened += 1;
             } catch (error) {
+              if (String(error?.message).startsWith('PASS_MISMATCH')) { clearInterval(timer); return { trap: String(error.message), program: program.name, round, opened }; }
               if (error instanceof WebAssembly.RuntimeError) { clearInterval(timer); return { trap: String(error.message), program: program.name, round, opened, memory: memory() }; }
             }
           }
