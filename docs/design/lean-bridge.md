@@ -38,8 +38,9 @@ is complete and its statement is the one we pinned" into an ordinary event.
    pinned Lean (4.34.1, the same release the model proofs use), finds the
    theorem, refuses any axiom beyond `propext`, `Classical.choice` and
    `Quot.sound` (so `sorry`, custom axioms and `native_decide` are refused),
-   and compares the statement hash. It writes the events a host sends the
-   program: `lean_checked`, or `lean_failed` with `why` set to `broken`,
+   except the assumed results its entry lists (see below), and compares the
+   statement hashes. It writes the events a host sends the program: the
+   entry's pass event, or its failure event with `why` set to `broken`,
    `changed` or `missing`. The job fails on any failure.
 
 4. **The program does the rest.** `lean_checked` reveals the lemma.
@@ -57,14 +58,55 @@ caveat explain examples/lean-bridge/grounds.cav EVENTS
   combined_result@1 based on lean_lemma, model_lemma (caveats: unchecked)
 ```
 
-## What the check does and does not establish
+## Results assumed for now
+
+Large formalizations rarely start complete. The project formalizing Fermat's
+Last Theorem in Lean states some established results, such as theorems from the
+1980s, as assumptions to be proven later; the proof stands, but only as
+strongly as what it assumes. That is a caveat, and the bridge records it as
+one.
+
+In Lean, an assumed result is a named `axiom`, never a `sorry`:
+
+```lean
+namespace Assumed
+axiom two_pow_add (a b : Nat) : 2 ^ (a + b) = 2 ^ a * 2 ^ b
+end Assumed
+```
+
+The manifest lists it under the theorem that uses it, with its own pinned
+statement hash. The check then accepts exactly the listed assumptions as extra
+axioms, refuses any other, and reports how many the proof still uses:
+`product_checked` with `assumed` set to that number.
+
+In the program, a lemma whose check reports an assumption is qualified with
+`assumed_for_now` (consequence `material`), so every result resting on it
+carries the caveat and `explain` says so:
+
+```
+assumed_result@1  based on product_lemma (caveats: assumed_for_now)
+checked_result@1  based on lean_lemma
+```
+
+When the assumption is proven (the axiom becomes a theorem with the same
+statement), the next check reports none and the program takes the caveat
+back with `unqualify`. Results derived afterwards rest on the lemma without
+it; results derived before keep the basis they had, as every take-back does.
+If the assumption is instead disproven, `refute_assumption` withdraws the
+lemma that assumed it and reopens what rested on it, and nothing else: the
+fully proven lemma and its results stand.
+
+
 
 It establishes that, under the pinned Lean, a theorem by that name exists,
-its proof is complete using only the standard axioms, and its statement
-elaborates to the same term as when the hash was recorded.
+its proof is complete using only the standard axioms and the assumptions its
+entry lists, and its statement and each used assumption's statement elaborate
+to the same terms as when their hashes were recorded.
 
 It does not establish:
 
+- **That an assumed result is true.** That is what the caveat is for. The
+  check only makes sure every assumption is named, listed and pinned.
 - **That the statement says what the claim means.** A checked proof removes
   the need to review the proof, not the statement. A person reads the
   statement once, when its hash is recorded; changing the hash is a reviewed
@@ -79,10 +121,11 @@ It does not establish:
 - **Anything about the event's sender.** The runtime records the events it
   is given. Only the CI job's own output ties `lean_checked` to a check.
 
-The four failure controls in the check break the demo theorem on purpose (a
-`sorry`, a changed statement, a renamed theorem, a proof that does not
-compile) and require each to be refused for its intended reason, so a green
-run shows the check can fail.
+The check's seven controls change the demo source on purpose and require the
+intended result: a `sorry`, a changed statement, a renamed theorem, a proof
+that does not compile, an assumption the manifest does not list and a changed
+assumption must each be refused for its reason, and proving the assumption
+must pass with none left. A green run shows the check can fail.
 
 ## Choices made
 
@@ -90,10 +133,15 @@ run shows the check can fail.
   the check is ordinary host code, so nothing in the 1.x promise moves. A
   later form in the language (a declared proof source, say) would be its own
   specification PR with a corpus sweep.
-- **One event pair per ground.** The example has one theorem, so it has one
-  `lean_checked` and one `lean_failed`. A program with several would use an
-  `id` parameter or a procedure per ground; the manifest already names each
-  entry's events.
+- **One event pair per ground.** The example has two theorems, each with its
+  own pass and failure events, and the reopening rules are one procedure
+  called per result. A program with many grounds would use an `id`
+  parameter; the manifest already names each entry's events.
+- **Each ground is checked on its own.** `add_lt_two_pow_mul` uses
+  `lt_two_pow` in its proof, but the program does not model that: if
+  `lt_two_pow` breaks, the file stops compiling and the check reports both.
+- **Assumptions are axioms, not `sorry`.** A `sorry` has no name or
+  statement to pin, so it is always refused; an assumption must be stated.
 - **No Mathlib.** The example uses only Lean's core library, so CI needs no
   package download beyond the pinned Lean release it already fetches. A
   project whose lemmas need Mathlib would compile them in its own Lake

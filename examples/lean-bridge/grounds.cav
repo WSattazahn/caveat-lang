@@ -1,60 +1,109 @@
-# Results that rest on a Lean-checked lemma, and results that also rest on an
-# unchecked one. CI checks the Lean theorem each run (lean-grounds.json,
-# scripts/check-lean-grounds.mjs); when the check fails, or the theorem's
-# statement changes, the host sends lean_failed and everything built on the
-# lemma is reopened. A refuted unchecked lemma reopens only what used it.
-# Once the proof is fixed, the next passing check observes a new occurrence of
-# the lemma, and results derived again rest on that one.
+# Results that rest on Lean-checked lemmas, on a lemma whose proof assumes a
+# result for now, and on an unchecked lemma. CI checks the Lean theorems each
+# run (lean-grounds.json, scripts/check-lean-grounds.mjs) and the host sends
+# what it found:
+#   lean_checked / product_checked   the proof passed; product_checked says how
+#                                    many results it still assumes
+#   lean_failed / product_failed     broken, statement changed, or missing
+# A failed check withdraws the lemma and reopens every result built on it. A
+# refuted assumption does the same for the lemma that assumed it. A refuted
+# unchecked lemma reopens only what used it. Once a proof is fixed, the next
+# passing check observes a new occurrence of the lemma, and results derived
+# again rest on that one. Once an assumption is proven, the check reports none
+# and the caveat is taken back: later results rest on the lemma without it,
+# and earlier ones keep what they rested on.
 claim bound_holds;
 
 evidence lean_lemma from "lean:LeanBridgeDemo.lt_two_pow";
+evidence product_lemma from "lean:LeanBridgeDemo.add_lt_two_pow_mul";
 evidence model_lemma from "a model's proof sketch, not formalized";
-evidence lean_check from "the CI check of the named Lean theorem";
+evidence lean_check from "the CI check of the named Lean theorems";
 evidence counterexample from "a counterexample to the model's lemma";
+evidence assumption_refuted from "a disproof of a result assumed for now";
 
 renewable lean_lemma limit 16;
+renewable product_lemma limit 16;
 
 caveat unchecked consequence material;
+caveat assumed_for_now consequence material;
 unchecked qualifies model_lemma;
 
-# Rests on the Lean lemma alone.
+# Rests on the fully proven Lean lemma alone.
 decisions checked_result limit 4;
-# Rests on the Lean lemma and the model's lemma.
+# Rests on the Lean lemma whose proof assumes a result for now.
+decisions assumed_result limit 4;
+# Rests on the fully proven Lean lemma and the model's lemma.
 decisions combined_result limit 4;
 
 state failure = 0 min 0 max 3;
+state product_failure = 0 min 0 max 3;
 
 event lean_checked;
 event lean_failed why in broken changed missing;
+event product_checked assumed min 0 max 8;
+event product_failed why in broken changed missing;
 event model_claimed;
 event derive;
 event refute_model;
+event refute_assumption;
+
+proc reopen_if_withdrawn(result decisions, reason evidence) {
+    when committed(result) and not reopened(result) and rests_on_withdrawn(result)
+        reopen result because reason;
+};
+
+proc reopen_all(reason evidence) {
+    call reopen_if_withdrawn(checked_result, reason);
+    call reopen_if_withdrawn(assumed_result, reason);
+    call reopen_if_withdrawn(combined_result, reason);
+};
 
 on lean_checked when withdrawn(lean_lemma) renew lean_lemma;
 on lean_checked set failure = 0;
 on lean_checked reveal lean_lemma supports bound_holds;
+
+on product_checked when withdrawn(product_lemma) renew product_lemma;
+on product_checked set product_failure = 0;
+on product_checked reveal product_lemma supports bound_holds;
+on product_checked when assumed > 0 and not carries(product_lemma, assumed_for_now)
+    qualify product_lemma with assumed_for_now;
+on product_checked when assumed == 0 and carries(product_lemma, assumed_for_now)
+    unqualify product_lemma with assumed_for_now;
+
 on model_claimed reveal model_lemma supports bound_holds;
 
 on derive when not observed(lean_lemma) or withdrawn(lean_lemma) reject "No checked lemma to derive from.";
 on derive when not committed(checked_result) or reopened(checked_result)
     commit checked_result because enough citing qualified(1, lean_lemma);
-on derive when observed(model_lemma) and not withdrawn(model_lemma) and (not committed(combined_result) or reopened(combined_result))
+on derive when observed(product_lemma) and not withdrawn(product_lemma)
+    and (not committed(assumed_result) or reopened(assumed_result))
+    commit assumed_result because enough citing qualified(1, product_lemma);
+on derive when observed(model_lemma) and not withdrawn(model_lemma)
+    and (not committed(combined_result) or reopened(combined_result))
     commit combined_result because enough citing qualified(1, lean_lemma), qualified(1, model_lemma);
 
 on lean_failed when not observed(lean_lemma) or withdrawn(lean_lemma) reject "No checked lemma to withdraw.";
 on lean_failed set failure = if(why == why.broken, 1, if(why == why.changed, 2, 3));
 on lean_failed reveal lean_check;
 on lean_failed withdraw lean_lemma because lean_check;
-on lean_failed when committed(checked_result) and not reopened(checked_result) and rests_on_withdrawn(checked_result)
-    reopen checked_result because lean_check;
-on lean_failed when committed(combined_result) and not reopened(combined_result) and rests_on_withdrawn(combined_result)
-    reopen combined_result because lean_check;
+on lean_failed call reopen_all(lean_check);
+
+on product_failed when not observed(product_lemma) or withdrawn(product_lemma) reject "No checked lemma to withdraw.";
+on product_failed set product_failure = if(why == why.broken, 1, if(why == why.changed, 2, 3));
+on product_failed reveal lean_check;
+on product_failed withdraw product_lemma because lean_check;
+on product_failed call reopen_all(lean_check);
 
 on refute_model when not observed(model_lemma) or withdrawn(model_lemma) reject "No model lemma to refute.";
 on refute_model reveal counterexample;
 on refute_model withdraw model_lemma because counterexample;
-on refute_model when committed(combined_result) and not reopened(combined_result) and rests_on_withdrawn(combined_result)
-    reopen combined_result because counterexample;
+on refute_model call reopen_all(counterexample);
+
+on refute_assumption when not carries(product_lemma, assumed_for_now) or withdrawn(product_lemma)
+    reject "No lemma rests on an assumption.";
+on refute_assumption reveal assumption_refuted;
+on refute_assumption withdraw product_lemma because assumption_refuted;
+on refute_assumption call reopen_all(assumption_refuted);
 
 bind status.lean = "not checked";
 bind status.lean = "checked" when observed(lean_lemma) and not withdrawn(lean_lemma);
@@ -62,9 +111,22 @@ bind status.lean = "proof broken" when failure == 1;
 bind status.lean = "statement changed" when failure == 2;
 bind status.lean = "theorem missing" when failure == 3;
 
+bind status.product = "not checked";
+bind status.product = "fully proven" when observed(product_lemma) and not withdrawn(product_lemma);
+bind status.product = "proven, assuming a result for now"
+    when observed(product_lemma) and not withdrawn(product_lemma) and carries(product_lemma, assumed_for_now);
+bind status.product = "withdrawn" when observed(product_lemma) and withdrawn(product_lemma);
+bind status.product = "proof broken" when product_failure == 1;
+bind status.product = "statement changed" when product_failure == 2;
+bind status.product = "theorem missing" when product_failure == 3;
+
 bind status.checked_result = "none";
 bind status.checked_result = "rests on a checked proof" when committed(checked_result);
 bind status.checked_result = "reopened" when committed(checked_result) and reopened(checked_result);
+
+bind status.assumed_result = "none";
+bind status.assumed_result = "in force" when committed(assumed_result);
+bind status.assumed_result = "reopened" when committed(assumed_result) and reopened(assumed_result);
 
 bind status.combined_result = "none";
 bind status.combined_result = "needs review: rests on an unchecked lemma" when committed(combined_result);

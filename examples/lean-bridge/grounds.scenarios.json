@@ -157,6 +157,156 @@
           }
         }
       ]
+    },
+    {
+      "id": "L06",
+      "title": "A lemma whose proof assumes a result for now carries the assumption into what rests on it",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 1
+          }
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "expect": {
+            "/bindings/status/product": "proven, assuming a result for now",
+            "/bindings/status/assumed_result": "in force",
+            "/commitment_grounds/checked_result@1": {
+              "evidence": [
+                "lean_lemma"
+              ],
+              "caveats": []
+            },
+            "/commitment_grounds/assumed_result@1": {
+              "evidence": [
+                "product_lemma"
+              ],
+              "caveats": [
+                "assumed_for_now"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "L07",
+      "title": "A refuted assumption reopens what rests on the lemma that assumed it, and nothing else",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 1
+          }
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "refute_assumption"
+        },
+        {
+          "expect": {
+            "/bindings/status/product": "withdrawn",
+            "/bindings/status/assumed_result": "reopened",
+            "/bindings/status/checked_result": "rests on a checked proof"
+          }
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "expect": {
+            "/bindings/status/assumed_result": "reopened"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L08",
+      "title": "Proving the assumption takes the caveat back; an earlier result keeps what it rested on",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 1
+          }
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 0
+          }
+        },
+        {
+          "expect": {
+            "/bindings/status/product": "fully proven",
+            "/commitment_grounds/assumed_result@1": {
+              "evidence": [
+                "product_lemma"
+              ],
+              "caveats": [
+                "assumed_for_now"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "L09",
+      "title": "A result derived after the assumption is proven rests on the lemma without it",
+      "steps": [
+        {
+          "send": "lean_checked"
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 1
+          }
+        },
+        {
+          "send": "product_checked",
+          "payload": {
+            "assumed": 0
+          }
+        },
+        {
+          "send": "derive"
+        },
+        {
+          "expect": {
+            "/bindings/status/product": "fully proven",
+            "/commitment_grounds/assumed_result@1": {
+              "evidence": [
+                "product_lemma"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "refute_assumption",
+          "rejected": "No lemma rests on an assumption."
+        }
+      ]
     }
   ]
 }

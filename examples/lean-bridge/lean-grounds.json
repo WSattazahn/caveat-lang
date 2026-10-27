@@ -10,6 +10,22 @@
       "statement_sha256": "dce3fcfa98b0d5561444330419273108ef10d35bfe6845d968fa487144e2c58e",
       "on_pass": "lean_checked",
       "on_fail": "lean_failed"
+    },
+    {
+      "evidence": "product_lemma",
+      "source": "LeanBridgeDemo.lean",
+      "theorem": "LeanBridgeDemo.add_lt_two_pow_mul",
+      "statement": "∀ a b : Nat, a + b < 2 ^ a * 2 ^ b",
+      "statement_sha256": "deb4fbea24a6961df0b000f32846af854125e18806e9f0f9bb111c2344fdbdcc",
+      "assumes": [
+        {
+          "name": "LeanBridgeDemo.Assumed.two_pow_add",
+          "statement": "∀ a b : Nat, 2 ^ (a + b) = 2 ^ a * 2 ^ b",
+          "statement_sha256": "f30fdd4109afc99332c87ab1e339e346c4a2ba9449714ac73a1921a326969946"
+        }
+      ],
+      "on_pass": "product_checked",
+      "on_fail": "product_failed"
     }
   ]
 }
