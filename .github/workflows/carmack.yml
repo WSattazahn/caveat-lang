@@ -71,17 +71,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # This step once stalled with no output for over 40 minutes; each try
-      # is cut off after 8 so a stall is retried instead of waiting 6 hours.
+      # --with-deps fetches about 150 system packages from the Ubuntu mirror.
+      # On 2026-10-27 that mirror slowed to 1-60 s a package and held this step
+      # for over 40 minutes (normally about 3); stop and fail instead of
+      # waiting for the 6-hour job limit. Retrying in the step would not help:
+      # stopping npx leaves apt-get running and holding the package lock.
       - name: Install the browsers
         if: runner.os == 'Linux'
-        timeout-minutes: 30
-        run: |
-          for attempt in 1 2 3; do
-            timeout 8m npx playwright install --with-deps chromium firefox webkit && exit 0
-            echo "Browser install attempt $attempt did not finish; retrying"
-          done
-          exit 1
+        timeout-minutes: 20
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Replay seeded sequences with a save and restore
         shell: bash
         run: |
