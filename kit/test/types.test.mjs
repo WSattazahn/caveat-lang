@@ -517,6 +517,8 @@ test('explain, dependents and check reports have the declared fields', () => {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
+    // A take-back marks a relation and records it (spec/caveat-take-back-0.1.md).
+    ['claim c; evidence e from "check"; caveat doubt consequence low; event go; event undo; on go reveal e supports c; on go qualify e with doubt; on undo unqualify e with doubt;', [['go'], ['undo']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
     [REVERSIBLE_FORECLOSURE, [['go']], 'e'],
     [OUTCOME, [['go'], ['close']], 'e'],

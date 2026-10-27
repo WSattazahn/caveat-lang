@@ -180,10 +180,21 @@ export interface ExplainedEvidence {
   event: string | null;
   /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
   agent?: string;
+  /** The caveats that qualify it through a live relation; a taken-back one is listed under `taken_back` instead (D029). */
   caveats: string[];
+  /** From 1.5: the take-backs recorded against it, in record order; absent when none (spec/caveat-take-back-0.1.md). */
+  taken_back?: TakeBackNote[];
   withdrawn: WithdrawalNote | null;
   /** The sequence at which it retired from its window; absent while live. */
   retired_at?: number;
+}
+
+export interface TakeBackNote {
+  caveat: string;
+  sequence: number;
+  event: string;
+  /** The agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 export interface WithdrawalNote {
@@ -234,6 +245,8 @@ export interface DependentsReport {
   withdrawals: Withdrawal[];
   /** Withdrawals whose reason is selected by the query. */
   reasonForWithdrawals: Withdrawal[];
+  /** From 1.5: take-backs of the subject caveat, or of a caveat on the subject evidence; absent when none (D029). */
+  taken_back?: DependentTakeBack[];
   /** Supporting/opposing relations from query-matched evidence. */
   claims: DependentClaim[];
   decisions: DependentDecision[];
@@ -259,10 +272,15 @@ export interface DependentDecision {
   id: string;
   value: number | null;
   status: RevisionStatus;
-  basis: 'grounds' | 'permission' | 'retained' | 'lineage' | 'may rest on';
+  /** From 1.5, `kept`: a caveat the revision retains that its grounds do not carry, kept through its lineage (D029). */
+  basis: 'grounds' | 'permission' | 'retained' | 'kept' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
+}
+
+export interface DependentTakeBack extends TakeBackNote {
+  evidence: string;
 }
 
 export interface DependentChange {
