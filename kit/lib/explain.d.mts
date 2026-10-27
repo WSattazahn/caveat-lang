@@ -143,6 +143,8 @@ export interface ExplainedRevision {
   observed_by?: GroundsObservation[];
   /** From 1.3: how it turned out, once a `resolve` recorded it (spec/caveat-outcomes-0.1.md). */
   outcome?: Outcome;
+  /** 1.5 draft: the thresholds its commit named, with their values (spec/caveat-thresholds-0.1.md). */
+  thresholds?: Record<string, number>;
   history: RevisionChange[];
 }
 

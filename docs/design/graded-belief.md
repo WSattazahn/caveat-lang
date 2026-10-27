@@ -305,4 +305,7 @@ The owner chose on 2026-10-25:
 Both stay opt-in: a program that uses neither loads, runs, saves and
 explains byte for byte as before. The renewable-evidence gap is already
 fixed for 1.4.0 (D024, above). P1 is
-[Reading Caveats 0.1](../../spec/caveat-reading-caveats-0.1.md).
+[Reading Caveats 0.1](../../spec/caveat-reading-caveats-0.1.md) and P2 is
+[Thresholds 0.1](../../spec/caveat-thresholds-0.1.md). P2 lists the
+thresholds in a commitment's record only; states, bindings and readings keep
+the number, as before.

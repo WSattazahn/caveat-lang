@@ -707,6 +707,12 @@ pub enum Directive {
         name: String,
         expression: Expr,
     },
+    /// `threshold NAME = NUMBER;`: a named number a commitment lists when
+    /// it reads it. See spec/caveat-thresholds-0.1.md.
+    Threshold {
+        name: String,
+        value: Number,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -841,6 +847,10 @@ pub type QualifiedValue = Tracked<f64>;
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
+    /// The thresholds the commit named, with their values. Left out when it
+    /// named none. See spec/caveat-thresholds-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub thresholds: BTreeMap<String, f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1863,6 +1873,11 @@ pub struct ReactiveSession {
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
     commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
+    /// Whether the source declares a threshold, and the thresholds each
+    /// enclosing guard of the effect running now names: what a commit lists
+    /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
+    has_thresholds: bool,
+    guard_thresholds: Vec<BTreeMap<String, f64>>,
     reading_streams: Arc<BTreeMap<String, ReadingStream>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     /// Irreversible series and the actions each forecloses, from the source.
@@ -2090,13 +2105,18 @@ impl ReactiveSession {
         reactive_expr::validate_functions(&functions)?;
         let mut defines = BTreeMap::new();
         for directive in &directives {
-            if let Directive::Define { name, expression } = directive {
-                if functions.contains_key(name) {
-                    return Err(format!("define {name} collides with a function"));
+            let (word, name, expression) = match directive {
+                Directive::Define { name, expression } => ("define", name, expression.clone()),
+                Directive::Threshold { name, value } => {
+                    ("threshold", name, Expr::threshold(name, value.clone())?)
                 }
-                if defines.insert(name.clone(), expression.clone()).is_some() {
-                    return Err(format!("duplicate define {name}"));
-                }
+                _ => continue,
+            };
+            if functions.contains_key(name) {
+                return Err(format!("{word} {name} collides with a function"));
+            }
+            if defines.insert(name.clone(), expression).is_some() {
+                return Err(format!("duplicate {word} {name}"));
             }
         }
         for directive in &mut directives {
@@ -2151,6 +2171,8 @@ impl ReactiveSession {
             last_event: None,
             states: States::default(),
             commitment_bases: Arc::default(),
+            has_thresholds: false,
+            guard_thresholds: Vec::new(),
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             irreversible: Arc::default(),
@@ -2338,6 +2360,11 @@ impl ReactiveSession {
             match directive {
                 Directive::Define { name, expression } => Arc::make_mut(&mut session.define_rules)
                     .push((name.clone(), expression.clone())),
+                Directive::Threshold { name, value } => {
+                    session.has_thresholds = true;
+                    Arc::make_mut(&mut session.define_rules)
+                        .push((name.clone(), Expr::threshold(name, value.clone())?))
+                }
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
                         return Err(format!(
@@ -3610,11 +3637,15 @@ impl ReactiveSession {
             }
         }
         for (name, expression) in self.define_rules.iter() {
+            let define = match expression.as_threshold() {
+                Some(_) => "threshold",
+                None => "define",
+            };
             if self.states.contains_key(name) || self.constants.contains_key(name) {
-                return Err(format!("define {name} collides with a state"));
+                return Err(format!("{define} {name} collides with a state"));
             }
             if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
-                return Err(format!("define {name} collides with a history"));
+                return Err(format!("{define} {name} collides with a history"));
             }
             if self
                 .events
@@ -3622,7 +3653,7 @@ impl ReactiveSession {
                 .flatten()
                 .any(|parameter| parameter.name == *name)
             {
-                return Err(format!("define {name} collides with an event parameter"));
+                return Err(format!("{define} {name} collides with an event parameter"));
             }
             // On its own a define may name any event parameter; each place it
             // is used is validated again with that place's parameters.
@@ -4992,10 +5023,21 @@ impl ReactiveSession {
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
         budget.spend()?;
+        let named = self.has_thresholds.then(|| {
+            let mut named = BTreeMap::new();
+            condition.collect_thresholds(&mut named);
+            named
+        });
         let condition = self.evaluate(condition, parameters)?;
         let guard = inherited.union(&condition.provenance)?;
         if condition.value == Value::Bool(true) {
-            self.apply_effect(effect, parameters, &guard, budget)
+            let Some(named) = named else {
+                return self.apply_effect(effect, parameters, &guard, budget);
+            };
+            self.guard_thresholds.push(named);
+            let applied = self.apply_effect(effect, parameters, &guard, budget);
+            self.guard_thresholds.pop();
+            applied
         } else {
             self.retain_skipped_effect(effect, &guard, budget)
         }
@@ -6395,11 +6437,27 @@ impl ReactiveSession {
                         .map(|name| name.to_string())
                         .collect::<Vec<_>>(),
                 );
+                // The thresholds the commit named: its own expressions and
+                // each enclosing guard (spec/caveat-thresholds-0.1.md).
+                let mut thresholds = BTreeMap::new();
+                if self.has_thresholds {
+                    for named in &self.guard_thresholds {
+                        thresholds.extend(named.iter().map(|(name, value)| (name.clone(), *value)));
+                    }
+                    for expression in using
+                        .iter()
+                        .chain(citing)
+                        .chain(reasons.iter().map(|(_, _, expression, _)| expression))
+                    {
+                        expression.collect_thresholds(&mut thresholds);
+                    }
+                }
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
                     CommitmentBasis {
                         value: used_value,
                         provenance,
+                        thresholds,
                     },
                 );
                 if let Some(record) = &permission {
@@ -8693,6 +8751,7 @@ pub(crate) fn parse_directive_at(
             | "agent"
             | "proc"
             | "define"
+            | "threshold"
     ) {
         return None;
     }
@@ -8700,6 +8759,14 @@ pub(crate) fn parse_directive_at(
         match keyword {
         "proc" => parse_procedure(line, position),
         "define" => parse_define(line),
+        "threshold" => match words.as_slice() {
+            ["threshold", name, "=", value] => Ok(Directive::Threshold {
+                name: identifier(name)?,
+                value: Number::parse(value)
+                    .map_err(|_| "threshold expects NAME = NUMBER".to_string())?,
+            }),
+            _ => Err("threshold expects NAME = NUMBER".into()),
+        },
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, clause @ ("limit" | "window"), limit] => {

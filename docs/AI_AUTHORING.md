@@ -605,6 +605,13 @@ evidence, which marks every reading, or to a second rule that qualifies
 `latest(STREAM)` afterwards (1.5 draft,
 [reading caveats](../spec/caveat-reading-caveats-0.1.md)).
 
+When a decision compares a number with a bar, name the bar:
+`threshold go_bar = 0.9;` and then `using if(latest(beliefs) >= go_bar, 2, 1)`.
+The decision's record and `caveat explain` then list `go_bar = 0.9`, so a
+reviewer sees what the number was compared with without reading the source.
+A `define` would be inlined and leave no trace (1.5 draft,
+[thresholds](../spec/caveat-thresholds-0.1.md)).
+
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:
 

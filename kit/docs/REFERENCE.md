@@ -93,7 +93,7 @@ end of the line; `--` is not a comment.
 | `state NAME = EXPRESSION [min A max B];` | A number. Bounds default to, and may not exceed, `-1e12..1e12`. |
 | `event NAME [PARAMETER, …];` | A parameter is `NAME min A max B`, `NAME in A B …`, `NAME kind KIND` or `NAME id` ([identifiers](reference/spec/caveat-identifiers-0.1.md)). |
 | `identifiers limit N;` | Required before any `id` parameter. |
-| `define NAME = EXPRESSION;` | A named expression, inlined where read ([define](reference/spec/caveat-define-0.1.md)). |
+| `define NAME = EXPRESSION;`, `threshold NAME = NUMBER;` | A named expression, inlined where read ([define](reference/spec/caveat-define-0.1.md)). A threshold is a named number; a commit that names it lists it with its value in its record and in `explain` (1.5 draft, [thresholds](reference/spec/caveat-thresholds-0.1.md)). |
 | `fn NAME(A, B) = EXPRESSION;` | A pure function. It cannot read state or evidence. |
 | `proc NAME(PARAMETER, …) { STEP; … };` | Steps run by `call`. A parameter is a number, or `NAME readings`, `decisions`, `evidence`, `claim` or `caveat`. Symbol arguments are bare declared names; pass `S` to `s readings` and use `latest(s)` inside, not `latest(S)` to `e evidence` ([paired examples](../examples/procedure-handles/README.md), [spec](reference/spec/caveat-procedure-symbols-0.1.md)). |
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |

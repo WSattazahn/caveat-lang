@@ -10,7 +10,7 @@ export const groups = [
     name: 'statement heads of the other profiles',
     words: ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer', 'require', 'observe',
       'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route', 'overview',
-      'start_at', 'program', 'origin', 'rule', 'agent'],
+      'start_at', 'program', 'origin', 'rule', 'agent', 'threshold'],
     // At a statement start, including in a `for` body.
     probe: ['@ x;', 'y; @ x;', 'for k as $r {\n  @ $r;\n};', 'for k as $r { @ $r_x; };'],
     scope: 'keyword.other.statement',
