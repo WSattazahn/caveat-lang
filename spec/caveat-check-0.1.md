@@ -500,35 +500,6 @@ files, 290 of them in one version of Glowcap. They include each of the 16
 programs in which the corpus sweep of Caveat Sources 0.1 found a value that
 gained a caveat.
 
-### C012 `near-miss-commitment`
-
-**Status:** draft for 1.5.
-
-Reported only with `--names`, or `runtime.check(source, { names: true })`
-from a script, so every program checks, tests and exits as it did before.
-
-It reports a `commit NAME` whose `NAME` is no declared decision series but is
-one edit from one (two for a name of six or more characters, counting an
-insertion, a deletion, a substitution or a swap of two neighbours as one). A
-`commit` of an undeclared name is a plain commitment, so the program loads
-and runs; nothing records the commit in the series, and `committed(SERIES)`
-stays false. A misspelled `reopen`, `committed(…)` or binding already fails
-to load, because those name a commitment that must exist; a misspelled
-`commit` is the one that does not.
-
-```caveat
-decisions umbrella limit 4;
-on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
-  commit umbrela because enough using latest(rain_chance);
-```
-
-The warning is at the rule, and names the series and where it is declared.
-The suggestion is to write the series' name. A plain commitment whose name is
-close to a series on purpose is allowed with
-`# caveat check: allow near-miss-commitment` on the line above.
-
-Of the 181 tracked `.cav` files that load, it reports none.
-
 ### C010 `commit-on-withdrawable` and C011 `withdrawal-not-reopened`
 
 **Status:** draft for 1.5.
@@ -624,6 +595,35 @@ purpose, since the game reads `rests_on_withdrawn(ruling)` to judge the ruling
 afterwards. The retracted studies example
 ([kit/examples/retractions](../kit/examples/retractions/README.md)) checks
 clean; without its `withdrawn` guard or one of its reopen rules, it does not.
+
+### C012 `near-miss-commitment`
+
+**Status:** draft for 1.5.
+
+Reported only with `--names`, or `runtime.check(source, { names: true })`
+from a script, so every program checks, tests and exits as it did before.
+
+It reports a `commit NAME` whose `NAME` is no declared decision series but is
+one edit from one (two for a name of six or more characters, counting an
+insertion, a deletion, a substitution or a swap of two neighbours as one). A
+`commit` of an undeclared name is a plain commitment, so the program loads
+and runs; nothing records the commit in the series, and `committed(SERIES)`
+stays false. A misspelled `reopen`, `committed(…)` or binding already fails
+to load, because those name a commitment that must exist; a misspelled
+`commit` is the one that does not.
+
+```caveat
+decisions umbrella limit 4;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrela because enough using latest(rain_chance);
+```
+
+The warning is at the rule, and names the series and where it is declared.
+The suggestion is to write the series' name. A plain commitment whose name is
+close to a series on purpose is allowed with
+`# caveat check: allow near-miss-commitment` on the line above.
+
+Of the 181 tracked `.cav` files that load, it reports none.
 
 ## Allowing a pattern on purpose
 
