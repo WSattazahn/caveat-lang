@@ -73,6 +73,28 @@ test('all five inline authoring results preserve the existing CLI report shapes 
   }
 });
 
+test('find searches each inline record of the program, as find does over ledgers', async () => {
+  const records = [
+    { name: 'ticket-1', events },
+    { name: 'ticket-2', events: [{ event: 'read', payload: { value: 40 } }] },
+  ];
+  const found = await bridge('find', { source, records, query: 'Plan fixture' });
+  assert.equal(found.operation, 'find');
+  assert.equal(found.exitCode, 0);
+  assert.equal(found.sourceSha256, createHash('sha256').update(source).digest('hex'));
+  assert.equal(found.report.schema, 'caveat-find/0.1');
+  assert.equal(found.report.program, 'inline.cav');
+  assert.deepEqual(found.report.searched.map(entry => [entry.events, entry.revisions, entry.fatal]), [['ticket-1', 1, null], ['ticket-2', 0, null]]);
+  assert.deepEqual(found.report.found.map(item => [item.program, item.events, item.revision, item.status]), [['inline.cav', 'ticket-1', 'plan@1', 'in force']]);
+  assert.deepEqual(found.report.found[0].matched, { plan: ['decision plan', 'revision plan@1'], fixture: ['source supplied fixture readings'] });
+  // A record's name is matched as the program's.
+  assert.deepEqual((await bridge('find', { source, records, query: 'ticket-2' })).report.found, []);
+  assert.equal((await bridge('find', { source, records, query: 'ticket-1 plan' })).report.found.length, 1);
+  const invalid = await bridge('find', { source: 'not valid Caveat;', records, query: 'plan' });
+  assert.equal(invalid.exitCode, 2);
+  assert.equal(invalid.report.loads, false);
+});
+
 test('strict warnings, syntax errors and scenario assertion failures retain authoring exit codes', async () => {
   const warning = source.replace(' reopened by values', '');
   const warned = await bridge('check', { source: warning, strict: true });
@@ -135,6 +157,12 @@ test('the bridge accepts inline source only and refuses virtual source escapes b
     ['caveat_explain', { source, events: [{ event: 'read', payload: { value: Infinity } }] }],
     ['caveat_check', { source, strict: 'true' }],
     ['caveat_dependents', { source, subject: '' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }], query: '   ' }],
+    ['caveat_find', { source, records: [], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: '', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }, { name: 'a', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [], path: 'x' }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [{ event: '' }] }], query: 'plan' }],
     ['caveat_whatif', { source }],
     [{ toString: null }, { source }],
   ]) assert.throws(() => validateAuthoringArguments(tool, args), error => error instanceof AuthoringError && error.kind === 'input');
@@ -153,6 +181,9 @@ test('source, data, event, scenario, step, expanded-send and depth limits apply 
     ['caveat_test', { source, scenarios: doc(Array.from({ length: 2001 }, () => ({ resume: true }))) }],
     ['caveat_test', { source, scenarios: doc([{ send: 'read', payload: { value: 1 }, repeat: 1001 }]) }],
     ['caveat_explain', { source, events: [{ event: 'read', payload: nested }] }],
+    ['caveat_find', { source, query: 'plan', records: Array.from({ length: 65 }, (_, i) => ({ name: `${i}`, events: [] })) }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: Array.from({ length: 1001 }, () => ({ event: 'assess' })) }] }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: [{ event: 'read', payload: { value: 'x'.repeat(AUTHORING_LIMITS.dataBytes) } }] }] }],
   ];
   for (const [tool, args] of over) {
     await assert.rejects(runAuthoringOperation(tool, args, { runtimeDirectory: '/definitely-missing-runtime' }), error => error instanceof AuthoringError && error.kind === 'limit');

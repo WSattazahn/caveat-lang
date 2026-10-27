@@ -66,6 +66,17 @@ export const MCP_TOOLS = Object.freeze([
     subject: { type: 'string', minLength: 1, description: 'Exact case-sensitive evidence name, reading stream name, caveat name, or evidence occurrence ID after replay. Evidence records supplied observations; a reading stream is a named history of samples; a caveat is a qualification on evidence. For example, probe selects its evidence/readings, values selects a stream, and values@1 selects one recorded reading. Use a name from source or caveat_explain; not a file path. A claim or decision name is refused like an unknown name, with exitCode 2.' },
     events: eventsSchema,
   }, ['source', 'subject']),
+  tool('caveat_find', 'Search past decision records of one program for decisions already made: has this been decided before, on what grounds, and does it still stand? Each record is the events of one past run, replayed in a fresh session. A decision revision is found when every word of query occurs, ignoring case, in its decision or revision name, the record name, the names, sources and claims of the evidence it rests on, its caveats, or its retention reasons. Use caveat_explain to see one record in full, and caveat_dependents to trace one evidence forward. report (caveat-find/0.1) includes words, searched (per record: revisions and any fatal event) and found (per revision: record, value, status, grounds with sources, retained caveats, withdrawn evidence, history, outcome and where each word matched). exitCode: 0 searched, even when nothing matched; 1 an event failed fatally in a record (its decisions are of the session before it); 2 source load failure.', {
+    records: {
+      type: 'array', minItems: 1, maxItems: 64,
+      description: 'Past records of the program, each {"name":"ticket-a","events":[...]}: a unique non-empty name the report uses, and the events of that run in order, as for caveat_explain. At most 64 records and 1 MiB of serialized UTF-8 JSON in all; each record at most 1,000 events.',
+      items: {
+        type: 'object', required: ['name', 'events'], additionalProperties: false,
+        properties: { name: { type: 'string', minLength: 1, description: 'Unique label for this record, such as a ticket or task id. Query words also match it.' }, events: eventsSchema },
+      },
+    },
+    query: { type: 'string', minLength: 1, description: 'Words to find, separated by spaces, such as "refund email". Every word must match; case is ignored; a word matches part of a name, so refund matches refund_warranted.' },
+  }, ['source', 'records', 'query']),
 ]);
 const toolNames = new Set(MCP_TOOLS.map(item => item.name));
 

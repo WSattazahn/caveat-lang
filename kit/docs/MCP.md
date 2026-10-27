@@ -61,14 +61,18 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
+| caveat_find | source, records, query | Past decisions in the records whose names, evidence, sources, claims or caveats hold every word, with their standing (a 1.5 draft, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
 authoring diagnostics, and `caveat_test` to assert behavior after events. A
 successful load or a clean check does not establish that a scenario passes.
 Use `caveat_explain` to understand the resulting decisions and their reasons;
 use `caveat_dependents` to trace the impact of one named evidence item, reading
-stream, reading record or caveat. Each call starts fresh, so supply the event
-history again when moving from an explanation to a dependency query.
+stream, reading record or caveat. Use `caveat_find` before deciding, to ask
+whether past runs of the program already decided the same question, on what,
+and whether that still stands: each record is one past run's events. Each call
+starts fresh, so supply the event history again when moving from an
+explanation to a dependency query.
 
 `strict` defaults to `false`. With `true`, any unsuppressed diagnostic makes
 `caveat_check` return `exitCode: 1`; suppressed diagnostics do not count. The
@@ -128,7 +132,7 @@ No report authorizes an external action or authenticates its evidence.
 ## Limits and lifecycle
 
 Each call starts a fresh subprocess and runtime and retains no session handle,
-under either protocol. `tools/list` returns the same five tools in a fixed
+under either protocol. `tools/list` returns the same six tools in a fixed
 order; 2026-07-28 results mark it cacheable for an hour (`ttlMs: 3600000`,
 `cacheScope: "public"`), since the list changes only with the installed package.
 Only one call runs at once; concurrent calls receive a busy error. A tool gets

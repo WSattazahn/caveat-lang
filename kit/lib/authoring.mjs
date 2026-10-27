@@ -3,12 +3,13 @@
 import { createHash } from 'node:crypto';
 import { loadRuntimeFromDirectory } from './node.mjs';
 import { dependents, explain } from './explain.mjs';
+import { findDecisions, queryWords } from './ledgers.mjs';
 import { validateScenarioFile, runScenarioFile, report as scenarioReport, ScenarioFileError } from './scenarios.mjs';
 
 export const AUTHORING_SCHEMA = 'caveat-authoring/0.1';
 export const AUTHORING_LIMITS = Object.freeze({
   messageBytes: 4 * 1024 * 1024, sourceBytes: 1024 * 1024, dataBytes: 1024 * 1024,
-  depth: 64, events: 1000, scenarios: 32, steps: 2000, sends: 1000, outputBytes: 4 * 1024 * 1024,
+  depth: 64, events: 1000, records: 64, scenarios: 32, steps: 2000, sends: 1000, outputBytes: 4 * 1024 * 1024,
 });
 
 export class AuthoringError extends Error {
@@ -18,6 +19,7 @@ export class AuthoringError extends Error {
 const fields = {
   caveat_validate: ['source'], caveat_check: ['source', 'strict'], caveat_test: ['source', 'scenarios'],
   caveat_explain: ['source', 'events'], caveat_dependents: ['source', 'subject', 'events'],
+  caveat_find: ['source', 'records', 'query'],
 };
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -52,14 +54,31 @@ export function validateAuthoringArguments(toolName, args) {
   limit(Buffer.byteLength(args.source, 'utf8') <= AUTHORING_LIMITS.sourceBytes, 'source exceeds 1 MiB UTF-8');
   if ('strict' in args && typeof args.strict !== 'boolean') fail('strict must be a boolean');
   if (toolName === 'caveat_dependents' && (typeof args.subject !== 'string' || !args.subject.trim())) fail('subject must name evidence, a reading stream or a caveat');
-  if ('events' in args) {
-    if (!Array.isArray(args.events)) fail('events must be an array');
-    limit(args.events.length <= AUTHORING_LIMITS.events, 'events exceeds 1000 entries');
-    limit(Buffer.byteLength(JSON.stringify(args.events), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'events exceeds 1 MiB serialized UTF-8');
-    for (const event of args.events) {
+  const checkEvents = events => {
+    if (!Array.isArray(events)) fail('events must be an array');
+    limit(events.length <= AUTHORING_LIMITS.events, 'events exceeds 1000 entries');
+    for (const event of events) {
       knownFields(event, ['event', 'payload'], 'event');
       if (typeof event.event !== 'string' || !event.event) fail('event must name a non-empty event');
       if ('payload' in event && !object(event.payload)) fail('event payload must be an object');
+    }
+  };
+  if ('events' in args) {
+    checkEvents(args.events);
+    limit(Buffer.byteLength(JSON.stringify(args.events), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'events exceeds 1 MiB serialized UTF-8');
+  }
+  if (toolName === 'caveat_find') {
+    if (typeof args.query !== 'string' || !queryWords(args.query).length) fail('query must hold at least one word');
+    if (!Array.isArray(args.records) || !args.records.length) fail('records must be a non-empty array');
+    limit(args.records.length <= AUTHORING_LIMITS.records, 'records exceeds 64 entries');
+    limit(Buffer.byteLength(JSON.stringify(args.records), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'records exceeds 1 MiB serialized UTF-8');
+    const names = new Set();
+    for (const record of args.records) {
+      knownFields(record, ['name', 'events'], 'record');
+      if (typeof record.name !== 'string' || !record.name) fail('record must have a non-empty name');
+      if (names.has(record.name)) fail(`record name ${record.name} is repeated`);
+      names.add(record.name);
+      checkEvents(record.events);
     }
   }
   if (toolName === 'caveat_test') {
@@ -199,6 +218,20 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
     result.sources = { [program]: sourceSha256 };
     result.check = check;
     return wrap(result.failed ? 1 : 0, scenarioReport([result], runtime.identity));
+  }
+  if (operation === 'find') {
+    // As the other operations do: a source that does not load is a report.
+    try { runtime.open(args.source).close(); } catch (error) {
+      if (error.kind !== 'load') throw new AuthoringError('runtime', error.message);
+      return wrap(2, { program, loads: false, error: error.message });
+    }
+    // Each record is a ledger of the one program, named by the record.
+    const ledgers = args.records.map(record => ({ program, name: record.name, events_file: record.name, source: args.source,
+      events: record.events.map(({ event, payload = {} }) => ({ event, payload })) }));
+    const report = findDecisions(source => runtime.open(source), ledgers, args.query);
+    const failed = report.searched.find(entry => entry.error);
+    if (failed) throw new AuthoringError('runtime', failed.error);
+    return wrap(report.searched.some(entry => entry.fatal) ? 1 : 0, { program, ...report });
   }
   let replayed;
   try { replayed = replay(runtime, args.source, args.events ?? []); }

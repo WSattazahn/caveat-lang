@@ -309,6 +309,7 @@ MCP client's configuration:
 | `caveat_test` | source, scenarios | Scenario results, invariant checks and check warnings |
 | `caveat_explain` | source, optional events | Decisions, their exact grounds, caveats and history |
 | `caveat_dependents` | source, subject, optional events | What depends on the named evidence, stream or caveat |
+| `caveat_find` | source, records, query | Past decisions matching every word, with their grounds and whether they still stand (1.5 draft) |
 
 Every tool works on inline source text and supplied events. The server has no
 file, network or persistent-session tools, and it runs each call in a fresh

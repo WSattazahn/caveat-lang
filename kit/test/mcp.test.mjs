@@ -102,7 +102,7 @@ test('MCP negotiates its explicit profile, initializes before tools, and lists o
     assert.deepEqual(initialized.result.capabilities, { tools: {} });
     client.send(request(3, 'tools/list'));
     assert.deepEqual((await client.wait(3)).result.tools, MCP_TOOLS);
-    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents']);
+    assert.deepEqual(MCP_TOOLS.map(item => item.name), ['caveat_validate', 'caveat_check', 'caveat_test', 'caveat_explain', 'caveat_dependents', 'caveat_find']);
     for (const tool of MCP_TOOLS) {
       assert.equal(tool.inputSchema.additionalProperties, false);
       assert.equal(tool.annotations.readOnlyHint, true);
@@ -235,7 +235,7 @@ test('MCP 2026-07-28 calls keep single-flight, cancellation, launch failure and 
   } finally { assert.equal(await bounded.close(), 0); }
 });
 
-test('all five tools execute fresh real workers and retain completed CLI-style outcomes', async () => {
+test('all six tools execute fresh real workers and retain completed CLI-style outcomes', async () => {
   const client = connection();
   try {
     await client.initialize();
@@ -245,6 +245,7 @@ test('all five tools execute fresh real workers and retain completed CLI-style o
       ['caveat_test', { source: SOURCE, scenarios: { schema: 'caveat-scenarios/0.1', source: 'inline.cav', scenarios: [{ id: 'S1', title: 'neutral', steps: [{ send: 'consult' }] }] } }],
       ['caveat_explain', { source: SOURCE, events: [{ event: 'consult' }] }],
       ['caveat_dependents', { source: SOURCE, subject: 'memory', events: [{ event: 'consult' }] }],
+      ['caveat_find', { source: SOURCE, records: [{ name: 'first', events: [{ event: 'consult' }] }], query: 'memory' }],
     ];
     for (const [index, [name, args]] of cases.entries()) {
       client.send(call(index, name, args));
