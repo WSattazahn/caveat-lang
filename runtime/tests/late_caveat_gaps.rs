@@ -34,6 +34,7 @@ bind view.after = after;
 const RECORDS: CheckOptions = CheckOptions {
     unused: false,
     records: true,
+    names: false,
     withdrawals: false,
 };
 
