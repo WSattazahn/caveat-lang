@@ -216,6 +216,85 @@
         }
       ]
     },
+    "across": {
+      "name": "meta.across.caveat",
+      "begin": "(?<![.\\w$])(sum|any|all)\\s*(\\()\\s*(for)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(as)\\s+(\\$[A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.repeat.caveat"
+        },
+        "2": {
+          "name": "punctuation.section.parens.begin.caveat"
+        },
+        "3": {
+          "name": "keyword.control.repeat.caveat"
+        },
+        "4": {
+          "name": "entity.name.type.kind.caveat"
+        },
+        "5": {
+          "name": "keyword.control.caveat"
+        },
+        "6": {
+          "name": "variable.parameter.template.caveat"
+        },
+        "7": {
+          "name": "punctuation.separator.caveat"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#across-expression"
+        }
+      ]
+    },
+    "across-expression": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#block-strings"
+        },
+        {
+          "include": "#across"
+        },
+        {
+          "include": "#across-parens"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "include": "#block-code"
+        }
+      ]
+    },
+    "across-parens": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.begin.caveat"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#across-expression"
+        }
+      ]
+    },
     "nested-block": {
       "begin": "\\{",
       "beginCaptures": {
@@ -722,6 +801,9 @@
     "code": {
       "patterns": [
         {
+          "include": "#across"
+        },
+        {
           "include": "#declaration-names"
         },
         {
@@ -758,6 +840,9 @@
     },
     "block-code": {
       "patterns": [
+        {
+          "include": "#across"
+        },
         {
           "include": "#block-declaration-names"
         },
