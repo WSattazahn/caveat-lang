@@ -46,6 +46,8 @@ export const reviewedSaveChanges = new Set([
   'kit/test/fixtures/saves/programs/frost.cav',
   'python/tests/fixtures/assessment.cav',
   'runtime/tests/fixtures/f268-rc11-wide-grounds.cav',
+  'web/break-apartment.cav',
+  'web/break-guard.cav',
 ]);
 
 // A reviewed change keeps everything but the digest.
