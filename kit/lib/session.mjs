@@ -538,7 +538,8 @@ export function createRuntime(SessionClass, identity = {}) {
     // A program that does not load throws as open does. `{ unused: true }`
     // adds C007 and `{ records: true }` C008, each reported only when asked
     // for. `{ records: true, save }` also adds C009 for that save (its text);
-    // a save that does not restore throws as restore does.
+    // a save that does not restore throws as restore does. `{ withdrawals:
+    // true }` adds C010 and C011.
     check(source, options = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
@@ -547,6 +548,7 @@ export function createRuntime(SessionClass, identity = {}) {
       }
       const unused = options?.unused === true;
       const records = options?.records === true;
+      const withdrawals = options?.withdrawals === true;
       const save = options?.save;
       if (save !== undefined && typeof save !== 'string') throw new TypeError('save must be text');
       if (save !== undefined && !records) throw new TypeError('a save is checked with records: true');
@@ -556,12 +558,16 @@ export function createRuntime(SessionClass, identity = {}) {
       if (records && typeof SessionClass.check_options !== 'function') {
         throw new CaveatError('load', 'this runtime build has no records check; it predates caveat check --records');
       }
+      if (withdrawals && typeof SessionClass.check_options !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no withdrawals check; it predates caveat check --withdrawals');
+      }
       if (save !== undefined) {
         // The program must load first, so its error is reported as load.
         try { new SessionClass(source).free(); } catch (error) { throw failure(error, 'load'); }
         try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore'); }
       }
       try {
+        if (withdrawals) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, withdrawals, save })));
         if (records) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, save })));
         return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source));
       } catch (error) {

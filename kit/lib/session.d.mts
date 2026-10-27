@@ -303,7 +303,7 @@ export interface RuntimeSessionClass {
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
   check_with?(source: string, unused: boolean): string;
-  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "save"?: string}`. */
+  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "withdrawals"?: boolean, "save"?: string}`. */
   check_options?(source: string, options: string): string;
   interface?(source: string): string;
   /** True once the instance has failed to allocate memory; safe to read after a trap. */
@@ -424,6 +424,13 @@ export interface CheckOptions {
    * Throws `CaveatError("restore")` when it does not restore.
    */
   save?: string;
+  /**
+   * Also report C010 `commit-on-withdrawable`, a commit on a source the
+   * program can withdraw that nothing asks is withdrawn, and C011
+   * `withdrawal-not-reopened`, a decision committed on such a source that no
+   * rule reopens when it is withdrawn.
+   */
+  withdrawals?: boolean;
 }
 
 export interface CheckReport {

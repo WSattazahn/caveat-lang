@@ -1722,6 +1722,94 @@ impl Expr {
         }
     }
 
+    /// What this expression asks about withdrawal, taken or not. `tested`
+    /// gets each name it asks is withdrawn: `withdrawn(E)`,
+    /// `withdrawn(latest(S))`, `withdrawn(occurrence(E, N))` or
+    /// `withdrawn(reading(S, N))`, `carries(…, withdrawn)` and
+    /// `has_caveat(STATE, withdrawn)`. `bases` gets each decision series whose
+    /// basis it asks about: `rests_on_withdrawn(D)`, of a revision of D, and
+    /// `in_basis(D, …)`. Used by `caveat check`'s C010 and C011
+    /// (spec/caveat-check-0.1.md). Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_withdrawal_reads(
+        &self,
+        tested: &mut BTreeSet<String>,
+        bases: &mut BTreeSet<String>,
+    ) {
+        match &self.node {
+            Node::Outcome(_, index) => {
+                if let Some(index) = index {
+                    index.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_) => {}
+            Node::Predicate(kind, name) => match kind.as_str() {
+                "withdrawn" | "withdrawn_latest" => {
+                    tested.insert(name.clone());
+                }
+                "rests_on_withdrawn" => {
+                    bases.insert(name.clone());
+                }
+                kind if kind.ends_with("carries:withdrawn") || kind == "has_caveat:withdrawn" => {
+                    tested.insert(name.clone());
+                }
+                _ => {}
+            },
+            Node::AtOccurrence(kind, name, index) => {
+                if kind == "withdrawn" || kind == "carries:withdrawn" {
+                    tested.insert(name.clone());
+                } else if kind == AT_REVISION {
+                    bases.insert(name.clone());
+                }
+                index.collect_withdrawal_reads(tested, bases);
+            }
+            Node::InBasis(basis, children) => {
+                bases.insert(basis.series.clone());
+                for child in children {
+                    child.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::Latest(_) | Node::GroundsOf(_) | Node::HistoryCount(_) => {}
+            Node::HistoryAt(_, index) | Node::Fold(_, index, _) => {
+                index.collect_withdrawal_reads(tested, bases)
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                initial.collect_withdrawal_reads(tested, bases);
+                body.collect_withdrawal_reads(tested, bases);
+            }
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => {
+                value.collect_withdrawal_reads(tested, bases)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                left.collect_withdrawal_reads(tested, bases);
+                right.collect_withdrawal_reads(tested, bases);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_withdrawal_reads(tested, bases);
+                yes.collect_withdrawal_reads(tested, bases);
+                no.collect_withdrawal_reads(tested, bases);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_withdrawal_reads(tested, bases);
+                }
+                body.collect_withdrawal_reads(tested, bases);
+            }
+        }
+    }
+
     /// A `threshold NAME = NUMBER;` read, as a define expands it. See
     /// spec/caveat-thresholds-0.1.md.
     pub fn threshold(name: &str, value: Number) -> Result<Self, String> {
