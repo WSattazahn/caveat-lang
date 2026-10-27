@@ -37,7 +37,11 @@ const server = createServer((request, response) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const jsc = Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('JSC_')));
-const browser = await playwright[browserName].launch({ env: { ...process.env }, ...(browserName === 'chromium' && process.env.CARMACK_CHROMIUM ? { executablePath: process.env.CARMACK_CHROMIUM } : {}) });
+// The browser's own stderr (engine logs such as JSC_verboseOSR), kept as a
+// ring so a trap can print what the engine did just before it.
+const engineLog = [];
+const logger = { isEnabled: (name) => name === 'browser', log: (_name, _severity, message) => { engineLog.push(String(message)); if (engineLog.length > 4000) engineLog.splice(0, 2000); } };
+const browser = await playwright[browserName].launch({ env: { ...process.env }, logger, ...(browserName === 'chromium' && process.env.CARMACK_CHROMIUM ? { executablePath: process.env.CARMACK_CHROMIUM } : {}) });
 const version = browser.version();
 const failures = [];
 let startups = 0;
@@ -73,7 +77,12 @@ try {
         return { opened };
       }, garbage);
       startups += 1;
-      if (result.trap) { failures.push({ kind: 'startup', page: i, ...result }); console.log(`page ${i}: TRAP ${result.trap} (${result.program}, round ${result.round}, after ${result.opened})`); }
+      if (result.trap) {
+        failures.push({ kind: 'startup', page: i, ...result });
+        console.log(`page ${i}: TRAP ${result.trap} (${result.program}, round ${result.round}, after ${result.opened})`);
+        if (process.env.JSC_verboseOSR) for (const line of engineLog.filter((l) => /osr|OSR|tier/i.test(l)).slice(-25)) console.log(`    ${line.slice(0, 400)}`);
+      }
+      engineLog.length = 0;
     } catch (error) {
       failures.push({ kind: 'startup', page: i, error: String(error.message ?? error).slice(0, 300) });
       console.log(`page ${i}: ERROR ${String(error.message ?? error).slice(0, 300)}`);
