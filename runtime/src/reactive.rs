@@ -3259,14 +3259,16 @@ impl ReactiveSession {
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
                 )),
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF
                     if self.decision_series.contains_key(symbol) =>
                 {
                     Ok(())
                 }
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME => Err(format!(
-                    "{kind} names a decision series; {symbol} is not one"
-                )),
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF => {
+                    Err(format!(
+                        "{kind} names a decision series; {symbol} is not one"
+                    ))
+                }
                 reactive_expr::AT_REVISION_RESOLVED
                     if self.decision_series.contains_key(symbol) =>
                 {
@@ -4052,6 +4054,9 @@ impl ReactiveSession {
         if let HistoryRead::Outcome(index) = query {
             return self.outcome_read(name, index);
         }
+        if query == HistoryRead::Grounds {
+            return self.grounds_read(name);
+        }
         if query == HistoryRead::Latest {
             if let Some(stream) = self.reading_streams.get(name) {
                 if stream.occurrences.is_empty() {
@@ -4100,7 +4105,9 @@ impl ReactiveSession {
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
@@ -4131,11 +4138,41 @@ impl ReactiveSession {
                         )
                     })?
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
+    }
+
+    /// `grounds_of(SERIES)`: the current revision's frozen `using` value, as
+    /// `latest(SERIES)` reads it, on the revision's frozen grounds instead of
+    /// its whole basis: what the commit rested on, without the predecessor's
+    /// basis, the reopening's witness and the guards. The series' current
+    /// head-selection dependencies and current withdrawals apply as for
+    /// `latest`. See spec/caveat-grounds-of-0.1.md.
+    fn grounds_read(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
+        let series = self
+            .decision_series
+            .get(name)
+            .ok_or_else(|| format!("grounds_of names a decision series; {name} is not one"))?;
+        let Some(current) = &series.current else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("decision series {name} has no commitment"),
+            ));
+        };
+        let value = self.commitment_bases[current].value.ok_or_else(|| {
+            EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("current decision {current} has no numeric using value"),
+            )
+        })?;
+        let mut provenance = self.commitment_grounds[current].clone();
+        self.inherit(&mut provenance, &series.selection_qualifications)?;
+        Tracked::new(value, self.with_current_withdrawals(provenance)?)
     }
 
     /// The outcome of a series' current revision, or of revision K. A

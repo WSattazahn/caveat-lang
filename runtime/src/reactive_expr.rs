@@ -107,6 +107,9 @@ pub enum HistoryRead {
     /// `outcome(…)`: of the current revision, or of revision K, 1-based. See
     /// spec/caveat-outcomes-0.1.md.
     Outcome(Option<usize>),
+    /// `grounds_of(SERIES)`: the current revision's value, on its frozen
+    /// grounds and not its lineage. See spec/caveat-grounds-of-0.1.md.
+    Grounds,
 }
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 
@@ -147,6 +150,10 @@ pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
 /// The name of `outcome(…)`, a revision's outcome value. See
 /// spec/caveat-outcomes-0.1.md.
 pub const OUTCOME: &str = "outcome";
+
+/// The name of `grounds_of(SERIES)`, a revision's value on its grounds
+/// alone. See spec/caveat-grounds-of-0.1.md.
+pub const GROUNDS_OF: &str = "grounds_of";
 
 /// The name of `only_if(CONDITION, VALUE)`. See spec/caveat-only-if-0.1.md.
 pub const ONLY_IF: &str = "only_if";
@@ -1134,6 +1141,9 @@ enum Node {
     /// index. See spec/caveat-outcomes-0.1.md.
     Outcome(String, Option<Box<Expr>>),
     Latest(String),
+    /// `grounds_of(SERIES)`: the current revision's value, with its frozen
+    /// grounds as basis. See spec/caveat-grounds-of-0.1.md.
+    GroundsOf(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
     Fold(String, Box<Expr>, String),
@@ -1356,6 +1366,7 @@ impl Expr {
             Node::Text(text)
             | Node::Variable(text)
             | Node::Latest(text)
+            | Node::GroundsOf(text)
             | Node::HistoryCount(text)
             | Node::UserCall(text, _)
             | Node::HistoryAt(text, _)
@@ -1404,7 +1415,7 @@ impl Expr {
                     reads.observed.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 reads.graph = true;
                 reads.graph_names.insert(name.clone());
             }
@@ -1494,6 +1505,7 @@ impl Expr {
             Node::Variable(name)
             | Node::Predicate(_, name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => {
                 sources.insert(name.clone());
             }
@@ -1580,6 +1592,10 @@ impl Expr {
             Node::Latest(name) => {
                 records.insert(("latest", name.clone()));
             }
+            // New in 1.5, so no 1.0.x runtime read a record through it.
+            Node::GroundsOf(name) => {
+                records.insert(("grounds_of", name.clone()));
+            }
             Node::HistoryCount(name) => {
                 records.insert(("history_count", name.clone()));
             }
@@ -1655,7 +1671,7 @@ impl Expr {
                     histories.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 histories.insert(name.clone());
             }
             Node::HistoryAt(name, index) => {
@@ -1805,6 +1821,7 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
+            Node::GroundsOf(series) => Node::GroundsOf(rename(series)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
@@ -1931,6 +1948,7 @@ impl Expr {
             Node::Text(name)
             | Node::Variable(name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => name.contains(word),
             Node::Predicate(kind, target) => kind.contains(word) || target.contains(word),
             Node::Qualified(value, evidence, caveats) => {
@@ -2028,6 +2046,7 @@ impl Expr {
             | Node::Text(_)
             | Node::Variable(_)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -2081,6 +2100,7 @@ impl Expr {
             | Node::Variable(_)
             | Node::Predicate(_, _)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -2196,6 +2216,10 @@ impl Expr {
             }
             Node::Latest(name) => {
                 predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
+            Node::GroundsOf(name) => {
+                predicate(GROUNDS_OF, name)?;
                 Ok(ValueType::Number)
             }
             Node::HistoryCount(name) => {
@@ -2587,6 +2611,9 @@ impl Expr {
                 )?))
             }
             Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
+            Node::GroundsOf(name) => {
+                Ok(Value::Number(finite(history(name, HistoryRead::Grounds)?)?))
+            }
             Node::HistoryCount(name) => {
                 Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
             }
@@ -3403,6 +3430,23 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
             return Ok(Node::Latest(history));
         }
+        // `grounds_of(SERIES)`. A program may define `fn grounds_of` and call
+        // it with any arguments: what is not the form is its call
+        // (spec/caveat-grounds-of-0.1.md).
+        if name == GROUNDS_OF {
+            let start = self.cursor;
+            let form = self
+                .graph_identifier("grounds_of series")
+                .and_then(|series| {
+                    self.expect(TokenKind::RightParen, "')' after the grounds_of series")?;
+                    Ok(series)
+                });
+            match form {
+                Ok(series) => return Ok(Node::GroundsOf(series)),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         // `withdrawn(latest(STREAM))`: whether the stream's current reading is
         // withdrawn. See spec/caveat-withdrawal-0.1.md.
         if name == "withdrawn" && self.peek() == Some(&TokenKind::Identifier("latest".into())) {
@@ -4015,6 +4059,18 @@ impl Expander<'_> {
                     return Err("pure source functions cannot capture numeric history".into());
                 }
                 Node::Latest(name.clone())
+            }
+            // A program may define `fn grounds_of`; its calls keep their
+            // meaning (spec/caveat-grounds-of-0.1.md).
+            Node::GroundsOf(series) if self.functions.contains_key(GROUNDS_OF) => {
+                let call = Node::UserCall(GROUNDS_OF.into(), vec![revision_call(series, None)?]);
+                return self.walk(&Expr::new(call)?, parameters);
+            }
+            Node::GroundsOf(name) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::GroundsOf(name.clone())
             }
             Node::Qualified(value, evidence, caveats) => {
                 if parameters.is_some() {
