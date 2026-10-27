@@ -71,7 +71,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # A stalled download once held this step for over 40 minutes; each try
+      # This step once stalled with no output for over 40 minutes; each try
       # is cut off after 8 so a stall is retried instead of waiting 6 hours.
       - name: Install the browsers
         if: runner.os == 'Linux'
