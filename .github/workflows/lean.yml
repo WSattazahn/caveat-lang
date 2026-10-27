@@ -33,9 +33,15 @@ jobs:
         run: npm run test:lean-gate
       - name: Inventory, audit and replay the scaffold proofs
         run: npm run verify:lean
+      - name: Lean grounds check unit tests
+        run: npm run test:lean-grounds
+      - name: Check the Lean theorems Caveat evidence names, with failure controls
+        run: npm run verify:lean-grounds
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: lean-scaffold-verification
-          path: test-results/lean-verification/
+          path: |
+            test-results/lean-verification/
+            test-results/lean-grounds/
           if-no-files-found: error
