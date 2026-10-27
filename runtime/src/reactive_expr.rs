@@ -313,13 +313,13 @@ pub struct Provenance {
     /// reopening qualification rather than read itself. A name it also read
     /// is not here. Only a program with a window keeps it, since only
     /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    #[serde(default, skip_serializing_if = "NameSet::is_empty")]
     pub inherited: NameSet,
     /// The take-back caveats among `caveats` that this value holds through a
     /// record rather than a live qualification, so no take-back removes them.
     /// Only a program that takes back keeps any; see
     /// spec/caveat-take-back-0.1.md.
-    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    #[serde(default, skip_serializing_if = "NameSet::is_empty")]
     pub kept: NameSet,
 }
 
@@ -330,10 +330,137 @@ pub struct Provenance {
 #[derive(Debug, Clone, Default)]
 pub struct NameSet(Option<Arc<Names>>);
 
-/// The names and, once asked, their total bytes.
+/// One graph name in a lineage. Copying it shares the text rather than
+/// allocating it: a value copies its inputs' names far more often than a name
+/// is made. It orders and compares by its text, so sets of names list in
+/// name order exactly as sets of strings do.
+#[derive(Debug, Clone)]
+pub struct Name(Arc<str>);
+
+/// Copies of one name share its text, so the same text is found without
+/// comparing it.
+impl PartialEq for Name {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0) || self.0 == other.0
+    }
+}
+
+impl Eq for Name {}
+
+impl std::hash::Hash for Name {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if Arc::ptr_eq(&self.0, &other.0) {
+            std::cmp::Ordering::Equal
+        } else {
+            self.0.cmp(&other.0)
+        }
+    }
+}
+
+impl Name {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for Name {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for Name {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Name {
+    fn from(name: String) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<&String> for Name {
+    fn from(name: &String) -> Self {
+        Self(Arc::from(name.as_str()))
+    }
+}
+
+impl From<&str> for Name {
+    fn from(name: &str) -> Self {
+        Self(Arc::from(name))
+    }
+}
+
+impl From<Name> for String {
+    fn from(name: Name) -> Self {
+        name.0.to_string()
+    }
+}
+
+impl PartialEq<str> for Name {
+    fn eq(&self, other: &str) -> bool {
+        &*self.0 == other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        &*self.0 == *other
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        &*self.0 == other.as_str()
+    }
+}
+
+impl serde::Serialize for Name {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Name {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// The names in name order, each once, and, once asked, their total bytes.
+/// A lineage holds one to three names far more often than more, so a sorted
+/// list finds and joins them with less work than a tree.
 #[derive(Debug, Default)]
 struct Names {
-    names: BTreeSet<String>,
+    names: Vec<Name>,
     bytes: OnceLock<usize>,
 }
 
@@ -346,8 +473,6 @@ impl Clone for Names {
     }
 }
 
-static NO_NAMES: BTreeSet<String> = BTreeSet::new();
-
 impl NameSet {
     /// Whether both hold the very same set, so neither can add to the other.
     fn shares(&self, other: &Self) -> bool {
@@ -357,24 +482,126 @@ impl NameSet {
         }
     }
 
+    fn names(&self) -> &[Name] {
+        self.0.as_ref().map_or(&[], |set| &set.names)
+    }
+
+    /// The list to change, copied first when another value shares it.
+    fn names_mut(&mut self) -> &mut Vec<Name> {
+        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
+        set.bytes = OnceLock::new();
+        &mut set.names
+    }
+
+    fn position(&self, name: &str) -> Result<usize, usize> {
+        self.names()
+            .binary_search_by(|held| held.as_str().cmp(name))
+    }
+
     /// The names this set would add to `ours`.
-    fn added_to<'a>(
-        &'a self,
-        ours: &'a Self,
-    ) -> std::collections::btree_set::Difference<'a, String> {
-        if self.is_empty() || self.shares(ours) {
-            NO_NAMES.difference(&NO_NAMES)
-        } else {
-            self.difference(ours)
-        }
+    fn added_to<'a>(&'a self, ours: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
+        let skip = self.is_empty() || self.shares(ours);
+        self.names()
+            .iter()
+            .filter(move |name| !skip && !ours.contains(name.as_str()))
     }
 
     /// The names' total bytes, counted once per set.
     fn bytes(&self) -> usize {
         self.0.as_ref().map_or(0, |set| {
             *set.bytes
-                .get_or_init(|| set.names.iter().map(String::len).sum())
+                .get_or_init(|| set.names.iter().map(|name| name.len()).sum())
         })
+    }
+
+    pub fn len(&self) -> usize {
+        self.names().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.names().is_empty()
+    }
+
+    /// The names in name order.
+    pub fn iter(&self) -> std::slice::Iter<'_, Name> {
+        self.names().iter()
+    }
+
+    pub fn first(&self) -> Option<&Name> {
+        self.names().first()
+    }
+
+    /// The held name with this text.
+    pub fn get(&self, name: &str) -> Option<&Name> {
+        self.position(name).ok().map(|at| &self.names()[at])
+    }
+
+    /// Whether the set holds `name`, given as any text.
+    pub fn contains<Q: AsRef<str> + ?Sized>(&self, name: &Q) -> bool {
+        self.position(name.as_ref()).is_ok()
+    }
+
+    /// Whether every name here is also in `other`.
+    pub fn is_subset(&self, other: &Self) -> bool {
+        self.shares(other)
+            || (self.len() <= other.len() && self.iter().all(|name| other.contains(name.as_str())))
+    }
+
+    /// The names here that `other` lacks, in name order.
+    pub fn difference<'a>(&'a self, other: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
+        self.iter()
+            .filter(move |name| !other.contains(name.as_str()))
+    }
+
+    /// Add `name`; returns whether it was new. A name already held copies nothing.
+    pub fn insert(&mut self, name: impl Into<Name>) -> bool {
+        let name = name.into();
+        match self.position(name.as_str()) {
+            Ok(_) => false,
+            Err(at) => {
+                self.names_mut().insert(at, name);
+                true
+            }
+        }
+    }
+
+    /// Remove `name`; returns whether it was held. A name not held copies nothing.
+    pub fn remove<Q: AsRef<str> + ?Sized>(&mut self, name: &Q) -> bool {
+        match self.position(name.as_ref()) {
+            Ok(at) => {
+                self.names_mut().remove(at);
+                if self.names().is_empty() {
+                    self.0 = None;
+                }
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
+    /// Keep only the names `keep` accepts.
+    pub fn retain(&mut self, mut keep: impl FnMut(&Name) -> bool) {
+        if self.iter().all(&mut keep) {
+            return;
+        }
+        let names: Vec<Name> = self.iter().filter(|name| keep(name)).cloned().collect();
+        *self = Self::from_sorted(names);
+    }
+
+    pub fn extend<N: Into<Name>>(&mut self, names: impl IntoIterator<Item = N>) {
+        for name in names {
+            self.insert(name);
+        }
+    }
+
+    /// A set of names already in name order, each once.
+    fn from_sorted(names: Vec<Name>) -> Self {
+        Self((!names.is_empty()).then(|| {
+            Arc::new(Names {
+                names,
+                bytes: OnceLock::new(),
+            })
+        }))
     }
 
     /// Add every name of `other`, sharing its set when this one is empty and
@@ -384,56 +611,75 @@ impl NameSet {
         } else if self.is_empty() {
             *self = other.clone();
         } else if !other.is_subset(self) {
-            self.extend(other.iter().cloned());
+            let (left, right) = (self.names(), other.names());
+            let mut joined = Vec::with_capacity(left.len() + right.len());
+            let (mut i, mut j) = (0, 0);
+            while i < left.len() && j < right.len() {
+                match left[i].cmp(&right[j]) {
+                    std::cmp::Ordering::Less => {
+                        joined.push(left[i].clone());
+                        i += 1;
+                    }
+                    std::cmp::Ordering::Greater => {
+                        joined.push(right[j].clone());
+                        j += 1;
+                    }
+                    std::cmp::Ordering::Equal => {
+                        joined.push(left[i].clone());
+                        i += 1;
+                        j += 1;
+                    }
+                }
+            }
+            joined.extend_from_slice(&left[i..]);
+            joined.extend_from_slice(&right[j..]);
+            *self = Self::from_sorted(joined);
         }
     }
 }
 
 impl PartialEq for NameSet {
     fn eq(&self, other: &Self) -> bool {
-        self.shares(other) || **self == **other
+        self.shares(other) || self.names() == other.names()
     }
 }
 
 impl Eq for NameSet {}
 
+impl PartialOrd for NameSet {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Orders as sets of names do: by their names in order.
+impl Ord for NameSet {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.names().cmp(other.names())
+    }
+}
+
 impl PartialEq<BTreeSet<String>> for NameSet {
     fn eq(&self, other: &BTreeSet<String>) -> bool {
-        **self == *other
-    }
-}
-
-impl std::ops::Deref for NameSet {
-    type Target = BTreeSet<String>;
-
-    fn deref(&self) -> &BTreeSet<String> {
-        self.0.as_ref().map_or(&NO_NAMES, |set| &set.names)
-    }
-}
-
-impl std::ops::DerefMut for NameSet {
-    fn deref_mut(&mut self) -> &mut BTreeSet<String> {
-        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
-        set.bytes = OnceLock::new();
-        &mut set.names
+        self.len() == other.len() && self.iter().zip(other).all(|(left, right)| left == right)
     }
 }
 
 impl serde::Serialize for NameSet {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        (**self).serialize(serializer)
+        serializer.collect_seq(self.iter())
     }
 }
 
 impl<'de> serde::Deserialize<'de> for NameSet {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        BTreeSet::deserialize(deserializer).map(Self::from)
+        BTreeSet::<Name>::deserialize(deserializer).map(Self::from)
     }
 }
 
 impl IntoIterator for NameSet {
-    type Item = String;
-    type IntoIter = std::collections::btree_set::IntoIter<String>;
+    type Item = Name;
+    type IntoIter = std::vec::IntoIter<Name>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0
@@ -444,28 +690,38 @@ impl IntoIterator for NameSet {
 }
 
 impl<'a> IntoIterator for &'a NameSet {
-    type Item = &'a String;
-    type IntoIter = std::collections::btree_set::Iter<'a, String>;
+    type Item = &'a Name;
+    type IntoIter = std::slice::Iter<'a, Name>;
 
     fn into_iter(self) -> Self::IntoIter {
-        (**self).iter()
+        self.iter()
     }
 }
 
 impl From<BTreeSet<String>> for NameSet {
     fn from(names: BTreeSet<String>) -> Self {
-        Self((!names.is_empty()).then(|| {
-            Arc::new(Names {
-                names,
-                bytes: OnceLock::new(),
-            })
-        }))
+        Self::from_sorted(names.into_iter().map(Name::from).collect())
+    }
+}
+
+impl From<BTreeSet<Name>> for NameSet {
+    fn from(names: BTreeSet<Name>) -> Self {
+        Self::from_sorted(names.into_iter().collect())
+    }
+}
+
+impl FromIterator<Name> for NameSet {
+    fn from_iter<I: IntoIterator<Item = Name>>(names: I) -> Self {
+        let mut names: Vec<Name> = names.into_iter().collect();
+        names.sort_unstable();
+        names.dedup();
+        Self::from_sorted(names)
     }
 }
 
 impl FromIterator<String> for NameSet {
     fn from_iter<I: IntoIterator<Item = String>>(names: I) -> Self {
-        Self::from(names.into_iter().collect::<BTreeSet<_>>())
+        names.into_iter().map(Name::from).collect()
     }
 }
 
@@ -596,7 +852,7 @@ impl Provenance {
     }
 
     /// The names this value read itself: `evidence` less `inherited`.
-    pub fn own_evidence(&self) -> impl Iterator<Item = &String> {
+    pub fn own_evidence(&self) -> impl Iterator<Item = &Name> {
         self.evidence
             .iter()
             .filter(|name| !self.inherited.contains(*name))
@@ -680,8 +936,7 @@ impl Provenance {
 
     /// Union is deterministic and preserves both dependency categories.
     pub fn union(&self, other: &Self) -> Result<Self, EvalError> {
-        self.validate()?;
-        other.validate()?;
+        // merge checks both sides, this one first.
         let mut result = self.clone();
         result.merge(other)?;
         Ok(result)
@@ -693,7 +948,11 @@ impl Provenance {
     pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
-        let mut check = |name: &String| {
+        if other.is_empty() && other.inherited.is_empty() && other.kept.is_empty() {
+            // Nothing to add, and every inherited name here stays inherited.
+            return Ok(());
+        }
+        let mut check = |name: &str| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
