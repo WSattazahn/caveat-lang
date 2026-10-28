@@ -17,7 +17,7 @@ material or anything else that shares the repository.
 | CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
 | Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, `./handoff` (sessions scoped to some events, and replay between sessions), `./saves` (from 1.4.0: a replay save's events read back by name, and replayed onto a changed program), and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
-| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
+| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge, and from 1.5.0 `caveat_dispatch`, which continues one ledger through the save it returns; `caveat_find` is a 1.5 draft ([Find 0.1](../spec/caveat-find-0.1.md)) until a release ships it | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
 | Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Replay Save 0.2](../spec/caveat-replay-save-0.2.md) (from 1.2.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
 
@@ -43,7 +43,8 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `already_committed`, from 1.2.0 `foreclosed` and
 `caveated_irreversible`, from 1.3.0 `already_resolved` and
 `not_retained`, and from 1.4.0 `reason_spent`, `provenance_limit`,
-`evaluation_limit` and `wrong_agent`. A 1.x release never renames or removes
+`evaluation_limit` and `wrong_agent`, and from 1.4.1 `text_limit`. A 1.x
+release never renames or removes
 one, and never moves an input from one code to another. It may add a code only
 for an input that was refused or fatal before, or for new syntax. Hosts should
 treat an unknown code as a refusal.
@@ -57,6 +58,9 @@ checks that the two agree.
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
   implements yet.
+- The 1.5 drafts `caveat-across-members-0.1.md`,
+  `caveat-reading-caveats-0.1.md`, `caveat-thresholds-0.1.md` and
+  `caveat-find-0.1.md`, which become stable when a 1.x release ships them.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and

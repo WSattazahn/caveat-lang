@@ -679,35 +679,28 @@ try {
       });
     }
 
-    // A bound text past its 65,536 bytes is a fault no catalog code
-    // classifies. Value provenance past its name bytes served here until it
-    // became limit/provenance_limit (D022); id_text of a non-handle until F309.
+    // A bound text past its 65,536 bytes was the fault no catalog code
+    // classified, and the fatal example here, until it became
+    // limit/text_limit (D025); value provenance past its name bytes served
+    // until D022 and id_text of a non-handle until F309. No program is known
+    // to reach a fatal outcome now, so the refusal is checked on both paths
+    // and the fatal shape on the report the bridge writes for a string fault
+    // (runtime/tests/dispatch_outcomes.rs).
     const overflow = rule => `state big = 0 min 0 max 2000000;
       ${rule} set big = 1234567.123456789;
       bind wide.text = "${'A'.repeat(65520)}" + text(big);`;
     for (const [name, rule] of [['text-overflow', 'on run'], ['guarded-text-overflow', 'on run when output > 0']]) {
-      check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
-        const source = fixture(`fatal-${name}`, `state output = 0; event run;
+      check(`${name} is refused as limit/text_limit on both paths and is never fatal`, () => {
+        const source = fixture(`refused-${name}`, `state output = 0; event run;
           on run set output = 1; ${overflow(rule)}`);
-        withSessions(source, 1, session => {
-          assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
-            assert.equal(typeof thrown, 'string', 'WASM Result::Err throws its fatal JSON string');
-            const fatal = parse(thrown);
-            assert.deepEqual(Object.keys(fatal).sort(), ['code', 'message', 'outcome', 'schema']);
-            assert.equal(fatal.schema, schema);
-            assert.equal(fatal.outcome, 'fatal');
-            assert.equal(fatal.code, 'unclassified');
-            assert.equal(typeof fatal.message, 'string');
-            assert(fatal.message.length > 0);
-            return true;
-          });
-          // Discard the session after a fatal. No read or retry assumes that a
-          // thrown WASM exception left it usable.
-        });
         withSessions(source, 2, (session, viewed) => {
-          let expected;
-          assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => { expected = thrown; return true; });
-          assert.throws(() => viewed.dispatch_view_outcome('run', '{}'), thrown => thrown === expected, 'the same fatal report on the view path');
+          const before = checkpoint(session);
+          const refused = parse(session.dispatch_outcome('run', '{}'));
+          assert.equal(refused.outcome, 'rejected');
+          assert.equal(refused.origin, 'limit');
+          assert.equal(refused.code, 'text_limit');
+          assert.deepEqual(checkpoint(session), before, 'the refused event changed nothing');
+          assert.deepEqual(parse(viewed.dispatch_view_outcome('run', '{}')), refused, 'the same refusal on the view path');
         });
       });
     }

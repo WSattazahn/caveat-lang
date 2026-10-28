@@ -53,7 +53,8 @@ outside itself.
   [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it;
   from 1.4.0 an expression whose lineage or evaluation would outgrow its
   caps is refused as `limit/provenance_limit` or `limit/evaluation_limit`
-  instead of ending the session;
+  instead of ending the session, and from 1.4.1 a text value past 65,536
+  bytes as `limit/text_limit`;
   streams and decision series have declared limits. Memory
   exhaustion traps the instance, and the kit reports it as `fatal` and loads a
   fresh one ([kit README](../kit/README.md)).

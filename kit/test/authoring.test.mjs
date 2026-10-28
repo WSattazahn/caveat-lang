@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
 import { defaultRuntimeDirectory } from '../lib/node.mjs';
-import { textOverflow } from './fatal-fixture.mjs';
+import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
@@ -26,7 +26,6 @@ on assess commit plan because enough using latest(values);
 on refuse set touched = 1;
 on refuse reject "fixture policy";
 on fault set touched = 7;
-${textOverflow('on fault')}
 bind display.value = touched;
 `;
 const events = [
@@ -74,6 +73,28 @@ test('all five inline authoring results preserve the existing CLI report shapes 
   }
 });
 
+test('find searches each inline record of the program, as find does over ledgers', async () => {
+  const records = [
+    { name: 'ticket-1', events },
+    { name: 'ticket-2', events: [{ event: 'read', payload: { value: 40 } }] },
+  ];
+  const found = await bridge('find', { source, records, query: 'Plan fixture' });
+  assert.equal(found.operation, 'find');
+  assert.equal(found.exitCode, 0);
+  assert.equal(found.sourceSha256, createHash('sha256').update(source).digest('hex'));
+  assert.equal(found.report.schema, 'caveat-find/0.1');
+  assert.equal(found.report.program, 'inline.cav');
+  assert.deepEqual(found.report.searched.map(entry => [entry.events, entry.revisions, entry.fatal]), [['ticket-1', 1, null], ['ticket-2', 0, null]]);
+  assert.deepEqual(found.report.found.map(item => [item.program, item.events, item.revision, item.status]), [['inline.cav', 'ticket-1', 'plan@1', 'in force']]);
+  assert.deepEqual(found.report.found[0].matched, { plan: ['decision plan', 'revision plan@1'], fixture: ['source supplied fixture readings'] });
+  // A record's name is matched as the program's.
+  assert.deepEqual((await bridge('find', { source, records, query: 'ticket-2' })).report.found, []);
+  assert.equal((await bridge('find', { source, records, query: 'ticket-1 plan' })).report.found.length, 1);
+  const invalid = await bridge('find', { source: 'not valid Caveat;', records, query: 'plan' });
+  assert.equal(invalid.exitCode, 2);
+  assert.equal(invalid.report.loads, false);
+});
+
 test('strict warnings, syntax errors and scenario assertion failures retain authoring exit codes', async () => {
   const warning = source.replace(' reopened by values', '');
   const warned = await bridge('check', { source: warning, strict: true });
@@ -101,10 +122,12 @@ test('strict warnings, syntax errors and scenario assertion failures retain auth
 });
 
 test('policy refusal remains an outcome and fatal dispatch reports the last good snapshot', async () => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const runtimeDirectory = await faultingRuntimeDirectory();
   const sent = [...events, { event: 'fault' }, { event: 'read', payload: { value: 90 } }];
   const command = await cliFixture(source, sent);
-  const result = await bridge('explain', { source, events: sent });
-  const expected = command(['explain', '--json', 'inline.cav', 'events.jsonl']);
+  const result = await runAuthoringOperation('caveat_explain', { source, events: sent }, { runtimeDirectory });
+  const expected = command(['explain', '--runtime', runtimeDirectory, '--json', 'inline.cav', 'events.jsonl']);
   assert.equal(result.exitCode, 1);
   assert.deepEqual(result.report, JSON.parse(expected.stdout));
   assert.deepEqual(result.report.events.map(item => item.outcome.outcome), ['accepted', 'accepted', 'rejected', 'fatal']);
@@ -115,6 +138,59 @@ test('policy refusal remains an outcome and fatal dispatch reports the last good
   const unknown = await bridge('dependents', { source, subject: 'missing', events });
   assert.equal(unknown.exitCode, 2);
   assert.match(unknown.report.error, /missing is not evidence/);
+});
+
+test('caveat_dispatch keeps one ledger across calls through the save it returns', async () => {
+  const first = await bridge('dispatch', { source, events: events.slice(0, 1) });
+  assert.equal(first.exitCode, 0);
+  assert.equal(first.report.schema, 'caveat-dispatch-step/0.1');
+  assert.equal(first.report.explainSchema, 'caveat-explain/0.1');
+  assert.equal(first.report.restored, false);
+  assert.equal(typeof first.report.save, 'string');
+  const second = await bridge('dispatch', { source, save: first.report.save, events: events.slice(1) });
+  assert.equal(second.exitCode, 0);
+  assert.equal(second.report.restored, true);
+  assert.deepEqual(second.report.events.map(item => item.outcome.outcome), ['accepted', 'rejected']);
+  // Chained steps reach what one replay of the whole history explains.
+  const whole = await bridge('explain', { source, events });
+  // Only which earlier event observed a reading is not in the save.
+  const unobserved = report => report.decisions.map(series => ({ ...series, revisions: series.revisions.map(revision => ({
+    ...revision, observed_by: revision.observed_by.map(item => ({ ...item, event: null, payload: null, sequence: null })) })) }));
+  assert.deepEqual(unobserved(second.report), unobserved(whole.report));
+  assert.deepEqual(second.report.decisions[0].revisions[0].observed_by[0], { evidence: 'values@1', event: null, payload: null, sequence: null });
+  for (const key of ['sequence', 'evidence', 'displayed']) assert.deepEqual(second.report[key], whole.report[key], key);
+  const unchanged = await bridge('dispatch', { source, save: second.report.save });
+  assert.equal(unchanged.exitCode, 0);
+  assert.deepEqual(unchanged.report.events, []);
+  assert.equal(unchanged.report.sequence, whole.report.sequence);
+});
+
+test('caveat_dispatch saves the last good state after a fatal event and refuses a save for other source', async () => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const runtimeDirectory = await faultingRuntimeDirectory();
+  const start = await bridge('dispatch', { source, events: events.slice(0, 2) });
+  const fatal = await runAuthoringOperation('caveat_dispatch', { source, save: start.report.save,
+    events: [{ event: 'fault' }, { event: 'read', payload: { value: 90 } }] }, { runtimeDirectory });
+  assert.equal(fatal.exitCode, 1);
+  assert.deepEqual(fatal.report.events.map(item => item.outcome.outcome), ['fatal']);
+  assert.equal(fatal.report.sequence, 2);
+  const resumed = await bridge('dispatch', { source, save: fatal.report.save, events: [{ event: 'read', payload: { value: 90 } }] });
+  assert.equal(resumed.exitCode, 0);
+  assert.equal(resumed.report.sequence, 3);
+  const other = await bridge('dispatch', { source: `${source}\n`, save: start.report.save });
+  assert.equal(other.exitCode, 2);
+  assert.equal(other.report.restored, false);
+  assert.equal(other.report.loads, true);
+  assert.match(other.report.error, /different program/);
+  for (const save of [undefined, start.report.save]) {
+    const broken = await bridge('dispatch', { source: 'state invalid = ;', ...(save === undefined ? {} : { save }) });
+    assert.equal(broken.exitCode, 2);
+    assert.equal(broken.report.loads, false);
+    assert.equal(broken.report.restored, false);
+  }
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: {} }), error => error.kind === 'input');
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: 'x'.repeat(AUTHORING_LIMITS.saveBytes + 1) }), error => error.kind === 'limit');
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, subject: 'values' }), error => error.kind === 'input');
 });
 
 test('the bridge accepts inline source only and refuses virtual source escapes before loading', async t => {
@@ -134,6 +210,12 @@ test('the bridge accepts inline source only and refuses virtual source escapes b
     ['caveat_explain', { source, events: [{ event: 'read', payload: { value: Infinity } }] }],
     ['caveat_check', { source, strict: 'true' }],
     ['caveat_dependents', { source, subject: '' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }], query: '   ' }],
+    ['caveat_find', { source, records: [], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: '', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }, { name: 'a', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [], path: 'x' }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [{ event: '' }] }], query: 'plan' }],
     ['caveat_whatif', { source }],
     [{ toString: null }, { source }],
   ]) assert.throws(() => validateAuthoringArguments(tool, args), error => error instanceof AuthoringError && error.kind === 'input');
@@ -152,6 +234,9 @@ test('source, data, event, scenario, step, expanded-send and depth limits apply 
     ['caveat_test', { source, scenarios: doc(Array.from({ length: 2001 }, () => ({ resume: true }))) }],
     ['caveat_test', { source, scenarios: doc([{ send: 'read', payload: { value: 1 }, repeat: 1001 }]) }],
     ['caveat_explain', { source, events: [{ event: 'read', payload: nested }] }],
+    ['caveat_find', { source, query: 'plan', records: Array.from({ length: 65 }, (_, i) => ({ name: `${i}`, events: [] })) }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: Array.from({ length: 1001 }, () => ({ event: 'assess' })) }] }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: [{ event: 'read', payload: { value: 'x'.repeat(AUTHORING_LIMITS.dataBytes) } }] }] }],
   ];
   for (const [tool, args] of over) {
     await assert.rejects(runAuthoringOperation(tool, args, { runtimeDirectory: '/definitely-missing-runtime' }), error => error instanceof AuthoringError && error.kind === 'limit');

@@ -12,6 +12,8 @@
     "build": "node scripts/build-web.mjs",
     "verify:lean": "node scripts/verify-lean.mjs",
     "test:lean-gate": "node --test scripts/verify-lean.test.mjs",
+    "verify:lean-grounds": "node scripts/check-lean-grounds.mjs --controls",
+    "test:lean-grounds": "node --test scripts/check-lean-grounds.test.mjs",
     "assemble": "node scripts/build-web.mjs --assemble-only",
     "serve": "node scripts/serve.mjs",
     "test:beacon": "node scripts/test-beacon.mjs",
@@ -27,9 +29,13 @@
     "test:trail-rescue": "node experiments/trail-rescue/harness.mjs",
     "test:before-the-rain": "node kit/bin/caveat.mjs test game/before_the_rain.scenarios.json",
     "test:caveatism": "node kit/bin/caveat.mjs validate caveatism/canon/archive.cav && node kit/bin/caveat.mjs check --strict caveatism/canon/archive.cav && node kit/bin/caveat.mjs test caveatism/canon/archive.scenarios.json",
+    "test:break": "node scripts/test-break.mjs",
+    "test:lean-bridge": "node kit/bin/caveat.mjs check --strict examples/lean-bridge/grounds.cav && node kit/bin/caveat.mjs test examples/lean-bridge/grounds.scenarios.json",
     "test:trail-rescue-page": "node scripts/test-trail-rescue-page.mjs",
     "test:kit": "npm --prefix kit test",
     "test:ledger": "node kit/bin/caveat.mjs check --strict ledger/project.cav && node kit/bin/caveat.mjs test ledger/project.scenarios.json && node ledger/replay-check.mjs",
+    "test:done-check": "node kit/bin/caveat.mjs check --strict --unused scripts/done-check/done.cav && node kit/bin/caveat.mjs test scripts/done-check/done.scenarios.json && node --test scripts/done-check/done.test.mjs",
+    "test:release-gate": "node kit/bin/caveat.mjs check --strict --unused scripts/release-gate/release-gate.cav && node kit/bin/caveat.mjs test scripts/release-gate/release-gate.scenarios.json && node --test scripts/release-publish.test.mjs scripts/release-gate/release-gate.test.mjs",
     "test:pr-ledger": "node --test actions/pr-ledger/pr-ledger.test.mjs",
     "test:tutorial": "node scripts/test-tutorial.mjs",
     "test:kit-browser": "node scripts/test-kit-browser.mjs",
@@ -50,6 +56,6 @@
     "three": "0.186.0"
   },
   "devDependencies": {
-    "playwright": "1.55.1"
+    "playwright": "1.64.1"
   }
 }
