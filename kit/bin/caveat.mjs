@@ -4,9 +4,10 @@
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
 // caveat review [--runtime <dir>] [--json] --all <directory>
+// caveat find [--runtime <dir>] [--json] <directory> <word>...
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] [--withdrawals] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--names] [--records [--save <save.json>]] [--withdrawals] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -21,7 +22,7 @@ import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.m
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
 import { formatReview } from '../lib/review.mjs';
-import { formatConsulted, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
+import { findDecisions, formatConsulted, formatFound, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
@@ -39,9 +40,10 @@ Usage:
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
   caveat-lang review [--runtime <dir>] [--json] --all <directory>
+  caveat-lang find [--runtime <dir>] [--json] <directory> <word>...
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
-  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
+  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] [--names]
                     [--records [--save <save.json>]] [--withdrawals] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
@@ -92,6 +94,14 @@ directory holds that ledger and what its review says came true
 (spec/caveat-ledger-sets-0.1.md). Exit status: 0 reviewed, 1 an event failed
 fatally, 2 the directory holds no ledger or a ledger could not be used.
 
+find searches the same ledgers for past decisions: every revision, with or
+without an outcome, whose decision, program path, evidence, evidence sources,
+claims, caveats or retention reasons contain every word given (ignoring case).
+It shows each with its value, whether it is still in force, what it rests on,
+what changed it, how it turned out, and where each word matched
+(spec/caveat-find-0.1.md). It reads the records and changes nothing. Exit
+status as for review --all; 0 also when nothing matched.
+
 undo-list sends the events the same way, then lists every decision revision,
 current or past, whose grounds hold withdrawn evidence: in force first, then
 reopened, then superseded (spec/caveat-untrusted-sources-0.1.md). It reopens
@@ -106,7 +116,9 @@ not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load. --unused also
 reports a claim, evidence, caveat or state that nothing else names (C007), such
-as one left behind by a rewrite. --records also reports each rule, procedure or
+as one left behind by a rewrite. --names also reports a commit whose name is
+one or two edits from a declared decision series (C012), which loads and runs
+as a separate plain commitment. --records also reports each rule, procedure or
 binding that reads a decision's record in a program that qualifies evidence
 (C008): from 1.1 a later qualify of the evidence the record lists reaches a
 value set that way. With --save it also restores the save and reports each
@@ -146,7 +158,7 @@ Its illustrative inputs are supplied, not independently verified. Output shows
 actual decision grounds and preserved history. It writes no files.
   Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
 
-mcp serves five authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
+mcp serves seven authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
 It takes inline source, runs each call in a fresh subprocess, and exposes no
 persistent session or file access. stdout contains protocol messages only.
 
@@ -159,6 +171,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
                    that nothing else in the program names
+  --names          (check) also report a commit that misspells a declared
+                   decision series
   --records        (check) also report reads of a decision's record that a
                    later qualify reaches from 1.1
   --save <file>    (check, with --records) also report the values that save
@@ -176,6 +190,7 @@ const COMMANDS = {
   explain: [1, 2, 'name a program and, optionally, an events file'],
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
   review: [3, 3, 'name a program, a revision such as choose@1 and an events file'],
+  find: [2, Infinity, 'name a directory of ledgers and at least one word to find'],
   'undo-list': [2, 2, 'name a program and an events file'],
   validate: [1, 1, 'name one program'],
   check: [1, 1, 'name one program'],
@@ -189,11 +204,11 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--strict', '--unused', '--records', '--save', '--from', '--state', '--runtime'];
+const OPTIONS = ['--json', '--all', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
-    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--records': command === 'check', '--save': command === 'check',
+    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
     '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
   })[option];
 }
@@ -220,13 +235,14 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, withdrawals: false, laterCaveats: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--all' && command === 'review') options.all = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
+    else if (argument === '--names' && command === 'check') options.names = true;
     else if (argument === '--records' && command === 'check') options.records = true;
     else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
     else if (argument === '--later-caveats' && command === 'explain') options.laterCaveats = true;
@@ -405,13 +421,14 @@ async function findLedgers(directory) {
   return found;
 }
 
-async function reviewAll(options) {
-  const [directory] = options.files;
+// The ledgers under `directory` with their sources and events, and the
+// runtime; null after reporting why they cannot be read.
+async function readLedgers(options, directory) {
   let found;
-  try { found = await findLedgers(directory); } catch (error) { console.error(`cannot read ${directory}: ${error.message}`); return 2; }
-  if (!found.length) { console.error(`${directory} holds no ledger: name NAME.cav beside NAME.events.jsonl`); return 2; }
+  try { found = await findLedgers(directory); } catch (error) { console.error(`cannot read ${directory}: ${error.message}`); return null; }
+  if (!found.length) { console.error(`${directory} holds no ledger: name NAME.cav beside NAME.events.jsonl`); return null; }
   const runtime = await loadRuntime(options);
-  if (!runtime) return 2;
+  if (!runtime) return null;
   const ledgers = [];
   let unusable = false;
   for (const item of found) {
@@ -419,6 +436,15 @@ async function reviewAll(options) {
     if (!inputs) { unusable = true; continue; }
     ledgers.push({ ...item, source: inputs.source, events: inputs.events.map(({ event, payload }) => ({ event, payload })) });
   }
+  return { runtime, ledgers, unusable };
+}
+
+async function reviewAll(options) {
+  const [directory] = options.files;
+  const read = await readLedgers(options, directory);
+  if (!read) return 2;
+  const { runtime, ledgers } = read;
+  let { unusable } = read;
   const entries = reviewLedgers(source => runtime.open(source), ledgers);
   for (const entry of entries) {
     if (entry.error) { unusable = true; console.error(`${entry.program} does not load: ${entry.error}`); continue; }
@@ -429,6 +455,25 @@ async function reviewAll(options) {
   if (!options.json) console.log(`${reviewed.length} revision${reviewed.length === 1 ? '' : 's'} reviewed in ${ledgers.length} ledger${ledgers.length === 1 ? '' : 's'}.`);
   if (unusable) return 2;
   return reviewed.some(entry => entry.fatal !== null) ? 1 : 0;
+}
+
+async function findIn(options) {
+  const [directory, ...words] = options.files;
+  const read = await readLedgers(options, directory);
+  if (!read) return 2;
+  // Words match a program's path under the directory, not the directory's own.
+  const ledgers = read.ledgers.map(item => ({ ...item, name: path.relative(directory, item.program) }));
+  const report = findDecisions(source => read.runtime.open(source), ledgers, words.join(' '));
+  for (const entry of report.searched) if (entry.error) console.error(`${entry.program} does not load: ${entry.error}`);
+  if (options.json) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log(formatFound(report));
+    for (const entry of report.searched) {
+      if (entry.fatal) console.log(`\nIn ${entry.program}, event ${entry.fatal.index + 1} failed; its decisions above are of the session before it.`);
+    }
+  }
+  if (read.unusable || report.searched.some(entry => entry.error)) return 2;
+  return report.searched.some(entry => entry.fatal) ? 1 : 0;
 }
 
 // As the source declares it: `target kind mushroom`, `sort in glowcap
@@ -486,7 +531,7 @@ async function checkProgram(options) {
   if (options.save) {
     try { save = await readFile(options.save, 'utf8'); } catch (error) { console.error(`cannot read ${options.save}: ${error.message}`); return 2; }
   }
-  const asked = { unused: options.unused, ...(options.records ? { records: true } : {}), ...(options.withdrawals ? { withdrawals: true } : {}), ...(save !== undefined ? { save } : {}) };
+  const asked = { unused: options.unused, ...(options.names ? { names: true } : {}), ...(options.records ? { records: true } : {}), ...(options.withdrawals ? { withdrawals: true } : {}), ...(save !== undefined ? { save } : {}) };
   let report;
   try { report = runtime.check(inputs.source, asked); } catch (error) {
     if (error.kind !== 'restore') return refuse(`does not load: ${error.message}`);
@@ -736,7 +781,7 @@ async function main() {
   }
   if (options.error) { console.error(`${options.error}\nRun caveat-lang help for every command and option.`); return 2; }
   const run = {
-    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, 'undo-list': undoListOf,
+    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, find: findIn, 'undo-list': undoListOf,
     validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
     mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];

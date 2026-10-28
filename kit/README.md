@@ -181,8 +181,8 @@ measure a model's confidence or authorize an external action.
 
 ## Use authoring tools from an MCP host
 
-This package can run `caveat-lang mcp` for the five existing
-authoring operations. It takes inline source and uses a fresh subprocess for
+This package can run `caveat-lang mcp` for the seven authoring
+operations. It takes inline source and uses a fresh subprocess for
 each call. See [MCP setup and limits](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/MCP.md): it speaks MCP 2026-07-28
 and the 2025-11-25 profile.
 
@@ -290,6 +290,18 @@ It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/b
 npx --no-install caveat-lang review --all ledgers/
 ```
 
+`caveat find <directory> <word>...` asks the same ledgers whether something
+was decided before: every decision revision whose decision, program path,
+evidence, evidence sources, claims, caveats or retention reasons hold every
+word, ignoring case, with its value, whether it still stands, what it rests
+on and how it turned out. With `--json` it prints one `caveat-find/0.1`
+report; the MCP tool `caveat_find` does the same for inline records of one
+program. It is a 1.5 draft ([Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)).
+
+```sh
+npx --no-install caveat-lang find ledgers/ customer email
+```
+
 ## Check, replay, start
 
 ```sh
@@ -310,7 +322,10 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind. `--records` also reports where a program reads a decision's
+  left behind. `--names` (draft for 1.5) also reports a `commit` whose name
+  is one or two edits from a declared decision series: it would run as a
+  separate plain commitment and the series would never record it.
+  `--records` also reports where a program reads a decision's
   record in a place a later `qualify` reaches (1.1 changed what those reads
   carry). `--records --save SAVE` lists the values in a save written by a
   1.0.x runtime that are missing such a caveat.
