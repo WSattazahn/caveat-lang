@@ -117,7 +117,7 @@ pub struct QualificationImpact {
 #[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
-    pub nodes: crate::chunked::IdTable<NodeKind>,
+    pub nodes: HashMap<NodeId, NodeKind>,
     pub edges: Vec<Edge>,
     /// The part whose declarations are being read right now.
     authoring: Option<String>,
