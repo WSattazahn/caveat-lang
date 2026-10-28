@@ -160,7 +160,7 @@
     },
     {
       "id": "L04",
-      "title": "The ledger replays 2026-10-17 to 19 as recorded in events.jsonl and ends where the project stands",
+      "title": "The historical event prefix through 1.3.0 replays with its recorded decision grounds",
       "steps": [
         { "send": "infer_attribution" },
         { "send": "reproduce" },
@@ -306,6 +306,30 @@
             "/decision_series/release/revisions/1/id": "release@2",
             "/bindings/ledger/release_basis_regressed": 0,
             "/commitment_grounds/scope_1_0_2@1": { "evidence": ["d019"], "caveats": ["latent_since_1_0_0"] }
+        } }
+      ]
+    },
+    {
+      "id": "L09",
+      "title": "A patch shipped from main displays its exact version and preserves earlier release grounds",
+      "steps": [
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 140 } },
+        { "send": "ship_minor", "payload": { "version": 140 } },
+        { "expect": { "/bindings/ledger/minor_release": "1.4.0 stands" } },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 141 } },
+        { "send": "ship_minor", "payload": { "version": 141 } },
+        { "expect": { "/bindings/ledger/minor_release": "1.4.1 stands" } },
+        { "send": "main_run", "payload": { "green": 1 } },
+        { "send": "approve", "payload": { "item": 145 } },
+        { "send": "ship_minor", "payload": { "version": 145 } },
+        { "expect": {
+            "/bindings/ledger/minor_release": "1.4.5 stands",
+            "/bindings/ledger/release": "none yet",
+            "/commitment_grounds/minor_release@1": { "evidence": ["main_tree"], "caveats": [] },
+            "/commitment_grounds/minor_release@2": { "evidence": ["main_tree@2"], "caveats": [] },
+            "/commitment_grounds/minor_release@3": { "evidence": ["main_tree@3"], "caveats": [] }
         } }
       ]
     }
