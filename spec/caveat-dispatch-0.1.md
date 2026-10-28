@@ -129,6 +129,12 @@ program would do about it.
   makes the whole runtime instance unusable, as on any path.
 - A runtime build that predates it has no `what_if_view_outcome`, and the kit
   throws `CaveatError("load")` without touching the session.
+- `what_if_view_outcome_as` and `what_if_view_fields_outcome_as` (in the kit,
+  `whatIf(event, payload, { agent })`) answer for an event the host says
+  `agent` sent, as `dispatch_view_outcome_as` would
+  ([Agents 0.1](caveat-agents-0.1.md#6-hosts)); from 1.5.0. Without an
+  agent the what-if path answers as a dispatch with no agent would, so in a
+  program that lists the event under some agent the answer is `wrong_agent`.
 
 It is an additional entry point. No program's meaning, no existing entry point
 and no output changes.
@@ -386,6 +392,9 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-26: the what-if path takes an agent, `what_if_view_outcome_as`
+  and `what_if_view_fields_outcome_as` (D027, from 1.5.0). No existing entry
+  point, output or code changes.
 - 2026-10-25: the [what-if path](#the-what-if-path),
   `what_if_view_outcome` and `what_if_view_fields_outcome`, in the developer
   kit `session.whatIf`, runs an event on a dropped copy of the session and

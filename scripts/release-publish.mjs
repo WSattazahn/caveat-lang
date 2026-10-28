@@ -4,14 +4,16 @@
 // without GitHub or npm; the workflow supplies transport and the publish.
 //
 //   node scripts/release-publish.mjs inputs     validate dispatch inputs and tag
-//   node scripts/release-publish.mjs select     find the Runtime run and artifact
+//   node scripts/release-publish.mjs select DIR find the Runtime run and artifact
+//                                               (decided by release-gate/release-gate.cav)
 //   node scripts/release-publish.mjs verify DIR check the downloaded candidate
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { appendFile, readFile, readdir, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { scanCapabilities, tarballFiles } from './kit-capabilities.mjs';
+import { gateRuntimeCandidate, loadKit, recordFiles } from './release-gate/gate.mjs';
 
 export const PACKAGE = 'caveat-lang';
 export const REGISTRY = 'https://registry.npmjs.org';
@@ -44,9 +46,11 @@ async function pages(api, url, key) {
   }
 }
 
-// The newest Runtime run pushed to main for the revision must have succeeded:
-// an older success cannot hide a newer failure.
-export async function selectRuntimeCandidate({ api, repository, revision }) {
+// The checks as they were written before release-gate.cav made the decision.
+// They still run beside it, and any difference between the two answers
+// refuses the release: the newest Runtime run pushed to main for the revision
+// must have succeeded, so an older success cannot hide a newer failure.
+export async function selectRuntimeCandidateLegacy({ api, repository, revision }) {
   assert.match(revision, SHA, 'Invalid release revision.');
   const workflow = await api(`/repos/${repository}/actions/workflows/runtime.yml`);
   const runs = (await pages(api, `/repos/${repository}/actions/workflows/runtime.yml/runs?event=push&branch=main&head_sha=${revision}`, 'workflow_runs'))
@@ -64,6 +68,22 @@ export async function selectRuntimeCandidate({ api, repository, revision }) {
   assert.equal(artifact.expired, false, `The tested ${CANDIDATE_ARTIFACT} of run ${run.id} has expired; it cannot be published.`);
   assert.ok(artifact.workflow_run?.id === run.id && artifact.workflow_run?.head_sha === revision, 'The artifact does not belong to the selected run and revision.');
   return { runtime_run_id: run.id, artifact_id: artifact.id };
+}
+
+// Which tested run and package may be published is decided by the Caveat
+// program scripts/release-gate/release-gate.cav; see gate.mjs. The answer, or
+// the refusal and its message, must equal the legacy checks' exactly.
+export async function selectRuntimeCandidate({ api, repository, revision, kit, onRecord = () => {} }) {
+  const settle = promise => promise.then(value => ({ value }), error => ({ error }));
+  const gated = await settle(gateRuntimeCandidate({ api, repository, revision, kit }));
+  const legacy = await settle(selectRuntimeCandidateLegacy({ api, repository, revision }));
+  const record = gated.value?.record ?? gated.error?.gate;
+  if (record) onRecord(record);
+  const answer = outcome => outcome.error ? `refused: ${outcome.error.message}`
+    : `allowed: run ${outcome.value.runtime_run_id}, artifact ${outcome.value.artifact_id}`;
+  assert.equal(answer(gated), answer(legacy), 'The Caveat release gate and the legacy checks disagree; nothing is published.');
+  if (gated.error) throw gated.error;
+  return { runtime_run_id: gated.value.runtime_run_id, artifact_id: gated.value.artifact_id };
 }
 
 async function findReports(directory) {
@@ -137,9 +157,23 @@ async function main() {
     console.log(`Release ${inputs.tag}: ${PACKAGE}@${inputs.version} at ${inputs.revision}, dist-tag ${inputs.distTag}.`);
   } else if (command === 'select') {
     const repository = process.env.GITHUB_REPOSITORY;
-    const selected = await selectRuntimeCandidate({ api: githubApi(process.env.GITHUB_TOKEN), repository, revision: inputs.revision });
-    await output(selected);
-    console.log(`Runtime run ${selected.runtime_run_id} tested ${inputs.revision}; artifact ${selected.artifact_id}.`);
+    // The gate's record goes into DIRECTORY/release-gate, which the workflow
+    // uploads with the candidate; it is printed whether or not the gate allowed.
+    const kit = await loadKit();
+    let files = null;
+    try {
+      const selected = await selectRuntimeCandidate({ api: githubApi(process.env.GITHUB_TOKEN), repository, revision: inputs.revision,
+        kit, onRecord: record => { files = recordFiles(record, kit.explain); } });
+      await output(selected);
+      console.log(`Runtime run ${selected.runtime_run_id} tested ${inputs.revision}; artifact ${selected.artifact_id}.`);
+    } finally {
+      if (files) {
+        const record = path.join(directory ?? 'candidate', 'release-gate');
+        await mkdir(record, { recursive: true });
+        for (const [name, text] of Object.entries(files)) await writeFile(path.join(record, name), text);
+        console.log(files['explain.txt']);
+      }
+    }
   } else if (command === 'verify' && directory) {
     const verified = await verifyCandidate({ directory, ...inputs });
     await requireUnpublished({ version: inputs.version });
@@ -148,7 +182,7 @@ async function main() {
     await output({ tarball: path.relative(directory, verified.tarball).split(path.sep).join('/') });
     console.log(`Verified ${path.basename(verified.tarball)} (${verified.bytes} bytes, sha256 ${verified.sha256}); ${PACKAGE}@${inputs.version} is not yet on npm.`);
   } else {
-    throw new Error('Usage: node scripts/release-publish.mjs inputs|select|verify DIRECTORY');
+    throw new Error('Usage: node scripts/release-publish.mjs inputs|select [DIRECTORY]|verify DIRECTORY');
   }
 }
 

@@ -231,6 +231,15 @@ async function assertSamplingProgress(page, before, name) {
 }
 
 const flowReadings = state => state.reading_streams.flow.occurrences;
+// A one-second reading completes on the 31st tick of 1/30 s, not the 30th:
+// thirty steps of 0.0333... sum to 0.9999999999999999. When the first held
+// tick lands depends on frame timing, which differs between browser builds,
+// so hold until the reading lands, as the runtime's own test does, for at
+// most 1.6 s after the hold started.
+async function holdUntilReading(page, count) {
+  await page.clock.runFor(600);
+  for (let waited = 600; waited < 1100 && flowReadings(await read(page)).length < count; waited += 100) await page.clock.runFor(100);
+}
 const navigationBasis = state => state.commitment_bases[state.decision_series.navigation.current];
 function assertHistoryPrefix(earlier, later) {
   const occurrences = flowReadings(earlier);
@@ -252,7 +261,7 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     await pointer.move(-3.8, 33.5);
     await page.clock.runFor(500);
     await assertSamplingProgress(page, initial, `${name}-first-reading-progress`);
-    await page.clock.runFor(600);
+    await holdUntilReading(page, 1);
     let lastObserved = await read(page);
     assert.equal(flowReadings(lastObserved).length, 1, 'One completed hold must produce exactly one occurrence');
     assert.equal(lastObserved.decision_series.navigation.revisions.length, 2, 'Forecast plus first observed decision');
@@ -289,7 +298,7 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
           await pointer.move(-3.8, 33.5);
           await page.clock.runFor(500);
           await assertSamplingProgress(page, before, `${name}-shift-${weather}-reading-progress`);
-          await page.clock.runFor(600);
+          await holdUntilReading(page, weather + 1);
           const revised = await read(page);
           assert.equal(flowReadings(revised).length, weather + 1);
           assert.equal(revised.decision_series.navigation.revisions.length, weather + 2);
@@ -405,7 +414,7 @@ async function keyboardAndFailure(browser) {
       'Keyboard arrows could not aim at the current marker');
     await page.clock.runFor(500);
     await assertSamplingProgress(page, holding, 'keyboard-reading-progress');
-    await page.clock.runFor(600);
+    await holdUntilReading(page, 1);
     await page.keyboard.up(' ');
     assert.equal(flowReadings(await read(page)).length, 1, 'Space did not keep the beam steady for a real sample');
     report.checks.push('keyboard arrows plus held Space complete a moving-ferry current measurement');

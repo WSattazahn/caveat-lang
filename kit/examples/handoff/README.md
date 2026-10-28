@@ -8,7 +8,7 @@ model is called: each agent is a fixed list of events.
 
 - `handoff.cav`: the program every agent shares. Events named `main_*` are
   the main agent's and `sub_*` a sub-agent's.
-- `handoff.scenarios.json`: eleven scenarios that state its behavior.
+- `handoff.scenarios.json`: twelve scenarios that state its behavior.
 - `host.mjs`: the handoff with two sub-agents, each in a scoped session, and
   their work merged by replay.
 
@@ -31,6 +31,7 @@ node host.mjs
 | It acts only within a grant | `permitted by latest(grants) for 2`; a revoked grant is refused as `not_permitted` | H04, H04b |
 | New requests and its objections don't change the plan mid-task | `hold plan` defers them; `release` on the main agent's return applies them | H05 |
 | A wrong reason never waits | a withdrawal reopens the plan through the hold, and reaches the sub-agent's work | H06 |
+| A withdrawn reason grounds nothing new | a new plan or ship on a withdrawn schema review or report is refused (`caveat check --withdrawals` reports a commit without that guard) | H11 |
 | Its doubts come back with its report | a `linux_only` report blocks the irreversible `ship` until the main agent retains the caveat on purpose | H07, H08, H09 |
 
 ## What the host does

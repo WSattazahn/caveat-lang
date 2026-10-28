@@ -3,13 +3,18 @@
 import { createHash } from 'node:crypto';
 import { loadRuntimeFromDirectory } from './node.mjs';
 import { dependents, explain } from './explain.mjs';
+import { findDecisions, queryWords } from './ledgers.mjs';
 import { validateScenarioFile, runScenarioFile, report as scenarioReport, ScenarioFileError } from './scenarios.mjs';
 
 export const AUTHORING_SCHEMA = 'caveat-authoring/0.1';
 export const AUTHORING_LIMITS = Object.freeze({
   messageBytes: 4 * 1024 * 1024, sourceBytes: 1024 * 1024, dataBytes: 1024 * 1024,
-  depth: 64, events: 1000, scenarios: 32, steps: 2000, sends: 1000, outputBytes: 4 * 1024 * 1024,
+  depth: 64, events: 1000, records: 64, scenarios: 32, steps: 2000, sends: 1000, outputBytes: 4 * 1024 * 1024,
+  saveBytes: 2 * 1024 * 1024,
 });
+// caveat_dispatch continues one ledger across calls: the host passes back the
+// save the previous call returned. The bridge itself keeps nothing.
+export const DISPATCH_STEP_SCHEMA = 'caveat-dispatch-step/0.1';
 
 export class AuthoringError extends Error {
   constructor(kind, message) { super(message); this.name = 'AuthoringError'; this.kind = kind; }
@@ -18,6 +23,8 @@ export class AuthoringError extends Error {
 const fields = {
   caveat_validate: ['source'], caveat_check: ['source', 'strict'], caveat_test: ['source', 'scenarios'],
   caveat_explain: ['source', 'events'], caveat_dependents: ['source', 'subject', 'events'],
+  caveat_dispatch: ['source', 'save', 'events'],
+  caveat_find: ['source', 'records', 'query'],
 };
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -51,15 +58,36 @@ export function validateAuthoringArguments(toolName, args) {
   if (typeof args.source !== 'string') fail('source must be inline Caveat text');
   limit(Buffer.byteLength(args.source, 'utf8') <= AUTHORING_LIMITS.sourceBytes, 'source exceeds 1 MiB UTF-8');
   if ('strict' in args && typeof args.strict !== 'boolean') fail('strict must be a boolean');
+  if ('save' in args) {
+    if (typeof args.save !== 'string') fail('save must be the save text an earlier caveat_dispatch call returned');
+    limit(Buffer.byteLength(args.save, 'utf8') <= AUTHORING_LIMITS.saveBytes, 'save exceeds 2 MiB UTF-8');
+  }
   if (toolName === 'caveat_dependents' && (typeof args.subject !== 'string' || !args.subject.trim())) fail('subject must name evidence, a reading stream or a caveat');
-  if ('events' in args) {
-    if (!Array.isArray(args.events)) fail('events must be an array');
-    limit(args.events.length <= AUTHORING_LIMITS.events, 'events exceeds 1000 entries');
-    limit(Buffer.byteLength(JSON.stringify(args.events), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'events exceeds 1 MiB serialized UTF-8');
-    for (const event of args.events) {
+  const checkEvents = events => {
+    if (!Array.isArray(events)) fail('events must be an array');
+    limit(events.length <= AUTHORING_LIMITS.events, 'events exceeds 1000 entries');
+    for (const event of events) {
       knownFields(event, ['event', 'payload'], 'event');
       if (typeof event.event !== 'string' || !event.event) fail('event must name a non-empty event');
       if ('payload' in event && !object(event.payload)) fail('event payload must be an object');
+    }
+  };
+  if ('events' in args) {
+    checkEvents(args.events);
+    limit(Buffer.byteLength(JSON.stringify(args.events), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'events exceeds 1 MiB serialized UTF-8');
+  }
+  if (toolName === 'caveat_find') {
+    if (typeof args.query !== 'string' || !queryWords(args.query).length) fail('query must hold at least one word');
+    if (!Array.isArray(args.records) || !args.records.length) fail('records must be a non-empty array');
+    limit(args.records.length <= AUTHORING_LIMITS.records, 'records exceeds 64 entries');
+    limit(Buffer.byteLength(JSON.stringify(args.records), 'utf8') <= AUTHORING_LIMITS.dataBytes, 'records exceeds 1 MiB serialized UTF-8');
+    const names = new Set();
+    for (const record of args.records) {
+      knownFields(record, ['name', 'events'], 'record');
+      if (typeof record.name !== 'string' || !record.name) fail('record must have a non-empty name');
+      if (names.has(record.name)) fail(`record name ${record.name} is repeated`);
+      names.add(record.name);
+      checkEvents(record.events);
     }
   }
   if (toolName === 'caveat_test') {
@@ -106,8 +134,8 @@ export function describeValidation(snapshot, program = 'inline.cav') {
 
 // Preserve accepted/rejected outcomes and stop at the first fatal event. The
 // report then describes the last good snapshot, as explain/dependents CLI do.
-function replay(runtime, source, events) {
-  const session = runtime.open(source);
+function replay(runtime, source, events, open = () => runtime.open(source)) {
+  const session = open();
   let snapshot;
   const sent = [];
   const archive = [];
@@ -200,6 +228,21 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
     result.check = check;
     return wrap(result.failed ? 1 : 0, scenarioReport([result], runtime.identity));
   }
+  if (operation === 'dispatch') return dispatchStep(runtime, args, wrap);
+  if (operation === 'find') {
+    // As the other operations do: a source that does not load is a report.
+    try { runtime.open(args.source).close(); } catch (error) {
+      if (error.kind !== 'load') throw new AuthoringError('runtime', error.message);
+      return wrap(2, { program, loads: false, error: error.message });
+    }
+    // Each record is a ledger of the one program, named by the record.
+    const ledgers = args.records.map(record => ({ program, name: record.name, events_file: record.name, source: args.source,
+      events: record.events.map(({ event, payload = {} }) => ({ event, payload })) }));
+    const report = findDecisions(source => runtime.open(source), ledgers, args.query);
+    const failed = report.searched.find(entry => entry.error);
+    if (failed) throw new AuthoringError('runtime', failed.error);
+    return wrap(report.searched.some(entry => entry.fatal) ? 1 : 0, { program, ...report });
+  }
   let replayed;
   try { replayed = replay(runtime, args.source, args.events ?? []); }
   catch (error) {
@@ -214,4 +257,45 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
   } catch (error) {
     return wrap(2, { program, subject: args.subject, error: error.message });
   }
+}
+
+// One step of a ledger kept by the host. Without save, a fresh session; with
+// it, that save restored against this exact source (a save binds its source,
+// and restore never repairs one). The events are sent in order, and the
+// result carries the save to pass to the next call. A fatal event stops the
+// step: the save then holds the state before it, rebuilt from the accepted
+// events, since the session that met the fatal event cannot save.
+function dispatchStep(runtime, args, wrap) {
+  const program = 'inline.cav';
+  const restored = Object.hasOwn(args, 'save');
+  const open = () => (restored ? runtime.restore(args.source, args.save) : runtime.open(args.source));
+  let replayed;
+  try { replayed = replay(runtime, args.source, args.events ?? [], open); }
+  catch (error) {
+    let failure = error;
+    // A restore error may hide a program that does not load at all.
+    if (error.kind === 'restore') {
+      try { runtime.open(args.source).close(); } catch (loadError) { failure = loadError; }
+    }
+    if (failure.kind === 'load') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: false, restored: false, error: failure.message });
+    if (failure.kind === 'restore') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: true, restored: false, error: failure.message });
+    throw new AuthoringError('runtime', failure.message);
+  }
+  const { snapshot, sent, archive, failed } = replayed;
+  let save;
+  const session = open();
+  try {
+    for (const { event, payload, outcome } of sent) {
+      if (outcome.outcome === 'accepted') session.dispatch(event, payload);
+    }
+    save = session.save();
+  } catch (error) { throw new AuthoringError('runtime', `cannot save the step: ${error.message}`); }
+  finally { session.close(); }
+  if (Buffer.byteLength(save, 'utf8') > AUTHORING_LIMITS.saveBytes) {
+    throw new AuthoringError('limit', 'the resulting save exceeds 2 MiB UTF-8 and could not be passed back; keep the ledger with the caveat-lang package instead');
+  }
+  return wrap(failed ? 1 : 0, {
+    ...explain(snapshot, sent, { archive }), schema: DISPATCH_STEP_SCHEMA, explainSchema: 'caveat-explain/0.1',
+    program, restored, save,
+  });
 }

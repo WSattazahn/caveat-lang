@@ -62,6 +62,31 @@ test('explain reports what the snapshot records, decision by decision', () => {
   assert.doesNotMatch(text, /retaining: calibration_offset/);
 });
 
+test('a revision lists the thresholds its commit named, and others list none', () => {
+  // spec/caveat-thresholds-0.1.md: the graded-belief note's robot.
+  const source = `claim door_open; evidence estimator from "the state estimator";
+    readings beliefs from estimator limit 8; decisions plan limit 8 reopened by beliefs;
+    threshold go_bar = 0.9; threshold look_bar = 0.3; event belief p min 0 max 1;
+    on belief sample beliefs = p supports door_open;
+    on belief when not committed(plan) or reopened(plan) commit plan because enough
+      using if(latest(beliefs) >= go_bar, 2, if(latest(beliefs) >= look_bar, 1, 0));`;
+  const session = real.open(source);
+  session.dispatch('belief', { p: 0.55 });
+  const report = explain(session.snapshot(), []);
+  session.close();
+  const [revision] = report.decisions[0].revisions;
+  assert.deepEqual(revision.thresholds, { go_bar: 0.9, look_bar: 0.3 });
+  assert.match(formatExplanation(report, 'robot'),
+    /plan@1 = 1 {2}in force\n {6}based on beliefs@1\n {6}thresholds: go_bar = 0\.9, look_bar = 0\.3\n/);
+
+  const plain = real.open(thermostat);
+  plain.dispatch('read', { value: 17 });
+  const without = explain(plain.snapshot(), []);
+  plain.close();
+  assert.ok(without.decisions[0].revisions.every(item => !('thresholds' in item)));
+  assert.doesNotMatch(formatExplanation(without, 'thermostat'), /thresholds:/);
+});
+
 test('a session with no decisions, evidence or bindings says so', () => {
   const session = real.open('state count = 0;\nevent poke;\non poke set count = count + 1;');
   const text = formatExplanation(explain(session.snapshot()), 'empty');
