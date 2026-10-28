@@ -70,6 +70,24 @@ test('within its scope the runtime still decides, and only accepted events are k
   } finally { session.close(); inner.close(); }
 });
 
+test('a scope asks what-if as its agent, within its events, and changes nothing', () => {
+  const { session, main } = handedOff();
+  const inner = real.restore(source, main.save());
+  try {
+    const sub = scopeSession(inner, subEvents);
+    const before = sub.snapshotText();
+    assert.equal(sub.whatIf('main_return').code, 'unknown_event');
+    assert.equal(`${sub.whatIf('sub_rename').origin}/${sub.whatIf('sub_rename').code}`, 'evaluation/foreclosed');
+    assert.equal(sub.whatIf('sub_edit', {}, { fields: ['bindings'] }).outcome, 'accepted');
+    assert.equal(sub.snapshotText(), before, 'asking changed nothing');
+    assert.deepEqual(sub.accepted, []);
+    assert.throws(() => sub.whatIf('sub_edit', {}, { agent: 'main' }), TypeError);
+    assert.throws(() => sub.whatIf('sub_report', { value: Number.NaN }), error => error instanceof CaveatError && error.kind === 'payload');
+    assert.equal(sub.whatIf('sub_report', { result: 1 }).code, 'payload_invalid');
+    assert.equal(sub.snapshotText(), before);
+  } finally { session.close(); inner.close(); }
+});
+
 test('a payload dispatch would refuse throws before the scope is checked', () => {
   const session = real.open(source);
   try {

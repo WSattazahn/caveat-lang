@@ -442,6 +442,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }
                 | Directive::Define { name, .. }
+                | Directive::Threshold { name, .. }
                 | Directive::Control { name, .. } => Some(name.clone()),
                 // Respond or project, but introduce no name of their own.
                 Directive::Rule(_)
@@ -961,6 +962,12 @@ fn tag_offsets(source: &str) -> Vec<usize> {
                     trigger.clear();
                 }
             }
+        }
+        // `threshold NAME = NUMBER` (spec/caveat-thresholds-0.1.md) came
+        // after modules, so a module may still declare a state `threshold`.
+        // The statement word leads a four-word statement whose third is `=`.
+        if let ["threshold", _, "=", _] = shape.as_slice() {
+            offsets.push(words[0].0);
         }
         // `irreversible strict` (spec/caveat-strict-irreversible-0.1.md)
         // came after modules, so a module may still declare `strict`. The

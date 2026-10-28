@@ -33,8 +33,8 @@ for gate as $g {
             and rests_on_withdrawn($g_plan) reopen $g_plan because $i_betrayal;
     };
     on go when gate == gate.$g and committed($g_plan) and not reopened($g_plan) reject "You are already on that route.";
-    on go when gate == gate.$g and $g_ocelot_ok + $g_eva_ok == 0 reject "None of your intel says that gate is clear.";
-    on go when gate == gate.$g commit $g_plan because enough using $g_ocelot_ok + $g_eva_ok;
+    on go when gate == gate.$g and sum(for informant as $i: $g_$i_ok) == 0 reject "None of your intel says that gate is clear.";
+    on go when gate == gate.$g commit $g_plan because enough using sum(for informant as $i: $g_$i_ok);
     bind $g.plan = "none";
     bind $g.plan = "trusting your intel" when committed($g_plan) and not reopened($g_plan);
     bind $g.plan = "you were played" when committed($g_plan) and reopened($g_plan) and rests_on_withdrawn($g_plan);

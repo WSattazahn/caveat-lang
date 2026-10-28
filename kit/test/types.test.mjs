@@ -168,6 +168,8 @@ const FORECLOSURE = 'claim c; evidence e from "check"; decisions drop limit 1 ir
 const REVERSIBLE_FORECLOSURE = 'claim c; evidence e from "check"; decisions hold_off limit 2 forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit hold_off because enough using qualified(1, e);';
 // An outcome on a revision (spec/caveat-outcomes-0.1.md).
 const OUTCOME = 'claim c; evidence e from "check"; caveat doubt consequence low; decisions d limit 2; event go; event close; on go reveal e supports c; on go commit d because enough using qualified(1, e) retaining doubt; on close resolve d = 1 because e materialized doubt;';
+// A commit that names thresholds lists them (spec/caveat-thresholds-0.1.md).
+const THRESHOLDS = 'threshold bar = 0.5; evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 0.7; on go when latest(r) >= bar commit d because enough using latest(r);';
 const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
@@ -208,6 +210,7 @@ function sessionsOf() {
     [FORECLOSURE, [['go']]],
     [REVERSIBLE_FORECLOSURE, [['go']]],
     [OUTCOME, [['go'], ['close']]],
+    [THRESHOLDS, [['go']]],
     [AGENTS, AGENTS_EVENTS],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
@@ -517,9 +520,12 @@ test('explain, dependents and check reports have the declared fields', () => {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
+    // A take-back marks a relation and records it (spec/caveat-take-back-0.1.md).
+    ['claim c; evidence e from "check"; caveat doubt consequence low; event go; event undo; on go reveal e supports c; on go qualify e with doubt; on undo unqualify e with doubt;', [['go'], ['undo']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
     [REVERSIBLE_FORECLOSURE, [['go']], 'e'],
     [OUTCOME, [['go'], ['close']], 'e'],
+    [THRESHOLDS, [['go']], 'probe'],
     [AGENTS, AGENTS_EVENTS, 'reports'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).

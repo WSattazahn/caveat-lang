@@ -1,0 +1,74 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "done.cav",
+  "scenarios": [
+    {"id": "D01", "title": "Green checks on a head with current main, outside the runtime and with nothing owed: ready",
+     "steps": [
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 0}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 1}},
+       {"send": "files", "payload": {"runtime": 0}},
+       {"send": "ledger", "payload": {"owed": 0}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "ready", "/bindings/pr/checks": "all 2 check runs passed", "/bindings/pr/ledger": "no events owed",
+                   "/commitment_grounds/done@1": {"evidence": {"$set": ["checks@1", "checks@2", "heads@1", "owed@1", "runtime_touched@1"]}}}}
+     ]},
+    {"id": "D02", "title": "A head behind main is not ready, however green; merging main in and a new run reopen the verdict",
+     "steps": [
+       {"send": "head", "payload": {"contains_main": 0}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 0}},
+       {"send": "files", "payload": {"runtime": 0}},
+       {"send": "ledger", "payload": {"owed": 0}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "not ready", "/bindings/pr/main": "the head does not contain current main: merge main in"}},
+       {"send": "decide", "rejected": "Already decided not ready."},
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"expect": {"/bindings/pr/verdict": "not decided"}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "ready"}}
+     ]},
+    {"id": "D03", "title": "A failed or running check is not ready, and says how many",
+     "steps": [
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 0}},
+       {"send": "check", "payload": {"outcome": "failed", "sweep": 0}},
+       {"send": "check", "payload": {"outcome": "running", "sweep": 0}},
+       {"send": "files", "payload": {"runtime": 0}},
+       {"send": "ledger", "payload": {"owed": 0}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "not ready", "/bindings/pr/checks": "1 failed, 1 still running, of 3"}}
+     ]},
+    {"id": "D04", "title": "A runtime change needs the sweep green on this head; without the sweep check it is not ready",
+     "steps": [
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 0}},
+       {"send": "files", "payload": {"runtime": 1}},
+       {"send": "ledger", "payload": {"owed": 0}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "not ready", "/bindings/pr/sweep": "needed, and not green on this head"}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 1}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "ready", "/bindings/pr/sweep": "needed, and green",
+                   "/commitment_grounds/done@1": {"evidence": {"$set": ["checks@1", "checks@2", "heads@1", "owed@1", "sweeps@1"]}}}}
+     ]},
+    {"id": "D05", "title": "Ledger events owed do not block, but the verdict carries them",
+     "steps": [
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"send": "check", "payload": {"outcome": "passed", "sweep": 0}},
+       {"send": "files", "payload": {"runtime": 0}},
+       {"send": "ledger", "payload": {"owed": 3}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "ready; the ledger owes events for PRs merged since it last changed",
+                   "/bindings/pr/ledger": "3 merged PRs owe ledger events"}}
+     ]},
+    {"id": "D06", "title": "No check runs at all is not ready, and deciding needs every kind of fact",
+     "steps": [
+       {"send": "decide", "rejected": "Send head, files and ledger before deciding."},
+       {"send": "head", "payload": {"contains_main": 1}},
+       {"send": "files", "payload": {"runtime": 0}},
+       {"send": "ledger", "payload": {"owed": 0}},
+       {"send": "decide"},
+       {"expect": {"/bindings/pr/verdict": "not ready", "/bindings/pr/checks": "no check runs on the head"}}
+     ]}
+  ]
+}

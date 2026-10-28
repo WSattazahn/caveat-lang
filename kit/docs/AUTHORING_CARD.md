@@ -10,8 +10,9 @@ reference leave open.
 ## The loop
 
 1. Write the program and its scenarios (below).
-2. `npx --no-install caveat check --unused PROGRAM`: does it load, and is
-   anything declared that nothing uses?
+2. `npx --no-install caveat check --unused --names PROGRAM`: does it load, is
+   anything declared that nothing uses, and does a `commit` misspell a
+   decision series?
 3. `npx --no-install caveat test SCENARIOS`: does it do what the task says?
 4. `npx --no-install caveat explain PROGRAM EVENTS` when a test fails: what
    each decision rests on, and which event observed it.
