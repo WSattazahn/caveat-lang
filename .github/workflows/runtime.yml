@@ -80,8 +80,6 @@ jobs:
         run: node --test scripts/game-qa-retries.test.mjs
       - name: Stabilization trial reruns a stalled trial but fails a real slowdown
         run: node --test experiments/stabilization-trial/run.test.mjs
-      - name: npm publication gate refuses untested, mismatched or unattested packages
-        run: node --test scripts/release-publish.test.mjs
       - name: Release bill of materials covers every compiled-in crate and refuses gaps
         run: node --test scripts/release-sbom.test.mjs
       - name: Distribution closeout check refuses unexplained channel or registry mismatches
@@ -94,6 +92,16 @@ jobs:
       - run: npm ci
       - name: Build browser distribution
         run: npm run build
+      - name: npm publication gate refuses untested, mismatched or unattested packages, deciding in Caveat as the legacy checks did
+        run: npm run test:release-gate
+      - name: The release gate runs on the released kit publish-npm pins
+        shell: bash
+        run: |
+          eval "$(node scripts/release-gate/pin.mjs --shell)"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gate-kit.tgz" "$GATE_KIT_TARBALL"
+          echo "$GATE_KIT_SHA256  $RUNNER_TEMP/gate-kit.tgz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/gate-kit" && tar -xzf "$RUNNER_TEMP/gate-kit.tgz" -C "$RUNNER_TEMP/gate-kit"
+          CAVEAT_GATE_KIT="$RUNNER_TEMP/gate-kit/package" node --test scripts/release-publish.test.mjs scripts/release-gate/release-gate.test.mjs
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
       - name: Elapsed clock WebAssembly checks
@@ -110,6 +118,8 @@ jobs:
         run: npm run test:before-the-rain
       - name: Caveatist canon loads, checks clean and passes its scenarios
         run: npm run test:caveatism
+      - name: Lean bridge example checks clean and passes its scenarios
+        run: npm run test:lean-bridge
       - name: Try to break this page checker, its examples and mutation controls
         run: npm run test:break
       - name: Installable Caveatist skill copy and plugin metadata
@@ -132,6 +142,8 @@ jobs:
         run: npm run test:kit
       - name: The project's own decision ledger replays and its scenarios pass
         run: npm run test:ledger
+      - name: The pull request done check decides in Caveat
+        run: npm run test:done-check
       - name: The PR ledger Action's host keeps its record in Caveat
         run: npm run test:pr-ledger
       - name: The agent undo-list tutorial runs as written

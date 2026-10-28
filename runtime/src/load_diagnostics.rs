@@ -90,6 +90,7 @@ const KEYWORDS: &[&str] = &[
     "scene",
     "start_at",
     "state",
+    "threshold",
 ];
 
 /// The message for a line no statement form matches: `--` is the most common
@@ -200,8 +201,9 @@ fn closest<'a>(name: &str, words: &[(&'a str, usize, usize)]) -> Option<&'a str>
 }
 
 /// Optimal string alignment distance: insertions, deletions, substitutions
-/// and adjacent transpositions.
-fn edits(a: &str, b: &str) -> usize {
+/// and adjacent transpositions. Strings more than two characters apart in
+/// length return `usize::MAX`, since no caller accepts more than two edits.
+pub(crate) fn edits(a: &str, b: &str) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
     if a.len().abs_diff(b.len()) > 2 {

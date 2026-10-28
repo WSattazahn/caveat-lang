@@ -363,7 +363,7 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
@@ -415,7 +415,7 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold|reveal|when_committed)\\b|sample\\s*(?:$|#|//))([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
@@ -699,7 +699,7 @@
       }
     },
     "profile-statement": {
-      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent)\\b(?!\\s*\\()",
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold)\\b(?!\\s*\\()",
       "beginCaptures": {
         "1": {
           "name": "keyword.other.statement.caveat"
@@ -749,7 +749,7 @@
       ]
     },
     "block-profile-statement": {
-      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent)\\b(?!\\s*\\()",
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|agent|threshold)\\b(?!\\s*\\()",
       "beginCaptures": {
         "1": {
           "name": "keyword.other.statement.caveat"
@@ -1175,7 +1175,7 @@
     },
     "builtin-calls": {
       "name": "support.function.builtin.caveat",
-      "match": "(?<![.\\w$])(?:observed|committed|reopened|examined|has_caveat|caveated|carries|carries_any|qualified|latest|has_sample|history_at|history_count|fold_history|elapsed|require|text|abs|atan2|ceil|floor|round|sqrt|sin|cos|clamp|wrap|number_text|percent_text|time_second_text|time_total_text|time_text|min|max|id_text|withdrawn|rests_on_withdrawn|permission_withdrawn|occurrence|revision|reading|in_basis|on_hold|resolved|outcome|only_if)\\b(?=\\s*\\()"
+      "match": "(?<![.\\w$])(?:observed|committed|reopened|examined|has_caveat|caveated|carries|carries_any|qualified|latest|has_sample|history_at|history_count|fold_history|elapsed|require|text|abs|atan2|ceil|floor|round|sqrt|sin|cos|clamp|wrap|number_text|percent_text|time_second_text|time_total_text|time_text|min|max|id_text|withdrawn|rests_on_withdrawn|permission_withdrawn|occurrence|revision|reading|in_basis|on_hold|resolved|outcome|only_if|grounds_of)\\b(?=\\s*\\()"
     },
     "keywords": {
       "patterns": [
