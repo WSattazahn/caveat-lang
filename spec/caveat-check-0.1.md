@@ -14,10 +14,11 @@ session is in the state it is in. A clean check proves none of those.
 ## Running it
 
 ```sh
-npx --no-install caveat check [--json] [--strict] [--unused] [--records [--save SAVE]] [--withdrawals] PROGRAM
+npx --no-install caveat check [--json] [--strict] [--unused] [--names] [--records [--save SAVE]] [--withdrawals] PROGRAM
 ```
 
-`--unused` adds C007 `unused-declaration`, and `--records` adds C008
+`--unused` adds C007 `unused-declaration`, `--names` adds C012
+`near-miss-commitment`, and `--records` adds C008
 `record-reads-late-caveat`; each is reported only when asked for. With
 `--records`, `--save SAVE` adds C009 `save-lacks-late-caveat` for that save.
 `--withdrawals` adds C010 `commit-on-withdrawable` and C011
@@ -595,6 +596,35 @@ afterwards. The retracted studies example
 ([kit/examples/retractions](../kit/examples/retractions/README.md)) checks
 clean; without its `withdrawn` guard or one of its reopen rules, it does not.
 
+### C012 `near-miss-commitment`
+
+**Status:** draft for 1.5.
+
+Reported only with `--names`, or `runtime.check(source, { names: true })`
+from a script, so every program checks, tests and exits as it did before.
+
+It reports a `commit NAME` whose `NAME` is no declared decision series but is
+one edit from one (two for a name of six or more characters, counting an
+insertion, a deletion, a substitution or a swap of two neighbours as one). A
+`commit` of an undeclared name is a plain commitment, so the program loads
+and runs; nothing records the commit in the series, and `committed(SERIES)`
+stays false. A misspelled `reopen`, `committed(…)` or binding already fails
+to load, because those name a commitment that must exist; a misspelled
+`commit` is the one that does not.
+
+```caveat
+decisions umbrella limit 4;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrela because enough using latest(rain_chance);
+```
+
+The warning is at the rule, and names the series and where it is declared.
+The suggestion is to write the series' name. A plain commitment whose name is
+close to a series on purpose is allowed with
+`# caveat check: allow near-miss-commitment` on the line above.
+
+Of the 181 tracked `.cav` files that load, it reports none.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -651,6 +681,13 @@ without `program`, `loads` and `strict`, and
 adds C010 and C011.
 
 ## Changes
+
+- 2026-10-26 (1.5, draft): C012 `near-miss-commitment` with `--names` or
+  `{ names: true }`. A newcomer's `commit umbrela`, beside `decisions umbrella`,
+  loaded, ran, passed `check --unused --strict` and left the advice at "No
+  decision yet", with nothing reporting why. It is asked for, so every program
+  checks, tests and exits exactly as it did under 1.3.
+
 
 - 2026-10-26 (1.5, draft): C010 `commit-on-withdrawable` and C011
   `withdrawal-not-reopened` with `--withdrawals` or `{ withdrawals: true }`.
