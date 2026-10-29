@@ -41,6 +41,7 @@ entity check_wheel_linux_x86_64 kind source at repo;  # check: wheel, Linux x86_
 entity check_wheel_windows_x86_64 kind source at repo;  # check: wheel, Windows x86_64
 entity check_wheel_macos_arm64_and_x86_64 kind source at repo;  # check: wheel, macOS (arm64 and x86_64)
 entity author_claude_code kind source at repo;  # author: Claude Code
+entity author_wsattazahn kind source at repo;  # author: WSattazahn
 
 evidence merges_seen from "GitHub's record that a pull request merged";
 renewable merges_seen limit 64;
@@ -55,7 +56,7 @@ decisions main limit 64;   # one revision per merge; value: the pull request num
 event pr number min 1 max 999999999;   # a merged pull request's record begins
 event saw name kind source, ok min 0 max 1;   # 1 passed, approved or wrote it; 0 failed or asked for changes
 event merge;                           # the pull request merged on what was sent since `pr`
-event wrong name kind source, index min 1 max 28;   # that source's Nth reading was later found wrong
+event wrong name kind source, index min 1 max 27;   # that source's Nth reading was later found wrong
 
 on pr set basis = number;
 on merge when observed(merges_seen) renew merges_seen;
@@ -65,7 +66,7 @@ on wrong reveal finding;
 
 for source as $s routed by name {
     evidence $s_report from "what GitHub said about $s on each pull request";
-    readings $s from $s_report limit 28;
+    readings $s from $s_report limit 27;
     on saw when ok == 1 sample $s = 1 supports sound;
     on saw when ok == 0 sample $s = 0 opposes sound;
     # Only what passed or approved is what the merge rested on.

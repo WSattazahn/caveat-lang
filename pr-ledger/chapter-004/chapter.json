@@ -171,6 +171,11 @@
    "id": "author_claude_code",
    "role": "author",
    "name": "Claude Code"
+  },
+  {
+   "id": "author_wsattazahn",
+   "role": "author",
+   "name": "WSattazahn"
   }
  ],
  "entries": [
@@ -2155,6 +2160,125 @@
     },
     {
      "source": "author_claude_code",
+     "ok": 1
+    }
+   ]
+  },
+  {
+   "type": "merge",
+   "pr": 393,
+   "title": "fix: make ledger replay checks fail closed and display the release patch",
+   "merged_at": "2026-10-29T21:08:29Z",
+   "head": "91d78adcb2851587d11c74fd52b6e1103f1e05d6",
+   "merge_commit": "bb4755c81d0d8ac894be283ac3c3511bf8773915",
+   "agent": false,
+   "facts": [
+    {
+     "source": "check_evidence_games_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_lean_runtime_comparison",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_chromium",
+     "ok": 1
+    },
+    {
+     "source": "check_light_the_way_webkit",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_mcp_worker_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_2d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_moon_garden_3d_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_mr_caveat_iphone_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_the_last_beacon_browser_qa",
+     "ok": 1
+    },
+    {
+     "source": "check_vs_code_extension",
+     "ok": 1
+    },
+    {
+     "source": "check_build_the_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_core_semantics",
+     "ok": 1
+    },
+    {
+     "source": "check_hosted_mcp_server",
+     "ok": 1
+    },
+    {
+     "source": "check_native_runtime",
+     "ok": 1
+    },
+    {
+     "source": "check_packed_kit_dependency_security",
+     "ok": 1
+    },
+    {
+     "source": "check_profile_footprint_and_target",
+     "ok": 1
+    },
+    {
+     "source": "check_proofs",
+     "ok": 1
+    },
+    {
+     "source": "check_rc_15_compatibility_and_departure",
+     "ok": 1
+    },
+    {
+     "source": "check_regression_scope",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_macos_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_ubuntu_24_04",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_windows_latest",
+     "ok": 1
+    },
+    {
+     "source": "check_replay_is_byte_identical_everywher",
+     "ok": 1
+    },
+    {
+     "source": "check_reproducible_webassembly",
+     "ok": 1
+    },
+    {
+     "source": "check_rustfmt",
+     "ok": 1
+    },
+    {
+     "source": "author_wsattazahn",
      "ok": 1
     }
    ]
