@@ -31,6 +31,7 @@ const RUNTIME = {
 let runtime = null;
 let version = 'unknown';
 let lastReport = null;
+let runGeneration = 0;
 
 async function start() {
   try {
@@ -42,6 +43,13 @@ async function start() {
       button.addEventListener('click', () => load(button.dataset.example));
     }
     $('run').addEventListener('click', () => run());
+    for (const id of ['program', 'events']) $(id).addEventListener('input', () => {
+      runGeneration += 1;
+      lastReport = null;
+      $('report').hidden = true;
+      $('results').innerHTML = '';
+      $('status').textContent = 'Inputs changed; run the checks again.';
+    });
     $('report').addEventListener('click', report);
     $('run').disabled = false;
     await load('apartment');
@@ -51,10 +59,24 @@ async function start() {
 }
 
 async function load(name) {
+  const generation = ++runGeneration;
+  lastReport = null;
+  $('report').hidden = true;
+  $('results').innerHTML = '';
+  $('status').textContent = 'Loading the example.';
   const example = EXAMPLES[name];
-  $('program').value = await (await fetch(example.program)).text();
-  $('events').value = eventsText(example.events);
-  run();
+  try {
+    const response = await fetch(example.program);
+    const source = await response.text();
+    if (generation !== runGeneration) return;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const eventText = eventsText(example.events);
+    $('program').value = source;
+    $('events').value = eventText;
+    run(false, { generation, source, eventText });
+  } catch (error) {
+    if (generation === runGeneration) $('status').textContent = `The example did not load: ${error.message ?? error}`;
+  }
 }
 
 function parseEvents(text) {
@@ -73,11 +95,12 @@ function parseEvents(text) {
 // then with the checker's display lines added.
 function open(source) {
   const plain = runtime.open(source);
-  const probed = probeSource(source, plain.snapshot());
-  plain.close();
+  let probed;
+  try { probed = probeSource(source, plain.snapshot()); } finally { plain.close(); }
   try {
     return { session: runtime.open(probed), probed: true };
-  } catch {
+  } catch (error) {
+    if (runtime.trapped) throw error;
     return { session: runtime.open(source), probed: false };
   }
 }
@@ -85,37 +108,50 @@ function open(source) {
 // WebKit 26.0 can trap while starting a session, an engine fault in its
 // WebAssembly tier-up (bench/carmack/README.md), not the program's. A run is
 // deterministic, so a run that trapped is repeated once on a fresh instance.
-function retryAfterTrap(retried) {
+function retryAfterTrap(retried, attempt) {
   if (retried || !runtime.trapped) return false;
-  $('status').textContent = 'The browser\'s WebAssembly engine faulted; running again on a fresh runtime.';
-  loadRuntime(RUNTIME).then(fresh => { runtime = fresh; run(true); },
-    error => { $('status').textContent = `The runtime did not reload: ${error.message ?? error}`; });
+  $('status').textContent = 'The WebAssembly runtime trapped; running again on a fresh runtime.';
+  loadRuntime(RUNTIME).then(fresh => {
+    if (attempt.generation !== runGeneration) return;
+    runtime = fresh;
+    run(true, attempt);
+  }, error => {
+    if (attempt.generation === runGeneration) $('status').textContent = `The runtime did not reload: ${error.message ?? error}`;
+  });
   return true;
 }
 
-function run(retried = false) {
-  const source = $('program').value;
+function run(retried = false, attempt = null) {
+  attempt ??= { generation: ++runGeneration, source: $('program').value, eventText: $('events').value };
+  if (attempt.generation !== runGeneration) return;
+  const { source, eventText } = attempt;
   const out = $('results');
   out.innerHTML = '';
   $('report').hidden = true;
   lastReport = null;
   let events;
-  try { events = parseEvents($('events').value); } catch (error) { $('status').textContent = error.message; return; }
+  try { events = parseEvents(eventText); } catch (error) { $('status').textContent = error.message; return; }
   let opened;
   try { opened = open(source); } catch (error) {
-    if (!retryAfterTrap(retried)) $('status').textContent = `The program does not load: ${error.message}`;
+    if (!retryAfterTrap(retried, attempt)) $('status').textContent = runtime.trapped
+      ? `The runtime failed after a fresh-instance retry: ${error.message}`
+      : `The program does not load: ${error.message}`;
     return;
   }
   const { session } = opened;
   const rows = [];
   const findings = [];
   const notes = new Set();
-  let before = session.snapshot();
-  const first = checkStart(before);
-  first.findings.forEach(item => findings.push({ ...item, at: 'start' }));
-  first.notes.forEach(note => notes.add(note));
+  let before = null;
+  let failure = null;
+  let activeEvent = null;
   try {
+    before = session.snapshot();
+    const first = checkStart(before);
+    first.findings.forEach(item => findings.push({ ...item, at: 'start' }));
+    first.notes.forEach(note => notes.add(note));
     events.forEach(({ event, payload }, index) => {
+      activeEvent = { event, index: index + 1 };
       const outcome = session.dispatch(event, payload);
       const after = session.snapshot();
       const result = checkEvent(before, after, outcome.outcome === 'accepted');
@@ -123,22 +159,30 @@ function run(retried = false) {
       result.notes.forEach(note => notes.add(note));
       rows.push({ index: index + 1, event, outcome, failed: new Set(result.findings.map(item => item.rule)) });
       before = after;
+      activeEvent = null;
     });
   } catch (error) {
-    rows.push({ index: rows.length + 1, event: events[rows.length]?.event ?? '', outcome: { outcome: 'fatal', message: error.message }, failed: new Set() });
+    failure = error;
+    if (activeEvent) rows.push({ ...activeEvent, outcome: { outcome: 'fatal', message: error.message }, failed: new Set() });
+  } finally {
+    // close() abandons a trapped session without calling back into WebAssembly.
+    // It can also mark the runtime trapped if free() itself traps.
+    session.close();
   }
   if (runtime.trapped) {
-    session.close();
-    if (retryAfterTrap(retried)) return;
+    if (retryAfterTrap(retried, attempt)) return;
+    failure ??= new Error('The runtime instance trapped during cleanup.');
   }
-  out.innerHTML = table(rows) + decisions(before) + findingsList(findings) + [...notes].map(note => `<p class="note">${esc(note)}</p>`).join('');
+  out.innerHTML = table(rows) + (before ? decisions(before) : '') + findingsList(findings) + [...notes].map(note => `<p class="note">${esc(note)}</p>`).join('');
   if (!opened.probed) out.innerHTML += '<p class="note">R3 could not be checked: the checker could not add its display lines to this program.</p>';
-  session.close();
-  $('status').textContent = findings.length
-    ? `${findings.length} rule ${findings.length === 1 ? 'failure' : 'failures'} found.`
-    : `Every rule held on ${rows.length} ${rows.length === 1 ? 'event' : 'events'}.`;
+  $('status').textContent = failure
+    ? `The run did not complete: ${failure.message}`
+    : findings.length
+      ? `${findings.length} rule ${findings.length === 1 ? 'failure' : 'failures'} found.`
+      : `Every rule held on ${rows.length} ${rows.length === 1 ? 'event' : 'events'}.`;
+
   if (findings.length) {
-    lastReport = { version, source, events: $('events').value, findings };
+    lastReport = { version, source, events: eventText, findings };
     $('report').hidden = false;
   }
 }

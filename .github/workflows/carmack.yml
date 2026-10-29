@@ -19,6 +19,8 @@ on:
       - 'examples/*.cav'
       - 'caveatism/canon/archive.cav'
       - 'scripts/build-web.mjs'
+      - 'scripts/test-break-recovery.mjs'
+      - 'web/break*'
       - 'rust-toolchain.toml'
       - '.github/workflows/carmack.yml'
   workflow_dispatch:
