@@ -117,10 +117,12 @@ Every thread that makes or informs a decision appends to the record:
 5. **A doubt learned later**: `qualify` the evidence with the caveat, then
    `review`. The decisions whose basis carries it are reopened by name.
 
-Then `npm run test:ledger`. The record must replay with every event
-accepted, the scenarios must pass, and L04 mirrors the record, so a new event
-is added to both. Keep `explain` honest: if a decision's `based on` line does
-not say what it actually rested on, the rule is wrong, not the record.
+Then `npm run test:ledger`. The complete record must replay with every event
+accepted, and the scenarios must pass. L04 preserves the historical prefix
+through 1.3.0; `replay-check.mjs` checks every event in the growing record.
+Add a scenario when new behavior needs an expectation. Keep `explain` honest:
+if a decision's `based on` line does not say what it actually rested on, the
+rule is wrong, not the record.
 
 ## Where it pinches
 
