@@ -125,3 +125,64 @@ The historical CI hull discrepancy has **not** been reproduced locally, and
 the confirmed input-delivery race alone does not prove its cause. Full-suite
 receipts and WebKit results must be assessed separately from these focused
 controls; neither is a claim about physical Safari hardware.
+
+## Follow-up — 2026-10-29
+
+The observations above describe the recovery work on 2026-10-28. This follow-up
+records subsequent review and delivery without replacing those observations
+or their failures. The four `find` events in this report's ledger change do
+not assert a new release, approval, merge event, or CI event.
+
+### D031 and D032: corrected in merged #393
+
+[PR #393](https://github.com/WSattazahn/caveat-lang/pull/393) merged as
+`bb4755c81d0d8ac894be283ac3c3511bf8773915` from reviewed head
+`91d78adcb2851587d11c74fd52b6e1103f1e05d6`. Further review strengthened the
+replay guard to match physical input lines, event names, payloads, ordering,
+sequences, and corresponding ledger snapshots. The same-count duplicate and
+reordered-output controls reproduce a defensive validation gap; they do not
+show that the production CLI emitted such output.
+
+At that head, all seven replay-guard tests and nine ledger scenarios passed;
+the complete 194-event record replayed and displayed `1.4.1 stands`. The
+original 193-event prefix remained unchanged. All 26 applicable CI checks
+passed before merge; Legacy Door 3D QA was conditionally skipped. The
+[runtime workflow](https://github.com/WSattazahn/caveat-lang/actions/runs/40947695421)
+and [Carmack workflow](https://github.com/WSattazahn/caveat-lang/actions/runs/40947695164)
+retain those CI observations. The four-test and 193-event results above remain
+the earlier local observations, not the final merge results.
+
+### D033: test-driver correction included in merged #389
+
+[PR #389](https://github.com/WSattazahn/caveat-lang/pull/389) merged as
+`2b8096f6d9adb7696949a9193ce63ee7d808615b` from reviewed head
+`3ac0eef0a97a5898ce5437afe3b602e56f819cf9`, after refreshing against the merged
+#393. It retains the native-touch delivery correction and separately fixes
+break-page recovery and stale asynchronous completions.
+
+The final review passed all 32 controlled break-page recovery cases locally
+on Windows (Chromium 156.0.8078.4 and WebKit 27.2) and in CI. The complete
+Chromium and WebKit rescue suites also passed locally and in CI. The final
+[Chromium rescue job](https://github.com/WSattazahn/caveat-lang/actions/runs/40955494837/job/123737450469)
+and [WebKit rescue job](https://github.com/WSattazahn/caveat-lang/actions/runs/40955494837/job/123737450461)
+each ran the suite once without a test retry. The
+[Carmack recovery job](https://github.com/WSattazahn/caveat-lang/actions/runs/40955494851/job/123735946319)
+ran all 32 controlled cases. All 26 applicable CI checks passed before merge;
+Legacy Door 3D QA was conditionally skipped.
+
+An earlier local Chromium attempt at source tree
+`68602ebf1855daeb017612fd9aaaa69e2273406b` timed out in the unchanged desktop
+screenshot capture after 20 seconds, before reaching mobile. That failed
+local assessment is retained; the later passing runs are separate evidence.
+The original two-hull CI failure still has no conclusively demonstrated
+cause. The confirmed input-delivery race is not proof of its cause, and
+neither the controlled recovery tests nor the rescue suites establish
+physical Safari/device behavior or natural WebAssembly trap frequency.
+
+### D030: the corrected proposal remains unmerged
+
+At this review, #382 remains open at
+`9f96f76db2a47db4bd16affd954ddb3c8c312246`, retaining the journal change and
+restoring `HashMap` graph storage. Its original combined graph/journal
+performance claim remains withdrawn. No new speedup measurement or merge
+of that proposal is asserted here.

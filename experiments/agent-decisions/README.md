@@ -133,5 +133,7 @@ The separate [PR recovery record](../../docs/reviews/2026-10-28-pr-recovery.md)
 records D030 (unmerged graph-storage regression), D031 (failed replay process
 accepted by the check), D032 (ledger patch-version display), and D033 (native
 touch delivery racing the browser test clock). These are scoped local
-observations and corrective candidates, not findings from the published-runtime
-dogfooding round above or claims that all four affect published 1.4.1.
+observations and subsequent corrective work, not findings from the published-runtime
+dogfooding round above or claims that all four affect published 1.4.1. The
+report retains the original failures and includes the 2026-10-29 follow-up
+after #393 and #389 merged; #382 remains unmerged at that review.
