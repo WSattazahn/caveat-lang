@@ -135,6 +135,17 @@ export interface ExplainedRevision {
   /** Grounds withdrawn since the decision was made. */
   withdrawn: Withdrawal[];
   /**
+   * With `laterCaveats`: current live caveat names on each grounds occurrence
+   * that are absent from both the revision's frozen grounds and its retained
+   * caveats. Not a per-occurrence qualification history: a name already held
+   * elsewhere in the revision is excluded. Taken-back qualifications and
+   * `withdrawn` are excluded. Only snapshot relations contribute; supplied
+   * archive records do not establish current qualifications on departed
+   * grounds. An empty list does not establish that no qualification occurred.
+   * The frozen record is unchanged; this field is absent without the option.
+   */
+  qualified_since?: { evidence: string; caveats: string[] }[];
+  /**
    * For each grounds evidence, in grounds order, the accepted event whose
    * `reveal` or `sample` effect first observed it, with its payload. Present
    * when the events given to `explain` carry their effects; all null when
@@ -226,6 +237,12 @@ export interface ExplainOptions {
    * payloads or prove the supplied archive is exhaustive.
    */
   archive?: ArchiveEntry[];
+  /**
+   * Also list current caveat names on grounds that the revision did not
+   * record (`qualified_since`, with the limits documented there). Off by
+   * default, so the report and its text stay as before.
+   */
+  laterCaveats?: boolean;
 }
 
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */

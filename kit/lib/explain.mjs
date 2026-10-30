@@ -157,7 +157,7 @@ const unobserved = { sequence: null, event: null, payload: null };
 const agentOf = record => (typeof record?.agent === 'string' ? { agent: record.agent } : {});
 const by = item => (typeof item?.agent === 'string' ? ` by ${item.agent}` : '');
 
-export function explain(snapshot, events = [], { archive = [] } = {}) {
+export function explain(snapshot, events = [], { archive = [], laterCaveats = false } = {}) {
   const observedBy = observers(events);
   const qualifiedBy = caveatsByEvidence(snapshot);
   const takenBackBy = takeBacksByEvidence(snapshot);
@@ -227,6 +227,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
       ...(snapshot.retention_reasons?.[id] ? { retention_reasons: snapshot.retention_reasons[id] } : {}),
       withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
         .map(name => ({ evidence: name, ...withdrawals.get(name) })),
+      ...(laterCaveats ? { qualified_since: qualifiedSince(grounds, record?.retained ?? grounds.caveats, qualifiedBy) } : {}),
       ...(observedBy ? { observed_by: grounds.evidence.map(name => ({ evidence: name, ...(observedBy.get(name) ?? unobserved) })) } : {}),
       ...(outcome ? { outcome } : {}),
       // The thresholds its commit named (spec/caveat-thresholds-0.1.md).
@@ -297,6 +298,19 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
     source: { sha256: snapshot.source_sha256 ?? null, unrecorded_through: snapshot.source_unrecorded_through ?? 0 },
     events: events.map(({ sequence: _sequence, effects: _effects, ...entry }) => entry), decisions, evidence, displayed,
     ...(historical ? {archive: historical} : {}) };
+}
+
+// A difference from the whole revision's frozen/retained caveat set, not a
+// per-occurrence qualification history. A name held through another ground
+// or explicit retention is excluded. Only live snapshot relations contribute:
+// a take-back removes a name, and archives do not make departed relations live.
+// The record stays frozen (D015); `withdrawn` has its own report.
+function qualifiedSince(grounds, recorded, qualifiedBy) {
+  const held = new Set([...grounds.caveats, ...recorded]);
+  return grounds.evidence.flatMap(name => {
+    const caveats = (qualifiedBy[name] ?? []).filter(caveat => caveat !== 'withdrawn' && !held.has(caveat));
+    return caveats.length ? [{ evidence: name, caveats }] : [];
+  });
 }
 
 const list = values => (values.length ? values.join(', ') : 'nothing');
@@ -406,6 +420,7 @@ export function formatExplanation(report, title = 'the program') {
       const inherited = retained.filter(name => !revision.grounds.caveats.includes(name));
       if (inherited.length) lines.push(`      also carrying, through its lineage: ${list(inherited)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
+      for (const item of revision.qualified_since ?? []) lines.push(`      ${item.evidence} now carries ${list(item.caveats)}, absent from this record`);
       if (revision.permission) {
         const { grant, scope, caveats } = revision.permission;
         const checked = scope ? ` for ${show(scope.required)}` : '';
