@@ -131,6 +131,11 @@ export function reviewLedgers(open, ledgers, options) {
  * How often each caveat came true across the reviewed revisions that have an
  * outcome, in all and by the evidence that carried it into the grounds.
  * `entries` are `reviewLedgers` entries; `{ error }` entries are skipped.
+ * Keys are exact identifier strings, not source identities: equal names in
+ * different programs pool, while occurrence suffixes stay distinct. Counts
+ * describe the supplied reviews' recorded outcomes, not independently checked
+ * truth or causation. Repeated entries count again; carriers within one entry
+ * count once. A fatal suffix does not erase an already recorded outcome.
  */
 export function summarizeLedgers(entries) {
   const caveats = new Map();

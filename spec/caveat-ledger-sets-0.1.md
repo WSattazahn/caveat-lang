@@ -105,7 +105,16 @@ qualifies a piece of their grounds, it counts the revisions it was in
 (`retained`) and those whose review says it came true (`came_true`). It also
 counts both by each piece of evidence that carried it into the grounds
 (`by_evidence`), where `came_true` counts a revision only when that evidence
-carried the caveat that came true. Caveats and evidence are in name order.
+carried the caveat that came true. A revision counts once per caveat and once
+per distinct evidence name carrying it, even when several grounds carry the
+same caveat. Caveats and evidence are in name order.
+
+Grouping uses **exact identifier strings**, not source identity. The same
+`scan` name in two programs pools, even when their source descriptions differ;
+`scan`, `scan@1` and `scan@2` are separate keys. Caveat names pool the same
+way. The summary does not prove that matching names refer to the same source
+or meaning. Use a consistent naming convention across the set before drawing
+a conclusion from a group, or inspect the individual reviews.
 
 ```text
 Across the set (4 revisions with an outcome)
@@ -116,9 +125,15 @@ The text block is left out when no caveat qualifies any grounds. The JSON
 object is `{ schema, revisions, caveats: [{ caveat, retained, came_true,
 by_evidence: [{ evidence, retained, came_true }] }] }`.
 
-It counts and does not judge. Two of two is a count of two decisions, not a
-rate. It says nothing of revisions without an outcome, and nothing of why a
-caveat came true.
+It counts the outcomes the ledgers recorded and does not authenticate them
+or establish causation or a general probability. `revisions` includes usable
+revisions with an outcome even when none of their grounds carries a caveat;
+`retained` here counts caveats on grounds, not every explicitly retained
+caveat. Entries without an outcome and unusable ledgers are omitted. Each
+supplied review entry counts, so duplicate ledgers or entries count again.
+If a later event fails fatally, an earlier recorded outcome still contributes;
+the review retains the failure and the command still exits 1 (or 2 if a
+ledger is unusable). A summary is not a success verdict for the directory.
 
 Exit status: 0 after the reviews; 1 when an event failed fatally in a
 reviewed ledger (its reviews are of the session before it); 2 when the
