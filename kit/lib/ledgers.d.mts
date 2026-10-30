@@ -4,6 +4,7 @@ import type { CaveatSession } from './session.mjs';
 import type { Review, ReviewEvent } from './review.mjs';
 
 export declare const LEDGER_REVIEW_SCHEMA: 'caveat-ledger-review/0.1';
+export declare const LEDGER_SUMMARY_SCHEMA: 'caveat-ledger-summary/0.1';
 /** `caveat-review:<program sha256>#<revision>`, as an evidence source. */
 export declare const CONSULTED_SOURCE: RegExp;
 
@@ -72,6 +73,31 @@ export declare function reviewLedgers(
   ledgers: readonly Ledger[],
   options?: { limit?: number },
 ): (LedgerReview | LedgerError)[];
+
+export interface CaveatCount {
+  /** Reviewed revisions with an outcome whose grounds carry this caveat. */
+  retained: number;
+  /** Those revisions whose recorded outcome says it materialized. */
+  came_true: number;
+}
+
+export interface LedgerSummary {
+  schema: 'caveat-ledger-summary/0.1';
+  revisions: number;
+  caveats: (CaveatCount & { caveat: string; by_evidence: (CaveatCount & { evidence: string })[] })[];
+}
+
+/**
+ * Counts recorded outcomes, grouped by exact caveat/evidence identifier strings.
+ * Equal names across programs pool; occurrence suffixes remain distinct. This
+ * neither resolves source identity nor attributes causation. Error entries and
+ * entries without an outcome are omitted; a fatal suffix does not erase an
+ * earlier recorded outcome. Each supplied entry counts as a revision.
+ */
+export declare function summarizeLedgers(entries: readonly (LedgerReview | LedgerError)[]): LedgerSummary;
+
+/** Text lines for a summary; none when no caveat was retained. */
+export declare function formatSummary(summary: LedgerSummary): string[];
 
 /** Text lines for what a review consulted. */
 export declare function formatConsulted(consulted: readonly Consulted[]): string[];

@@ -291,8 +291,13 @@ npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 `caveat review --all <directory>` reviews a set of past ledgers: every
 `NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
 only `.cav` beside `events.jsonl`. It reviews each revision that has an
-outcome or consulted a past review, and with `--json` prints one object per
-line. A program records that it read a past review with ordinary evidence
+outcome or consulted a past review. With `--json` it prints one object per
+line. `--summary` adds counts of recorded outcomes by caveat and carrying
+evidence (with `--json`, as the last line). It groups exact identifier strings:
+matching names in different programs pool, while `scan` and `scan@1` stay
+separate. Matching names do not establish source identity, truth or causation;
+inspect the individual reviews before treating a group as a pattern.
+A program records that it read a past review with ordinary evidence
 whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
 a review lists it under Consulted, and `--all` says what that review found.
 It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).

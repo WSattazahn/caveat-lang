@@ -258,6 +258,13 @@ test('every entry point names its declarations, which declare exactly its export
   }
 });
 
+// ledgers is used by the CLI rather than exported as a package entry point,
+// so the public-entry-point loop above does not cover its declarations.
+test('the private ledgers module declares exactly its runtime exports', async () => {
+  const exported = await import('../lib/ledgers.mjs');
+  assert.deepEqual(sorted([...declarations.ledgers.values]), sorted(Object.keys(exported)));
+});
+
 test('generated runtime declarations name the library their disposal members require', async () => {
   for (const directory of ['pkg', 'pkg-reactive']) {
     const file = path.join(repo, 'dist', directory, 'caveat_runtime.d.ts');
