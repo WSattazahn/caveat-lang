@@ -218,14 +218,14 @@ const LATER = `claim effect;
     on recheck when committed(conclude) reopen conclude because critique;
     on recheck when committed(conclude) and reopened(conclude) commit conclude because enough using ok;`;
 
-test('with laterCaveats, explain lists the caveats a later qualify placed on a decision\'s grounds', async () => {
+test('with laterCaveats, explain lists live caveat names absent from the decision record', async () => {
   const session = real.open(LATER);
   for (const event of ['publish', 'decide', 'dispute', 'recheck']) session.dispatch(event, {});
   const snapshot = session.snapshot();
   session.close();
   const plain = explain(snapshot);
   assert.equal(plain.decisions[0].revisions[0].qualified_since, undefined, 'off by default');
-  assert.doesNotMatch(formatExplanation(plain), /has since been qualified/);
+  assert.doesNotMatch(formatExplanation(plain), /absent from this record/);
 
   const report = explain(snapshot, [], { laterCaveats: true });
   const [first, second] = report.decisions[0].revisions;
@@ -233,17 +233,25 @@ test('with laterCaveats, explain lists the caveats a later qualify placed on a d
   assert.deepEqual(first.qualified_since, [{ evidence: 'study', caveats: ['disputed'] }]);
   assert.deepEqual(second.grounds.caveats, ['disputed']);
   assert.deepEqual(second.qualified_since, [], 'a decision made after the qualify already holds it');
-  assert.match(formatExplanation(report), /based on study\n {6}study has since been qualified with disputed/);
+  assert.match(formatExplanation(report), /based on study\n {6}study now carries disputed, absent from this record/);
 
   await withFiles({ 'later.cav': LATER, 'events.jsonl': ['publish', 'decide', 'dispute'].map(event => JSON.stringify({ event })).join('\n') }, file => {
     const before = run(file('later.cav'), file('events.jsonl'));
     const after = run('--later-caveats', file('later.cav'), file('events.jsonl'));
     assert.equal(after.status, 0, after.stderr);
-    assert.doesNotMatch(before.stdout, /has since been qualified/);
-    assert.match(after.stdout, /study has since been qualified with disputed/);
-    assert.equal(after.stdout.replace(/\n {6}study has since been qualified with disputed/, ''), before.stdout);
-    assert.match(spawnSync(process.execPath, [cli, 'check', '--later-caveats', file('later.cav')], { encoding: 'utf8' }).stderr,
-      /unknown option --later-caveats for check/);
+    assert.doesNotMatch(before.stdout, /absent from this record/);
+    assert.match(after.stdout, /study now carries disputed, absent from this record/);
+    assert.equal(after.stdout.replace(/\n {6}study now carries disputed, absent from this record/, ''), before.stdout);
+    const refused = spawnSync(process.execPath, [cli, 'check', '--later-caveats', file('later.cav')], { encoding: 'utf8' });
+    assert.equal(refused.status, 2);
+    assert.match(refused.stderr, /unknown option --later-caveats for check/);
+    const mistyped = run('--later-caveatz', file('later.cav'));
+    assert.equal(mistyped.status, 2);
+    assert.match(mistyped.stderr, /did you mean --later-caveats\?/);
+    const json = JSON.parse(run('--json', file('later.cav'), file('events.jsonl')).stdout);
+    const enabled = JSON.parse(run('--json', '--later-caveats', file('later.cav'), file('events.jsonl')).stdout);
+    for (const decision of enabled.decisions) for (const revision of decision.revisions) delete revision.qualified_since;
+    assert.deepEqual(enabled, json);
   });
 });
 

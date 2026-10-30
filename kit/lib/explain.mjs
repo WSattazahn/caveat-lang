@@ -300,10 +300,11 @@ export function explain(snapshot, events = [], { archive = [], laterCaveats = fa
     ...(historical ? {archive: historical} : {}) };
 }
 
-// For each grounds evidence, the caveats that qualify it now and that the
-// record does not hold: added by a qualify after the decision was made. The
-// record keeps its own caveats (D015); this only reports the difference.
-// `withdrawn` is reported as a withdrawal instead.
+// A difference from the whole revision's frozen/retained caveat set, not a
+// per-occurrence qualification history. A name held through another ground
+// or explicit retention is excluded. Only live snapshot relations contribute:
+// a take-back removes a name, and archives do not make departed relations live.
+// The record stays frozen (D015); `withdrawn` has its own report.
 function qualifiedSince(grounds, recorded, qualifiedBy) {
   const held = new Set([...grounds.caveats, ...recorded]);
   return grounds.evidence.flatMap(name => {
@@ -419,7 +420,7 @@ export function formatExplanation(report, title = 'the program') {
       const inherited = retained.filter(name => !revision.grounds.caveats.includes(name));
       if (inherited.length) lines.push(`      also carrying, through its lineage: ${list(inherited)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
-      for (const item of revision.qualified_since ?? []) lines.push(`      ${item.evidence} has since been qualified with ${list(item.caveats)}`);
+      for (const item of revision.qualified_since ?? []) lines.push(`      ${item.evidence} now carries ${list(item.caveats)}, absent from this record`);
       if (revision.permission) {
         const { grant, scope, caveats } = revision.permission;
         const checked = scope ? ` for ${show(scope.required)}` : '';

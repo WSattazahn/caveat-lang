@@ -67,8 +67,10 @@ explain sends the events, one JSON object per line such as
 {"event": "read", "payload": {"value": 17}}, then shows each decision with what
 it rests on and its history, the evidence and its caveats, and why each
 displayed value is what it is. Refused events are listed and change nothing.
-With --later-caveats it also says, under each decision, which of its grounds a
-later qualify has reached ("E has since been qualified with C").
+With --later-caveats it also lists current caveat names on grounds absent
+from that revision's frozen grounds and retained caveats. This is not every
+qualification: names already recorded elsewhere in the revision, take-backs,
+withdrawals and departed grounds are omitted.
   Exit status: 0 explained, 1 an event failed fatally (the explanation is of
   the session before it), 2 the program or events file could not be used.
 
@@ -179,8 +181,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
                    holds without such a caveat
   --withdrawals    (check) also report commits on sources the program can
                    withdraw that nothing guards or reopens
-  --later-caveats  (explain) also show the caveats a later qualify placed on
-                   each decision's grounds
+  --later-caveats  (explain) show live caveat names on grounds absent from
+                   each decision's frozen grounds and retained caveats
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -204,12 +206,13 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime'];
+const OPTIONS = ['--json', '--all', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime', '--later-caveats'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
     '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
     '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
+    '--later-caveats': command === 'explain',
   })[option];
 }
 

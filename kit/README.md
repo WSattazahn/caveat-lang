@@ -238,11 +238,22 @@ of the session before it), and 2 when the program or the events file cannot be
 used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
 the same report as data, and `formatExplanation` renders it as text.
 
-A decision keeps the caveats it was made with, so a `qualify` that reaches its
-grounds later does not change its record. `--later-caveats` (from 1.5; from
-code, `explain(snapshot, events, { laterCaveats: true })`) adds a line under
-each such decision, "E has since been qualified with C", and the report's
-`qualified_since`. Without it, the output is as before.
+A decision keeps the caveats it was made with. `--later-caveats` (from 1.5;
+from code, `explain(snapshot, events, { laterCaveats: true })`) compares that
+record with the live qualifications on its grounds. For each grounds
+occurrence, `qualified_since` lists its current caveat names absent from
+both the revision's frozen grounds and its retained caveats. The text adds
+"E now carries C, absent from this record". Without the option, the field is absent
+and the output is as before.
+
+This is a difference from the whole revision's record, not a history of
+every qualification: a caveat already recorded through another ground or
+explicitly retained is not listed again. A taken-back qualification is no
+longer listed; reapplying it makes it live again. Withdrawals have their own
+report and are omitted here. Only occurrences whose relations remain in the
+snapshot can contribute; a supplied archive does not establish current
+qualifications on departed grounds. An empty list does not prove that no
+qualification happened, and the report does not reopen any decision.
 
 `caveat dependents` asks the reverse question: what rests on one piece of
 evidence, reading stream or caveat. It lists:
