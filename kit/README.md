@@ -455,6 +455,13 @@ To recover, load again: `loadRuntimeFromDirectory()` always gives a fresh
 instance, and `loadRuntime()` given a module URL imports a fresh copy once the
 earlier instance has trapped.
 
+A trap is not always the program's doing. WebKit 26.0 trapped in about 1% of
+fresh pages while creating a session, a fault in its WebAssembly tier-up that
+newer WebKit does not have. Opening a program and dispatching its events give
+the same result every time, so a host that sees a trap can load a fresh
+runtime and run the same steps once more; the
+[break page](https://github.com/WSattazahn/caveat-lang/blob/main/web/break.js) does this.
+
 Close each session with `close()` once you no longer need it. A session holds
 runtime memory until it is closed, and the garbage collector frees an
 unclosed one only after its last reference is gone and only between
