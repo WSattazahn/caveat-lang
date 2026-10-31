@@ -37,6 +37,7 @@
     "test:done-check": "node kit/bin/caveat.mjs check --strict --unused scripts/done-check/done.cav && node kit/bin/caveat.mjs test scripts/done-check/done.scenarios.json && node --test scripts/done-check/done.test.mjs",
     "test:release-gate": "node kit/bin/caveat.mjs check --strict --unused scripts/release-gate/release-gate.cav && node kit/bin/caveat.mjs test scripts/release-gate/release-gate.scenarios.json && node --test scripts/release-publish.test.mjs scripts/release-gate/release-gate.test.mjs",
     "test:pr-ledger": "node --test actions/pr-ledger/pr-ledger.test.mjs",
+    "test:review-shortlist": "node kit/bin/caveat.mjs check --strict scripts/review-shortlist/fixture.cav && node kit/bin/caveat.mjs test scripts/review-shortlist/fixture.scenarios.json && node --test scripts/review-shortlist/shortlist.test.mjs",
     "test:tutorial": "node scripts/test-tutorial.mjs",
     "test:kit-browser": "node scripts/test-kit-browser.mjs",
     "test:kit-package": "node scripts/test-kit-package.mjs",
