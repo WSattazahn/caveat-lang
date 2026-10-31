@@ -19,6 +19,8 @@ on:
       - 'examples/*.cav'
       - 'caveatism/canon/archive.cav'
       - 'scripts/build-web.mjs'
+      - 'scripts/test-break-recovery.mjs'
+      - 'web/break*'
       - 'rust-toolchain.toml'
       - '.github/workflows/carmack.yml'
   workflow_dispatch:
@@ -71,8 +73,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # --with-deps fetches over 150 system packages from the Ubuntu mirror.
+      # On 2026-10-27 that mirror slowed to 1-60 s a package and held this step
+      # for over 40 minutes (normally about 3); stop and fail instead of
+      # waiting for the 6-hour job limit. Retrying in the step would not help:
+      # stopping npx leaves apt-get running and holding the package lock.
       - name: Install the browsers
         if: runner.os == 'Linux'
+        timeout-minutes: 20
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Replay seeded sequences with a save and restore
         shell: bash
@@ -85,6 +93,9 @@ jobs:
       - name: Start the runtime in 200 fresh WebKit pages
         if: runner.os == 'Linux'
         run: node bench/carmack/webkit-stress.mjs --runtime carmack-runtime --pages 200
+      - name: The break page recovers from a trap at session creation
+        if: runner.os == 'Linux'
+        run: node scripts/test-break-recovery.mjs --runtime carmack-runtime --browsers webkit,chromium
       - uses: actions/upload-artifact@v7
         if: always()
         with:
