@@ -1940,6 +1940,11 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
+    /// For each of `rules`, its guard's route (`Expr::route_terms`) up to
+    /// the first term whose name a state answers, compiled at load so that
+    /// an event skips another member's routed copies without evaluating
+    /// their guards.
+    rule_routes: Arc<Vec<Vec<(String, f64)>>>,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
@@ -2209,6 +2214,7 @@ impl ReactiveSession {
             events: Arc::new(BTreeMap::new()),
             rules: Arc::new(Vec::new()),
             rules_by_event: Arc::default(),
+            rule_routes: Arc::default(),
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
@@ -2749,6 +2755,21 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        let rule_routes = session
+            .rules
+            .iter()
+            .map(|rule| {
+                rule.condition
+                    .route_terms()
+                    .into_iter()
+                    .take_while(|(name, _)| {
+                        // A state answers its name before a parameter does.
+                        !session.states.contains_key(name) && name != reactive_expr::ELAPSED_READ
+                    })
+                    .collect()
+            })
+            .collect();
+        session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
             last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
             edges: session.graph.edges.len(),
@@ -4843,6 +4864,7 @@ impl ReactiveSession {
             }
             self.apply_due_qualifications()?;
         }
+        let payload = parameters;
         let lineage: BTreeMap<_, _> = parameters
             .iter()
             .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
@@ -4857,8 +4879,27 @@ impl ReactiveSession {
         };
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
+        let routes = Arc::clone(&self.rule_routes);
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
+            if routed_elsewhere(&routes[index], payload) {
+                #[cfg(debug_assertions)]
+                {
+                    let guard = self.evaluate(&rule.condition, &parameters);
+                    assert!(
+                        matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
+                        "routed-elsewhere rule {index} evaluated to {guard:?}"
+                    );
+                }
+                // What `execute_guarded_effect` does with a guard that is
+                // false and rests on nothing: the parameters are plain.
+                let result = budget.spend().and_then(|()| {
+                    self.retain_skipped_effect(&rule.effect, &Provenance::default(), &mut budget)
+                });
+                result
+                    .map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
+                continue;
+            }
             let result = self.execute_guarded_effect(
                 &rule.condition,
                 &rule.effect,
@@ -10221,4 +10262,19 @@ impl ObservationRanks<'_> {
         }
         .unwrap_or(usize::MAX)
     }
+}
+
+/// Whether a rule's route, read against an event's plain parameters, finds a
+/// term false before any term it cannot read: the guard is then false and
+/// rests on nothing. A parameter the payload lacks ends the route unread, so
+/// the guard is evaluated as written.
+fn routed_elsewhere(route: &[(String, f64)], parameters: &BTreeMap<String, f64>) -> bool {
+    for (name, value) in route {
+        match parameters.get(name) {
+            Some(actual) if actual == value => {}
+            Some(_) => return true,
+            None => return false,
+        }
+    }
+    false
 }
