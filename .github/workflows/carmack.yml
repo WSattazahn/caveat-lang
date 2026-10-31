@@ -53,6 +53,13 @@ jobs:
           name: carmack-runtime
           path: dist/pkg-reactive
           retention-days: 7
+      # Times are reported, never gated; a case that ends other than accepted
+      # or with its documented refusal fails the job.
+      - name: Stress cases end accepted or with their documented refusal
+        run: node bench/carmack/stress.mjs --runtime dist/pkg-reactive
+      - name: Stress summary
+        if: always()
+        run: cat test-results/carmack/stress.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
   replay:
     name: replay / ${{ matrix.os }}
