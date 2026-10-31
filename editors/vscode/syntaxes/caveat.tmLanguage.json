@@ -1165,6 +1165,10 @@
         },
         {
           "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])work[ \\t]+skips[ \\t]+other[ \\t]+routes(?=[ \\t]*;)"
+        },
+        {
+          "name": "keyword.other.caveat",
           "match": "(?<![.\\w$])changed\\b(?=[ \\t]+[A-Za-z_]\\w*[ \\t]*(?:[,;]|supporting\\b|opposing\\b))"
         }
       ]
