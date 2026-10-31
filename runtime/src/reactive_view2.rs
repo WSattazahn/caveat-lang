@@ -231,7 +231,7 @@ impl ReactiveSession {
             cues: &self.cues,
             effects: &self.effects,
             commitments: self
-                .commitment_records(&names)
+                .commitment_records(|id| names.get(id).copied())
                 .into_iter()
                 .map(ViewCommitment::from)
                 .collect(),
@@ -306,7 +306,7 @@ impl ReactiveSession {
                 })
                 .collect(),
             commitments: self
-                .commitment_records(&names)
+                .commitment_records(|id| names.get(id).copied())
                 .into_iter()
                 .map(|commitment| (commitment.action.clone(), ViewCommitment::from(commitment)))
                 .collect(),

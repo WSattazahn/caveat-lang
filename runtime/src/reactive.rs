@@ -78,6 +78,13 @@ pub use view2::{
     ViewDeltaBase, REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
 };
 
+#[path = "reactive_view_patch.rs"]
+mod view_patch;
+pub use view_patch::{
+    DispatchViewPatchOutcome, DispatchViewPatchResult, Entry, Item, MapChange, MemberChange,
+    ViewPatch, ViewPatchBase, REACTIVE_VIEW_PATCH_SCHEMA,
+};
+
 #[path = "reactive_collector.rs"]
 mod collector;
 #[path = "reactive_departure.rs"]
@@ -1933,6 +1940,11 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
+    /// For each of `rules`, its guard's route (`Expr::route_terms`) up to
+    /// the first term whose name a state answers, compiled at load so that
+    /// an event skips another member's routed copies without evaluating
+    /// their guards.
+    rule_routes: Arc<Vec<Vec<(String, f64)>>>,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
@@ -2202,6 +2214,7 @@ impl ReactiveSession {
             events: Arc::new(BTreeMap::new()),
             rules: Arc::new(Vec::new()),
             rules_by_event: Arc::default(),
+            rule_routes: Arc::default(),
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
@@ -2742,6 +2755,21 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        let rule_routes = session
+            .rules
+            .iter()
+            .map(|rule| {
+                rule.condition
+                    .route_terms()
+                    .into_iter()
+                    .take_while(|(name, _)| {
+                        // A state answers its name before a parameter does.
+                        !session.states.contains_key(name) && name != reactive_expr::ELAPSED_READ
+                    })
+                    .collect()
+            })
+            .collect();
+        session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
             last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
             edges: session.graph.edges.len(),
@@ -4836,6 +4864,7 @@ impl ReactiveSession {
             }
             self.apply_due_qualifications()?;
         }
+        let payload = parameters;
         let lineage: BTreeMap<_, _> = parameters
             .iter()
             .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
@@ -4850,8 +4879,27 @@ impl ReactiveSession {
         };
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
+        let routes = Arc::clone(&self.rule_routes);
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
+            if routed_elsewhere(&routes[index], payload) {
+                #[cfg(debug_assertions)]
+                {
+                    let guard = self.evaluate(&rule.condition, &parameters);
+                    assert!(
+                        matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
+                        "routed-elsewhere rule {index} evaluated to {guard:?}"
+                    );
+                }
+                // What `execute_guarded_effect` does with a guard that is
+                // false and rests on nothing: the parameters are plain.
+                let result = budget.spend().and_then(|()| {
+                    self.retain_skipped_effect(&rule.effect, &Provenance::default(), &mut budget)
+                });
+                result
+                    .map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
+                continue;
+            }
             let result = self.execute_guarded_effect(
                 &rule.condition,
                 &rule.effect,
@@ -4931,7 +4979,7 @@ impl ReactiveSession {
             binding_explanations: &self.binding_explanations,
             cues: &self.cues,
             effects: &self.effects,
-            commitments: self.commitment_records(&names),
+            commitments: self.commitment_records(|id| names.get(id).copied()),
             commitment_grounds: &self.commitment_grounds,
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
@@ -4960,7 +5008,8 @@ impl ReactiveSession {
                 .then_some(&self.binding_explanations),
             cues: pick("cues").then_some(self.cues.as_slice()),
             effects: pick("effects").then_some(self.effects.as_slice()),
-            commitments: pick("commitments").then(|| self.commitment_records(&names)),
+            commitments: pick("commitments")
+                .then(|| self.commitment_records(|id| names.get(id).copied())),
             commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
             decision_series: pick("decision_series").then_some(&self.decision_series),
             decision_journal: pick("decision_journal").then_some(&self.journal),
@@ -4968,36 +5017,63 @@ impl ReactiveSession {
         }
     }
 
-    fn commitment_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapCommitment> {
-        let mut sorted = self.symbols.iter().collect::<Vec<_>>();
-        sorted.sort_by_key(|(name, _)| *name);
-        sorted
-            .into_iter()
+    /// The commitments by name, each with what it retains and what reopened
+    /// it in edge order. `name_of` names a node; a retained caveat or a
+    /// reopening cause it cannot name is a broken graph.
+    fn commitment_records<'n>(
+        &self,
+        name_of: impl Fn(&NodeId) -> Option<&'n str>,
+    ) -> Vec<MapCommitment> {
+        let mut commitments = self
+            .symbols
+            .iter()
             .filter_map(|(name, id)| match &self.graph.nodes[id] {
-                NodeKind::Commitment { open, .. } => Some(MapCommitment {
-                    action: name.clone(),
-                    open: *open,
-                    retained_authorship: crate::map::retained_authorship(
-                        &self.graph,
-                        *id,
-                        |node| names.get(&node).map(|name| (*name).to_string()),
-                    ),
-                    retained: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.from == *id && edge.relation == Relation::Retains)
-                        .map(|edge| names[&edge.to].to_string())
-                        .collect(),
-                    reopened_by: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
-                        .map(|edge| names[&edge.from].to_string())
-                        .collect(),
-                }),
+                NodeKind::Commitment { open, .. } => Some((name, *id, *open)),
                 _ => None,
+            })
+            .collect::<Vec<_>>();
+        if commitments.is_empty() {
+            return Vec::new();
+        }
+        commitments.sort_by_key(|(name, _, _)| *name);
+        // Each commitment's retained caveats and reopening causes, in one
+        // pass over the edges.
+        let mut links = commitments
+            .iter()
+            .map(|(_, id, _)| (*id, (Vec::new(), Vec::new())))
+            .collect::<HashMap<NodeId, (Vec<NodeId>, Vec<NodeId>)>>();
+        for edge in &self.graph.edges {
+            match edge.relation {
+                Relation::Retains => {
+                    if let Some((retained, _)) = links.get_mut(&edge.from) {
+                        retained.push(edge.to);
+                    }
+                }
+                Relation::Reopens => {
+                    if let Some((_, reopened_by)) = links.get_mut(&edge.to) {
+                        reopened_by.push(edge.from);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let named = |id: &NodeId| name_of(id).expect("a named node").to_string();
+        commitments
+            .into_iter()
+            .map(|(name, id, open)| {
+                let (retained, reopened_by) = &links[&id];
+                MapCommitment {
+                    action: name.clone(),
+                    open,
+                    retained_authorship: crate::map::retained_authorship_of(
+                        &self.graph,
+                        id,
+                        retained,
+                        |node| name_of(&node).map(str::to_string),
+                    ),
+                    retained: retained.iter().map(named).collect(),
+                    reopened_by: reopened_by.iter().map(named).collect(),
+                }
             })
             .collect()
     }
@@ -10186,4 +10262,19 @@ impl ObservationRanks<'_> {
         }
         .unwrap_or(usize::MAX)
     }
+}
+
+/// Whether a rule's route, read against an event's plain parameters, finds a
+/// term false before any term it cannot read: the guard is then false and
+/// rests on nothing. A parameter the payload lacks ends the route unread, so
+/// the guard is evaluated as written.
+fn routed_elsewhere(route: &[(String, f64)], parameters: &BTreeMap<String, f64>) -> bool {
+    for (name, value) in route {
+        match parameters.get(name) {
+            Some(actual) if actual == value => {}
+            Some(_) => return true,
+            None => return false,
+        }
+    }
+    false
 }
