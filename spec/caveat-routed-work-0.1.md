@@ -7,8 +7,8 @@
 [Reactive 0.7](caveat-reactive-0.7.md) bounds each dispatched event at 4,096
 steps of work. It counts every top-level rule on the event, whatever its guard
 finds. A [routed block](caveat-routed-repetition-0.1.md) over N members gives
-each of its rules N copies on the same event, and at most one of them can
-run. One routed rule over 4,200 members is therefore refused with
+each of its routed rules N copies on the same event, and at most one of them
+can run. One routed rule over 4,200 members is therefore refused with
 `limit/work_limit`, though 4,199 of its copies could never run. A plain block
 with the selection written by hand, as in
 `on retract when report == report.$r …`, is refused the same way. In the third
@@ -43,10 +43,9 @@ These do not load:
 | the statement twice | `work skips other routes is declared more than once` |
 | the statement in a module of a draft 0.5 bundle ([Caveat 0.5](caveat-0.5-draft.md)) | ``module M declares `work skips other routes;`; how an event's work is counted is the program's to say, not a module's`` |
 
-An event has one work budget across the whole program, as it has one
-attention budget, so the program declares how it is counted, and the
-declaration covers the rules its modules contribute. A module may still use
-the four words as names.
+An event's work is counted across the whole program, so the program declares
+how, as it declares its attention budget, and the declaration covers the
+rules its modules contribute. A module may still use the four words as names.
 
 ## Routes
 
@@ -55,12 +54,14 @@ that have the form `NAME == VALUE`, joined by `and`, however parenthesized.
 The run ends at the first term of any other form. In each term:
 
 - `NAME` is a parameter of the rule's event.
-- `VALUE` is a number literal, signed or not; a
-  [threshold](caveat-thresholds-0.1.md); or a name the program fixes when it
-  loads: a typed parameter's member such as `report.r5`
+- `VALUE` is a number literal or a [threshold](caveat-thresholds-0.1.md),
+  under any number of `+` and `-` signs, such as `2`, `-1` or `-margin`; or,
+  with no sign, a name the program fixes when it loads: a typed parameter's
+  member such as `report.r5`
   ([Typed Parameters 0.1](caveat-typed-parameters-0.1.md)), or a source
   coordinate such as `reef.x` ([Reactive 0.1](caveat-reactive-0.1.md)). A name
-  that a state or a parameter of the event answers is not such a value.
+  that a state or a parameter of the event answers is not such a value, and
+  neither is a signed name such as `-reef.x`.
 
 Routes are read after `define`s are expanded, so a define written in a guard
 reads as the expression it names. A function call is a term of another form,
@@ -108,17 +109,19 @@ before 1.5 refuses the declaration as a statement it cannot parse, so no
 program that loads in 1.4 has it.
 
 Adding the declaration to a program changes its source's identity, which is
-its SHA-256 and the archive references made under it, and the events that the
-program without it refuses with `work_limit`. Every other event has the same
-outcome, state, view and save, apart from that identity. An event the program
-without the declaration refuses with `work_limit` may, with it, be accepted;
-or be refused by what the exhausted budget used to stop short of, such as a
-later rule, a later step of a procedure or a binding after the rules, with
-that refusal's own origin and code; or be refused with `work_limit` later in
-the event.
+its `source_id`, its SHA-256 and the archive references made under them, and
+the events that the program without it refuses with `work_limit`. From the
+same state, every other event has the same outcome, state, view and save,
+apart from that identity. An event the program without the declaration
+refuses with `work_limit` may, with it, be accepted; or be refused by what the
+exhausted budget used to stop short of, such as a later rule, a later step of
+a procedure or a binding after the rules, with that refusal's own origin and
+code; or be refused with `work_limit` later in the event. Once one event's
+outcome differs, the two sessions' states may differ, and so may the outcomes
+of the events after it.
 
-A save binds its source's SHA-256, so a save made without the declaration
-does not restore onto a source that adds it
+A save binds the exact source it was made under, so a save made without the
+declaration does not restore onto a source that adds it
 ([COMPATIBILITY.md](../docs/COMPATIBILITY.md#saves-archives-and-source)).
 
 ## Time
@@ -158,9 +161,10 @@ steps ([Reactive 0.7](caveat-reactive-0.7.md)).
 
 ## Corpus sweep
 
-None of the 187 tracked programs declares the statement. With the runtime of
-this profile, every one of them gives the same output as on main, for the
-2,393,600 dispatches of `runtime/examples/outcome_sweep.rs` and the 2,751,335
-lines of `runtime/examples/caveat_sweep.rs`. With rules routed elsewhere
-counted as free in every program, as if each declared the statement, the
-output was the same as well: none of their events reaches the limit.
+The repository tracks 218 `.cav` files, and 187 of them load as reactive
+programs. None declares the statement. Against main at 4491c16, the runtime
+of this profile gives every one of them the same output: the 2,393,600
+dispatches of `runtime/examples/outcome_sweep.rs` and the 2,751,335 lines of
+`runtime/examples/caveat_sweep.rs`. With rules routed elsewhere counted as
+free in every program, as if each declared the statement, the output was the
+same as well: none of their events reaches the limit.

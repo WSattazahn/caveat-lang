@@ -50,9 +50,14 @@ outside itself.
   corrupting host memory.
 - **Resource exhaustion.** Each event and each procedure is bounded by a work
   limit (`MAX_EVENT_STEPS`, `MAX_PROCEDURE_STEPS` in
-  [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it;
-  from 1.4.0 an expression whose lineage or evaluation would outgrow its
-  caps is refused as `limit/provenance_limit` or `limit/evaluation_limit`
+  [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it.
+  A program that declares `work skips other routes;`
+  ([Routed Work 0.1](../spec/caveat-routed-work-0.1.md), a 1.5 draft) does
+  not count the rules an event's payload routes elsewhere; their cost is
+  bounded by the program's size instead: the rules on the event and, in a
+  program with a window, the procedures they call. From 1.4.0 an expression
+  whose lineage or evaluation would outgrow its caps is refused as
+  `limit/provenance_limit` or `limit/evaluation_limit`
   instead of ending the session, and from 1.4.1 a text value past 65,536
   bytes as `limit/text_limit`;
   streams and decision series have declared limits. Memory
