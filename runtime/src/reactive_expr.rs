@@ -1096,6 +1096,15 @@ pub struct Reads {
     pub graph_unnamed: bool,
 }
 
+/// What a route term compares its name with: a number in the source, or a
+/// name, which the host reads at load if it names a fixed value. See
+/// [`Expr::route_terms`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum RouteValue {
+    Number(f64),
+    Name(String),
+}
+
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
@@ -1844,25 +1853,30 @@ impl Expr {
         }
     }
 
-    /// Every threshold the expression names, with its value, whichever
-    /// branch an evaluation takes.
-    /// The route of a guard: the `NAME == NUMBER` terms its `and` chain
+    /// The route of a guard: the `NAME == VALUE` terms its `and` chain
     /// evaluates first, in evaluation order, up to the first term of any
-    /// other shape. A routed copy's guard starts with them
-    /// (spec/caveat-routed-repetition-0.1.md). When a term's name reads a
-    /// plain number unequal to its number, the guard is false with no
-    /// dependency, exactly as evaluating it would find.
-    pub fn route_terms(&self) -> Vec<(String, f64)> {
-        fn walk(expr: &Expr, out: &mut Vec<(String, f64)>) -> bool {
+    /// other shape, where VALUE is a number literal, signed or not, a
+    /// threshold, or a name. A routed copy's guard starts with them
+    /// (spec/caveat-routed-repetition-0.1.md). The host decides which names
+    /// it can read at load; a term whose name reads a plain number unequal to
+    /// its value makes the guard false with no dependency, exactly as
+    /// evaluating it would find (spec/caveat-routed-work-0.1.md).
+    pub fn route_terms(&self) -> Vec<(String, RouteValue)> {
+        fn walk(expr: &Expr, out: &mut Vec<(String, RouteValue)>) -> bool {
             match &expr.node {
                 Node::Binary(Binary::And, left, right) => walk(left, out) && walk(right, out),
-                Node::Binary(Binary::Equal, left, right) => match (&left.node, &right.node) {
-                    (Node::Variable(name), Node::Number(value)) => {
-                        out.push((name.clone(), value.value()));
-                        true
-                    }
-                    _ => false,
-                },
+                Node::Binary(Binary::Equal, left, right) => {
+                    let Node::Variable(name) = &left.node else {
+                        return false;
+                    };
+                    let value = match (right.literal_number(), &right.node) {
+                        (Some(number), _) => RouteValue::Number(number),
+                        (None, Node::Variable(value)) => RouteValue::Name(value.clone()),
+                        _ => return false,
+                    };
+                    out.push((name.clone(), value));
+                    true
+                }
                 _ => false,
             }
         }
@@ -1871,6 +1885,8 @@ impl Expr {
         out
     }
 
+    /// Every threshold the expression names, with its value, whichever
+    /// branch an evaluation takes.
     pub fn collect_thresholds(&self, thresholds: &mut BTreeMap<String, f64>) {
         if let Node::Threshold(name, number) = &self.node {
             thresholds.insert(name.clone(), number.value());

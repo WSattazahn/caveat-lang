@@ -193,6 +193,12 @@ reached, as with the hand-written `target == $index and …` today. It is also
 the place and the form the ledger's hand-written selections have, so a
 converted block expands to the same text (section 5).
 
+In a program that declares `work skips other routes;`
+([Routed Work 0.1](caveat-routed-work-0.1.md), a 1.5 draft), the copy for any
+other member also counts no work against the event's 4,096 steps: its guard
+starts with a route the payload makes false. A hand-written selection in the
+same place and form has the same route.
+
 The parentheses keep the guard one operand. `and` binds tighter than `or`, so
 `P == N and A or B` would mean `(P == N and A) or B`, and B alone would run
 the rule for every member. `not`, comparisons and arithmetic bind tighter than

@@ -686,6 +686,8 @@ pub enum Directive {
     Identifiers {
         limit: usize,
     },
+    /// `work skips other routes;` See spec/caveat-routed-work-0.1.md.
+    RoutedWork,
     /// `agent NAME [sends EVENT, …];` See spec/caveat-agents-0.1.md.
     Agent {
         name: String,
@@ -1940,11 +1942,15 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
-    /// For each of `rules`, its guard's route (`Expr::route_terms`) up to
-    /// the first term whose name a state answers, compiled at load so that
-    /// an event skips another member's routed copies without evaluating
-    /// their guards.
+    /// For each of `rules`, its route (spec/caveat-routed-work-0.1.md):
+    /// the terms of its guard's route (`Expr::route_terms`) that compare one
+    /// of its event's parameters with a value fixed at load, compiled so that
+    /// an event skips the rules its payload routes elsewhere without
+    /// evaluating their guards.
     rule_routes: Arc<Vec<Vec<(String, f64)>>>,
+    /// `work skips other routes;`: a rule the payload routes elsewhere counts
+    /// no work. See spec/caveat-routed-work-0.1.md.
+    routed_work: bool,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
@@ -2215,6 +2221,7 @@ impl ReactiveSession {
             rules: Arc::new(Vec::new()),
             rules_by_event: Arc::default(),
             rule_routes: Arc::default(),
+            routed_work: false,
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
@@ -2410,6 +2417,12 @@ impl ReactiveSession {
                             .or_default()
                             .insert(name.clone());
                     }
+                }
+                Directive::RoutedWork => {
+                    if session.routed_work {
+                        return Err("work skips other routes is declared more than once".into());
+                    }
+                    session.routed_work = true;
                 }
                 Directive::JournalWindow { limit } => {
                     if session.journal_window.is_some() {
@@ -2758,16 +2771,7 @@ impl ReactiveSession {
         let rule_routes = session
             .rules
             .iter()
-            .map(|rule| {
-                rule.condition
-                    .route_terms()
-                    .into_iter()
-                    .take_while(|(name, _)| {
-                        // A state answers its name before a parameter does.
-                        !session.states.contains_key(name) && name != reactive_expr::ELAPSED_READ
-                    })
-                    .collect()
-            })
+            .map(|rule| session.compile_route(rule))
             .collect();
         session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
@@ -4310,6 +4314,64 @@ impl ReactiveSession {
         Err(format!("unknown history {name}").into())
     }
 
+    /// A rule's route (spec/caveat-routed-work-0.1.md): the leading terms of
+    /// its guard's route whose name is a parameter of the rule's event,
+    /// which no state shadows, compared with a number or a constant, which no
+    /// state or parameter of the event shadows. The route ends at the first
+    /// other term. Every name here reads a plain value, so a term the payload
+    /// makes false makes the guard false with no dependency.
+    fn compile_route(&self, rule: &Rule) -> Vec<(String, f64)> {
+        let Some(parameters) = self.events.get(&rule.event) else {
+            return Vec::new();
+        };
+        let parameter = |name: &str| parameters.iter().any(|parameter| parameter.name == name);
+        rule.condition
+            .route_terms()
+            .into_iter()
+            .map_while(|(name, value)| {
+                if self.states.contains_key(&name) || !parameter(&name) {
+                    return None;
+                }
+                let value = match value {
+                    reactive_expr::RouteValue::Number(value) => value,
+                    reactive_expr::RouteValue::Name(constant) => {
+                        if self.states.contains_key(&constant) || parameter(&constant) {
+                            return None;
+                        }
+                        *self.constants.get(&constant)?
+                    }
+                };
+                Some((name, value))
+            })
+            .collect()
+    }
+
+    /// What `retain_skipped_effect` does for a guard that rests on nothing,
+    /// without counting work: under `work skips other routes;`, a rule the
+    /// payload routes elsewhere costs no step (spec/caveat-routed-work-0.1.md). Only a windowed program's collector
+    /// reads a skipped effect, and through a call, each step of its
+    /// procedure; otherwise nothing is kept. A program whose calls nest too
+    /// deeply does not load, so the depth guard can only hold here.
+    fn retain_routed_elsewhere(
+        &mut self,
+        effect: &Effect,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
+        if !self.windowed() {
+            return Ok(());
+        }
+        self.collector_effect(effect);
+        if let Effect::Call { name, .. } = effect {
+            budget.enter()?;
+            let procedures = Arc::clone(&self.procedures);
+            for step in &procedures[name].body {
+                self.retain_routed_elsewhere(&step.effect, budget)?;
+            }
+            budget.depth -= 1;
+        }
+        Ok(())
+    }
+
     fn retain_skipped_effect(
         &mut self,
         effect: &Effect,
@@ -4892,10 +4954,20 @@ impl ReactiveSession {
                     );
                 }
                 // What `execute_guarded_effect` does with a guard that is
-                // false and rests on nothing: the parameters are plain.
-                let result = budget.spend().and_then(|()| {
-                    self.retain_skipped_effect(&rule.effect, &Provenance::default(), &mut budget)
-                });
+                // false and rests on nothing: the parameters are plain. With
+                // `work skips other routes;` it counts no work
+                // (spec/caveat-routed-work-0.1.md).
+                let result = if self.routed_work {
+                    self.retain_routed_elsewhere(&rule.effect, &mut budget)
+                } else {
+                    budget.spend().and_then(|()| {
+                        self.retain_skipped_effect(
+                            &rule.effect,
+                            &Provenance::default(),
+                            &mut budget,
+                        )
+                    })
+                };
                 result
                     .map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
                 continue;
@@ -8809,6 +8881,11 @@ pub(crate) fn parse_directive_at(
     position: crate::parser::Position,
 ) -> Option<Result<Directive, String>> {
     let words = syntax_words(line);
+    // spec/caveat-routed-work-0.1.md: only this exact statement, so a relation
+    // about evidence named `work` still reads as one.
+    if matches!(words.as_slice(), ["work", "skips", "other", "routes"]) {
+        return Some(Ok(Directive::RoutedWork));
+    }
     let keyword = words.first().copied()?;
     if !matches!(
         keyword,

@@ -75,7 +75,8 @@ evaluated guard's dependencies using the existing skipped-effect rules. A
 skipped nested call therefore cannot erase the reason a value, observation,
 examination, or history selection was left unchanged. This traversal creates
 no observations, spends no attention, and emits no cues. It still consumes
-bounded interpreter work.
+bounded interpreter work, except under a top-level rule that [Routed Work
+0.1](caveat-routed-work-0.1.md) counts as free.
 
 For a false guard inside an accepted call, the inherited call basis includes
 the already-evaluated arguments. Skipping that step retains this basis along
@@ -110,7 +111,10 @@ Load-time validation rejects cycles and excessive expanded body work, even in
 unused procedures. Event work counts matching top-level rules, call steps,
 leaf effects, and skipped descendant traversal together. Repeated calls each
 consume work; a work-limit failure is atomic. Existing expression and history
-limits also apply.
+limits also apply. In a program that declares `work skips other routes;`, a
+top-level rule whose route the payload makes false, such as another member's
+copy of a routed rule, counts no work, and neither does the skipped traversal
+under it ([Routed Work 0.1](caveat-routed-work-0.1.md), 1.5 draft).
 
 Braces group procedure bodies; quoted braces, semicolons, and comment markers
 remain literal text. Comments and Unicode source positions retain the
