@@ -1,6 +1,7 @@
 pub mod action_runtime;
 pub mod ast;
 pub mod caveat_rs;
+pub mod chunked;
 pub mod eval;
 pub mod game_session;
 pub mod graphics;

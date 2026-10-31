@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
-// caveat explain [--runtime <dir>] [--json] [--later-caveats] <program.cav> [<events.jsonl>]
+// caveat explain [--runtime <dir>] [--json] [--later-caveats] [--lineage-notes] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
 // caveat review [--runtime <dir>] [--json] [--summary] --all <directory>
@@ -35,8 +35,8 @@ const USAGE = `CAVEAT Language — Programs that remember why.
 
 Usage:
   caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
-  caveat-lang explain [--runtime <dir>] [--json] [--later-caveats] <program.cav>
-                      [<events.jsonl>]
+  caveat-lang explain [--runtime <dir>] [--json] [--later-caveats] [--lineage-notes]
+                      <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
   caveat-lang review [--runtime <dir>] [--json] [--summary] --all <directory>
@@ -71,6 +71,8 @@ With --later-caveats it also lists current caveat names on grounds absent
 from that revision's frozen grounds and retained caveats. This is not every
 qualification: names already recorded elsewhere in the revision, take-backs,
 withdrawals and departed grounds are omitted.
+With --lineage-notes, evidence a decision could have been influenced by only
+because the revision before it rested on it is marked "(D@1 rested on it)".
   Exit status: 0 explained, 1 an event failed fatally (the explanation is of
   the session before it), 2 the program or events file could not be used.
 
@@ -186,6 +188,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
                    withdraw that nothing guards or reopens
   --later-caveats  (explain) show live caveat names on grounds absent from
                    each decision's frozen grounds and retained caveats
+  --lineage-notes  (explain) mark lineage evidence that came with the
+                   revision before
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -209,13 +213,13 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime', '--later-caveats'];
+const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime', '--withdrawals', '--later-caveats', '--lineage-notes'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
     '--all': command === 'review', '--summary': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
     '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
-    '--later-caveats': command === 'explain',
+    '--withdrawals': command === 'check', '--later-caveats': command === 'explain', '--lineage-notes': command === 'explain',
   })[option];
 }
 
@@ -241,7 +245,7 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, lineageNotes: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
@@ -253,6 +257,7 @@ function parseArguments(argv) {
     else if (argument === '--records' && command === 'check') options.records = true;
     else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
     else if (argument === '--later-caveats' && command === 'explain') options.laterCaveats = true;
+    else if (argument === '--lineage-notes' && command === 'explain') options.lineageNotes = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
       if (!options.save) return { error: '--save needs a save file' };
@@ -350,7 +355,7 @@ async function explainProgram(options) {
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
   const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
-  const result = explain(snapshot, sent, { archive, laterCaveats: options.laterCaveats });
+  const result = explain(snapshot, sent, { archive, laterCaveats: options.laterCaveats, lineageNotes: options.lineageNotes });
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
     console.log(formatExplanation(result, path.basename(program)));

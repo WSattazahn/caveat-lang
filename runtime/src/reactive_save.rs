@@ -715,7 +715,7 @@ impl ReactiveSession {
                 .iter()
                 .map(|(kind, targets)| (kind.clone(), compact_map(targets)))
                 .collect(),
-            decision_journal: (*self.journal).clone(),
+            decision_journal: self.journal.to_vec(),
             retired: (*self.retired).clone(),
             journal_departed: self.journal_departed as u64,
             resources: self.resources.as_ref().map(|ledger| SavedResources {
@@ -3007,7 +3007,7 @@ impl ReactiveSession {
                 .map(|(kind, targets)| (kind.clone(), full_map(targets)))
                 .collect(),
         );
-        self.journal = Arc::new(save.decision_journal.clone());
+        self.journal = save.decision_journal.clone().into();
         self.restore_evidence_order(save)?;
         self.effects = save.effects.clone();
         self.cues = cues;
