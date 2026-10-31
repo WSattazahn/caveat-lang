@@ -15,7 +15,11 @@ const out = path.resolve(arg('out') ?? path.join(ROOT, 'test-results', 'carmack'
 const profile = JSON.parse(readFileSync(path.resolve(arg('profile') ?? path.join(out, 'profile.json')), 'utf8'));
 const target = JSON.parse(readFileSync(path.join(ROOT, 'bench', 'carmack', 'target.json'), 'utf8'));
 
-const measured = profile.workloads[target.workload]?.wasm?.event_median_us;
+// The whole view reused since 2026-10-31 (the owner's choice); before that,
+// the whole view built fresh, which is still reported beside it.
+const wasm = profile.workloads[target.workload]?.wasm;
+const measured = target.view === 'reused' ? wasm?.reused_event_median_us : wasm?.event_median_us;
+const fresh = wasm?.event_median_us;
 if (typeof measured !== 'number') throw new Error(`profile.json has no ${target.workload} WebAssembly median`);
 if (target.target_us === null) {
   // No target is set yet: report the number alone.
@@ -31,7 +35,9 @@ const factor = measured / target.target_us;
 const line = met
   ? `Met: ${measured} µs per event against the target of ${target.target_us} µs.`
   : `Not met: ${measured} µs per event, ${factor.toFixed(1)}x the target of ${target.target_us} µs, with ${days} day(s) to ${target.deadline}.`;
-const result = { schema: 'caveat-carmack-target/1', workload: target.workload, measure: target.measure, measured_us: measured, target_us: target.target_us, deadline: target.deadline, met, factor: Number(factor.toFixed(2)), host: profile.host };
+const result = { schema: 'caveat-carmack-target/1', workload: target.workload, measure: target.measure, measured_us: measured, fresh_view_us: fresh ?? null, target_us: target.target_us, deadline: target.deadline, met, factor: Number(factor.toFixed(2)), host: profile.host };
 writeFileSync(path.join(out, 'target.json'), `${JSON.stringify(result, null, 2)}\n`);
-writeFileSync(path.join(out, 'target.md'), `# Speed target\n\n${target.measure}\n\n${line}\n`);
+const freshLine = target.view === 'reused' && typeof fresh === 'number' ? `With the whole view built fresh: ${fresh} µs per event.` : '';
+writeFileSync(path.join(out, 'target.md'), `# Speed target\n\n${target.measure}\n\n${line}\n${freshLine ? `\n${freshLine}\n` : ''}`);
 console.log(line);
+if (freshLine) console.log(freshLine);

@@ -1,7 +1,9 @@
 {
   "workload": "release-gate",
-  "measure": "Median time per event for the release-gate workload in WebAssembly, dispatch with the whole view, on CI's Ubuntu runner.",
+  "measure": "Median time per event for the release-gate workload in WebAssembly, dispatch with the whole view reused (dispatchView with reuse, spec/caveat-view-patch-0.1.md), on CI's Ubuntu runner.",
+  "view": "reused",
   "target_us": 11,
   "deadline": "2027-04-30",
-  "set": "2026-10-25"
+  "set": "2026-10-25",
+  "measure_changed": "2026-10-31"
 }
