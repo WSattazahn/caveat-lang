@@ -1826,6 +1826,31 @@ impl Expr {
 
     /// Every threshold the expression names, with its value, whichever
     /// branch an evaluation takes.
+    /// The route of a guard: the `NAME == NUMBER` terms its `and` chain
+    /// evaluates first, in evaluation order, up to the first term of any
+    /// other shape. A routed copy's guard starts with them
+    /// (spec/caveat-routed-repetition-0.1.md). When a term's name reads a
+    /// plain number unequal to its number, the guard is false with no
+    /// dependency, exactly as evaluating it would find.
+    pub fn route_terms(&self) -> Vec<(String, f64)> {
+        fn walk(expr: &Expr, out: &mut Vec<(String, f64)>) -> bool {
+            match &expr.node {
+                Node::Binary(Binary::And, left, right) => walk(left, out) && walk(right, out),
+                Node::Binary(Binary::Equal, left, right) => match (&left.node, &right.node) {
+                    (Node::Variable(name), Node::Number(value)) => {
+                        out.push((name.clone(), value.value()));
+                        true
+                    }
+                    _ => false,
+                },
+                _ => false,
+            }
+        }
+        let mut out = Vec::new();
+        walk(self, &mut out);
+        out
+    }
+
     pub fn collect_thresholds(&self, thresholds: &mut BTreeMap<String, f64>) {
         if let Node::Threshold(name, number) = &self.node {
             thresholds.insert(name.clone(), number.value());
