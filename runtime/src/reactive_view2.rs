@@ -7,15 +7,19 @@
 //! and after one accepted event, so applying it gives exactly the next view.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ReactiveSession, TakeBack,
-    DISPATCH_SCHEMA,
+    relation_name, BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ObservationRanks,
+    ReactiveSession, TakeBack, DISPATCH_SCHEMA,
 };
+use crate::chunked::Chunked;
 use crate::fast_hash::HashMap;
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
-use crate::reactive_expr::{departure_markers, Marker, Name, NameSet};
+use crate::reactive_expr::{departure_markers, Marker, Name, NameSet, Provenance};
+use crate::{Edge, EpistemicGraph, NodeId};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
+use std::cell::OnceCell;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub const REACTIVE_VIEW_V2_SCHEMA: &str = "caveat-reactive-view/0.2";
 pub const REACTIVE_VIEW_DELTA_SCHEMA: &str = "caveat-reactive-view-delta/0.2";
@@ -78,6 +82,30 @@ pub struct OrderedGrounds<'a> {
     pub inherited: &'a NameSet,
     #[serde(skip_serializing_if = "no_names")]
     pub kept: &'a NameSet,
+}
+
+impl<'a> OrderedGrounds<'a> {
+    fn new(evidence: Vec<&'a str>, provenance: &'a Provenance) -> Self {
+        Self {
+            evidence,
+            caveats: &provenance.caveats,
+            departed: &provenance.departed,
+            inherited: &provenance.inherited,
+            kept: &provenance.kept,
+        }
+    }
+}
+
+/// An explanation's evidence in first-observed order as of now: observed
+/// names by where they were first observed, then any never observed, by name.
+fn ranked<'a>(ranks: &ObservationRanks<'_>, explanation: &'a Provenance) -> Vec<&'a Name> {
+    let mut evidence = explanation
+        .evidence
+        .iter()
+        .map(|name| (ranks.rank(name), name))
+        .collect::<Vec<_>>();
+    evidence.sort_unstable();
+    evidence.into_iter().map(|(_, name)| name).collect()
 }
 
 fn no_markers(markers: &&BTreeMap<String, Marker>) -> bool {
@@ -193,11 +221,7 @@ pub struct ListChanges {
 impl ReactiveSession {
     /// The per-event view in schema 0.2. See spec/caveat-view-0.2.md.
     pub fn view_v2(&self) -> ReactiveViewV2<'_> {
-        let names = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.as_str()))
-            .collect::<HashMap<_, _>>();
+        let names = self.node_names();
         ReactiveViewV2 {
             schema: REACTIVE_VIEW_V2_SCHEMA,
             sequence: self.sequence,
@@ -218,13 +242,7 @@ impl ReactiveSession {
                     let order = self.evidence_order.get(name).map(Vec::as_slice);
                     (
                         name.as_str(),
-                        OrderedGrounds {
-                            evidence: ordered(&grounds.evidence, order),
-                            caveats: &grounds.caveats,
-                            departed: &grounds.departed,
-                            inherited: &grounds.inherited,
-                            kept: &grounds.kept,
-                        },
+                        OrderedGrounds::new(ordered(&grounds.evidence, order), grounds),
                     )
                 })
                 .collect(),
@@ -246,27 +264,60 @@ impl ReactiveSession {
                 let properties = properties
                     .iter()
                     .map(|(property, explanation)| {
-                        let mut evidence = explanation
-                            .evidence
-                            .iter()
-                            .map(|name| (ranks.rank(name), name.as_str()))
-                            .collect::<Vec<_>>();
-                        evidence.sort_unstable();
+                        let evidence = ranked(&ranks, explanation)
+                            .into_iter()
+                            .map(Name::as_str)
+                            .collect();
                         (
                             property.as_str(),
-                            OrderedGrounds {
-                                evidence: evidence.into_iter().map(|(_, name)| name).collect(),
-                                caveats: &explanation.caveats,
-                                departed: &explanation.departed,
-                                inherited: &explanation.inherited,
-                                kept: &explanation.kept,
-                            },
+                            OrderedGrounds::new(evidence, explanation),
                         )
                     })
                     .collect();
                 (target.as_str(), properties)
             })
             .collect()
+    }
+
+    fn node_names(&self) -> HashMap<NodeId, &str> {
+        names(&self.symbols)
+    }
+
+    /// What a delta compares: the view's members as values, shared with the
+    /// session where it shares them.
+    fn view_parts(&self) -> ViewParts {
+        let ranks = self.observation_ranks();
+        let names = self.node_names();
+        ViewParts {
+            bindings: self.bindings.clone(),
+            binding_explanations: self
+                .binding_explanations
+                .iter()
+                .map(|(target, properties)| {
+                    let properties = properties
+                        .iter()
+                        .map(|(property, explanation)| {
+                            let evidence =
+                                ranked(&ranks, explanation).into_iter().cloned().collect();
+                            (property.clone(), (evidence, explanation.clone()))
+                        })
+                        .collect();
+                    (target.clone(), properties)
+                })
+                .collect(),
+            commitments: self
+                .commitment_records(&names)
+                .into_iter()
+                .map(|commitment| (commitment.action.clone(), ViewCommitment::from(commitment)))
+                .collect(),
+            commitment_grounds: Arc::clone(&self.commitment_grounds),
+            evidence_order: Arc::clone(&self.evidence_order),
+            decision_series: Arc::clone(&self.decision_series),
+            decision_journal: self.journal.clone(),
+            graph: Arc::clone(&self.graph),
+            symbols: Arc::clone(&self.symbols),
+            taken_back: (!self.take_back_caveats.is_empty()).then(|| Arc::clone(&self.taken_back)),
+        }
     }
 
     /// Dispatch one event and return the View 0.2 delta it caused. The same
@@ -310,13 +361,12 @@ impl ReactiveSession {
         let since = self.sequence;
         let before = match base.0.take() {
             Some((sequence, parts)) if sequence == since => parts,
-            _ => view_parts(&self.view_v2()),
+            _ => self.view_parts(),
         };
         match self.dispatch_classified(event, payload_json, agent) {
             Ok(()) => {
-                let view = self.view_v2();
-                let after = view_parts(&view);
-                let delta = view_delta(since, &before, &view, &after);
+                let after = self.view_parts();
+                let delta = view_delta(since, self, &before, &after);
                 base.0 = Some((self.sequence, after));
                 Ok(DispatchViewDeltaOutcome {
                     schema: DISPATCH_SCHEMA,
@@ -361,20 +411,26 @@ fn delta_outcome(failure: DispatchFailure) -> Result<DispatchViewDeltaOutcome, D
     })
 }
 
-/// The view as JSON text, member by member and entry by entry, so a delta
-/// compares texts and builds values only for what changed.
+/// The view's members as of one sequence, held as values: what a delta
+/// compares. Members the session shares are held shared, so a member the
+/// event left alone is the same allocation on both sides and is skipped, and
+/// only what changed is rendered.
 #[derive(Debug)]
 pub(super) struct ViewParts {
-    bindings: BTreeMap<String, BTreeMap<String, String>>,
-    binding_explanations: BTreeMap<String, BTreeMap<String, String>>,
+    bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    /// Each explanation with its evidence in the order the view shows it.
+    binding_explanations: BTreeMap<String, BTreeMap<String, (Vec<Name>, Provenance)>>,
     /// By action: a later commitment with an action already seen replaces
     /// the earlier one.
-    commitments: BTreeMap<String, String>,
-    commitment_grounds: BTreeMap<String, String>,
-    decision_series: BTreeMap<String, String>,
-    decision_journal: Vec<String>,
-    relations: Vec<String>,
-    taken_back: Option<Vec<String>>,
+    commitments: BTreeMap<String, ViewCommitment>,
+    commitment_grounds: Arc<BTreeMap<String, Provenance>>,
+    evidence_order: Arc<BTreeMap<String, Vec<String>>>,
+    decision_series: Arc<BTreeMap<String, DecisionSeries>>,
+    decision_journal: Chunked<JournalEntry>,
+    /// The relations are the graph's edges, named through the symbols.
+    graph: Arc<EpistemicGraph>,
+    symbols: Arc<HashMap<String, NodeId>>,
+    taken_back: Option<Arc<Vec<TakeBack>>>,
 }
 
 fn text<T: Serialize + ?Sized>(value: &T) -> String {
@@ -387,44 +443,6 @@ fn value<T: Serialize + ?Sized>(value: &T) -> Value {
 
 fn parse(text: &str) -> Value {
     serde_json::from_str(text).expect("a view part is JSON")
-}
-
-fn texts<'a, K, T>(entries: impl IntoIterator<Item = (K, &'a T)>) -> BTreeMap<String, String>
-where
-    K: ToString,
-    T: Serialize + 'a,
-{
-    entries
-        .into_iter()
-        .map(|(key, value)| (key.to_string(), text(value)))
-        .collect()
-}
-
-fn view_parts(view: &ReactiveViewV2<'_>) -> ViewParts {
-    ViewParts {
-        bindings: view
-            .bindings
-            .iter()
-            .map(|(target, values)| (target.clone(), texts(values)))
-            .collect(),
-        binding_explanations: view
-            .binding_explanations
-            .iter()
-            .map(|(target, explanations)| (target.to_string(), texts(explanations)))
-            .collect(),
-        commitments: view
-            .commitments
-            .iter()
-            .map(|commitment| (commitment.action.clone(), text(commitment)))
-            .collect(),
-        commitment_grounds: texts(&view.commitment_grounds),
-        decision_series: texts(view.decision_series),
-        decision_journal: view.decision_journal.iter().map(text).collect(),
-        relations: view.relations.iter().map(text).collect(),
-        taken_back: view
-            .taken_back
-            .map(|records| records.iter().map(text).collect()),
-    }
 }
 
 /// Equal as the spec counts equality: as JSON values, with `-0` distinct
@@ -448,51 +466,144 @@ fn identical(a: &Value, b: &Value) -> bool {
 }
 
 /// The same text is the same value; different texts are compared as values.
-fn same(a: &str, b: &str) -> bool {
-    a == b || identical(&parse(a), &parse(b))
+fn same<T: Serialize + ?Sized>(a: &T, b: &T) -> bool {
+    let (a, b) = (text(a), text(b));
+    a == b || identical(&parse(&a), &parse(&b))
+}
+
+/// A number compares by its bits, so `-0` stays apart from `0`; every other
+/// binding value has one form.
+fn same_binding(a: &BindingValue, b: &BindingValue) -> bool {
+    match (a, b) {
+        (BindingValue::Number(x), BindingValue::Number(y)) => x.to_bits() == y.to_bits(),
+        _ => a == b,
+    }
+}
+
+/// Grounds as the view shows them, `evidence` already in the view's order.
+fn shown<'a>(evidence: &'a [Name], grounds: &'a Provenance) -> OrderedGrounds<'a> {
+    OrderedGrounds::new(evidence.iter().map(Name::as_str).collect(), grounds)
 }
 
 fn view_delta(
     since: u64,
+    session: &ReactiveSession,
     before: &ViewParts,
-    view: &ReactiveViewV2<'_>,
     after: &ViewParts,
 ) -> ViewDelta {
     ViewDelta {
         schema: REACTIVE_VIEW_DELTA_SCHEMA,
         since,
-        sequence: view.sequence,
-        last_event: value(&view.last_event),
-        bindings: property_changes(&before.bindings, &after.bindings),
+        sequence: session.sequence,
+        last_event: value(&session.last_event),
+        bindings: property_changes(&before.bindings, &after.bindings, same_binding, |binding| {
+            value(binding)
+        }),
         binding_explanations: property_changes(
             &before.binding_explanations,
             &after.binding_explanations,
+            |(old_order, old), (new_order, new)| old == new && old_order == new_order,
+            |(order, grounds)| value(&shown(order, grounds)),
         ),
-        cues: value(view.cues),
-        effects: value(view.effects),
+        cues: value(&session.cues),
+        effects: value(&session.effects),
         commitments: commitment_changes(&before.commitments, &after.commitments),
-        commitment_grounds: named_changes(&before.commitment_grounds, &after.commitment_grounds),
-        decision_series: named_changes(&before.decision_series, &after.decision_series),
-        decision_journal: list_changes(&before.decision_journal, &after.decision_journal),
-        relations: list_changes(&before.relations, &after.relations),
+        commitment_grounds: grounds_changes(before, after),
+        decision_series: if Arc::ptr_eq(&before.decision_series, &after.decision_series) {
+            NamedChanges::default()
+        } else {
+            named_changes(
+                &before.decision_series,
+                &after.decision_series,
+                |_, old, new| same(old, new),
+                |_, series| value(series),
+            )
+        },
+        decision_journal: list_changes(
+            &before.decision_journal.iter().collect::<Vec<_>>(),
+            &after.decision_journal.iter().collect::<Vec<_>>(),
+            |old, new| std::ptr::eq(*old, *new) || same(*old, *new),
+            |entry| value(*entry),
+        ),
+        relations: relation_changes(before, after),
         taken_back: after
             .taken_back
             .as_deref()
-            .map(|records| list_changes(before.taken_back.as_deref().unwrap_or_default(), records)),
+            .map(|records| match &before.taken_back {
+                Some(old) if std::ptr::eq(old.as_slice(), records.as_slice()) => {
+                    ListChanges::default()
+                }
+                old => list_changes(
+                    old.as_deref().map(Vec::as_slice).unwrap_or_default(),
+                    records,
+                    same,
+                    value,
+                ),
+            }),
     }
 }
 
-type Properties = BTreeMap<String, BTreeMap<String, String>>;
+fn names(symbols: &HashMap<String, NodeId>) -> HashMap<NodeId, &str> {
+    symbols
+        .iter()
+        .map(|(name, id)| (*id, name.as_str()))
+        .collect()
+}
 
-fn property_changes(before: &Properties, after: &Properties) -> PropertyChanges {
+fn relation(names: &HashMap<NodeId, &str>, edge: &Edge) -> MapRelation {
+    MapRelation {
+        from: names[&edge.from].into(),
+        to: names[&edge.to].into(),
+        relation: relation_name(edge.relation).into(),
+        origin: "live".into(),
+    }
+}
+
+/// One relation per edge, as `relation_records` names them. While the
+/// symbols are the same, an edge with the same ends and relation is the same
+/// relation, so only the edges appended are named; otherwise the ends are
+/// also compared by name.
+fn relation_changes(before: &ViewParts, after: &ViewParts) -> ListChanges {
+    let named = OnceCell::new();
+    let named = || named.get_or_init(|| names(&after.symbols));
+    let edges = |old: &Edge, new: &Edge| {
+        old.from == new.from && old.to == new.to && old.relation == new.relation
+    };
+    if Arc::ptr_eq(&before.symbols, &after.symbols) {
+        list_changes(&before.graph.edges, &after.graph.edges, edges, |edge| {
+            value(&relation(named(), edge))
+        })
+    } else {
+        let old_names = names(&before.symbols);
+        list_changes(
+            &before.graph.edges,
+            &after.graph.edges,
+            |old, new| {
+                edges(old, new)
+                    && old_names[&old.from] == named()[&new.from]
+                    && old_names[&old.to] == named()[&new.to]
+            },
+            |edge| value(&relation(named(), edge)),
+        )
+    }
+}
+
+type Properties<V> = BTreeMap<String, BTreeMap<String, V>>;
+
+fn property_changes<V>(
+    before: &Properties<V>,
+    after: &Properties<V>,
+    same: impl Fn(&V, &V) -> bool,
+    value: impl Fn(&V) -> Value,
+) -> PropertyChanges {
     let empty = BTreeMap::new();
     let mut changes = PropertyChanges::default();
     for (target, properties) in after {
         let old = before.get(target).unwrap_or(&empty);
         let mut set = Map::new();
-        for (property, value) in properties {
-            if !old.get(property).is_some_and(|known| same(known, value)) {
-                set.insert(property.clone(), parse(value));
+        for (property, new) in properties {
+            if !old.get(property).is_some_and(|known| same(known, new)) {
+                set.insert(property.clone(), value(new));
             }
         }
         if !set.is_empty() {
@@ -510,26 +621,63 @@ fn property_changes(before: &Properties, after: &Properties) -> PropertyChanges 
     changes
 }
 
+/// A commitment holds only names and flags, so equal values are equal JSON.
 fn commitment_changes(
-    before: &BTreeMap<String, String>,
-    after: &BTreeMap<String, String>,
+    before: &BTreeMap<String, ViewCommitment>,
+    after: &BTreeMap<String, ViewCommitment>,
 ) -> CommitmentChanges {
-    let NamedChanges { set, removed } = named_changes(before, after);
+    let NamedChanges { set, removed } =
+        named_changes(before, after, |_, old, new| old == new, |_, new| value(new));
     CommitmentChanges {
         set: set.into_iter().map(|(_, commitment)| commitment).collect(),
         removed,
     }
 }
 
-fn named_changes(
-    before: &BTreeMap<String, String>,
-    after: &BTreeMap<String, String>,
+/// Commitment grounds with evidence in each commitment's frozen order. Equal
+/// provenance in the same order is the same JSON.
+fn grounds_changes(before: &ViewParts, after: &ViewParts) -> NamedChanges {
+    if Arc::ptr_eq(&before.commitment_grounds, &after.commitment_grounds)
+        && Arc::ptr_eq(&before.evidence_order, &after.evidence_order)
+    {
+        return NamedChanges::default();
+    }
+    let evidence = |parts: &ViewParts, name: &str, grounds: &Provenance| {
+        let order = parts.evidence_order.get(name).map(Vec::as_slice);
+        ordered(&grounds.evidence, order)
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+    };
+    named_changes(
+        &before.commitment_grounds,
+        &after.commitment_grounds,
+        |name, old, new| old == new && evidence(before, name, old) == evidence(after, name, new),
+        |name, grounds| {
+            let order = after.evidence_order.get(name).map(Vec::as_slice);
+            value(&OrderedGrounds::new(
+                ordered(&grounds.evidence, order),
+                grounds,
+            ))
+        },
+    )
+}
+
+fn named_changes<V>(
+    before: &BTreeMap<String, V>,
+    after: &BTreeMap<String, V>,
+    same: impl Fn(&str, &V, &V) -> bool,
+    value: impl Fn(&str, &V) -> Value,
 ) -> NamedChanges {
     NamedChanges {
         set: after
             .iter()
-            .filter(|(name, value)| !before.get(*name).is_some_and(|known| same(known, value)))
-            .map(|(name, value)| (name.clone(), parse(value)))
+            .filter(|(name, new)| {
+                !before
+                    .get(*name)
+                    .is_some_and(|known| same(name.as_str(), known, new))
+            })
+            .map(|(name, new)| (name.clone(), value(name, new)))
             .collect(),
         removed: before
             .keys()
@@ -544,7 +692,12 @@ fn named_changes(
 /// Matching greedily from the front keeps each old entry that is next in the
 /// new list and drops the rest; whatever is left of the new list is appended.
 /// Applying the result gives the new list whatever the matching chose.
-fn list_changes(before: &[String], after: &[String]) -> ListChanges {
+fn list_changes<T>(
+    before: &[T],
+    after: &[T],
+    same: impl Fn(&T, &T) -> bool,
+    value: impl Fn(&T) -> Value,
+) -> ListChanges {
     let mut kept = 0;
     let mut removed = Vec::new();
     for (position, entry) in before.iter().enumerate() {
@@ -556,6 +709,6 @@ fn list_changes(before: &[String], after: &[String]) -> ListChanges {
     }
     ListChanges {
         removed,
-        appended: after[kept..].iter().map(|entry| parse(entry)).collect(),
+        appended: after[kept..].iter().map(value).collect(),
     }
 }
