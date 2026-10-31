@@ -164,6 +164,9 @@ struct Budget {
     nodes: Cell<usize>,
     quiet_conditions: bool,
     quiet: Cell<bool>,
+    /// The argument values of each expanded call being evaluated, innermost
+    /// last.
+    frames: RefCell<Vec<Vec<f64>>>,
 }
 
 impl Budget {
@@ -1126,6 +1129,12 @@ enum Node {
     // Keep arguments even when the body ignores them: function arguments are
     // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
     ExpandedCall(Vec<Expr>, Box<Expr>),
+    /// A parameter read inside an expanded call's body: the position of the
+    /// argument in the innermost enclosing `ExpandedCall`, whose arguments
+    /// are evaluated once before its body. The body refers to the argument
+    /// instead of holding a copy, so a parameter read twice does not double
+    /// the expansion (finding D034: nested `min` over eight values).
+    Argument(usize),
     Predicate(String, String),
     /// `observed`, `withdrawn` or `carries` asked of `occurrence(EVIDENCE,
     /// INDEX)`: the predicate's kind, the renewable evidence and the index.
@@ -1397,7 +1406,11 @@ impl Expr {
                     index.collect_reads(reads);
                 }
             }
-            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_) => {}
             Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
@@ -1498,7 +1511,11 @@ impl Expr {
                     index.collect_sources(sources);
                 }
             }
-            Node::Number(_) | Node::Threshold(..) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_) => {}
             Node::Elapsed => {
                 sources.insert("elapsed()".into());
             }
@@ -1579,7 +1596,8 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Elapsed
-            | Node::Variable(_) => {}
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "committed" => {
                     records.insert(("committed", name.clone()));
@@ -1665,7 +1683,8 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Elapsed
-            | Node::Variable(_) => {}
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
             Node::Predicate(kind, name) => {
                 if kind == "has_sample" || kind == "withdrawn_latest" {
                     histories.insert(name.clone());
@@ -1747,7 +1766,8 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Elapsed
-            | Node::Variable(_) => {}
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "withdrawn" | "withdrawn_latest" => {
                     tested.insert(name.clone());
@@ -1867,6 +1887,7 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
+            | Node::Argument(_)
             | Node::Predicate(..)
             | Node::Latest(_)
             | Node::HistoryCount(_)
@@ -1908,7 +1929,8 @@ impl Expr {
             | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
-            | Node::Text(_) => self.node.clone(),
+            | Node::Text(_)
+            | Node::Argument(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
             Node::GroundsOf(series) => Node::GroundsOf(rename(series)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
@@ -2032,7 +2054,7 @@ impl Expr {
             Node::Outcome(series, index) => {
                 series.contains(word) || index.as_ref().is_some_and(|index| child(index))
             }
-            Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
+            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Argument(_) => false,
             Node::Threshold(name, _) => name.contains(word),
             Node::Text(name)
             | Node::Variable(name)
@@ -2134,6 +2156,7 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
+            | Node::Argument(_)
             | Node::Latest(_)
             | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
@@ -2187,6 +2210,7 @@ impl Expr {
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
+            | Node::Argument(_)
             | Node::Predicate(_, _)
             | Node::Latest(_)
             | Node::GroundsOf(_)
@@ -2267,6 +2291,8 @@ impl Expr {
             }
             Node::Bool(_) => Ok(ValueType::Bool),
             Node::Text(_) => Ok(ValueType::Text),
+            // Arguments are numeric; the call's arguments are checked as such.
+            Node::Argument(_) => Ok(ValueType::Number),
             Node::Variable(name) => {
                 if numeric.contains(name) {
                     Ok(ValueType::Number)
@@ -2553,6 +2579,7 @@ impl Expr {
             nodes: Cell::new(MAX_EVALUATED_NODES),
             quiet_conditions,
             quiet: Cell::new(false),
+            frames: RefCell::new(Vec::new()),
         };
         let keep = |read: &Provenance| {
             if budget.quiet.get() {
@@ -2820,20 +2847,43 @@ impl Expr {
                 Err(format!("source function {name} must be expanded before evaluation").into())
             }
             Node::ExpandedCall(arguments, body) => {
+                let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments {
-                    argument
-                        .evaluate_values(
-                            numbers,
-                            predicate,
-                            qualify,
-                            history,
-                            identifiers,
-                            remaining,
-                        )?
-                        .number()?;
+                    values.push(
+                        argument
+                            .evaluate_values(
+                                numbers,
+                                predicate,
+                                qualify,
+                                history,
+                                identifiers,
+                                remaining,
+                            )?
+                            .number()?,
+                    );
                 }
-                body.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                // The body reads these through `Argument`. Its own calls'
+                // arguments are evaluated before their frame is pushed, so an
+                // `Argument` always names the innermost call around it.
+                remaining.frames.borrow_mut().push(values);
+                let value = body.evaluate_values(
+                    numbers,
+                    predicate,
+                    qualify,
+                    history,
+                    identifiers,
+                    remaining,
+                );
+                remaining.frames.borrow_mut().pop();
+                value
             }
+            Node::Argument(index) => remaining
+                .frames
+                .borrow()
+                .last()
+                .and_then(|frame| frame.get(*index))
+                .map(|value| Value::Number(*value))
+                .ok_or_else(|| EvalError::from(format!("argument {index} read outside its call"))),
             Node::Unary(operator, child) => {
                 let value = child.evaluate_values(
                     numbers,
@@ -3992,7 +4042,7 @@ impl Expander<'_> {
     fn walk(
         &mut self,
         expression: &Expr,
-        parameters: Option<&BTreeMap<String, Expr>>,
+        parameters: Option<&BTreeMap<String, usize>>,
     ) -> Result<Expr, String> {
         let node = match &expression.node {
             // A program may define `fn outcome`; its calls keep their meaning
@@ -4039,25 +4089,27 @@ impl Expander<'_> {
             }
             Node::Bool(value) => Node::Bool(*value),
             Node::Text(value) => Node::Text(value.clone()),
+            Node::Argument(index) => Node::Argument(*index),
             Node::Variable(name) => {
                 if let Some(parameters) = parameters {
-                    let argument = parameters
+                    let index = parameters
                         .get(name)
                         .ok_or_else(|| format!("pure source function cannot capture {name}"))?;
-                    // The argument is already expanded in its caller's scope.
-                    // Do not substitute again if a caller name matches a formal.
-                    return self.walk(argument, None);
-                }
-                if let Some(body) = self.defines.get(name) {
-                    if self.active.contains(name) {
-                        return Err(format!("define {name} refers to itself"));
+                    // The argument is expanded once, in its caller's scope,
+                    // and held by the call; the body reads it by position.
+                    Node::Argument(*index)
+                } else {
+                    if let Some(body) = self.defines.get(name) {
+                        if self.active.contains(name) {
+                            return Err(format!("define {name} refers to itself"));
+                        }
+                        self.active.push(name.clone());
+                        let expanded = self.walk(body, None);
+                        self.active.pop();
+                        return expanded.map_err(|error| format!("define {name}: {error}"));
                     }
-                    self.active.push(name.clone());
-                    let expanded = self.walk(body, None);
-                    self.active.pop();
-                    return expanded.map_err(|error| format!("define {name}: {error}"));
+                    Node::Variable(name.clone())
                 }
-                Node::Variable(name.clone())
             }
             // A 1.0 program may define `fn on_hold`; its calls keep their
             // meaning (docs/COMPATIBILITY.md).
@@ -4255,7 +4307,7 @@ impl Expander<'_> {
                     .parameters
                     .iter()
                     .cloned()
-                    .zip(arguments.iter().cloned())
+                    .zip(0..arguments.len())
                     .collect();
                 self.active.push(name.clone());
                 let body = self.walk(&definition.body, Some(&bindings));
