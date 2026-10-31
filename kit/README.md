@@ -6,7 +6,7 @@ Package: **`caveat-lang@1.4.1`**.
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
 
-**A decision ledger for agents.** Caveat is a rules language and a runtime
+**A decision ledger for agents: Caveat keeps an AI's reasons in a record you can check.** Caveat is a rules language and a runtime
 for decisions that may need taking back. A value keeps the evidence and
 caveats it was computed from, and a committed decision keeps that basis. When
 evidence is later corrected or withdrawn, a rule you write can reopen the
