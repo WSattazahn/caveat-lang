@@ -127,7 +127,12 @@ record ID such as `readings@1`, or a caveat name; an unknown subject returns
 without replaying its history each time. The first call sends the program and
 its first events and no `save`. Each result's `report.save` is the session's
 save text; the next call passes it back unchanged as `save`, with the same
-source, and sends only the new events. The server keeps nothing between calls,
+source, and sends only the new events. It is the smallest save the session
+holds: the positional replay save while the accepted events fit in one
+([Replay save 0.2](reference/spec/caveat-replay-save-0.2.md), 4,096 bytes), and the
+state save after that. Both restore to the same session. An agent writes the
+save back on every call, so the smaller save saves it tokens: a six-event
+ledger's save is about 80 tokens instead of 1,100. The server keeps nothing between calls,
 so the host or agent holds the ledger, and any number of independent ledgers
 can share one server.
 
@@ -135,8 +140,8 @@ The report is `caveat-dispatch-step/0.1`: the `caveat-explain/0.1` report of
 the state after this call's events (named in `explainSchema`), plus `restored`
 (whether a save was restored) and `save`. Its `events` list only this call's
 events. For a reading observed in an earlier call, `observed_by` names the
-reading with `event`, `payload` and `sequence` set to `null`, since a save
-keeps state, not the event log; its grounds, caveats and withdrawals are kept.
+reading with `event`, `payload` and `sequence` set to `null`, since the report
+lists only this call's events; its grounds, caveats and withdrawals are kept.
 The departure archive is not part of a save (Departure 0.1), so archive history
 covers only this call.
 
