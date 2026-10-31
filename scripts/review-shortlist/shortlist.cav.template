@@ -1,0 +1,123 @@
+scene "What a person still needs to check in one pull request: each changed file, what it rests on, and whether that is anything but the word of the agent that wrote it.";
+
+# A template: shortlist.mjs writes one copy per pull request, with one `file`
+# entity per changed file and one `test` and `spec` entity per test file and
+# spec document that names one of them. The facts file the host keeps beside
+# it says which path each entity is.
+#
+# A changed file is one claim: "this change is right". It rests on the
+# account of whoever wrote it. An agent's account carries `unreviewed` until
+# a person approves the pull request at its head or comments on the file.
+# A test that was in the repository before this pull request, still names the
+# file and passes on the head is something the agent did not write, so it
+# backs the claim. A test the pull request adds or changes is the agent's
+# word too (`agent_written`), and a spec only says what was meant, so neither
+# takes a file off the list. Any of them, changed on main later, withdraws
+# what rested on it and puts the file back on the list to check again.
+
+claim right;   # the change to this file is right
+
+place pr kind file;
+# @FILES@
+place suite kind test;
+# @TESTS@
+place docs kind spec;
+# @SPECS@
+
+caveat unreviewed consequence material;   # only the agent that wrote it has looked at it
+caveat agent_written consequence low;     # the test or spec was written or changed in this pull request by an agent
+
+evidence head_checks from "every check that completed on the pull request's head passed";
+evidence approval from "a person's approving review of the pull request at its head";
+
+event checks ok min 0 max 1;
+event wrote file kind file, by in person agent;
+event named file kind file, test kind test, origin in before added;
+event cited file kind file, spec kind spec, origin in before added;
+event commented file kind file;
+event approved;
+event decide file kind file;
+event test_changed test kind test;
+event spec_changed spec kind spec;
+
+on checks when observed(head_checks) reject "Checks already recorded.";
+on checks when ok == 1 reveal head_checks supports right;
+on approved when observed(approval) reject "Approval already recorded.";
+on approved reveal approval supports right;
+
+for test as $t routed by test {
+    evidence $t_text from "test $t, as the pull request's head has it";
+    evidence $t_change from "a later change to test $t on main";
+    on named when not observed($t_text) reveal $t_text supports right;
+    on named when origin == origin.added and not carries($t_text, agent_written) qualify $t_text with agent_written;
+    on test_changed when not observed($t_text) reject "Nothing rested on that test.";
+    on test_changed when observed($t_change) reject "Already recorded as changed.";
+    on test_changed reveal $t_change;
+    on test_changed withdraw $t_text because $t_change;
+    for file as $f {
+        on test_changed when committed($f_ok) and not reopened($f_ok) and rests_on_withdrawn($f_ok)
+            reopen $f_ok because $t_change;
+    };
+};
+
+for spec as $s routed by spec {
+    evidence $s_text from "spec $s, as the pull request's head has it";
+    evidence $s_change from "a later change to spec $s on main";
+    on cited when not observed($s_text) reveal $s_text supports right;
+    on cited when origin == origin.added and not carries($s_text, agent_written) qualify $s_text with agent_written;
+    on spec_changed when not observed($s_text) reject "Nothing rested on that spec.";
+    on spec_changed when observed($s_change) reject "Already recorded as changed.";
+    on spec_changed reveal $s_change;
+    on spec_changed withdraw $s_text because $s_change;
+    for file as $f {
+        on spec_changed when committed($f_ok) and not reopened($f_ok) and rests_on_withdrawn($f_ok)
+            reopen $f_ok because $s_change;
+    };
+};
+
+for file as $f routed by file {
+    evidence $f_account from "the account of whoever wrote the change to $f";
+    evidence $f_comment from "a person's review comment on $f";
+    state $f_prior = 0;      # tests from before this pull request that name it and pass on the head
+    state $f_added = 0;      # tests this pull request adds or changes that name it
+    state $f_specs = 0;      # specs it names
+    state $f_reviewed = 0;   # a person's approval or comment
+    decisions $f_ok limit 2;
+
+    on wrote when observed($f_account) reject "Already recorded who wrote it.";
+    on wrote reveal $f_account supports right;
+    on wrote when by == by.agent qualify $f_account with unreviewed;
+    on named when not observed($f_account) reject "Record who wrote it first.";
+    on cited when not observed($f_account) reject "Record who wrote it first.";
+    on decide when not observed($f_account) reject "Record who wrote it first.";
+
+    for test as $t routed by test {
+        on named when origin == origin.before and observed(head_checks)
+            set $f_prior = $f_prior + qualified(1, $t_text) * qualified(1, head_checks);
+        on named when origin == origin.added set $f_added = $f_added + qualified(1, $t_text);
+    };
+    for spec as $s routed by spec {
+        on cited set $f_specs = $f_specs + qualified(1, $s_text);
+    };
+
+    on commented when observed($f_comment) reject "Comment already recorded.";
+    on commented reveal $f_comment supports right;
+    on commented when carries($f_account, unreviewed) unqualify $f_account with unreviewed;
+    on commented set $f_reviewed = $f_reviewed + qualified(1, $f_comment);
+    on approved when carries($f_account, unreviewed) unqualify $f_account with unreviewed;
+    on approved set $f_reviewed = $f_reviewed + qualified(1, approval);
+
+    on decide when committed($f_ok) and not reopened($f_ok) reject "Already decided.";
+    on decide commit $f_ok because enough using qualified(1, $f_account) + $f_prior + $f_added + $f_specs + $f_reviewed;
+
+    define $f_agent_only = carries($f_account, unreviewed) and $f_prior == 0;
+    bind $f.listed = 0;
+    bind $f.listed = 1 when $f_agent_only or (committed($f_ok) and rests_on_withdrawn($f_ok));
+    bind $f.why = "not decided";
+    bind $f.why = "written by a person" when committed($f_ok) and not carries($f_account, unreviewed) and $f_reviewed == 0;
+    bind $f.why = "a person reviewed it" when committed($f_ok) and $f_reviewed > 0;
+    bind $f.why = "tests from before this pull request name it and pass on its head" when committed($f_ok) and carries($f_account, unreviewed) and $f_prior > 0;
+    bind $f.why = "only tests the agent wrote in this pull request back it" when committed($f_ok) and $f_agent_only and $f_added > 0;
+    bind $f.why = "it rests on the agent's word only" when committed($f_ok) and $f_agent_only and $f_added == 0;
+    bind $f.why = "check it again: a test or spec it rested on has changed since" when committed($f_ok) and rests_on_withdrawn($f_ok);
+};

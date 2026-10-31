@@ -326,6 +326,23 @@ window.addEventListener('pagehide', event => {
   if (!event.persisted) { sourceLibrary?.free(); sourceLibrary = null; }
 });
 
+// WebKit 26.0 could trap while creating the first session (bench/carmack/README.md).
+// Nothing has been played yet, so load the page once more for a fresh runtime.
+const RUNTIME_RETRY = 'runtime-retry';
+function retryAfterTrap(error) {
+  const url = new URL(location.href);
+  if (!(error instanceof WebAssembly.RuntimeError) || url.searchParams.has(RUNTIME_RETRY)) return false;
+  url.searchParams.set(RUNTIME_RETRY, '1');
+  location.replace(url);
+  return true;
+}
+function forgetRuntimeRetry() {
+  const url = new URL(location.href);
+  if (!url.searchParams.has(RUNTIME_RETRY)) return;
+  url.searchParams.delete(RUNTIME_RETRY);
+  history.replaceState(history.state, '', url);
+}
+
 async function boot() {
   const response = await fetch('./the_last_beacon.cav');
   if(!response.ok)throw new Error('The story source could not be loaded.');
@@ -346,11 +363,13 @@ async function boot() {
   renderTitle();
   // Read-only diagnostics for smoke tests; actions still go through actual UI + Rust.
   Object.defineProperty(window,'__beacon',{value:Object.freeze({snapshot:()=>JSON.parse(session.snapshot()),get busy(){return busy;},get screen(){return app.dataset.screen;},get rendered(){return Boolean(world);}})});
+  forgetRuntimeRetry();
 }
 
 boot().catch(error=>{
   sourceLibrary?.free();
   sourceLibrary=null;
+  if (retryAfterTrap(error)) return;
   console.error(error);
   $('#loading-status')?.remove();
   $('#start-actions').innerHTML=`<div class="error-box">The watch could not load. ${escape(error.message||error)}<br><button class="secondary" id="retry">Try again</button></div>`;

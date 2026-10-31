@@ -46,7 +46,7 @@ evidence latest_gap_report from "a report that carries(latest(STREAM), C) did no
 evidence next_report from "a report that a fresh author lacked a freeze construct and nested for, and wanted a faster view and a smaller save";
 evidence openai_review from "OpenAI's review of the Caveat plugin 1.1.1 with the hosted MCP server";
 evidence owner from "the owner's answer to a card";
-readings approvals from owner limit 64;            # value: the item code approved
+readings approvals from owner limit 256;            # value: the item code approved
 
 # ---- Decisions, as series: each may be reopened and revised ----------------
 
@@ -58,7 +58,7 @@ decisions gaps_1_1 limit 4;     # value: 1 both forms in 1.1, 2 neither, 3 readi
 decisions latest_gap_1_1 limit 4;  # value: 1 add, then a fresh-author check; 2 add only; 3 the docs warning only
 decisions next_1_2 limit 4;     # value: 1 both halves, 2 language only, 3 speed only, 4 stop the checks
 decisions openai_listing limit 4;  # value: the plugin version published (111 is 1.1.1)
-decisions minor_release limit 8;  # value: the minor shipped (110, 120, ...)
+decisions minor_release limit 8;  # value: the mainline release shipped (110, 120, ..., 141)
 
 # Bases the decisions read. A late caveat on their evidence reaches these
 # values (Late Qualification 0.1), which is how a past decision is found to
@@ -100,7 +100,7 @@ event decide_next option min 1 max 4;
 event plugin_review approved min 0 max 1;  # OpenAI's verdict on a submitted plugin version
 event publish_plugin version min 100 max 199;  # the owner publishes that version
 event main_run green min 0 max 1;           # the Runtime run on main at a minor's merge
-event ship_minor version min 110 max 199;   # a 1.x minor release (110 is 1.1.0)
+event ship_minor version min 110 max 199;   # a 1.x mainline release (110 is 1.1.0, 141 is 1.4.1)
 
 # The attribution was an inference; it says so.
 on infer_attribution reveal attribution_all_nine supports divergences_were_runtime;
@@ -236,7 +236,7 @@ bind ledger.release = "1.0." + number_text(latest(release) - 100) + " is reopene
 bind ledger.release_basis_doubted = if(has_caveat(release_basis, uncovered_windows), 1, 0);
 bind ledger.release_basis_regressed = if(has_caveat(release_basis, fix_regressed), 1, 0);
 bind ledger.minor_release = "none yet";
-bind ledger.minor_release = "1." + number_text((latest(minor_release) - 100) / 10) + ".0 stands" when committed(minor_release) and not reopened(minor_release);
+bind ledger.minor_release = "1." + number_text(floor((latest(minor_release) - 100) / 10)) + "." + number_text(wrap(latest(minor_release), 10)) + " stands" when committed(minor_release) and not reopened(minor_release);
 bind ledger.merge_259 = "not merged";
 bind ledger.merge_259 = "merged on a rerun of " + number_text(latest(merge_259)) + " divergences" when committed(merge_259);
 bind ledger.last_rerun = latest(reruns) when has_sample(reruns);

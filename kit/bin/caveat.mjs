@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
-// caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+// caveat explain [--runtime <dir>] [--json] [--later-caveats] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
-// caveat review [--runtime <dir>] [--json] --all <directory>
+// caveat review [--runtime <dir>] [--json] [--summary] --all <directory>
 // caveat find [--runtime <dir>] [--json] <directory> <word>...
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
@@ -22,7 +22,7 @@ import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.m
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
 import { formatReview } from '../lib/review.mjs';
-import { findDecisions, formatConsulted, formatFound, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
+import { findDecisions, formatConsulted, formatFound, formatSummary, reviewLedgers, reviewWithConsulted, summarizeLedgers } from '../lib/ledgers.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
@@ -35,10 +35,11 @@ const USAGE = `CAVEAT Language — Programs that remember why.
 
 Usage:
   caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
-  caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+  caveat-lang explain [--runtime <dir>] [--json] [--later-caveats] <program.cav>
+                      [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
-  caveat-lang review [--runtime <dir>] [--json] --all <directory>
+  caveat-lang review [--runtime <dir>] [--json] [--summary] --all <directory>
   caveat-lang find [--runtime <dir>] [--json] <directory> <word>...
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
@@ -66,6 +67,10 @@ explain sends the events, one JSON object per line such as
 {"event": "read", "payload": {"value": 17}}, then shows each decision with what
 it rests on and its history, the evidence and its caveats, and why each
 displayed value is what it is. Refused events are listed and change nothing.
+With --later-caveats it also lists current caveat names on grounds absent
+from that revision's frozen grounds and retained caveats. This is not every
+qualification: names already recorded elsewhere in the revision, take-backs,
+withdrawals and departed grounds are omitted.
   Exit status: 0 explained, 1 an event failed fatally (the explanation is of
   the session before it), 2 the program or events file could not be used.
 
@@ -88,8 +93,11 @@ review, in every ledger under a directory: each NAME.cav beside NAME.events.json
 whose source is "caveat-review:<program sha256>#<revision>" records a past
 review the program consulted; a review lists it, and --all says whether the
 directory holds that ledger and what its review says came true
-(spec/caveat-ledger-sets-0.1.md). Exit status: 0 reviewed, 1 an event failed
-fatally, 2 the directory holds no ledger or a ledger could not be used.
+(spec/caveat-ledger-sets-0.1.md). --summary counts recorded outcomes by exact
+caveat and evidence names, pooling equal names across programs without
+establishing source identity; with --json it is the last line.
+Exit status: 0 reviewed, 1 an event failed fatally, 2 the
+directory holds no ledger or a ledger could not be used.
 
 find searches the same ledgers for past decisions: every revision, with or
 without an outcome, whose decision, program path, evidence, evidence sources,
@@ -176,6 +184,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
                    holds without such a caveat
   --withdrawals    (check) also report commits on sources the program can
                    withdraw that nothing guards or reopens
+  --later-caveats  (explain) show live caveat names on grounds absent from
+                   each decision's frozen grounds and retained caveats
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -199,12 +209,13 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime'];
+const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime', '--later-caveats'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
-    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
+    '--all': command === 'review', '--summary': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
     '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
+    '--later-caveats': command === 'explain',
   })[option];
 }
 
@@ -230,16 +241,18 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, save: null, runtime: null, from: null, state: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--all' && command === 'review') options.all = true;
+    else if (argument === '--summary' && command === 'review') options.summary = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
     else if (argument === '--names' && command === 'check') options.names = true;
     else if (argument === '--records' && command === 'check') options.records = true;
     else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
+    else if (argument === '--later-caveats' && command === 'explain') options.laterCaveats = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
       if (!options.save) return { error: '--save needs a save file' };
@@ -261,6 +274,7 @@ function parseArguments(argv) {
   const [fewest, most, message] = options.all ? [1, 1, 'name one directory of ledgers with --all'] : COMMANDS[command];
   if (options.files.length < fewest || options.files.length > most) return { error: message };
   if (options.save && !options.records) return { error: '--save is read with --records' };
+  if (options.summary && !options.all) return { error: '--summary is read with --all' };
   return options;
 }
 
@@ -336,7 +350,7 @@ async function explainProgram(options) {
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
   const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
-  const result = explain(snapshot, sent, { archive });
+  const result = explain(snapshot, sent, { archive, laterCaveats: options.laterCaveats });
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
     console.log(formatExplanation(result, path.basename(program)));
@@ -446,6 +460,11 @@ async function reviewAll(options) {
     else console.log([formatReview(entry, entry.program), ...formatConsulted(entry.consulted), ''].join('\n'));
   }
   const reviewed = entries.filter(entry => !entry.error);
+  if (options.summary) {
+    const summary = summarizeLedgers(entries);
+    if (options.json) console.log(JSON.stringify(summary));
+    else for (const line of formatSummary(summary)) console.log(line);
+  }
   if (!options.json) console.log(`${reviewed.length} revision${reviewed.length === 1 ? '' : 's'} reviewed in ${ledgers.length} ledger${ledgers.length === 1 ? '' : 's'}.`);
   if (unusable) return 2;
   return reviewed.some(entry => entry.fatal !== null) ? 1 : 0;
