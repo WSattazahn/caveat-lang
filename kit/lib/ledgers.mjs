@@ -6,6 +6,7 @@ import { explain } from './explain.mjs';
 import { review } from './review.mjs';
 
 export const LEDGER_REVIEW_SCHEMA = 'caveat-ledger-review/0.1';
+export const LEDGER_SUMMARY_SCHEMA = 'caveat-ledger-summary/0.1';
 
 // An evidence source naming a past review: the reviewed program's source
 // SHA-256, as its saves and snapshots bind it, and the revision.
@@ -124,6 +125,72 @@ export function reviewLedgers(open, ledgers, options) {
     }
   }
   return entries;
+}
+
+/**
+ * How often each caveat came true across the reviewed revisions that have an
+ * outcome, in all and by the evidence that carried it into the grounds.
+ * `entries` are `reviewLedgers` entries; `{ error }` entries are skipped.
+ * Keys are exact identifier strings, not source identities: equal names in
+ * different programs pool, while occurrence suffixes stay distinct. Counts
+ * describe the supplied reviews' recorded outcomes, not independently checked
+ * truth or causation. Repeated entries count again; carriers within one entry
+ * count once. A fatal suffix does not erase an already recorded outcome.
+ */
+export function summarizeLedgers(entries) {
+  const caveats = new Map();
+  const count = (map, key) => {
+    if (!map.has(key)) map.set(key, { retained: 0, came_true: 0 });
+    return map.get(key);
+  };
+  let revisions = 0;
+  for (const entry of entries) {
+    if (entry.error || !entry.outcome) continue;
+    revisions += 1;
+    const carried = new Map();
+    for (const ground of entry.grounds) {
+      for (const caveat of ground.caveats) {
+        if (!carried.has(caveat)) carried.set(caveat, new Set());
+        carried.get(caveat).add(ground.evidence);
+      }
+    }
+    for (const [caveat, evidence] of carried) {
+      if (!caveats.has(caveat)) caveats.set(caveat, { total: { retained: 0, came_true: 0 }, by: new Map() });
+      const item = caveats.get(caveat);
+      const truth = entry.came_true.find(c => c.caveat === caveat);
+      item.total.retained += 1;
+      if (truth) item.total.came_true += 1;
+      for (const name of evidence) {
+        const by = count(item.by, name);
+        by.retained += 1;
+        if (truth?.carried_by.includes(name)) by.came_true += 1;
+      }
+    }
+  }
+  const sorted = [...caveats.keys()].sort();
+  return {
+    schema: LEDGER_SUMMARY_SCHEMA,
+    revisions,
+    caveats: sorted.map(caveat => {
+      const item = caveats.get(caveat);
+      return {
+        caveat,
+        ...item.total,
+        by_evidence: [...item.by.keys()].sort().map(evidence => ({ evidence, ...item.by.get(evidence) })),
+      };
+    }),
+  };
+}
+
+/** The text block for `summarizeLedgers`, or no lines when no caveat was retained. */
+export function formatSummary(summary) {
+  if (!summary.caveats.length) return [];
+  return [
+    `Across the set (${summary.revisions} revision${summary.revisions === 1 ? '' : 's'} with an outcome)`,
+    ...summary.caveats.map(item => `  ${item.caveat}: came true in ${item.came_true} of ${item.retained}; ${
+      item.by_evidence.map(by => `carried by ${by.evidence}, ${by.came_true} of ${by.retained}`).join('; ')}`),
+    '',
+  ];
 }
 
 /** The lines `formatReview` lacks: what a review consulted. */

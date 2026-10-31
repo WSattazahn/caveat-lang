@@ -192,25 +192,64 @@ async function pointerController(context, page, mobile, browser) {
   const touch = mobile && browser.browserType().name() === 'chromium'
     ? await context.newCDPSession(page) : null;
   let pressed = false;
+  let lastTouch = null;
   return {
     async move(x, z) {
       const point = await projected(page, x, z);
       if (touch) {
-        await touch.send('Input.dispatchTouchEvent', {
-          type: pressed ? 'touchMove' : 'touchStart',
-          touchPoints: [{ x: point.x, y: point.y, radiusX: 4, radiusY: 4, force: 1, id: 1 }],
-        });
+        // CDP can acknowledge a move before the canvas receives it. Advancing
+        // the paused clock at that point steers on the previous aim for part
+        // of the next second. Wait for delivery, without advancing game time.
+        // An unchanged native point emits no pointermove, so keep holding it.
+        const next = { x: Math.fround(point.x), y: Math.fround(point.y) };
+        if (!pressed || lastTouch?.x !== next.x || lastTouch?.y !== next.y) {
+          const type = pressed ? 'pointermove' : 'pointerdown';
+          const delivery = await page.evaluateHandle(type => {
+            const canvas = document.getElementById('world');
+            let resolve;
+            const promise = new Promise(done => { resolve = done; });
+            const hear = () => resolve();
+            canvas.addEventListener(type, hear, { once: true });
+            return { promise, cancel() { canvas.removeEventListener(type, hear); resolve(); } };
+          }, type);
+          let timeout;
+          try {
+            await touch.send('Input.dispatchTouchEvent', {
+              type: pressed ? 'touchMove' : 'touchStart',
+              touchPoints: [{ x: point.x, y: point.y, radiusX: 4, radiusY: 4, force: 1, id: 1 }],
+            });
+            await Promise.race([
+              delivery.evaluate(item => item.promise),
+              new Promise((_, reject) => {
+                timeout = setTimeout(() => reject(new Error(`Canvas did not receive ${type}`)), 20000);
+              }),
+            ]);
+            lastTouch = next;
+          } finally {
+            clearTimeout(timeout);
+            await delivery.evaluate(item => item.cancel());
+            await delivery.dispose();
+          }
+        }
       } else {
         await page.mouse.move(point.x, point.y);
         if (!pressed) await page.mouse.down();
       }
       pressed = true;
+      if (touch) {
+        // Check native-touch delivery without imposing its subpixel precision
+        // on the other browsers' mouse input paths.
+        const { values } = await read(page);
+        assert(Math.abs(values.aim_x - x) < 1e-4 && Math.abs(values.aim_z - z) < 1e-4,
+          'The pointer aim must reach the source before advancing the game clock');
+      }
     },
     async release() {
       if (!pressed) return;
       if (touch) await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       else await page.mouse.up();
       pressed = false;
+      lastTouch = null;
     },
     kind: touch ? 'native touch drag' : 'mouse drag',
   };

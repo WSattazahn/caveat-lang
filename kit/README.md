@@ -238,6 +238,23 @@ of the session before it), and 2 when the program or the events file cannot be
 used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
 the same report as data, and `formatExplanation` renders it as text.
 
+A decision keeps the caveats it was made with. `--later-caveats` (from 1.5;
+from code, `explain(snapshot, events, { laterCaveats: true })`) compares that
+record with the live qualifications on its grounds. For each grounds
+occurrence, `qualified_since` lists its current caveat names absent from
+both the revision's frozen grounds and its retained caveats. The text adds
+"E now carries C, absent from this record". Without the option, the field is absent
+and the output is as before.
+
+This is a difference from the whole revision's record, not a history of
+every qualification: a caveat already recorded through another ground or
+explicitly retained is not listed again. A taken-back qualification is no
+longer listed; reapplying it makes it live again. Withdrawals have their own
+report and are omitted here. Only occurrences whose relations remain in the
+snapshot can contribute; a supplied archive does not establish current
+qualifications on departed grounds. An empty list does not prove that no
+qualification happened, and the report does not reopen any decision.
+
 `caveat dependents` asks the reverse question: what rests on one piece of
 evidence, reading stream or caveat. It lists:
 
@@ -274,8 +291,13 @@ npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 `caveat review --all <directory>` reviews a set of past ledgers: every
 `NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
 only `.cav` beside `events.jsonl`. It reviews each revision that has an
-outcome or consulted a past review, and with `--json` prints one object per
-line. A program records that it read a past review with ordinary evidence
+outcome or consulted a past review. With `--json` it prints one object per
+line. `--summary` adds counts of recorded outcomes by caveat and carrying
+evidence (with `--json`, as the last line). It groups exact identifier strings:
+matching names in different programs pool, while `scan` and `scan@1` stay
+separate. Matching names do not establish source identity, truth or causation;
+inspect the individual reviews before treating a group as a pattern.
+A program records that it read a past review with ordinary evidence
 whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
 a review lists it under Consulted, and `--all` says what that review found.
 It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
@@ -448,6 +470,13 @@ loaded from the same module share one instance, so they share that state too.
 To recover, load again: `loadRuntimeFromDirectory()` always gives a fresh
 instance, and `loadRuntime()` given a module URL imports a fresh copy once the
 earlier instance has trapped.
+
+A trap is not always the program's doing. WebKit 26.0 trapped in about 1% of
+fresh pages while creating a session, a fault in its WebAssembly tier-up that
+newer WebKit does not have. Opening a program and dispatching its events give
+the same result every time, so a host that sees a trap can load a fresh
+runtime and run the same steps once more; the
+[break page](https://github.com/WSattazahn/caveat-lang/blob/main/web/break.js) does this.
 
 Close each session with `close()` once you no longer need it. A session holds
 runtime memory until it is closed, and the garbage collector frees an
