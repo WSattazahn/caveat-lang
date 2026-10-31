@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "caveat-lang"
 version = "0.1.0"
-description = "CAVEAT Language for Python: a decision ledger for agents. Values carry their evidence and caveats, decisions keep the grounds they were made on, and withdrawn evidence reopens them."
+description = "CAVEAT Language for Python: a decision ledger for agents that keeps an AI's reasons in a record you can check. Values carry their evidence and caveats, decisions keep the grounds they were made on, and withdrawn evidence reopens them."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]

@@ -1,6 +1,6 @@
 # CAVEAT Language for Python
 
-A decision ledger for agents. A Caveat program records what each decision
+A decision ledger for agents: Caveat keeps an AI's reasons in a record you can check. A Caveat program records what each decision
 rests on: values carry their evidence and caveats, a decision keeps the
 grounds it was made on, and when evidence is withdrawn, the decisions that
 rested on it reopen, with their original grounds still on record.
