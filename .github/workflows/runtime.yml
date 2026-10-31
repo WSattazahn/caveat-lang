@@ -146,6 +146,8 @@ jobs:
         run: npm run test:done-check
       - name: The PR ledger Action's host keeps its record in Caveat
         run: npm run test:pr-ledger
+      - name: The review shortlist lists what rests on an agent's word alone
+        run: npm run test:review-shortlist
       - name: The agent undo-list tutorial runs as written
         run: npm run test:tutorial
       - name: Adoption scorer mutation controls (no trial agents)
