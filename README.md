@@ -2,7 +2,7 @@
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15891/badge)](https://www.bestpractices.dev/projects/15891)
 
-**A decision ledger for agents.**
+**A decision ledger for agents: Caveat keeps an AI's reasons in a record you can check.**
 
 Caveat is a rules language and a runtime for decisions that may need taking
 back. It tracks evidence through computations, preserves the grounds of

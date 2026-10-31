@@ -20,7 +20,7 @@ CI runs them in `.github/workflows/carmack.yml`. Timing on shared runners is too
 
 ## 1. Where the time goes
 
-`profile.mjs` times every event in the WebAssembly runtime through `dispatchView`, the path a host uses, twice: with the whole view, and with no view fields (the dispatch alone). The difference is what building and parsing the view costs. It also times the save, the compact save, and restoring each.
+`profile.mjs` times every event in the WebAssembly runtime through `dispatchView`, the path a host uses, three times: with the whole view, with the whole view reused from the last event's (`reuse`), and with no view fields (the dispatch alone). The difference from the dispatch alone is what building and parsing the view costs. It also times the save, the compact save, and restoring each.
 
 With `--native`, it also runs `carmack_profile`, a native build with the fixed phase boundaries of the `event-phase-profile` feature, and splits each event into:
 
@@ -56,7 +56,7 @@ node bench/carmack/webkit-stress.mjs --runtime dist/pkg-reactive --pages 200
 
 ## 4. The speed target
 
-`target.json` names the measure, the release-gate workload's median time per event in WebAssembly with the whole view on CI's Ubuntu runner, and once set, the number to beat and the date it should be met by. `target.mjs` reports it from the profile with how far off it is.
+`target.json` names the measure, the release-gate workload's median time per event in WebAssembly with the whole view on CI's Ubuntu runner, and once set, the number to beat and the date it should be met by. `target.mjs` reports it from the profile with how far off it is. Since 2026-10-31 the measure is the whole view reused (`dispatchView` with `reuse`, [view patch](../../spec/caveat-view-patch-0.1.md)), by the owner's choice; the whole view built fresh is reported beside it.
 
 ## Stress cases
 

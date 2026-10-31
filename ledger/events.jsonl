@@ -227,4 +227,10 @@
 {"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":401}}
 {"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":400}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":402}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":404}}
+{"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":403}}

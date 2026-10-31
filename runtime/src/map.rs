@@ -164,15 +164,30 @@ pub fn retained_authorship(
     commitment: crate::NodeId,
     name_of: impl Fn(crate::NodeId) -> Option<String>,
 ) -> Vec<RetainedCaveat> {
-    let by = graph.origin(commitment);
-    graph
+    let retained = graph
         .edges
         .iter()
         .filter(|edge| edge.from == commitment && edge.relation == Relation::Retains)
-        .filter_map(|edge| {
-            let written_by = graph.origin(edge.to);
+        .map(|edge| edge.to)
+        .collect::<Vec<_>>();
+    retained_authorship_of(graph, commitment, &retained, name_of)
+}
+
+/// `retained_authorship` for a commitment whose retained caveats, in edge
+/// order, are already known.
+pub fn retained_authorship_of(
+    graph: &crate::EpistemicGraph,
+    commitment: crate::NodeId,
+    retained: &[crate::NodeId],
+    name_of: impl Fn(crate::NodeId) -> Option<String>,
+) -> Vec<RetainedCaveat> {
+    let by = graph.origin(commitment);
+    retained
+        .iter()
+        .filter_map(|caveat| {
+            let written_by = graph.origin(*caveat);
             Some(RetainedCaveat {
-                caveat: name_of(edge.to)?,
+                caveat: name_of(*caveat)?,
                 written_by: written_by.map(str::to_string),
                 written_elsewhere: by.zip(written_by).map(|(by, wrote)| by != wrote),
             })

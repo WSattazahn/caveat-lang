@@ -78,6 +78,13 @@ pub use view2::{
     ViewDeltaBase, REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
 };
 
+#[path = "reactive_view_patch.rs"]
+mod view_patch;
+pub use view_patch::{
+    DispatchViewPatchOutcome, DispatchViewPatchResult, Entry, Item, MapChange, MemberChange,
+    ViewPatch, ViewPatchBase, REACTIVE_VIEW_PATCH_SCHEMA,
+};
+
 #[path = "reactive_collector.rs"]
 mod collector;
 #[path = "reactive_departure.rs"]
@@ -4972,7 +4979,7 @@ impl ReactiveSession {
             binding_explanations: &self.binding_explanations,
             cues: &self.cues,
             effects: &self.effects,
-            commitments: self.commitment_records(&names),
+            commitments: self.commitment_records(|id| names.get(id).copied()),
             commitment_grounds: &self.commitment_grounds,
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
@@ -5001,7 +5008,8 @@ impl ReactiveSession {
                 .then_some(&self.binding_explanations),
             cues: pick("cues").then_some(self.cues.as_slice()),
             effects: pick("effects").then_some(self.effects.as_slice()),
-            commitments: pick("commitments").then(|| self.commitment_records(&names)),
+            commitments: pick("commitments")
+                .then(|| self.commitment_records(|id| names.get(id).copied())),
             commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
             decision_series: pick("decision_series").then_some(&self.decision_series),
             decision_journal: pick("decision_journal").then_some(&self.journal),
@@ -5009,36 +5017,63 @@ impl ReactiveSession {
         }
     }
 
-    fn commitment_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapCommitment> {
-        let mut sorted = self.symbols.iter().collect::<Vec<_>>();
-        sorted.sort_by_key(|(name, _)| *name);
-        sorted
-            .into_iter()
+    /// The commitments by name, each with what it retains and what reopened
+    /// it in edge order. `name_of` names a node; a retained caveat or a
+    /// reopening cause it cannot name is a broken graph.
+    fn commitment_records<'n>(
+        &self,
+        name_of: impl Fn(&NodeId) -> Option<&'n str>,
+    ) -> Vec<MapCommitment> {
+        let mut commitments = self
+            .symbols
+            .iter()
             .filter_map(|(name, id)| match &self.graph.nodes[id] {
-                NodeKind::Commitment { open, .. } => Some(MapCommitment {
-                    action: name.clone(),
-                    open: *open,
-                    retained_authorship: crate::map::retained_authorship(
-                        &self.graph,
-                        *id,
-                        |node| names.get(&node).map(|name| (*name).to_string()),
-                    ),
-                    retained: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.from == *id && edge.relation == Relation::Retains)
-                        .map(|edge| names[&edge.to].to_string())
-                        .collect(),
-                    reopened_by: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
-                        .map(|edge| names[&edge.from].to_string())
-                        .collect(),
-                }),
+                NodeKind::Commitment { open, .. } => Some((name, *id, *open)),
                 _ => None,
+            })
+            .collect::<Vec<_>>();
+        if commitments.is_empty() {
+            return Vec::new();
+        }
+        commitments.sort_by_key(|(name, _, _)| *name);
+        // Each commitment's retained caveats and reopening causes, in one
+        // pass over the edges.
+        let mut links = commitments
+            .iter()
+            .map(|(_, id, _)| (*id, (Vec::new(), Vec::new())))
+            .collect::<HashMap<NodeId, (Vec<NodeId>, Vec<NodeId>)>>();
+        for edge in &self.graph.edges {
+            match edge.relation {
+                Relation::Retains => {
+                    if let Some((retained, _)) = links.get_mut(&edge.from) {
+                        retained.push(edge.to);
+                    }
+                }
+                Relation::Reopens => {
+                    if let Some((_, reopened_by)) = links.get_mut(&edge.to) {
+                        reopened_by.push(edge.from);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let named = |id: &NodeId| name_of(id).expect("a named node").to_string();
+        commitments
+            .into_iter()
+            .map(|(name, id, open)| {
+                let (retained, reopened_by) = &links[&id];
+                MapCommitment {
+                    action: name.clone(),
+                    open,
+                    retained_authorship: crate::map::retained_authorship_of(
+                        &self.graph,
+                        id,
+                        retained,
+                        |node| name_of(&node).map(str::to_string),
+                    ),
+                    retained: retained.iter().map(named).collect(),
+                    reopened_by: reopened_by.iter().map(named).collect(),
+                }
             })
             .collect()
     }

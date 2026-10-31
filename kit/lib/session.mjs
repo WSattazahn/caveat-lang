@@ -114,6 +114,110 @@ function validOutcome(outcome, accepted = 'snapshot') {
   return false;
 }
 
+// dispatchView's reuse option: true, or false when it is absent. Checked
+// before the runtime is called.
+function reuseOption(options) {
+  if (options === undefined || options === null) return false;
+  const { reuse } = options;
+  if (reuse === undefined || reuse === false) return false;
+  if (reuse !== true) throw new TypeError('reuse must be true or false');
+  return true;
+}
+
+// The View 0.1 patch (spec/caveat-view-patch-0.1.md) applied to the view the
+// session holds, or to nothing when the patch says it applies to nothing.
+// Every member the event left alone is the held one; every new part is
+// frozen, so the whole view is read-only.
+const VIEW_PATCH_SCHEMA = 'caveat-reactive-view-patch/0.1';
+const NESTED = new Set(['bindings', 'binding_explanations']);
+const LISTS = new Set(['decision_journal', 'relations']);
+const WHOLE = new Set(['cues', 'effects']);
+
+function deepFreeze(value) {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const key of Object.keys(value)) deepFreeze(value[key]);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+// Set a member as JSON.parse would: an own property, even for __proto__.
+function put(target, key, value) {
+  if (key === '__proto__') Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
+  else target[key] = value;
+}
+
+function own(object, key) {
+  return object !== undefined && object !== null && Object.hasOwn(object, key) ? object[key] : undefined;
+}
+
+function patchedMap(held, change, nested) {
+  if (!isPlainObject(change) || !isPlainObject(change.set)) throw new TypeError('malformed map change');
+  const keys = change.keys ?? Object.keys(held ?? {});
+  if (!Array.isArray(keys)) throw new TypeError('malformed map keys');
+  const result = {};
+  for (const key of keys) {
+    if (Object.hasOwn(change.set, key)) {
+      const entry = change.set[key];
+      put(result, key, nested ? patchedMap(own(held, key), entry, false) : deepFreeze(entry));
+    } else {
+      if (held === undefined || held === null || !Object.hasOwn(held, key)) throw new TypeError(`map key ${JSON.stringify(key)} is neither held nor set`);
+      put(result, key, held[key]);
+    }
+  }
+  return Object.freeze(result);
+}
+
+function patchedList(held, change) {
+  if (!isPlainObject(change) || !Array.isArray(change.items)) throw new TypeError('malformed list change');
+  const result = [];
+  for (const item of change.items) {
+    if (Array.isArray(item)) {
+      const [start, length] = item;
+      if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
+      for (let index = start; index < start + length; index += 1) result.push(held[index]);
+    } else {
+      result.push(deepFreeze(item));
+    }
+  }
+  return Object.freeze(result);
+}
+
+// Commitments are a list in the view and a map by action in the patch.
+function patchedCommitments(held, change) {
+  let byAction;
+  if (held) {
+    byAction = {};
+    for (const commitment of held) put(byAction, commitment.action, commitment);
+  }
+  const map = patchedMap(byAction, change, false);
+  return Object.freeze(Object.keys(map).length === 0 ? [] : (change.keys ?? held.map(c => c.action)).map(action => map[action]));
+}
+
+function patchedView(held, patch) {
+  if (!isPlainObject(patch) || patch.schema !== VIEW_PATCH_SCHEMA || !isPlainObject(patch.members)) throw new TypeError('malformed view patch');
+  const base = patch.since === null ? null : held;
+  if (patch.since !== null && (!held || held.sequence !== patch.since)) throw new TypeError('view patch applies to a view not held');
+  const view = { schema: patch.view_schema, sequence: patch.sequence, last_event: patch.last_event };
+  for (const name of VIEW_FIELDS) {
+    const change = own(patch.members, name);
+    if (change === undefined) {
+      if (!base) throw new TypeError(`view patch leaves out ${name}`);
+      view[name] = base[name];
+    } else if (WHOLE.has(name)) {
+      if (!isPlainObject(change) || !Object.hasOwn(change, 'value')) throw new TypeError('malformed whole change');
+      view[name] = deepFreeze(change.value);
+    } else if (LISTS.has(name)) {
+      view[name] = patchedList(base?.[name], change);
+    } else if (name === 'commitments') {
+      view[name] = patchedCommitments(base?.[name], change);
+    } else {
+      view[name] = patchedMap(base?.[name], change, NESTED.has(name));
+    }
+  }
+  return Object.freeze(view);
+}
+
 // An accepted dispatch outcome as the runtime writes it: these fields in this
 // order, the snapshot last. The snapshot's text, or null for any other text,
 // which is parsed and checked in full.
@@ -155,6 +259,8 @@ export class CaveatSession {
   // The snapshot text the last accepted dispatch() or snapshot() read, while
   // no call can have changed the session since.
   #lastSnapshot = null;
+  // The read-only view dispatchView({ reuse: true }) last returned.
+  #heldView = null;
 
   constructor(inner, runtime) {
     this.#inner = inner;
@@ -173,6 +279,7 @@ export class CaveatSession {
 
   #fail(error) {
     this.#state = 'fatal';
+    this.#heldView = null;
     if (isTrap(error)) {
       this.#runtime.markTrapped();
       return new CaveatError('fatal', this.#runtime.trapMessage(error));
@@ -246,6 +353,10 @@ export class CaveatSession {
     this.#usable();
     const fields = viewFields(options);
     const agent = agentOption(options);
+    if (reuseOption(options)) {
+      if (fields !== null) throw new TypeError('reuse and fields cannot be combined');
+      return this.#dispatchReusedView(event, payload, agent);
+    }
     if (agent !== null && fields === null && typeof this.#inner.dispatch_view_outcome_as !== 'function') throw predatesAgents('dispatch_view_outcome_as');
     if (agent !== null && fields !== null && typeof this.#inner.dispatch_view_fields_outcome_as !== 'function') throw predatesAgents('dispatch_view_fields_outcome_as');
     if (typeof this.#inner.dispatch_view_outcome !== 'function') {
@@ -278,6 +389,43 @@ export class CaveatSession {
       throw this.#fail(error);
     }
     return outcome;
+  }
+
+  // dispatchView(event, payload, { reuse: true }): the same view, read-only,
+  // with every part the event left alone the same object as in the view the
+  // last such call returned. See spec/caveat-view-patch-0.1.md.
+  #dispatchReusedView(event, payload, agent) {
+    if (typeof this.#inner.dispatch_view_patch_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no dispatch_view_patch_outcome; it predates dispatchView reuse');
+    }
+    if (agent !== null && typeof this.#inner.dispatch_view_patch_outcome_as !== 'function') throw predatesAgents('dispatch_view_patch_outcome_as');
+    if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+    const text = payloadText(payload);
+    this.#lastSnapshot = null;
+    const held = this.#heldView?.sequence;
+    let raw;
+    try {
+      raw = agent === null
+        ? this.#inner.dispatch_view_patch_outcome(event, text, held)
+        : this.#inner.dispatch_view_patch_outcome_as(event, text, held, agent);
+    } catch (error) { this.#heldView = null; throw this.#fail(error); }
+    let outcome;
+    try { outcome = JSON.parse(raw); } catch { this.#heldView = null; throw this.#fail(new CaveatError('fatal', 'dispatchView returned text that is not JSON')); }
+    if (!validOutcome(outcome, 'patch')) {
+      this.#heldView = null;
+      const error = new CaveatError('fatal', `unrecognised dispatch outcome: ${String(raw).slice(0, 200)}`);
+      error.received = outcome;
+      throw this.#fail(error);
+    }
+    if (outcome.outcome !== 'accepted') return outcome;
+    let view;
+    try { view = patchedView(this.#heldView, outcome.patch); } catch {
+      // The event is applied either way: read the whole view instead, and
+      // start the next patch from nothing.
+      view = deepFreeze(this.#call(() => JSON.parse(this.#inner.view())));
+    }
+    this.#heldView = view;
+    return { schema: outcome.schema, outcome: 'accepted', view };
   }
 
   // What dispatchView(event, payload, options) would return, run on a copy of
@@ -449,6 +597,7 @@ export class CaveatSession {
   // during free() marks the runtime trapped for every other session.
   close() {
     this.#lastSnapshot = null;
+    this.#heldView = null;
     if (this.#state === 'open' && !this.#runtime.trapped) {
       this.#state = 'closed';
       this.#runtime.released(this);

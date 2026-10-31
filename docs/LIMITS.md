@@ -133,6 +133,14 @@ reach the node cap once its stream holds enough readings. Such an event is
 refused with `limit/evaluation_limit` (from 1.4.0; before it, fatal
 `unclassified`).
 
+**Expansion.** A program's expression expands to at most 4,096 nodes, with
+its function calls and `define`s inlined, or the program does not load. Each
+call's arguments are expanded once and its body reads them by position, so a
+function that reads a parameter twice, as `min` and `max` do, does not copy
+the argument (from 1.5.0, finding D034). Before it, each read copied the
+argument, so `min` nested to the right over eight values passed the limit
+although the same `min` written balanced loaded.
+
 **Text.** A text value, bound or computed, holds at most 65,536 bytes. An
 event whose expression would make a longer one is refused with
 `limit/text_limit`, and the session goes on (from 1.4.1; before it, such an
