@@ -8155,13 +8155,23 @@ impl ReactiveSession {
         }
         // The caveat and whatever qualifies it, as `qualify` adds them. Each
         // node has one name, so a reached caveat's name is its late name.
-        let names = self
-            .late_caveat_nodes
-            .iter()
-            .filter(|(id, _)| reached.contains(id))
-            .map(|(_, name)| name.clone())
-            .chain(self.incoming_caveats(reached.iter().copied()))
-            .collect::<Vec<_>>();
+        // Their order matters only past the identifier limit, where it
+        // decides which limit `from_names` reports: there they keep the
+        // order of the symbol table, as they always had.
+        let mut names = if reached.len() > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            self.symbols
+                .iter()
+                .filter(|(_, id)| reached.contains(id))
+                .map(|(name, _)| name.clone())
+                .collect::<Vec<_>>()
+        } else {
+            self.late_caveat_nodes
+                .iter()
+                .filter(|(id, _)| reached.contains(id))
+                .map(|(_, name)| name.clone())
+                .collect::<Vec<_>>()
+        };
+        names.extend(self.incoming_caveats(reached.iter().copied()));
         provenance.merge(&Provenance::from_names([], names)?)
     }
 
