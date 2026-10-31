@@ -203,6 +203,7 @@ compares the interface and the initial snapshot byte for byte.
 
 ## Changes
 
+- 2026-10-31: a three-word relation about evidence named `agent` (`agent supports c;`, `opposes`, `qualifies`) is a relation again. From 1.4.0 the `agent` statement took every line that starts with the word and refused it, although the program loaded on 1.3.0 (D035). Neither statement has a three-word form with a relation word in second place.
 - 2026-10-26: the what-if path takes an agent (`what_if_view_outcome_as`,
   `what_if_view_fields_outcome_as`, `whatIf(event, payload, { agent })`, and
   `whatIf` on a scoped session). Found by the Conway test of the 1.4 features

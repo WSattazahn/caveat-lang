@@ -176,5 +176,6 @@ digest for every program before this change and after it.
 
 ## Changes
 
+- 2026-10-31: a three-word relation about evidence named `threshold` (`threshold supports c;`, `opposes`, `qualifies`) is a relation again. From this draft the `threshold` statement took every line that starts with the word and refused it, although the program loaded on 1.3.0 (D035). Neither statement has a three-word form with a relation word in second place.
 - 2026-10-26: drafted and implemented for 1.5, from the graded-belief design
   note's P2 ([graded belief](../docs/design/graded-belief.md)).
