@@ -33,7 +33,7 @@ pub struct ReactiveViewV2<'a> {
     pub commitments: Vec<ViewCommitment>,
     pub commitment_grounds: BTreeMap<&'a str, OrderedGrounds<'a>>,
     pub decision_series: &'a BTreeMap<String, DecisionSeries>,
-    pub decision_journal: &'a [JournalEntry],
+    pub decision_journal: &'a crate::chunked::Chunked<JournalEntry>,
     pub relations: Vec<MapRelation>,
     /// The snapshot's take-back records, only in a program that takes back.
     /// See spec/caveat-take-back-0.1.md, "Views".
