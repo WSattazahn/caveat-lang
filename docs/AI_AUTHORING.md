@@ -832,6 +832,26 @@ a newly committed decision alone do not establish the right grounds.
 For hypotheses, see [branching with a separate runtime](../kit/examples/agent-evidence/BRANCHING.md).
 A second session sharing a WASM instance cannot isolate a trap.
 
+A caveat that may later be cleared for some of its evidence should be applied
+by an event, not declared. `kx7_gauge qualifies r003;` holds for the whole
+session and nothing takes it off. Applied with `qualify`, it can be taken back
+from the evidence a later finding clears and stay on the rest:
+
+```caveat
+caveat kx7_gauge consequence material;
+event flag_gauge;
+event clear_r003;
+on flag_gauge qualify r003 with kx7_gauge;
+on flag_gauge qualify r011 with kx7_gauge;
+on clear_r003 reveal finding;
+on clear_r003 unqualify r003 with kx7_gauge;
+```
+
+After `clear_r003`, a value computed from `r003` alone no longer carries
+`kx7_gauge`, one that also reads `r011` still does, and the snapshot's
+`taken_back` records what was cleared and by which event
+([Take Back 0.1](../spec/caveat-take-back-0.1.md)).
+
 ## Record "not ready" with its reasons
 
 A gate whose honest answer is "not ready" can keep that answer with its
