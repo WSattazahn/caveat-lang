@@ -157,7 +157,7 @@ const unobserved = { sequence: null, event: null, payload: null };
 const agentOf = record => (typeof record?.agent === 'string' ? { agent: record.agent } : {});
 const by = item => (typeof item?.agent === 'string' ? ` by ${item.agent}` : '');
 
-export function explain(snapshot, events = [], { archive = [], laterCaveats = false } = {}) {
+export function explain(snapshot, events = [], { archive = [], laterCaveats = false, lineageNotes = false } = {}) {
   const observedBy = observers(events);
   const qualifiedBy = caveatsByEvidence(snapshot);
   const takenBackBy = takeBacksByEvidence(snapshot);
@@ -272,10 +272,10 @@ export function explain(snapshot, events = [], { archive = [], laterCaveats = fa
     name,
     limit: series.limit,
     current: series.current,
-    revisions: (series.revisions ?? []).map(revision => {
+    revisions: notedLineage((series.revisions ?? []).map(revision => {
       seriesIds.add(revision.id);
       return describe(revision.id, series.current, revision.outcome);
-    }),
+    }), lineageNotes),
     ...foreclosure(name),
   }));
   // A plain commit has one current record rather than a declared revision
@@ -310,6 +310,30 @@ function qualifiedSince(grounds, recorded, qualifiedBy) {
   return grounds.evidence.flatMap(name => {
     const caveats = (qualifiedBy[name] ?? []).filter(caveat => caveat !== 'withdrawn' && !held.has(caveat));
     return caveats.length ? [{ evidence: name, caveats }] : [];
+  });
+}
+
+// With `lineageNotes`: a revision after a reopening holds its predecessor's
+// basis and the evidence that reopened it in its lineage
+// (spec/caveat-reactive-0.5.md), so evidence the new decision never used can
+// be listed as something that could have influenced it. Each such name is
+// noted with the previous revision: what it rested on, why it was reopened,
+// or what could have influenced it.
+function notedLineage(revisions, lineageNotes) {
+  if (!lineageNotes) return revisions;
+  return revisions.map((revision, index) => {
+    const previous = revisions[index - 1];
+    if (!previous) return { ...revision, lineage_from: [] };
+    const also = revision.lineage.evidence.filter(name => !revision.grounds.evidence.includes(name));
+    const lineage_from = also.flatMap(name => {
+      if (previous.grounds.evidence.includes(name)) return [{ evidence: name, revision: previous.id, as: 'grounds' }];
+      if (previous.history.some(entry => entry.change === 'reopened' && entry.because.includes(name))) {
+        return [{ evidence: name, revision: previous.id, as: 'reopening' }];
+      }
+      if (previous.lineage.evidence.includes(name)) return [{ evidence: name, revision: previous.id, as: 'lineage' }];
+      return [];
+    });
+    return { ...revision, lineage_from };
   });
 }
 
@@ -434,7 +458,15 @@ export function formatExplanation(report, title = 'the program') {
       const alsoDeparted = (revision.lineage.departed ?? [])
         .filter(marker => !inGrounds.has(markerIdentity(marker)));
       if (also.length || alsoDeparted.length) {
-        lines.push(`      could also have been influenced by ${list([...also, ...alsoDeparted.map(markerText)])}`);
+        const noted = new Map((revision.lineage_from ?? []).map(item => [item.evidence, item]));
+        const named = also.map(name => {
+          const from = noted.get(name);
+          if (!from) return name;
+          if (from.as === 'grounds') return `${name} (${from.revision} rested on it)`;
+          if (from.as === 'reopening') return `${name} (it reopened ${from.revision})`;
+          return `${name} (it could have influenced ${from.revision})`;
+        });
+        lines.push(`      could also have been influenced by ${list([...named, ...alsoDeparted.map(markerText)])}`);
       }
       for (const entry of revision.history) {
         const committed = entry.change === 'committed';

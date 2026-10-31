@@ -46,7 +46,7 @@ evidence latest_gap_report from "a report that carries(latest(STREAM), C) did no
 evidence next_report from "a report that a fresh author lacked a freeze construct and nested for, and wanted a faster view and a smaller save";
 evidence openai_review from "OpenAI's review of the Caveat plugin 1.1.1 with the hosted MCP server";
 evidence owner from "the owner's answer to a card";
-readings approvals from owner limit 64;            # value: the item code approved
+readings approvals from owner limit 256;            # value: the item code approved
 
 # ---- Decisions, as series: each may be reopened and revised ----------------
 
