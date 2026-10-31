@@ -57,8 +57,8 @@ checks that the two agree.
 
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
   `caveat-0.5-draft.md`, `caveat-member-symbols-0.1.md`,
-  `caveat-reinstatement-0.1.md` and `caveat-evidence-triggers-0.1.md`, which
-  nothing implements yet.
+  `caveat-reinstatement-0.1.md`, `caveat-evidence-triggers-0.1.md` and
+  `caveat-choices-0.1.md`, which nothing implements yet.
 - The 1.5 drafts `caveat-across-members-0.1.md`,
   `caveat-reading-caveats-0.1.md`, `caveat-thresholds-0.1.md`,
   `caveat-find-0.1.md` and `caveat-view-patch-0.1.md`, which become stable
