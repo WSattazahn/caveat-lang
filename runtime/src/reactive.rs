@@ -17,7 +17,7 @@ pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 const LIMIT: f64 = 1_000_000_000_000.0;
 /// The caveat a withdrawal applies. See spec/caveat-withdrawal-0.1.md.
@@ -37,6 +37,17 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
+
+/// The lineage a withdrawal adds to a value read through a record: the
+/// `withdrawn` caveat alone. Built once rather than on every read.
+fn withdrawn_lineage() -> &'static Provenance {
+    static LINEAGE: OnceLock<Provenance> = OnceLock::new();
+    LINEAGE.get_or_init(|| {
+        let mut lineage = Provenance::default();
+        lineage.caveats.insert(WITHDRAWN);
+        lineage
+    })
+}
 
 /// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
 /// for any caveat, or the least consequence it counts.
@@ -1916,6 +1927,9 @@ pub struct ReactiveSession {
     /// the session runs, so the only ones a record may lack. See
     /// spec/caveat-caveat-sources-0.1.md.
     late_caveats: Arc<BTreeSet<String>>,
+    /// The nodes of `late_caveats`, each with its name, in node order. A
+    /// declared caveat's name and node are fixed when the program loads.
+    late_caveat_nodes: Arc<Vec<(NodeId, String)>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
@@ -2204,6 +2218,7 @@ impl ReactiveSession {
             taken_back: Arc::default(),
             take_back_caveats: Arc::default(),
             late_caveats: Arc::default(),
+            late_caveat_nodes: Arc::default(),
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
@@ -5424,25 +5439,36 @@ impl ReactiveSession {
         roots: impl IntoIterator<Item = NodeId>,
         honor_take_back: bool,
     ) -> Vec<String> {
+        // Only `qualifies` relations lead anywhere. Read them out of the
+        // graph once, in graph order, rather than the whole graph once for
+        // each node reached.
+        let qualifies = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == Relation::Qualifies)
+            .collect::<Vec<_>>();
+        if qualifies.is_empty() {
+            return Vec::new();
+        }
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
         let mut visited = HashSet::default();
         let mut caveats = HashSet::default();
-        let marked = if honor_take_back {
-            self.marked_relations()
-        } else {
-            HashMap::default()
-        };
+        // Counted when a relation first reaches a node, not before.
+        let mut marked = None;
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
             let mut passed = HashMap::default();
-            for edge in self
-                .graph
-                .edges
-                .iter()
-                .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
-            {
+            for edge in qualifies.iter().filter(|edge| edge.to == id) {
+                let marked = marked.get_or_insert_with(|| {
+                    if honor_take_back {
+                        self.marked_relations()
+                    } else {
+                        HashMap::default()
+                    }
+                });
                 // A taken-back relation no longer qualifies what it names.
                 if let Some(count) = marked.get(&(edge.from, id)) {
                     let seen = passed.entry(edge.from).or_insert(0);
@@ -5459,6 +5485,9 @@ impl ReactiveSession {
                     frontier.push(edge.from);
                 }
             }
+        }
+        if caveats.is_empty() {
+            return Vec::new();
         }
         self.symbols
             .iter()
@@ -7715,6 +7744,13 @@ impl ReactiveSession {
                 })
                 .collect(),
         );
+        let mut nodes = self
+            .late_caveats
+            .iter()
+            .filter_map(|caveat| self.symbols.get(caveat).map(|&id| (id, caveat.clone())))
+            .collect::<Vec<_>>();
+        nodes.sort_unstable();
+        self.late_caveat_nodes = Arc::new(nodes);
         Ok(())
     }
 
@@ -8091,12 +8127,13 @@ impl ReactiveSession {
         mut provenance: Provenance,
     ) -> Result<Provenance, EvalError> {
         self.read_live(&mut provenance)?;
-        if provenance
-            .evidence
-            .iter()
-            .any(|evidence| self.withdrawal_of(evidence).is_some())
+        if !self.withdrawals.is_empty()
+            && provenance
+                .evidence
+                .iter()
+                .any(|evidence| self.withdrawal_of(evidence).is_some())
         {
-            provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
+            provenance.merge(withdrawn_lineage())?;
         }
         Ok(provenance)
     }
@@ -8116,12 +8153,13 @@ impl ReactiveSession {
         if reached.is_empty() {
             return Ok(());
         }
-        // The caveat and whatever qualifies it, as `qualify` adds them.
+        // The caveat and whatever qualifies it, as `qualify` adds them. Each
+        // node has one name, so a reached caveat's name is its late name.
         let names = self
-            .symbols
+            .late_caveat_nodes
             .iter()
-            .filter(|(_, id)| reached.contains(id))
-            .map(|(name, _)| name.clone())
+            .filter(|(id, _)| reached.contains(id))
+            .map(|(_, name)| name.clone())
             .chain(self.incoming_caveats(reached.iter().copied()))
             .collect::<Vec<_>>();
         provenance.merge(&Provenance::from_names([], names)?)
@@ -8131,38 +8169,74 @@ impl ReactiveSession {
     /// `provenance` lacks, where it lists E: what `read_live` adds, as
     /// (C, E) pairs.
     fn live_late_relations(&self, provenance: &Provenance) -> BTreeSet<(NodeId, NodeId)> {
-        if self.late_caveats.is_empty() {
-            return BTreeSet::new();
-        }
-        // A handful of names each: sorted lists, not hash sets.
-        let mut late = self
-            .late_caveats
+        // A late caveat's name, by node. A handful of caveats each: a sorted
+        // list, not a hash set.
+        let late_name = |caveat: NodeId| {
+            self.late_caveat_nodes
+                .binary_search_by_key(&caveat, |&(id, _)| id)
+                .ok()
+                .map(|at| self.late_caveat_nodes[at].1.as_str())
+        };
+        let lacks = |caveat: NodeId| {
+            late_name(caveat).is_some_and(|name| !provenance.caveats.contains(name))
+        };
+        if self
+            .late_caveat_nodes
             .iter()
-            .filter(|caveat| !provenance.caveats.contains(*caveat))
-            .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<Vec<_>>();
-        if late.is_empty() {
+            .all(|(_, caveat)| provenance.caveats.contains(caveat.as_str()))
+        {
             return BTreeSet::new();
         }
-        late.sort_unstable();
+        // Every relation from one of them, so a pair appears once for each
+        // of its relations.
+        let mut relations = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == Relation::Qualifies && lacks(edge.from))
+            .map(|edge| (edge.from, edge.to))
+            .collect::<Vec<_>>();
+        if relations.is_empty() {
+            return BTreeSet::new();
+        }
+        // The evidence `provenance` lists, by node. Each node has one name.
         let mut listed = provenance
             .evidence
             .iter()
-            .filter_map(|name| self.symbols.get(name.as_str()).copied())
+            .filter_map(|name| {
+                self.symbols
+                    .get(name.as_str())
+                    .map(|&id| (id, name.as_str()))
+            })
             .collect::<Vec<_>>();
         listed.sort_unstable();
-        self.graph
-            .edges
-            .iter()
-            .filter(|edge| {
-                edge.relation == Relation::Qualifies
-                    && late.binary_search(&edge.from).is_ok()
-                    && listed.binary_search(&edge.to).is_ok()
-            })
-            .map(|edge| (edge.from, edge.to))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .filter(|&(caveat, evidence)| self.has_live_relation(caveat, evidence))
+        let name_of = |evidence: NodeId| {
+            listed
+                .binary_search_by_key(&evidence, |&(id, _)| id)
+                .ok()
+                .map(|at| listed[at].1)
+        };
+        relations.retain(|&(_, evidence)| name_of(evidence).is_some());
+        relations.sort_unstable();
+        // As `has_live_relation`: a pair is live while it has more relations
+        // than take-backs have marked. A take-back names the pair's caveat
+        // and evidence, and a name has one node.
+        let marked = |(caveat, evidence): (NodeId, NodeId)| {
+            if self.taken_back.is_empty() {
+                return 0;
+            }
+            let (Some(caveat), Some(evidence)) = (late_name(caveat), name_of(evidence)) else {
+                return 0;
+            };
+            self.taken_back
+                .iter()
+                .filter(|record| record.caveat == caveat && record.evidence == evidence)
+                .count()
+        };
+        relations
+            .chunk_by(|left, right| left == right)
+            .filter(|run| run.len() > marked(run[0]))
+            .map(|run| run[0])
             .collect()
     }
 
