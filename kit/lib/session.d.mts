@@ -55,6 +55,13 @@ export interface DispatchAccepted {
   snapshot: Snapshot;
 }
 
+/** A value no part of which can be written: what `dispatchView` returns with `reuse`. */
+export type DeepReadonly<T> = T extends (infer E)[]
+  ? readonly DeepReadonly<E>[]
+  : T extends object
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+    : T;
+
 /** An accepted event, from `dispatchView`: the view after it. */
 export interface DispatchViewAccepted<V = View> {
   schema: 'caveat-dispatch/0.1';
@@ -149,6 +156,13 @@ export declare class CaveatSession {
    * JSON would change throws `CaveatError("payload")` and changes nothing.
    */
   dispatch(event: string, payload?: object, options?: DispatchOptions): DispatchOutcome;
+  /**
+   * The same outcome, read-only, with every part the event left alone the
+   * same object as in the view the last such call returned. The JSON text is
+   * the same as without `reuse`. Cannot be combined with `fields`. See
+   * spec/caveat-view-patch-0.1.md.
+   */
+  dispatchView(event: string, payload: object, options: DispatchOptions & { reuse: true }): DispatchViewOutcome<DeepReadonly<View>>;
   /** The same transaction as `dispatch`, with the view in place of the snapshot. */
   dispatchView(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
   /**
@@ -280,6 +294,9 @@ export interface RuntimeSessionHandle {
   dispatch_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_delta_outcome_as?(event: string, payload: string, agent: string): string;
+  /** The View 0.1 patch from the view as of `held`. See spec/caveat-view-patch-0.1.md. */
+  dispatch_view_patch_outcome?(event: string, payload: string, held: number | undefined): string;
+  dispatch_view_patch_outcome_as?(event: string, payload: string, held: number | undefined, agent: string): string;
   dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   what_if_view_outcome?(event: string, payload: string): string;
   what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;

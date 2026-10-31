@@ -1,5 +1,5 @@
 use crate::map::to_json_pretty;
-use crate::reactive::{ReactiveSession, ViewDeltaBase};
+use crate::reactive::{ReactiveSession, ViewDeltaBase, ViewPatchBase};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -62,6 +62,9 @@ pub struct WebReactiveSession {
     /// The view as `dispatch_view_delta_outcome` last left it; every other
     /// method that changes the session clears it.
     delta_base: ViewDeltaBase,
+    /// The view as `dispatch_view_patch_outcome` last left it; every other
+    /// method that changes the session clears it.
+    patch_base: ViewPatchBase,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -71,6 +74,7 @@ impl WebReactiveSession {
         Ok(Self {
             inner: ReactiveSession::from_source_cached(source)?,
             delta_base: ViewDeltaBase::default(),
+            patch_base: ViewPatchBase::default(),
         })
     }
 
@@ -161,7 +165,7 @@ impl WebReactiveSession {
     }
 
     pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         self.inner
             .dispatch_json(event, payload_json)
             .and_then(|snapshot| to_json_pretty(&snapshot))
@@ -170,7 +174,7 @@ impl WebReactiveSession {
     /// Structured refusals are returned values; every thrown error is fatal.
     /// Uses the same interpreter/transaction as dispatch. See Dispatch 0.1.
     pub fn dispatch_outcome(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         match self.inner.dispatch_outcome_json(event, payload_json) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
@@ -187,7 +191,7 @@ impl WebReactiveSession {
         payload_json: &str,
         agent: &str,
     ) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         match self
             .inner
             .dispatch_outcome_as_json(event, payload_json, Some(agent))
@@ -206,7 +210,7 @@ impl WebReactiveSession {
         payload_json: &str,
         agent: &str,
     ) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         match self
             .inner
             .dispatch_view_outcome_as_json(event, payload_json, Some(agent))
@@ -227,7 +231,7 @@ impl WebReactiveSession {
         agent: &str,
     ) -> Result<String, String> {
         let fields = crate::reactive::ViewFields::from_json(fields_json)?;
-        self.delta_base.clear();
+        self.forget_views();
         match self.inner.dispatch_view_fields_outcome_as_json(
             event,
             payload_json,
@@ -248,6 +252,7 @@ impl WebReactiveSession {
         payload_json: &str,
         agent: &str,
     ) -> Result<String, String> {
+        self.patch_base.clear();
         match self.inner.dispatch_view_delta_outcome_as_json_from(
             &mut self.delta_base,
             event,
@@ -270,7 +275,7 @@ impl WebReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         match self.inner.dispatch_view_outcome_json(event, payload_json) {
             Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
             Err(fatal) => {
@@ -289,7 +294,7 @@ impl WebReactiveSession {
         fields_json: &str,
     ) -> Result<String, String> {
         let fields = crate::reactive::ViewFields::from_json(fields_json)?;
-        self.delta_base.clear();
+        self.forget_views();
         match self
             .inner
             .dispatch_view_fields_outcome_json(event, payload_json, fields)
@@ -393,6 +398,7 @@ impl WebReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<String, String> {
+        self.patch_base.clear();
         match self.inner.dispatch_view_delta_outcome_json_from(
             &mut self.delta_base,
             event,
@@ -427,7 +433,7 @@ impl WebReactiveSession {
     /// The records departed since the last drain, as a JSON array, and an
     /// empty archive. See spec/caveat-departure-0.1.md, "The archive".
     pub fn drain_archive(&mut self) -> String {
-        self.delta_base.clear();
+        self.forget_views();
         serde_json::to_string(&self.inner.drain_archive()).expect("finite archive entries")
     }
 
@@ -442,14 +448,76 @@ impl WebReactiveSession {
         Ok(Self {
             inner: ReactiveSession::restore_json(source, saved)?,
             delta_base: ViewDeltaBase::default(),
+            patch_base: ViewPatchBase::default(),
         })
+    }
+
+    /// `dispatch_view_outcome` with the View 0.1 patch of an accepted event
+    /// in place of the view: what changed since the view as of `held`, the
+    /// sequence of the view the host holds from the last call, or every
+    /// member when `held` is `None` or that view is no longer kept. A refusal
+    /// is the same returned value and a fatal error the same thrown report.
+    /// See spec/caveat-view-patch-0.1.md.
+    pub fn dispatch_view_patch_outcome(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+    ) -> Result<String, String> {
+        self.view_patch(event, payload_json, held, None)
+    }
+
+    /// `dispatch_view_patch_outcome` for an event the host says `agent` sent.
+    pub fn dispatch_view_patch_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+        agent: &str,
+    ) -> Result<String, String> {
+        self.view_patch(event, payload_json, held, Some(agent))
     }
 
     /// Dispatch and return the per-event view rather than the full snapshot.
     pub fn dispatch_view(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
-        self.delta_base.clear();
+        self.forget_views();
         self.inner
             .dispatch_view_json(event, payload_json)
             .map(|view| serde_json::to_string(&view).expect("finite reactive view"))
+    }
+}
+
+impl WebReactiveSession {
+    /// Forget both kept views, as after anything but their own dispatch
+    /// changes the session.
+    fn forget_views(&mut self) {
+        self.delta_base.clear();
+        self.patch_base.clear();
+    }
+
+    fn view_patch(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+        agent: Option<&str>,
+    ) -> Result<String, String> {
+        self.delta_base.clear();
+        // A sequence is a whole number; anything else holds no view.
+        let held = held
+            .filter(|held| held.fract() == 0.0 && *held >= 0.0)
+            .map(|held| held as u64);
+        match self.inner.dispatch_view_patch_outcome_json_from(
+            &mut self.patch_base,
+            held,
+            event,
+            payload_json,
+            agent,
+        ) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
     }
 }
