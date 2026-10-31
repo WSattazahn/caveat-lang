@@ -255,6 +255,14 @@ snapshot can contribute; a supplied archive does not establish current
 qualifications on departed grounds. An empty list does not prove that no
 qualification happened, and the report does not reopen any decision.
 
+A decision made after a reopening also holds, in its lineage, what the revision
+before it rested on and what reopened it, so `explain` can list those as things
+that "could also have" influenced it although its grounds do not use them.
+`--lineage-notes` (from 1.5; from code, `explain(snapshot, events, {
+lineageNotes: true })`) marks each such name, as in "old_study (conclude@1
+rested on it)" or "retraction (it reopened conclude@1)", and adds the report's
+`lineage_from`. Without it, the output is as before.
+
 `caveat dependents` asks the reverse question: what rests on one piece of
 evidence, reading stream or caveat. It lists:
 

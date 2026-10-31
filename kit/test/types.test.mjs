@@ -550,7 +550,7 @@ test('explain, dependents and check reports have the declared fields', () => {
     const sent = traced.map(({ event, payload, agent, outcome }) => ({ event, payload, ...(agent === undefined ? {} : { agent }), outcome }));
     explained.push(explain(session.snapshot(), sent));
     explained.push(explain(session.snapshot(), traced));
-    explained.push(explain(session.snapshot(), sent, { laterCaveats: true }));
+    explained.push(explain(session.snapshot(), sent, { laterCaveats: true, lineageNotes: true }));
     rests.push(dependents(session.snapshot(), subject));
     const archive = session.drainArchive();
     if (archive.length) {
