@@ -210,3 +210,5 @@
 {"event":"approve","payload":{"item":395}}
 {"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":392}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":396}}
