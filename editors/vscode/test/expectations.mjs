@@ -143,6 +143,12 @@ export const groups = [
   { name: 'integer clocks', words: ['integer'], probe: 'clock tick every 16 @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'history windows', words: ['window'], probe: 'readings r from e @ 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'journal windows', words: ['journal'], probe: '@ window 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  // `work skips other routes;` (spec/caveat-routed-work-0.1.md): the four
+  // words are a keyword only together, in that one statement.
+  { name: 'routed work', words: ['work'], probe: ['@ skips other routes;', 'x = 1; @ skips other routes;'], scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;', '@ supports x;', '@ skips other;'] },
+  { name: 'routed work skips', words: ['skips'], probe: 'work @ other routes;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  { name: 'routed work other', words: ['other'], probe: 'work skips @ routes;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  { name: 'routed work routes', words: ['routes'], probe: 'work skips other @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;', 'work skips other @ now;'] },
   {
     name: 'changed triggers',
     words: ['changed'],
@@ -247,10 +253,12 @@ export const highlightedWords = new Set(groups
 
 // The scope a statement head must have, if it is a keyword. Positional
 // words need their following source too: journal is a declaration only in
-// `journal window N`, and remains a name in a relation or expression.
+// `journal window N`, work only in `work skips other routes;`, and each
+// remains a name in a relation or expression.
 const headOrder = ['statement heads of the other profiles', 'declarations', 'control', 'effects', 'logical operators'];
 export function expectedHeadScope(word, following = '') {
   if (word === 'journal' && /^\s+window\b/.test(following)) return group('journal windows').scope;
+  if (word === 'work' && /^[ \t]+skips[ \t]+other[ \t]+routes[ \t]*;/.test(following)) return group('routed work').scope;
   for (const name of headOrder) if (group(name).words.includes(word)) return group(name).scope;
   return null;
 }

@@ -280,12 +280,14 @@ function measureExplain() {
     const text = explainText(join(root, 'experiments/token-cost/growth.cav'), list);
     growth.push({ grounds, revisions, events: list.length, explain: count(text).o200k, withoutRepeatedObservations: count(withoutRepeatedObservations(text)).o200k });
   }
-  const ledgerEvents = read('ledger/events.jsonl').trim().split('\n').map(l => JSON.parse(l));
+  // The ledger grows with every merge; its first 242 events keep this number fixed.
+  const ledgerLines = read('ledger/events.jsonl').split('\n').slice(0, 242);
+  const ledgerEvents = ledgerLines.filter(l => l.trim()).map(l => JSON.parse(l));
   const ledgerText = explainText(join(root, 'ledger/project.cav'), ledgerEvents);
   const ferryText = explainText(join(root, mcpCases[0].source), mcpCases[0].events);
   return {
     growth,
-    ledger: { events: ledgerEvents.length, program: count(read('ledger/project.cav')).o200k, eventsFile: count(read('ledger/events.jsonl')).o200k, explain: count(ledgerText).o200k, withoutRepeatedObservations: count(withoutRepeatedObservations(ledgerText)).o200k },
+    ledger: { events: ledgerEvents.length, program: count(read('ledger/project.cav')).o200k, eventsFile: count(ledgerLines.join('\n') + '\n').o200k, explain: count(ledgerText).o200k, withoutRepeatedObservations: count(withoutRepeatedObservations(ledgerText)).o200k },
     ferryText: count(ferryText).o200k,
   };
 }

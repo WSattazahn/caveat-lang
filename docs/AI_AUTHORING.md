@@ -591,6 +591,32 @@ asks the same of the Kth revision. A later reading is never in an earlier
 decision's basis. See [reading index](../spec/caveat-reading-index-0.1.md) and
 [in basis](../spec/caveat-in-basis-0.1.md).
 
+When a source publishes a correction, such as an inspector restating a load
+from 44 t to 42 t, record it as one event on the same stream: withdraw the
+reading the correction replaces, because of the correction, and sample the
+corrected value. Do not declare a second piece of evidence for the corrected
+report; the stream already says which report it is, and a new name splits its
+history in two.
+
+```caveat
+evidence report from "inspection report R102";
+evidence erratum from "the inspector's published correction";
+readings capacity from report limit 4;
+event correct tonnes min 0 max 100;
+on correct when not has_sample(capacity) reject "nothing filed";
+on correct reveal erratum;
+on correct withdraw latest(capacity) because erratum;
+on correct sample capacity = tonnes supports safe;
+on correct when committed(verdict) and not reopened(verdict) and rests_on_withdrawn(verdict)
+    reopen verdict because erratum;
+```
+
+The rules run in order, so `withdraw latest(capacity)` names the old reading
+and the `sample` after it adds the new one, which does not carry `withdrawn`.
+The withdrawal record and the new reading share the event's sequence, which is
+how a reader pairs the two. A decision made on the old value reopens; the next
+one is made on 42 t.
+
 When a reading's source said something in words, such as a version range,
 keep the words with the number: `sample node_min = minimum supports compatible
 noting range;`, where `range` is an `id` parameter. Decisions still compare the
@@ -805,6 +831,26 @@ a newly committed decision alone do not establish the right grounds.
 
 For hypotheses, see [branching with a separate runtime](../kit/examples/agent-evidence/BRANCHING.md).
 A second session sharing a WASM instance cannot isolate a trap.
+
+A caveat that may later be cleared for some of its evidence should be applied
+by an event, not declared. `kx7_gauge qualifies r003;` holds for the whole
+session and nothing takes it off. Applied with `qualify`, it can be taken back
+from the evidence a later finding clears and stay on the rest:
+
+```caveat
+caveat kx7_gauge consequence material;
+event flag_gauge;
+event clear_r003;
+on flag_gauge qualify r003 with kx7_gauge;
+on flag_gauge qualify r011 with kx7_gauge;
+on clear_r003 reveal finding;
+on clear_r003 unqualify r003 with kx7_gauge;
+```
+
+After `clear_r003`, a value computed from `r003` alone no longer carries
+`kx7_gauge`, one that also reads `r011` still does, and the snapshot's
+`taken_back` records what was cleared and by which event
+([Take Back 0.1](../spec/caveat-take-back-0.1.md)).
 
 ## Record "not ready" with its reasons
 

@@ -31,10 +31,10 @@
       "bytes": 10603
     },
     "kit/docs/REFERENCE.md": {
-      "o200k": 6368,
-      "cl100k": 6345,
-      "claude_legacy": 6685,
-      "bytes": 23865
+      "o200k": 6420,
+      "cl100k": 6397,
+      "claude_legacy": 6739,
+      "bytes": 24043
     },
     "kit/docs/WORKED_EXAMPLE.md": {
       "o200k": 3536,
@@ -43,10 +43,10 @@
       "bytes": 13062
     },
     "docs/AI_AUTHORING.md": {
-      "o200k": 13400,
-      "cl100k": 13345,
-      "claude_legacy": 14018,
-      "bytes": 55339
+      "o200k": 13916,
+      "cl100k": 13862,
+      "claude_legacy": 14563,
+      "bytes": 57398
     },
     "llms.txt": {
       "o200k": 1294,

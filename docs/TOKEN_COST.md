@@ -13,7 +13,7 @@ records it reads later. This page counts each one on files in this repository.
 [`experiments/token-cost/measure.mjs`](../experiments/token-cost/measure.mjs)
 counts every number below and writes them to
 [`results.json`](../experiments/token-cost/results.json). It runs this
-checkout's kit (main at `36928e8`) against the caveat-lang 1.4.1 WebAssembly
+checkout's kit (main at `9185f46`) against the caveat-lang 1.4.1 WebAssembly
 runtime from npm:
 
 ```sh
@@ -35,7 +35,7 @@ reliable.
 - **Writing a program costs about 650 to 1,100 tokens** for the trial tasks
   (12 per line). The agents' own scenario tests cost 2 to 9 times as much as
   the program.
-- **Reading first costs 1,500 to 27,000 tokens**, depending on how far down
+- **Reading first costs 1,500 to 27,500 tokens**, depending on how far down
   the documents an agent goes. The MCP tool list adds 3,951 tokens to every
   session.
 - **Tool replies are 190 to 5,500 tokens.** Nearly half of every
@@ -85,12 +85,12 @@ Where the tokens go in the twelve trial programs (v3 and v4 together):
 | `kit/docs/AUTHORING_CARD.md` | 3,332 |
 | `kit/docs/MCP.md` | 2,522 |
 | `kit/docs/WORKED_EXAMPLE.md` | 3,536 |
-| `kit/docs/REFERENCE.md` | 6,368 |
-| `docs/AI_AUTHORING.md` | 13,400 |
+| `kit/docs/REFERENCE.md` | 6,420 |
+| `docs/AI_AUTHORING.md` | 13,916 |
 | MCP `tools/list` (7 tools) | 3,951 |
 
 AGENT_START sends an agent to the card, then the one-page reference, then the
-authoring guide: 25,350 tokens if read in full. The tool list is in context on
+authoring guide: 25,918 tokens if read in full. The tool list is in context on
 every turn of an MCP session. By tool: `caveat_find` 823, `caveat_dependents`
 716, `caveat_dispatch` 671, `caveat_test` 578, `caveat_explain` 524,
 `caveat_check` 361, `caveat_validate` 276.
