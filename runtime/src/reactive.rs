@@ -8832,6 +8832,18 @@ pub(crate) fn parse_directive_at(
     ) {
         return None;
     }
+    // A relation about evidence named `agent` or `threshold` (`agent
+    // supports c;`) is a relation, as it was before those words began
+    // statements (1.4.0 and the Thresholds draft). Neither statement has a
+    // three-word form with a relation word in second place.
+    if matches!(keyword, "agent" | "threshold")
+        && matches!(
+            words.as_slice(),
+            [_, "supports" | "opposes" | "qualifies", _]
+        )
+    {
+        return None;
+    }
     Some((|| {
         match keyword {
         "proc" => parse_procedure(line, position),
