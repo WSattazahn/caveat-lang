@@ -204,3 +204,9 @@
 {"event": "find", "payload": {"number": 33}}
 {"event":"approve","payload":{"item":390}}
 {"event":"approve","payload":{"item":355}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":379}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":395}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":392}}
