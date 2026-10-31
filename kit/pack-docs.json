@@ -15,6 +15,7 @@
     "spec/caveat-define-0.1.md",
     "spec/caveat-repetition-0.1.md",
     "spec/caveat-routed-repetition-0.1.md",
+    "spec/caveat-routed-work-0.1.md",
     "spec/caveat-procedure-symbols-0.1.md",
     "spec/caveat-typed-parameters-0.1.md",
     "spec/caveat-identifiers-0.1.md",

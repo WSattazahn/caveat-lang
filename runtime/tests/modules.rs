@@ -1840,13 +1840,19 @@ const OUTSIDE_MODULES: &[&str] = &[
     "open",
     "operate",
     "options",
+    // `work skips other routes;` is the program's: link.rs refuses it in a
+    // module (spec/caveat-routed-work-0.1.md).
+    "other",
     "otherwise",
     "requires_open",
+    "routes",
     "select",
+    "skips",
     "start_at",
     "stay",
     "then",
     "when_committed",
+    "work",
 ];
 
 #[test]
