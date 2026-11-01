@@ -1269,11 +1269,14 @@ impl<'a> OrderStep<'a> {
     }
 }
 
-/// What a session shows: bindings, their lineage and what each cites.
+/// What a session shows: bindings, their lineage and what each cites, with
+/// what each binding group scoped to histories last consulted. Rules never
+/// read any of it.
 type Shown = (
     BTreeMap<String, BTreeMap<String, BindingValue>>,
     BTreeMap<String, BTreeMap<String, Provenance>>,
     BTreeMap<String, BTreeMap<String, Provenance>>,
+    Vec<Option<Arc<Consulted>>>,
 );
 
 /// Every `bind` declaration for one `TARGET.PROPERTY`, and what any of them
@@ -1297,6 +1300,140 @@ struct BindingGroup {
 /// Each bound property's value type, by target and property.
 type BindingTypes = BTreeMap<(String, String), &'static str>;
 
+/// What one evaluation of a binding group scoped to histories consulted of
+/// the qualification state that a read of any history can reach. A change
+/// to that state that touches none of it leaves the group as it was.
+/// Derived: never saved or shown, and compared only by the debug check of
+/// incremental evaluation. Names are noted by key (`consulted_key`). Once
+/// the evaluation has `settle`d it, each list of nodes or keys is sorted,
+/// without repeats; `listed` keeps the order the records were read in.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct Consulted {
+    /// Every node whose incoming `qualifies` relations, and their take-backs,
+    /// were followed: the roots of each search for caveats (evidence, the
+    /// claims it bears on, extra caveats) and every caveat it reached.
+    reached: Vec<NodeId>,
+    /// The evidence of each record read live: whether any of it is withdrawn,
+    /// and the late caveats that now qualify it.
+    listed: Vec<NameSet>,
+    /// Each name a withdrawal was looked up for.
+    withdrawals: Vec<u64>,
+    /// Each predicate dependency looked up, by kind and name, found or not.
+    predicates: Vec<u64>,
+}
+
+impl Consulted {
+    fn clear(&mut self) {
+        self.reached.clear();
+        self.listed.clear();
+        self.withdrawals.clear();
+        self.predicates.clear();
+    }
+
+    fn settle(&mut self) {
+        for keys in [
+            &mut self.reached,
+            &mut self.withdrawals,
+            &mut self.predicates,
+        ] {
+            keys.sort_unstable();
+            keys.dedup();
+        }
+    }
+}
+
+/// The key a consulted name is noted under, in one process: equal names have
+/// equal keys. Names that share a key only make a group evaluate again when
+/// it need not, so a name is noted without copying it.
+fn consulted_key(kind: &str, name: &str) -> u64 {
+    use std::hash::BuildHasher;
+    crate::fast_hash::FastState::default().hash_one((kind, name))
+}
+
+/// What one event changed of the qualification state a read of any history
+/// can reach, when every change was an addition this can name.
+#[derive(Debug, Default)]
+struct Requalified {
+    /// The node each new `qualifies` relation names, the evidence of each new
+    /// take-back, and the evidence of each new `supports` or `opposes`
+    /// relation, whose claims it now bears on.
+    nodes: BTreeSet<NodeId>,
+    /// The names of the nodes new `qualifies` relations and take-backs name.
+    relations: BTreeSet<String>,
+    /// The evidence of each new withdrawal.
+    withdrawn: BTreeSet<String>,
+    /// Each predicate dependency added, changed or cleared.
+    predicates: BTreeSet<(String, String)>,
+}
+
+impl Requalified {
+    fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+            && self.relations.is_empty()
+            && self.withdrawn.is_empty()
+            && self.predicates.is_empty()
+    }
+
+    /// Whether this changed anything `consulted` holds.
+    fn reaches(&self, consulted: &Consulted) -> bool {
+        let noted = |keys: &[u64], key: u64| keys.binary_search(&key).is_ok();
+        self.nodes
+            .iter()
+            .any(|&node| noted(&consulted.reached, node))
+            || consulted.listed.iter().any(|listed| {
+                self.relations
+                    .iter()
+                    .chain(&self.withdrawn)
+                    .any(|name| listed.contains(name))
+            })
+            || self
+                .withdrawn
+                .iter()
+                .any(|name| noted(&consulted.withdrawals, consulted_key("", name)))
+            || self
+                .predicates
+                .iter()
+                .any(|(kind, name)| noted(&consulted.predicates, consulted_key(kind, name)))
+    }
+}
+
+thread_local! {
+    /// The records one binding evaluation fills, one for each stale group
+    /// scoped to histories. Their lists keep their room from one evaluation
+    /// to the next. Never part of a session or a transaction.
+    static CONSULTING: std::cell::RefCell<Vec<Consulted>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+    /// One more than the index in `CONSULTING` of the record being filled; 0
+    /// while none is.
+    static NOTING: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Notes what an evaluation consults, while a record is being filled.
+fn consult(note: impl FnOnce(&mut Consulted)) {
+    let noting = NOTING.get();
+    if noting != 0 {
+        CONSULTING.with_borrow_mut(|records| note(&mut records[noting - 1]));
+    }
+}
+
+/// Runs `evaluate`, noting what it consults in record `slot` of
+/// `CONSULTING`, if there is one.
+fn consulting<T>(slot: Option<usize>, evaluate: impl FnOnce() -> T) -> T {
+    let Some(slot) = slot else {
+        return evaluate();
+    };
+    // Stops noting however `evaluate` ends.
+    struct Noted;
+    impl Drop for Noted {
+        fn drop(&mut self) {
+            NOTING.set(0);
+        }
+    }
+    NOTING.set(slot + 1);
+    let _noted = Noted;
+    evaluate()
+}
+
 /// What one event changed that an expression can read: states whose value,
 /// lineage or grounds differ, and whether anything the graph queries read
 /// (graph, observation and predicate records, commitments, histories) did.
@@ -1308,6 +1445,9 @@ struct Changes {
     /// records changed, if every change belongs to one of them or to nothing
     /// a history read reaches. `None` when a change could reach any of them.
     histories: Option<BTreeSet<String>>,
+    /// With `histories`: what changed of the qualification state any history
+    /// read can reach. It reaches a group only if the group consulted it.
+    requalified: Requalified,
 }
 
 impl Changes {
@@ -1337,43 +1477,87 @@ impl Changes {
             || !same(&old.decision_series, &new.decision_series)
             || !same(&old.renewals, &new.renewals)
             || !same(&old.retired, &new.retired)
-            || !same(&old.taken_back, &new.taken_back);
+            || !same(&old.taken_back, &new.taken_back)
+            || !same(&old.withdrawals, &new.withdrawals);
+        let (histories, requalified) = if graph {
+            match Self::histories_between(old, new) {
+                Some((histories, requalified)) => (Some(histories), requalified),
+                None => (None, Requalified::default()),
+            }
+        } else {
+            (Some(BTreeSet::new()), Requalified::default())
+        };
         Self {
             names,
             graph,
             // Signed zero is observable, for example through atan2.
             clock: old.elapsed.to_bits() != new.elapsed.to_bits(),
-            histories: if graph {
-                Self::histories_between(old, new)
-            } else {
-                Some(BTreeSet::new())
-            },
+            histories,
+            requalified,
         }
     }
 
-    /// The histories whose records an event changed, or `None` if it changed
-    /// something a read of any history can reach: a qualification, take-back,
-    /// withdrawal, renewal, retirement or permission, a relation from
-    /// evidence already in the graph, or a record it cannot place in one
-    /// history. Any other change to a record no history read consults (a
-    /// claim, or evidence outside every history) places nowhere.
-    fn histories_between(old: &ReactiveSession, new: &ReactiveSession) -> Option<BTreeSet<String>> {
+    /// The histories whose records an event changed, and what it changed of
+    /// the qualification state any history read can reach: new `qualifies`
+    /// relations, take-backs and withdrawals, changed predicate dependencies,
+    /// and new `supports` or `opposes` relations, which bring the caveats of
+    /// a claim to evidence a history read can list outside every history (a
+    /// withdrawal's reason, a reopening's cause or an outcome's evidence,
+    /// D036). `None` if it changed something else a read of any history can
+    /// reach: an examination, renewal, retirement or permission, a record it
+    /// cannot place in one history, or a record that was not only added to.
+    /// Any other change to a record no history read consults (a claim, or
+    /// evidence outside every history) places nowhere.
+    fn histories_between(
+        old: &ReactiveSession,
+        new: &ReactiveSession,
+    ) -> Option<(BTreeSet<String>, Requalified)> {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
         if !same(
             &old.examination_qualifications,
             &new.examination_qualifications,
-        ) || !same(&old.predicate_qualifications, &new.predicate_qualifications)
-            || !same(&old.renewals, &new.renewals)
+        ) || !same(&old.renewals, &new.renewals)
             || !same(&old.retired, &new.retired)
-            || !same(&old.taken_back, &new.taken_back)
-            || !same(&old.withdrawals, &new.withdrawals)
             || !same(&old.late_caveats, &new.late_caveats)
             || !same(&old.take_back_caveats, &new.take_back_caveats)
             || !same(&old.commitment_permissions, &new.commitment_permissions)
         {
             return None;
+        }
+        let mut requalified = Requalified::default();
+        // Take-backs and withdrawals are only added to here.
+        if !Arc::ptr_eq(&old.taken_back, &new.taken_back) {
+            for record in new.taken_back.strip_prefix(old.taken_back.as_slice())? {
+                requalified.nodes.extend(new.symbols.get(&record.evidence));
+                requalified.relations.insert(record.evidence.clone());
+            }
+        }
+        if !Arc::ptr_eq(&old.withdrawals, &new.withdrawals) {
+            for withdrawal in new.withdrawals.strip_prefix(old.withdrawals.as_slice())? {
+                requalified.withdrawn.insert(withdrawal.evidence.clone());
+            }
+        }
+        if !Arc::ptr_eq(&old.predicate_qualifications, &new.predicate_qualifications) {
+            let (old, new) = (&old.predicate_qualifications, &new.predicate_qualifications);
+            for (kind, targets) in new.iter() {
+                for (name, dependency) in targets {
+                    if old.get(kind).and_then(|targets| targets.get(name)) != Some(dependency) {
+                        requalified.predicates.insert((kind.clone(), name.clone()));
+                    }
+                }
+            }
+            for (kind, targets) in old.iter() {
+                for name in targets.keys() {
+                    if new
+                        .get(kind)
+                        .is_none_or(|targets| !targets.contains_key(name))
+                    {
+                        requalified.predicates.insert((kind.clone(), name.clone()));
+                    }
+                }
+            }
         }
         // The history a record belongs to: a history itself, or `NAME@N`.
         let history_of = |name: &str| -> Option<String> {
@@ -1485,24 +1669,25 @@ impl Changes {
             return None;
         }
         if !Arc::ptr_eq(&old.graph, &new.graph) {
-            // Edges are only added here. A `qualifies` edge reaches every
-            // value whose lineage lists its evidence. A `supports` or
-            // `opposes` edge from a node the graph already held brings the
-            // caveats of a claim to that evidence, which a history read can
-            // list outside every history: a withdrawal's reason, a
-            // reopening's cause or an outcome's evidence (D036).
+            // Edges are only added here. A `qualifies` edge reaches what
+            // follows the relations into the node it names. A `supports` or
+            // `opposes` edge makes its evidence bear on a claim, whose
+            // caveats the evidence then carries.
             let added = new.graph.edges.strip_prefix(old.graph.edges.as_slice())?;
-            if added.iter().any(|edge| match edge.relation {
-                Relation::Qualifies => true,
-                Relation::Supports | Relation::Opposes => old.graph.nodes.contains_key(&edge.from),
-                _ => false,
-            }) {
-                return None;
+            let mut touched = HashSet::default();
+            let mut qualified = HashSet::default();
+            for edge in added {
+                match edge.relation {
+                    Relation::Qualifies => {
+                        qualified.insert(edge.to);
+                    }
+                    Relation::Supports | Relation::Opposes => {
+                        requalified.nodes.insert(edge.from);
+                        touched.extend([edge.from, edge.to]);
+                    }
+                    _ => touched.extend([edge.from, edge.to]),
+                }
             }
-            let mut touched = added
-                .iter()
-                .flat_map(|edge| [edge.from, edge.to])
-                .collect::<HashSet<_>>();
             if old
                 .graph
                 .nodes
@@ -1518,26 +1703,44 @@ impl Changes {
                     .filter(|(id, node)| old.graph.nodes.get(id) != Some(*node))
                     .map(|(id, _)| *id),
             );
-            if !touched.is_empty() {
+            if !touched.is_empty() || !qualified.is_empty() {
                 for (name, id) in new.symbols.iter() {
                     if touched.contains(id) {
                         if let Some(history) = history_of(name) {
                             changed.insert(history);
                         }
                     }
+                    if qualified.contains(id) {
+                        requalified.relations.insert(name.clone());
+                    }
                 }
             }
+            requalified.nodes.extend(qualified);
         }
         changed.remove("");
-        Some(changed)
+        Some((changed, requalified))
     }
 
-    fn touch(&self, reads: &Reads, histories: Option<&BTreeSet<String>>) -> bool {
+    /// Whether a group that reads `reads` must be evaluated again. One scoped
+    /// to `histories` is when one of them changed, or when the qualification
+    /// state changed in something its last evaluation `consulted`; without
+    /// that record, when the qualification state changed at all.
+    fn touch(
+        &self,
+        reads: &Reads,
+        histories: Option<&BTreeSet<String>>,
+        consulted: Option<&Consulted>,
+    ) -> bool {
         reads.anything
             || (reads.graph
                 && self.graph
                 && match (histories, &self.histories) {
-                    (Some(read), Some(changed)) => read.iter().any(|name| changed.contains(name)),
+                    (Some(read), Some(changed)) => {
+                        read.iter().any(|name| changed.contains(name))
+                            || consulted.map_or(!self.requalified.is_empty(), |consulted| {
+                                self.requalified.reaches(consulted)
+                            })
+                    }
                     _ => true,
                 })
             || (reads.clock && self.clock)
@@ -2034,6 +2237,12 @@ pub struct ReactiveSession {
     binding_groups: Arc<Vec<BindingGroup>>,
     /// For each of `binding_rules`, its index in `binding_groups`.
     binding_group_of: Arc<Vec<usize>>,
+    /// For each of `binding_groups` scoped to histories, what its last
+    /// evaluation consulted of the qualification state. Derived: every
+    /// evaluation writes it, nothing saves or shows it, and only the debug
+    /// check compares it. Like the shown bindings, it moves into a
+    /// transaction rather than being copied.
+    binding_consults: Vec<Option<Arc<Consulted>>>,
     define_rules: Arc<Vec<(String, Expr)>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
@@ -2305,6 +2514,7 @@ impl ReactiveSession {
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
             binding_group_of: Arc::new(Vec::new()),
+            binding_consults: Vec::new(),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
@@ -3182,6 +3392,7 @@ impl ReactiveSession {
                 });
             group.histories = scoped.then(|| reads.graph_names.clone());
         }
+        self.binding_consults = vec![None; groups.len()];
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
     }
@@ -3870,12 +4081,38 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.binding_rules);
         let stale = groups
             .iter()
-            .map(|group| {
-                changes.is_none_or(|changes| changes.touch(&group.reads, group.histories.as_ref()))
+            .enumerate()
+            .map(|(group, read)| {
+                changes.is_none_or(|changes| {
+                    let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
+                    changes.touch(&read.reads, read.histories.as_ref(), consulted)
+                })
             })
             .collect::<Vec<_>>();
         if !stale.contains(&true) {
             return Ok(());
+        }
+        // Each stale group scoped to histories notes what it consults in a
+        // record of its own, kept so that a later change to anything else
+        // leaves the group as it is.
+        let mut records = 0;
+        let slots = groups
+            .iter()
+            .zip(&stale)
+            .map(|(group, &stale)| {
+                (stale && group.histories.is_some()).then(|| {
+                    records += 1;
+                    records - 1
+                })
+            })
+            .collect::<Vec<_>>();
+        if records > 0 {
+            CONSULTING.with_borrow_mut(|kept| {
+                if kept.len() < records {
+                    kept.resize_with(records, Consulted::default);
+                }
+                kept[..records].iter_mut().for_each(Consulted::clear);
+            });
         }
         let parameters = Parameters::default();
         let mut guards = vec![Provenance::default(); groups.len()];
@@ -3887,9 +4124,10 @@ impl ReactiveSession {
                 continue;
             }
             let context = || format!("binding {}.{}", binding.target, binding.property);
-            let condition = self
-                .evaluate(&binding.condition, &parameters)
-                .map_err(|error| error.context(context()))?;
+            let condition = consulting(slots[group], || {
+                self.evaluate(&binding.condition, &parameters)
+            })
+            .map_err(|error| error.context(context()))?;
             guards[group].merge(&condition.provenance)?;
             if condition.value != Value::Bool(true) {
                 continue;
@@ -3897,8 +4135,7 @@ impl ReactiveSession {
             let value = match &binding.value {
                 BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
                 BindingExpression::Expression(expression) => {
-                    let value = self
-                        .evaluate(expression, &parameters)
+                    let value = consulting(slots[group], || self.evaluate(expression, &parameters))
                         .map_err(|error| error.context(context()))?;
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
@@ -3928,12 +4165,14 @@ impl ReactiveSession {
             lineage.merge(&guard)?;
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => self.grounded_citation(
-                    &format!("binding {target}.{property}"),
-                    citations,
-                    &lineage,
-                    &parameters,
-                )?,
+                Some(citations) => consulting(slots[group], || {
+                    self.grounded_citation(
+                        &format!("binding {target}.{property}"),
+                        citations,
+                        &lineage,
+                        &parameters,
+                    )
+                })?,
             };
             shown.push((group, Some((value.value, explanation)), lineage));
         }
@@ -3959,6 +4198,31 @@ impl ReactiveSession {
                     remove_shown(&mut self.binding_explanations, target, property);
                 }
             }
+        }
+        if records > 0 {
+            // A host that kept a session whose event panicked may have lost
+            // the records with the shown bindings. A group without one is
+            // evaluated again after any change a read of a history reaches.
+            if self.binding_consults.len() < groups.len() {
+                self.binding_consults.resize(groups.len(), None);
+            }
+            CONSULTING.with_borrow_mut(|kept| {
+                for (group, slot) in slots.into_iter().enumerate() {
+                    let Some(slot) = slot else {
+                        continue;
+                    };
+                    let record = &mut kept[slot];
+                    record.settle();
+                    // The record it replaces keeps its room for the next
+                    // evaluation.
+                    match self.binding_consults[group].as_mut().and_then(Arc::get_mut) {
+                        Some(last) => std::mem::swap(last, record),
+                        None => {
+                            self.binding_consults[group] = Some(Arc::new(std::mem::take(record)));
+                        }
+                    }
+                }
+            });
         }
         Ok(())
     }
@@ -3988,6 +4252,10 @@ impl ReactiveSession {
             assert_eq!(
                 self.binding_explanations, full.binding_explanations,
                 "incremental binding explanations differ"
+            );
+            assert_eq!(
+                self.binding_consults, full.binding_consults,
+                "a binding kept a record of what it consulted that the event changed"
             );
         }
     }
@@ -5118,13 +5386,15 @@ impl ReactiveSession {
             std::mem::take(&mut self.bindings),
             std::mem::take(&mut self.binding_qualifications),
             std::mem::take(&mut self.binding_explanations),
+            std::mem::take(&mut self.binding_consults),
         )
     }
 
-    fn put_shown(&mut self, (bindings, qualifications, explanations): Shown) {
+    fn put_shown(&mut self, (bindings, qualifications, explanations, consults): Shown) {
         self.bindings = bindings;
         self.binding_qualifications = qualifications;
         self.binding_explanations = explanations;
+        self.binding_consults = consults;
     }
 
     /// Dispatch and return the full snapshot.
@@ -5564,7 +5834,9 @@ impl ReactiveSession {
             .iter()
             .filter(|edge| edge.relation == Relation::Qualifies)
             .collect::<Vec<_>>();
+        // What this answer rests on: the relations into each node it visits.
         if qualifies.is_empty() {
+            consult(|record| record.reached.extend(roots));
             return Vec::new();
         }
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
@@ -5602,6 +5874,7 @@ impl ReactiveSession {
                 }
             }
         }
+        consult(|record| record.reached.extend(visited.iter().copied()));
         if caveats.is_empty() {
             return Vec::new();
         }
@@ -5685,11 +5958,7 @@ impl ReactiveSession {
         if let Some(observation) = self.observation_qualifications.get(evidence) {
             provenance.merge(observation)?;
         }
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get("observed")
-            .and_then(|targets| targets.get(evidence))
-        {
+        if let Some(dependency) = self.predicate_dependency("observed", evidence) {
             provenance.merge(dependency)?;
         }
         Ok(provenance)
@@ -5783,11 +6052,7 @@ impl ReactiveSession {
             return self.resolved_predicate(name);
         }
         if let Some(mut result) = self.withdrawal_predicate(kind, name, false)? {
-            if let Some(dependency) = self
-                .predicate_qualifications
-                .get(WITHDRAWN)
-                .and_then(|targets| targets.get(name))
-            {
+            if let Some(dependency) = self.predicate_dependency(WITHDRAWN, name) {
                 result.provenance.merge(dependency)?;
             }
             return Ok(result);
@@ -5827,11 +6092,7 @@ impl ReactiveSession {
                     Tracked::plain(false)
                 };
                 self.inherit(&mut result.provenance, &series.selection_qualifications)?;
-                if let Some(dependency) = self
-                    .predicate_qualifications
-                    .get(kind)
-                    .and_then(|targets| targets.get(name))
-                {
+                if let Some(dependency) = self.predicate_dependency(kind, name) {
                     result.provenance.merge(dependency)?;
                 }
                 return Ok(result);
@@ -5921,25 +6182,26 @@ impl ReactiveSession {
             }
             _ => Provenance::default(),
         };
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get(kind)
-            .and_then(|targets| targets.get(name))
-        {
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
             provenance.merge(dependency)?;
         }
         if kind == "reopened" {
             // Whether a future action can be reopened also depends on the
             // earlier decision that left its commitment absent.
-            if let Some(dependency) = self
-                .predicate_qualifications
-                .get("committed")
-                .and_then(|targets| targets.get(name))
-            {
+            if let Some(dependency) = self.predicate_dependency("committed", name) {
                 provenance.merge(dependency)?;
             }
         }
         Tracked::new(value, provenance)
+    }
+
+    /// The predicate dependency recorded for `kind` of `name`, noted as
+    /// consulted whether there is one or not.
+    fn predicate_dependency(&self, kind: &str, name: &str) -> Option<&Provenance> {
+        consult(|record| record.predicates.push(consulted_key(kind, name)));
+        self.predicate_qualifications
+            .get(kind)
+            .and_then(|targets| targets.get(name))
     }
 
     fn clear_predicate_dependency(&mut self, kind: &str, name: &str) {
@@ -8121,6 +8383,12 @@ impl ReactiveSession {
     }
 
     fn withdrawal_of(&self, evidence: &str) -> Option<&Withdrawal> {
+        consult(|record| record.withdrawals.push(consulted_key("", evidence)));
+        self.find_withdrawal(evidence)
+    }
+
+    /// `withdrawal_of`, for a reader that notes what it consulted itself.
+    fn find_withdrawal(&self, evidence: &str) -> Option<&Withdrawal> {
         self.withdrawals
             .iter()
             .find(|withdrawal| withdrawal.evidence == evidence)
@@ -8259,12 +8527,19 @@ impl ReactiveSession {
         &self,
         mut provenance: Provenance,
     ) -> Result<Provenance, EvalError> {
+        // Both what is withdrawn and the late caveats are read for the
+        // evidence the record lists, which `read_live` leaves as it is.
+        consult(|record| {
+            if !provenance.evidence.is_empty() {
+                record.listed.push(provenance.evidence.clone());
+            }
+        });
         self.read_live(&mut provenance)?;
         if !self.withdrawals.is_empty()
             && provenance
                 .evidence
                 .iter()
-                .any(|evidence| self.withdrawal_of(evidence).is_some())
+                .any(|evidence| self.find_withdrawal(evidence).is_some())
         {
             provenance.merge(withdrawn_lineage())?;
         }
@@ -10616,4 +10891,113 @@ fn routed_elsewhere(route: &[(String, f64)], parameters: &BTreeMap<String, f64>)
         }
     }
     false
+}
+
+#[cfg(test)]
+mod consulted_tests {
+    use super::*;
+
+    /// The binding groups an event makes stale, as `evaluate_bindings`
+    /// decides it.
+    fn stale_after(session: &mut ReactiveSession, event: &str, payload: &str) -> Vec<String> {
+        let before = session.clone();
+        let outcome = session.dispatch_outcome_json(event, payload).unwrap();
+        let outcome = serde_json::to_value(outcome).unwrap();
+        assert_eq!(outcome["outcome"], "accepted", "{event}: {outcome}");
+        let changes = Changes::between(&before, session);
+        before
+            .binding_groups
+            .iter()
+            .enumerate()
+            .filter(|(group, read)| {
+                let consulted = before.binding_consults[*group].as_deref();
+                changes.touch(&read.reads, read.histories.as_ref(), consulted)
+            })
+            .map(|(_, read)| format!("{}.{}", read.target, read.property))
+            .collect()
+    }
+
+    /// Two checks' reports and a decision on both, as in the release gate
+    /// benchmark (bench/carmack/programs/release-gate.cav).
+    const GATE: &str = r#"
+claim releasable;
+caveat flaky consequence material;
+evidence tool from "the tool";
+evidence recheck from "a recheck";
+readings tests from tool limit 8;
+readings audit from tool limit 8;
+decisions gate limit 8;
+event report_tests;
+event report_audit;
+event decide;
+event flag;
+event unflag;
+event withdraw;
+on report_tests sample tests = 1 supports releasable;
+on report_audit sample audit = 1 supports releasable;
+on decide commit gate because enough using latest(tests) * latest(audit);
+on flag qualify latest(tests) with flaky;
+on unflag unqualify latest(tests) with flaky;
+on withdraw reveal recheck;
+on withdraw withdraw latest(audit) because recheck;
+bind tests.count = history_count(tests);
+bind tests.pass = latest(tests) when has_sample(tests);
+bind audit.count = history_count(audit);
+bind audit.pass = latest(audit) when has_sample(audit);
+bind gate.v = latest(gate) when committed(gate);
+"#;
+
+    #[test]
+    fn a_doubt_about_one_report_reaches_only_the_bindings_that_read_it() {
+        let mut session = ReactiveSession::from_source(GATE).unwrap();
+        for event in ["report_tests", "report_audit", "decide"] {
+            stale_after(&mut session, event, "{}");
+        }
+        // A count's lineage, a reading's and the decision's basis all list
+        // the report, so each carries the doubt.
+        let tests = ["tests.count", "tests.pass", "gate.v"];
+        assert_eq!(stale_after(&mut session, "flag", "{}"), tests);
+        assert_eq!(stale_after(&mut session, "unflag", "{}"), tests);
+        assert_eq!(
+            stale_after(&mut session, "withdraw", "{}"),
+            ["audit.count", "audit.pass", "gate.v"]
+        );
+        // A new report changes its own history only.
+        assert_eq!(
+            stale_after(&mut session, "report_tests", "{}"),
+            ["tests.count", "tests.pass"]
+        );
+    }
+
+    #[test]
+    fn a_relation_reaches_only_the_bindings_that_read_its_evidence() {
+        let source = r#"
+claim c1;
+claim c2;
+caveat k consequence material;
+k qualifies c2;
+evidence a from "what the decision used";
+evidence b from "a second look";
+a supports c1;
+b supports c1;
+evidence tool from "the tool";
+readings s from tool limit 4;
+decisions d limit 4;
+event go;
+event retract;
+event relate;
+on go sample s = 1;
+on go commit d because enough using qualified(1, a);
+on retract withdraw latest(s) because b;
+on relate reveal b supports c2;
+bind x.gone = 1 when withdrawn(latest(s));
+bind x.r = "open";
+bind x.r = "reopened" when reopened(d);
+bind x.v = latest(d) when committed(d);
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        stale_after(&mut session, "go", "{}");
+        stale_after(&mut session, "retract", "{}");
+        assert_eq!(stale_after(&mut session, "relate", "{}"), ["x.gone"]);
+    }
 }
