@@ -20,8 +20,13 @@ pub struct RemovalProfile {
     /// allocator traffic, or COW copies of nested data.
     pub estimated_shifted_header_bytes: u64,
     /// Detaches at this removal boundary, not earlier event/compaction detaches.
+    /// A reading stream has its own pointer in the map, so a readings removal
+    /// can detach two layers: the map, then the stream.
     pub shared_cow_detaches: u64,
-    /// All entries and occurrence slots in the cloned map, not just this history.
+    /// Renewals: all entries and occurrence slots in the cloned map, not just
+    /// this history. Readings: the map's entries when the map was shared, and
+    /// the occurrence slots of the one stream written, which the copy of a
+    /// shared map always shares.
     pub cow_cloned_histories: u64,
     pub cow_cloned_occurrences: u64,
     /// Starts after branch classification and history lookup, immediately before
@@ -113,6 +118,8 @@ impl ReactiveSession {
 pub(super) struct Block {
     reading: bool,
     len: usize,
+    /// For a readings removal, whether the map and the stream were shared.
+    layers: Option<(bool, bool)>,
     started: Instant,
     cow_started: Option<Instant>,
     remove_started: Option<Instant>,
@@ -132,6 +139,7 @@ impl Block {
         Self {
             reading,
             len,
+            layers: None,
             started: Instant::now(),
             cow_started: None,
             remove_started: None,
@@ -166,6 +174,14 @@ impl Block {
         }
     }
 
+    /// A readings removal: the map is copied if shared, and the stream if
+    /// shared, as every stream is once its map has been copied.
+    pub(super) fn start_stream_cow(&mut self, map_shared: bool, stream_shared: bool) {
+        let stream_shared = map_shared || stream_shared;
+        self.layers = Some((map_shared, stream_shared));
+        self.start_cow(stream_shared);
+    }
+
     pub(super) fn finish_cow(&mut self) {
         if let Some(started) = self.cow_started {
             self.result.cow_ns = started.elapsed().as_nanos() as u64;
@@ -187,7 +203,11 @@ impl Block {
         // Those diagnostic costs still contribute to departure/apply timing.
         self.result.block_ns = self.started.elapsed().as_nanos() as u64;
         if self.result.shared_cow_detaches != 0 {
-            self.result.cow_cloned_histories = histories as u64;
+            let map_shared = self.layers.is_none_or(|(map, _)| map);
+            if let Some((map, stream)) = self.layers {
+                self.result.shared_cow_detaches = u64::from(map) + u64::from(stream);
+            }
+            self.result.cow_cloned_histories = if map_shared { histories as u64 } else { 0 };
             // A successful branch removes exactly one slot and no history key.
             self.result.cow_cloned_occurrences = remaining_occurrences() as u64 + 1;
         }
@@ -383,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn renewal_profile_shared_reading_map_inventory_counts_all_streams() {
+    fn renewal_profile_shared_reading_map_copies_only_the_written_stream() {
         let source = r#"
 claim seen; evidence sensor from "sensor";
 readings r from sensor limit 3; readings s from sensor limit 3;
@@ -401,14 +421,16 @@ on read sample s = 8 supports seen;
         let mut block = Block::readings(occurrences.len());
         let index = occurrences.iter().position(|reading| reading.id == "r@1");
         block.searched(index);
-        block.start_cow(Arc::strong_count(&streams) > 1);
+        block.start_stream_cow(
+            Arc::strong_count(&streams) > 1,
+            Arc::strong_count(&streams["r"]) > 1,
+        );
         let map = Arc::make_mut(&mut streams);
+        let stream = Arc::make_mut(map.get_mut("r").unwrap());
         block.finish_cow();
-        let reading = map.get_mut("r").unwrap().occurrences.remove(index.unwrap());
+        let reading = stream.occurrences.remove(index.unwrap());
         block.removed();
-        block.finish(streams.len(), || {
-            streams.values().map(|s| s.occurrences.len()).sum()
-        });
+        block.finish(streams.len(), || streams["r"].occurrences.len());
         let profile = ReactiveSession::take_renewal_removal_profile();
         assert_eq!(
             counters(profile.readings),
@@ -420,15 +442,18 @@ on read sample s = 8 supports seen;
                 probes: 1,
                 shifted_elements: 1,
                 estimated_shifted_header_bytes: std::mem::size_of::<ReadingOccurrence>() as u64,
-                shared_cow_detaches: 1,
+                // The map, then the stream its copy shares.
+                shared_cow_detaches: 2,
                 cow_cloned_histories: 2,
-                cow_cloned_occurrences: 4,
+                // r's two readings; s's stay shared.
+                cow_cloned_occurrences: 2,
                 ..RemovalProfile::default()
             }
         );
         assert_eq!(profile.renewal_removal, RemovalProfile::default());
         assert_eq!(session.reading_streams["r"].occurrences.len(), 2);
         assert_eq!(streams["r"].occurrences.len(), 1);
+        assert!(Arc::ptr_eq(&streams["s"], &session.reading_streams["s"]));
         assert_eq!(reading.id, "r@1");
         assert_eq!(reading.value, 7.0);
     }

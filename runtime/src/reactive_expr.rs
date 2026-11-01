@@ -1196,6 +1196,16 @@ impl Provenance {
         }
         Ok(())
     }
+
+    /// What `merge` would make of this value, or `None` when it would make
+    /// the same value: a record that already holds all of `other` is left
+    /// as it is, so a map that shares it is not copied to write it back.
+    /// Fails exactly as `merge` does.
+    pub(crate) fn merged(&self, other: &Self) -> Result<Option<Self>, EvalError> {
+        let mut merged = self.clone();
+        merged.merge(other)?;
+        Ok((merged != *self).then_some(merged))
+    }
 }
 
 /// Add what one read rests on to an evaluation's provenance, which only

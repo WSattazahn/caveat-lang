@@ -667,13 +667,21 @@ impl ReactiveSession {
         let mut departing = BTreeMap::new();
         // Only retirements and released pins queue candidates. Resolve the
         // complete withdrawal cascade before compaction so effects and archive
-        // entries are globally ordered, not ordered by cascade depth.
-        while let Some(record) = Arc::make_mut(&mut self.departure_candidates).pop_first() {
+        // entries are globally ordered, not ordered by cascade depth. Each
+        // set is checked before it is written, so an event with nothing
+        // queued, or a record with no reason, copies no shared set.
+        while !self.departure_candidates.is_empty() {
+            let record = Arc::make_mut(&mut self.departure_candidates)
+                .pop_first()
+                .expect("not empty");
             if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
                 continue;
             }
             if let Some(place) = self.departable(&record) {
-                if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                if self.withdrawal_reasons.contains_key(&record) {
+                    let reason = Arc::make_mut(&mut self.withdrawal_reasons)
+                        .remove(&record)
+                        .expect("checked above");
                     self.collector.withdrawal(&record, &reason, false);
                     self.release_pin(&reason);
                 }
@@ -776,6 +784,17 @@ impl ReactiveSession {
                     .any(|reading| names_any(&reading.provenance, &departing))
         }) {
             for (name, stream) in Arc::make_mut(&mut self.reading_streams).iter_mut() {
+                // Compaction changes only what names a departing record, so
+                // a stream that names none stays shared.
+                if !names_any(&stream.selection_qualifications, &departing)
+                    && !stream
+                        .occurrences
+                        .iter()
+                        .any(|reading| names_any(&reading.provenance, &departing))
+                {
+                    continue;
+                }
+                let stream = Arc::make_mut(stream);
                 compact(
                     &mut stream.selection_qualifications,
                     &departing,
@@ -1012,20 +1031,23 @@ impl ReactiveSession {
                 profile.searched(index);
                 if let Some(index) = index {
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
-                    profile.start_cow(Arc::strong_count(&self.reading_streams) > 1);
+                    profile.start_stream_cow(
+                        Arc::strong_count(&self.reading_streams) > 1,
+                        Arc::strong_count(stream) > 1,
+                    );
                     let streams = Arc::make_mut(&mut self.reading_streams);
+                    let stream = Arc::make_mut(streams.get_mut(history).unwrap());
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.finish_cow();
-                    reading = Some(streams.get_mut(history).unwrap().occurrences.remove(index));
+                    reading = Some(stream.occurrences.remove(index));
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.removed();
                 }
+                // Only the written stream's slots are copied: each stream has
+                // its own pointer.
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                 profile.finish(self.reading_streams.len(), || {
-                    self.reading_streams
-                        .values()
-                        .map(|stream| stream.occurrences.len())
-                        .sum()
+                    self.reading_streams[history].occurrences.len()
                 });
             } else if let Some(renewal) = self.renewals.get(history) {
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
@@ -1137,6 +1159,17 @@ impl ReactiveSession {
     }
 }
 
+/// Whether every departed marker `provenance` holds has its root settled:
+/// settling it again would publish nothing.
+fn settled(provenance: &Provenance) -> bool {
+    provenance.departed.values().all(|marker| {
+        marker
+            .archive_ref
+            .as_ref()
+            .is_none_or(|root| root.is_settled())
+    })
+}
+
 fn settle_provenance(
     provenance: &mut Provenance,
     nodes: &mut Vec<ArchiveProvenance>,
@@ -1196,6 +1229,17 @@ impl ReactiveSession {
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
             for stream in Arc::make_mut(&mut self.reading_streams).values_mut() {
+                // Settling a settled root publishes nothing, so a stream
+                // holding only settled roots stays shared, as a cell does.
+                if settled(&stream.selection_qualifications)
+                    && stream
+                        .occurrences
+                        .iter()
+                        .all(|reading| settled(&reading.provenance))
+                {
+                    continue;
+                }
+                let stream = Arc::make_mut(stream);
                 settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
                 for reading in &mut stream.occurrences {
                     settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);

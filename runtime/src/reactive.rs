@@ -214,6 +214,10 @@ pub use check::{
 
 #[path = "reactive_interface.rs"]
 mod interface;
+
+#[cfg(test)]
+#[path = "reactive_unchanged_tests.rs"]
+mod unchanged_tests;
 use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
 pub use interface::{
     interface_source, InterfaceBinding, InterfaceCue, InterfaceDecisions, InterfaceEvent,
@@ -2343,7 +2347,9 @@ pub struct ReactiveSession {
     /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
     has_thresholds: bool,
     guard_thresholds: Vec<BTreeMap<String, f64>>,
-    reading_streams: Arc<BTreeMap<String, ReadingStream>>,
+    /// Each stream behind its own pointer: a sample copies the stream it
+    /// adds to, and the map of pointers, rather than every stream.
+    reading_streams: Arc<BTreeMap<String, Arc<ReadingStream>>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
@@ -2807,13 +2813,13 @@ impl ReactiveSession {
                     session.require_kind(template, "evidence")?;
                     Arc::make_mut(&mut session.reading_streams).insert(
                         name.clone(),
-                        ReadingStream {
+                        Arc::new(ReadingStream {
                             template: template.clone(),
                             limit,
                             current: None,
                             occurrences: Vec::new(),
                             selection_qualifications: Provenance::default(),
-                        },
+                        }),
                     );
                 }
                 Directive::Decisions {
@@ -5069,12 +5075,7 @@ impl ReactiveSession {
             let mut guard = guard.clone();
             self.freeze_observation(&mut guard);
             for occurrence in self.every_occurrence(name)? {
-                Arc::make_mut(&mut self.predicate_qualifications)
-                    .entry(WITHDRAWN.into())
-                    .or_default()
-                    .entry(occurrence)
-                    .or_default()
-                    .merge(&guard)?;
+                self.merge_predicate_record(WITHDRAWN, occurrence, &guard)?;
             }
             return Ok(());
         }
@@ -5103,23 +5104,31 @@ impl ReactiveSession {
                     .merge(guard)
                     .map_err(Into::into);
             }
+            // A guard the selection already holds writes nothing, so the
+            // shared map is not copied.
             Effect::Sample { stream, .. } => {
                 let guard = self.frozen(guard).into_owned();
-                return Arc::make_mut(&mut self.reading_streams)
-                    .get_mut(stream)
-                    .expect("validated stream")
+                let merged = self.reading_streams[stream]
                     .selection_qualifications
-                    .merge(&guard)
-                    .map_err(Into::into);
+                    .merged(&guard)?;
+                if let Some(merged) = merged {
+                    Self::stream_mut(&mut self.reading_streams, stream).selection_qualifications =
+                        merged;
+                }
+                return Ok(());
             }
             Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
                 let guard = self.frozen(guard).into_owned();
-                return Arc::make_mut(&mut self.decision_series)
-                    .get_mut(action)
-                    .unwrap()
+                let merged = self.decision_series[action]
                     .selection_qualifications
-                    .merge(&guard)
-                    .map_err(Into::into);
+                    .merged(&guard)?;
+                if let Some(merged) = merged {
+                    Arc::make_mut(&mut self.decision_series)
+                        .get_mut(action)
+                        .unwrap()
+                        .selection_qualifications = merged;
+                }
+                return Ok(());
             }
             Effect::Reveal { evidence, .. }
             | Effect::Observe { evidence }
@@ -5144,14 +5153,86 @@ impl ReactiveSession {
         if let Some((kind, name)) = target {
             let mut guard = guard.clone();
             self.freeze_observation(&mut guard);
-            Arc::make_mut(&mut self.predicate_qualifications)
+            self.merge_predicate_record(kind, name, &guard)?;
+        }
+        Ok(())
+    }
+
+    /// Adds `guard` to the record of what the predicate `kind` over `name`
+    /// rests on. A record that already holds all of it is left as it is, so
+    /// the shared map is not copied to write the same record back.
+    fn merge_predicate_record(
+        &mut self,
+        kind: &str,
+        name: String,
+        guard: &Provenance,
+    ) -> Result<(), EvalError> {
+        let record = self
+            .predicate_qualifications
+            .get(kind)
+            .and_then(|targets| targets.get(&name));
+        let Some(record) = record else {
+            return Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
                 .entry(name)
                 .or_default()
-                .merge(&guard)?;
+                .merge(guard);
+        };
+        if let Some(merged) = record.merged(guard)? {
+            *Arc::make_mut(&mut self.predicate_qualifications)
+                .get_mut(kind)
+                .and_then(|targets| targets.get_mut(&name))
+                .expect("found above") = merged;
         }
         Ok(())
+    }
+
+    /// Adds `guard` to `records`' record for `name`, as `merge_predicate_record`
+    /// does for a predicate's.
+    fn merge_record(
+        records: &mut Arc<BTreeMap<String, Provenance>>,
+        name: &str,
+        guard: &Provenance,
+    ) -> Result<(), EvalError> {
+        let Some(record) = records.get(name) else {
+            return Arc::make_mut(records)
+                .entry(name.to_string())
+                .or_default()
+                .merge(guard);
+        };
+        if let Some(merged) = record.merged(guard)? {
+            *Arc::make_mut(records).get_mut(name).expect("found above") = merged;
+        }
+        Ok(())
+    }
+
+    /// The stream `name`, to write: copies the map of streams' pointers and
+    /// the stream itself if another session shares them, and no other stream.
+    fn stream_mut<'a>(
+        streams: &'a mut Arc<BTreeMap<String, Arc<ReadingStream>>>,
+        name: &str,
+    ) -> &'a mut ReadingStream {
+        Arc::make_mut(
+            Arc::make_mut(streams)
+                .get_mut(name)
+                .expect("validated stream"),
+        )
+    }
+
+    /// Writes each of `merged` over its record in `records`, copying a
+    /// shared map only when there is something to write.
+    fn replace_records(
+        records: &mut Arc<BTreeMap<String, Provenance>>,
+        merged: Vec<(String, Provenance)>,
+    ) {
+        if merged.is_empty() {
+            return;
+        }
+        let records = Arc::make_mut(records);
+        for (name, lineage) in merged {
+            *records.get_mut(&name).expect("listed above") = lineage;
+        }
     }
 
     pub fn dispatch_json(
@@ -6818,9 +6899,7 @@ impl ReactiveSession {
                     .insert(name.clone(), observation);
                 let mut provenance = self.qualify(&name, &[])?;
                 self.freeze(&mut provenance);
-                let readings = Arc::make_mut(&mut self.reading_streams)
-                    .get_mut(stream)
-                    .unwrap();
+                let readings = Self::stream_mut(&mut self.reading_streams, stream);
                 readings.current = Some(name.clone());
                 readings.selection_qualifications = Provenance::default();
                 readings.occurrences.push(ReadingOccurrence {
@@ -7121,10 +7200,7 @@ impl ReactiveSession {
                     self.clear_predicate_dependency("observed", &evidence);
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications)
-                        .entry(evidence.clone())
-                        .or_default()
-                        .merge(&guard)?;
+                    Self::merge_record(&mut self.observation_qualifications, &evidence, &guard)?;
                     self.record_observation(&evidence, true);
                     self.effects.push(EffectReport::Reveal {
                         evidence,
@@ -7150,10 +7226,7 @@ impl ReactiveSession {
                     self.clear_predicate_dependency("observed", evidence);
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications)
-                        .entry(evidence.clone())
-                        .or_default()
-                        .merge(&guard)?;
+                    Self::merge_record(&mut self.observation_qualifications, evidence, &guard)?;
                     self.record_observation(evidence, false);
                     Arc::make_mut(&mut self.graph).relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
@@ -7191,11 +7264,24 @@ impl ReactiveSession {
                 resources.remaining -= cost;
                 resources.spent += cost;
                 resources.exhausted = resources.remaining == 0;
-                Arc::make_mut(&mut self.graph)
-                    .set_attention(self.symbols[caveat], Attention::Examined);
+                // A caveat examined before is not marked again, and a basis
+                // that adds nothing is not written back: either would copy a
+                // shared record to write what it already holds.
+                let id = self.symbols[caveat];
+                if !matches!(
+                    self.graph.nodes.get(&id),
+                    Some(NodeKind::Caveat {
+                        attention: Attention::Examined,
+                        ..
+                    })
+                ) {
+                    Arc::make_mut(&mut self.graph).set_attention(id, Attention::Examined);
+                }
                 self.clear_predicate_dependency("examined", caveat);
-                Arc::make_mut(&mut self.examination_qualifications)
-                    .insert(caveat.clone(), attention_basis);
+                if self.examination_qualifications.get(caveat) != Some(&attention_basis) {
+                    Arc::make_mut(&mut self.examination_qualifications)
+                        .insert(caveat.clone(), attention_basis);
+                }
                 self.effects.push(EffectReport::Examine {
                     caveat: caveat.clone(),
                     cost: *cost,
@@ -7892,10 +7978,7 @@ impl ReactiveSession {
     /// reopening, and from 1.2 a hold, a deferred reopening or a release of
     /// it (spec/caveat-holds-0.1.md).
     fn join_reopening(&mut self, current: &str, basis: &Provenance) -> Result<(), DispatchFailure> {
-        Arc::make_mut(&mut self.reopening_qualifications)
-            .entry(current.to_string())
-            .or_default()
-            .merge(basis)?;
+        Self::merge_record(&mut self.reopening_qualifications, current, basis)?;
         Ok(())
     }
 
@@ -8243,13 +8326,30 @@ impl ReactiveSession {
                 continue;
             }
             self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
-            let cell = self.states.cell_mut(slot);
-            if in_value {
-                cell.value.provenance.merge(&added)?;
-                cell.value.provenance.merge(guard)?;
-            }
-            if in_grounds {
-                cell.grounds.merge(&added)?;
+            // Merged on copies first: a cell that already holds all of it is
+            // left as it is, rather than copied to write the same lineage.
+            let cell = &self.states.cells[slot];
+            let value = if in_value {
+                let mut value = cell.value.provenance.clone();
+                value.merge(&added)?;
+                value.merge(guard)?;
+                Some(value).filter(|value| *value != cell.value.provenance)
+            } else {
+                None
+            };
+            let grounds = if in_grounds {
+                cell.grounds.merged(&added)?
+            } else {
+                None
+            };
+            if value.is_some() || grounds.is_some() {
+                let cell = self.states.cell_mut(slot);
+                if let Some(value) = value {
+                    cell.value.provenance = value;
+                }
+                if let Some(grounds) = grounds {
+                    cell.grounds = grounds;
+                }
             }
         }
         // An observation's or predicate's record lists what its guard read,
@@ -8273,25 +8373,48 @@ impl ReactiveSession {
             // Each record whose qualification gains the lineage's evidence
             // references it, so the withdrawal collector must recount that
             // record's references before departure runs (D016).
+            // Merged on copies first, in the same order: only a record the
+            // lineage adds to is written, and a map none of whose records
+            // changes is not copied.
             let mut changed = BTreeSet::new();
-            for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
+            let mut observations = Vec::new();
+            for (name, record) in self.observation_qualifications.iter() {
                 if listed(record) {
-                    record.merge(&lineage)?;
+                    if let Some(merged) = record.merged(&lineage)? {
+                        observations.push((name.clone(), merged));
+                    }
                     changed.insert(name.clone());
                 }
             }
-            for (name, record) in Arc::make_mut(&mut self.examination_qualifications).iter_mut() {
+            let mut examinations = Vec::new();
+            for (name, record) in self.examination_qualifications.iter() {
                 if listed(record) {
-                    record.merge(&lineage)?;
+                    if let Some(merged) = record.merged(&lineage)? {
+                        examinations.push((name.clone(), merged));
+                    }
                     changed.insert(name.clone());
                 }
             }
-            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
-                for (name, record) in targets.iter_mut() {
+            let mut predicates = Vec::new();
+            for (kind, targets) in self.predicate_qualifications.iter() {
+                for (name, record) in targets {
                     if listed(record) {
-                        record.merge(&lineage)?;
+                        if let Some(merged) = record.merged(&lineage)? {
+                            predicates.push((kind.clone(), name.clone(), merged));
+                        }
                         changed.insert(name.clone());
                     }
+                }
+            }
+            Self::replace_records(&mut self.observation_qualifications, observations);
+            Self::replace_records(&mut self.examination_qualifications, examinations);
+            if !predicates.is_empty() {
+                let records = Arc::make_mut(&mut self.predicate_qualifications);
+                for (kind, name, merged) in predicates {
+                    *records
+                        .get_mut(&kind)
+                        .and_then(|targets| targets.get_mut(&name))
+                        .expect("listed above") = merged;
                 }
             }
             for name in changed {
@@ -9362,7 +9485,11 @@ impl ReactiveSession {
             qualified_values: self.states.values(),
             unset: self.states.unset_names(),
             commitment_bases: (*self.commitment_bases).clone(),
-            reading_streams: (*self.reading_streams).clone(),
+            reading_streams: self
+                .reading_streams
+                .iter()
+                .map(|(name, stream)| (name.clone(), (**stream).clone()))
+                .collect(),
             decision_series: (*self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),

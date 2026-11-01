@@ -149,10 +149,12 @@ of the ledger is to find them on the project's own decisions.
   item code, checked by `permitted by latest(approvals) for CODE`. It works,
   and `explain` shows `permitted by approvals@3 for 101`, but a code table is
   a convention the program cannot check.
-- **The approvals stream is nearly full.** `approvals` holds at most 64
-  readings, and after 1.4.1 it holds 54, so each closeout records one
-  approval for the release rather than one per merged PR; a fuller record
-  needs a larger limit or a second stream.
+- **The record fills at its limits.** Each merged PR adds one `ci` run and
+  one approval. `ci` holds at most 1024 runs and `approvals` at most 256
+  readings, the runtime's largest limits for a renewable and a stream;
+  after #430 they hold 129 and 107. The event past a limit is refused
+  (`limit/renewal_limit` or `limit/history_limit`), so a fuller record then
+  needs a second renewable or stream.
 - **A patch from main is a `ship_minor`.** 1.4.1 was cut from `main`, so it
   is recorded as `ship_minor` 141 on main's Runtime run, which supersedes
   1.4.0 in `minor_release`; `release` and `ship` stay the 1.0.x line's, cut

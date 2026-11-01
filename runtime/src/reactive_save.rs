@@ -692,7 +692,11 @@ impl ReactiveSession {
                     .then(|| (name.clone(), names.into_iter().map(String::from).collect()))
                 })
                 .collect(),
-            reading_streams: (*self.reading_streams).clone(),
+            reading_streams: self
+                .reading_streams
+                .iter()
+                .map(|(name, stream)| (name.clone(), (**stream).clone()))
+                .collect(),
             decision_series: (*self.decision_series).clone(),
             renewals: self
                 .renewals
@@ -2993,7 +2997,12 @@ impl ReactiveSession {
         }
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
-        self.reading_streams = Arc::new(save.reading_streams.clone());
+        self.reading_streams = Arc::new(
+            save.reading_streams
+                .iter()
+                .map(|(name, stream)| (name.clone(), Arc::new(stream.clone())))
+                .collect(),
+        );
         self.decision_series = Arc::new(save.decision_series.clone());
         let renewals = Arc::make_mut(&mut self.renewals);
         for (name, occurrences) in &save.renewals {
