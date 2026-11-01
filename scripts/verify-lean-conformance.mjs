@@ -536,7 +536,7 @@ const mutationAnchor = [
   '                    return Ok(None);',
   '                };',
   '                let value = finite(tracked.value)?;',
-  '                keep(&tracked.provenance)?;',
+  '                keep(tracked.provenance)?;',
 ].join('\n');
 
 export function dependencyDropMutation(source, name = "a") {
@@ -544,8 +544,8 @@ export function dependencyDropMutation(source, name = "a") {
   const normalized = source.replaceAll('\r\n', '\n');
   if (normalized.split(mutationAnchor).length !== 2) throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
   return normalized.replace(mutationAnchor, mutationAnchor.replace(
-    'keep(&tracked.provenance)?;',
-    'if name != ' + JSON.stringify(name) + ' { keep(&tracked.provenance)?; }'));
+    'keep(tracked.provenance)?;',
+    'if name != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'));
 }
 
 const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values(\n                        numbers,\n                        predicate,\n                        qualify,\n                        history,\n                        identifiers,\n                        remaining,\n                    )\n                } else {\n                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)\n                }\n            }\n";
