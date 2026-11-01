@@ -1,0 +1,58 @@
+name: upload retry
+
+# Checks .github/actions/upload-artifact: a first upload that stalls is tried
+# once more, and the artifact the retry leaves is whole. The stall is forced
+# by giving the first attempt 1 ms without progress, which fails it after the
+# artifact is created and before it is finalized, as the real stalls on #418
+# and #424 did.
+on:
+  pull_request:
+    paths:
+      - '.github/actions/upload-artifact/**'
+      - '.github/workflows/upload-retry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retry:
+    name: a stalled upload is tried once more
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+      - run: mkdir -p upload-test && printf 'caveat upload retry %s\n' "$GITHUB_RUN_ID" > upload-test/sample.txt
+      - id: stalled
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: upload-retry-stalled
+          path: upload-test/sample.txt
+          if-no-files-found: error
+          stall-ms: '1'
+      - id: plain
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: upload-retry-plain
+          path: upload-test/sample.txt
+          if-no-files-found: error
+      - uses: actions/download-artifact@v8
+        with:
+          name: upload-retry-stalled
+          path: downloaded/stalled
+      - uses: actions/download-artifact@v8
+        with:
+          name: upload-retry-plain
+          path: downloaded/plain
+      - name: The stalled upload took the retry, the plain one did not, and both arrived whole
+        env:
+          STALLED: ${{ steps.stalled.outputs.attempts }}
+          PLAIN: ${{ steps.plain.outputs.attempts }}
+        run: |
+          echo "stalled upload attempts: $STALLED; plain upload attempts: $PLAIN"
+          test "$STALLED" = 2
+          test "$PLAIN" = 1
+          cmp upload-test/sample.txt downloaded/stalled/sample.txt
+          cmp upload-test/sample.txt downloaded/plain/sample.txt
