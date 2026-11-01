@@ -199,7 +199,16 @@ jobs:
   native:
     name: native runtime
     runs-on: ubuntu-24.04
+    # Line tables keep panic locations and backtraces while cutting a clean
+    # debug test build from about 17 GB to 7 GB, and do not change generated
+    # code or stack use. The disk and memory reports are there because a run
+    # on #417 died without a log; a runner showed 69 GB still free after this
+    # job, so a full disk is not a likely cause.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
+      - name: Free disk and memory before the build
+        run: df -h / && free -m
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
         run: rustup toolchain install && rustc --version
@@ -240,6 +249,9 @@ jobs:
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+      - name: Free disk and memory after the build
+        if: always()
+        run: df -h / && free -m && du -sh runtime/target
 
   # The rc.15 compatibility and departure gates build their own browser
   # distribution so they can run beside core; core's browser-dist stays the
@@ -713,6 +725,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      # This job uses little disk; the report rules disk in or out when a
+      # step fails without a log.
+      - name: Free disk and memory at the start
+        run: df -h / && free -m
       - uses: actions/checkout@v5
         with:
           path: .ci
