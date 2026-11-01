@@ -49,6 +49,77 @@ fn withdrawn_lineage() -> &'static Provenance {
     })
 }
 
+/// The union of a lineage that holds nothing with `lineage`: `lineage`
+/// itself, checked as the union checks it, without copying it. Debug builds
+/// compare it with the union, error included.
+fn union_with_nothing(lineage: Provenance) -> Result<Provenance, EvalError> {
+    #[cfg(debug_assertions)]
+    let union = Provenance::default().union(&lineage);
+    let taken = lineage.validate().map(|()| lineage);
+    #[cfg(debug_assertions)]
+    assert_eq!(
+        taken, union,
+        "a lineage taken whole differs from its union with nothing"
+    );
+    taken
+}
+
+#[cfg(test)]
+mod union_with_nothing_tests {
+    use super::*;
+
+    #[test]
+    fn a_lineage_taken_whole_is_its_union_with_nothing() {
+        let names = |evidence: &[&str], caveats: &[&str]| {
+            Provenance::from_names(
+                evidence.iter().map(|name| name.to_string()),
+                caveats.iter().map(|name| name.to_string()),
+            )
+            .unwrap()
+        };
+        let mut inherited = names(&["a", "b"], &["k"]);
+        inherited.inherited.insert("a");
+        inherited.kept.insert("k");
+        let mut departed = names(&["s@1", "s@2"], &["k"]);
+        assert!(departed.depart("s@1", "s", 1, 5, "source"));
+        // Only a host could send these: what is inherited or kept with no
+        // name it belongs to.
+        let mut inherited_alone = Provenance::default();
+        inherited_alone.inherited.insert("a");
+        let mut kept_alone = Provenance::default();
+        kept_alone.kept.insert("k");
+        let mut identifiers = Provenance::default();
+        for at in 0..=reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            identifiers.evidence.insert(format!("e{at}"));
+        }
+        let mut bytes = Provenance::default();
+        bytes
+            .caveats
+            .insert("c".repeat(reactive_expr::MAX_PROVENANCE_BYTES + 1));
+        for (case, lineage) in [
+            ("nothing", Provenance::default()),
+            ("one name", names(&["a"], &[])),
+            ("names", names(&["a", "b"], &["k", "m"])),
+            ("inherited and kept", inherited),
+            ("departed", departed),
+            ("inherited alone", inherited_alone),
+            ("kept alone", kept_alone),
+            ("too many identifiers", identifiers),
+            ("too many bytes", bytes),
+        ] {
+            // Debug builds fail inside `union_with_nothing` first; the test's
+            // output names the case.
+            eprintln!("case: {case}");
+            assert_eq!(
+                union_with_nothing(lineage.clone()),
+                Provenance::default().union(&lineage),
+                "{case}"
+            );
+            assert_eq!(lineage.holds_nothing(), case == "nothing", "{case}");
+        }
+    }
+}
+
 /// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
 /// for any caveat, or the least consequence it counts.
 fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
@@ -1320,6 +1391,8 @@ struct Consulted {
     withdrawals: Vec<u64>,
     /// Each predicate dependency looked up, by kind and name, found or not.
     predicates: Vec<u64>,
+    /// Each renewable evidence whose occurrences were looked up.
+    renewals: Vec<u64>,
 }
 
 impl Consulted {
@@ -1328,6 +1401,7 @@ impl Consulted {
         self.listed.clear();
         self.withdrawals.clear();
         self.predicates.clear();
+        self.renewals.clear();
     }
 
     fn settle(&mut self) {
@@ -1335,10 +1409,21 @@ impl Consulted {
             &mut self.reached,
             &mut self.withdrawals,
             &mut self.predicates,
+            &mut self.renewals,
         ] {
             keys.sort_unstable();
             keys.dedup();
         }
+    }
+
+    /// Debug builds: adds the notes of a read noted apart.
+    #[cfg(debug_assertions)]
+    fn absorb(&mut self, other: &Consulted) {
+        self.reached.extend_from_slice(&other.reached);
+        self.listed.extend(other.listed.iter().cloned());
+        self.withdrawals.extend_from_slice(&other.withdrawals);
+        self.predicates.extend_from_slice(&other.predicates);
+        self.renewals.extend_from_slice(&other.renewals);
     }
 }
 
@@ -1364,6 +1449,8 @@ struct Requalified {
     withdrawn: BTreeSet<String>,
     /// Each predicate dependency added, changed or cleared.
     predicates: BTreeSet<(String, String)>,
+    /// Each renewable evidence whose occurrences changed.
+    renewed: BTreeSet<String>,
 }
 
 impl Requalified {
@@ -1372,6 +1459,7 @@ impl Requalified {
             && self.relations.is_empty()
             && self.withdrawn.is_empty()
             && self.predicates.is_empty()
+            && self.renewed.is_empty()
     }
 
     /// Whether this changed anything `consulted` holds.
@@ -1394,6 +1482,10 @@ impl Requalified {
                 .predicates
                 .iter()
                 .any(|(kind, name)| noted(&consulted.predicates, consulted_key(kind, name)))
+            || self
+                .renewed
+                .iter()
+                .any(|evidence| noted(&consulted.renewals, consulted_key("", evidence)))
     }
 }
 
@@ -1414,6 +1506,30 @@ fn consult(note: impl FnOnce(&mut Consulted)) {
     if noting != 0 {
         CONSULTING.with_borrow_mut(|records| note(&mut records[noting - 1]));
     }
+}
+
+/// Debug builds: runs `read`, noting what it consults in a record of its
+/// own, and returns those notes settled. The record being filled, if any, is
+/// left as it was.
+#[cfg(debug_assertions)]
+fn noted_apart<T>(read: impl FnOnce() -> T) -> (T, Consulted) {
+    // Puts the record being filled back however `read` ends.
+    struct Apart(usize);
+    impl Drop for Apart {
+        fn drop(&mut self) {
+            CONSULTING.with_borrow_mut(|records| records.pop());
+            NOTING.set(self.0);
+        }
+    }
+    let slot = CONSULTING.with_borrow_mut(|records| {
+        records.push(Consulted::default());
+        records.len()
+    });
+    let _apart = Apart(NOTING.replace(slot));
+    let value = read();
+    let mut notes = CONSULTING.with_borrow(|records| records[slot - 1].clone());
+    notes.settle();
+    (value, notes)
 }
 
 /// Runs `evaluate`, noting what it consults in record `slot` of
@@ -1500,12 +1616,12 @@ impl Changes {
     /// The histories whose records an event changed, and what it changed of
     /// the qualification state any history read can reach: new `qualifies`
     /// relations, take-backs and withdrawals, changed predicate dependencies,
-    /// and new `supports` or `opposes` relations, which bring the caveats of
-    /// a claim to evidence a history read can list outside every history (a
-    /// withdrawal's reason, a reopening's cause or an outcome's evidence,
-    /// D036). `None` if it changed something else a read of any history can
-    /// reach: an examination, renewal, retirement or permission, a record it
-    /// cannot place in one history, or a record that was not only added to.
+    /// renewals, and new `supports` or `opposes` relations, which bring the
+    /// caveats of a claim to evidence a history read can list outside every
+    /// history (a withdrawal's reason, a reopening's cause or an outcome's
+    /// evidence, D036). `None` if it changed something else a read of any
+    /// history can reach: an examination, retirement or permission, a record
+    /// it cannot place in one history, or a record that was not only added to.
     /// Any other change to a record no history read consults (a claim, or
     /// evidence outside every history) places nowhere.
     fn histories_between(
@@ -1518,8 +1634,7 @@ impl Changes {
         if !same(
             &old.examination_qualifications,
             &new.examination_qualifications,
-        ) || !same(&old.renewals, &new.renewals)
-            || !same(&old.retired, &new.retired)
+        ) || !same(&old.retired, &new.retired)
             || !same(&old.late_caveats, &new.late_caveats)
             || !same(&old.take_back_caveats, &new.take_back_caveats)
             || !same(&old.commitment_permissions, &new.commitment_permissions)
@@ -1527,6 +1642,22 @@ impl Changes {
             return None;
         }
         let mut requalified = Requalified::default();
+        // Renewable evidence is declared at load. A renewal changes what its
+        // name means to a read that looks up its occurrences.
+        if !Arc::ptr_eq(&old.renewals, &new.renewals) {
+            if old.renewals.len() != new.renewals.len() {
+                return None;
+            }
+            for (evidence, renewal) in new.renewals.iter() {
+                match old.renewals.get(evidence) {
+                    Some(previous) if previous == renewal => {}
+                    Some(_) => {
+                        requalified.renewed.insert(evidence.clone());
+                    }
+                    None => return None,
+                }
+            }
+        }
         // Take-backs and withdrawals are only added to here.
         if !Arc::ptr_eq(&old.taken_back, &new.taken_back) {
             for record in new.taken_back.strip_prefix(old.taken_back.as_slice())? {
@@ -4115,7 +4246,7 @@ impl ReactiveSession {
             });
         }
         let parameters = Parameters::default();
-        let mut guards = vec![Provenance::default(); groups.len()];
+        let mut guards = vec![None::<Provenance>; groups.len()];
         // The declaration that supplied each shown value: the last one to match.
         let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
         for (index, binding) in rules.iter().enumerate() {
@@ -4128,7 +4259,11 @@ impl ReactiveSession {
                 self.evaluate(&binding.condition, &parameters)
             })
             .map_err(|error| error.context(context()))?;
-            guards[group].merge(&condition.provenance)?;
+            let slot = &mut guards[group];
+            match slot {
+                Some(guard) if !guard.holds_nothing() => guard.merge(&condition.provenance)?,
+                _ => *slot = Some(union_with_nothing(condition.provenance)?),
+            }
             if condition.value != Value::Bool(true) {
                 continue;
             }
@@ -4156,13 +4291,18 @@ impl ReactiveSession {
         let mut shown = Vec::with_capacity(order.len());
         for group in order {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            let guard = std::mem::take(&mut guards[group]);
+            let guard = guards[group].take().unwrap_or_default();
             let Some((index, value)) = winners[group].take() else {
                 shown.push((group, None, guard));
                 continue;
             };
-            let mut lineage = value.provenance;
-            lineage.merge(&guard)?;
+            let lineage = if value.provenance.holds_nothing() {
+                union_with_nothing(guard)?
+            } else {
+                let mut lineage = value.provenance;
+                lineage.merge(&guard)?;
+                lineage
+            };
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
                 Some(citations) => consulting(slots[group], || {
@@ -5325,6 +5465,8 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
         let routes = Arc::clone(&self.rule_routes);
+        // A rule inherits no lineage.
+        let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
             if routed_elsewhere(&routes[index], payload) {
@@ -5344,11 +5486,7 @@ impl ReactiveSession {
                     self.retain_routed_elsewhere(&rule.effect, &mut budget)
                 } else {
                     budget.spend().and_then(|()| {
-                        self.retain_skipped_effect(
-                            &rule.effect,
-                            &Provenance::default(),
-                            &mut budget,
-                        )
+                        self.retain_skipped_effect(&rule.effect, &nothing, &mut budget)
                     })
                 };
                 result
@@ -5359,7 +5497,7 @@ impl ReactiveSession {
                 &rule.condition,
                 &rule.effect,
                 &parameters,
-                &Provenance::default(),
+                &nothing,
                 &mut budget,
             );
             result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
@@ -5562,9 +5700,13 @@ impl ReactiveSession {
             condition.collect_thresholds(&mut named);
             named
         });
-        let condition = self.evaluate(condition, parameters)?;
-        let guard = inherited.union(&condition.provenance)?;
-        if condition.value == Value::Bool(true) {
+        let Tracked { value, provenance } = self.evaluate(condition, parameters)?;
+        let guard = if inherited.holds_nothing() {
+            union_with_nothing(provenance)?
+        } else {
+            inherited.union(&provenance)?
+        };
+        if value == Value::Bool(true) {
             let Some(named) = named else {
                 return self.apply_effect(effect, parameters, &guard, budget);
             };
@@ -5696,19 +5838,15 @@ impl ReactiveSession {
             }
             return Tracked::new(!series.on_hold.is_empty(), grounds);
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, true);
+        }
         let value = match kind {
             "has_sample" => return self.predicate_tracked(kind, name),
             _ => self.predicate(kind, name)?,
         };
         let provenance = match kind {
             "observed" if value => self.qualify_core(name, &[])?,
-            _ if kind.starts_with(CARRIES) => {
-                if self.predicate("observed", name)? {
-                    self.qualify_core(name, &[])?
-                } else {
-                    Provenance::default()
-                }
-            }
             "examined" => Provenance::from_names(
                 [],
                 std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
@@ -5811,6 +5949,109 @@ impl ReactiveSession {
                 )
             })
         })
+    }
+
+    /// `carries(EVIDENCE, CAVEAT)` asked of `name`, with its lineage, or with
+    /// its grounds when `grounds` is set. It looks once at whether the
+    /// evidence is observed and searches once for what qualifies it; the
+    /// general path did each twice, for the value and again for what it rests
+    /// on, with the same result, the same error and the same notes of what it
+    /// consulted. Debug builds compare the two, each noting apart, and keep
+    /// only the notes of the read once, as a release build does.
+    fn carries_predicate(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        #[cfg(debug_assertions)]
+        {
+            let (read, notes) = noted_apart(|| self.carries_once(kind, caveat, name, grounds));
+            let (general, general_notes) = noted_apart(|| self.carries_twice(kind, name, grounds));
+            assert_eq!(
+                read, general,
+                "carries({name}, {caveat}) read once differs from the general path"
+            );
+            assert_eq!(
+                notes, general_notes,
+                "carries({name}, {caveat}) read once notes what it consulted differently"
+            );
+            consult(|record| record.absorb(&notes));
+            read
+        }
+        #[cfg(not(debug_assertions))]
+        self.carries_once(kind, caveat, name, grounds)
+    }
+
+    fn carries_once(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        // As `predicate` reads the value: an unknown name is refused, and a
+        // search past the provenance limit is refused as one (D037).
+        let observed = self.predicate("observed", name)?;
+        let core = if observed {
+            // Observed evidence is declared evidence that is not retired, so
+            // the search needs none of `qualify_core`'s checks.
+            Some(self.qualify_checked(name, &[], true)?)
+        } else {
+            None
+        };
+        let value = core
+            .as_ref()
+            .is_some_and(|core| self.carried(&core.caveats, caveat));
+        let mut provenance = core.unwrap_or_default();
+        if grounds {
+            return Tracked::new(value, provenance);
+        }
+        // The lineage `observed(name)` gives: what qualifies the evidence,
+        // what its observation was recorded with, and its dependency, which
+        // `qualify` and the predicate each add. Then the dependency of this
+        // predicate.
+        if observed {
+            if let Some(observation) = self.observation_qualifications.get(name) {
+                provenance.merge(observation)?;
+            }
+            if let Some(dependency) = self.predicate_dependency("observed", name) {
+                provenance.merge(dependency)?;
+            }
+        }
+        if let Some(dependency) = self.predicate_dependency("observed", name) {
+            provenance.merge(dependency)?;
+        }
+        provenance.validate()?;
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
+    }
+
+    /// Debug builds: `carries` read as the general path reads it.
+    #[cfg(debug_assertions)]
+    fn carries_twice(
+        &self,
+        kind: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let value = self.predicate(kind, name)?;
+        if grounds {
+            let provenance = if self.predicate("observed", name)? {
+                self.qualify_core(name, &[])?
+            } else {
+                Provenance::default()
+            };
+            return Tracked::new(value, provenance);
+        }
+        let mut provenance = self.predicate_tracked("observed", name)?.provenance;
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
     }
 
     fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
@@ -6022,6 +6263,17 @@ impl ReactiveSession {
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
         }
+        self.qualify_checked(evidence, extras, honor_take_back)
+    }
+
+    /// `qualify_core_with` once its checks have passed: `evidence` names
+    /// evidence that is observed or retired, and each extra names a caveat.
+    fn qualify_checked(
+        &self,
+        evidence: &str,
+        extras: &[String],
+        honor_take_back: bool,
+    ) -> Result<Provenance, EvalError> {
         let id = self.symbols[evidence];
         let mut roots = vec![id];
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
@@ -6098,12 +6350,12 @@ impl ReactiveSession {
                 return Ok(result);
             }
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, false);
+        }
         let value = self.predicate(kind, name)?;
         let mut provenance = match kind {
             "observed" if value => self.qualify(name, &[])?,
-            // Whether it carries the caveat or not, the answer rests on the
-            // evidence and what qualifies it.
-            _ if kind.starts_with(CARRIES) => self.predicate_tracked("observed", name)?.provenance,
             "examined" => {
                 let id = self.symbols[name];
                 let mut provenance = Provenance::from_names(
@@ -7920,10 +8172,11 @@ impl ReactiveSession {
     /// What a source name means now: the current occurrence of renewable
     /// evidence, and the name itself for everything else.
     fn occurrence<'a>(&'a self, name: &'a str) -> &'a str {
-        self.renewals
-            .get(name)
-            .and_then(|renewal| renewal.occurrences.last())
-            .map_or(name, String::as_str)
+        let Some(renewal) = self.renewals.get(name) else {
+            return name;
+        };
+        consult(|record| record.renewals.push(consulted_key("", name)));
+        renewal.occurrences.last().map_or(name, String::as_str)
     }
 
     /// A predicate's target as the source names it, resolved: predicates on
@@ -8821,6 +9074,7 @@ impl ReactiveSession {
                 .filter(|name| !self.is_retired(name));
         }
         let renewal = self.renewals.get(evidence)?;
+        consult(|record| record.renewals.push(consulted_key("", evidence)));
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
@@ -10999,5 +11253,56 @@ bind x.v = latest(d) when committed(d);
         stale_after(&mut session, "go", "{}");
         stale_after(&mut session, "retract", "{}");
         assert_eq!(stale_after(&mut session, "relate", "{}"), ["x.gone"]);
+    }
+
+    #[test]
+    fn a_renewal_reaches_a_record_that_looked_up_its_occurrences() {
+        let mut consulted = Consulted::default();
+        consulted.renewals.push(consulted_key("", "ci"));
+        consulted.settle();
+        let renewed = |evidence: &str| Requalified {
+            renewed: BTreeSet::from([evidence.to_string()]),
+            ..Requalified::default()
+        };
+        assert!(renewed("ci").reaches(&consulted));
+        assert!(!renewed("tree").reaches(&consulted));
+        assert!(!renewed("ci").reaches(&Consulted::default()));
+    }
+
+    #[test]
+    fn a_renewal_reaches_only_the_bindings_that_name_the_evidence() {
+        let source = r#"
+claim ok;
+caveat k consequence material;
+evidence ci from "the CI run";
+renewable ci limit 8;
+readings s from ci limit 8;
+decisions d limit 4;
+event run;
+event rerun;
+event report;
+event decide;
+event doubt;
+on run reveal ci supports ok;
+on rerun renew ci;
+on report sample s = 1;
+on decide commit d because enough using qualified(1, ci);
+on doubt qualify ci with k;
+bind x.n = history_count(s);
+bind x.v = latest(d) when committed(d);
+bind y.seen = 1 when observed(ci);
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for event in ["run", "report", "decide"] {
+            stale_after(&mut session, event, "{}");
+        }
+        // The reading and the decision list the first occurrence, which a
+        // renewal leaves as it was; `observed(ci)` means the current one.
+        assert_eq!(stale_after(&mut session, "rerun", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "run", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "doubt", "{}"), ["y.seen"]);
+        // A reading of the new occurrence changes its own history, and the
+        // graph that `observed(ci)` reads.
+        assert_eq!(stale_after(&mut session, "report", "{}"), ["x.n", "y.seen"]);
     }
 }

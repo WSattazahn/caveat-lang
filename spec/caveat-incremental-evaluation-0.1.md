@@ -54,11 +54,14 @@ only if:
   of any history can reach outside it: a `qualifies` relation into a node it
   searched for caveats, or a take-back of one; a `supports` or `opposes`
   relation from evidence it searched; a qualification, take-back or withdrawal
-  of evidence that a value it read lists; a withdrawal it looked up; or the
-  guard of a skipped effect it looked up, found or not; or
+  of evidence that a value it read lists; a withdrawal it looked up; the guard
+  of a skipped effect it looked up, found or not; or the occurrences of
+  renewable evidence it looked up, through a renewal; or
 - the event changed something no evaluation notes: an examination's
-  qualification, a qualification that is not a new reading's, a renewal, a
-  retirement or a permission, or it removed anything.
+  qualification, a qualification an earlier observation was recorded with, a
+  retirement or a permission, or it removed anything. A new reading or
+  occurrence is recorded with its own qualification, which nothing read
+  before.
 
 Each evaluation of a scoped declaration notes what it consulted, so a doubt
 about one reading evaluates again only the declarations whose values list that
@@ -132,3 +135,8 @@ cargo run --release --no-default-features --example profile_dispatch -- PROGRAM.
   `opposes` relation or a skipped effect's guard evaluates again only the
   scoped declarations whose notes it reaches. Each such change evaluated every
   scoped declaration again before. What every binding shows is unchanged.
+- 2026-11-01: a renewal evaluates again only the scoped declarations that
+  looked up the renewed evidence's occurrences. A scoped declaration names
+  only histories; it can list an occurrence, which a renewal leaves as it was.
+  Each renewal evaluated every scoped declaration again before. What every
+  binding shows is unchanged.
