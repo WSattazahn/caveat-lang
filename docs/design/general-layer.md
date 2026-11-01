@@ -100,8 +100,9 @@ view a task gets is read-only, and the runtime's limits apply to every event.
    *Enforced by* the runner, which sets `revision` itself and whose `send`
    refuses the agent of any task and its own.
    *Test:* a report whose payload names another revision is refused and
-   nothing is sent; `runner.send` refuses the runner's agent and every task's
-   agent.
+   nothing is sent; `runner.send`, `caveat run`'s standard input and its
+   `--http` each refuse the runner's agent and every task's agent, and
+   `caveat run` takes no `restore`.
 3. **The program never calls out.** No rule can call a task, host code or the
    outside world. Loading, checking, testing, explaining, replaying and
    restoring a program run no task. This keeps the threat model's promise
@@ -166,12 +167,15 @@ view a task gets is read-only, and the runtime's limits apply to every event.
    *Enforced by* the program's `resolve`, which refuses a second answer, and
    by the runner, which sends the stop event when it gives up.
    *Test:* a task that throws after its outside call is tried again with the
-   same key; when its tries run out, the runner sends the stop event and lists
-   the request for a person; a second answer is refused as `already_resolved`,
-   and the runner sends no stop for it; a crash before a start is durable,
-   after the outside call, or after an answer is accepted but before it is
-   durable, each ends with one start and one answer, and the test's service
-   does the work once for each key.
+   same key; when its tries run out, a `lookup` that finds the work reports the
+   answer as the task's agent, the program accepts it, and the runner sends no
+   stop; with no `lookup`, or one that leaves the request without an answer,
+   the runner sends the stop event and lists the request for a person, and a
+   restart does not call that `lookup` again; a second answer is refused as
+   `already_resolved`, and the runner sends no stop for it; a crash before a
+   start is durable, after the outside call, or after an answer is accepted but
+   before it is durable, each ends with one start and one answer, and the
+   test's service does the work once for each key.
 7. **Work starts only for a waiting request, and the record shows when.** A
    request is waiting while it is committed, not reopened and not resolved.
    Caveat's "in force" means committed and not reopened, and an answered
@@ -179,8 +183,8 @@ view a task gets is read-only, and the runtime's limits apply to every event.
    `permits` alone is not enough. The runner reads the view and sends the
    program's start event, as its own agent, for the revision it read. The
    program refuses a start unless that revision is the current one and
-   waiting. `committed`, `reopened` and `resolved` ask only about the current
-   revision, so the guard also compares the start's revision with
+   waiting. `committed` and `reopened` ask only about the current revision,
+   so the guard also compares the start's revision with
    `history_count(SERIES)`. If an event between the read and the start leaves
    that revision no longer current or waiting, the program refuses the start,
    and the runner reads the view again. The runner calls the task only once
@@ -204,11 +208,12 @@ view a task gets is read-only, and the runtime's limits apply to every event.
    the current one or not waiting, and by the runner, which calls a task only
    once its start is durable.
    *Test:* a start that names a reopened, answered, superseded, missing or
-   already started revision is refused, and no task runs; after a crash
-   between the start and the call, the restart tries the task with the
+   already started revision is refused, and no task runs; a start whose
+   append fails is written again, and only then is its task called; after a
+   crash between the start and the call, the restart tries the task with the
    recorded key; a running task's signal fires when its request reopens;
    after a restart, the runner does not try again a request that was reopened
-   meanwhile.
+   meanwhile, and starts no request whose start the program refused.
 8. **The core keeps its limits; loops live outside.** Every event stays within
    the work, history and text limits. Long computation runs in tasks. A
    JavaScript task runs on the runner's event loop, so one that computes
@@ -252,10 +257,11 @@ the person running it grants, and never the store or code the runner loads.
 - **Python on PyPI.** `pip install caveat-lang`. From the release that first
   ships it, the package's version is the npm package's version, because both
   carry the same runtime and are held to the same bytes, and a check holds the
-  version in `python/` to `kit/package.json`. A fix to the Python package
-  alone ships as the next patch release of both packages, such as `1.5.1`. A
-  post-release such as `1.5.0.post1` is kept for changes that touch no code,
-  such as a wrong README, as
+  version in `python/` to `kit/package.json`, allowing a `.postN` suffix only
+  on a post-release's branch. A fix to the Python package alone ships as the
+  next patch release of both packages, such as `1.5.1`. A post-release such
+  as `1.5.0.post1` is kept for changes that touch no code, such as a wrong
+  README, as
   [Python's version rules](https://packaging.python.org/en/latest/specifications/version-specifiers/)
   ask. It is built from a branch off the release's tag, and its publish
   refuses a build whose code differs from the tag's.
@@ -307,9 +313,10 @@ the person running it grants, and never the store or code the runner loads.
     event, with only `event`, `payload` and `agent`, so `caveat explain` reads
     it as it is. A runner refuses a store whose log does not start there.
   - The checkpoint names the SHA-256 of the log's lines up to its own
-    sequence. Opening refuses a log that is shorter than the checkpoint or
-    whose lines up to it have another digest, drops a last line cut short,
-    and sends the lines past the checkpoint again.
+    sequence. Opening refuses a checkpoint that names no digest, such as one
+    a host without the log wrote; a log shorter than the checkpoint; and a
+    log whose lines up to it have another digest. It drops a last line cut
+    short, and sends the lines past the checkpoint again.
   - So with the log, an event is durable once its line is written, and one
     whose checkpoint write failed comes back after a restart; the starter
     guide says so. If an append fails, the host writes no checkpoint, and
@@ -318,8 +325,15 @@ the person running it grants, and never the store or code the runner loads.
   - A store with a log has one writer. A host opened with the log, and every
     runner, holds a lock on its store while it runs, and refuses a store
     another process holds. The lock ends with its process, so a crash leaves
-    none behind. A host without the log takes no lock, as in 1.4, so nothing
-    but the running runner opens a store it serves.
+    none behind. A Python host takes the same lock as a Node host, so each
+    refuses a store the other holds; Node has no file-lock call, so that lock
+    cannot be Python's `fcntl.flock`.
+  - A host without the log takes no lock, as in 1.4. A checkpoint that names
+    a log has a schema name of its own, and a host without the log refuses
+    it, as the 1.4 starter refuses any schema name but its own
+    (`kit/lib/starter.mjs: L57–58`). So no host without the log, of 1.4 or
+    later, writes to a store with a log, whether its runner is running or
+    stopped.
 
   A Python store keeps the same files as the Node file store, so a ledger
   written by one opens in the other.
@@ -351,7 +365,7 @@ Everything a first general layer needs is in the language already:
 | Need | In today's language | Where it is defined |
 | --- | --- | --- |
 | A request | A committed revision of a decision series, `refund@2` | [Reactive 0.5](../../spec/caveat-reactive-0.5.md) |
-| Its arguments | The revision's value, and the notes on the readings it rests on, which the runner reads from the snapshot because the view does not carry notes | [Reading Notes 0.1](../../spec/caveat-reading-notes-0.1.md) |
+| Its arguments | The revision's value, and the notes on the readings it rests on, which the runner reads from the snapshot, because the view has no reading streams and shows a note only in the effects of the event that took it | [Reading Notes 0.1](../../spec/caveat-reading-notes-0.1.md) |
 | Who may answer | `agent payments sends refunded, refund_failed;` | [Agents 0.1](../../spec/caveat-agents-0.1.md) |
 | When work started | `agent runner sends refund_started, refund_stopped;`, and a start the program accepts only for the current revision, while it is waiting | [Agents 0.1](../../spec/caveat-agents-0.1.md) |
 | The answer | `resolve revision(refund, N) = 1 because latest(receipts)` | [Outcomes 0.1](../../spec/caveat-outcomes-0.1.md) |
@@ -428,7 +442,7 @@ on refund_started sample starts = revision noting key;
 on refund_started set started = revision;
 on refund_stopped when resolved(revision(refund, revision)) reject "This refund is already answered.";
 on refund_stopped sample stops = revision;
-on refund_stopped set stopped = revision;
+on refund_stopped when revision == history_count(refund) set stopped = revision;
 
 # An answer names the request it answers: refund@N.
 on refunded sample receipts = revision noting receipt;
@@ -448,7 +462,7 @@ bind refund.status = if(not committed(refund), "none",
 ```
 
 On `caveat-lang@1.4.1` from npm, on 2026-11-01, the program loads, `check`
-reports no warnings, and seven scenarios pass. Each row below is a step in one
+reports no warnings, and eight scenarios pass. Each row below is a step in one
 of them, and the scenario checks its result, message included:
 
 | Sent | As | Result |
@@ -469,6 +483,7 @@ of them, and the scenario checks its result, message included:
 | `refund_stopped` for a started `refund@1` | `runner` | accepted; `refund.status` is `needs a person` |
 | `request_refund` after that stop | `support` | refused, `policy/reject`: "A refund is still waiting for its answer." |
 | `refunded` after that stop | `ops` | accepted: a person settles what the runner gave up on |
+| `refund_stopped` for a reopened `refund@1`, after `refund@2` was stopped | `runner` | accepted, and `refund.status` stays `needs a person` |
 
 For the late answer, `caveat explain` prints each step with its sender, and
 the events show the start came before the doubt:
@@ -571,7 +586,7 @@ const runner = await openRunner({
       if (paid.declined) return report('refund_failed', {});
       return report('refunded', { receipt: paid.id });    // the runner adds revision: 2
     },
-    async lookup(request, report) {       // when the runner gives up, or after a restart
+    async lookup(request, report) {       // at most once, when the runner gives up on the request
       const found = await payments.findByKey(request.key);
       if (found?.paid) return report('refunded', { receipt: found.id });
     },
@@ -604,8 +619,12 @@ def find(request, report):
 
 From the command line, `caveat run PROGRAM --tasks MODULE --store DIR` runs
 JavaScript tasks, and `python -m caveat_lang run` does the same for Python.
-Each takes the application's events as `caveat serve` does, on standard input
-or over `--http`.
+Each takes the application's events as `caveat serve` takes `dispatch`, on
+standard input or over `--http`, and sends them as `runner.send` does (step 7
+below), so it refuses the runner's agent and any task's agent. Neither takes
+`restore` or `drainArchive`, whatever its flags: a restore would replace the
+record with nothing in the log (rule 5), and the store already keeps the
+archive.
 
 What the runner does:
 
@@ -613,63 +632,71 @@ What the runner does:
    the store is empty, and holds the store's lock while it runs (step 8). It
    refuses a store whose log does not start at the store's first event. On
    opening, the store sends again the events its log holds past the
-   checkpoint (step 1).
+   checkpoint (the event log in [what step 1 adds](#what-step-1-adds)).
 2. It checks each task against the program's
    [interface](../../spec/caveat-interface-0.1.md): the task's agent and the
    runner's agent are declared, and no other task uses the task's agent; each
-   event in the task agent's `sends` list has a `revision` parameter; the
-   start event has a `revision` parameter and a `key` parameter of type `id`,
-   the stop event has a `revision` parameter, and both are the runner agent's
-   and no task's; each `revision` parameter allows every revision the series
-   can hold; and `answers` names a decision series that no other task
-   answers. It refuses to start otherwise. The interface does not say which
-   series an event resolves, so the runner cannot check that a task's events
-   answer its own series. The program gives each task an agent of its own,
-   and lets that agent send only the events that answer that task's series.
+   event in the task agent's `sends` list has a `revision` parameter; the start
+   event has a `revision` parameter and a `key` parameter of type `id`, the
+   stop event has a `revision` parameter, both are sent by the runner's agent
+   alone, which is no task's agent, and no other task uses either one as its
+   start or stop; each `revision` parameter allows every revision the series
+   can hold; and `answers` names a decision series that no other task answers.
+   It refuses to start otherwise. The interface does not say which series an
+   event resolves, so the runner cannot check that a task's events answer its
+   own series. The program gives each task an agent of its own, and lets that
+   agent send only the events that answer that task's series.
 3. When it opens, and after each accepted event once that event is durable, it
-   reads the view. For a task whose series' current revision is waiting and
-   not yet started, it sends the start event with a new random key, for the
-   revision it read. When the program refuses a start, the runner reads the
-   view again; it sends no other start for that request, and lists the
-   request for a person if it is still waiting. Once the start is durable, the
-   runner notes the try in its own file (below) and calls the task with the
-   request: its id, revision, key, value and grounds, each ground with its
-   value and note when it is a reading (from the snapshot's reading streams),
-   a signal that fires when the request reopens or is resolved, `waiting()`,
-   and a read-only view.
+   reads the view. If an accepted event's append fails, the runner tries the
+   write again, as the starter's `flush()` does, until the event is durable.
+   For a task whose series' current revision is waiting and not yet started, it
+   sends the start event with a new random key, for the revision it read. When
+   the program refuses a start, the runner reads the view again and notes the
+   refusal in its own file. It sends no other start for that request, even
+   after a restart, and lists the request for a person if it is still waiting.
+   Once the start is durable, the runner notes the try in its own file (below)
+   and calls the task with the request: its id, revision, key, value and
+   grounds, each ground with its value and note when it is a reading (from the
+   snapshot's reading streams), a signal that fires when the request reopens or
+   is resolved, `waiting()`, and a read-only view.
 4. `report` is bound to that request. It sends only the task agent's events,
    as that agent, through the host's single queue; it sets `revision` to the
    request's revision and refuses, without sending, a payload that names
    another. It returns what the host returns: whether the event was handled,
    accepted and durable, or the rejection.
 5. A try succeeds when the program accepts the task's answer. When a task
-   throws, runs out of time, or returns without an accepted answer, the
-   runner does not know whether the outside work was done, so it reports
-   nothing. It closes that try's `report` and tries again with the same key
-   while the request is waiting, up to `attempts`. A refusal as
-   `already_resolved` means another answer came first, so the request has its
-   answer and nothing more is sent for it. When a started request has no
-   answer and the runner will not try it again, because the tries ran out,
-   the request was reopened, or the program refused what the task reported,
-   the runner calls the task's `lookup(request, report)` if it has one.
-   `lookup` asks the outside service by key; it reports an answer only when
-   the service has one, and a failure only when the service says the work
-   will not be done. If it reports nothing, or the task has no `lookup`, the
+   throws, runs out of time, or returns without an accepted answer, the runner
+   does not know whether the outside work was done, so it reports nothing. It
+   closes that try's `report` and tries again with the same key while the
+   request is waiting, up to `attempts`. A refusal as `already_resolved` means
+   another answer came first, so the request has its answer and nothing more is
+   sent for it. When a started request has no answer and the runner will not
+   try it again, because the tries ran out, the request was reopened, or the
+   program refused what the task reported, the runner calls the task's
+   `lookup(request, report)` if it has one. It notes the call in its own file
+   first, as it does a try, and gives `lookup` the task's time limit; a
+   `lookup` that throws or runs out of time reports nothing. `lookup` asks the
+   outside service by key; it reports an answer only when the service has one,
+   and a failure only when the service says the work will not be done. If the
+   request still has no answer after `lookup`, or the task has no `lookup`, the
    runner sends the stop event as its own agent and lists the request for a
    person, with any report the program refused and its rejection. A stop
-   refused because an answer came first ends the request too. A person
-   settles a stopped request by sending an answer as an agent the program
-   lets answer, the example's `ops`. A reported failure is already the
-   answer: the program refuses a later success unless the failure's evidence
-   is withdrawn. The runner never sends a refused event again, and the
-   application's events and other tasks go on.
+   refused because an answer came first ends the request too. A person settles
+   a stopped request by sending an answer as an agent the program lets answer,
+   the example's `ops`. A reported failure is already the answer: the program
+   refuses a later success unless the failure's evidence is withdrawn. The
+   runner never sends a refused event again, and the application's events and
+   other tasks go on.
 6. After a restart, a request with a start and no answer or stop is tried
    again with its recorded key while it is waiting and its tries have not run
    out. Tries count across restarts, because the runner notes each try before
    it calls the task, so a task that crashes or hangs the runner is not tried
    on every restart. Otherwise the runner goes on as in step 5: it calls
-   `lookup` if the task has one, and sends the stop event if that reports
-   nothing.
+   `lookup` if the task has one, and sends the stop event if the request
+   still has no answer. It calls `lookup` at most once for a request, so if
+   its file shows a call from before the restart, it sends the stop event
+   without calling it again, and a `lookup` that crashes or hangs the runner
+   is not called on every restart either.
 7. `runner.send` sends the application's events. It refuses the runner's
    agent and any task's agent.
 8. A store has one writer. The runner holds the store's lock while it runs,
@@ -677,15 +704,16 @@ What the runner does:
    `runner.send` in its process, or `caveat run`'s standard input or
    `--http`.
 
-What the runner started, with which key, and how each request was answered
-or stopped are events in the store's log, read back after a restart. Beside
-the log, the runner keeps a file of its own, which the record never reads:
-each try it began, so tries count across restarts, and each report the
-program refused, so the person who settles a stopped request sees what the
-task tried to report. Restoring a store from an older backup forgets the
-starts made since, so their requests could start again under new keys and
-the outside work be done twice. A person restores one only after checking
-the outside service for work done since the backup.
+What the runner started, with which key, and how each request was answered or
+stopped are events in the store's log, read back after a restart. Beside the
+log, the runner keeps a file of its own, which the record never reads: each try
+and each call of `lookup` it began, so they count across restarts; each start
+the program refused, so a request handed to a person is not started again after
+a restart; and each report the program refused, so the person who settles a
+stopped request sees what the task tried to report. Restoring a store from an
+older backup forgets the starts made since, so their requests could start again
+under new keys and the outside work be done twice. A person restores one only
+after checking the outside service for work done since the backup.
 
 When the runner ships, the places that say Caveat does not authorize external
 actions (`docs/THREAT_MODEL.md: L25–28`, `AGENTS.md: L32–33`,
@@ -772,7 +800,7 @@ world task {
   import waiting: func() -> bool;
   import report: func(event: string, payload: string) -> reply;
   export perform: func(req: request) -> result<_, string>;
-  // For a started request without an answer, when the runner gives up or after a restart.
+  // At most once for a started request without an answer, when the runner gives up on it.
   export lookup: func(req: request) -> result<_, string>;
 }
 ```
@@ -877,7 +905,7 @@ output bytes (`docs/COMPATIBILITY.md: L152–155`).
 | --- | --- | --- |
 | PyPI, and a promise for the Python API | a new channel; a promise added | 1.x |
 | Python `explain`, `dependents`, `what_if`, host, handoff | new functions in the Python package | 1.x |
-| `send(…, { agent })`, `scope`, `waitingRequest(series)` and `dependents(name)` on the starter host, and an opt-in event log with its lock | an optional argument (an added overload in the TypeScript declarations), new methods, a new `openHost` option and new optional store members | 1.x |
+| `send(…, { agent })`, `scope`, `waitingRequest(series)` and `dependents(name)` on the starter host, and an opt-in event log with its lock | an optional argument (an added overload in the TypeScript declarations), new methods, a new `openHost` option, new optional store members and a new checkpoint schema for a store with a log | 1.x |
 | The starter's checkpoint and file store, opened from both languages | their files named as promised schemas, checked by opening each language's store in the other | 1.x |
 | An `agent` on the MCP tools' events | an optional field | 1.x |
 | `caveat serve --http`, `caveat types --python` | new CLI flags | 1.x |
@@ -956,7 +984,9 @@ PRs below do not list them.
    by the differential test.
 3. **Starter: `send(…, { agent })`, `scope(sends, { agent })`,
    `waitingRequest` and `dependents(name)`,** and the opt-in event log with
-   its lock and open check, with the threat model review a new input needs.
+   its lock, its checkpoint schema and its open check, a test that a host
+   without the log refuses a store with one, and the threat model review a
+   new input needs.
    The log's format is settled and reviewed here, because this PR ships it,
    and the starter guide's "What the stores guarantee" says what `durable`
    means with the log. `scope` sends through the host's queue and checkpoint,
@@ -969,10 +999,11 @@ PRs below do not list them.
 4. **MCP: an optional `agent` on each event** of `caveat_explain`,
    `caveat_dependents`, `caveat_dispatch` and `caveat_find`.
 5. **Python host and handoff:** `open_host` with a file store the Node store
-   can open and the reverse, the event log and its lock, `permits`,
-   `waiting_request`, `assessment`, `history`, `dependents`, `scope` and
-   `replay_onto`, with the threat model review that a new filesystem
-   capability in the Python package needs.
+   can open and the reverse, the event log and the same lock as the Node
+   host, `permits`, `waiting_request`, `assessment`, `history`, `dependents`,
+   `scope` and `replay_onto`, and a test that a Python host and a Node host
+   each refuse a store the other holds. With the threat model review that a
+   new filesystem capability in the Python package needs.
 6. **`caveat serve --http`,** specified first as an added section of Serve
    0.1: one request per POST, what becomes of the ready line, how `close` and
    a fatal error end the listener, the token and request checks, and a server
@@ -986,12 +1017,13 @@ PRs below do not list them.
 
 9. **The runner in JavaScript,** `caveat-lang/run` and `caveat run`, with the
    wall's tests (rules 1, 2, 3, 5, 6 and 7), crash-and-restart tests like the
-   starter's, a test that a second runner or a starter host does not open a
-   store a running runner holds and that a runner killed while it holds the
-   lock opens its store again, the wording changes above, and the threat
-   model review. Its contract (the API, the request object, the runner's own
-   file and `caveat run`'s exit statuses) is written down and reviewed before
-   it merges, because every export is a promise from its first release.
+   starter's, a test that a second runner, or a starter host opened with the
+   log, does not open a store a running runner holds and that a runner killed
+   while it holds the lock opens its store again, the wording changes above,
+   and the threat model review. Its contract (the API, the request object, the
+   runner's own file and `caveat run`'s exit statuses) is written down and
+   reviewed before it merges, because every export is a promise from its first
+   release.
 10. **The runner in Python,** held to the JavaScript runner by one shared
     fixture: the same program, the same scripted task answers and keys, the
     same record bytes and event logs. With the threat model review that
@@ -1153,3 +1185,11 @@ source can be relied on for the quoted point (0 to 10).
   runner loads, and runs each try off the runner's thread; no release ships a
   way of writing tasks before its examples; and the PyPI package gets its own
   threat model review, audit and publish environment.
+- 2026-11-01: corrected after a final check. A host without the log refuses
+  a store with one, by the checkpoint's schema name, and Python and Node take
+  the same lock; `caveat run` sends its input as `runner.send` does and takes
+  no restore; the runner notes, times and calls `lookup` once, sends the stop
+  whenever a request is still unanswered after it, remembers refused starts
+  across restarts, and writes a failed append again; a late stop for an
+  older request no longer hides the current one's; and the version check
+  allows a post-release's suffix.
