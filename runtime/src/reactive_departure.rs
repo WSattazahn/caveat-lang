@@ -926,26 +926,21 @@ impl ReactiveSession {
         // Removal and payload construction are interleaved in this phase.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::ArchiveConstructionAndRemoval);
-        let names = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.clone()))
-            .collect::<HashMap<_, _>>();
         let ids = departing
             .keys()
             .filter_map(|record| self.symbols.get(record).map(|id| (*id, record.clone())))
             .collect::<HashMap<_, _>>();
         let mut relations: BTreeMap<String, Vec<[String; 3]>> = BTreeMap::new();
         if !ids.is_empty() {
-            self.depart_records(&ids, |edge| {
+            self.depart_records(&ids, |edge, from, to| {
                 let record = ids
                     .get(&edge.from)
                     .or_else(|| ids.get(&edge.to))
                     .expect("a removed edge touches a departing record");
                 relations.entry(record.clone()).or_default().push([
-                    names[&edge.from].clone(),
+                    from.to_string(),
                     relation_name(edge.relation).into(),
-                    names[&edge.to].clone(),
+                    to.to_string(),
                 ]);
             });
         }

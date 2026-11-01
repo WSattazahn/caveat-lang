@@ -189,7 +189,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::Sealed;
+use write::{NameTable, Sealed};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1621,6 +1621,11 @@ struct Changes {
 
 impl Changes {
     fn between(old: &ReactiveSession, new: &ReactiveSession) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            old.symbols.check();
+            new.symbols.check();
+        }
         let names = new.states.changed_since(&old.states);
         // Copy-on-write fields an event never wrote still share their pointer.
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
@@ -1838,13 +1843,8 @@ impl Changes {
                 &mut changed,
             )?;
         }
-        // Names only gain symbols.
-        if !Arc::ptr_eq(&old.symbols, &new.symbols)
-            && old
-                .symbols
-                .iter()
-                .any(|(name, id)| new.symbols.get(name) != Some(id))
-        {
+        // Names only gain symbols: every node named before keeps its name.
+        if !Arc::ptr_eq(&old.symbols, &new.symbols) && !old.symbols.kept_in(&new.symbols) {
             return None;
         }
         if !Arc::ptr_eq(&old.observations, &new.observations)
@@ -1887,17 +1887,13 @@ impl Changes {
                     .filter(|(id, node)| old.graph.nodes.get(id) != Some(*node))
                     .map(|(id, _)| *id),
             );
-            if !touched.is_empty() || !qualified.is_empty() {
-                for (name, id) in new.symbols.iter() {
-                    if touched.contains(id) {
-                        if let Some(history) = history_of(name) {
-                            changed.insert(history);
-                        }
-                    }
-                    if qualified.contains(id) {
-                        requalified.relations.insert(name.clone());
-                    }
+            for name in touched.iter().filter_map(|&id| new.symbols.name_of(id)) {
+                if let Some(history) = history_of(name) {
+                    changed.insert(history);
                 }
+            }
+            for name in qualified.iter().filter_map(|&id| new.symbols.name_of(id)) {
+                requalified.relations.insert(name.to_string());
             }
             requalified.nodes.extend(qualified);
         }
@@ -2474,7 +2470,8 @@ pub struct ReactiveSession {
     controls: Arc<BTreeMap<String, Control>>,
     clock: Option<Clock>,
     graph: Sealed<EpistemicGraph>,
-    symbols: Sealed<HashMap<String, NodeId>>,
+    /// The names map, with each named record's name by node.
+    symbols: NameTable,
     resources: Option<ResourceLedger>,
     world: Arc<MapWorld>,
     labels: Arc<BTreeMap<String, String>>,
@@ -6098,7 +6095,7 @@ impl ReactiveSession {
             "observed" if value => self.qualify_core(name, &[])?,
             "examined" => Provenance::from_names(
                 [],
-                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
+                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]], 1)),
             )?,
             "committed" | "reopened" if value => {
                 let mut grounds = self
@@ -6108,14 +6105,13 @@ impl ReactiveSession {
                     .unwrap_or_default();
                 if kind == "reopened" {
                     let id = self.symbols[name];
-                    let by_id = self
-                        .symbols
-                        .iter()
-                        .map(|(name, id)| (*id, name))
-                        .collect::<HashMap<_, _>>();
                     for edge in &self.graph.edges {
                         if edge.to == id && edge.relation == Relation::Reopens {
-                            grounds.merge(&self.qualify_core(by_id[&edge.from], &[])?)?;
+                            let cause = self
+                                .symbols
+                                .name_of(edge.from)
+                                .expect("a reopening's cause is named");
+                            grounds.merge(&self.qualify_core(cause, &[])?)?;
                         }
                     }
                 }
@@ -6303,17 +6299,24 @@ impl ReactiveSession {
         Tracked::new(value, provenance)
     }
 
-    fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
-        self.caveats_reaching(roots, true)
+    fn incoming_caveats(
+        &self,
+        roots: impl IntoIterator<Item = NodeId>,
+        before: usize,
+    ) -> Vec<String> {
+        self.caveats_reaching(roots, true, before)
     }
 
     /// Caveats reaching `roots` through `qualifies` relations. With
     /// `honor_take_back` false, a taken-back relation still counts: what a
-    /// recorded entry could have carried when it was made.
+    /// recorded entry could have carried when it was made. `before` is how
+    /// many names the caller passes to `Provenance::from_names` ahead of
+    /// these.
     fn caveats_reaching(
         &self,
         roots: impl IntoIterator<Item = NodeId>,
         honor_take_back: bool,
+        before: usize,
     ) -> Vec<String> {
         // Only `qualifies` relations lead anywhere. Read them out of the
         // graph once, in graph order, rather than the whole graph once for
@@ -6368,21 +6371,30 @@ impl ReactiveSession {
         if caveats.is_empty() {
             return Vec::new();
         }
-        self.symbols
-            .iter()
-            .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
+        // Their order can decide which limit `from_names` reports only when
+        // they and the names ahead of them pass the identifier limit. Short
+        // of it, none of them is the name past it, and the bytes they add up
+        // to do not depend on their order. Past it they keep the order of the
+        // symbol table, as they always had. Short of it, node order.
+        if before.saturating_add(caveats.len()) > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            return self
+                .symbols
+                .iter()
+                .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
+                .collect();
+        }
+        let mut caveats = caveats.into_iter().collect::<Vec<_>>();
+        caveats.sort_unstable();
+        caveats
+            .into_iter()
+            .filter_map(|id| self.symbols.name_of(id).map(str::to_string))
             .collect()
     }
 
     /// Start explicit ordering only when an edge cannot represent observation.
     fn record_observation(&mut self, evidence: &str, neutral: bool) {
         if self.observations.is_empty() && neutral {
-            let names = self
-                .symbols
-                .iter()
-                .map(|(name, id)| (*id, name))
-                .collect::<HashMap<_, _>>();
-            let mut observations = Vec::new();
+            let mut observations = Vec::<String>::new();
             for edge in &self.graph.edges {
                 if matches!(edge.relation, Relation::Supports | Relation::Opposes)
                     && matches!(
@@ -6390,9 +6402,12 @@ impl ReactiveSession {
                         Some(NodeKind::Evidence { .. })
                     )
                 {
-                    let name = names[&edge.from];
-                    if !observations.contains(name) {
-                        observations.push(name.clone());
+                    let name = self
+                        .symbols
+                        .name_of(edge.from)
+                        .expect("observed evidence is named");
+                    if !observations.iter().any(|observed| observed == name) {
+                        observations.push(name.to_string());
                     }
                 }
             }
@@ -6537,8 +6552,9 @@ impl ReactiveSession {
                 })
                 .map(|edge| edge.to),
         );
+        // The evidence's name goes ahead of the caveats; the extras follow.
         let caveats = self
-            .caveats_reaching(roots, honor_take_back)
+            .caveats_reaching(roots, honor_take_back, 1)
             .into_iter()
             .chain(extras.iter().cloned());
         Provenance::from_names([evidence.into()], caveats)
@@ -6609,7 +6625,7 @@ impl ReactiveSession {
                 let id = self.symbols[name];
                 let mut provenance = Provenance::from_names(
                     [],
-                    std::iter::once(name.into()).chain(self.incoming_caveats([id])),
+                    std::iter::once(name.into()).chain(self.incoming_caveats([id], 1)),
                 )?;
                 if let Some(examination) = self.examination_qualifications.get(name) {
                     provenance.merge(examination)?;
@@ -6630,49 +6646,25 @@ impl ReactiveSession {
                 if let Some(reopening) = self.reopening_qualifications.get(name) {
                     self.inherit(&mut provenance, reopening)?;
                 }
-                // Only the names these edges reach: the session may hold many.
-                let reached = self
-                    .graph
-                    .edges
-                    .iter()
-                    .filter_map(|edge| {
-                        if edge.from == id
-                            && matches!(edge.relation, Relation::Retains | Relation::ReliesOn)
-                        {
-                            Some(edge.to)
-                        } else if kind == "reopened"
-                            && edge.to == id
-                            && edge.relation == Relation::Reopens
-                        {
-                            Some(edge.from)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<_>>();
-                let by_id = if reached.is_empty() {
-                    HashMap::default()
-                } else {
+                let name_of = |id: NodeId| {
                     self.symbols
-                        .iter()
-                        .filter(|(_, id)| reached.contains(*id))
-                        .map(|(name, id)| (*id, name))
-                        .collect::<HashMap<_, _>>()
+                        .name_of(id)
+                        .expect("a commitment relates named records")
                 };
                 for edge in &self.graph.edges {
                     if edge.from == id && edge.relation == Relation::Retains {
                         provenance
-                            .merge(&Provenance::from_names([], [by_id[&edge.to].clone()])?)?;
+                            .merge(&Provenance::from_names([], [name_of(edge.to).to_string()])?)?;
                     } else if edge.from == id && edge.relation == Relation::ReliesOn {
                         // Commitment basis is historical. Do not re-query its
                         // original value or replace its frozen qualifications.
                         provenance
-                            .merge(&Provenance::from_names([by_id[&edge.to].clone()], [])?)?;
+                            .merge(&Provenance::from_names([name_of(edge.to).to_string()], [])?)?;
                     } else if kind == "reopened"
                         && edge.to == id
                         && edge.relation == Relation::Reopens
                     {
-                        provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
+                        provenance.merge(&self.qualify(name_of(edge.from), &[])?)?;
                     }
                 }
                 // The basis is frozen, but the evidence it lists is read as it
@@ -8320,7 +8312,7 @@ impl ReactiveSession {
         // The caveat and whatever qualifies it, as `qualified` inherits.
         let added = Provenance::from_names(
             [],
-            std::iter::once(caveat.to_string()).chain(self.incoming_caveats([from])),
+            std::iter::once(caveat.to_string()).chain(self.incoming_caveats([from], 1)),
         )?;
         // Current values only. Commitment bases and grounds, reading
         // archives and the journal record what was known then.
@@ -9116,7 +9108,8 @@ impl ReactiveSession {
                 .map(|(_, name)| name.clone())
                 .collect::<Vec<_>>()
         };
-        names.extend(self.incoming_caveats(reached.iter().copied()));
+        let before = names.len();
+        names.extend(self.incoming_caveats(reached.iter().copied(), before));
         provenance.merge(&Provenance::from_names([], names)?)
     }
 
@@ -11616,5 +11609,57 @@ bind y.seen = 1 when observed(ci);
         // A reading of the new occurrence changes its own history, and the
         // graph that `observed(ci)` reads.
         assert_eq!(stale_after(&mut session, "report", "{}"), ["x.n", "y.seen"]);
+    }
+}
+
+#[cfg(test)]
+mod caveat_order_tests {
+    use super::*;
+
+    /// Evidence `e`, which `flag` qualifies with `caveats` caveats.
+    fn qualified_by(caveats: usize) -> ReactiveSession {
+        let mut source = String::from(
+            "evidence e from \"tool\";\nevent report;\nevent flag;\non report reveal e;\n",
+        );
+        for caveat in 0..caveats {
+            source.push_str(&format!("caveat c{caveat} consequence low;\n"));
+        }
+        for caveat in 0..caveats {
+            source.push_str(&format!("on flag qualify e with c{caveat};\n"));
+        }
+        let mut session = ReactiveSession::from_source(&source).unwrap();
+        for event in ["report", "flag"] {
+            let outcome = session.dispatch_outcome_json(event, "{}").unwrap();
+            assert_eq!(
+                serde_json::to_value(outcome).unwrap()["outcome"],
+                "accepted"
+            );
+        }
+        session
+    }
+
+    /// Finding: the caveats reaching a node switched to node order at exactly
+    /// 1,024 of them, though every caller puts a name ahead of them, so the
+    /// last was the name past the identifier limit and their order could
+    /// decide which limit a refusal reports.
+    #[test]
+    fn caveats_keep_the_symbol_table_order_when_the_names_ahead_pass_the_limit() {
+        let session = qualified_by(reactive_expr::MAX_PROVENANCE_IDENTIFIERS);
+        let e = session.symbols["e"];
+        let by_symbol = session
+            .symbols
+            .iter()
+            .filter(|(name, _)| name.starts_with('c'))
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let mut by_node = by_symbol.clone();
+        by_node.sort_by_key(|name| session.symbols[name]);
+        // Alone they stay short of the limit, and node order cannot matter.
+        assert_eq!(session.caveats_reaching([e], true, 0), by_node);
+        // With one name ahead, the last of them is the name past the limit.
+        assert_eq!(session.caveats_reaching([e], true, 1), by_symbol);
+        assert_eq!(session.caveats_reaching([e], false, 1), by_symbol);
+        assert_eq!(session.incoming_caveats([e], 1), by_symbol);
+        assert_eq!(session.incoming_caveats([e], 0), by_node);
     }
 }
