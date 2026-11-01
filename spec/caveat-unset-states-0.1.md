@@ -171,8 +171,9 @@ rules that could refuse.
 - Runtime: `Directive::State`'s `unset`, `StateCell::unset`, `Effect::Unset`,
   the `is_set` predicate (`reactive_expr::IS_SET`), the refusal in
   `unset_read`, `RejectionCode::UnsetState`, the snapshot's `unset` and the
-  interface's; C013 in `runtime/src/reactive_check.rs`. `unset` is a reserved word
-  in `runtime/src/link.rs`, so a module cannot declare a name `unset`.
+  interface's; C013 in `runtime/src/reactive_check.rs`. `unset` is not reserved:
+  `runtime/src/link.rs` knows its two places by position, so a 1.x module
+  that names something `unset` links as before.
 - Tests: `runtime/tests/unset_states.rs`. A state declared `unset` starts
   with no value, takes one from `set`, loses it to `unset`, and keeps its
   bounds. Each kind of read before a set (a `when` condition, a `set`, a

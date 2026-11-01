@@ -105,8 +105,6 @@ const RESERVED: &[&str] = &[
     "to",
     "toward",
     "unqualify",
-    // spec/caveat-unset-states-0.1.md: `state NAME unset;` and the `unset NAME` effect.
-    "unset",
     "use",
     "using",
     "via",
@@ -1051,6 +1049,18 @@ fn tag_offsets(source: &str) -> Vec<usize> {
             {
                 offsets.push(*offset);
             }
+        }
+        // `state NAME unset` and the `unset NAME` effect
+        // (spec/caveat-unset-states-0.1.md) came after modules, so a module
+        // may still declare `unset`. The declaration word is the third word
+        // of a state statement; the effect word is the second-to-last word
+        // of a rule, the only place the parser reads it.
+        let bare = |word: &str| word.trim_end_matches(';') == "unset";
+        if shape.first() == Some(&"state") && shape.get(2).is_some_and(|word| bare(word)) {
+            offsets.push(words[2].0);
+        }
+        if shape.first() == Some(&"on") && shape.len() >= 4 && bare(shape[shape.len() - 2]) {
+            offsets.push(words[shape.len() - 2].0);
         }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
