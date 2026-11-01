@@ -8,7 +8,7 @@ use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -471,21 +471,113 @@ impl<'de> serde::Deserialize<'de> for Name {
     }
 }
 
-/// The names in name order, each once, and, once asked, their total bytes.
-/// A lineage holds one to three names far more often than more, so a sorted
-/// list finds and joins them with less work than a tree.
-#[derive(Debug, Default)]
+/// The names in name order, each once, and their total bytes, counted as
+/// the set is built. A lineage holds one to three names far more often than
+/// more, so one or two names are held in the set's own allocation, and more
+/// in a sorted list, which finds and joins them with less work than a tree.
+#[derive(Debug, Clone)]
 struct Names {
-    names: Vec<Name>,
-    bytes: OnceLock<usize>,
+    bytes: usize,
+    store: Store,
 }
 
-impl Clone for Names {
-    fn clone(&self) -> Self {
-        Self {
-            names: self.names.clone(),
-            bytes: self.bytes.clone(),
+/// A held set's names: never none, since an empty set holds no `Names`,
+/// and in a list only when there are three or more.
+#[derive(Debug, Clone)]
+enum Store {
+    One([Name; 1]),
+    Two([Name; 2]),
+    Heap(Vec<Name>),
+}
+
+impl Store {
+    fn as_slice(&self) -> &[Name] {
+        match self {
+            Self::One(names) => names,
+            Self::Two(names) => names,
+            Self::Heap(names) => names,
         }
+    }
+
+    /// Names already in name order, each once, at least one.
+    fn from_sorted(names: Vec<Name>) -> Self {
+        let names = match <[Name; 1]>::try_from(names) {
+            Ok(one) => return Self::One(one),
+            Err(names) => names,
+        };
+        match <[Name; 2]>::try_from(names) {
+            Ok(two) => Self::Two(two),
+            Err(names) => Self::Heap(names),
+        }
+    }
+
+    /// `held` with `name` placed at `at`: a new store at its exact size.
+    fn inserted(held: &[Name], at: usize, name: Name) -> Self {
+        if let [only] = held {
+            let only = only.clone();
+            return Self::Two(if at == 0 { [name, only] } else { [only, name] });
+        }
+        let mut names = Vec::with_capacity(held.len() + 1);
+        names.extend_from_slice(&held[..at]);
+        names.push(name);
+        names.extend_from_slice(&held[at..]);
+        Self::Heap(names)
+    }
+
+    /// Take out the name at `at`, in this store of two names or more.
+    fn remove(&mut self, at: usize) {
+        *self = match std::mem::replace(self, Self::Heap(Vec::new())) {
+            Self::Two([first, second]) => Self::One([if at == 0 { second } else { first }]),
+            // A list left with two names holds them itself again.
+            Self::Heap(mut names) => {
+                names.remove(at);
+                Self::from_sorted(names)
+            }
+            // A set of one name is emptied instead.
+            one @ Self::One(_) => one,
+        };
+    }
+
+    /// Place `name` at `at`, in this store.
+    fn insert(&mut self, at: usize, name: Name) {
+        *self = match std::mem::replace(self, Self::Heap(Vec::new())) {
+            Self::One([only]) => Self::Two(if at == 0 { [name, only] } else { [only, name] }),
+            Self::Two(two) => {
+                let mut names = Vec::with_capacity(4);
+                names.extend(two);
+                names.insert(at, name);
+                Self::Heap(names)
+            }
+            Self::Heap(mut names) => {
+                names.insert(at, name);
+                Self::Heap(names)
+            }
+        };
+    }
+}
+
+impl Names {
+    /// Debug builds: a held set is in name order, each name once, and its
+    /// byte count is its names' total.
+    #[cfg(debug_assertions)]
+    fn check(&self) {
+        let names = self.store.as_slice();
+        assert!(!names.is_empty(), "a held name set is empty");
+        assert!(
+            !matches!(&self.store, Store::Heap(names) if names.len() < 3),
+            "a name set holds fewer than three names in a list"
+        );
+        assert!(
+            names
+                .windows(2)
+                .all(|pair| pair[0].as_str() < pair[1].as_str()),
+            "a name set is out of order or repeats a name"
+        );
+        assert_eq!(
+            self.bytes,
+            names.iter().map(|name| name.len()).sum::<usize>(),
+            "a name set counts its bytes wrong"
+        );
     }
 }
 
@@ -499,14 +591,7 @@ impl NameSet {
     }
 
     fn names(&self) -> &[Name] {
-        self.0.as_ref().map_or(&[], |set| &set.names)
-    }
-
-    /// The list to change, copied first when another value shares it.
-    fn names_mut(&mut self) -> &mut Vec<Name> {
-        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
-        set.bytes = OnceLock::new();
-        &mut set.names
+        self.0.as_ref().map_or(&[], |set| set.store.as_slice())
     }
 
     fn position(&self, name: &str) -> Result<usize, usize> {
@@ -514,19 +599,26 @@ impl NameSet {
             .binary_search_by(|held| held.as_str().cmp(name))
     }
 
+    /// Where `name` is or would go. A copy of a held name is found without
+    /// comparing its text.
+    fn find(&self, name: &Name) -> Result<usize, usize> {
+        self.names().binary_search_by(|held| held.cmp(name))
+    }
+
     /// The names this set would add to `ours`.
     fn added_to<'a>(&'a self, ours: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
         let skip = self.is_empty() || self.shares(ours);
         self.names()
             .iter()
-            .filter(move |name| !skip && !ours.contains(name.as_str()))
+            .filter(move |name| !skip && ours.find(name).is_err())
     }
 
-    /// The names' total bytes, counted once per set.
+    /// The names' total bytes.
     fn bytes(&self) -> usize {
         self.0.as_ref().map_or(0, |set| {
-            *set.bytes
-                .get_or_init(|| set.names.iter().map(|name| name.len()).sum())
+            #[cfg(debug_assertions)]
+            set.check();
+            set.bytes
         })
     }
 
@@ -535,7 +627,7 @@ impl NameSet {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.names().is_empty()
+        self.0.is_none()
     }
 
     /// The names in name order.
@@ -560,39 +652,72 @@ impl NameSet {
     /// Whether every name here is also in `other`.
     pub fn is_subset(&self, other: &Self) -> bool {
         self.shares(other)
-            || (self.len() <= other.len() && self.iter().all(|name| other.contains(name.as_str())))
+            || (self.len() <= other.len() && self.iter().all(|name| other.find(name).is_ok()))
     }
 
     /// The names here that `other` lacks, in name order.
     pub fn difference<'a>(&'a self, other: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
-        self.iter()
-            .filter(move |name| !other.contains(name.as_str()))
+        self.iter().filter(move |name| other.find(name).is_err())
     }
 
-    /// Add `name`; returns whether it was new. A name already held copies nothing.
+    /// Add `name`; returns whether it was new. A name already held copies
+    /// nothing; a set no other value shares grows in place, and a shared one
+    /// is copied once, with the name.
     pub fn insert(&mut self, name: impl Into<Name>) -> bool {
         let name = name.into();
-        match self.position(name.as_str()) {
-            Ok(_) => false,
-            Err(at) => {
-                self.names_mut().insert(at, name);
-                true
+        let Err(at) = self.find(&name) else {
+            return false;
+        };
+        let bytes = name.len();
+        match &mut self.0 {
+            None => {
+                self.0 = Some(Arc::new(Names {
+                    bytes,
+                    store: Store::One([name]),
+                }));
             }
+            Some(set) => match Arc::get_mut(set) {
+                Some(names) => {
+                    names.bytes += bytes;
+                    names.store.insert(at, name);
+                }
+                None => {
+                    *set = Arc::new(Names {
+                        bytes: set.bytes + bytes,
+                        store: Store::inserted(set.store.as_slice(), at, name),
+                    });
+                }
+            },
         }
+        true
     }
 
-    /// Remove `name`; returns whether it was held. A name not held copies nothing.
+    /// Remove `name`; returns whether it was held. A name not held copies
+    /// nothing, and a set no other value shares shrinks in place.
     pub fn remove<Q: AsRef<str> + ?Sized>(&mut self, name: &Q) -> bool {
-        match self.position(name.as_ref()) {
-            Ok(at) => {
-                self.names_mut().remove(at);
-                if self.names().is_empty() {
-                    self.0 = None;
-                }
-                true
-            }
-            Err(_) => false,
+        let Ok(at) = self.position(name.as_ref()) else {
+            return false;
+        };
+        if self.len() == 1 {
+            self.0 = None;
+            return true;
         }
+        match self.0.as_mut().and_then(Arc::get_mut) {
+            Some(names) => {
+                names.bytes -= names.store.as_slice()[at].len();
+                names.store.remove(at);
+            }
+            None => {
+                let names = self.names();
+                let kept = names[..at]
+                    .iter()
+                    .chain(&names[at + 1..])
+                    .cloned()
+                    .collect();
+                *self = Self::from_sorted(kept);
+            }
+        }
+        true
     }
 
     /// Keep only the names `keep` accepts.
@@ -614,8 +739,8 @@ impl NameSet {
     fn from_sorted(names: Vec<Name>) -> Self {
         Self((!names.is_empty()).then(|| {
             Arc::new(Names {
-                names,
-                bytes: OnceLock::new(),
+                bytes: names.iter().map(|name| name.len()).sum(),
+                store: Store::from_sorted(names),
             })
         }))
     }
@@ -628,6 +753,19 @@ impl NameSet {
             *self = other.clone();
         } else if !other.is_subset(self) {
             let (left, right) = (self.names(), other.names());
+            if let ([left], [right]) = (left, right) {
+                // Two names, since neither set holds the other.
+                let (first, second) = if left < right {
+                    (left, right)
+                } else {
+                    (right, left)
+                };
+                *self = Self(Some(Arc::new(Names {
+                    bytes: first.len() + second.len(),
+                    store: Store::Two([first.clone(), second.clone()]),
+                })));
+                return;
+            }
             let mut joined = Vec::with_capacity(left.len() + right.len());
             let (mut i, mut j) = (0, 0);
             while i < left.len() && j < right.len() {
@@ -698,10 +836,13 @@ impl IntoIterator for NameSet {
     type IntoIter = std::vec::IntoIter<Name>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0
-            .map(|set| Arc::unwrap_or_clone(set).names)
-            .unwrap_or_default()
-            .into_iter()
+        let names = match self.0.map(|set| Arc::unwrap_or_clone(set).store) {
+            None => Vec::new(),
+            Some(Store::One(names)) => Vec::from(names),
+            Some(Store::Two(names)) => Vec::from(names),
+            Some(Store::Heap(names)) => names,
+        };
+        names.into_iter()
     }
 }
 
