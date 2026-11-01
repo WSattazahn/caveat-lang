@@ -156,19 +156,19 @@ jobs:
         run: python3 -B experiments/agent-adoption/v1/runner-capture.test.py
       - name: Converted Trail Rescue and Glowcap scenarios
         run: npm run test:scenario-conversion
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: slime-glow-wasm-report
           overwrite: true
           path: test-results/slime-glow-wasm.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: trail-rescue-policy-report
           overwrite: true
           path: test-results/trail-rescue.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: browser-dist
           overwrite: true
@@ -277,7 +277,7 @@ jobs:
         run: npm run build
       - name: Departure save bound, exact rc.15 compatibility, and restore continuation
         run: node experiments/departure-gate/run.mjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: departure-gates
@@ -291,7 +291,7 @@ jobs:
           if-no-files-found: warn
       - name: View 0.2 delta gate over the whole corpus
         run: node experiments/view-delta-gate/run.mjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: view-delta-gate
@@ -354,7 +354,7 @@ jobs:
         run: npm run verify:lean-conformance
       - name: Compare the runtime with the Caveat Sources model on random histories
         run: npm run verify:lean-sources
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: lean-runtime-comparison
@@ -442,14 +442,14 @@ jobs:
       - name: Pack the developer kit and use it from a fresh install
         id: kit_package
         run: npm run test:kit-package
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: kit-package-report
           overwrite: true
           path: test-results/kit-package/*/report.json
       - name: Retain the tested developer kit candidate
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact
         if: steps.kit_package.outcome == 'success'
         with:
           name: kit-package-candidate
@@ -469,7 +469,7 @@ jobs:
           mapfile -t tarballs < <(find test-results/kit-package -name 'caveat-lang-*.tgz' -type f)
           test "${#tarballs[@]}" -eq 1
           node scripts/release-sbom.mjs --tarball "${tarballs[0]}" --revision HEAD --out test-results/caveat-lang.cdx.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: glowcap-page-qa
@@ -510,7 +510,7 @@ jobs:
           mapfile -t reports < <(find test-results/security-candidate -name report.json -type f)
           test "${#reports[@]}" -eq 1
           node scripts/audit-kit-security.mjs --package-report "${reports[0]}" --audit-bin "$PWD/test-results/security-tools/bin/cargo-audit" --advisory-db "$PWD/test-results/security-tools/advisory-db"
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: kit-security-receipts-${{ github.run_attempt }}
@@ -544,7 +544,7 @@ jobs:
         run: |
           npm run package:game
           .github/ci/retry-once.sh 5 npm run test:launch
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: last-beacon-browser-qa
@@ -590,7 +590,7 @@ jobs:
         run: .github/ci/retry-once.sh 15 npm run test:rescue
         env:
           BROWSERS: ${{ matrix.browser }}
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always() && env.GAMES == 'true'
         with:
           name: light-the-way-${{ matrix.browser }}-qa
@@ -711,7 +711,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: mr-caveat-visual-qa
@@ -782,7 +782,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: moon-garden-visual-qa
@@ -855,7 +855,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: moon-garden-3d-visual-qa
@@ -905,7 +905,7 @@ jobs:
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: caveat-all-route-visual-qa
@@ -947,7 +947,7 @@ jobs:
         env:
           CAVEAT_VSCODE_VERSION: stable
       - name: Retain the tested .vsix
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact
         with:
           name: caveat-vscode-extension
           path: |
