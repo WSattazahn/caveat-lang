@@ -724,6 +724,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      # This job uses little disk; the report rules disk in or out when a
+      # step fails without a log.
+      - name: Free disk and memory at the start
+        run: df -h / && free -m
       - uses: actions/checkout@v5
         with:
           path: .ci
