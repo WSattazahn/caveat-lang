@@ -94,6 +94,8 @@ value is the item code: a PR number, a version (101, 102, 103, 110, 120), or a c
 (1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
 the two forms' place in 1.1, 1111–1113 for `carries(latest(STREAM), C)` in 1.1, 1201–1204 for what follows 1.1,
 1301–1303 for what to explore after 1.2 (study first, 1303), 1311–1313 for its follow-up (the authoring card, 1311),
+1501–1503 for the general layer's task languages (Python and JavaScript 1501, a Caveat task language 1502,
+WebAssembly from any language 1503; the owner chose all three, approved in the order 1501, 1503, 1502),
 7000 plus the version for publishing the OpenAI plugin, so 7111 for 1.1.1).
 
 ## Keep it going
