@@ -656,15 +656,61 @@ fn expand_effect(
 /// procedure's are its evaluated arguments, read two ways: `evaluate` reads
 /// each argument's lineage and `evaluate_grounds` its grounds, so a parameter
 /// grounds a value as its argument would inline (F268).
-#[derive(Default)]
-struct Parameters {
-    lineage: BTreeMap<String, Tracked<f64>>,
-    grounds: BTreeMap<String, Tracked<f64>>,
+enum Parameters<'a> {
+    /// An event's payload, read where it is: a plain value has the same
+    /// lineage and grounds, so nothing is copied for either.
+    Payload(&'a BTreeMap<String, f64>),
+    /// A procedure's arguments.
+    Arguments {
+        lineage: BTreeMap<String, Tracked<f64>>,
+        grounds: BTreeMap<String, Tracked<f64>>,
+    },
+}
+
+impl Default for Parameters<'_> {
+    /// No parameters, as for a binding or a state's initial value.
+    fn default() -> Self {
+        Self::Arguments {
+            lineage: BTreeMap::new(),
+            grounds: BTreeMap::new(),
+        }
+    }
+}
+
+impl Parameters<'_> {
+    /// The parameter `name`, with what its value rests on.
+    fn lineage(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { lineage, .. } => lineage.get(name).cloned(),
+        }
+    }
+
+    /// The parameter `name`, with what its grounds rest on.
+    fn grounds(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { grounds, .. } => grounds.get(name).cloned(),
+        }
+    }
 }
 
 struct ExecutionBudget {
     remaining: usize,
     depth: usize,
+}
+
+/// A rule's route, compiled at load (`compile_route`), and the work the rule
+/// counts when an event's payload routes it elsewhere.
+#[derive(Debug, Clone, Default)]
+struct Route {
+    /// Each term's parameter, by its place among the event's declared
+    /// parameters, and the value that keeps the route open.
+    terms: Vec<(usize, f64)>,
+    /// The steps `retain_skipped_effect` spends on the rule when its guard is
+    /// false and rests on nothing: one, and through a call one for each step
+    /// of its procedure, nested calls included.
+    steps: usize,
 }
 
 impl ExecutionBudget {
@@ -2359,7 +2405,7 @@ pub struct ReactiveSession {
     /// of its event's parameters with a value fixed at load, compiled so that
     /// an event skips the rules its payload routes elsewhere without
     /// evaluating their guards.
-    rule_routes: Arc<Vec<Vec<(String, f64)>>>,
+    rule_routes: Arc<Vec<Route>>,
     /// `work skips other routes;`: a rule the payload routes elsewhere counts
     /// no work. See spec/caveat-routed-work-0.1.md.
     routed_work: bool,
@@ -2368,6 +2414,9 @@ pub struct ReactiveSession {
     binding_groups: Arc<Vec<BindingGroup>>,
     /// For each of `binding_rules`, its index in `binding_groups`.
     binding_group_of: Arc<Vec<usize>>,
+    /// Every index of `binding_groups`, in the order of their targets and
+    /// properties: the order an evaluation shows them in.
+    binding_order: Arc<Vec<usize>>,
     /// For each of `binding_groups` scoped to histories, what its last
     /// evaluation consulted of the qualification state. Derived: every
     /// evaluation writes it, nothing saves or shows it, and only the debug
@@ -2645,6 +2694,7 @@ impl ReactiveSession {
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
             binding_group_of: Arc::new(Vec::new()),
+            binding_order: Arc::new(Vec::new()),
             binding_consults: Vec::new(),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
@@ -3209,10 +3259,11 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        let mut steps = HashMap::default();
         let rule_routes = session
             .rules
             .iter()
-            .map(|rule| session.compile_route(rule))
+            .map(|rule| session.compile_route(rule, &mut steps))
             .collect();
         session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
@@ -3523,9 +3574,14 @@ impl ReactiveSession {
                 });
             group.histories = scoped.then(|| reads.graph_names.clone());
         }
+        let mut order = (0..groups.len()).collect::<Vec<_>>();
+        order.sort_by(|&a, &b| {
+            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
+        });
         self.binding_consults = vec![None; groups.len()];
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
+        self.binding_order = Arc::new(order);
     }
 
     fn validate_procedures(&self) -> Result<(), String> {
@@ -4210,28 +4266,34 @@ impl ReactiveSession {
     fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
         let groups = Arc::clone(&self.binding_groups);
         let rules = Arc::clone(&self.binding_rules);
-        let stale = groups
+        // The stale groups in group order, and each group's place among them
+        // when it is stale: the work below is sized to them alone.
+        let mut stale = Vec::new();
+        let place = groups
             .iter()
             .enumerate()
             .map(|(group, read)| {
-                changes.is_none_or(|changes| {
+                let touched = changes.is_none_or(|changes| {
                     let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
                     changes.touch(&read.reads, read.histories.as_ref(), consulted)
+                });
+                touched.then(|| {
+                    stale.push(group);
+                    stale.len() - 1
                 })
             })
             .collect::<Vec<_>>();
-        if !stale.contains(&true) {
+        if stale.is_empty() {
             return Ok(());
         }
         // Each stale group scoped to histories notes what it consults in a
         // record of its own, kept so that a later change to anything else
         // leaves the group as it is.
         let mut records = 0;
-        let slots = groups
+        let slots = stale
             .iter()
-            .zip(&stale)
-            .map(|(group, &stale)| {
-                (stale && group.histories.is_some()).then(|| {
+            .map(|&group| {
+                groups[group].histories.is_some().then(|| {
                     records += 1;
                     records - 1
                 })
@@ -4246,20 +4308,19 @@ impl ReactiveSession {
             });
         }
         let parameters = Parameters::default();
-        let mut guards = vec![None::<Provenance>; groups.len()];
+        // By each stale group's place.
+        let mut guards = vec![None::<Provenance>; stale.len()];
         // The declaration that supplied each shown value: the last one to match.
-        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
+        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; stale.len()];
         for (index, binding) in rules.iter().enumerate() {
-            let group = self.binding_group_of[index];
-            if !stale[group] {
+            let Some(at) = place[self.binding_group_of[index]] else {
                 continue;
-            }
+            };
             let context = || format!("binding {}.{}", binding.target, binding.property);
-            let condition = consulting(slots[group], || {
-                self.evaluate(&binding.condition, &parameters)
-            })
-            .map_err(|error| error.context(context()))?;
-            let slot = &mut guards[group];
+            let condition =
+                consulting(slots[at], || self.evaluate(&binding.condition, &parameters))
+                    .map_err(|error| error.context(context()))?;
+            let slot = &mut guards[at];
             match slot {
                 Some(guard) if !guard.holds_nothing() => guard.merge(&condition.provenance)?,
                 _ => *slot = Some(union_with_nothing(condition.provenance)?),
@@ -4270,7 +4331,7 @@ impl ReactiveSession {
             let value = match &binding.value {
                 BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
                 BindingExpression::Expression(expression) => {
-                    let value = consulting(slots[group], || self.evaluate(expression, &parameters))
+                    let value = consulting(slots[at], || self.evaluate(expression, &parameters))
                         .map_err(|error| error.context(context()))?;
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
@@ -4280,19 +4341,17 @@ impl ReactiveSession {
                     Tracked::new(primitive, value.provenance)?
                 }
             };
-            winners[group] = Some((index, value));
+            winners[at] = Some((index, value));
         }
-        let mut order = (0..groups.len())
-            .filter(|&group| stale[group])
-            .collect::<Vec<_>>();
-        order.sort_by(|&a, &b| {
-            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
-        });
-        let mut shown = Vec::with_capacity(order.len());
-        for group in order {
+        let order = Arc::clone(&self.binding_order);
+        let mut shown = Vec::with_capacity(stale.len());
+        for &group in order.iter() {
+            let Some(at) = place[group] else {
+                continue;
+            };
             let (target, property) = (&groups[group].target, &groups[group].property);
-            let guard = guards[group].take().unwrap_or_default();
-            let Some((index, value)) = winners[group].take() else {
+            let guard = guards[at].take().unwrap_or_default();
+            let Some((index, value)) = winners[at].take() else {
                 shown.push((group, None, guard));
                 continue;
             };
@@ -4305,7 +4364,7 @@ impl ReactiveSession {
             };
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => consulting(slots[group], || {
+                Some(citations) => consulting(slots[at], || {
                     self.grounded_citation(
                         &format!("binding {target}.{property}"),
                         citations,
@@ -4318,20 +4377,16 @@ impl ReactiveSession {
         }
         for (group, value, lineage) in shown {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            self.binding_qualifications
-                .entry(target.clone())
-                .or_default()
-                .insert(property.clone(), lineage);
+            set_shown(&mut self.binding_qualifications, target, property, lineage);
             match value {
                 Some((value, explanation)) => {
-                    self.bindings
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), value);
-                    self.binding_explanations
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), explanation);
+                    set_shown(&mut self.bindings, target, property, value);
+                    set_shown(
+                        &mut self.binding_explanations,
+                        target,
+                        property,
+                        explanation,
+                    );
                 }
                 None => {
                     remove_shown(&mut self.bindings, target, property);
@@ -4347,7 +4402,7 @@ impl ReactiveSession {
                 self.binding_consults.resize(groups.len(), None);
             }
             CONSULTING.with_borrow_mut(|kept| {
-                for (group, slot) in slots.into_iter().enumerate() {
+                for (&group, slot) in stale.iter().zip(slots) {
                     let Some(slot) = slot else {
                         continue;
                     };
@@ -4459,7 +4514,7 @@ impl ReactiveSession {
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
@@ -4842,30 +4897,121 @@ impl ReactiveSession {
     /// state or parameter of the event shadows. The route ends at the first
     /// other term. Every name here reads a plain value, so a term the payload
     /// makes false makes the guard false with no dependency.
-    fn compile_route(&self, rule: &Rule) -> Vec<(String, f64)> {
+    fn compile_route(&self, rule: &Rule, steps: &mut HashMap<String, usize>) -> Route {
+        let steps = 1 + self.skipped_steps(&rule.effect, steps);
         let Some(parameters) = self.events.get(&rule.event) else {
-            return Vec::new();
+            return Route {
+                terms: Vec::new(),
+                steps,
+            };
         };
-        let parameter = |name: &str| parameters.iter().any(|parameter| parameter.name == name);
-        rule.condition
+        let place_of = |name: &str| {
+            parameters
+                .iter()
+                .position(|parameter| parameter.name == name)
+        };
+        let terms = rule
+            .condition
             .route_terms()
             .into_iter()
             .map_while(|(name, value)| {
-                if self.states.contains_key(&name) || !parameter(&name) {
+                if self.states.contains_key(&name) {
                     return None;
                 }
+                let place = place_of(&name)?;
                 let value = match value {
                     reactive_expr::RouteValue::Number(value) => value,
                     reactive_expr::RouteValue::Name(constant) => {
-                        if self.states.contains_key(&constant) || parameter(&constant) {
+                        if self.states.contains_key(&constant) || place_of(&constant).is_some() {
                             return None;
                         }
                         *self.constants.get(&constant)?
                     }
                 };
-                Some((name, value))
+                Some((place, value))
             })
+            .collect();
+        Route { terms, steps }
+    }
+
+    /// The steps `retain_skipped_effect` spends below a skipped effect: none,
+    /// or through a call one for each step of its procedure and the steps
+    /// below that step. Load has refused cycles and procedures past the work
+    /// limit (`procedure_cost`), so this ends and stays small.
+    fn skipped_steps(&self, effect: &Effect, steps: &mut HashMap<String, usize>) -> usize {
+        let Effect::Call { name, .. } = effect else {
+            return 0;
+        };
+        if let Some(&known) = steps.get(name) {
+            return known;
+        }
+        let total = self.procedures[name]
+            .body
+            .iter()
+            .map(|step| 1 + self.skipped_steps(&step.effect, steps))
+            .sum();
+        steps.insert(name.clone(), total);
+        total
+    }
+
+    /// The payload's value for each of `event`'s declared parameters, in the
+    /// order they are declared: the places a compiled route reads.
+    fn declared_values(&self, event: &str, payload: &BTreeMap<String, f64>) -> Vec<Option<f64>> {
+        self.events
+            .get(event)
+            .into_iter()
+            .flatten()
+            .map(|parameter| payload.get(&parameter.name).copied())
             .collect()
+    }
+
+    /// Debug builds: counting a routed-elsewhere rule's steps at once leaves
+    /// the budget as skipping it step by step does. In a program without a
+    /// window, the step-by-step skip of a guard that rests on nothing changes
+    /// nothing but the budget: a window's collector would read the effect,
+    /// and a write here would be kept in this build and left out in release.
+    #[cfg(debug_assertions)]
+    fn check_counted_skip(&mut self, effect: &Effect, budget: &ExecutionBudget, remaining: usize) {
+        let mut general = ExecutionBudget {
+            remaining: budget.remaining,
+            depth: budget.depth,
+        };
+        let collector = self.collector.clone();
+        // Held, so that a write below copies what it writes and shows as a
+        // new pointer: everything a skipped effect can write.
+        let held = (
+            Arc::clone(&self.predicate_qualifications),
+            Arc::clone(&self.reading_streams),
+            Arc::clone(&self.decision_series),
+            Arc::clone(&self.states.cells),
+        );
+        let result = if self.routed_work {
+            self.retain_routed_elsewhere(effect, &mut general)
+        } else {
+            general.spend().and_then(|()| {
+                self.retain_skipped_effect(effect, &Provenance::default(), &mut general)
+            })
+        };
+        assert!(
+            result.is_ok(),
+            "a skip counted at once fails step by step: {result:?}"
+        );
+        assert_eq!(
+            (general.remaining, general.depth),
+            (remaining, budget.depth),
+            "a skip counted at once counts differently"
+        );
+        assert!(
+            self.collector == collector,
+            "a skip counted at once leaves out what the collector reads"
+        );
+        assert!(
+            Arc::ptr_eq(&held.0, &self.predicate_qualifications)
+                && Arc::ptr_eq(&held.1, &self.reading_streams)
+                && Arc::ptr_eq(&held.2, &self.decision_series)
+                && Arc::ptr_eq(&held.3, &self.states.cells),
+            "a skip counted at once leaves out what skipping step by step writes"
+        );
     }
 
     /// What `retain_skipped_effect` does for a guard that rests on nothing,
@@ -5450,14 +5596,7 @@ impl ReactiveSession {
             self.apply_due_qualifications()?;
         }
         let payload = parameters;
-        let lineage: BTreeMap<_, _> = parameters
-            .iter()
-            .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
-            .collect();
-        let parameters = Parameters {
-            grounds: lineage.clone(),
-            lineage,
-        };
+        let parameters = Parameters::Payload(payload);
         let mut budget = ExecutionBudget {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
@@ -5465,11 +5604,21 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
         let routes = Arc::clone(&self.rule_routes);
+        let windowed = self.windowed();
+        // The payload's value for each of the event's declared parameters, by
+        // its place, read once for every route.
+        let mut declared = None;
         // A rule inherits no lineage.
         let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
-            if routed_elsewhere(&routes[index], payload) {
+            let route = &routes[index];
+            if !route.terms.is_empty()
+                && routed_elsewhere(
+                    &route.terms,
+                    declared.get_or_insert_with(|| self.declared_values(event, payload)),
+                )
+            {
                 #[cfg(debug_assertions)]
                 {
                     let guard = self.evaluate(&rule.condition, &parameters);
@@ -5477,6 +5626,19 @@ impl ReactiveSession {
                         matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
                         "routed-elsewhere rule {index} evaluated to {guard:?}"
                     );
+                }
+                // Outside a windowed program, the skip below only counts
+                // work, so the rule's steps are counted at once when the
+                // budget holds them all. Otherwise the rule is skipped step by
+                // step, and the work limit refuses it where it always did.
+                if !windowed {
+                    let steps = if self.routed_work { 0 } else { route.steps };
+                    if let Some(remaining) = budget.remaining.checked_sub(steps) {
+                        #[cfg(debug_assertions)]
+                        self.check_counted_skip(&rule.effect, &budget, remaining);
+                        budget.remaining = remaining;
+                        continue;
+                    }
                 }
                 // What `execute_guarded_effect` does with a guard that is
                 // false and rests on nothing: the parameters are plain. With
@@ -5690,7 +5852,7 @@ impl ReactiveSession {
         &mut self,
         condition: &Expr,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -5722,7 +5884,7 @@ impl ReactiveSession {
     fn evaluate(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
@@ -5737,9 +5899,7 @@ impl ReactiveSession {
                 }
                 Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
-                        .lineage
-                        .get(name)
-                        .cloned()
+                        .lineage(name)
                         .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
                 }))
             },
@@ -5772,7 +5932,7 @@ impl ReactiveSession {
     fn evaluate_grounds(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_grounds_with_identifiers(
             &|name| {
@@ -5786,9 +5946,7 @@ impl ReactiveSession {
                     return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }
                 Ok(parameters
-                    .grounds
-                    .get(name)
-                    .cloned()
+                    .grounds(name)
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
@@ -6478,7 +6636,7 @@ impl ReactiveSession {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -6487,7 +6645,8 @@ impl ReactiveSession {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
                 let procedure = &procedures[name];
-                let mut locals = Parameters::default();
+                let mut lineage = BTreeMap::new();
+                let mut grounds = BTreeMap::new();
                 let mut inherited = guard.clone();
                 // Freeze all arguments before the first body effect, including
                 // unused arguments. Their qualifications cannot be laundered
@@ -6499,15 +6658,12 @@ impl ReactiveSession {
                     let Value::Number(number) = value.value else {
                         return Err(format!("procedure {name} requires numeric arguments").into());
                     };
-                    let grounds = self.evaluate_grounds(argument, parameters)?.provenance;
+                    let read = self.evaluate_grounds(argument, parameters)?.provenance;
                     inherited.merge(&value.provenance)?;
-                    locals
-                        .lineage
-                        .insert(parameter.clone(), Tracked::new(number, value.provenance)?);
-                    locals
-                        .grounds
-                        .insert(parameter.clone(), Tracked::new(number, grounds)?);
+                    lineage.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                    grounds.insert(parameter.clone(), Tracked::new(number, read)?);
                 }
+                let locals = Parameters::Arguments { lineage, grounds };
                 budget.enter()?;
                 for (index, step) in procedure.body.iter().enumerate() {
                     self.execute_guarded_effect(
@@ -7467,7 +7623,7 @@ impl ReactiveSession {
     fn resolve(
         &mut self,
         resolution: &Resolution,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
     ) -> Result<(), DispatchFailure> {
         let action = &resolution.action;
@@ -7609,7 +7765,7 @@ impl ReactiveSession {
         because: &EvidenceSelector,
         verb: &str,
         action: &str,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
         Ok(match because {
             EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
@@ -8531,7 +8687,7 @@ impl ReactiveSession {
         stream: &str,
         stance: Option<&(Relation, String)>,
         changed: bool,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -8561,7 +8717,7 @@ impl ReactiveSession {
         &self,
         action: &str,
         clause: &PermissionClause,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(PermissionRecord, Provenance), DispatchFailure> {
         let refuse = |why: String| {
             DispatchFailure::rejected(
@@ -9090,7 +9246,7 @@ impl ReactiveSession {
         &mut self,
         evidence: &str,
         index: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(String, Provenance), DispatchFailure> {
         let tracked = self.evaluate(index, parameters)?;
         let Value::Number(number) = tracked.value else {
@@ -9463,6 +9619,29 @@ fn rename_selector(
             index: Box::new(index.rename_symbols(names)),
         },
         EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
+    }
+}
+
+/// Show `value` as `TARGET.PROPERTY`, in place when it is shown already, so
+/// that the names are copied only when they are first shown.
+fn set_shown<T>(
+    shown: &mut BTreeMap<String, BTreeMap<String, T>>,
+    target: &str,
+    property: &str,
+    value: T,
+) {
+    let Some(properties) = shown.get_mut(target) else {
+        shown.insert(
+            target.to_owned(),
+            BTreeMap::from([(property.to_owned(), value)]),
+        );
+        return;
+    };
+    match properties.get_mut(property) {
+        Some(held) => *held = value,
+        None => {
+            properties.insert(property.to_owned(), value);
+        }
     }
 }
 
@@ -11132,13 +11311,14 @@ impl ObservationRanks<'_> {
     }
 }
 
-/// Whether a rule's route, read against an event's plain parameters, finds a
-/// term false before any term it cannot read: the guard is then false and
-/// rests on nothing. A parameter the payload lacks ends the route unread, so
-/// the guard is evaluated as written.
-fn routed_elsewhere(route: &[(String, f64)], parameters: &BTreeMap<String, f64>) -> bool {
-    for (name, value) in route {
-        match parameters.get(name) {
+/// Whether a rule's route, read against the payload's values of its event's
+/// declared parameters (`declared_values`), finds a term false before any
+/// term it cannot read: the guard is then false and rests on nothing. A
+/// parameter the payload lacks ends the route unread, so the guard is
+/// evaluated as written.
+fn routed_elsewhere(route: &[(usize, f64)], declared: &[Option<f64>]) -> bool {
+    for &(place, value) in route {
+        match declared[place] {
             Some(actual) if actual == value => {}
             Some(_) => return true,
             None => return false,
