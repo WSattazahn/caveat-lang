@@ -13,6 +13,7 @@ on:
       - 'rust-toolchain.toml'
       - 'scripts/third-party-notices.mjs'
       - '.github/workflows/python.yml'
+      - '.github/actions/upload-artifact/**'
   workflow_dispatch:
 
 concurrency:
@@ -59,7 +60,7 @@ jobs:
             "$venv/bin/pip" install wheelhouse/*.whl
             "$venv/bin/python" -m unittest discover -s python/tests -p 'test_session.py' -v
           done
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: wheel-linux-${{ matrix.arch }}
           path: wheelhouse/*.whl
@@ -99,7 +100,7 @@ jobs:
           bin=.venv-test/${{ matrix.bin }}
           "$bin/pip" install wheelhouse/*.whl
           "$bin/python" -m unittest discover -s python/tests -p 'test_session.py' -v
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: wheel-${{ runner.os }}
           path: wheelhouse/*.whl
@@ -117,7 +118,7 @@ jobs:
           python3 -m venv /tmp/test
           /tmp/test/bin/pip install dist-python/*.tar.gz
           /tmp/test/bin/python -m unittest discover -s python/tests -p 'test_session.py' -v
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: sdist
           path: dist-python/*.tar.gz
