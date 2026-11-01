@@ -45,7 +45,9 @@ export type KnownRejectionCode =
   | 'provenance_limit'
   | 'evaluation_limit'
   | 'wrong_agent'
-  | 'text_limit';
+  | 'text_limit'
+  /** 1.5 draft: a read of a state declared `unset` that has no value (spec/caveat-unset-states-0.1.md). */
+  | 'unset_state';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -395,6 +397,8 @@ export interface InterfaceState {
   name: string;
   min: number;
   max: number;
+  /** 1.5 draft: declared `state NAME unset;`; absent otherwise (spec/caveat-unset-states-0.1.md). */
+  unset?: true;
 }
 
 /** `always`: some declaration has no condition, so every view shows it. */
@@ -548,6 +552,8 @@ export interface Snapshot {
   last_agent?: string;
   values: Record<string, number>;
   qualified_values: Record<string, QualifiedValue>;
+  /** 1.5 draft: the states declared `unset` that have no value now, in name order; they are left out of `values`, and this is absent when none is (spec/caveat-unset-states-0.1.md). */
+  unset?: string[];
   commitment_bases: Record<string, CommitmentBasis>;
   reading_streams: Record<string, ReadingStream>;
   decision_series: Record<string, DecisionSeries>;

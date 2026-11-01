@@ -354,7 +354,9 @@ impl ReactiveSession {
             return;
         }
         let owner = match effect {
-            Effect::Set { name, .. } => CollectorOwner::State(name.clone()),
+            Effect::Set { name, .. } | Effect::Unset { name } => {
+                CollectorOwner::State(name.clone())
+            }
             Effect::Sample { stream, .. } => {
                 self.collector_dirty(CollectorOwner::Stream(stream.clone()));
                 let current = self.reading_streams[stream].current.clone();
