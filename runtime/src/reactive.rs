@@ -2414,6 +2414,9 @@ pub struct ReactiveSession {
     binding_groups: Arc<Vec<BindingGroup>>,
     /// For each of `binding_rules`, its index in `binding_groups`.
     binding_group_of: Arc<Vec<usize>>,
+    /// Every index of `binding_groups`, in the order of their targets and
+    /// properties: the order an evaluation shows them in.
+    binding_order: Arc<Vec<usize>>,
     /// For each of `binding_groups` scoped to histories, what its last
     /// evaluation consulted of the qualification state. Derived: every
     /// evaluation writes it, nothing saves or shows it, and only the debug
@@ -2691,6 +2694,7 @@ impl ReactiveSession {
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
             binding_group_of: Arc::new(Vec::new()),
+            binding_order: Arc::new(Vec::new()),
             binding_consults: Vec::new(),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
@@ -3570,9 +3574,14 @@ impl ReactiveSession {
                 });
             group.histories = scoped.then(|| reads.graph_names.clone());
         }
+        let mut order = (0..groups.len()).collect::<Vec<_>>();
+        order.sort_by(|&a, &b| {
+            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
+        });
         self.binding_consults = vec![None; groups.len()];
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
+        self.binding_order = Arc::new(order);
     }
 
     fn validate_procedures(&self) -> Result<(), String> {
@@ -4257,28 +4266,34 @@ impl ReactiveSession {
     fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
         let groups = Arc::clone(&self.binding_groups);
         let rules = Arc::clone(&self.binding_rules);
-        let stale = groups
+        // The stale groups in group order, and each group's place among them
+        // when it is stale: the work below is sized to them alone.
+        let mut stale = Vec::new();
+        let place = groups
             .iter()
             .enumerate()
             .map(|(group, read)| {
-                changes.is_none_or(|changes| {
+                let touched = changes.is_none_or(|changes| {
                     let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
                     changes.touch(&read.reads, read.histories.as_ref(), consulted)
+                });
+                touched.then(|| {
+                    stale.push(group);
+                    stale.len() - 1
                 })
             })
             .collect::<Vec<_>>();
-        if !stale.contains(&true) {
+        if stale.is_empty() {
             return Ok(());
         }
         // Each stale group scoped to histories notes what it consults in a
         // record of its own, kept so that a later change to anything else
         // leaves the group as it is.
         let mut records = 0;
-        let slots = groups
+        let slots = stale
             .iter()
-            .zip(&stale)
-            .map(|(group, &stale)| {
-                (stale && group.histories.is_some()).then(|| {
+            .map(|&group| {
+                groups[group].histories.is_some().then(|| {
                     records += 1;
                     records - 1
                 })
@@ -4293,20 +4308,19 @@ impl ReactiveSession {
             });
         }
         let parameters = Parameters::default();
-        let mut guards = vec![None::<Provenance>; groups.len()];
+        // By each stale group's place.
+        let mut guards = vec![None::<Provenance>; stale.len()];
         // The declaration that supplied each shown value: the last one to match.
-        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
+        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; stale.len()];
         for (index, binding) in rules.iter().enumerate() {
-            let group = self.binding_group_of[index];
-            if !stale[group] {
+            let Some(at) = place[self.binding_group_of[index]] else {
                 continue;
-            }
+            };
             let context = || format!("binding {}.{}", binding.target, binding.property);
-            let condition = consulting(slots[group], || {
-                self.evaluate(&binding.condition, &parameters)
-            })
-            .map_err(|error| error.context(context()))?;
-            let slot = &mut guards[group];
+            let condition =
+                consulting(slots[at], || self.evaluate(&binding.condition, &parameters))
+                    .map_err(|error| error.context(context()))?;
+            let slot = &mut guards[at];
             match slot {
                 Some(guard) if !guard.holds_nothing() => guard.merge(&condition.provenance)?,
                 _ => *slot = Some(union_with_nothing(condition.provenance)?),
@@ -4317,7 +4331,7 @@ impl ReactiveSession {
             let value = match &binding.value {
                 BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
                 BindingExpression::Expression(expression) => {
-                    let value = consulting(slots[group], || self.evaluate(expression, &parameters))
+                    let value = consulting(slots[at], || self.evaluate(expression, &parameters))
                         .map_err(|error| error.context(context()))?;
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
@@ -4327,19 +4341,17 @@ impl ReactiveSession {
                     Tracked::new(primitive, value.provenance)?
                 }
             };
-            winners[group] = Some((index, value));
+            winners[at] = Some((index, value));
         }
-        let mut order = (0..groups.len())
-            .filter(|&group| stale[group])
-            .collect::<Vec<_>>();
-        order.sort_by(|&a, &b| {
-            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
-        });
-        let mut shown = Vec::with_capacity(order.len());
-        for group in order {
+        let order = Arc::clone(&self.binding_order);
+        let mut shown = Vec::with_capacity(stale.len());
+        for &group in order.iter() {
+            let Some(at) = place[group] else {
+                continue;
+            };
             let (target, property) = (&groups[group].target, &groups[group].property);
-            let guard = guards[group].take().unwrap_or_default();
-            let Some((index, value)) = winners[group].take() else {
+            let guard = guards[at].take().unwrap_or_default();
+            let Some((index, value)) = winners[at].take() else {
                 shown.push((group, None, guard));
                 continue;
             };
@@ -4352,7 +4364,7 @@ impl ReactiveSession {
             };
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => consulting(slots[group], || {
+                Some(citations) => consulting(slots[at], || {
                     self.grounded_citation(
                         &format!("binding {target}.{property}"),
                         citations,
@@ -4365,20 +4377,16 @@ impl ReactiveSession {
         }
         for (group, value, lineage) in shown {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            self.binding_qualifications
-                .entry(target.clone())
-                .or_default()
-                .insert(property.clone(), lineage);
+            set_shown(&mut self.binding_qualifications, target, property, lineage);
             match value {
                 Some((value, explanation)) => {
-                    self.bindings
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), value);
-                    self.binding_explanations
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), explanation);
+                    set_shown(&mut self.bindings, target, property, value);
+                    set_shown(
+                        &mut self.binding_explanations,
+                        target,
+                        property,
+                        explanation,
+                    );
                 }
                 None => {
                     remove_shown(&mut self.bindings, target, property);
@@ -4394,7 +4402,7 @@ impl ReactiveSession {
                 self.binding_consults.resize(groups.len(), None);
             }
             CONSULTING.with_borrow_mut(|kept| {
-                for (group, slot) in slots.into_iter().enumerate() {
+                for (&group, slot) in stale.iter().zip(slots) {
                     let Some(slot) = slot else {
                         continue;
                     };
@@ -9611,6 +9619,29 @@ fn rename_selector(
             index: Box::new(index.rename_symbols(names)),
         },
         EvidenceSelector::Every(name) => EvidenceSelector::Every(rename(name)),
+    }
+}
+
+/// Show `value` as `TARGET.PROPERTY`, in place when it is shown already, so
+/// that the names are copied only when they are first shown.
+fn set_shown<T>(
+    shown: &mut BTreeMap<String, BTreeMap<String, T>>,
+    target: &str,
+    property: &str,
+    value: T,
+) {
+    let Some(properties) = shown.get_mut(target) else {
+        shown.insert(
+            target.to_owned(),
+            BTreeMap::from([(property.to_owned(), value)]),
+        );
+        return;
+    };
+    match properties.get_mut(property) {
+        Some(held) => *held = value,
+        None => {
+            properties.insert(property.to_owned(), value);
+        }
     }
 }
 
