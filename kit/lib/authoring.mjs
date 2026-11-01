@@ -259,6 +259,16 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
   }
 }
 
+// The save an agent passes back costs it tokens twice, read and written, so
+// the step returns the session's smallest save: the positional replay save
+// while the accepted events fit in one, otherwise the state save
+// (spec/caveat-replay-save-0.2.md). Both restore to the same session. A
+// runtime that predates positional saves gets the state save.
+function compactSave(session) {
+  try { return session.save({ compact: true, positional: true }); }
+  catch (error) { if (error.kind === 'load') return session.save(); throw error; }
+}
+
 // One step of a ledger kept by the host. Without save, a fresh session; with
 // it, that save restored against this exact source (a save binds its source,
 // and restore never repairs one). The events are sent in order, and the
@@ -288,7 +298,7 @@ function dispatchStep(runtime, args, wrap) {
     for (const { event, payload, outcome } of sent) {
       if (outcome.outcome === 'accepted') session.dispatch(event, payload);
     }
-    save = session.save();
+    save = compactSave(session);
   } catch (error) { throw new AuthoringError('runtime', `cannot save the step: ${error.message}`); }
   finally { session.close(); }
   if (Buffer.byteLength(save, 'utf8') > AUTHORING_LIMITS.saveBytes) {
