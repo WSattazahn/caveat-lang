@@ -656,10 +656,43 @@ fn expand_effect(
 /// procedure's are its evaluated arguments, read two ways: `evaluate` reads
 /// each argument's lineage and `evaluate_grounds` its grounds, so a parameter
 /// grounds a value as its argument would inline (F268).
-#[derive(Default)]
-struct Parameters {
-    lineage: BTreeMap<String, Tracked<f64>>,
-    grounds: BTreeMap<String, Tracked<f64>>,
+enum Parameters<'a> {
+    /// An event's payload, read where it is: a plain value has the same
+    /// lineage and grounds, so nothing is copied for either.
+    Payload(&'a BTreeMap<String, f64>),
+    /// A procedure's arguments.
+    Arguments {
+        lineage: BTreeMap<String, Tracked<f64>>,
+        grounds: BTreeMap<String, Tracked<f64>>,
+    },
+}
+
+impl Default for Parameters<'_> {
+    /// No parameters, as for a binding or a state's initial value.
+    fn default() -> Self {
+        Self::Arguments {
+            lineage: BTreeMap::new(),
+            grounds: BTreeMap::new(),
+        }
+    }
+}
+
+impl Parameters<'_> {
+    /// The parameter `name`, with what its value rests on.
+    fn lineage(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { lineage, .. } => lineage.get(name).cloned(),
+        }
+    }
+
+    /// The parameter `name`, with what its grounds rest on.
+    fn grounds(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { grounds, .. } => grounds.get(name).cloned(),
+        }
+    }
 }
 
 struct ExecutionBudget {
@@ -4473,7 +4506,7 @@ impl ReactiveSession {
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
@@ -5555,14 +5588,7 @@ impl ReactiveSession {
             self.apply_due_qualifications()?;
         }
         let payload = parameters;
-        let lineage: BTreeMap<_, _> = parameters
-            .iter()
-            .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
-            .collect();
-        let parameters = Parameters {
-            grounds: lineage.clone(),
-            lineage,
-        };
+        let parameters = Parameters::Payload(payload);
         let mut budget = ExecutionBudget {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
@@ -5818,7 +5844,7 @@ impl ReactiveSession {
         &mut self,
         condition: &Expr,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -5850,7 +5876,7 @@ impl ReactiveSession {
     fn evaluate(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
@@ -5865,9 +5891,7 @@ impl ReactiveSession {
                 }
                 Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
-                        .lineage
-                        .get(name)
-                        .cloned()
+                        .lineage(name)
                         .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
                 }))
             },
@@ -5900,7 +5924,7 @@ impl ReactiveSession {
     fn evaluate_grounds(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_grounds_with_identifiers(
             &|name| {
@@ -5914,9 +5938,7 @@ impl ReactiveSession {
                     return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }
                 Ok(parameters
-                    .grounds
-                    .get(name)
-                    .cloned()
+                    .grounds(name)
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
@@ -6606,7 +6628,7 @@ impl ReactiveSession {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -6615,7 +6637,8 @@ impl ReactiveSession {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
                 let procedure = &procedures[name];
-                let mut locals = Parameters::default();
+                let mut lineage = BTreeMap::new();
+                let mut grounds = BTreeMap::new();
                 let mut inherited = guard.clone();
                 // Freeze all arguments before the first body effect, including
                 // unused arguments. Their qualifications cannot be laundered
@@ -6627,15 +6650,12 @@ impl ReactiveSession {
                     let Value::Number(number) = value.value else {
                         return Err(format!("procedure {name} requires numeric arguments").into());
                     };
-                    let grounds = self.evaluate_grounds(argument, parameters)?.provenance;
+                    let read = self.evaluate_grounds(argument, parameters)?.provenance;
                     inherited.merge(&value.provenance)?;
-                    locals
-                        .lineage
-                        .insert(parameter.clone(), Tracked::new(number, value.provenance)?);
-                    locals
-                        .grounds
-                        .insert(parameter.clone(), Tracked::new(number, grounds)?);
+                    lineage.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                    grounds.insert(parameter.clone(), Tracked::new(number, read)?);
                 }
+                let locals = Parameters::Arguments { lineage, grounds };
                 budget.enter()?;
                 for (index, step) in procedure.body.iter().enumerate() {
                     self.execute_guarded_effect(
@@ -7595,7 +7615,7 @@ impl ReactiveSession {
     fn resolve(
         &mut self,
         resolution: &Resolution,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
     ) -> Result<(), DispatchFailure> {
         let action = &resolution.action;
@@ -7737,7 +7757,7 @@ impl ReactiveSession {
         because: &EvidenceSelector,
         verb: &str,
         action: &str,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
         Ok(match because {
             EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
@@ -8659,7 +8679,7 @@ impl ReactiveSession {
         stream: &str,
         stance: Option<&(Relation, String)>,
         changed: bool,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -8689,7 +8709,7 @@ impl ReactiveSession {
         &self,
         action: &str,
         clause: &PermissionClause,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(PermissionRecord, Provenance), DispatchFailure> {
         let refuse = |why: String| {
             DispatchFailure::rejected(
@@ -9218,7 +9238,7 @@ impl ReactiveSession {
         &mut self,
         evidence: &str,
         index: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(String, Provenance), DispatchFailure> {
         let tracked = self.evaluate(index, parameters)?;
         let Value::Number(number) = tracked.value else {
