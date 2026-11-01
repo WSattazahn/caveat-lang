@@ -49,6 +49,77 @@ fn withdrawn_lineage() -> &'static Provenance {
     })
 }
 
+/// The union of a lineage that holds nothing with `lineage`: `lineage`
+/// itself, checked as the union checks it, without copying it. Debug builds
+/// compare it with the union, error included.
+fn union_with_nothing(lineage: Provenance) -> Result<Provenance, EvalError> {
+    #[cfg(debug_assertions)]
+    let union = Provenance::default().union(&lineage);
+    let taken = lineage.validate().map(|()| lineage);
+    #[cfg(debug_assertions)]
+    assert_eq!(
+        taken, union,
+        "a lineage taken whole differs from its union with nothing"
+    );
+    taken
+}
+
+#[cfg(test)]
+mod union_with_nothing_tests {
+    use super::*;
+
+    #[test]
+    fn a_lineage_taken_whole_is_its_union_with_nothing() {
+        let names = |evidence: &[&str], caveats: &[&str]| {
+            Provenance::from_names(
+                evidence.iter().map(|name| name.to_string()),
+                caveats.iter().map(|name| name.to_string()),
+            )
+            .unwrap()
+        };
+        let mut inherited = names(&["a", "b"], &["k"]);
+        inherited.inherited.insert("a");
+        inherited.kept.insert("k");
+        let mut departed = names(&["s@1", "s@2"], &["k"]);
+        assert!(departed.depart("s@1", "s", 1, 5, "source"));
+        // Only a host could send these: what is inherited or kept with no
+        // name it belongs to.
+        let mut inherited_alone = Provenance::default();
+        inherited_alone.inherited.insert("a");
+        let mut kept_alone = Provenance::default();
+        kept_alone.kept.insert("k");
+        let mut identifiers = Provenance::default();
+        for at in 0..=reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            identifiers.evidence.insert(format!("e{at}"));
+        }
+        let mut bytes = Provenance::default();
+        bytes
+            .caveats
+            .insert("c".repeat(reactive_expr::MAX_PROVENANCE_BYTES + 1));
+        for (case, lineage) in [
+            ("nothing", Provenance::default()),
+            ("one name", names(&["a"], &[])),
+            ("names", names(&["a", "b"], &["k", "m"])),
+            ("inherited and kept", inherited),
+            ("departed", departed),
+            ("inherited alone", inherited_alone),
+            ("kept alone", kept_alone),
+            ("too many identifiers", identifiers),
+            ("too many bytes", bytes),
+        ] {
+            // Debug builds fail inside `union_with_nothing` first; the test's
+            // output names the case.
+            eprintln!("case: {case}");
+            assert_eq!(
+                union_with_nothing(lineage.clone()),
+                Provenance::default().union(&lineage),
+                "{case}"
+            );
+            assert_eq!(lineage.holds_nothing(), case == "nothing", "{case}");
+        }
+    }
+}
+
 /// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
 /// for any caveat, or the least consequence it counts.
 fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
@@ -4141,7 +4212,7 @@ impl ReactiveSession {
             });
         }
         let parameters = Parameters::default();
-        let mut guards = vec![Provenance::default(); groups.len()];
+        let mut guards = vec![None::<Provenance>; groups.len()];
         // The declaration that supplied each shown value: the last one to match.
         let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
         for (index, binding) in rules.iter().enumerate() {
@@ -4154,7 +4225,11 @@ impl ReactiveSession {
                 self.evaluate(&binding.condition, &parameters)
             })
             .map_err(|error| error.context(context()))?;
-            guards[group].merge(&condition.provenance)?;
+            let slot = &mut guards[group];
+            match slot {
+                Some(guard) if !guard.holds_nothing() => guard.merge(&condition.provenance)?,
+                _ => *slot = Some(union_with_nothing(condition.provenance)?),
+            }
             if condition.value != Value::Bool(true) {
                 continue;
             }
@@ -4182,13 +4257,18 @@ impl ReactiveSession {
         let mut shown = Vec::with_capacity(order.len());
         for group in order {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            let guard = std::mem::take(&mut guards[group]);
+            let guard = guards[group].take().unwrap_or_default();
             let Some((index, value)) = winners[group].take() else {
                 shown.push((group, None, guard));
                 continue;
             };
-            let mut lineage = value.provenance;
-            lineage.merge(&guard)?;
+            let lineage = if value.provenance.holds_nothing() {
+                union_with_nothing(guard)?
+            } else {
+                let mut lineage = value.provenance;
+                lineage.merge(&guard)?;
+                lineage
+            };
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
                 Some(citations) => consulting(slots[group], || {
@@ -5351,6 +5431,8 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
         let routes = Arc::clone(&self.rule_routes);
+        // A rule inherits no lineage.
+        let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
             if routed_elsewhere(&routes[index], payload) {
@@ -5370,11 +5452,7 @@ impl ReactiveSession {
                     self.retain_routed_elsewhere(&rule.effect, &mut budget)
                 } else {
                     budget.spend().and_then(|()| {
-                        self.retain_skipped_effect(
-                            &rule.effect,
-                            &Provenance::default(),
-                            &mut budget,
-                        )
+                        self.retain_skipped_effect(&rule.effect, &nothing, &mut budget)
                     })
                 };
                 result
@@ -5385,7 +5463,7 @@ impl ReactiveSession {
                 &rule.condition,
                 &rule.effect,
                 &parameters,
-                &Provenance::default(),
+                &nothing,
                 &mut budget,
             );
             result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
@@ -5588,9 +5666,13 @@ impl ReactiveSession {
             condition.collect_thresholds(&mut named);
             named
         });
-        let condition = self.evaluate(condition, parameters)?;
-        let guard = inherited.union(&condition.provenance)?;
-        if condition.value == Value::Bool(true) {
+        let Tracked { value, provenance } = self.evaluate(condition, parameters)?;
+        let guard = if inherited.holds_nothing() {
+            union_with_nothing(provenance)?
+        } else {
+            inherited.union(&provenance)?
+        };
+        if value == Value::Bool(true) {
             let Some(named) = named else {
                 return self.apply_effect(effect, parameters, &guard, budget);
             };

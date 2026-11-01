@@ -867,6 +867,13 @@ impl Provenance {
         self.evidence.is_empty() && self.caveats.is_empty() && self.departed.is_empty()
     }
 
+    /// Whether this lineage holds nothing at all, inherited and kept names
+    /// included: merging it changes nothing, and merging into it gives the
+    /// other lineage, once checked.
+    pub(crate) fn holds_nothing(&self) -> bool {
+        self.is_empty() && self.inherited.is_empty() && self.kept.is_empty()
+    }
+
     /// The names this value read itself: `evidence` less `inherited`.
     pub fn own_evidence(&self) -> impl Iterator<Item = &Name> {
         self.evidence
@@ -1021,17 +1028,17 @@ impl Provenance {
 /// Add what one read rests on to an evaluation's provenance, which only
 /// reads have built: a read resting on nothing changes nothing, and the
 /// first read's provenance, once checked, is the whole of it.
-fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), EvalError> {
-    if read.is_empty() && read.inherited.is_empty() && read.kept.is_empty() {
+fn read_into(provenance: &RefCell<Provenance>, read: Provenance) -> Result<(), EvalError> {
+    if read.holds_nothing() {
         return Ok(());
     }
     let mut provenance = provenance.borrow_mut();
-    if provenance.is_empty() && provenance.inherited.is_empty() && provenance.kept.is_empty() {
+    if provenance.holds_nothing() {
         read.validate()?;
-        *provenance = read.clone();
+        *provenance = read;
         return Ok(());
     }
-    provenance.merge(read)
+    provenance.merge(&read)
 }
 
 /// Both provenance bounds are the same resource, a value's lineage, so both
@@ -2727,7 +2734,7 @@ impl Expr {
             quiet: Cell::new(false),
             frames: RefCell::new(Vec::new()),
         };
-        let keep = |read: &Provenance| {
+        let keep = |read: Provenance| {
             if budget.quiet.get() {
                 return Ok(());
             }
@@ -2739,19 +2746,19 @@ impl Expr {
                     return Ok(None);
                 };
                 let value = finite(tracked.value)?;
-                keep(&tracked.provenance)?;
+                keep(tracked.provenance)?;
                 Ok(Some(value))
             },
             &|kind, name| {
                 let tracked = predicate(kind, name)?;
-                keep(&tracked.provenance)?;
+                keep(tracked.provenance)?;
                 Ok(tracked.value)
             },
-            &|evidence, caveats| keep(&qualify(evidence, caveats)?),
+            &|evidence, caveats| keep(qualify(evidence, caveats)?),
             &|name, query| {
                 let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;
-                keep(&tracked.provenance)?;
+                keep(tracked.provenance)?;
                 Ok(value)
             },
             identifiers,
