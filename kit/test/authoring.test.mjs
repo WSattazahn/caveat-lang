@@ -165,6 +165,31 @@ test('caveat_dispatch keeps one ledger across calls through the save it returns'
   assert.equal(unchanged.report.sequence, whole.report.sequence);
 });
 
+test('caveat_dispatch returns the compact save, which restores like the state save', async () => {
+  const step = await bridge('dispatch', { source, events });
+  assert.equal(step.exitCode, 0);
+  // A short ledger comes back as its events, not its state.
+  assert.equal(JSON.parse(step.report.save).schema, 'caveat-replay-save/0.2');
+  const runtime = await (await import('../lib/node.mjs')).loadRuntimeFromDirectory();
+  const state = runtime.open(source);
+  try {
+    for (const { event, payload = {} } of events) state.dispatch(event, payload);
+    const full = state.save();
+    assert.ok(step.report.save.length < full.length, `${step.report.save.length} < ${full.length}`);
+    // Continuing from either save reaches the same report.
+    const next = [{ event: 'read', payload: { value: 90 } }];
+    const fromCompact = await bridge('dispatch', { source, save: step.report.save, events: next });
+    const fromState = await bridge('dispatch', { source, save: full, events: next });
+    const { save: compactAfter, ...compactReport } = fromCompact.report;
+    const { save: stateAfter, ...stateReport } = fromState.report;
+    assert.deepEqual(compactReport, stateReport);
+    // A session restored from a state save has no events to replay, so it
+    // keeps returning state saves; one restored from a replay save does not.
+    assert.equal(JSON.parse(compactAfter).schema, 'caveat-replay-save/0.2');
+    assert.equal(JSON.parse(stateAfter).schema, 'caveat-reactive-save/0.1');
+  } finally { state.close(); }
+});
+
 test('caveat_dispatch saves the last good state after a fatal event and refuses a save for other source', async () => {
   // The fault is the fixture runtime's: no program reaches a fatal outcome.
   const runtimeDirectory = await faultingRuntimeDirectory();
@@ -181,7 +206,8 @@ test('caveat_dispatch saves the last good state after a fatal event and refuses 
   assert.equal(other.exitCode, 2);
   assert.equal(other.report.restored, false);
   assert.equal(other.report.loads, true);
-  assert.match(other.report.error, /different program/);
+  // A state save and a replay save word the refusal differently.
+  assert.match(other.report.error, /different program|source digest is not this source's/);
   for (const save of [undefined, start.report.save]) {
     const broken = await bridge('dispatch', { source: 'state invalid = ;', ...(save === undefined ? {} : { save }) });
     assert.equal(broken.exitCode, 2);

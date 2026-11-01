@@ -2492,7 +2492,7 @@ impl ReactiveSession {
                     observed,
                     Some(caveats),
                 )?;
-                self.check_reading_stance(save, occurrence)?;
+                self.check_reading_stance(save, name, occurrence)?;
                 self.check_reading_note(save, name, occurrence)?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
@@ -3294,15 +3294,19 @@ impl ReactiveSession {
     /// sample, neither. A neutral reading has no stance relation and is in
     /// the observation ledger; `restore_observations` checks that a neutral
     /// `sample` of its stream could have observed it. See
-    /// spec/caveat-neutral-sample-0.1.md.
+    /// spec/caveat-neutral-sample-0.1.md. Either way the event the reading
+    /// names reaches a `sample` of its stream with that stance, in a rule or
+    /// a procedure a rule calls; conditions are not evaluated, so the event
+    /// could have taken the reading, not shown to have.
     fn check_reading_stance(
         &self,
         save: &ReactiveSave,
+        stream: &str,
         reading: &ReadingOccurrence,
     ) -> Result<(), String> {
         let id = &reading.id;
-        match (&reading.relation, &reading.claim) {
-            (Some(_), Some(_)) => Ok(()),
+        let stance = match (&reading.relation, &reading.claim) {
+            (Some(relation), Some(claim)) => Some((relation.as_str(), claim.as_str())),
             (None, None) => {
                 if save.graph.relations.iter().any(|[from, relation, _]| {
                     from == id && (relation == "supports" || relation == "opposes")
@@ -3316,10 +3320,25 @@ impl ReactiveSession {
                 {
                     return Err(format!("neutral reading {id} is not in observations"));
                 }
-                Ok(())
+                None
             }
-            _ => Err(format!("reading {id} needs relation and claim together")),
+            _ => return Err(format!("reading {id} needs relation and claim together")),
+        };
+        let sampled = self
+            .reached_effects(Some(&reading.event))
+            .into_iter()
+            .any(|effect| {
+                matches!(effect, Effect::Sample { stream: source, stance: taken, .. }
+                    if source == stream
+                        && taken.as_ref().map(|(relation, claim)| (relation_name(*relation), claim.as_str())) == stance)
+            });
+        if !sampled {
+            return Err(format!(
+                "reading {id} names a sample no rule of event {} makes",
+                reading.event
+            ));
         }
+        Ok(())
     }
 
     /// A reading's note is the text of an identifier the save holds, taken by
