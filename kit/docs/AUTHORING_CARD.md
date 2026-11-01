@@ -95,6 +95,21 @@ What each part does:
   `for site as $s routed by site { … }` writes the body once per member and
   runs a member's rules only for events whose `site` names it. A `for` block
   may hold another, and `$s_$a` names one copy per pair.
+- **Write a rule once.** Before writing the same rules a second time, reach
+  for one of these. Copies make the program, and every later reader's
+  context, grow with the number of items. For several items, list them as
+  members and write one `for` block, as above. For several streams fed the
+  same way, write one procedure and call it from each event; `check` warns
+  (C001) when two events repeat each other's rules:
+
+  ```text
+  proc record_gust(s readings, value) {
+      sample s = value supports safe;
+      when latest(s) > 30 and committed(crossing) and not reopened(crossing) reopen crossing because latest(s);
+  };
+  on gust call record_gust(wind, kt);
+  on pier_gust call record_gust(pier, kt);
+  ```
 - **Readings.** `readings S from E limit N;` keeps up to N readings, `S@1`,
   `S@2` and so on; the next is refused as `limit/history_limit`. `sample S = V
   supports C` adds one. `latest(S)` reads the newest; `reading(S, N)` names

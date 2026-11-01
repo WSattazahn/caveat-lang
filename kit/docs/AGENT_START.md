@@ -50,7 +50,9 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
 ## Build one small, testable integration
 
 1. Start with the [authoring card](AUTHORING_CARD.md): one tested program
-   with the usual parts and the mistakes that cost the most. Then read
+   with the usual parts and the mistakes that cost the most. When the task
+   has several items or streams that follow the same rules, write the rules
+   once, with a `for` block or a `proc`, as the card shows, not once per item. Then read
    [Caveat on one page](REFERENCE.md) before inventing syntax. The
    [authoring guide](reference/docs/AI_AUTHORING.md) covers lifecycle and
    qualification details; specifications linked there define the contracts.
