@@ -438,3 +438,16 @@ from an outcome schema match; the save contract governs restoration.
 - 2026-11-01 (1.5 draft): `evaluation/unset_state` refuses a read of a state
   declared `unset` that has no value ([Unset States 0.1](caveat-unset-states-0.1.md)).
   No program that loaded before declares such a state, so no outcome changes.
+- 2026-11-01 (1.5 draft): `limit/provenance_limit` also classifies an event in
+  which a `carries` or `carries_any` read would give its answer a lineage past
+  the cap. On 1.4.0 and 1.4.1 such an event was fatal `unclassified`, although
+  the runtime had already rolled it back and every other read past the cap,
+  `observed` among them, was refused: the predicate that searched for the
+  caveats qualifying the evidence kept only the error's text. So the 1.4.1
+  entry's `text_limit` was not the last such fault. Finding D037 reached it
+  with one evidence that 1,024 caveats qualify, read by `carries` in an
+  effect, a guard and a binding, and by `carries_any`. Each now refuses the
+  event with the text the fatal error carried, and the session goes on, as for
+  D022. The cap is unchanged; the regression case is
+  `runtime/tests/d037_carries_past_provenance_limit.rs`, and the outcome and
+  binding sweeps over every tracked program print the same as before it.
