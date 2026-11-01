@@ -199,7 +199,15 @@ jobs:
   native:
     name: native runtime
     runs-on: ubuntu-24.04
+    # Full debug info made this job's test builds about 17 GB, more than the
+    # 14 GB of disk a hosted runner is promised; a run that filled the disk
+    # died without a log. Line tables keep panic locations and backtraces at
+    # about 7 GB, and do not change generated code or stack use.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
+      - name: Free disk and memory before the build
+        run: df -h / && free -m
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
         run: rustup toolchain install && rustc --version
@@ -240,6 +248,9 @@ jobs:
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+      - name: Free disk and memory after the build
+        if: always()
+        run: df -h / && free -m && du -sh runtime/target
 
   # The rc.15 compatibility and departure gates build their own browser
   # distribution so they can run beside core; core's browser-dist stays the
