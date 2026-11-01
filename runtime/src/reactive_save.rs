@@ -704,10 +704,10 @@ impl ReactiveSession {
                 .filter(|(_, renewal)| renewal.occurrences.len() > 1)
                 .map(|(name, renewal)| (name.clone(), renewal.occurrences.clone()))
                 .collect(),
-            observations: (!self.observations.is_empty()).then(|| (*self.observations).clone()),
+            observations: (!self.observations.is_empty()).then(|| (**self.observations).clone()),
             identifiers: self.identifiers.texts().to_vec(),
-            withdrawals: (*self.withdrawals).clone(),
-            taken_back: (*self.taken_back).clone(),
+            withdrawals: (**self.withdrawals).clone(),
+            taken_back: (**self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
             retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
@@ -1387,7 +1387,7 @@ impl ReactiveSession {
             self.require_observed(&withdrawal.evidence, observed)
                 .map_err(|error| format!("the withdrawal of {}: {error}", withdrawal.evidence))?;
         }
-        self.withdrawals = Arc::new(save.withdrawals.clone());
+        self.set_withdrawals(save.withdrawals.clone());
         Ok(())
     }
 
@@ -1477,7 +1477,7 @@ impl ReactiveSession {
                 return Err("a qualification has two live relations".into());
             }
         }
-        self.taken_back = Arc::new(save.taken_back.clone());
+        self.set_taken_back(save.taken_back.clone());
         Ok(())
     }
 
@@ -1985,8 +1985,7 @@ impl ReactiveSession {
             if self.symbols.contains_key(name) {
                 return Err(format!("{name} already exists"));
             }
-            let id = Arc::make_mut(&mut self.graph).add(kind);
-            Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
+            self.add_named(name.clone(), kind);
         }
         for [from, name, to] in &saved.relations {
             let lookup = |name: &str| {
@@ -2020,7 +2019,7 @@ impl ReactiveSession {
                     self.source_evidence(to)
                 ));
             }
-            Arc::make_mut(&mut self.graph).relate(from_id, relation, to_id);
+            self.relate(from_id, relation, to_id);
         }
         // Evidence a commitment relies on, or that reopens one, was observed
         // when the event added the relation, and stays observed: the next
@@ -2066,13 +2065,12 @@ impl ReactiveSession {
                 }
             }
             let id = self.symbols[name];
-            Arc::make_mut(&mut self.graph).set_attention(id, state);
+            self.set_node_attention(id, state);
         }
         for name in &saved.open {
             let id = self.symbols.get(name).copied();
-            match id.and_then(|id| Arc::make_mut(&mut self.graph).nodes.get_mut(&id)) {
-                Some(NodeKind::Commitment { open, .. }) => *open = true,
-                _ => return Err(format!("{name} is not a commitment")),
+            if !id.is_some_and(|id| self.open_restored_commitment(id)) {
+                return Err(format!("{name} is not a commitment"));
             }
         }
         Ok(observed)
@@ -2219,7 +2217,7 @@ impl ReactiveSession {
                 }
             }
         }
-        self.observations = Arc::new(observations.clone());
+        self.set_observations(observations.clone());
         Ok(())
     }
 

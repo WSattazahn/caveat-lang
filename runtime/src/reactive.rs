@@ -180,6 +180,8 @@ pub use view_patch::{
 mod collector;
 #[path = "reactive_departure.rs"]
 mod departure;
+#[path = "reactive_write.rs"]
+mod write;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
 #[cfg(feature = "collector-metrics")]
 pub use collector::WithdrawalCollectionMetrics;
@@ -187,6 +189,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
+use write::Sealed;
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -2363,13 +2366,13 @@ pub struct ReactiveSession {
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
-    observations: Arc<Vec<String>>,
+    observations: Sealed<Vec<String>>,
     /// Texts received for `id` parameters, in handle order.
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
-    withdrawals: Arc<Vec<Withdrawal>>,
+    withdrawals: Sealed<Vec<Withdrawal>>,
     /// Taken-back qualifications, in the order they were taken back.
-    taken_back: Arc<Vec<TakeBack>>,
+    taken_back: Sealed<Vec<TakeBack>>,
     /// The caveats some `unqualify` names, fixed at load; empty in a program
     /// that does not take back.
     take_back_caveats: Arc<BTreeSet<String>>,
@@ -2470,8 +2473,8 @@ pub struct ReactiveSession {
     cue_qualifications: Vec<Provenance>,
     controls: Arc<BTreeMap<String, Control>>,
     clock: Option<Clock>,
-    graph: Arc<EpistemicGraph>,
-    symbols: Arc<HashMap<String, NodeId>>,
+    graph: Sealed<EpistemicGraph>,
+    symbols: Sealed<HashMap<String, NodeId>>,
     resources: Option<ResourceLedger>,
     world: Arc<MapWorld>,
     labels: Arc<BTreeMap<String, String>>,
@@ -2655,6 +2658,13 @@ impl ReactiveSession {
                 constants.insert(format!("{}.{axis}", position.target), coordinate.value());
             }
         }
+        let write::Declared {
+            graph,
+            symbols,
+            observations,
+            withdrawals,
+            taken_back,
+        } = write::seal_declared(evaluation.graph, evaluation.symbols);
         let mut session = Self {
             source_id: source_identity(source),
             source_sha256: source_digest(source),
@@ -2671,10 +2681,10 @@ impl ReactiveSession {
             foreclosures: Arc::default(),
             strict_irreversible: Arc::default(),
             renewals: Arc::default(),
-            observations: Arc::default(),
+            observations,
             identifiers: Arc::default(),
-            withdrawals: Arc::default(),
-            taken_back: Arc::default(),
+            withdrawals,
+            taken_back,
             take_back_caveats: Arc::default(),
             late_caveats: Arc::default(),
             late_caveat_nodes: Arc::default(),
@@ -2724,8 +2734,8 @@ impl ReactiveSession {
             cue_qualifications: Vec::new(),
             controls: Arc::default(),
             clock: None,
-            graph: Arc::new(evaluation.graph),
-            symbols: Arc::new(evaluation.symbols),
+            graph,
+            symbols,
             resources: evaluation.resources,
             world: Arc::new(map.world),
             labels: Arc::new(evaluation.display.into_iter().collect()),
@@ -6386,12 +6396,12 @@ impl ReactiveSession {
                     }
                 }
             }
-            self.observations = Arc::new(observations);
+            self.set_observations(observations);
         }
         if (neutral || !self.observations.is_empty())
             && !self.observations.iter().any(|name| name == evidence)
         {
-            Arc::make_mut(&mut self.observations).push(evidence.to_string());
+            self.push_observation(evidence.to_string());
         }
     }
 
@@ -6878,17 +6888,19 @@ impl ReactiveSession {
                         inherited.push(caveat);
                     }
                 }
-                let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
-                    description: format!("{description} ({stream} reading {ordinal})"),
-                    source,
-                });
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
+                let id = self.add_named(
+                    name.clone(),
+                    NodeKind::Evidence {
+                        description: format!("{description} ({stream} reading {ordinal})"),
+                        source,
+                    },
+                );
                 self.record_observation(&name, stance.is_none());
                 if let Some((relation, claim)) = stance {
-                    Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
+                    self.relate(id, *relation, self.symbols[claim]);
                 }
                 for caveat in inherited {
-                    Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
+                    self.relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
                 if let Some(condition) = &condition {
@@ -7103,15 +7115,16 @@ impl ReactiveSession {
                 else {
                     unreachable!("validated renewable evidence")
                 };
-                let graph = Arc::make_mut(&mut self.graph);
-                let id = graph.add(NodeKind::Evidence {
-                    description: format!("{description} (occurrence {ordinal})"),
-                    source,
-                });
+                let id = self.add_named(
+                    name.clone(),
+                    NodeKind::Evidence {
+                        description: format!("{description} (occurrence {ordinal})"),
+                        source,
+                    },
+                );
                 for caveat in template_caveats {
-                    graph.relate(caveat, Relation::Qualifies, id);
+                    self.relate(caveat, Relation::Qualifies, id);
                 }
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 // The occurrence exists because this rule chose to renew.
                 if !guard.is_empty() {
                     let mut guard = guard.clone();
@@ -7228,7 +7241,7 @@ impl ReactiveSession {
                     self.freeze_observation(&mut guard);
                     Self::merge_record(&mut self.observation_qualifications, evidence, &guard)?;
                     self.record_observation(evidence, false);
-                    Arc::make_mut(&mut self.graph).relate(from, *relation, to);
+                    self.relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
                         relation: Some(relation_name(*relation).into()),
@@ -7275,7 +7288,7 @@ impl ReactiveSession {
                         ..
                     })
                 ) {
-                    Arc::make_mut(&mut self.graph).set_attention(id, Attention::Examined);
+                    self.set_node_attention(id, Attention::Examined);
                 }
                 self.clear_predicate_dependency("examined", caveat);
                 if self.examination_qualifications.get(caveat) != Some(&attention_basis) {
@@ -7473,13 +7486,11 @@ impl ReactiveSession {
                     .iter()
                     .map(|name| self.symbols[name])
                     .collect::<Vec<_>>();
-                let id =
-                    Arc::make_mut(&mut self.graph).commit_because(&name, &retained, reason.clone());
+                let id = self.commit_named(name.clone(), &retained, reason.clone());
                 self.clear_predicate_dependency("committed", action);
                 if ordinal.is_some() {
                     self.clear_predicate_dependency("reopened", action);
                 }
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 for evidence in &provenance.evidence {
                     self.require_kind(evidence, "evidence")?;
                     // A retired record reaches a new basis only through one
@@ -7490,11 +7501,7 @@ impl ReactiveSession {
                         )
                         .into());
                     }
-                    Arc::make_mut(&mut self.graph).relate(
-                        id,
-                        Relation::ReliesOn,
-                        self.symbols[evidence.as_str()],
-                    );
+                    self.relate(id, Relation::ReliesOn, self.symbols[evidence.as_str()]);
                 }
                 self.collector_reopens(
                     &name,
@@ -8056,7 +8063,7 @@ impl ReactiveSession {
                     .into_iter()
                     .map(String::from),
             );
-            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
+            self.reopen_commitment(id, self.symbols[evidence]);
             self.effects.push(EffectReport::Reopen {
                 action: current.clone(),
                 because: evidence.clone(),
@@ -8201,9 +8208,8 @@ impl ReactiveSession {
             return Ok(());
         }
         let event = self.last_event.clone().unwrap_or_default();
-        let records = Arc::make_mut(&mut self.taken_back);
         for occurrence in &marked {
-            records.push(TakeBack {
+            self.push_take_back(TakeBack {
                 evidence: occurrence.clone(),
                 caveat: caveat.to_string(),
                 sequence: self.sequence,
@@ -8309,7 +8315,7 @@ impl ReactiveSession {
         // Once per live relation: after a take-back, qualifying again adds a
         // new one. See spec/caveat-take-back-0.1.md.
         if !self.has_live_relation(from, to) {
-            Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
+            self.relate(from, Relation::Qualifies, to);
         }
         // The caveat and whatever qualifies it, as `qualified` inherits.
         let added = Provenance::from_names(
@@ -8487,12 +8493,11 @@ impl ReactiveSession {
                     .into(),
             );
         }
-        let graph = Arc::make_mut(&mut self.graph);
-        let id = graph.add_caveat(
+        self.add_named_caveat(
+            WITHDRAWN.into(),
             "withdrawn: the observation is no longer stood behind",
             Consequence::Material,
         );
-        Arc::make_mut(&mut self.symbols).insert(WITHDRAWN.into(), id);
         Ok(())
     }
 
@@ -8739,7 +8744,7 @@ impl ReactiveSession {
             Arc::make_mut(&mut self.withdrawal_reasons).insert(evidence.clone(), because.clone());
             self.collector.withdrawal(&evidence, &because, true);
         }
-        Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
+        self.push_withdrawal(Withdrawal {
             evidence: evidence.clone(),
             because: because.clone(),
             sequence: self.sequence,
@@ -9473,10 +9478,10 @@ impl ReactiveSession {
                 .collect(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
-            observations: (*self.observations).clone(),
+            observations: (**self.observations).clone(),
             identifiers: self.identifiers.texts().to_vec(),
-            withdrawals: (*self.withdrawals).clone(),
-            taken_back: (*self.taken_back).clone(),
+            withdrawals: (**self.withdrawals).clone(),
+            taken_back: (**self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
             retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),

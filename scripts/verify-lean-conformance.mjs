@@ -477,22 +477,29 @@ export function reopenRequest(fixture, index, beforeRecord) {
     commitment: r.commitment, evidence: r.evidence, caveats: [...EVIDENCE_CAVEATS[r.evidence]], guard } };
 }
 
-const reopenAnchor = '            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);\n';
+// The session writes its graph only through reactive_write.rs, so the
+// retained-caveats mutant edits the reopening there.
+const reopenAnchor = '        Arc::make_mut(&mut self.graph.0).reopen(commitment, because);\n';
 const journalAnchor = '            because,\n            caveats: caveats.into_iter().collect(),\n';
 const reopenMutations = {
   // The reopened commitment loses the caveats it retained.
-  retained: [reopenAnchor, reopenAnchor +
-    '            // Deliberate mutation: reopening drops the retained caveats.\n' +
-    '            Arc::make_mut(&mut self.graph).edges.retain(|edge| !(edge.from == id && edge.relation == Relation::Retains));\n'],
+  retained: ['reactive_write.rs', reopenAnchor, reopenAnchor +
+    '        // Deliberate mutation: reopening drops the retained caveats.\n' +
+    '        Arc::make_mut(&mut self.graph.0).edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n'],
   // The journal records the cause without its caveats.
-  cause: [journalAnchor,
+  cause: ['reactive.rs', journalAnchor,
     '            because,\n' +
     '            // Deliberate mutation: the reopening entry drops its cause\'s caveats.\n' +
     '            caveats: Vec::new(),\n'],
 };
+// The runtime source file, under runtime/src, that a reopening mutation edits.
+export function reopenMutationFile(field) {
+  if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');
+  return reopenMutations[field][0];
+}
 export function reopenMutation(source, field) {
   if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');
-  const [anchor, replacement] = reopenMutations[field];
+  const [, anchor, replacement] = reopenMutations[field];
   const normalized = source.replaceAll('\r\n', '\n');
   if (normalized.split(anchor).length !== 2) {
     throw new InfrastructureFailure('Reopening mutation anchor must occur exactly once');
@@ -950,7 +957,7 @@ export async function verifyConformance({ caseId } = {}) {
     // lineage and grounds; no output projection or shadow evaluator fabricates it.
     const mutantRoot = stageMutantRuntime(root, output);
     // Each mutant changes exactly one file; every other mutable file is restored first.
-    const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs'].map(file =>
+    const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs', 'reactive_write.rs'].map(file =>
       [file, readFileSync(join(root, 'runtime/src', file), 'utf8')]));
     const mutantTarget = join(root, 'runtime/target/lean-mutants');
     report.runtimeMutations = [];
@@ -996,7 +1003,7 @@ export async function verifyConformance({ caseId } = {}) {
     }
     // A runtime whose reopening changed the commitment it reopened must be caught.
     for (const [id, field] of [['reopen-drops-retained', 'retained'], ['reopen-drops-cause-caveats', 'cause']]) {
-      const mutant = buildMutant(id, 'reopen-' + field, 'reactive.rs', source => reopenMutation(source, field));
+      const mutant = buildMutant(id, 'reopen-' + field, reopenMutationFile(field), source => reopenMutation(source, field));
       for (const fixtureId of ['reopen-retains-caveats', 'reopen-cause-caveats']) {
         const fixture = reopenCorpus.find(item => item.id === fixtureId);
         const rendered = reopenSources.get(fixtureId);

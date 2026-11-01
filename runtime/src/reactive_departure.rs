@@ -191,7 +191,7 @@ mod extraction_profile_tests {
 /// Move matching withdrawals once, preserving the append order of survivors.
 /// The removed records use the departing map's lexical order for attachment;
 /// archive publication retains its separate history/number order.
-fn extract_departing_withdrawals(
+pub(super) fn extract_departing_withdrawals(
     withdrawals: &mut Arc<Vec<Withdrawal>>,
     departing: &BTreeMap<String, (String, u64)>,
 ) -> Vec<Withdrawal> {
@@ -937,45 +937,33 @@ impl ReactiveSession {
             .collect::<HashMap<_, _>>();
         let mut relations: BTreeMap<String, Vec<[String; 3]>> = BTreeMap::new();
         if !ids.is_empty() {
-            let graph = Arc::make_mut(&mut self.graph);
-            graph.edges.retain(|edge| {
-                let record = ids.get(&edge.from).or_else(|| ids.get(&edge.to));
-                let Some(record) = record else {
-                    return true;
-                };
+            self.depart_records(&ids, |edge| {
+                let record = ids
+                    .get(&edge.from)
+                    .or_else(|| ids.get(&edge.to))
+                    .expect("a removed edge touches a departing record");
                 relations.entry(record.clone()).or_default().push([
                     names[&edge.from].clone(),
                     relation_name(edge.relation).into(),
                     names[&edge.to].clone(),
                 ]);
-                false
             });
-            for id in ids.keys() {
-                graph.nodes.remove(id);
-                graph.origins.remove(id);
-            }
-            let symbols = Arc::make_mut(&mut self.symbols);
-            for record in ids.values() {
-                symbols.remove(record);
-            }
         }
         if self
             .observations
             .iter()
             .any(|name| departing.contains_key(name))
         {
-            Arc::make_mut(&mut self.observations).retain(|name| !departing.contains_key(name));
+            self.retain_observations(|name| !departing.contains_key(name));
         }
-        let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
-            .into_iter()
-            .peekable();
+        let mut withdrawals = self.depart_withdrawals(&departing).into_iter().peekable();
         let mut taken_back = BTreeMap::<String, Vec<TakeBack>>::new();
         if self
             .taken_back
             .iter()
             .any(|record| departing.contains_key(&record.evidence))
         {
-            Arc::make_mut(&mut self.taken_back).retain(|record| {
+            self.retain_taken_back(|record| {
                 if departing.contains_key(&record.evidence) {
                     taken_back
                         .entry(record.evidence.clone())
