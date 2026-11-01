@@ -165,6 +165,21 @@ export const groups = [
     // Evidence, events and decisions may be named `hold` or `release`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'on @ commit d because t;', 'on e commit @ because t;', 'on e reopen d because @;'],
   },
+  // spec/caveat-unset-states-0.1.md: a clause word after a state's name and
+  // an effect before one. A state may itself be named `unset`.
+  {
+    name: 'unset declarations',
+    words: ['unset'],
+    probe: ['state x @;', 'state x @ min 0 max 9;'],
+    scope: 'keyword.other',
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on @ set x = 1;', 'on e set @ = 1;'],
+  },
+  {
+    name: 'unset effects',
+    words: ['unset'],
+    probe: ['on e @ x;', 'on e when is_set(x) @ x;', 'proc p() {\n  when true @ x;\n};'],
+    scope: 'keyword.other.effect',
+  },
   {
     name: 'outcomes',
     words: ['resolve'],
@@ -225,7 +240,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of'],
+      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of', 'is_set'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

@@ -407,6 +407,11 @@ export function formatExplanation(report, title = 'the program') {
     if (source.unrecorded_through > 0) lines.push(`  source not recorded for events through #${source.unrecorded_through}`);
   }
   if (!report.decisions.length) lines.push('  none declared');
+  // Each observation is described once, at the first revision that rests on
+  // it; later revisions name it in their grounds. Repeating it under every
+  // revision made the text grow with grounds times revisions
+  // (docs/TOKEN_COST.md, "Reading a record later").
+  const described = new Set();
   for (const series of report.decisions) {
     lines.push((series.kind === 'plain' ? `  ${series.name}: plain commitment`
       : `  ${series.name}: ${series.revisions.length} of at most ${series.limit}`)
@@ -430,6 +435,8 @@ export function formatExplanation(report, title = 'the program') {
         lines.push(`      thresholds: ${Object.entries(revision.thresholds).map(([name, value]) => `${name} = ${show(value)}`).join(', ')}`);
       }
       for (const item of revision.observed_by ?? []) {
+        if (described.has(item.evidence)) continue;
+        described.add(item.evidence);
         if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
         const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
         lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${by(item)}${payload}`);

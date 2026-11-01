@@ -211,6 +211,8 @@ function sessionsOf() {
     [REVERSIBLE_FORECLOSURE, [['go']]],
     [OUTCOME, [['go'], ['close']]],
     [THRESHOLDS, [['go']]],
+    // A state with no value yet (spec/caveat-unset-states-0.1.md).
+    ['state part unset; state seen = 0; event go; on go when not is_set(part) set seen = 1;', [['go']]],
     [AGENTS, AGENTS_EVENTS],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
@@ -500,7 +502,8 @@ test('a program interface has the declared shapes and kinds', () => {
     cue ping sound 440 0.2 0.5;
     on read sample soil = celsius supports frost_risk; on read set level = celsius;
     bind gauge.value = level; bind gauge.label = "cold" when level < 0; bind gauge.low = level < 0;`;
-  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail), real.interface(AGENTS)];
+  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail), real.interface(AGENTS),
+    real.interface('state part unset min 0 max 9; event go; on go set part = 1;')];
   assertShape('ProgramInterface', interfaces, { complete: true });
   const parameters = interfaces.flatMap(found => found.events.flatMap(event => event.parameters));
   assertShape('InterfaceParameter', parameters, { complete: true });
