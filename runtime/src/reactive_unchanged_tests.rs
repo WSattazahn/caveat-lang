@@ -240,3 +240,31 @@ on look sample sighting = 1 supports seen;
         &session.withdrawal_reasons
     ));
 }
+
+#[test]
+fn sampling_one_stream_copies_that_stream_and_no_other() {
+    let mut session = session(
+        r#"
+claim c;
+evidence tool from "the tool";
+readings tests from tool limit 8;
+readings audit from tool limit 8;
+event report_tests;
+event report_audit;
+on report_tests sample tests = 1 supports c;
+on report_audit sample audit = 1 supports c;
+"#,
+        &["report_tests", "report_audit"],
+    );
+    let before = around(&mut session, "report_tests");
+    assert!(Arc::ptr_eq(
+        &before.reading_streams["audit"],
+        &session.reading_streams["audit"]
+    ));
+    assert!(!Arc::ptr_eq(
+        &before.reading_streams["tests"],
+        &session.reading_streams["tests"]
+    ));
+    assert_eq!(session.reading_streams["tests"].occurrences.len(), 2);
+    assert_eq!(before.reading_streams["tests"].occurrences.len(), 1);
+}

@@ -2347,7 +2347,9 @@ pub struct ReactiveSession {
     /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
     has_thresholds: bool,
     guard_thresholds: Vec<BTreeMap<String, f64>>,
-    reading_streams: Arc<BTreeMap<String, ReadingStream>>,
+    /// Each stream behind its own pointer: a sample copies the stream it
+    /// adds to, and the map of pointers, rather than every stream.
+    reading_streams: Arc<BTreeMap<String, Arc<ReadingStream>>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
@@ -2811,13 +2813,13 @@ impl ReactiveSession {
                     session.require_kind(template, "evidence")?;
                     Arc::make_mut(&mut session.reading_streams).insert(
                         name.clone(),
-                        ReadingStream {
+                        Arc::new(ReadingStream {
                             template: template.clone(),
                             limit,
                             current: None,
                             occurrences: Vec::new(),
                             selection_qualifications: Provenance::default(),
-                        },
+                        }),
                     );
                 }
                 Directive::Decisions {
@@ -5110,10 +5112,8 @@ impl ReactiveSession {
                     .selection_qualifications
                     .merged(&guard)?;
                 if let Some(merged) = merged {
-                    Arc::make_mut(&mut self.reading_streams)
-                        .get_mut(stream)
-                        .expect("validated stream")
-                        .selection_qualifications = merged;
+                    Self::stream_mut(&mut self.reading_streams, stream).selection_qualifications =
+                        merged;
                 }
                 return Ok(());
             }
@@ -5205,6 +5205,19 @@ impl ReactiveSession {
             *Arc::make_mut(records).get_mut(name).expect("found above") = merged;
         }
         Ok(())
+    }
+
+    /// The stream `name`, to write: copies the map of streams' pointers and
+    /// the stream itself if another session shares them, and no other stream.
+    fn stream_mut<'a>(
+        streams: &'a mut Arc<BTreeMap<String, Arc<ReadingStream>>>,
+        name: &str,
+    ) -> &'a mut ReadingStream {
+        Arc::make_mut(
+            Arc::make_mut(streams)
+                .get_mut(name)
+                .expect("validated stream"),
+        )
     }
 
     /// Writes each of `merged` over its record in `records`, copying a
@@ -6886,9 +6899,7 @@ impl ReactiveSession {
                     .insert(name.clone(), observation);
                 let mut provenance = self.qualify(&name, &[])?;
                 self.freeze(&mut provenance);
-                let readings = Arc::make_mut(&mut self.reading_streams)
-                    .get_mut(stream)
-                    .unwrap();
+                let readings = Self::stream_mut(&mut self.reading_streams, stream);
                 readings.current = Some(name.clone());
                 readings.selection_qualifications = Provenance::default();
                 readings.occurrences.push(ReadingOccurrence {
@@ -9474,7 +9485,11 @@ impl ReactiveSession {
             qualified_values: self.states.values(),
             unset: self.states.unset_names(),
             commitment_bases: (*self.commitment_bases).clone(),
-            reading_streams: (*self.reading_streams).clone(),
+            reading_streams: self
+                .reading_streams
+                .iter()
+                .map(|(name, stream)| (name.clone(), (**stream).clone()))
+                .collect(),
             decision_series: (*self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),
