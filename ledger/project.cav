@@ -28,7 +28,7 @@ evidence harness from "a fuzz harness: 500 event sequences over one fixed progra
 readings reruns from harness limit 16;             # each rerun: divergences out of 500
 evidence rerun_on_fix from "a rerun on the fix that still diverged";
 evidence ci from "GitHub Actions on the branch under review";
-renewable ci limit 128;                            # each run is a new occurrence
+renewable ci limit 1024;                           # each run is a new occurrence
 evidence release_tree from "v1.0.0 plus the cherry-picked fixes, full Rust suite";
 renewable release_tree limit 8;
 evidence main_tree from "main at a minor release's merge, with the Runtime run on its push";
