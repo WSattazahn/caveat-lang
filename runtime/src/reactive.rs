@@ -1300,9 +1300,10 @@ impl Changes {
 
     /// The histories whose records an event changed, or `None` if it changed
     /// something a read of any history can reach: a qualification, take-back,
-    /// withdrawal, renewal, retirement or permission, or a record it cannot
-    /// place in one history. A change to a record no history read consults
-    /// (a claim, or evidence outside every history) places nowhere.
+    /// withdrawal, renewal, retirement or permission, a relation from
+    /// evidence already in the graph, or a record it cannot place in one
+    /// history. Any other change to a record no history read consults (a
+    /// claim, or evidence outside every history) places nowhere.
     fn histories_between(old: &ReactiveSession, new: &ReactiveSession) -> Option<BTreeSet<String>> {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
@@ -1431,13 +1432,18 @@ impl Changes {
             return None;
         }
         if !Arc::ptr_eq(&old.graph, &new.graph) {
-            // Edges are only added here; a `qualifies` edge reaches every
-            // value whose lineage lists its evidence.
+            // Edges are only added here. A `qualifies` edge reaches every
+            // value whose lineage lists its evidence. A `supports` or
+            // `opposes` edge from a node the graph already held brings the
+            // caveats of a claim to that evidence, which a history read can
+            // list outside every history: a withdrawal's reason, a
+            // reopening's cause or an outcome's evidence (D036).
             let added = new.graph.edges.strip_prefix(old.graph.edges.as_slice())?;
-            if added
-                .iter()
-                .any(|edge| edge.relation == Relation::Qualifies)
-            {
+            if added.iter().any(|edge| match edge.relation {
+                Relation::Qualifies => true,
+                Relation::Supports | Relation::Opposes => old.graph.nodes.contains_key(&edge.from),
+                _ => false,
+            }) {
                 return None;
             }
             let mut touched = added
