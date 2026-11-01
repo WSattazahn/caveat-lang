@@ -1415,6 +1415,16 @@ impl Consulted {
             keys.dedup();
         }
     }
+
+    /// Debug builds: adds the notes of a read noted apart.
+    #[cfg(debug_assertions)]
+    fn absorb(&mut self, other: &Consulted) {
+        self.reached.extend_from_slice(&other.reached);
+        self.listed.extend(other.listed.iter().cloned());
+        self.withdrawals.extend_from_slice(&other.withdrawals);
+        self.predicates.extend_from_slice(&other.predicates);
+        self.renewals.extend_from_slice(&other.renewals);
+    }
 }
 
 /// The key a consulted name is noted under, in one process: equal names have
@@ -1496,6 +1506,30 @@ fn consult(note: impl FnOnce(&mut Consulted)) {
     if noting != 0 {
         CONSULTING.with_borrow_mut(|records| note(&mut records[noting - 1]));
     }
+}
+
+/// Debug builds: runs `read`, noting what it consults in a record of its
+/// own, and returns those notes settled. The record being filled, if any, is
+/// left as it was.
+#[cfg(debug_assertions)]
+fn noted_apart<T>(read: impl FnOnce() -> T) -> (T, Consulted) {
+    // Puts the record being filled back however `read` ends.
+    struct Apart(usize);
+    impl Drop for Apart {
+        fn drop(&mut self) {
+            CONSULTING.with_borrow_mut(|records| records.pop());
+            NOTING.set(self.0);
+        }
+    }
+    let slot = CONSULTING.with_borrow_mut(|records| {
+        records.push(Consulted::default());
+        records.len()
+    });
+    let _apart = Apart(NOTING.replace(slot));
+    let value = read();
+    let mut notes = CONSULTING.with_borrow(|records| records[slot - 1].clone());
+    notes.settle();
+    (value, notes)
 }
 
 /// Runs `evaluate`, noting what it consults in record `slot` of
@@ -5804,19 +5838,15 @@ impl ReactiveSession {
             }
             return Tracked::new(!series.on_hold.is_empty(), grounds);
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, true);
+        }
         let value = match kind {
             "has_sample" => return self.predicate_tracked(kind, name),
             _ => self.predicate(kind, name)?,
         };
         let provenance = match kind {
             "observed" if value => self.qualify_core(name, &[])?,
-            _ if kind.starts_with(CARRIES) => {
-                if self.predicate("observed", name)? {
-                    self.qualify_core(name, &[])?
-                } else {
-                    Provenance::default()
-                }
-            }
             "examined" => Provenance::from_names(
                 [],
                 std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
@@ -5919,6 +5949,109 @@ impl ReactiveSession {
                 )
             })
         })
+    }
+
+    /// `carries(EVIDENCE, CAVEAT)` asked of `name`, with its lineage, or with
+    /// its grounds when `grounds` is set. It looks once at whether the
+    /// evidence is observed and searches once for what qualifies it; the
+    /// general path did each twice, for the value and again for what it rests
+    /// on, with the same result, the same error and the same notes of what it
+    /// consulted. Debug builds compare the two, each noting apart, and keep
+    /// only the notes of the read once, as a release build does.
+    fn carries_predicate(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        #[cfg(debug_assertions)]
+        {
+            let (read, notes) = noted_apart(|| self.carries_once(kind, caveat, name, grounds));
+            let (general, general_notes) = noted_apart(|| self.carries_twice(kind, name, grounds));
+            assert_eq!(
+                read, general,
+                "carries({name}, {caveat}) read once differs from the general path"
+            );
+            assert_eq!(
+                notes, general_notes,
+                "carries({name}, {caveat}) read once notes what it consulted differently"
+            );
+            consult(|record| record.absorb(&notes));
+            read
+        }
+        #[cfg(not(debug_assertions))]
+        self.carries_once(kind, caveat, name, grounds)
+    }
+
+    fn carries_once(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        // As `predicate` reads the value: an unknown name is refused, and a
+        // search past the provenance limit is refused as one (D037).
+        let observed = self.predicate("observed", name)?;
+        let core = if observed {
+            // Observed evidence is declared evidence that is not retired, so
+            // the search needs none of `qualify_core`'s checks.
+            Some(self.qualify_checked(name, &[], true)?)
+        } else {
+            None
+        };
+        let value = core
+            .as_ref()
+            .is_some_and(|core| self.carried(&core.caveats, caveat));
+        let mut provenance = core.unwrap_or_default();
+        if grounds {
+            return Tracked::new(value, provenance);
+        }
+        // The lineage `observed(name)` gives: what qualifies the evidence,
+        // what its observation was recorded with, and its dependency, which
+        // `qualify` and the predicate each add. Then the dependency of this
+        // predicate.
+        if observed {
+            if let Some(observation) = self.observation_qualifications.get(name) {
+                provenance.merge(observation)?;
+            }
+            if let Some(dependency) = self.predicate_dependency("observed", name) {
+                provenance.merge(dependency)?;
+            }
+        }
+        if let Some(dependency) = self.predicate_dependency("observed", name) {
+            provenance.merge(dependency)?;
+        }
+        provenance.validate()?;
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
+    }
+
+    /// Debug builds: `carries` read as the general path reads it.
+    #[cfg(debug_assertions)]
+    fn carries_twice(
+        &self,
+        kind: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let value = self.predicate(kind, name)?;
+        if grounds {
+            let provenance = if self.predicate("observed", name)? {
+                self.qualify_core(name, &[])?
+            } else {
+                Provenance::default()
+            };
+            return Tracked::new(value, provenance);
+        }
+        let mut provenance = self.predicate_tracked("observed", name)?.provenance;
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
     }
 
     fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
@@ -6130,6 +6263,17 @@ impl ReactiveSession {
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
         }
+        self.qualify_checked(evidence, extras, honor_take_back)
+    }
+
+    /// `qualify_core_with` once its checks have passed: `evidence` names
+    /// evidence that is observed or retired, and each extra names a caveat.
+    fn qualify_checked(
+        &self,
+        evidence: &str,
+        extras: &[String],
+        honor_take_back: bool,
+    ) -> Result<Provenance, EvalError> {
         let id = self.symbols[evidence];
         let mut roots = vec![id];
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
@@ -6206,12 +6350,12 @@ impl ReactiveSession {
                 return Ok(result);
             }
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, false);
+        }
         let value = self.predicate(kind, name)?;
         let mut provenance = match kind {
             "observed" if value => self.qualify(name, &[])?,
-            // Whether it carries the caveat or not, the answer rests on the
-            // evidence and what qualifies it.
-            _ if kind.starts_with(CARRIES) => self.predicate_tracked("observed", name)?.provenance,
             "examined" => {
                 let id = self.symbols[name];
                 let mut provenance = Provenance::from_names(
