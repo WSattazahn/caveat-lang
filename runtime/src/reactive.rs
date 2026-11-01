@@ -17,7 +17,7 @@ pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 const LIMIT: f64 = 1_000_000_000_000.0;
 /// The caveat a withdrawal applies. See spec/caveat-withdrawal-0.1.md.
@@ -37,6 +37,17 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
+
+/// The lineage a withdrawal adds to a value read through a record: the
+/// `withdrawn` caveat alone. Built once rather than on every read.
+fn withdrawn_lineage() -> &'static Provenance {
+    static LINEAGE: OnceLock<Provenance> = OnceLock::new();
+    LINEAGE.get_or_init(|| {
+        let mut lineage = Provenance::default();
+        lineage.caveats.insert(WITHDRAWN);
+        lineage
+    })
+}
 
 /// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
 /// for any caveat, or the least consequence it counts.
@@ -686,6 +697,8 @@ pub enum Directive {
     Identifiers {
         limit: usize,
     },
+    /// `work skips other routes;` See spec/caveat-routed-work-0.1.md.
+    RoutedWork,
     /// `agent NAME [sends EVENT, …];` See spec/caveat-agents-0.1.md.
     Agent {
         name: String,
@@ -1914,6 +1927,9 @@ pub struct ReactiveSession {
     /// the session runs, so the only ones a record may lack. See
     /// spec/caveat-caveat-sources-0.1.md.
     late_caveats: Arc<BTreeSet<String>>,
+    /// The nodes of `late_caveats`, each with its name, in node order. A
+    /// declared caveat's name and node are fixed when the program loads.
+    late_caveat_nodes: Arc<Vec<(NodeId, String)>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
@@ -1940,11 +1956,15 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
-    /// For each of `rules`, its guard's route (`Expr::route_terms`) up to
-    /// the first term whose name a state answers, compiled at load so that
-    /// an event skips another member's routed copies without evaluating
-    /// their guards.
+    /// For each of `rules`, its route (spec/caveat-routed-work-0.1.md):
+    /// the terms of its guard's route (`Expr::route_terms`) that compare one
+    /// of its event's parameters with a value fixed at load, compiled so that
+    /// an event skips the rules its payload routes elsewhere without
+    /// evaluating their guards.
     rule_routes: Arc<Vec<Vec<(String, f64)>>>,
+    /// `work skips other routes;`: a rule the payload routes elsewhere counts
+    /// no work. See spec/caveat-routed-work-0.1.md.
+    routed_work: bool,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
@@ -2198,6 +2218,7 @@ impl ReactiveSession {
             taken_back: Arc::default(),
             take_back_caveats: Arc::default(),
             late_caveats: Arc::default(),
+            late_caveat_nodes: Arc::default(),
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
@@ -2215,6 +2236,7 @@ impl ReactiveSession {
             rules: Arc::new(Vec::new()),
             rules_by_event: Arc::default(),
             rule_routes: Arc::default(),
+            routed_work: false,
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
@@ -2410,6 +2432,12 @@ impl ReactiveSession {
                             .or_default()
                             .insert(name.clone());
                     }
+                }
+                Directive::RoutedWork => {
+                    if session.routed_work {
+                        return Err("work skips other routes is declared more than once".into());
+                    }
+                    session.routed_work = true;
                 }
                 Directive::JournalWindow { limit } => {
                     if session.journal_window.is_some() {
@@ -2758,16 +2786,7 @@ impl ReactiveSession {
         let rule_routes = session
             .rules
             .iter()
-            .map(|rule| {
-                rule.condition
-                    .route_terms()
-                    .into_iter()
-                    .take_while(|(name, _)| {
-                        // A state answers its name before a parameter does.
-                        !session.states.contains_key(name) && name != reactive_expr::ELAPSED_READ
-                    })
-                    .collect()
-            })
+            .map(|rule| session.compile_route(rule))
             .collect();
         session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
@@ -4310,6 +4329,64 @@ impl ReactiveSession {
         Err(format!("unknown history {name}").into())
     }
 
+    /// A rule's route (spec/caveat-routed-work-0.1.md): the leading terms of
+    /// its guard's route whose name is a parameter of the rule's event,
+    /// which no state shadows, compared with a number or a constant, which no
+    /// state or parameter of the event shadows. The route ends at the first
+    /// other term. Every name here reads a plain value, so a term the payload
+    /// makes false makes the guard false with no dependency.
+    fn compile_route(&self, rule: &Rule) -> Vec<(String, f64)> {
+        let Some(parameters) = self.events.get(&rule.event) else {
+            return Vec::new();
+        };
+        let parameter = |name: &str| parameters.iter().any(|parameter| parameter.name == name);
+        rule.condition
+            .route_terms()
+            .into_iter()
+            .map_while(|(name, value)| {
+                if self.states.contains_key(&name) || !parameter(&name) {
+                    return None;
+                }
+                let value = match value {
+                    reactive_expr::RouteValue::Number(value) => value,
+                    reactive_expr::RouteValue::Name(constant) => {
+                        if self.states.contains_key(&constant) || parameter(&constant) {
+                            return None;
+                        }
+                        *self.constants.get(&constant)?
+                    }
+                };
+                Some((name, value))
+            })
+            .collect()
+    }
+
+    /// What `retain_skipped_effect` does for a guard that rests on nothing,
+    /// without counting work: under `work skips other routes;`, a rule the
+    /// payload routes elsewhere costs no step (spec/caveat-routed-work-0.1.md). Only a windowed program's collector
+    /// reads a skipped effect, and through a call, each step of its
+    /// procedure; otherwise nothing is kept. A program whose calls nest too
+    /// deeply does not load, so the depth guard can only hold here.
+    fn retain_routed_elsewhere(
+        &mut self,
+        effect: &Effect,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
+        if !self.windowed() {
+            return Ok(());
+        }
+        self.collector_effect(effect);
+        if let Effect::Call { name, .. } = effect {
+            budget.enter()?;
+            let procedures = Arc::clone(&self.procedures);
+            for step in &procedures[name].body {
+                self.retain_routed_elsewhere(&step.effect, budget)?;
+            }
+            budget.depth -= 1;
+        }
+        Ok(())
+    }
+
     fn retain_skipped_effect(
         &mut self,
         effect: &Effect,
@@ -4892,10 +4969,20 @@ impl ReactiveSession {
                     );
                 }
                 // What `execute_guarded_effect` does with a guard that is
-                // false and rests on nothing: the parameters are plain.
-                let result = budget.spend().and_then(|()| {
-                    self.retain_skipped_effect(&rule.effect, &Provenance::default(), &mut budget)
-                });
+                // false and rests on nothing: the parameters are plain. With
+                // `work skips other routes;` it counts no work
+                // (spec/caveat-routed-work-0.1.md).
+                let result = if self.routed_work {
+                    self.retain_routed_elsewhere(&rule.effect, &mut budget)
+                } else {
+                    budget.spend().and_then(|()| {
+                        self.retain_skipped_effect(
+                            &rule.effect,
+                            &Provenance::default(),
+                            &mut budget,
+                        )
+                    })
+                };
                 result
                     .map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
                 continue;
@@ -5352,25 +5439,36 @@ impl ReactiveSession {
         roots: impl IntoIterator<Item = NodeId>,
         honor_take_back: bool,
     ) -> Vec<String> {
+        // Only `qualifies` relations lead anywhere. Read them out of the
+        // graph once, in graph order, rather than the whole graph once for
+        // each node reached.
+        let qualifies = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == Relation::Qualifies)
+            .collect::<Vec<_>>();
+        if qualifies.is_empty() {
+            return Vec::new();
+        }
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
         let mut visited = HashSet::default();
         let mut caveats = HashSet::default();
-        let marked = if honor_take_back {
-            self.marked_relations()
-        } else {
-            HashMap::default()
-        };
+        // Counted when a relation first reaches a node, not before.
+        let mut marked = None;
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
             let mut passed = HashMap::default();
-            for edge in self
-                .graph
-                .edges
-                .iter()
-                .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
-            {
+            for edge in qualifies.iter().filter(|edge| edge.to == id) {
+                let marked = marked.get_or_insert_with(|| {
+                    if honor_take_back {
+                        self.marked_relations()
+                    } else {
+                        HashMap::default()
+                    }
+                });
                 // A taken-back relation no longer qualifies what it names.
                 if let Some(count) = marked.get(&(edge.from, id)) {
                     let seen = passed.entry(edge.from).or_insert(0);
@@ -5387,6 +5485,9 @@ impl ReactiveSession {
                     frontier.push(edge.from);
                 }
             }
+        }
+        if caveats.is_empty() {
+            return Vec::new();
         }
         self.symbols
             .iter()
@@ -7643,6 +7744,13 @@ impl ReactiveSession {
                 })
                 .collect(),
         );
+        let mut nodes = self
+            .late_caveats
+            .iter()
+            .filter_map(|caveat| self.symbols.get(caveat).map(|&id| (id, caveat.clone())))
+            .collect::<Vec<_>>();
+        nodes.sort_unstable();
+        self.late_caveat_nodes = Arc::new(nodes);
         Ok(())
     }
 
@@ -8019,12 +8127,13 @@ impl ReactiveSession {
         mut provenance: Provenance,
     ) -> Result<Provenance, EvalError> {
         self.read_live(&mut provenance)?;
-        if provenance
-            .evidence
-            .iter()
-            .any(|evidence| self.withdrawal_of(evidence).is_some())
+        if !self.withdrawals.is_empty()
+            && provenance
+                .evidence
+                .iter()
+                .any(|evidence| self.withdrawal_of(evidence).is_some())
         {
-            provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
+            provenance.merge(withdrawn_lineage())?;
         }
         Ok(provenance)
     }
@@ -8044,14 +8153,25 @@ impl ReactiveSession {
         if reached.is_empty() {
             return Ok(());
         }
-        // The caveat and whatever qualifies it, as `qualify` adds them.
-        let names = self
-            .symbols
-            .iter()
-            .filter(|(_, id)| reached.contains(id))
-            .map(|(name, _)| name.clone())
-            .chain(self.incoming_caveats(reached.iter().copied()))
-            .collect::<Vec<_>>();
+        // The caveat and whatever qualifies it, as `qualify` adds them. Each
+        // node has one name, so a reached caveat's name is its late name.
+        // Their order matters only past the identifier limit, where it
+        // decides which limit `from_names` reports: there they keep the
+        // order of the symbol table, as they always had.
+        let mut names = if reached.len() > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            self.symbols
+                .iter()
+                .filter(|(_, id)| reached.contains(id))
+                .map(|(name, _)| name.clone())
+                .collect::<Vec<_>>()
+        } else {
+            self.late_caveat_nodes
+                .iter()
+                .filter(|(id, _)| reached.contains(id))
+                .map(|(_, name)| name.clone())
+                .collect::<Vec<_>>()
+        };
+        names.extend(self.incoming_caveats(reached.iter().copied()));
         provenance.merge(&Provenance::from_names([], names)?)
     }
 
@@ -8059,38 +8179,74 @@ impl ReactiveSession {
     /// `provenance` lacks, where it lists E: what `read_live` adds, as
     /// (C, E) pairs.
     fn live_late_relations(&self, provenance: &Provenance) -> BTreeSet<(NodeId, NodeId)> {
-        if self.late_caveats.is_empty() {
-            return BTreeSet::new();
-        }
-        // A handful of names each: sorted lists, not hash sets.
-        let mut late = self
-            .late_caveats
+        // A late caveat's name, by node. A handful of caveats each: a sorted
+        // list, not a hash set.
+        let late_name = |caveat: NodeId| {
+            self.late_caveat_nodes
+                .binary_search_by_key(&caveat, |&(id, _)| id)
+                .ok()
+                .map(|at| self.late_caveat_nodes[at].1.as_str())
+        };
+        let lacks = |caveat: NodeId| {
+            late_name(caveat).is_some_and(|name| !provenance.caveats.contains(name))
+        };
+        if self
+            .late_caveat_nodes
             .iter()
-            .filter(|caveat| !provenance.caveats.contains(*caveat))
-            .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<Vec<_>>();
-        if late.is_empty() {
+            .all(|(_, caveat)| provenance.caveats.contains(caveat.as_str()))
+        {
             return BTreeSet::new();
         }
-        late.sort_unstable();
+        // Every relation from one of them, so a pair appears once for each
+        // of its relations.
+        let mut relations = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == Relation::Qualifies && lacks(edge.from))
+            .map(|edge| (edge.from, edge.to))
+            .collect::<Vec<_>>();
+        if relations.is_empty() {
+            return BTreeSet::new();
+        }
+        // The evidence `provenance` lists, by node. Each node has one name.
         let mut listed = provenance
             .evidence
             .iter()
-            .filter_map(|name| self.symbols.get(name.as_str()).copied())
+            .filter_map(|name| {
+                self.symbols
+                    .get(name.as_str())
+                    .map(|&id| (id, name.as_str()))
+            })
             .collect::<Vec<_>>();
         listed.sort_unstable();
-        self.graph
-            .edges
-            .iter()
-            .filter(|edge| {
-                edge.relation == Relation::Qualifies
-                    && late.binary_search(&edge.from).is_ok()
-                    && listed.binary_search(&edge.to).is_ok()
-            })
-            .map(|edge| (edge.from, edge.to))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .filter(|&(caveat, evidence)| self.has_live_relation(caveat, evidence))
+        let name_of = |evidence: NodeId| {
+            listed
+                .binary_search_by_key(&evidence, |&(id, _)| id)
+                .ok()
+                .map(|at| listed[at].1)
+        };
+        relations.retain(|&(_, evidence)| name_of(evidence).is_some());
+        relations.sort_unstable();
+        // As `has_live_relation`: a pair is live while it has more relations
+        // than take-backs have marked. A take-back names the pair's caveat
+        // and evidence, and a name has one node.
+        let marked = |(caveat, evidence): (NodeId, NodeId)| {
+            if self.taken_back.is_empty() {
+                return 0;
+            }
+            let (Some(caveat), Some(evidence)) = (late_name(caveat), name_of(evidence)) else {
+                return 0;
+            };
+            self.taken_back
+                .iter()
+                .filter(|record| record.caveat == caveat && record.evidence == evidence)
+                .count()
+        };
+        relations
+            .chunk_by(|left, right| left == right)
+            .filter(|run| run.len() > marked(run[0]))
+            .map(|run| run[0])
             .collect()
     }
 
@@ -8809,6 +8965,11 @@ pub(crate) fn parse_directive_at(
     position: crate::parser::Position,
 ) -> Option<Result<Directive, String>> {
     let words = syntax_words(line);
+    // spec/caveat-routed-work-0.1.md: only this exact statement, so a relation
+    // about evidence named `work` still reads as one.
+    if matches!(words.as_slice(), ["work", "skips", "other", "routes"]) {
+        return Some(Ok(Directive::RoutedWork));
+    }
     let keyword = words.first().copied()?;
     if !matches!(
         keyword,

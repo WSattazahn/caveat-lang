@@ -91,6 +91,7 @@ const KEYWORDS: &[&str] = &[
     "start_at",
     "state",
     "threshold",
+    "work",
 ];
 
 /// The message for a line no statement form matches: `--` is the most common

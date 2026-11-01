@@ -438,6 +438,14 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                         part.name
                     ));
                 }
+                // An event's work is counted across the whole program:
+                // spec/caveat-routed-work-0.1.md.
+                Directive::RoutedWork => {
+                    return Err(format!(
+                        "module {} declares `work skips other routes;`; how an event's work is counted is the program's to say, not a module's",
+                        part.name
+                    ));
+                }
                 Directive::State { name, .. }
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }

@@ -430,6 +430,9 @@ export const grammar = {
         // `window N` in place of `limit N`, and `journal window N`.
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}window\b(?=[ \t]+\d)` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}journal\b(?=[ \t]+window[ \t]+\d)` },
+        // `work skips other routes;`, one exact statement
+        // (spec/caveat-routed-work-0.1.md); elsewhere the four words are names.
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}work[ \t]+skips[ \t]+other[ \t]+routes(?=[ \t]*;)` },
         // `reopened by changed STREAM`: a stream may itself be named `changed`.
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}changed\b(?=[ \t]+[A-Za-z_]\w*[ \t]*(?:[,;]|supporting\b|opposing\b))` },
       ],
