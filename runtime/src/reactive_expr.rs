@@ -49,6 +49,9 @@ pub enum EvalFailure {
     /// A text value would hold more bytes than a text may; refused as
     /// `limit/text_limit` (D025).
     TextLimit,
+    /// A read of a state declared `unset` that has no value; refused as
+    /// `evaluation/unset_state`. See spec/caveat-unset-states-0.1.md.
+    UnsetState,
     Other,
 }
 
@@ -138,6 +141,9 @@ pub const IN_BASIS: &str = "in_basis";
 /// The predicate kind of `on_hold(SERIES)`: whether the series' current
 /// revision is on hold. See spec/caveat-holds-0.1.md.
 pub const ON_HOLD: &str = "on_hold";
+/// `is_set(STATE)`: whether a state declared `unset` has a value. See
+/// spec/caveat-unset-states-0.1.md.
+pub const IS_SET: &str = "is_set";
 
 /// The predicate kind of `resolved(SERIES)`: whether the series' current
 /// revision has an outcome. See spec/caveat-outcomes-0.1.md.
@@ -1425,9 +1431,10 @@ impl Expr {
                 reads.names.insert(name.clone());
             }
             Node::Predicate(kind, name) => {
-                if kind.starts_with("has_caveat:") {
-                    // This reads a live state's grounds. An assignment can
-                    // replace those grounds without changing the graph.
+                if kind.starts_with("has_caveat:") || kind == IS_SET {
+                    // This reads a live state's grounds, or whether it has a
+                    // value. An assignment can change either without
+                    // changing the graph.
                     reads.names.insert(name.clone());
                 } else {
                     reads.graph = true;
@@ -2051,6 +2058,104 @@ impl Expr {
         Expr {
             node,
             depth: self.depth,
+        }
+    }
+
+    /// The states `is_set(STATE)` asserts when this condition holds: each
+    /// `is_set` among its `and` operands. With `negated`, each
+    /// `not is_set(STATE)` instead, which holds when STATE is set and this
+    /// condition fails. See spec/caveat-unset-states-0.1.md.
+    pub fn is_set_guards(&self, negated: bool) -> BTreeSet<String> {
+        let operands = if negated {
+            self.disjuncts()
+        } else {
+            self.conjuncts()
+        };
+        operands
+            .into_iter()
+            .filter_map(|operand| match (&operand.node, negated) {
+                (Node::Predicate(kind, name), false) if kind == IS_SET => Some(name.clone()),
+                (Node::Unary(Unary::Not, inner), true) => match &inner.node {
+                    Node::Predicate(kind, name) if kind == IS_SET => Some(name.clone()),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The names this expression reads as values outside a guard: every
+    /// variable not in `guarded`, where `is_set(S) and …`, `not is_set(S) or
+    /// …` and `if(is_set(S), …, …)` guard S in what they evaluate only when S
+    /// is set. `is_set` itself reads no value. Used by `caveat check`'s C013
+    /// (spec/caveat-unset-states-0.1.md).
+    pub fn collect_unguarded_reads(
+        &self,
+        guarded: &BTreeSet<String>,
+        reads: &mut BTreeSet<String>,
+    ) {
+        let with = |extra: BTreeSet<String>| -> BTreeSet<String> {
+            guarded.iter().cloned().chain(extra).collect()
+        };
+        match &self.node {
+            Node::Variable(name) => {
+                if !guarded.contains(name) {
+                    reads.insert(name.clone());
+                }
+            }
+            Node::Binary(Binary::And, left, right) => {
+                left.collect_unguarded_reads(guarded, reads);
+                right.collect_unguarded_reads(&with(left.is_set_guards(false)), reads);
+            }
+            Node::Binary(Binary::Or, left, right) => {
+                left.collect_unguarded_reads(guarded, reads);
+                right.collect_unguarded_reads(&with(left.is_set_guards(true)), reads);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_unguarded_reads(guarded, reads);
+                yes.collect_unguarded_reads(&with(condition.is_set_guards(false)), reads);
+                no.collect_unguarded_reads(&with(condition.is_set_guards(true)), reads);
+            }
+            _ => {
+                for child in self.children() {
+                    child.collect_unguarded_reads(guarded, reads);
+                }
+            }
+        }
+    }
+
+    /// The expressions directly under this one. Exhaustive, so a new kind of
+    /// node says what it holds before it compiles.
+    fn children(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed
+            | Node::Variable(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::GroundsOf(_)
+            | Node::HistoryCount(_) => Vec::new(),
+            Node::Outcome(_, index) => index.iter().map(|index| index.as_ref()).collect(),
+            Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => vec![index],
+            Node::InBasis(_, children) => children.iter().collect(),
+            Node::Fold(_, initial, _) => vec![initial],
+            Node::ExpandedFold(_, initial, body) => vec![initial, body],
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => vec![value],
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => vec![left, right],
+            Node::If(condition, yes, no) => vec![condition, yes, no],
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                arguments.iter().collect()
+            }
+            Node::ExpandedCall(arguments, body) => arguments
+                .iter()
+                .chain(std::iter::once(body.as_ref()))
+                .collect(),
         }
     }
 
@@ -3668,6 +3773,26 @@ impl Parser {
                 ));
             }
         }
+        // `is_set(STATE)`. A 1.x program may define `fn is_set` and call it
+        // with any arguments: what is not one plain name is its call
+        // (spec/caveat-unset-states-0.1.md).
+        if name == IS_SET {
+            if let (Some(TokenKind::Identifier(target)), Some(TokenKind::RightParen)) = (
+                self.peek().cloned(),
+                self.tokens.get(self.cursor + 1).map(|token| &token.kind),
+            ) {
+                if !target.contains('.') {
+                    self.cursor += 2;
+                    return Ok(Node::Predicate(name, target));
+                }
+            }
+            if !self.allow_user_functions {
+                return Err(format!(
+                    "is_set requires a state name at byte {}",
+                    self.offset()
+                ));
+            }
+        }
         if predicate_name(&name) {
             let offset = self.offset();
             let Some(TokenKind::Identifier(target)) = self.take() else {
@@ -4155,11 +4280,11 @@ impl Expander<'_> {
             // A 1.0 program may define `fn on_hold`; its calls keep their
             // meaning (docs/COMPATIBILITY.md).
             Node::Predicate(name, target)
-                if name == ON_HOLD && self.functions.contains_key(ON_HOLD) =>
+                if (name == ON_HOLD || name == IS_SET) && self.functions.contains_key(name) =>
             {
                 let argument = Expr::new(Node::Variable(target.clone()))?;
                 return self.walk(
-                    &Expr::new(Node::UserCall(ON_HOLD.into(), vec![argument]))?,
+                    &Expr::new(Node::UserCall(name.clone(), vec![argument]))?,
                     parameters,
                 );
             }

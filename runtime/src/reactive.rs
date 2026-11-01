@@ -64,6 +64,15 @@ fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
 }
 /// A predicate on a live state's grounds, not on an evidence alias.
 const HAS_CAVEAT: &str = "has_caveat:";
+
+/// A read of a state declared `unset` that has no value. See
+/// spec/caveat-unset-states-0.1.md.
+fn unset_read(name: &str) -> EvalError {
+    EvalError::new(
+        EvalFailure::UnsetState,
+        format!("state {name} is unset: no rule has set it; read it inside is_set({name}) or after a rule sets it"),
+    )
+}
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
@@ -335,6 +344,11 @@ pub enum Effect {
     Withdraw {
         target: EvidenceSelector,
         because: String,
+    },
+    /// `unset STATE`: take a state declared `unset` back to having no value,
+    /// lineage or grounds. See spec/caveat-unset-states-0.1.md.
+    Unset {
+        name: String,
     },
     Set {
         name: String,
@@ -717,6 +731,9 @@ pub enum Directive {
         initial: Expr,
         min: Number,
         max: Number,
+        /// `state NAME unset;`: no value until a rule sets it; `initial` is
+        /// unused. See spec/caveat-unset-states-0.1.md.
+        unset: bool,
     },
     Event {
         name: String,
@@ -979,6 +996,9 @@ struct LoadedGraph {
 struct StateRange {
     min: f64,
     max: f64,
+    /// Declared `state NAME unset;`: `unset` and `is_set` may name it. See
+    /// spec/caveat-unset-states-0.1.md.
+    unset: bool,
 }
 
 /// A state's current value, with its lineage, and what it is grounded on.
@@ -986,6 +1006,10 @@ struct StateRange {
 struct StateCell {
     value: QualifiedValue,
     grounds: Provenance,
+    /// A state declared `unset` that no rule has set, or that `unset` took
+    /// back: no value to read, and no lineage or grounds. See
+    /// spec/caveat-unset-states-0.1.md.
+    unset: bool,
 }
 
 impl StateCell {
@@ -996,6 +1020,20 @@ impl StateCell {
         self.value.value.to_bits() == other.value.value.to_bits()
             && self.value.provenance == other.value.provenance
             && self.grounds == other.grounds
+            && self.unset == other.unset
+    }
+
+    /// A state with no value: the program's start for a state declared
+    /// `unset`, and what `unset STATE` leaves.
+    fn unset() -> Self {
+        Self {
+            value: QualifiedValue {
+                value: 0.0,
+                provenance: Provenance::default(),
+            },
+            grounds: Provenance::default(),
+            unset: true,
+        }
     }
 }
 
@@ -1068,14 +1106,29 @@ impl States {
         self.names
             .iter()
             .zip(self.cells.iter())
+            .filter(|(_, cell)| !cell.unset)
             .map(|(name, cell)| (name.clone(), cell.value.clone()))
             .collect()
+    }
+
+    /// The states with no value, in name order.
+    fn unset_names(&self) -> Vec<String> {
+        let mut names = self
+            .names
+            .iter()
+            .zip(self.cells.iter())
+            .filter(|(_, cell)| cell.unset)
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
     }
 
     fn grounds(&self) -> BTreeMap<String, Provenance> {
         self.names
             .iter()
             .zip(self.cells.iter())
+            .filter(|(_, cell)| !cell.unset)
             .map(|(name, cell)| (name.clone(), cell.grounds.clone()))
             .collect()
     }
@@ -1827,6 +1880,11 @@ pub struct ReactiveSnapshot {
     pub last_agent: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
+    /// The states declared `unset` that have no value now, in name order;
+    /// left out of `values` and `qualified_values`, and left out itself when
+    /// empty. See spec/caveat-unset-states-0.1.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unset: Vec<String>,
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
     pub reading_streams: BTreeMap<String, ReadingStream>,
     pub decision_series: BTreeMap<String, DecisionSeries>,
@@ -2534,9 +2592,22 @@ impl ReactiveSession {
                     initial,
                     min,
                     max,
+                    unset,
                 } => {
                     if session.states.contains_key(name) {
                         return Err(format!("duplicate reactive state {name}"));
+                    }
+                    if *unset {
+                        session.states.declare(name.clone(), StateCell::unset());
+                        Arc::make_mut(&mut session.ranges).insert(
+                            name.clone(),
+                            StateRange {
+                                min: min.value(),
+                                max: max.value(),
+                                unset: true,
+                            },
+                        );
+                        continue;
                     }
                     let numeric = session
                         .states
@@ -2566,6 +2637,12 @@ impl ReactiveSession {
                             if name == reactive_expr::ELAPSED_READ {
                                 return Ok(Some(Tracked::plain(session.elapsed)));
                             }
+                            if session.states.get(name).is_some_and(|cell| cell.unset) {
+                                return Err(format!(
+                                    "state {name} is declared unset, and an initializer runs before any rule sets it"
+                                )
+                                .into());
+                            }
                             Ok(session.states.value(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
                             }))
@@ -2586,6 +2663,7 @@ impl ReactiveSession {
                         StateCell {
                             value: Tracked::new(number, value.provenance)?,
                             grounds,
+                            unset: false,
                         },
                     );
                     Arc::make_mut(&mut session.ranges).insert(
@@ -2593,6 +2671,7 @@ impl ReactiveSession {
                         StateRange {
                             min: min.value(),
                             max: max.value(),
+                            unset: false,
                         },
                     );
                 }
@@ -3303,6 +3382,7 @@ impl ReactiveSession {
                 }
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
+                reactive_expr::IS_SET => self.require_unset_state(symbol),
                 reactive_expr::ON_HOLD if self.decision_series.contains_key(symbol) => Ok(()),
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
@@ -3528,6 +3608,7 @@ impl ReactiveSession {
                         return Err(format!("emit references undeclared cue {name}"));
                     }
                 }
+                Effect::Unset { name } => self.require_unset_state(name)?,
                 Effect::Set {
                     name,
                     value,
@@ -4059,6 +4140,18 @@ impl ReactiveSession {
         }
     }
 
+    /// A state declared `unset`, as `unset` and `is_set` name. See
+    /// spec/caveat-unset-states-0.1.md.
+    fn require_unset_state(&self, name: &str) -> Result<(), String> {
+        match self.ranges.get(name) {
+            Some(range) if range.unset => Ok(()),
+            Some(_) => Err(format!(
+                "{name} always has a value; declare it `state {name} unset;` to use unset/is_set"
+            )),
+            None => Err(format!("unset/is_set references undeclared state {name}")),
+        }
+    }
+
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
         let node = self
             .symbols
@@ -4428,14 +4521,15 @@ impl ReactiveSession {
         let target = match effect {
             Effect::Set { name, .. } => {
                 let slot = self.states.slot(name).expect("validated state");
+                let cell = self.states.get(name).expect("validated state");
+                // A state with no value carries no lineage: it stays as the
+                // program loaded it (spec/caveat-unset-states-0.1.md).
+                if cell.unset {
+                    return Ok(());
+                }
                 // A guard already in the lineage changes nothing; writing it
                 // anyway would copy the shared cell.
-                let current = &self
-                    .states
-                    .get(name)
-                    .expect("validated state")
-                    .value
-                    .provenance;
+                let current = &cell.value.provenance;
                 if guard.evidence.is_subset(&current.evidence)
                     && guard.caveats.is_subset(&current.caveats)
                 {
@@ -5217,6 +5311,12 @@ impl ReactiveSession {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
                 }
+                if let Some(cell) = self.states.get(name) {
+                    if cell.unset {
+                        return Err(unset_read(name));
+                    }
+                    return Ok(Some(cell.value.clone()));
+                }
                 Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
                         .lineage
@@ -5262,6 +5362,9 @@ impl ReactiveSession {
                     return Ok(Some(Tracked::plain(self.elapsed)));
                 }
                 if let Some(cell) = self.states.get(name) {
+                    if cell.unset {
+                        return Err(unset_read(name));
+                    }
                     return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }
                 Ok(parameters
@@ -5283,6 +5386,10 @@ impl ReactiveSession {
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if kind == reactive_expr::IS_SET {
+            let cell = self.states.get(name).expect("validated unset state");
+            return Tracked::new(!cell.unset, cell.grounds.clone());
+        }
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -5357,6 +5464,9 @@ impl ReactiveSession {
     }
 
     fn predicate(&self, kind: &str, name: &str) -> Result<bool, String> {
+        if kind == reactive_expr::IS_SET {
+            return Ok(self.states.get(name).is_some_and(|cell| !cell.unset));
+        }
         let Some(id) = self.symbols.get(name) else {
             return if matches!(kind, "committed" | "reopened") {
                 Ok(false)
@@ -5659,6 +5769,10 @@ impl ReactiveSession {
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if kind == reactive_expr::IS_SET {
+            let cell = self.states.get(name).expect("validated unset state");
+            return Tracked::new(!cell.unset, cell.value.provenance.clone());
+        }
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -6263,6 +6377,18 @@ impl ReactiveSession {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
             }
+            Effect::Unset { name } => {
+                let slot = self.states.slot(name).expect("validated state");
+                let previous_pins = self.states.cells[slot]
+                    .grounds
+                    .own_evidence()
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for record in previous_pins {
+                    self.release_pin(&record);
+                }
+                self.states.set(slot, StateCell::unset());
+            }
             Effect::Set {
                 name,
                 value: expression,
@@ -6309,6 +6435,7 @@ impl ReactiveSession {
                     StateCell {
                         value: Tracked::new(number, lineage)?,
                         grounds,
+                        unset: false,
                     },
                 );
             }
@@ -8542,6 +8669,7 @@ impl ReactiveSession {
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
+            unset: self.states.unset_names(),
             commitment_bases: (*self.commitment_bases).clone(),
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
@@ -8564,6 +8692,7 @@ impl ReactiveSession {
                 .states
                 .names()
                 .zip(self.states.cells.iter())
+                .filter(|(_, cell)| !cell.unset)
                 .map(|(name, cell)| (name.clone(), cell.value.value))
                 .collect(),
             world: (*self.world).clone(),
@@ -8683,6 +8812,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
         },
+        Effect::Unset { name } => Effect::Unset { name: name.clone() },
         Effect::Set {
             name,
             value,
@@ -9249,6 +9379,25 @@ pub(crate) fn parse_directive_at(
             })),
             _ => Err("clock expects EVENT every STEP [integer]".into()),
         },
+        // `state NAME unset [min LOW max HIGH];`, which did not load before
+        // spec/caveat-unset-states-0.1.md.
+        "state" if words.get(2) == Some(&"unset") => {
+            let (min, max) = match &words[3..] {
+                [] => (
+                    Number::parse("-1000000000000")?,
+                    Number::parse("1000000000000")?,
+                ),
+                ["min", min, "max", max] => bounds(min, max)?,
+                _ => return Err("state expects NAME = EXPRESSION or NAME unset, each [min LOW max HIGH]".into()),
+            };
+            Ok(Directive::State {
+                name: identifier(words[1])?,
+                initial: reactive_expr::parse_unresolved("0")?,
+                min,
+                max,
+                unset: true,
+            })
+        }
         "state" => {
             let (name, initial) = line
                 .trim_start_matches("state")
@@ -9274,6 +9423,7 @@ pub(crate) fn parse_directive_at(
                 initial: reactive_expr::parse_unresolved(&tokens[..end].join(" "))?,
                 min,
                 max,
+                unset: false,
             })
         }
         "event" => {
@@ -9406,6 +9556,13 @@ fn effect_candidates(words: &[&str]) -> Vec<usize> {
                     | "withdraw"
             )
         {
+            candidates.push(index);
+        }
+        // `unset` came in 1.5 and is a legal name: it is an effect word only
+        // as the last two words, `unset STATE`, so a rule that does not load
+        // reports the error it reported before
+        // (spec/caveat-unset-states-0.1.md).
+        if depth == 0 && *token == "unset" && index + 2 == words.len() {
             candidates.push(index);
         }
         // `hold` and `release` came after 1.0 and are legal names: one is an
@@ -10131,6 +10288,9 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 .into(),
         ),
         ["emit", name] => Ok(Effect::Emit {
+            name: identifier(name)?,
+        }),
+        ["unset", name] => Ok(Effect::Unset {
             name: identifier(name)?,
         }),
         ["set", name, "=", rest @ ..] if !rest.is_empty() => {

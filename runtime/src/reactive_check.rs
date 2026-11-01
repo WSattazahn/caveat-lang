@@ -58,6 +58,7 @@ const SAVE_LACKS_LATE_CAVEAT: (&str, &str) = ("C009", "save-lacks-late-caveat");
 const NEAR_MISS_COMMITMENT: (&str, &str) = ("C012", "near-miss-commitment");
 const COMMIT_ON_WITHDRAWABLE: (&str, &str) = ("C010", "commit-on-withdrawable");
 const WITHDRAWAL_NOT_REOPENED: (&str, &str) = ("C011", "withdrawal-not-reopened");
+const UNSET_READ_UNGUARDED: (&str, &str) = ("C013", "unset-read-unguarded");
 const ALLOW: &str = "caveat check: allow";
 
 /// Which checks run beyond the default ones. Each is asked for, so a program
@@ -116,6 +117,7 @@ fn report(source: &str, options: CheckOptions, save: Option<&str>) -> Result<Che
     found.extend(unreopened_decisions(&session, &statements));
     found.extend(member_rules(&session, &statements, &blocks, source));
     found.extend(unreachable_citations(&session, &statements));
+    found.extend(unguarded_unset_reads(&session, &statements));
     if options.unused {
         found.extend(unused_declarations(&statements));
     }
@@ -796,6 +798,56 @@ fn near_miss_commitments(statements: &[Statement]) -> Vec<Diagnostic> {
     found
 }
 
+/// C013: a rule reads a state declared `unset` as a value where nothing in
+/// its condition, or in the branch the read sits in, is `is_set` of that
+/// state. Read from the rule as written: a read inside a define or a
+/// function's body is not seen. Programs that declare no `unset` state get
+/// no warning (spec/caveat-unset-states-0.1.md).
+fn unguarded_unset_reads(session: &ReactiveSession, statements: &[Statement]) -> Vec<Diagnostic> {
+    let declared = session
+        .ranges
+        .iter()
+        .filter(|(_, range)| range.unset)
+        .map(|(name, _)| name.clone())
+        .collect::<BTreeSet<_>>();
+    if declared.is_empty() {
+        return Vec::new();
+    }
+    let mut found = Vec::new();
+    for statement in statements.iter().filter(|statement| !statement.repeated) {
+        let Some(Ok(Directive::Rule(rule))) =
+            parse_directive_at(statement.text.trim(), statement.at)
+        else {
+            continue;
+        };
+        let mut reads = BTreeSet::new();
+        rule.condition
+            .collect_unguarded_reads(&BTreeSet::new(), &mut reads);
+        let guarded = rule.condition.is_set_guards(false);
+        for expression in effect_expressions(&rule.effect) {
+            expression.collect_unguarded_reads(&guarded, &mut reads);
+        }
+        for name in reads.intersection(&declared) {
+            found.push(Diagnostic {
+                code: UNSET_READ_UNGUARDED.0,
+                name: UNSET_READ_UNGUARDED.1,
+                severity: "warning",
+                line: statement.at.line,
+                column: statement.at.column,
+                message: format!(
+                    "this rule reads `{name}`, which is declared unset, without `is_set({name})` guarding the read: until a rule sets `{name}`, the event is refused as `evaluation/unset_state`"
+                ),
+                suggestion: format!(
+                    "Guard the rule with `when is_set({name})`, or read it as `if(is_set({name}), {name}, …)`. If an earlier rule always sets `{name}` first, put `# {ALLOW} {}` on the line above.",
+                    UNSET_READ_UNGUARDED.1
+                ),
+                related: Vec::new(),
+            });
+        }
+    }
+    found
+}
+
 /// The expressions an effect evaluates, taken or not.
 fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
     fn selector(selector: &EvidenceSelector) -> Option<&Expr> {
@@ -835,6 +887,7 @@ fn effect_expressions(effect: &Effect) -> Vec<&Expr> {
             .collect(),
         Effect::Emit { .. }
         | Effect::Reject { .. }
+        | Effect::Unset { .. }
         | Effect::Renew { .. }
         | Effect::Observe { .. }
         | Effect::Reveal { .. }

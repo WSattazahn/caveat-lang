@@ -735,6 +735,7 @@ impl ReactiveSession {
         cell.value.value.to_bits() == loaded.value.value.to_bits()
             && cell.value.provenance == loaded.value.provenance
             && cell.grounds == loaded.grounds
+            && cell.unset == loaded.unset
     }
 
     pub fn save_json(&self) -> Result<String, String> {
@@ -2390,6 +2391,7 @@ impl ReactiveSession {
                 StateCell {
                     value: Tracked::new(state.value, lineage.clone())?,
                     grounds: grounds.clone(),
+                    unset: false,
                 },
             );
         }

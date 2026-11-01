@@ -105,6 +105,8 @@ const RESERVED: &[&str] = &[
     "to",
     "toward",
     "unqualify",
+    // spec/caveat-unset-states-0.1.md: `state NAME unset;` and the `unset NAME` effect.
+    "unset",
     "use",
     "using",
     "via",
@@ -573,7 +575,9 @@ fn part_writes(linked: &str) -> Result<PartWrites, String> {
 }
 
 fn collect_assignment(effect: &crate::reactive::Effect, assigned: &mut Vec<String>) {
-    if let crate::reactive::Effect::Set { name, .. } = effect {
+    if let crate::reactive::Effect::Set { name, .. } | crate::reactive::Effect::Unset { name } =
+        effect
+    {
         if !assigned.contains(name) {
             assigned.push(name.clone());
         }

@@ -1,6 +1,6 @@
 # CAVEAT Unset States 0.1 — a state with no value until a rule sets it
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Proposed for 1.5 and not implemented: it becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5: it becomes stable when a 1.x release ships it. It adds to
 [Reactive 0.1](caveat-reactive-0.1.md), [Dispatch 0.1](caveat-dispatch-0.1.md),
 [Save 0.1](caveat-save-0.1.md) and [Check 0.1](caveat-check-0.1.md); it
 changes no program that loads today.
@@ -73,14 +73,14 @@ the body uses them or not.
 
 `is_set(STATE)` is true when STATE has a value. It never refuses. With `and`
 and `or`, which short-circuit, `is_set(a) and a > 3` reads `a` only when it is
-set. `choose` and `if` evaluate only the branch they take
-([Choices 0.1](caveat-choices-0.1.md)), so
-`choose(is_set(a), a, 0)` reads `a` only when it is set.
+set. `if` evaluates only the branch it takes, so `if(is_set(a), a, 0)` reads
+`a` only when it is set.
 
-**Grounds and lineage.** `is_set(STATE)` reads STATE's lineage, as reading
-STATE would. Where it decides a branch it is lineage only, as any condition
-is. A state that is unset has no grounds, and `unset STATE` clears the grounds
-it had, as a `set` replaces them.
+**Grounds and lineage.** `is_set(STATE)` reads STATE as reading it would: its
+lineage, and where the runtime computes grounds, its grounds. A state with no
+value has no lineage and no grounds. `unset STATE` takes all three away and
+leaves the state as the program loaded it; a rule skipped by its guard adds
+nothing to a state with no value.
 
 **Bounds.** An unset state has no value to check. A `set` must fit the
 declared bounds, as for any state.
@@ -115,24 +115,24 @@ report for one part and then `rate` fails at once, not after the news.
 
 | Surface | An unset state |
 | --- | --- |
-| Snapshot and view | is left out of `values` and listed, in name order, under `unset`. `unset` is left out when no state is unset, so a program that declares none writes the same bytes as before. |
+| Snapshot | is left out of `values`, `qualified_values` and `value_grounds`, and listed, in name order, under `unset`. `unset` is left out when no state is unset, so a program that declares none writes the same bytes as before. The view holds no state values and is unchanged. |
 | Interface | its state entry gains `"unset": true`. The field is left out for every other state, so the interface of a program that declares none is unchanged. |
-| State save | is listed under `unset`, in name order. |
-| `explain` | says "unset" where it would show a value, and for a state that was set and then unset, which event unset it. |
-| Scenarios | an `expect` may list `"unset": [STATE, …]`, matched exactly as `values` is. |
+| State save | nothing new. A save holds the states that differ from what the program gives them when it loads, and a state with no value is as it loaded, so the save leaves it out and restore leaves it unset. A state that has a value is saved and restored as any state is. |
+| `explain` | lists no value for it, as it lists none for a state it does not know. |
+| Scenarios | an `expect` reads `/unset` like any other snapshot field: `{"/unset": ["pier"]}`, or `{"/values/pier": {"$absent": true}}`. |
 
-**Restore.** Restoring refuses a save that lists a state under `unset` that
-the program does not declare `unset`, or that gives a state both a value and
-an `unset` entry. No event can produce either, so this keeps to the rule that
-restore refuses only what no source mechanism can produce. A replay save
-replays the events, and the states are unset or not as the events leave them.
+**Restore** gains no refusal: no save field is new. A replay save replays the
+events, and the states have values or not as the events leave them.
 
 ## Check
 
 C013 `unset-read-unguarded` (always runs): a rule reads a state declared
-`unset` outside `is_set(...)`, and nothing in that rule's `when` condition, or
-in the branch condition the read sits in, is `is_set` of that state. The
-warning names the rule and the state. As with every check, it describes the
+`unset` as a value, and nothing guards the read. A read is guarded by an
+`is_set(STATE)` operand of the rule's `when` condition, of an `and` to its left,
+or of an `if` condition whose branch it sits in, and by a `not is_set(STATE)`
+operand of an `or` to its left or of an `if` condition whose `else` branch it
+sits in. The warning names the rule and the state. It reads the rule as
+written: a read inside a define or a function's body is not seen. As with every check, it describes the
 text; a rule that runs only after another rule sets the state is correct and
 still warned. Programs that declare no `unset` state get no new warning, so
 `check --strict` passes every program that passes it today.
@@ -166,29 +166,30 @@ rules that could refuse.
 - An unset value for a whole kind (`for part as $p: …`). Each state is
   declared on its own, as today.
 
-## Proofs to add with the implementation
+## Implementation
 
-`runtime/tests/unset_states.rs`:
-
-- A state declared `unset` starts unset, takes a value from `set`, loses it
-  from `unset`, and keeps its bounds.
-- Each kind of read before a set refuses as `evaluation/unset_state`, naming
-  the state and the rule, and changes nothing: a `when` condition, a `set`, a
-  commit's `using` and `citing`, a reading, and a function argument the body
-  does not use.
-- `is_set` never refuses, and short-circuits with `and`, `or`, `choose` and
-  `if`.
-- Grounds and lineage of `is_set`, and grounds cleared by `unset`.
-- The snapshot, interface, view and save bytes of every program in the
-  corpus are unchanged. A program with an unset state round-trips through
-  save and restore. Restore refuses the two impossible saves.
-- `fn is_set` is kept.
-- The third test's inherited bridge rule, `set bridge = min(deck, pier)`,
-  refuses its first `rate` with one part unreported, and C013 names it.
-
-`kit/test/check.test.mjs` covers C013, and `kit/test/scenarios.test.mjs` the
-`"unset"` expectation.
+- Runtime: `Directive::State`'s `unset`, `StateCell::unset`, `Effect::Unset`,
+  the `is_set` predicate (`reactive_expr::IS_SET`), the refusal in
+  `unset_read`, `RejectionCode::UnsetState`, the snapshot's `unset` and the
+  interface's; C013 in `runtime/src/reactive_check.rs`. `unset` is a reserved word
+  in `runtime/src/link.rs`, so a module cannot declare a name `unset`.
+- Tests: `runtime/tests/unset_states.rs`. A state declared `unset` starts
+  with no value, takes one from `set`, loses it to `unset`, and keeps its
+  bounds. Each kind of read before a set (a `when` condition, a `set`, a
+  `because`, a function argument the body does not use, a commit's `using`,
+  a reading) refuses as `evaluation/unset_state` and changes nothing, and the
+  refusal names the state and the rule. `is_set` never refuses, and guards
+  through `and`, `or` and `if`. The grounds and lineage of `is_set` and of
+  `unset`; save and restore, with an unset state left out of the save; `fn
+  is_set` kept; a program with no unset state writes no `unset`; the third
+  test's inherited bridge rule refuses its first `rate`, and C013 names it.
+  The existing suites hold every other program's bytes.
 
 ## Changes
 
 - 0.1 (draft): first version. Found by the third agent test (gap 6).
+- 2026-11-01: implemented for 1.5. A save needs no `unset` list after all:
+  a state with no value is as the program loaded it, so a save leaves it out
+  like any unchanged state, and restore gains no refusal. Scenarios read
+  `/unset` with the existing `expect`. `explain` lists no value for an unset
+  state rather than saying "unset".

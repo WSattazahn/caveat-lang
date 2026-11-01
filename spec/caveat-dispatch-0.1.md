@@ -162,6 +162,7 @@ and no output changes.
 | `evaluation` | `reason_spent` | An executed `commit` names a `once` reason whose current occurrence is already the reason of a retained caveat in a commitment the session holds ([Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md), from 1.4.0). |
 | `evaluation` | `not_retained` | An executed `resolve … materialized CAVEAT` names a caveat the revision does not retain ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
 | `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or `outcome(…)` of a revision with no outcome ([Outcomes 0.1](caveat-outcomes-0.1.md)), or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a `qualify … after` delay under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `evaluation` | `unset_state` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, reads a state declared `unset` that has no value, outside `is_set(…)` ([Unset States 0.1](caveat-unset-states-0.1.md), 1.5 draft). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. In a program that declares `work skips other routes;`, a top-level rule whose route the payload makes false counts no step ([Routed Work 0.1](caveat-routed-work-0.1.md), 1.5 draft). |
@@ -434,3 +435,6 @@ from an outcome schema match; the save contract governs restoration.
   past the limit still fails to load. The cap is unchanged; the regression
   case is `runtime/tests/d025_text_limit.rs`, and the save sweep over every
   tracked program is byte-identical with 1.4.0.
+- 2026-11-01 (1.5 draft): `evaluation/unset_state` refuses a read of a state
+  declared `unset` that has no value ([Unset States 0.1](caveat-unset-states-0.1.md)).
+  No program that loaded before declares such a state, so no outcome changes.

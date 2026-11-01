@@ -49,6 +49,8 @@ pub enum RejectionCode {
     EvaluationLimit,
     WrongAgent,
     TextLimit,
+    /// spec/caveat-unset-states-0.1.md
+    UnsetState,
 }
 
 #[derive(Debug, Serialize)]
@@ -255,6 +257,7 @@ impl From<EvalError> for DispatchFailure {
                 (RejectionOrigin::Limit, RejectionCode::EvaluationLimit)
             }
             EvalFailure::TextLimit => (RejectionOrigin::Limit, RejectionCode::TextLimit),
+            EvalFailure::UnsetState => (RejectionOrigin::Evaluation, RejectionCode::UnsetState),
             EvalFailure::Other => return error.message.into(),
         };
         Self::rejected(origin, code, error.message)
