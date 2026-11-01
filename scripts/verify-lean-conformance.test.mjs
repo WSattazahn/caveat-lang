@@ -7,7 +7,8 @@ import { dirname, join } from 'node:path';
 import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation, unselectedBranchMutation,
   InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection,
   lateModelFrame, lateRuntimeFrame, lateRequest, verifyLateMutation, commitmentQualificationMutation,
-  reopenModelFrame, reopenRuntimeFrame, reopenRequest, verifyReopenMutation, reopenMutation, stageMutantRuntime } from './verify-lean-conformance.mjs';
+  reopenModelFrame, reopenRuntimeFrame, reopenRequest, verifyReopenMutation, reopenMutation, reopenMutationFile,
+  stageMutantRuntime } from './verify-lean-conformance.mjs';
 import { STATES, SCHEMA } from './lean-conformance-cases.mjs';
 import { LATE_SCHEMA, LATE_STATES, lateCases } from './lean-late-qualification-cases.mjs';
 import { REOPEN_SCHEMA, REOPEN_STATES, reopenCases } from './lean-reopening-cases.mjs';
@@ -462,13 +463,16 @@ test('reopening mutation controls require exactly the intended change', () => {
 });
 
 test('the reopening mutation anchors fail closed', () => {
-  const source = readFileSync(new URL('../runtime/src/reactive.rs', import.meta.url), 'utf8');
+  const read = file => readFileSync(new URL('../runtime/src/' + file, import.meta.url), 'utf8');
   for (const field of ['retained', 'cause']) {
+    const source = read(reopenMutationFile(field));
     assert.notEqual(reopenMutation(source, field), source);
     assert.throws(() => reopenMutation('', field), InfrastructureFailure);
     assert.throws(() => reopenMutation(source + source, field), InfrastructureFailure);
   }
-  assert.throws(() => reopenMutation(source, 'grounds'), InfrastructureFailure);
+  assert.equal(reopenMutationFile('retained'), 'reactive_write.rs');
+  assert.throws(() => reopenMutation(read('reactive.rs'), 'grounds'), InfrastructureFailure);
+  assert.throws(() => reopenMutationFile('grounds'), InfrastructureFailure);
 });
 
 
