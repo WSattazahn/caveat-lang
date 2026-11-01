@@ -5739,7 +5739,7 @@ impl ReactiveSession {
         Tracked::new(value, provenance)
     }
 
-    fn predicate(&self, kind: &str, name: &str) -> Result<bool, String> {
+    fn predicate(&self, kind: &str, name: &str) -> Result<bool, EvalError> {
         if kind == reactive_expr::IS_SET {
             return Ok(self.states.get(name).is_some_and(|cell| !cell.unset));
         }
@@ -5747,7 +5747,7 @@ impl ReactiveSession {
             return if matches!(kind, "committed" | "reopened") {
                 Ok(false)
             } else {
-                Err(format!("unknown graph symbol {name}"))
+                Err(format!("unknown graph symbol {name}").into())
             };
         };
         Ok(match kind {
@@ -5780,7 +5780,7 @@ impl ReactiveSession {
                         &kind[CARRIES.len()..],
                     )
             }
-            _ => return Err(format!("unknown graph predicate {kind}")),
+            _ => return Err(format!("unknown graph predicate {kind}").into()),
         })
     }
 
