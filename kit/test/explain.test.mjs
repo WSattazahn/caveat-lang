@@ -87,6 +87,33 @@ test('a revision lists the thresholds its commit named, and others list none', (
   assert.doesNotMatch(formatExplanation(without, 'thermostat'), /thresholds:/);
 });
 
+test('each observation is described once, however many revisions rest on it', () => {
+  const source = `claim ok;
+evidence gauge from "a gauge";
+readings level from gauge limit 8;
+decisions verdict limit 8;
+event read v min 0 max 100;
+event decide;
+event recheck;
+on read sample level = v supports ok;
+on decide commit verdict because enough using fold_history(level, latest(level), max);
+on recheck when committed(verdict) and not reopened(verdict) reopen verdict because latest(level);`;
+  const session = real.open(source);
+  const sent = [];
+  for (const [event, payload] of [['read', { v: 3 }], ['read', { v: 5 }], ['decide', {}], ['recheck', {}], ['decide', {}]]) {
+    const { snapshot, ...outcome } = session.dispatch(event, payload);
+    sent.push({ event, payload, outcome, sequence: snapshot.sequence, effects: snapshot.effects });
+  }
+  const text = formatExplanation(explain(session.snapshot(), sent), 'probe.cav');
+  session.close();
+  // Both revisions rest on both readings; each reading's observation is
+  // described under the first revision only, and both list it in their grounds.
+  assert.equal(text.match(/level@1: observed at #1 read \{"v":3\}/g)?.length, 1);
+  assert.equal(text.match(/level@2: observed at #2 read \{"v":5\}/g)?.length, 1);
+  assert.equal(text.match(/based on level@1, level@2/g)?.length, 2);
+  assert.ok(text.indexOf('level@1: observed at') < text.indexOf('verdict@2 ='), text);
+});
+
 test('a session with no decisions, evidence or bindings says so', () => {
   const session = real.open('state count = 0;\nevent poke;\non poke set count = count + 1;');
   const text = formatExplanation(explain(session.snapshot()), 'empty');
