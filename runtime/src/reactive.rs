@@ -667,6 +667,19 @@ struct ExecutionBudget {
     depth: usize,
 }
 
+/// A rule's route, compiled at load (`compile_route`), and the work the rule
+/// counts when an event's payload routes it elsewhere.
+#[derive(Debug, Clone, Default)]
+struct Route {
+    /// Each term's parameter, by its place among the event's declared
+    /// parameters, and the value that keeps the route open.
+    terms: Vec<(usize, f64)>,
+    /// The steps `retain_skipped_effect` spends on the rule when its guard is
+    /// false and rests on nothing: one, and through a call one for each step
+    /// of its procedure, nested calls included.
+    steps: usize,
+}
+
 impl ExecutionBudget {
     fn spend(&mut self) -> Result<(), DispatchFailure> {
         self.remaining = self.remaining.checked_sub(1).ok_or_else(|| {
@@ -2359,7 +2372,7 @@ pub struct ReactiveSession {
     /// of its event's parameters with a value fixed at load, compiled so that
     /// an event skips the rules its payload routes elsewhere without
     /// evaluating their guards.
-    rule_routes: Arc<Vec<Vec<(String, f64)>>>,
+    rule_routes: Arc<Vec<Route>>,
     /// `work skips other routes;`: a rule the payload routes elsewhere counts
     /// no work. See spec/caveat-routed-work-0.1.md.
     routed_work: bool,
@@ -3209,10 +3222,11 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        let mut steps = HashMap::default();
         let rule_routes = session
             .rules
             .iter()
-            .map(|rule| session.compile_route(rule))
+            .map(|rule| session.compile_route(rule, &mut steps))
             .collect();
         session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
@@ -4842,30 +4856,121 @@ impl ReactiveSession {
     /// state or parameter of the event shadows. The route ends at the first
     /// other term. Every name here reads a plain value, so a term the payload
     /// makes false makes the guard false with no dependency.
-    fn compile_route(&self, rule: &Rule) -> Vec<(String, f64)> {
+    fn compile_route(&self, rule: &Rule, steps: &mut HashMap<String, usize>) -> Route {
+        let steps = 1 + self.skipped_steps(&rule.effect, steps);
         let Some(parameters) = self.events.get(&rule.event) else {
-            return Vec::new();
+            return Route {
+                terms: Vec::new(),
+                steps,
+            };
         };
-        let parameter = |name: &str| parameters.iter().any(|parameter| parameter.name == name);
-        rule.condition
+        let place_of = |name: &str| {
+            parameters
+                .iter()
+                .position(|parameter| parameter.name == name)
+        };
+        let terms = rule
+            .condition
             .route_terms()
             .into_iter()
             .map_while(|(name, value)| {
-                if self.states.contains_key(&name) || !parameter(&name) {
+                if self.states.contains_key(&name) {
                     return None;
                 }
+                let place = place_of(&name)?;
                 let value = match value {
                     reactive_expr::RouteValue::Number(value) => value,
                     reactive_expr::RouteValue::Name(constant) => {
-                        if self.states.contains_key(&constant) || parameter(&constant) {
+                        if self.states.contains_key(&constant) || place_of(&constant).is_some() {
                             return None;
                         }
                         *self.constants.get(&constant)?
                     }
                 };
-                Some((name, value))
+                Some((place, value))
             })
+            .collect();
+        Route { terms, steps }
+    }
+
+    /// The steps `retain_skipped_effect` spends below a skipped effect: none,
+    /// or through a call one for each step of its procedure and the steps
+    /// below that step. Load has refused cycles and procedures past the work
+    /// limit (`procedure_cost`), so this ends and stays small.
+    fn skipped_steps(&self, effect: &Effect, steps: &mut HashMap<String, usize>) -> usize {
+        let Effect::Call { name, .. } = effect else {
+            return 0;
+        };
+        if let Some(&known) = steps.get(name) {
+            return known;
+        }
+        let total = self.procedures[name]
+            .body
+            .iter()
+            .map(|step| 1 + self.skipped_steps(&step.effect, steps))
+            .sum();
+        steps.insert(name.clone(), total);
+        total
+    }
+
+    /// The payload's value for each of `event`'s declared parameters, in the
+    /// order they are declared: the places a compiled route reads.
+    fn declared_values(&self, event: &str, payload: &BTreeMap<String, f64>) -> Vec<Option<f64>> {
+        self.events
+            .get(event)
+            .into_iter()
+            .flatten()
+            .map(|parameter| payload.get(&parameter.name).copied())
             .collect()
+    }
+
+    /// Debug builds: counting a routed-elsewhere rule's steps at once leaves
+    /// the budget as skipping it step by step does. In a program without a
+    /// window, the step-by-step skip of a guard that rests on nothing changes
+    /// nothing but the budget: a window's collector would read the effect,
+    /// and a write here would be kept in this build and left out in release.
+    #[cfg(debug_assertions)]
+    fn check_counted_skip(&mut self, effect: &Effect, budget: &ExecutionBudget, remaining: usize) {
+        let mut general = ExecutionBudget {
+            remaining: budget.remaining,
+            depth: budget.depth,
+        };
+        let collector = self.collector.clone();
+        // Held, so that a write below copies what it writes and shows as a
+        // new pointer: everything a skipped effect can write.
+        let held = (
+            Arc::clone(&self.predicate_qualifications),
+            Arc::clone(&self.reading_streams),
+            Arc::clone(&self.decision_series),
+            Arc::clone(&self.states.cells),
+        );
+        let result = if self.routed_work {
+            self.retain_routed_elsewhere(effect, &mut general)
+        } else {
+            general.spend().and_then(|()| {
+                self.retain_skipped_effect(effect, &Provenance::default(), &mut general)
+            })
+        };
+        assert!(
+            result.is_ok(),
+            "a skip counted at once fails step by step: {result:?}"
+        );
+        assert_eq!(
+            (general.remaining, general.depth),
+            (remaining, budget.depth),
+            "a skip counted at once counts differently"
+        );
+        assert!(
+            self.collector == collector,
+            "a skip counted at once leaves out what the collector reads"
+        );
+        assert!(
+            Arc::ptr_eq(&held.0, &self.predicate_qualifications)
+                && Arc::ptr_eq(&held.1, &self.reading_streams)
+                && Arc::ptr_eq(&held.2, &self.decision_series)
+                && Arc::ptr_eq(&held.3, &self.states.cells),
+            "a skip counted at once leaves out what skipping step by step writes"
+        );
     }
 
     /// What `retain_skipped_effect` does for a guard that rests on nothing,
@@ -5465,11 +5570,21 @@ impl ReactiveSession {
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
         let routes = Arc::clone(&self.rule_routes);
+        let windowed = self.windowed();
+        // The payload's value for each of the event's declared parameters, by
+        // its place, read once for every route.
+        let mut declared = None;
         // A rule inherits no lineage.
         let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
-            if routed_elsewhere(&routes[index], payload) {
+            let route = &routes[index];
+            if !route.terms.is_empty()
+                && routed_elsewhere(
+                    &route.terms,
+                    declared.get_or_insert_with(|| self.declared_values(event, payload)),
+                )
+            {
                 #[cfg(debug_assertions)]
                 {
                     let guard = self.evaluate(&rule.condition, &parameters);
@@ -5477,6 +5592,19 @@ impl ReactiveSession {
                         matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
                         "routed-elsewhere rule {index} evaluated to {guard:?}"
                     );
+                }
+                // Outside a windowed program, the skip below only counts
+                // work, so the rule's steps are counted at once when the
+                // budget holds them all. Otherwise the rule is skipped step by
+                // step, and the work limit refuses it where it always did.
+                if !windowed {
+                    let steps = if self.routed_work { 0 } else { route.steps };
+                    if let Some(remaining) = budget.remaining.checked_sub(steps) {
+                        #[cfg(debug_assertions)]
+                        self.check_counted_skip(&rule.effect, &budget, remaining);
+                        budget.remaining = remaining;
+                        continue;
+                    }
                 }
                 // What `execute_guarded_effect` does with a guard that is
                 // false and rests on nothing: the parameters are plain. With
@@ -11132,13 +11260,14 @@ impl ObservationRanks<'_> {
     }
 }
 
-/// Whether a rule's route, read against an event's plain parameters, finds a
-/// term false before any term it cannot read: the guard is then false and
-/// rests on nothing. A parameter the payload lacks ends the route unread, so
-/// the guard is evaluated as written.
-fn routed_elsewhere(route: &[(String, f64)], parameters: &BTreeMap<String, f64>) -> bool {
-    for (name, value) in route {
-        match parameters.get(name) {
+/// Whether a rule's route, read against the payload's values of its event's
+/// declared parameters (`declared_values`), finds a term false before any
+/// term it cannot read: the guard is then false and rests on nothing. A
+/// parameter the payload lacks ends the route unread, so the guard is
+/// evaluated as written.
+fn routed_elsewhere(route: &[(usize, f64)], declared: &[Option<f64>]) -> bool {
+    for &(place, value) in route {
+        match declared[place] {
             Some(actual) if actual == value => {}
             Some(_) => return true,
             None => return false,
