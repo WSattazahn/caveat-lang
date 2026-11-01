@@ -605,12 +605,76 @@ impl NameSet {
         self.names().binary_search_by(|held| held.cmp(name))
     }
 
-    /// The names this set would add to `ours`.
-    fn added_to<'a>(&'a self, ours: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
-        let skip = self.is_empty() || self.shares(ours);
-        self.names()
-            .iter()
-            .filter(move |name| !skip && ours.find(name).is_err())
+    /// This set joined with `theirs`, or `None` when `theirs` adds no name.
+    /// Each name it adds is passed to `check` first, in name order, and the
+    /// first refusal is returned with nothing joined. One walk finds the
+    /// names and builds the join: a name is looked for by halving what is
+    /// left of this set when that is more than four names for each name left
+    /// of `theirs`, and by stepping through it otherwise.
+    fn joined(
+        &self,
+        theirs: &Self,
+        mut check: impl FnMut(&str) -> Result<(), EvalError>,
+    ) -> Result<Option<Self>, EvalError> {
+        if theirs.is_empty() || self.shares(theirs) {
+            return Ok(None);
+        }
+        let (ours, names) = (self.names(), theirs.names());
+        match (ours, names) {
+            ([], _) => {
+                for name in names {
+                    check(name)?;
+                }
+                return Ok(Some(theirs.clone()));
+            }
+            ([held], [name]) => {
+                let (first, second) = match held.cmp(name) {
+                    std::cmp::Ordering::Equal => return Ok(None),
+                    std::cmp::Ordering::Less => (held, name),
+                    std::cmp::Ordering::Greater => (name, held),
+                };
+                check(name)?;
+                return Ok(Some(Self(Some(Arc::new(Names {
+                    bytes: first.len() + second.len(),
+                    store: Store::Two([first.clone(), second.clone()]),
+                })))));
+            }
+            _ => {}
+        }
+        let mut joined: Option<Vec<Name>> = None;
+        // How many of ours are passed, and copied when `joined` is started.
+        let mut at = 0;
+        for (index, name) in names.iter().enumerate() {
+            let rest = &ours[at..];
+            let found = if rest.len() > 4 * (names.len() - index) {
+                rest.binary_search_by(|held| held.cmp(name))
+            } else {
+                stepped(rest, name)
+            };
+            match found {
+                Ok(offset) => {
+                    if let Some(joined) = &mut joined {
+                        joined.extend_from_slice(&rest[..=offset]);
+                    }
+                    at += offset + 1;
+                }
+                Err(offset) => {
+                    check(name)?;
+                    let joined = joined.get_or_insert_with(|| {
+                        let mut joined = Vec::with_capacity(ours.len() + names.len() - index);
+                        joined.extend_from_slice(&ours[..at]);
+                        joined
+                    });
+                    joined.extend_from_slice(&rest[..offset]);
+                    joined.push(name.clone());
+                    at += offset;
+                }
+            }
+        }
+        Ok(joined.map(|mut joined| {
+            joined.extend_from_slice(&ours[at..]);
+            Self::from_sorted(joined)
+        }))
     }
 
     /// The names' total bytes.
@@ -748,48 +812,23 @@ impl NameSet {
     /// Add every name of `other`, sharing its set when this one is empty and
     /// copying nothing when it adds no name.
     fn absorb(&mut self, other: &Self) {
-        if other.is_empty() || self.shares(other) {
-        } else if self.is_empty() {
-            *self = other.clone();
-        } else if !other.is_subset(self) {
-            let (left, right) = (self.names(), other.names());
-            if let ([left], [right]) = (left, right) {
-                // Two names, since neither set holds the other.
-                let (first, second) = if left < right {
-                    (left, right)
-                } else {
-                    (right, left)
-                };
-                *self = Self(Some(Arc::new(Names {
-                    bytes: first.len() + second.len(),
-                    store: Store::Two([first.clone(), second.clone()]),
-                })));
-                return;
-            }
-            let mut joined = Vec::with_capacity(left.len() + right.len());
-            let (mut i, mut j) = (0, 0);
-            while i < left.len() && j < right.len() {
-                match left[i].cmp(&right[j]) {
-                    std::cmp::Ordering::Less => {
-                        joined.push(left[i].clone());
-                        i += 1;
-                    }
-                    std::cmp::Ordering::Greater => {
-                        joined.push(right[j].clone());
-                        j += 1;
-                    }
-                    std::cmp::Ordering::Equal => {
-                        joined.push(left[i].clone());
-                        i += 1;
-                        j += 1;
-                    }
-                }
-            }
-            joined.extend_from_slice(&left[i..]);
-            joined.extend_from_slice(&right[j..]);
-            *self = Self::from_sorted(joined);
+        if let Ok(Some(joined)) = self.joined(other, |_| Ok(())) {
+            *self = joined;
         }
     }
+}
+
+/// Where `name` is or would go in `names`, found by stepping from the start:
+/// the first place that does not hold a lesser name.
+fn stepped(names: &[Name], name: &Name) -> Result<usize, usize> {
+    for (at, held) in names.iter().enumerate() {
+        match held.cmp(name) {
+            std::cmp::Ordering::Less => {}
+            std::cmp::Ordering::Equal => return Ok(at),
+            std::cmp::Ordering::Greater => return Err(at),
+        }
+    }
+    Err(names.len())
 }
 
 impl PartialEq for NameSet {
@@ -1086,9 +1125,10 @@ impl Provenance {
             .and_then(|count| count.checked_add(self.departed.len()))
             .ok_or_else(provenance_identifier_error)?;
         check_provenance_size(count, 0, 0)?;
-        let bytes = self.evidence.bytes()
-            + self.caveats.bytes()
-            + self.departed.keys().map(String::len).sum::<usize>();
+        let mut bytes = self.evidence.bytes() + self.caveats.bytes();
+        if !self.departed.is_empty() {
+            bytes += self.departed.keys().map(String::len).sum::<usize>();
+        }
         check_provenance_size(count, 0, bytes)?;
         Ok((count, bytes))
     }
@@ -1122,16 +1162,8 @@ impl Provenance {
             bytes += name.len();
             Ok::<(), EvalError>(())
         };
-        let mut evidence = false;
-        for name in other.evidence.added_to(&self.evidence) {
-            check(name)?;
-            evidence = true;
-        }
-        let mut caveats = false;
-        for name in other.caveats.added_to(&self.caveats) {
-            check(name)?;
-            caveats = true;
-        }
+        let evidence = self.evidence.joined(&other.evidence, &mut check)?;
+        let caveats = self.caveats.joined(&other.caveats, &mut check)?;
         for history in other.departed.keys() {
             if !self.departed.contains_key(history) {
                 check(history)?;
@@ -1149,11 +1181,11 @@ impl Provenance {
                 .collect();
             self.inherited = inherited;
         }
-        if evidence {
-            self.evidence.absorb(&other.evidence);
+        if let Some(evidence) = evidence {
+            self.evidence = evidence;
         }
-        if caveats {
-            self.caveats.absorb(&other.caveats);
+        if let Some(caveats) = caveats {
+            self.caveats = caveats;
         }
         self.kept.absorb(&other.kept);
         for (history, marker) in &other.departed {
