@@ -1320,6 +1320,8 @@ struct Consulted {
     withdrawals: Vec<u64>,
     /// Each predicate dependency looked up, by kind and name, found or not.
     predicates: Vec<u64>,
+    /// Each renewable evidence whose occurrences were looked up.
+    renewals: Vec<u64>,
 }
 
 impl Consulted {
@@ -1328,6 +1330,7 @@ impl Consulted {
         self.listed.clear();
         self.withdrawals.clear();
         self.predicates.clear();
+        self.renewals.clear();
     }
 
     fn settle(&mut self) {
@@ -1335,6 +1338,7 @@ impl Consulted {
             &mut self.reached,
             &mut self.withdrawals,
             &mut self.predicates,
+            &mut self.renewals,
         ] {
             keys.sort_unstable();
             keys.dedup();
@@ -1364,6 +1368,8 @@ struct Requalified {
     withdrawn: BTreeSet<String>,
     /// Each predicate dependency added, changed or cleared.
     predicates: BTreeSet<(String, String)>,
+    /// Each renewable evidence whose occurrences changed.
+    renewed: BTreeSet<String>,
 }
 
 impl Requalified {
@@ -1372,6 +1378,7 @@ impl Requalified {
             && self.relations.is_empty()
             && self.withdrawn.is_empty()
             && self.predicates.is_empty()
+            && self.renewed.is_empty()
     }
 
     /// Whether this changed anything `consulted` holds.
@@ -1394,6 +1401,10 @@ impl Requalified {
                 .predicates
                 .iter()
                 .any(|(kind, name)| noted(&consulted.predicates, consulted_key(kind, name)))
+            || self
+                .renewed
+                .iter()
+                .any(|evidence| noted(&consulted.renewals, consulted_key("", evidence)))
     }
 }
 
@@ -1500,12 +1511,12 @@ impl Changes {
     /// The histories whose records an event changed, and what it changed of
     /// the qualification state any history read can reach: new `qualifies`
     /// relations, take-backs and withdrawals, changed predicate dependencies,
-    /// and new `supports` or `opposes` relations, which bring the caveats of
-    /// a claim to evidence a history read can list outside every history (a
-    /// withdrawal's reason, a reopening's cause or an outcome's evidence,
-    /// D036). `None` if it changed something else a read of any history can
-    /// reach: an examination, renewal, retirement or permission, a record it
-    /// cannot place in one history, or a record that was not only added to.
+    /// renewals, and new `supports` or `opposes` relations, which bring the
+    /// caveats of a claim to evidence a history read can list outside every
+    /// history (a withdrawal's reason, a reopening's cause or an outcome's
+    /// evidence, D036). `None` if it changed something else a read of any
+    /// history can reach: an examination, retirement or permission, a record
+    /// it cannot place in one history, or a record that was not only added to.
     /// Any other change to a record no history read consults (a claim, or
     /// evidence outside every history) places nowhere.
     fn histories_between(
@@ -1518,8 +1529,7 @@ impl Changes {
         if !same(
             &old.examination_qualifications,
             &new.examination_qualifications,
-        ) || !same(&old.renewals, &new.renewals)
-            || !same(&old.retired, &new.retired)
+        ) || !same(&old.retired, &new.retired)
             || !same(&old.late_caveats, &new.late_caveats)
             || !same(&old.take_back_caveats, &new.take_back_caveats)
             || !same(&old.commitment_permissions, &new.commitment_permissions)
@@ -1527,6 +1537,22 @@ impl Changes {
             return None;
         }
         let mut requalified = Requalified::default();
+        // Renewable evidence is declared at load. A renewal changes what its
+        // name means to a read that looks up its occurrences.
+        if !Arc::ptr_eq(&old.renewals, &new.renewals) {
+            if old.renewals.len() != new.renewals.len() {
+                return None;
+            }
+            for (evidence, renewal) in new.renewals.iter() {
+                match old.renewals.get(evidence) {
+                    Some(previous) if previous == renewal => {}
+                    Some(_) => {
+                        requalified.renewed.insert(evidence.clone());
+                    }
+                    None => return None,
+                }
+            }
+        }
         // Take-backs and withdrawals are only added to here.
         if !Arc::ptr_eq(&old.taken_back, &new.taken_back) {
             for record in new.taken_back.strip_prefix(old.taken_back.as_slice())? {
@@ -7920,10 +7946,11 @@ impl ReactiveSession {
     /// What a source name means now: the current occurrence of renewable
     /// evidence, and the name itself for everything else.
     fn occurrence<'a>(&'a self, name: &'a str) -> &'a str {
-        self.renewals
-            .get(name)
-            .and_then(|renewal| renewal.occurrences.last())
-            .map_or(name, String::as_str)
+        let Some(renewal) = self.renewals.get(name) else {
+            return name;
+        };
+        consult(|record| record.renewals.push(consulted_key("", name)));
+        renewal.occurrences.last().map_or(name, String::as_str)
     }
 
     /// A predicate's target as the source names it, resolved: predicates on
@@ -8821,6 +8848,7 @@ impl ReactiveSession {
                 .filter(|name| !self.is_retired(name));
         }
         let renewal = self.renewals.get(evidence)?;
+        consult(|record| record.renewals.push(consulted_key("", evidence)));
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
@@ -10999,5 +11027,56 @@ bind x.v = latest(d) when committed(d);
         stale_after(&mut session, "go", "{}");
         stale_after(&mut session, "retract", "{}");
         assert_eq!(stale_after(&mut session, "relate", "{}"), ["x.gone"]);
+    }
+
+    #[test]
+    fn a_renewal_reaches_a_record_that_looked_up_its_occurrences() {
+        let mut consulted = Consulted::default();
+        consulted.renewals.push(consulted_key("", "ci"));
+        consulted.settle();
+        let renewed = |evidence: &str| Requalified {
+            renewed: BTreeSet::from([evidence.to_string()]),
+            ..Requalified::default()
+        };
+        assert!(renewed("ci").reaches(&consulted));
+        assert!(!renewed("tree").reaches(&consulted));
+        assert!(!renewed("ci").reaches(&Consulted::default()));
+    }
+
+    #[test]
+    fn a_renewal_reaches_only_the_bindings_that_name_the_evidence() {
+        let source = r#"
+claim ok;
+caveat k consequence material;
+evidence ci from "the CI run";
+renewable ci limit 8;
+readings s from ci limit 8;
+decisions d limit 4;
+event run;
+event rerun;
+event report;
+event decide;
+event doubt;
+on run reveal ci supports ok;
+on rerun renew ci;
+on report sample s = 1;
+on decide commit d because enough using qualified(1, ci);
+on doubt qualify ci with k;
+bind x.n = history_count(s);
+bind x.v = latest(d) when committed(d);
+bind y.seen = 1 when observed(ci);
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for event in ["run", "report", "decide"] {
+            stale_after(&mut session, event, "{}");
+        }
+        // The reading and the decision list the first occurrence, which a
+        // renewal leaves as it was; `observed(ci)` means the current one.
+        assert_eq!(stale_after(&mut session, "rerun", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "run", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "doubt", "{}"), ["y.seen"]);
+        // A reading of the new occurrence changes its own history, and the
+        // graph that `observed(ci)` reads.
+        assert_eq!(stale_after(&mut session, "report", "{}"), ["x.n", "y.seen"]);
     }
 }
