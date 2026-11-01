@@ -194,6 +194,10 @@ save is refused with an error, and never crashes the runtime, when:
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
+- a reading names an event that reaches no `sample` of its stream, in a rule
+  or a procedure a rule calls, with the reading's relation and claim (or with
+  neither, for a neutral reading). Conditions are not evaluated: the event
+  could have taken the reading, not shown to have;
 - it shows a cue that no `emit` the last event's rules reach, directly or
   through the procedures they call, can show. A save with no last event shows
   none;
