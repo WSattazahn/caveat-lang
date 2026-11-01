@@ -48,7 +48,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: carmack-runtime
           path: dist/pkg-reactive
@@ -103,7 +103,7 @@ jobs:
       - name: The break page recovers from a trap at session creation
         if: runner.os == 'Linux'
         run: node scripts/test-break-recovery.mjs --runtime carmack-runtime --browsers webkit,chromium
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: carmack-replay-${{ matrix.os }}
@@ -153,7 +153,7 @@ jobs:
       - name: Summary
         if: always()
         run: cat test-results/carmack/target.md test-results/carmack/footprint.md test-results/carmack/profile.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: carmack-measures
