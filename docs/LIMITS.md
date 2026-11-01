@@ -124,7 +124,8 @@ state that adds two new renewable occurrences to its own lineage every event
 cost about 250 µs per event at 200 names and about 590 µs near 1,000. An
 event that would take a value past the cap is refused with
 `limit/provenance_limit`, and the session goes on (from 1.4.0; before it,
-such an event ended the session as fatal `unclassified`).
+such an event ended the session as fatal `unclassified`, and a `carries`
+or `carries_any` read past the cap still did until 1.5.0, finding D037).
 
 **Expression work.** One expression evaluates at most 65,536 nodes, and a
 history fold reads at most 256 records
