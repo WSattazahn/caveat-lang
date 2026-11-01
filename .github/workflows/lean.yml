@@ -37,7 +37,7 @@ jobs:
         run: npm run test:lean-grounds
       - name: Check the Lean theorems Caveat evidence names, with failure controls
         run: npm run verify:lean-grounds
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: lean-scaffold-verification
