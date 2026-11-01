@@ -667,13 +667,21 @@ impl ReactiveSession {
         let mut departing = BTreeMap::new();
         // Only retirements and released pins queue candidates. Resolve the
         // complete withdrawal cascade before compaction so effects and archive
-        // entries are globally ordered, not ordered by cascade depth.
-        while let Some(record) = Arc::make_mut(&mut self.departure_candidates).pop_first() {
+        // entries are globally ordered, not ordered by cascade depth. Each
+        // set is checked before it is written, so an event with nothing
+        // queued, or a record with no reason, copies no shared set.
+        while !self.departure_candidates.is_empty() {
+            let record = Arc::make_mut(&mut self.departure_candidates)
+                .pop_first()
+                .expect("not empty");
             if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
                 continue;
             }
             if let Some(place) = self.departable(&record) {
-                if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                if self.withdrawal_reasons.contains_key(&record) {
+                    let reason = Arc::make_mut(&mut self.withdrawal_reasons)
+                        .remove(&record)
+                        .expect("checked above");
                     self.collector.withdrawal(&record, &reason, false);
                     self.release_pin(&reason);
                 }
