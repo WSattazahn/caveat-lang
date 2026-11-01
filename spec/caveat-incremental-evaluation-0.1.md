@@ -51,13 +51,18 @@ only if:
   readings or revisions (`NAME@N`), a commitment basis or ground, a reopening's
   qualification, or a graph node or edge that touches one of them; or
 - the event changed something a read of any history can reach. That covers a
-  `qualifies` edge, a qualification that is not a new reading's, a take-back,
+  `qualifies` edge, a `supports` or `opposes` relation from evidence already
+  in the graph, a qualification that is not a new reading's, a take-back,
   a withdrawal, a renewal, a retirement or a permission. It also covers a
   record no history owns but that a scoped read consults, or any removal.
 
-A change to a claim or to evidence outside every history reaches no scoped
-declaration. A sample of `api_tests` or a commitment in `api_gate` leaves the
-declarations that read only `web_tests` as they were.
+A relation from evidence already in the graph counts because it brings the
+caveats of the claim it names to that evidence, and a scoped read can list
+evidence that belongs to no history: the reason a reading was withdrawn for,
+the cause a decision was reopened by, or what an outcome was recorded because
+of. Any other change to a claim or to evidence outside every history reaches no
+scoped declaration. A sample of `api_tests` or a commitment in `api_gate`
+leaves the declarations that read only `web_tests` as they were.
 
 For an author this means `bind hud.elapsed = elapsed();` is evaluated when the
 clock changes, and a binding that reads only `support` is evaluated when
@@ -104,3 +109,10 @@ cargo run --release --no-default-features --example profile_dispatch -- PROGRAM.
   ([Save 0.1](caveat-save-0.1.md#changes)). The debug check failed on that
   angle, but it compared values with `==` too, so a binding showing the zero
   itself, `bind hud.x = x`, passed with the wrong sign.
+- 2026-11-01: a `supports` or `opposes` relation revealed from evidence
+  already in the graph makes every scoped declaration evaluate again (D036).
+  It was placed in no history, so a binding that read that evidence as a
+  withdrawal's reason, a reopening's cause or an outcome's evidence kept its
+  old lineage, without the caveats the relation brought, until something else
+  made it evaluate again; a restored session showed them. The debug check
+  failed on it.

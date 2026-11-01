@@ -1556,6 +1556,48 @@ fn a_threshold_survives_a_module_that_declares_threshold() {
 }
 
 #[test]
+fn unset_survives_a_module_that_declares_unset() {
+    // `state NAME unset` and `unset NAME` arrive in 1.5
+    // (spec/caveat-unset-states-0.1.md). A 1.x module may name a state
+    // `unset` and keep it, and may use both new words beside that name.
+    let old = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state unset = 1;\n\
+             event go;\n\
+             on go set unset = unset + 1;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(old.contains("state m__unset = 1;"), "{old}");
+    assert!(
+        old.contains("on m__go set m__unset = m__unset + 1;"),
+        "{old}"
+    );
+    let both = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state unset = 1;\n\
+             state part unset;\n\
+             event go;\n\
+             on go when is_set(part) set unset = part;\n\
+             on go unset part;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "state m__unset = 1;",
+        "state m__part unset;",
+        "on m__go when is_set(m__part) set m__unset = m__part;",
+        "on m__go unset m__part;",
+    ] {
+        assert!(both.contains(expected), "{expected}: {both}");
+    }
+}
+
+#[test]
 fn a_hold_survives_a_module_that_declares_its_words() {
     // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
     // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
@@ -1820,6 +1862,7 @@ const POSITIONAL: &[&str] = &[
     "once",
     "strict",
     "threshold",
+    "unset",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
