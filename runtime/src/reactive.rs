@@ -6374,14 +6374,18 @@ impl ReactiveSession {
         // Their order can decide which limit `from_names` reports only when
         // they and the names ahead of them pass the identifier limit. Short
         // of it, none of them is the name past it, and the bytes they add up
-        // to do not depend on their order. Past it they keep the order of the
-        // symbol table, as they always had. Short of it, node order.
+        // to do not depend on their order: node order. Past it, name order,
+        // the order a lineage keeps its names in, so the limit a refusal
+        // names is the same in every process and after a restore; the symbol
+        // table's own order is the hash seed's.
         if before.saturating_add(caveats.len()) > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
-            return self
+            let mut names = self
                 .symbols
                 .iter()
                 .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
-                .collect();
+                .collect::<Vec<_>>();
+            names.sort_unstable();
+            return names;
         }
         let mut caveats = caveats.into_iter().collect::<Vec<_>>();
         caveats.sort_unstable();
@@ -9093,14 +9097,17 @@ impl ReactiveSession {
         // The caveat and whatever qualifies it, as `qualify` adds them. Each
         // node has one name, so a reached caveat's name is its late name.
         // Their order matters only past the identifier limit, where it
-        // decides which limit `from_names` reports: there they keep the
-        // order of the symbol table, as they always had.
+        // decides which limit `from_names` reports: there they go in name
+        // order, as `caveats_reaching` gives caveats past it.
         let mut names = if reached.len() > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
-            self.symbols
+            let mut names = self
+                .symbols
                 .iter()
                 .filter(|(_, id)| reached.contains(id))
                 .map(|(name, _)| name.clone())
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>();
+            names.sort_unstable();
+            names
         } else {
             self.late_caveat_nodes
                 .iter()
@@ -11638,12 +11645,14 @@ mod caveat_order_tests {
         session
     }
 
-    /// Finding: the caveats reaching a node switched to node order at exactly
-    /// 1,024 of them, though every caller puts a name ahead of them, so the
-    /// last was the name past the identifier limit and their order could
-    /// decide which limit a refusal reports.
+    /// Findings: the caveats reaching a node took node order at exactly 1,024
+    /// of them, though every caller puts a name ahead of them, so the last was
+    /// the name past the identifier limit (#432 review); and past the limit
+    /// they came in the symbol table's order, which the per-process hash seed
+    /// sets, so which provenance limit a refusal named changed from process
+    /// to process. Past it they come in name order; short of it, node order.
     #[test]
-    fn caveats_keep_the_symbol_table_order_when_the_names_ahead_pass_the_limit() {
+    fn caveats_reaching_past_the_identifier_limit_come_in_name_order_not_symbol_table_order() {
         let session = qualified_by(reactive_expr::MAX_PROVENANCE_IDENTIFIERS);
         let e = session.symbols["e"];
         let by_symbol = session
@@ -11652,14 +11661,147 @@ mod caveat_order_tests {
             .filter(|(name, _)| name.starts_with('c'))
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>();
+        let mut by_name = by_symbol.clone();
+        by_name.sort_unstable();
         let mut by_node = by_symbol.clone();
         by_node.sort_by_key(|name| session.symbols[name]);
+        // The table does not walk 1,024 names in name order, so the order it
+        // walks them in cannot pass the checks below.
+        assert_ne!(by_symbol, by_name);
         // Alone they stay short of the limit, and node order cannot matter.
         assert_eq!(session.caveats_reaching([e], true, 0), by_node);
-        // With one name ahead, the last of them is the name past the limit.
-        assert_eq!(session.caveats_reaching([e], true, 1), by_symbol);
-        assert_eq!(session.caveats_reaching([e], false, 1), by_symbol);
-        assert_eq!(session.incoming_caveats([e], 1), by_symbol);
         assert_eq!(session.incoming_caveats([e], 0), by_node);
+        // With one name ahead, the last of them is the name past the limit.
+        assert_eq!(session.caveats_reaching([e], true, 1), by_name);
+        assert_eq!(session.caveats_reaching([e], false, 1), by_name);
+        assert_eq!(session.incoming_caveats([e], 1), by_name);
+    }
+}
+
+#[cfg(test)]
+mod provenance_limit_order_tests {
+    use super::*;
+
+    /// 1,023 caveat names of 16 bytes (`s...`), to be declared first, then
+    /// 1,023 of 112 bytes (`L...`), which name order puts first. In name
+    /// order a lineage passes 65,536 name bytes at its 586th name, short of
+    /// the identifier limit; in declaration (node) order it passes 1,024
+    /// identifiers first.
+    fn caveat_names(salt: usize) -> Vec<String> {
+        let short = (0..1023).map(|i| format!("s{salt:03}_{i:04}_{}", "x".repeat(6)));
+        let long = (0..1023).map(|i| format!("L{salt:03}_{i:04}_{}", "x".repeat(102)));
+        short.chain(long).collect()
+    }
+
+    /// `caveats` as the session's symbol table walks them, and in name order.
+    fn walked_and_sorted(
+        session: &ReactiveSession,
+        caveats: &[String],
+    ) -> (Vec<String>, Vec<String>) {
+        let caveats = caveats.iter().collect::<BTreeSet<_>>();
+        let walked = session
+            .symbols
+            .keys()
+            .filter(|name| caveats.contains(name))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut sorted = walked.clone();
+        sorted.sort_unstable();
+        (walked, sorted)
+    }
+
+    /// The limit `Provenance::from_names` reports for `ahead`, then `names`.
+    fn limit(ahead: &[&str], names: &[String]) -> String {
+        Provenance::from_names(
+            ahead.iter().map(|name| name.to_string()),
+            names.iter().cloned(),
+        )
+        .unwrap_err()
+        .message
+    }
+
+    fn accepted(session: &mut ReactiveSession, event: &str) {
+        let outcome = session.dispatch_outcome_json(event, "{}").unwrap();
+        assert_eq!(
+            serde_json::to_value(outcome).unwrap()["outcome"],
+            "accepted",
+            "{event}"
+        );
+    }
+
+    /// Finding: `qualified(V, E)` listed the caveats past the identifier limit
+    /// in the symbol table's order, so whether its refusal named the
+    /// identifier limit or the byte limit changed from process to process.
+    /// Here the table's order and node order reach the identifier limit and
+    /// name order the byte limit, so of the three only name order passes; a
+    /// restored session refuses alike.
+    #[test]
+    fn a_refusal_past_both_provenance_limits_names_the_limit_name_order_reaches_first() {
+        for salt in 0..64 {
+            let names = caveat_names(salt);
+            let mut source = String::from(
+                "evidence e from \"tool\";\nstate v = 0;\nevent report;\nevent check;\n\
+                 on report reveal e;\non check set v = qualified(1, e);\n",
+            );
+            for name in &names {
+                source.push_str(&format!("caveat {name} consequence low;\n"));
+            }
+            for name in &names {
+                source.push_str(&format!("{name} qualifies e;\n"));
+            }
+            let mut session = ReactiveSession::from_source(&source).unwrap();
+            accepted(&mut session, "report");
+            let (walked, sorted) = walked_and_sorted(&session, &names);
+            let expected = limit(&["e"], &sorted);
+            if limit(&["e"], &walked) == expected {
+                // This table's order reaches the same limit: other names.
+                continue;
+            }
+            let message = format!("event check, rule 2: {expected}");
+            let mut restored = ReactiveSession::restore(&source, &session.save().unwrap()).unwrap();
+            for session in [&mut session, &mut restored] {
+                let outcome =
+                    serde_json::to_value(session.dispatch_outcome_json("check", "{}").unwrap())
+                        .unwrap();
+                assert_eq!(outcome["code"], "provenance_limit");
+                assert_eq!(outcome["message"], message.as_str());
+            }
+            return;
+        }
+        panic!("no names put the symbol table's order on the other limit");
+    }
+
+    /// Finding: past 1,024 reached late caveats `read_live` listed them in the
+    /// symbol table's order, so which limit its refusal named changed from
+    /// process to process. Here the table's order and node order reach the
+    /// identifier limit and name order the byte limit.
+    #[test]
+    fn read_live_past_the_identifier_limit_names_the_limit_name_order_reaches_first() {
+        for salt in 0..64 {
+            let names = caveat_names(salt);
+            let mut source = String::from(
+                "evidence e from \"tool\";\nevent report;\nevent flag;\non report reveal e;\n",
+            );
+            for name in &names {
+                source.push_str(&format!("caveat {name} consequence low;\n"));
+            }
+            for name in &names {
+                source.push_str(&format!("on flag qualify e with {name};\n"));
+            }
+            let mut session = ReactiveSession::from_source(&source).unwrap();
+            accepted(&mut session, "report");
+            accepted(&mut session, "flag");
+            let (walked, sorted) = walked_and_sorted(&session, &names);
+            let expected = limit(&[], &sorted);
+            if limit(&[], &walked) == expected {
+                continue;
+            }
+            // A value read through a record that lists `e`, without the
+            // caveats learned since: every one of them is read live.
+            let mut read = Provenance::from_names(["e".to_string()], []).unwrap();
+            assert_eq!(session.read_live(&mut read).unwrap_err().message, expected);
+            return;
+        }
+        panic!("no names put the symbol table's order on the other limit");
     }
 }

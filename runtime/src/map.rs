@@ -876,11 +876,9 @@ fn validate_epistemic_actions(
             ));
         }
     }
-    let mut actions = HashSet::default();
     let mut fallback_seen = HashSet::default();
     for (index, resolution) in resolutions.iter().enumerate() {
         validate_action(&resolution.action)?;
-        actions.insert(resolution.action.as_str());
         if fallback_seen.contains(resolution.action.as_str()) {
             return Err(format!(
                 "otherwise must be the final resolution for action {}",
@@ -901,8 +899,11 @@ fn validate_epistemic_actions(
             fallback_seen.insert(resolution.action.as_str());
         }
     }
-    for action in actions {
-        if !fallback_seen.contains(action) {
+    // In source order, as the errors above: the first action resolved
+    // without an `otherwise`.
+    for resolution in resolutions {
+        let action = &resolution.action;
+        if !fallback_seen.contains(action.as_str()) {
             return Err(format!(
                 "action {action} requires exactly one otherwise resolution"
             ));
@@ -1122,14 +1123,14 @@ fn validate_world(
         }
     }
 
+    // In source order, as `GameSession::from_source` checks the same.
     let offered =
         choices
             .iter()
             .flat_map(|choice| choice.options.iter())
             .chain(investigations.iter().flat_map(|investigation| {
                 investigation.options.iter().map(|option| &option.symbol)
-            }))
-            .collect::<HashSet<_>>();
+            }));
 
     for action in offered {
         if !world.action_plans.iter().any(|plan| &plan.action == action) {
