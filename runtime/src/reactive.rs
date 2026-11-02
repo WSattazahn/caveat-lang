@@ -6242,7 +6242,7 @@ impl ReactiveSession {
         let core = if observed {
             // Observed evidence is declared evidence that is not retired, so
             // the search needs none of `qualify_core`'s checks.
-            Some(self.qualify_checked(name, &[], true)?)
+            Some(self.qualify_checked(name, &[])?)
         } else {
             None
         };
@@ -6500,26 +6500,31 @@ impl ReactiveSession {
     /// and any explicit extras: what a qualified value is *about*, without the
     /// guard that revealed the evidence.
     fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
-        self.qualify_core_with(evidence, extras, true)
+        self.require_qualifiable(evidence, extras)?;
+        self.qualify_checked(evidence, extras)
     }
 
-    /// `qualify_core` with taken-back relations still counted: the caveats
-    /// the evidence carried before any take-back, which a decision journal
-    /// entry made then may cite.
-    pub(crate) fn qualify_core_before_take_back(
-        &self,
-        evidence: &str,
-    ) -> Result<Provenance, String> {
-        self.qualify_core_with(evidence, &[], false)
-            .map_err(String::from)
+    /// Where `qualify_core` looks for the caveats of `evidence`, once it has
+    /// checked that `evidence` can be qualified.
+    pub(crate) fn qualification_roots(&self, evidence: &str) -> Result<Vec<NodeId>, String> {
+        self.require_qualifiable(evidence, &[])
+            .map_err(String::from)?;
+        Ok(self.qualify_roots(evidence, &[]))
     }
 
-    fn qualify_core_with(
-        &self,
-        evidence: &str,
-        extras: &[String],
-        honor_take_back: bool,
-    ) -> Result<Provenance, EvalError> {
+    /// The caveats reaching `roots`, with taken-back relations still
+    /// counted: every caveat a decision journal entry made on them may cite.
+    /// These are names to check an entry against, not a lineage, so the
+    /// provenance limits do not apply to them: a reopening that ends a hold
+    /// cites every deferred cause, the causes may have gained caveats since,
+    /// and a caveat taken back still counts.
+    pub(crate) fn caveats_before_take_back(&self, roots: Vec<NodeId>) -> Vec<String> {
+        self.caveats_reaching(roots, false, 0)
+    }
+
+    /// What `qualify_core` requires: `evidence` names evidence that is
+    /// observed or retired, and each extra names a caveat.
+    fn require_qualifiable(&self, evidence: &str, extras: &[String]) -> Result<(), EvalError> {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
@@ -6531,17 +6536,22 @@ impl ReactiveSession {
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
         }
-        self.qualify_checked(evidence, extras, honor_take_back)
+        Ok(())
     }
 
-    /// `qualify_core_with` once its checks have passed: `evidence` names
-    /// evidence that is observed or retired, and each extra names a caveat.
-    fn qualify_checked(
-        &self,
-        evidence: &str,
-        extras: &[String],
-        honor_take_back: bool,
-    ) -> Result<Provenance, EvalError> {
+    /// `qualify_core` once `require_qualifiable` has passed.
+    fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
+        // The evidence's name goes ahead of the caveats; the extras follow.
+        let caveats = self
+            .caveats_reaching(self.qualify_roots(evidence, extras), true, 1)
+            .into_iter()
+            .chain(extras.iter().cloned());
+        Provenance::from_names([evidence.into()], caveats)
+    }
+
+    /// Where the caveats of `evidence` are found: the evidence itself, each
+    /// extra caveat, and each claim the evidence supports or opposes.
+    fn qualify_roots(&self, evidence: &str, extras: &[String]) -> Vec<NodeId> {
         let id = self.symbols[evidence];
         let mut roots = vec![id];
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
@@ -6556,12 +6566,7 @@ impl ReactiveSession {
                 })
                 .map(|edge| edge.to),
         );
-        // The evidence's name goes ahead of the caveats; the extras follow.
-        let caveats = self
-            .caveats_reaching(roots, honor_take_back, 1)
-            .into_iter()
-            .chain(extras.iter().cloned());
-        Provenance::from_names([evidence.into()], caveats)
+        roots
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {

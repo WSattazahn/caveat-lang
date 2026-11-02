@@ -244,6 +244,10 @@ those fields were introduced. Historical caveats may be a strict subset of
 current caveats: later qualification does not rewrite history. In a program
 that takes back, current caveats may also lack one a historical record keeps:
 a [take-back](caveat-take-back-0.1.md) does not rewrite history either.
+The provenance limits bound a lineage, not a journal entry, so restore checks
+an entry's names without them: a reopening that ends a hold cites every
+deferred cause and the caveats of each, more names together than one lineage
+may hold, and the current caveats an entry is checked against have no bound.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
 30,000 when asked, and remove each of its records in turn. Each altered save
@@ -329,6 +333,24 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-02 (D038): restore no longer holds a decision journal entry's
+  names to the provenance limits of 1,024 names and 65,536 bytes of them.
+  An entry is not a lineage. A reopening that ends a hold, by a release or by
+  a withdrawal breaking through it, cites every deferred cause and the
+  caveats of each, more together than one value may hold. And the caveats an
+  entry other than a commit cites were checked against what reaches each of
+  its causes now, taken-back relations included, as one lineage per cause:
+  that grows with every later qualification of a cause and counts the
+  relations taken back before the entry. Restore refused such a save, which
+  the runtime itself writes, with "value provenance exceeds limit ...", so
+  no save of the session restored while the entry stayed in the journal,
+  breaking the promise that a 1.x save restores. The names are checked as
+  before, without the limits: each is declared or created evidence or a
+  caveat, the evidence is observed, a commit's names are its frozen grounds,
+  another entry's caveats each reach one of its causes, and each caveat is
+  one the source can attach. Every save restore accepted before is accepted
+  alike.
 
 - 2026-10-11 (rc.18, specified; implemented in P4): the additive `taken_back`
   and `kept` fields and their restore checks

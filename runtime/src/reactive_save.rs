@@ -314,6 +314,19 @@ fn node_kind(node: Option<&NodeKind>) -> &'static str {
     }
 }
 
+/// A decision journal entry's witnesses as names: its `because` evidence and
+/// its `caveats`, each sorted and without repeats. They are not a lineage. A
+/// reopening that ends a hold, or breaks through one, cites every deferred
+/// cause, and their caveats together can pass the limits one lineage keeps
+/// to, so no limit applies here.
+fn journal_witnesses(entry: &JournalEntry) -> Provenance {
+    Provenance {
+        evidence: entry.because.iter().cloned().collect(),
+        caveats: entry.caveats.iter().cloned().collect(),
+        ..Provenance::default()
+    }
+}
+
 /// A commitment retains exactly its basis's caveats and relies on exactly its
 /// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
 /// and relies on to that basis, so anything more would change what the next
@@ -2312,6 +2325,18 @@ impl ReactiveSession {
         provenance
             .validate()
             .map_err(|error| format!("{what}: {error}"))?;
+        self.check_names(what, provenance, observed, caveats)
+    }
+
+    /// `check_provenance` without the limits on one lineage's size, for names
+    /// that are not a lineage: a decision journal entry's witnesses.
+    fn check_names(
+        &self,
+        what: &str,
+        provenance: &Provenance,
+        observed: &HashSet<NodeId>,
+        caveats: Option<&CaveatSources>,
+    ) -> Result<(), String> {
         for name in &provenance.evidence {
             self.require_kind(name, "evidence")
                 .and_then(|()| self.require_observed(name, observed))
@@ -2336,22 +2361,34 @@ impl ReactiveSession {
         provenance: &Provenance,
         caveats: &CaveatSources,
     ) -> Result<(), String> {
+        // What each source of its evidence can attach, each source once: a
+        // decision journal entry can cite many occurrences of one stream,
+        // and no limit keeps its witnesses few.
+        let mut sources: Option<Vec<&HashSet<String>>> = None;
         for name in &provenance.caveats {
-            // A departed record's qualifications stay with what carried it,
-            // so its history's marker can account for one.
-            let attachable = caveats.unpaired.contains(name.as_str())
-                || provenance
+            if caveats.unpaired.contains(name.as_str()) {
+                continue;
+            }
+            let sources = sources.get_or_insert_with(|| {
+                // A departed record's qualifications stay with what carried
+                // it, so its history's marker can account for one.
+                let mut evidence = provenance
                     .evidence
                     .iter()
                     .map(|evidence| self.source_evidence(evidence))
                     .chain(provenance.departed.keys().map(String::as_str))
-                    .any(|evidence| {
-                        caveats
-                            .attachable
-                            .get(evidence)
-                            .is_some_and(|attachable| attachable.contains(name.as_str()))
-                    });
-            if !attachable {
+                    .collect::<Vec<_>>();
+                evidence.sort_unstable();
+                evidence.dedup();
+                evidence
+                    .into_iter()
+                    .filter_map(|evidence| caveats.attachable.get(evidence))
+                    .collect()
+            });
+            if !sources
+                .iter()
+                .any(|attachable| attachable.contains(name.as_str()))
+            {
                 return Err(format!("{what}: {name} cannot qualify any of its evidence"));
             }
         }
@@ -2957,11 +2994,7 @@ impl ReactiveSession {
         }
         // After the journal's own diagnostics: what each entry records.
         for entry in &save.decision_journal {
-            let provenance = Provenance::from_names(
-                entry.because.iter().cloned(),
-                entry.caveats.iter().cloned(),
-            )?;
-            self.check_attachable("decision journal", &provenance, caveats)?;
+            self.check_attachable("decision journal", &journal_witnesses(entry), caveats)?;
         }
         // F317-F322: and the other way, every membership the graph records
         // has its record, as every event that adds one leaves it. Evidence
@@ -3134,11 +3167,8 @@ impl ReactiveSession {
             }) {
                 return Err(fail("entry value differs from its frozen commitment"));
             }
-            let provenance = Provenance::from_names(
-                entry.because.iter().cloned(),
-                entry.caveats.iter().cloned(),
-            )?;
-            self.check_provenance("decision journal", &provenance, observed, None)?;
+            let provenance = journal_witnesses(entry);
+            self.check_names("decision journal", &provenance, observed, None)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
                 || entry.caveats
@@ -3234,7 +3264,7 @@ impl ReactiveSession {
                 // reopening cause (spec/caveat-holds-0.1.md).
                 let reopening = entry.change == "reopened";
                 let seen = reopened.entry(&entry.commitment).or_default();
-                let mut related_caveats = NameSet::default();
+                let mut roots = Vec::new();
                 for evidence in &entry.because {
                     if reopening {
                         if seen.contains(&evidence.as_str()) {
@@ -3242,8 +3272,14 @@ impl ReactiveSession {
                         }
                         seen.push(evidence);
                     }
-                    related_caveats.extend(self.qualify_core_before_take_back(evidence)?.caveats);
+                    roots.extend(self.qualification_roots(evidence)?);
                 }
+                // What reaches any witness is what reaches one of them, so
+                // one walk serves them all.
+                let related_caveats = self
+                    .caveats_before_take_back(roots)
+                    .into_iter()
+                    .collect::<NameSet>();
                 // Qualification only adds relations, and a take-back marks one
                 // without removing it (Take-back 0.1), so a reopening's
                 // caveats are a subset of what its witnesses' relations,
