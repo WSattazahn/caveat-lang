@@ -159,3 +159,42 @@ fn legacy_evaluation_and_interactive_modes_keep_their_existing_behavior() {
         String::from_utf8_lossy(&output.stderr).contains("choose either --game or --interactive")
     );
 }
+
+/// Finding: `caveat FILE.cav` printed the decision record in the symbol table's
+/// (hash) order, so its lines moved from run to run. They come in name order.
+/// The binary hashes with its own seed, so this cannot read its order; twelve
+/// commitments declared out of name order come out sorted by chance about
+/// once in 479 million runs, and the test runs two.
+#[test]
+fn the_decision_record_lists_commitments_in_name_order_not_hash_order() {
+    let names = [
+        "lima", "delta", "kilo", "alpha", "juliet", "echo", "india", "bravo", "hotel", "charlie",
+        "golf", "foxtrot",
+    ];
+    let mut source = String::from("claim c;\ncaveat k consequence low;\nk qualifies c;\n");
+    for name in names {
+        source.push_str(&format!("commit {name} because enough retaining k;\n"));
+    }
+    source.push_str("reopen delta because k;\n");
+    let mut sorted = names;
+    sorted.sort_unstable();
+    let record = sorted
+        .iter()
+        .map(|name| {
+            let status = if *name == "delta" {
+                "REOPENED"
+            } else {
+                "committed"
+            };
+            format!("{name}: {status}\n")
+        })
+        .collect::<String>();
+    for arguments in [vec![], vec!["-i"]] {
+        let output = run(&source, &arguments, "");
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(
+            stdout(&output),
+            format!("\n--- Decision record ---\n{record}")
+        );
+    }
+}

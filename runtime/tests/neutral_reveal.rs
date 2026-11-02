@@ -454,3 +454,37 @@ fn scheduled_neutral_qualification_requires_its_observation_after_restore() {
         .iter()
         .any(|edge| edge.from == "stale" && edge.to == "memory" && edge.relation == "qualifies"));
 }
+
+/// Finding: restore named whichever omitted stance-bearing evidence came first
+/// in a hash set of node ids, so a save that omits several was refused with a
+/// different name from process to process. Both namings below have the same
+/// nodes, which a hash set walks in one order, but `a` is a different node in
+/// each: only the least name passes both.
+#[test]
+fn observations_omitting_several_stance_bearing_evidence_name_the_least_not_the_first_in_hash_order(
+) {
+    for (first, second) in [("a", "b"), ("b", "a")] {
+        let source = format!(
+            "claim c;\nevidence {first} from \"x\";\nevidence {second} from \"x\";\n\
+             evidence m from \"x\";\nevent r1;\nevent r2;\nevent consult;\n\
+             on r1 reveal {first} supports c;\non r2 reveal {second} supports c;\n\
+             on consult reveal m;\n"
+        );
+        let mut session = load(&source);
+        for event in ["r1", "r2", "consult"] {
+            send(&mut session, event);
+        }
+        let mut save = session.save().unwrap();
+        assert!(
+            save.observations.is_some(),
+            "a neutral reveal lists observations"
+        );
+        save.observations = Some(vec!["m".into()]);
+        assert_eq!(
+            ReactiveSession::restore(&source, &save)
+                .map(|_| ())
+                .unwrap_err(),
+            "cannot restore save: observations omits stance-bearing evidence a"
+        );
+    }
+}

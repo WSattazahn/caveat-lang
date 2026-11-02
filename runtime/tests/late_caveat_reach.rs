@@ -2,8 +2,9 @@
 //! the evidence the record lists (spec/caveat-caveat-sources-0.1.md). A read
 //! that would gain more caveats than a lineage holds is refused as
 //! `limit/provenance_limit`, and the session goes on. Past 1,024 caveats the
-//! runtime names them in the order it always has, so a faster lookup cannot
-//! change which of the two limits such a refusal reports.
+//! runtime names them in name order, so which of the two limits such a
+//! refusal reports is the same in every process. These names are short, so it
+//! is the identifier limit in any order.
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::Value;
 

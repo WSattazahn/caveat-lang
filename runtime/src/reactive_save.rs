@@ -2165,15 +2165,20 @@ impl ReactiveSession {
         if !observations.starts_with(&loaded) {
             return Err("observations changes source-declared observation order".into());
         }
-        for id in self.observed_evidence() {
-            let name = self
-                .symbols
-                .iter()
-                .find_map(|(name, candidate)| (*candidate == id).then_some(name))
-                .unwrap();
-            if !seen.contains(name.as_str()) {
-                return Err(format!("observations omits stance-bearing evidence {name}"));
-            }
+        // The least name it omits, not the first the set below walks to.
+        let omitted = self
+            .observed_evidence()
+            .into_iter()
+            .map(|id| {
+                self.symbols
+                    .iter()
+                    .find_map(|(name, candidate)| (*candidate == id).then_some(name))
+                    .unwrap()
+            })
+            .filter(|name| !seen.contains(name.as_str()))
+            .min();
+        if let Some(name) = omitted {
+            return Err(format!("observations omits stance-bearing evidence {name}"));
         }
         let positions = observations
             .iter()
@@ -3259,7 +3264,11 @@ impl ReactiveSession {
                 }
             }
         }
-        for (name, id) in self.symbols.iter() {
+        // In name order: with more than one defect, the first commitment by
+        // name decides the refusal, not the symbol table's hash order.
+        let mut by_name = self.symbols.iter().collect::<Vec<_>>();
+        by_name.sort_unstable();
+        for (name, id) in by_name {
             let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(id) else {
                 continue;
             };
@@ -3922,5 +3931,62 @@ impl ReactiveSession {
             }
         }
         false
+    }
+}
+
+#[cfg(test)]
+mod journal_order_tests {
+    use super::*;
+
+    /// Finding: the last loop of `check_saved_journal` walked the symbol table
+    /// in its own (hash) order, so a save in which one commitment has no
+    /// journal entry and another disagrees with the graph's reopenings was
+    /// refused with either message from process to process. Here the table
+    /// walks the second commitment first, so only name order passes.
+    #[test]
+    fn a_journal_with_two_defects_is_refused_for_the_commitment_first_in_name_order_not_symbol_table_order(
+    ) {
+        for salt in 0..64 {
+            let (plain, reopened) = (format!("a{salt}"), format!("b{salt}"));
+            let source = format!(
+                "claim c;\nevidence e from \"x\";\nevent go;\nevent pa;\nevent pb;\nevent re;\n\
+                 on go reveal e supports c;\non pa commit {plain} because enough;\n\
+                 on pb commit {reopened} because enough;\non re reopen {reopened} because e;\n"
+            );
+            let mut session = ReactiveSession::from_source(&source).unwrap();
+            for event in ["go", "pa", "pb", "re"] {
+                session.dispatch_json(event, "{}").unwrap();
+            }
+            let save = session.save().unwrap();
+            let restored = ReactiveSession::restore(&source, &save).unwrap();
+            let first = restored
+                .symbols
+                .keys()
+                .find(|name| **name == plain || **name == reopened)
+                .unwrap();
+            if *first == plain {
+                // This table walks them in name order already: other names.
+                continue;
+            }
+            // `plain` loses its only entry, and `reopened` its reopening,
+            // which the graph still holds.
+            let mut edited = save.clone();
+            edited
+                .decision_journal
+                .retain(|entry| entry.commitment != plain && entry.change != "reopened");
+            assert_eq!(
+                restored.check_saved_journal(&edited, &restored.observed_evidence()),
+                Err("decision journal: created commitment has no journal entry".to_string())
+            );
+            assert_eq!(
+                ReactiveSession::restore(&source, &edited).map(|_| ()),
+                Err(
+                    "cannot restore save: decision journal: created commitment has no journal entry"
+                        .to_string()
+                )
+            );
+            return;
+        }
+        panic!("no names put the symbol table's order against name order");
     }
 }
