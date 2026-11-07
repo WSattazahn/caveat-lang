@@ -245,8 +245,11 @@ The outcome's evidence stays pinned against
 hold's reasons are. A series has no window and a revision holds at most one
 outcome, so the pins are bounded by the series' `limit`.
 
-Its lineage pins nothing. When a record the lineage names departs, the name
-leaves it and joins its history's marker, as in a basis
+Its lineage pins nothing, but, as a basis does, it keeps withdrawal
+collection from taking a record it names
+([Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md), rule 4).
+When a record the lineage names departs, the name leaves it and joins its
+history's marker, as in a basis
 ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), and restore
 checks its markers, `inherited` names and kept caveats as it checks every
 other provenance's.
@@ -322,6 +325,11 @@ At this profile's revision:
 ## Changes
 
 - 2026-10-24: drafted and implemented for 1.3.
+- 2026-11-07 (D047): an outcome's lineage keeps withdrawal collection from
+  taking a record it names. Before, collection could take a self-withdrawn
+  record that only the lineage named, and `outcome(…)` lost `withdrawn`. See
+  [Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md),
+  "Changes".
 - 2026-11-07 (D041): an outcome's lineage compacts when a record it names
   departs, and restore checks its markers, `inherited` names and kept
   caveats. Before, the departed names stayed in it and restore refused each

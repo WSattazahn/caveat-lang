@@ -488,6 +488,16 @@ impl ReactiveSession {
             CollectorOwner::Series(name) => {
                 if let Some(series) = self.decision_series.get(name) {
                     include(&series.selection_qualifications);
+                    // An outcome's lineage holds what its value read, as a
+                    // basis does, so it vetoes collection (rule 4 of
+                    // spec/caveat-withdrawal-collection-0.1.md).
+                    for outcome in series
+                        .revisions
+                        .iter()
+                        .filter_map(|revision| revision.outcome.as_ref())
+                    {
+                        include(&outcome.lineage);
+                    }
                 }
             }
             CollectorOwner::Record(name) => {
