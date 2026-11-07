@@ -4086,13 +4086,17 @@ impl ReactiveSession {
                     because: reason,
                 },
             ) => selects(evidence, target) && named(because, reason),
-            // A journal entry retires when a commit or reopen adds one past
-            // `journal window N`; a record when its history adds one.
+            // A journal entry retires when a commit, reopen or resolve adds
+            // one past `journal window N`, and a sample when its reading
+            // reopens a series; a record when its history adds one.
             (EffectReport::Retire { history, .. }, _) if history == "journal" => {
                 self.journal_window.is_some()
                     && matches!(
                         rule,
-                        Effect::Commit { .. } | Effect::Reopen { .. } | Effect::Sample { .. }
+                        Effect::Commit { .. }
+                            | Effect::Reopen { .. }
+                            | Effect::Resolve(_)
+                            | Effect::Sample { .. }
                     )
             }
             (EffectReport::Retire { history, .. }, Effect::Sample { stream, .. }) => {
