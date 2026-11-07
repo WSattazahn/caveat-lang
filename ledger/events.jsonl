@@ -321,3 +321,5 @@
 {"event":"release_build_shows","payload":{"number":42}}
 {"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":440}}
+{"event":"find","payload":{"number":43}}
+{"event":"release_build_shows","payload":{"number":43}}

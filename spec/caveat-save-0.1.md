@@ -55,8 +55,10 @@ the program names it:
   so `{"value": 3}` is a state with no evidence;
 - what events did to the graph since the program loaded: the nodes they
   created (reading and renewal occurrences, rebuilt from their names, and
-  commitments with their reason), the relations they added in order (their
-  order is observation order), caveats' attention and open commitments;
+  commitments with their reason) and the relations they added in order
+  (their order is observation order); and every caveat's attention other
+  than `unexamined` and every open commitment, including those a
+  declaration left as the program loaded;
 - `evidence_order`, for each commitment whose grounds evidence was first
   observed in an order other than name order, that order (see
   [View 0.2](caveat-view-0.2.md#ordered-evidence-in-grounds)). A save made
@@ -133,15 +135,22 @@ save is refused with an error, and never crashes the runtime, when:
   commitment its `retaining` caveats. Conditions are not evaluated: the
   caveat is one the program could have attached, not one an event is shown
   to have attached;
-- a caveat's saved attention is one no examination of the loaded source can
-  leave. A reactive event leaves a caveat only `examined`, so `deferred` and
-  `examining` are refused. An `examined` caveat is refused when the program
-  has no attention budget, or when no `examine` in a rule, or in a procedure
-  a rule reaches, names it; and the examined caveats together are refused
-  when the least cost at which the source examines each one sums to more
-  than the budget's `spent`. Conditions are not evaluated and an examination
-  is counted once: the attention is one the program could have left, not one
-  an event is shown to have left;
+- a caveat's saved attention is not `unexamined` and is neither the one the
+  declarations leave it in as the program loads nor one an examination of
+  the loaded source can leave. A declaration can leave a caveat `examined`,
+  `examining` or `deferred` (`examine stale cost 1;`, `examine stale;`,
+  `defer stale;`), and a reactive event leaves a caveat only `examined`, so
+  `deferred` and `examining` are refused unless the declarations leave the
+  caveat so. An `examined` caveat the declarations do not leave `examined`
+  is refused when the program has no attention budget, or when no `examine`
+  in a rule, or in a procedure a rule reaches, names it; and those examined
+  caveats together are refused when the least cost at which the source
+  examines each one sums to more than the budget's `spent`. A caveat the
+  declarations leave `examined` adds nothing to that sum, since no event
+  need have examined it, and what the declarations spent is not counted
+  either. Conditions are not evaluated and an examination is counted once:
+  the attention is one the program could have left, not one an event is
+  shown to have left;
 - a relation connects kinds of node no event relates. Events add `supports`
   and `opposes` from evidence to a claim, `qualifies` from a caveat to
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
@@ -188,9 +197,9 @@ save is refused with an error, and never crashes the runtime, when:
   relation, or an entry of `observations`) without an observation record, a
   caveat the save leaves `examined` without an examination record, or a
   commitment a `reopens` relation names without a reopening record.
-  Evidence a declaration relates to a claim, and a caveat a declaration
-  examines, are observed and examined as the program loads and need none. A
-  record removed together with its membership is still accepted;
+  Evidence a declaration relates to a claim, and a caveat the declarations
+  leave `examined`, are observed and examined as the program loads and need
+  none. A record removed together with its membership is still accepted;
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -333,6 +342,23 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-07 (D043): restore accepts the attention a declaration leaves. A
+  declaration such as `examine stale cost 1;`, `examine stale;` or `defer
+  stale;` leaves the caveat `examined`, `examining` or `deferred` as the
+  program loads, and a save holds that attention until an event examines
+  the caveat, but restore checked it as if an event had left it. It refused
+  every save that still held a declared `examining` or `deferred`, which no
+  reactive event leaves, or a declared `examined` that no rule examines; and
+  when a rule could examine a declared `examined` caveat, it counted that
+  rule's least cost against the budget's `spent` and refused whenever
+  `spent` fell short: with `examine stale cost 1;` and a rule that examines
+  `stale` for 3, the save written before any event was refused. That broke
+  the promise that a 1.x save restores. Restore now accepts the attention
+  the declarations leave, and leaves a caveat they leave `examined` out of
+  the least cost `spent` must cover. A save that holds no attention the
+  declarations left restores, or is refused with the same message, as
+  before.
 
 - 2026-11-07 (D041): departure compacts an outcome's lineage, so restore no
   longer refuses a save for the departed names an outcome kept. An outcome's
