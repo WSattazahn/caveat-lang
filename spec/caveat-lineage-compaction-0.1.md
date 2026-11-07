@@ -80,7 +80,10 @@ inherits through a selection or reopening qualification: [Reactive 0.5](caveat-r
 has later `latest`, `has_sample` and current-series predicates inherit a
 skipped sample's or skipped series commit's guard. Those inherited names are
 not the value's own reads. They pin nothing and compact like lineage, so a
-grounds may hold a marker, and only through such a qualification.
+grounds may hold a marker through such a qualification. It may also hold one
+through a read of an outcome: a value that reads one, through `outcome(…)` or
+a true `resolved(…)`, takes the outcome's lineage into its grounds, markers
+included, and those markers pin nothing either (see "Outcomes" below).
 
 These are the reasons the language promises to keep. The original argument
 expected them to be bounded by the source, not the run: a grounds replaces the
@@ -181,10 +184,12 @@ be discarded merely to satisfy that expectation.
 
 The departure specification defines the archive that the host drains. Under
 this profile, each departed record's archive entry also names the provenances
-that held it when it departed: the states, commitments, journal entries,
-withdrawals and permission records. Their number follows the retained
-provenance holders. A universal bound from declarations and windows alone is
-not established while withdrawal retention can grow; see the
+that held it when it departed, as [Departure 0.1](caveat-departure-0.1.md)'s
+`holders` lists them: states, commitments, decision series (their selection
+qualifications and their revisions' outcome lineages), reading streams and
+readings, scheduled guards, cues and qualifications. Their number follows the
+retained provenance holders. A universal bound from declarations and windows
+alone is not established while withdrawal retention can grow; see the
 [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md).
 Holder rows describe the instant of departure. They cannot by themselves
 identify a holder's membership after copying, merging or replacement. Exact
@@ -339,10 +344,11 @@ reads. Snapshots show `inherited` wherever the session holds it.
 
 When an inherited name departs, it leaves both `evidence` and `inherited` and
 joins the grounds' marker for its history. Every name in `inherited` is
-therefore still in `evidence`, and every marker in a grounds is inherited, as
-the rule in "What stays exact" requires. An own read never departs while it
-is cited, because it pins. The next `set` replaces the whole grounds, its
-`inherited` list and markers included, as it replaces the names today.
+therefore still in `evidence`, and every marker in a grounds is inherited or
+came with an outcome's lineage, as the rule in "What stays exact" requires.
+An own read never departs while it is cited, because it pins. The next `set`
+replaces the whole grounds, its `inherited` list and markers included, as it
+replaces the names today.
 
 A windowed save written by rc.15 has no `inherited` field, and none of its
 records have departed. Restore reads each missing list as empty, so every
@@ -401,7 +407,7 @@ Restore refuses a save when:
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's;
 - a name in `inherited` is not also in the same provenance's `evidence`;
-- `inherited` appears in a save of a program without a window. The 13
+- `inherited` appears in a save of a program without a window. The 14
   holders above are every provenance the schema has, so a field anywhere
   else is already an unknown field, and restore refuses it as such.
 
@@ -438,7 +444,9 @@ else cites journal entries.
 is frozen when the revision is resolved, as a basis is, and compacts as a
 basis does: when a record it names departs, the name leaves the lineage and
 joins its history's marker. Only the outcome's `because` stays exact and
-pinned.
+pinned. A value that reads the outcome, through `outcome(…)` or a true
+`resolved(…)`, takes the lineage into its grounds, markers included, and
+those markers pin nothing.
 
 ## Gate
 
@@ -584,14 +592,22 @@ provenance read in its range.
 - 2026-11-07 (D041): an outcome's lineage compacts. Outcomes 0.1 (1.3)
   added the lineage to the save but not to the list in "Save and restore",
   and departure never compacted it, so a record it named departed and its
-  name stayed. Restore refused every later save of the session with "outcome
-  of D@K: R must name a declared evidence", a value that read the outcome
-  copied the departed names, and a marker the outcome's value joined as it
-  resolved was never published to the archive. Departure now compacts the
-  lineage and lists it among the departed record's holders, the archive
-  publishes its markers' membership, and restore checks its markers,
-  `inherited` names and kept caveats as it checks every other provenance's.
-  The list in "Save and restore" gains it as its 14th provenance. It pins
+  name stayed. A value that read the outcome copied the departed names, and
+  restore refused each later save that still held them, naming the first
+  holder it checked, as in "outcome of D@K: R must name a declared evidence"
+  or "state S: R must name a declared evidence". Some events that read such
+  an outcome, as a rule's commit `using outcome(D)` did, were fatal ("event
+  E, rule N: R must name a declared evidence"); they are now accepted. A
+  marker the outcome's value joined as it resolved was never published to
+  the archive. Departure now compacts the lineage and lists it among the
+  departed record's holders, the archive publishes its markers' membership,
+  and restore checks its markers, `inherited` names and kept caveats as it
+  checks every other provenance's. The list in "Save and restore" gains it
+  as its 14th provenance. "What stays exact" and the grounds rule in "Save
+  and restore" now say that a value reading an outcome takes the lineage's
+  markers into its grounds, and "The archive entry" lists the holders as
+  Departure 0.1 does; it named journal entries, withdrawals and permission
+  records, which the runtime never lists as holders. The lineage pins
   nothing, as before; only the outcome's `because` pins. A session in which
   no outcome's lineage holds a departed record gives the same saves,
   snapshots, views and archive as before.

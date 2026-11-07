@@ -248,7 +248,8 @@ outcome, so the pins are bounded by the series' `limit`.
 Its lineage pins nothing. When a record the lineage names departs, the name
 leaves it and joins its history's marker, as in a basis
 ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), and restore
-checks its markers as it checks every other provenance's.
+checks its markers, `inherited` names and kept caveats as it checks every
+other provenance's.
 
 ## 5. Views and explain
 
@@ -322,6 +323,7 @@ At this profile's revision:
 
 - 2026-10-24: drafted and implemented for 1.3.
 - 2026-11-07 (D041): an outcome's lineage compacts when a record it names
-  departs, and restore checks its markers. Before, the departed names stayed
-  in it and restore refused every later save of the session. See
+  departs, and restore checks its markers, `inherited` names and kept
+  caveats. Before, the departed names stayed in it and restore refused each
+  later save that still held them. See
   [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md), "Changes".
