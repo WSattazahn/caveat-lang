@@ -124,6 +124,14 @@ arise. Its delay must be a whole number in `0..2^53 − 1`: a literal that is
 not is rejected when the program loads, and a computed one that is not refuses
 the event as `evaluation/expression`.
 
+A delay is never negative. Under the binary64 clock a negative delay,
+computed or written as a literal, refuses the event that runs it as
+`evaluation/expression` ([Dispatch 0.1](caveat-dispatch-0.1.md)). Under an
+integer clock the rule above applies: a negative literal is rejected when
+the program loads, and a negative computed delay refuses the event. Minus
+zero is not negative: it schedules, and the qualification applies on the
+next time event.
+
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
 qualifications can wait at once; scheduling another refuses the event as
 `limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
@@ -143,6 +151,13 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-11-07 (D042, Version Lab F262): under the binary64 clock a negative
+  delay refuses the event that runs it as `evaluation/expression`. Before,
+  that event was fatal, and a host lost the session
+  ([Dispatch 0.1](caveat-dispatch-0.1.md), "Changes"). Under an integer
+  clock nothing changes: a negative literal delay is rejected when the
+  program loads, and a negative computed one refuses the event.
 
 - 2026-10-25 (1.4.0): a reading sampled from renewable evidence inherits the
   caveats qualifying the occurrence current when it is taken, not only the

@@ -161,7 +161,7 @@ and no output changes.
 | `evaluation` | `already_resolved` | An executed `resolve` names a revision that already has an outcome whose evidence is not withdrawn ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
 | `evaluation` | `reason_spent` | An executed `commit` names a `once` reason whose current occurrence is already the reason of a retained caveat in a commitment the session holds ([Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md), from 1.4.0). |
 | `evaluation` | `not_retained` | An executed `resolve … materialized CAVEAT` names a caveat the revision does not retain ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or `outcome(…)` of a revision with no outcome ([Outcomes 0.1](caveat-outcomes-0.1.md)), or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a `qualify … after` delay under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or `outcome(…)` of a revision with no outcome ([Outcomes 0.1](caveat-outcomes-0.1.md)), or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a negative `qualify … after` delay ([Renewal 0.1](caveat-renewal-0.1.md#scheduled-qualification)), or one under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
 | `evaluation` | `unset_state` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, reads a state declared `unset` that has no value, outside `is_set(…)` ([Unset States 0.1](caveat-unset-states-0.1.md), 1.5 draft). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
@@ -278,6 +278,17 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-11-07 (D042, Version Lab F262): a negative `qualify … after` delay
+  is `evaluation/expression` under the binary64 clock too, as one an
+  integer clock cannot wait already was. Before it, the event that ran the
+  delay was fatal `unclassified`, although the runtime had already rolled it
+  back, so a host lost the session over a number the session computed. The
+  rollback and the diagnostic text are unchanged, no accepted event
+  changes, and no code is added or reassigned. Under the binary64 clock a
+  program with a negative literal delay still loads, as before, and the
+  event that runs it is refused; under an integer clock such a program is
+  still rejected when it loads.
 
 - 2026-10-05 (rc.15, specified): three sites of the
   [integer clock](caveat-elapsed-0.1.md#integer-clocks) join existing codes:
