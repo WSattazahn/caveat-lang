@@ -189,7 +189,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::{NameTable, Records, Sealed};
+use write::{NameTable, Records, Sealed, SealedGraph};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1631,8 +1631,7 @@ impl Changes {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
-        let graph = !(Arc::ptr_eq(&old.graph, &new.graph)
-            || (old.graph.edges == new.graph.edges && old.graph.nodes == new.graph.nodes))
+        let graph = !new.graph.unchanged_since(&old.graph)
             || !same(&old.symbols, &new.symbols)
             || !same(&old.observations, &new.observations)
             || !new
@@ -1898,7 +1897,7 @@ impl Changes {
             // follows the relations into the node it names. A `supports` or
             // `opposes` edge makes its evidence bear on a claim, whose
             // caveats the evidence then carries.
-            let added = new.graph.edges.strip_prefix(old.graph.edges.as_slice())?;
+            let (added, nodes) = new.graph.added_since(&old.graph)?;
             let mut touched = HashSet::default();
             let mut qualified = HashSet::default();
             for edge in added {
@@ -1913,21 +1912,7 @@ impl Changes {
                     _ => touched.extend([edge.from, edge.to]),
                 }
             }
-            if old
-                .graph
-                .nodes
-                .keys()
-                .any(|id| !new.graph.nodes.contains_key(id))
-            {
-                return None;
-            }
-            touched.extend(
-                new.graph
-                    .nodes
-                    .iter()
-                    .filter(|(id, node)| old.graph.nodes.get(id) != Some(*node))
-                    .map(|(id, _)| *id),
-            );
+            touched.extend(nodes);
             for name in touched.iter().filter_map(|&id| new.symbols.name_of(id)) {
                 if let Some(history) = history_of(name) {
                     changed.insert(history);
@@ -2510,7 +2495,7 @@ pub struct ReactiveSession {
     cue_qualifications: Vec<Provenance>,
     controls: Arc<BTreeMap<String, Control>>,
     clock: Option<Clock>,
-    graph: Sealed<EpistemicGraph>,
+    graph: SealedGraph,
     /// The names map, with each named record's name by node.
     symbols: NameTable,
     resources: Option<ResourceLedger>,
