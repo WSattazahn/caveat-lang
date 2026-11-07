@@ -757,7 +757,7 @@ impl ReactiveSession {
                 attention,
                 open,
             },
-            commitment_bases: (*self.commitment_bases).clone(),
+            commitment_bases: (**self.commitment_bases).clone(),
             commitment_grounds: self
                 .commitment_grounds
                 .iter()
@@ -781,7 +781,7 @@ impl ReactiveSession {
                 .iter()
                 .map(|(name, stream)| (name.clone(), (**stream).clone()))
                 .collect(),
-            decision_series: (*self.decision_series).clone(),
+            decision_series: (**self.decision_series).clone(),
             renewals: self
                 .renewals
                 .iter()
@@ -3126,23 +3126,23 @@ impl ReactiveSession {
                 ));
             }
         }
-        self.commitment_bases = Arc::new(save.commitment_bases.clone());
-        self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
-        self.reading_streams = Arc::new(
+        self.commitment_bases = Records::new(save.commitment_bases.clone());
+        self.commitment_grounds = Records::new(full_map(&save.commitment_grounds));
+        self.reading_streams = Records::new(
             save.reading_streams
                 .iter()
                 .map(|(name, stream)| (name.clone(), Arc::new(stream.clone())))
                 .collect(),
         );
-        self.decision_series = Arc::new(save.decision_series.clone());
+        self.decision_series = Records::new(save.decision_series.clone());
         let renewals = Arc::make_mut(&mut self.renewals);
         for (name, occurrences) in &save.renewals {
             renewals.get_mut(name).expect("checked above").occurrences = occurrences.clone();
         }
         self.scheduled = Arc::new(save.scheduled_qualifications.clone());
-        self.observation_qualifications = Arc::new(full_map(&save.observation_qualifications));
-        self.examination_qualifications = Arc::new(full_map(&save.examination_qualifications));
-        self.reopening_qualifications = Arc::new(full_map(&save.reopening_qualifications));
+        self.observation_qualifications = Records::new(full_map(&save.observation_qualifications));
+        self.examination_qualifications = Records::new(full_map(&save.examination_qualifications));
+        self.reopening_qualifications = Records::new(full_map(&save.reopening_qualifications));
         self.predicate_qualifications = Arc::new(
             save.predicate_qualifications
                 .iter()

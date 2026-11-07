@@ -189,7 +189,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::{NameTable, Sealed};
+use write::{NameTable, Records, Sealed};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1635,20 +1635,22 @@ impl Changes {
             || (old.graph.edges == new.graph.edges && old.graph.nodes == new.graph.nodes))
             || !same(&old.symbols, &new.symbols)
             || !same(&old.observations, &new.observations)
-            || !same(
-                &old.observation_qualifications,
-                &new.observation_qualifications,
-            )
-            || !same(
-                &old.examination_qualifications,
-                &new.examination_qualifications,
-            )
-            || !same(&old.reopening_qualifications, &new.reopening_qualifications)
+            || !new
+                .observation_qualifications
+                .unchanged_since(&old.observation_qualifications)
+            || !new
+                .examination_qualifications
+                .unchanged_since(&old.examination_qualifications)
+            || !new
+                .reopening_qualifications
+                .unchanged_since(&old.reopening_qualifications)
             || !same(&old.predicate_qualifications, &new.predicate_qualifications)
-            || !same(&old.commitment_bases, &new.commitment_bases)
-            || !same(&old.commitment_grounds, &new.commitment_grounds)
-            || !same(&old.reading_streams, &new.reading_streams)
-            || !same(&old.decision_series, &new.decision_series)
+            || !new.commitment_bases.unchanged_since(&old.commitment_bases)
+            || !new
+                .commitment_grounds
+                .unchanged_since(&old.commitment_grounds)
+            || !new.reading_streams.unchanged_since(&old.reading_streams)
+            || !new.decision_series.unchanged_since(&old.decision_series)
             || !same(&old.renewals, &new.renewals)
             || !same(&old.retired, &new.retired)
             || !same(&old.taken_back, &new.taken_back)
@@ -1689,10 +1691,10 @@ impl Changes {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
-        if !same(
-            &old.examination_qualifications,
-            &new.examination_qualifications,
-        ) || !same(&old.retired, &new.retired)
+        if !new
+            .examination_qualifications
+            .unchanged_since(&old.examination_qualifications)
+            || !same(&old.retired, &new.retired)
             || !same(&old.late_caveats, &new.late_caveats)
             || !same(&old.take_back_caveats, &new.take_back_caveats)
             || !same(&old.commitment_permissions, &new.commitment_permissions)
@@ -1761,27 +1763,66 @@ impl Changes {
                 .then(|| history.to_string())
         };
         let mut changed = BTreeSet::new();
-        // Keyed records: every changed key must place in a history.
+        // Keyed records: every changed key must place in a history. Only the
+        // records the event wrote can differ, when its log says which.
         fn keyed<V: PartialEq>(
-            old: &BTreeMap<String, V>,
-            new: &BTreeMap<String, V>,
+            old: &Records<V>,
+            new: &Records<V>,
             added_only: bool,
             place: &dyn Fn(&str) -> Option<String>,
             changed: &mut BTreeSet<String>,
         ) -> Option<()> {
-            if old.keys().any(|key| !new.contains_key(key)) {
-                return None;
+            let found = places(old, new, new.written(), added_only, place);
+            #[cfg(debug_assertions)]
+            if new.written().is_some() {
+                assert_eq!(
+                    found,
+                    places(old, new, None, added_only, place),
+                    "an event wrote a record its log does not name"
+                );
             }
-            for (key, value) in new {
-                match old.get(key) {
-                    Some(previous) if previous == value => {}
-                    Some(_) if added_only => return None,
-                    _ => {
-                        changed.insert(place(key)?);
+            changed.extend(found?);
+            Some(())
+        }
+        // Where the records of `written` changed, or of every name when
+        // `None`; `None` if one was removed, one that may only be added to
+        // changed, or one changed that does not place.
+        fn places<V: PartialEq>(
+            old: &Records<V>,
+            new: &Records<V>,
+            written: Option<&BTreeSet<String>>,
+            added_only: bool,
+            place: &dyn Fn(&str) -> Option<String>,
+        ) -> Option<BTreeSet<String>> {
+            let mut changed = BTreeSet::new();
+            let mut check = |name: &str| -> Option<()> {
+                match (old.get(name), new.get(name)) {
+                    (Some(previous), Some(value)) if previous == value => {}
+                    (None, None) => {}
+                    (Some(_), None) => return None,
+                    (Some(_), Some(_)) if added_only => return None,
+                    (_, Some(_)) => {
+                        changed.insert(place(name)?);
+                    }
+                }
+                Some(())
+            };
+            match written {
+                Some(written) => {
+                    for name in written {
+                        check(name)?;
+                    }
+                }
+                None => {
+                    if old.keys().any(|key| !new.contains_key(key)) {
+                        return None;
+                    }
+                    for name in new.keys() {
+                        check(name)?;
                     }
                 }
             }
-            Some(())
+            Some(changed)
         }
         if !Arc::ptr_eq(&old.reading_streams, &new.reading_streams) {
             keyed(
@@ -2340,7 +2381,7 @@ pub struct ReactiveSession {
     // Copy-on-write: a transaction's copy shares these until an effect
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
-    commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
+    commitment_bases: Records<CommitmentBasis>,
     /// Whether the source declares a threshold, and the thresholds each
     /// enclosing guard of the effect running now names: what a commit lists
     /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
@@ -2348,8 +2389,8 @@ pub struct ReactiveSession {
     guard_thresholds: Vec<BTreeMap<String, f64>>,
     /// Each stream behind its own pointer: a sample copies the stream it
     /// adds to, and the map of pointers, rather than every stream.
-    reading_streams: Arc<BTreeMap<String, Arc<ReadingStream>>>,
-    decision_series: Arc<BTreeMap<String, DecisionSeries>>,
+    reading_streams: Records<Arc<ReadingStream>>,
+    decision_series: Records<DecisionSeries>,
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
     irreversible: Arc<BTreeMap<String, Vec<String>>>,
@@ -2394,9 +2435,9 @@ pub struct ReactiveSession {
     /// The graph as the program declared it: events add nodes after
     /// `last_node` and edges after `edges`.
     loaded: LoadedGraph,
-    observation_qualifications: Arc<BTreeMap<String, Provenance>>,
-    examination_qualifications: Arc<BTreeMap<String, Provenance>>,
-    reopening_qualifications: Arc<BTreeMap<String, Provenance>>,
+    observation_qualifications: Records<Provenance>,
+    examination_qualifications: Records<Provenance>,
+    reopening_qualifications: Records<Provenance>,
     predicate_qualifications: Arc<BTreeMap<String, BTreeMap<String, Provenance>>>,
     // Fixed at load and shared by every transaction.
     ranges: Arc<BTreeMap<String, StateRange>>,
@@ -2432,7 +2473,7 @@ pub struct ReactiveSession {
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
-    commitment_grounds: Arc<BTreeMap<String, Provenance>>,
+    commitment_grounds: Records<Provenance>,
     /// Each commitment's grounds evidence in first-observed order, frozen when
     /// it was made; only where that differs from name order. View 0.2 shows
     /// grounds in this order. See spec/caveat-view-0.2.md.
@@ -2669,11 +2710,11 @@ impl ReactiveSession {
             sequence: 0,
             last_event: None,
             states: States::default(),
-            commitment_bases: Arc::default(),
+            commitment_bases: Records::default(),
             has_thresholds: false,
             guard_thresholds: Vec::new(),
-            reading_streams: Arc::default(),
-            decision_series: Arc::default(),
+            reading_streams: Records::default(),
+            decision_series: Records::default(),
             irreversible: Arc::default(),
             foreclosures: Arc::default(),
             strict_irreversible: Arc::default(),
@@ -2692,9 +2733,9 @@ impl ReactiveSession {
             elapsed: 0.0,
             time_event: None,
             loaded: LoadedGraph::default(),
-            observation_qualifications: Arc::default(),
-            examination_qualifications: Arc::default(),
-            reopening_qualifications: Arc::default(),
+            observation_qualifications: Records::default(),
+            examination_qualifications: Records::default(),
+            reopening_qualifications: Records::default(),
             predicate_qualifications: Arc::default(),
             ranges: Arc::new(BTreeMap::new()),
             constants: Arc::new(constants),
@@ -2713,7 +2754,7 @@ impl ReactiveSession {
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
-            commitment_grounds: Arc::default(),
+            commitment_grounds: Records::default(),
             evidence_order: Arc::default(),
             journal: Chunked::default(),
             windows: Arc::default(),
@@ -2818,7 +2859,7 @@ impl ReactiveSession {
             match directive {
                 Directive::Readings { template, .. } => {
                     session.require_kind(template, "evidence")?;
-                    Arc::make_mut(&mut session.reading_streams).insert(
+                    session.reading_streams.insert(
                         name.clone(),
                         Arc::new(ReadingStream {
                             template: template.clone(),
@@ -2845,7 +2886,7 @@ impl ReactiveSession {
                     if *strict {
                         Arc::make_mut(&mut session.strict_irreversible).insert(name.clone());
                     }
-                    Arc::make_mut(&mut session.decision_series).insert(
+                    session.decision_series.insert(
                         name.clone(),
                         DecisionSeries {
                             limit,
@@ -5130,7 +5171,7 @@ impl ReactiveSession {
                     .selection_qualifications
                     .merged(&guard)?;
                 if let Some(merged) = merged {
-                    Arc::make_mut(&mut self.decision_series)
+                    self.decision_series
                         .get_mut(action)
                         .unwrap()
                         .selection_qualifications = merged;
@@ -5198,18 +5239,15 @@ impl ReactiveSession {
     /// Adds `guard` to `records`' record for `name`, as `merge_predicate_record`
     /// does for a predicate's.
     fn merge_record(
-        records: &mut Arc<BTreeMap<String, Provenance>>,
+        records: &mut Records<Provenance>,
         name: &str,
         guard: &Provenance,
     ) -> Result<(), EvalError> {
         let Some(record) = records.get(name) else {
-            return Arc::make_mut(records)
-                .entry(name.to_string())
-                .or_default()
-                .merge(guard);
+            return records.entry(name.to_string()).or_default().merge(guard);
         };
         if let Some(merged) = record.merged(guard)? {
-            *Arc::make_mut(records).get_mut(name).expect("found above") = merged;
+            *records.get_mut(name).expect("found above") = merged;
         }
         Ok(())
     }
@@ -5217,26 +5255,15 @@ impl ReactiveSession {
     /// The stream `name`, to write: copies the map of streams' pointers and
     /// the stream itself if another session shares them, and no other stream.
     fn stream_mut<'a>(
-        streams: &'a mut Arc<BTreeMap<String, Arc<ReadingStream>>>,
+        streams: &'a mut Records<Arc<ReadingStream>>,
         name: &str,
     ) -> &'a mut ReadingStream {
-        Arc::make_mut(
-            Arc::make_mut(streams)
-                .get_mut(name)
-                .expect("validated stream"),
-        )
+        Arc::make_mut(streams.get_mut(name).expect("validated stream"))
     }
 
     /// Writes each of `merged` over its record in `records`, copying a
     /// shared map only when there is something to write.
-    fn replace_records(
-        records: &mut Arc<BTreeMap<String, Provenance>>,
-        merged: Vec<(String, Provenance)>,
-    ) {
-        if merged.is_empty() {
-            return;
-        }
-        let records = Arc::make_mut(records);
+    fn replace_records(records: &mut Records<Provenance>, merged: Vec<(String, Provenance)>) {
         for (name, lineage) in merged {
             *records.get_mut(&name).expect("listed above") = lineage;
         }
@@ -5654,6 +5681,7 @@ impl ReactiveSession {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
         self.collector_begin();
+        self.begin_write_log();
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -5759,6 +5787,7 @@ impl ReactiveSession {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::BindingEvaluation);
         let changes = Changes::between(old, self);
+        self.end_write_log();
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
@@ -6890,7 +6919,7 @@ impl ReactiveSession {
                     observation = observation.union(condition)?;
                 }
                 self.freeze_observation(&mut observation);
-                Arc::make_mut(&mut self.observation_qualifications)
+                self.observation_qualifications
                     .insert(name.clone(), observation);
                 let mut provenance = self.qualify(&name, &[])?;
                 self.freeze(&mut provenance);
@@ -7112,7 +7141,7 @@ impl ReactiveSession {
                 if !guard.is_empty() {
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications).insert(name.clone(), guard);
+                    self.observation_qualifications.insert(name.clone(), guard);
                 }
                 Arc::make_mut(&mut self.renewals)
                     .get_mut(evidence)
@@ -7275,7 +7304,7 @@ impl ReactiveSession {
                 }
                 self.clear_predicate_dependency("examined", caveat);
                 if self.examination_qualifications.get(caveat) != Some(&attention_basis) {
-                    Arc::make_mut(&mut self.examination_qualifications)
+                    self.examination_qualifications
                         .insert(caveat.clone(), attention_basis);
                 }
                 self.effects.push(EffectReport::Examine {
@@ -7454,7 +7483,7 @@ impl ReactiveSession {
                     self.add_pin(record);
                 }
                 self.freeze(&mut grounds);
-                Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
+                self.commitment_grounds.insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
                 self.freeze(&mut provenance);
 
@@ -7509,7 +7538,7 @@ impl ReactiveSession {
                         expression.collect_thresholds(&mut thresholds);
                     }
                 }
-                Arc::make_mut(&mut self.commitment_bases).insert(
+                self.commitment_bases.insert(
                     name.clone(),
                     CommitmentBasis {
                         value: used_value,
@@ -7531,9 +7560,7 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.retention_reasons).insert(name.clone(), retention);
                 }
                 if let Some(ordinal) = ordinal {
-                    let series = Arc::make_mut(&mut self.decision_series)
-                        .get_mut(action)
-                        .unwrap();
+                    let series = self.decision_series.get_mut(action).unwrap();
                     series.current = Some(name.clone());
                     series.selection_qualifications = Provenance::default();
                     series.revisions.push(DecisionRevision {
@@ -7645,7 +7672,7 @@ impl ReactiveSession {
                                 for evidence in &causes {
                                     self.add_pin(evidence);
                                 }
-                                Arc::make_mut(&mut self.decision_series)
+                                self.decision_series
                                     .get_mut(action)
                                     .expect("on hold")
                                     .deferred
@@ -7671,7 +7698,7 @@ impl ReactiveSession {
                             for evidence in &reasons {
                                 self.add_pin(evidence);
                             }
-                            Arc::make_mut(&mut self.decision_series)
+                            self.decision_series
                                 .get_mut(action)
                                 .expect("a series")
                                 .on_hold
@@ -7800,7 +7827,7 @@ impl ReactiveSession {
             event: self.last_event.clone().unwrap_or_default(),
             lineage,
         };
-        Arc::make_mut(&mut self.decision_series)
+        self.decision_series
             .get_mut(action)
             .expect("a series")
             .revisions[position]
@@ -7931,9 +7958,7 @@ impl ReactiveSession {
         {
             return Vec::new();
         }
-        let series = Arc::make_mut(&mut self.decision_series)
-            .get_mut(action)
-            .expect("a series");
+        let series = self.decision_series.get_mut(action).expect("a series");
         let held = std::mem::take(&mut series.on_hold);
         let deferred = std::mem::take(&mut series.deferred);
         for evidence in held.iter().chain(&deferred) {
@@ -8247,14 +8272,14 @@ impl ReactiveSession {
             .filter(|&(_, in_value, in_grounds)| in_value || in_grounds)
             .collect::<Vec<_>>();
         for name in observations {
-            Arc::make_mut(&mut self.observation_qualifications)
+            self.observation_qualifications
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
                 .remove(caveat);
         }
         for name in examinations {
-            Arc::make_mut(&mut self.examination_qualifications)
+            self.examination_qualifications
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
@@ -9454,7 +9479,7 @@ impl ReactiveSession {
             binding_qualifications: self.binding_qualifications.clone(),
             binding_explanations: self.binding_explanations.clone(),
             value_grounds: self.states.grounds(),
-            commitment_grounds: (*self.commitment_grounds).clone(),
+            commitment_grounds: (**self.commitment_grounds).clone(),
             decision_journal: self.journal.to_vec(),
             retired: (*self.retired).clone(),
             windows: self
@@ -9476,18 +9501,18 @@ impl ReactiveSession {
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
             unset: self.states.unset_names(),
-            commitment_bases: (*self.commitment_bases).clone(),
+            commitment_bases: (**self.commitment_bases).clone(),
             reading_streams: self
                 .reading_streams
                 .iter()
                 .map(|(name, stream)| (name.clone(), (**stream).clone()))
                 .collect(),
-            decision_series: (*self.decision_series).clone(),
+            decision_series: (**self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),
-            observation_qualifications: (*self.observation_qualifications).clone(),
-            examination_qualifications: (*self.examination_qualifications).clone(),
-            reopening_qualifications: (*self.reopening_qualifications).clone(),
+            observation_qualifications: (**self.observation_qualifications).clone(),
+            examination_qualifications: (**self.examination_qualifications).clone(),
+            reopening_qualifications: (**self.reopening_qualifications).clone(),
             predicate_qualifications: (*self.predicate_qualifications).clone(),
             controls: (*self.controls).clone(),
             clock: self.clock.clone(),

@@ -238,7 +238,177 @@ impl NodeNames {
     }
 }
 
+/// A session's records of one kind, by name, with the names written since
+/// the event began. It reads like the map's `Arc`; only the methods here
+/// write it, and each says which record it writes, so after an event
+/// `Changes` compares only the records the event wrote, where it compared
+/// every record of the kind before.
+pub(super) struct Records<V> {
+    map: Arc<BTreeMap<String, V>>,
+    written: Written,
+}
+
+/// The records of one kind an event wrote.
+#[derive(Clone, Debug)]
+enum Written {
+    /// These, and no other: every other record is as the event found it.
+    Names(BTreeSet<String>),
+    /// Any of them: written outside an event, or by a write that does not
+    /// say which.
+    Any,
+}
+
+impl<V> Records<V> {
+    pub(super) fn new(map: BTreeMap<String, V>) -> Self {
+        Self {
+            map: Arc::new(map),
+            written: Written::Any,
+        }
+    }
+
+    /// Starts the log of an event's writes: none yet.
+    fn begin(&mut self) {
+        self.written = Written::Names(BTreeSet::new());
+    }
+
+    /// Ends the log: past the event's check of what it changed, any record
+    /// may change without saying which.
+    fn end(&mut self) {
+        self.written = Written::Any;
+    }
+
+    /// The names written since the event began, if the writes said which;
+    /// `None` if any record may have changed.
+    pub(super) fn written(&self) -> Option<&BTreeSet<String>> {
+        match &self.written {
+            Written::Names(names) => Some(names),
+            Written::Any => None,
+        }
+    }
+
+    fn note(&mut self, name: &str) {
+        if let Written::Names(names) = &mut self.written {
+            if !names.contains(name) {
+                names.insert(name.to_string());
+            }
+        }
+    }
+}
+
+impl<V: Clone> Records<V> {
+    pub(super) fn insert(&mut self, name: String, value: V) -> Option<V> {
+        self.note(&name);
+        Arc::make_mut(&mut self.map).insert(name, value)
+    }
+
+    /// The record `name`, to write, if there is one. Copies the map first
+    /// when another session shares it.
+    pub(super) fn get_mut(&mut self, name: &str) -> Option<&mut V> {
+        if !self.map.contains_key(name) {
+            return None;
+        }
+        self.note(name);
+        Arc::make_mut(&mut self.map).get_mut(name)
+    }
+
+    pub(super) fn entry(
+        &mut self,
+        name: String,
+    ) -> std::collections::btree_map::Entry<'_, String, V> {
+        self.note(&name);
+        Arc::make_mut(&mut self.map).entry(name)
+    }
+
+    pub(super) fn remove(&mut self, name: &str) -> Option<V> {
+        self.note(name);
+        Arc::make_mut(&mut self.map).remove(name)
+    }
+
+    /// The whole map, to write any of it: the log no longer says which
+    /// records changed.
+    pub(super) fn make_mut(&mut self) -> &mut BTreeMap<String, V> {
+        self.written = Written::Any;
+        Arc::make_mut(&mut self.map)
+    }
+}
+
+impl<V: PartialEq> Records<V> {
+    /// Whether these are the records `old` holds, where `old` is the session
+    /// this event began from: only the records it wrote can differ, when its
+    /// log says which.
+    pub(super) fn unchanged_since(&self, old: &Self) -> bool {
+        if Arc::ptr_eq(&self.map, &old.map) {
+            return true;
+        }
+        let unchanged = match &self.written {
+            Written::Names(names) => names
+                .iter()
+                .all(|name| self.map.get(name) == old.map.get(name)),
+            Written::Any => self.map == old.map,
+        };
+        debug_assert_eq!(
+            unchanged,
+            self.map == old.map,
+            "an event wrote a record its log does not name"
+        );
+        unchanged
+    }
+}
+
+impl<V> Deref for Records<V> {
+    type Target = Arc<BTreeMap<String, V>>;
+
+    fn deref(&self) -> &Arc<BTreeMap<String, V>> {
+        &self.map
+    }
+}
+
+impl<V> Clone for Records<V> {
+    fn clone(&self) -> Self {
+        Self {
+            map: Arc::clone(&self.map),
+            written: self.written.clone(),
+        }
+    }
+}
+
+impl<V> Default for Records<V> {
+    fn default() -> Self {
+        Self::new(BTreeMap::new())
+    }
+}
+
+/// Prints what the map's `Arc` printed, so a session's debug output is
+/// unchanged.
+impl<V: fmt::Debug> fmt::Debug for Records<V> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.map.fmt(formatter)
+    }
+}
+
 impl ReactiveSession {
+    /// Starts the log of the records this event writes.
+    pub(super) fn begin_write_log(&mut self) {
+        self.reading_streams.begin();
+        self.decision_series.begin();
+        self.commitment_bases.begin();
+        self.commitment_grounds.begin();
+        self.observation_qualifications.begin();
+        self.examination_qualifications.begin();
+        self.reopening_qualifications.begin();
+    }
+
+    /// Ends the log once the event has read what it changed.
+    pub(super) fn end_write_log(&mut self) {
+        self.reading_streams.end();
+        self.decision_series.end();
+        self.commitment_bases.end();
+        self.commitment_grounds.end();
+        self.observation_qualifications.end();
+        self.examination_qualifications.end();
+        self.reopening_qualifications.end();
+    }
+
     /// Adds a node and names it.
     pub(super) fn add_named(&mut self, name: String, kind: NodeKind) -> NodeId {
         let id = Arc::make_mut(&mut self.graph.0).add(kind);
@@ -507,6 +677,91 @@ mod tests {
         grown.insert(String::from("d"), 5);
         assert!(before.kept_in(&grown));
         assert!(format!("{table:?}") == format!("{:?}", table.by_name));
+    }
+
+    fn records(entries: &[(&str, u32)]) -> Records<u32> {
+        Records::new(
+            entries
+                .iter()
+                .map(|&(name, value)| (name.to_string(), value))
+                .collect(),
+        )
+    }
+
+    fn written(records: &Records<u32>) -> Option<Vec<&str>> {
+        records
+            .written()
+            .map(|names| names.iter().map(String::as_str).collect())
+    }
+
+    #[test]
+    fn records_log_the_names_an_event_writes() {
+        let before = records(&[("a", 1), ("b", 2), ("c", 3)]);
+        let mut records = before.clone();
+        assert!(Arc::ptr_eq(&records, &before));
+        // Outside an event the log does not say which records changed.
+        assert_eq!(written(&records), None);
+        records.begin();
+        assert_eq!(written(&records), Some(vec![]));
+        assert!(records.unchanged_since(&before));
+        // Looking for a record that is not there writes nothing.
+        assert_eq!(records.get_mut("x"), None);
+        assert!(Arc::ptr_eq(&records, &before));
+        *records.get_mut("a").unwrap() = 10;
+        records.insert(String::from("d"), 4);
+        records.remove("b");
+        *records.entry(String::from("e")).or_default() += 5;
+        assert_eq!(written(&records), Some(vec!["a", "b", "d", "e"]));
+        assert!(!records.unchanged_since(&before));
+        // The copy taken before the event is untouched.
+        assert_eq!(before.get("a"), Some(&1));
+        assert_eq!(before.get("b"), Some(&2));
+        assert_eq!(before.get("d"), None);
+        // A write that does not say which record ends the log.
+        records.make_mut().insert(String::from("f"), 6);
+        assert_eq!(written(&records), None);
+        assert!(!records.unchanged_since(&before));
+    }
+
+    #[test]
+    fn records_written_back_to_what_they_were_are_unchanged() {
+        let before = records(&[("a", 1)]);
+        let mut records = before.clone();
+        records.begin();
+        *records.get_mut("a").unwrap() = 2;
+        *records.get_mut("a").unwrap() = 1;
+        records.insert(String::from("b"), 2);
+        records.remove("b");
+        assert!(!Arc::ptr_eq(&records, &before));
+        assert_eq!(written(&records), Some(vec!["a", "b"]));
+        assert!(records.unchanged_since(&before));
+        records.end();
+        assert_eq!(written(&records), None);
+        assert!(records.unchanged_since(&before));
+    }
+
+    #[test]
+    fn an_event_ends_its_log_once_it_has_read_what_it_changed() {
+        let mut session = ReactiveSession::from_source(
+            "claim ok;\nevidence e from \"tool\";\nevent see;\non see reveal e supports ok;\n",
+        )
+        .unwrap();
+        session.dispatch_json("see", "{}").unwrap();
+        assert_eq!(session.reading_streams.written(), None);
+        assert_eq!(session.decision_series.written(), None);
+        assert_eq!(session.commitment_bases.written(), None);
+        assert_eq!(session.commitment_grounds.written(), None);
+        assert_eq!(session.observation_qualifications.written(), None);
+        assert_eq!(session.examination_qualifications.written(), None);
+        assert_eq!(session.reopening_qualifications.written(), None);
+    }
+
+    #[test]
+    fn records_print_what_their_arc_printed() {
+        let records = records(&[("a", 1)]);
+        let arc = Arc::new(BTreeMap::from([(String::from("a"), 1)]));
+        assert_eq!(format!("{records:?}"), format!("{arc:?}"));
+        assert_eq!(format!("{records:#?}"), format!("{arc:#?}"));
     }
 
     #[test]

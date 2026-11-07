@@ -425,8 +425,7 @@ on read sample s = 8 supports seen;
             Arc::strong_count(&streams) > 1,
             Arc::strong_count(&streams["r"]) > 1,
         );
-        let map = Arc::make_mut(&mut streams);
-        let stream = Arc::make_mut(map.get_mut("r").unwrap());
+        let stream = Arc::make_mut(streams.get_mut("r").unwrap());
         block.finish_cow();
         let reading = stream.occurrences.remove(index.unwrap());
         block.removed();
