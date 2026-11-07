@@ -1056,6 +1056,19 @@ mod tests {
     }
 
     #[test]
+    fn a_record_an_event_adds_alone_is_a_change() {
+        // A release build compares a few records whole, and more by the
+        // names the log holds.
+        let few = Records::new(BTreeMap::from([(String::from("a"), 1)]));
+        for before in [few, logged(&[("a", 1)])] {
+            let mut records = before.clone();
+            records.begin();
+            records.insert(String::from("b"), 2);
+            assert!(!records.unchanged_since(&before));
+        }
+    }
+
+    #[test]
     fn an_event_ends_its_log_once_it_has_read_what_it_changed() {
         let mut session = ReactiveSession::from_source(
             "claim ok;\nevidence e from \"tool\";\nevent see;\non see reveal e supports ok;\n",
