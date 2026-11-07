@@ -7326,11 +7326,14 @@ impl ReactiveSession {
                     .decision_series
                     .get(action)
                     .and_then(|series| series.current.clone());
-                if self.symbols.contains_key(action) {
+                if let Some(&id) = self.symbols.get(action) {
                     let message = format!("commitment {action} already exists");
-                    // A plain commitment is made once, reopened or not. See
+                    // A plain commitment is made once, reopened or not,
+                    // whether an event or a declaration made it (D044). See
                     // spec/caveat-dispatch-0.1.md, `already_committed`.
-                    if self.commitment_bases.contains_key(action) {
+                    if self.commitment_bases.contains_key(action)
+                        || matches!(self.graph.nodes.get(&id), Some(NodeKind::Commitment { .. }))
+                    {
                         return Err(DispatchFailure::rejected(
                             RejectionOrigin::Evaluation,
                             RejectionCode::AlreadyCommitted,

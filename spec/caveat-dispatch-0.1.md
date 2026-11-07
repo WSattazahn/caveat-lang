@@ -154,7 +154,7 @@ and no output changes.
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
+| `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether an event or a declaration made it and whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
 | `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0), or that a reversible decision in force forecloses ([Foreclosure 0.2](caveat-foreclosure-0.2.md), 1.4 draft). |
 | `evaluation` | `caveated_irreversible` | An executed `commit` of an irreversible series rests on a caveat of consequence `material` or above that its `retaining` clause does not name ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)), or an executed `resolve` names a series with no revision, or an index that names none ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
@@ -278,6 +278,15 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-11-07 (D044): a `commit` of a commitment the program declared is
+  `evaluation/already_committed`, as a second `commit` of one an event made
+  already was. A declaration such as `commit hold because enough;` makes a
+  plain commitment as the program loads, and the session holds it from then
+  on. A rule that committed it again, in force or reopened, ended the
+  session as fatal `unclassified`, although the runtime had already rolled
+  the event back. The rollback and the diagnostic text are unchanged, no
+  accepted event changes, and no code is added or reassigned.
 
 - 2026-11-07 (D042, Version Lab F262): a negative `qualify … after` delay
   is `evaluation/expression` under the binary64 clock too, as one an
