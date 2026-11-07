@@ -189,7 +189,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::{NameTable, Records, Sealed, SealedGraph};
+use write::{NameTable, Records, Same, Sealed, SealedGraph};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1764,39 +1764,39 @@ impl Changes {
         let mut changed = BTreeSet::new();
         // Keyed records: every changed key must place in a history. Only the
         // records the event wrote can differ, when its log says which.
-        fn keyed<V: PartialEq>(
+        fn keyed<V: Same>(
             old: &Records<V>,
             new: &Records<V>,
             added_only: bool,
             place: &dyn Fn(&str) -> Option<String>,
             changed: &mut BTreeSet<String>,
         ) -> Option<()> {
-            let found = places(old, new, new.written(), added_only, place);
             #[cfg(debug_assertions)]
             if new.written().is_some() {
+                let (mut logged, mut every) = (BTreeSet::new(), BTreeSet::new());
                 assert_eq!(
-                    found,
-                    places(old, new, None, added_only, place),
+                    places(old, new, new.written(), added_only, place, &mut logged)
+                        .map(|()| logged),
+                    places(old, new, None, added_only, place, &mut every).map(|()| every),
                     "an event wrote a record its log does not name"
                 );
             }
-            changed.extend(found?);
-            Some(())
+            places(old, new, new.written(), added_only, place, changed)
         }
-        // Where the records of `written` changed, or of every name when
-        // `None`; `None` if one was removed, one that may only be added to
-        // changed, or one changed that does not place.
-        fn places<V: PartialEq>(
+        // Adds to `changed` where the records of `written` changed, or of
+        // every name when `None`; `None` if one was removed, one that may
+        // only be added to changed, or one changed that does not place.
+        fn places<V: Same>(
             old: &Records<V>,
             new: &Records<V>,
             written: Option<&BTreeSet<String>>,
             added_only: bool,
             place: &dyn Fn(&str) -> Option<String>,
-        ) -> Option<BTreeSet<String>> {
-            let mut changed = BTreeSet::new();
-            let mut check = |name: &str| -> Option<()> {
-                match (old.get(name), new.get(name)) {
-                    (Some(previous), Some(value)) if previous == value => {}
+            changed: &mut BTreeSet<String>,
+        ) -> Option<()> {
+            let mut check = |name: &str, value: Option<&V>| -> Option<()> {
+                match (old.get(name), value) {
+                    (Some(previous), Some(value)) if previous.same(value) => {}
                     (None, None) => {}
                     (Some(_), None) => return None,
                     (Some(_), Some(_)) if added_only => return None,
@@ -1809,19 +1809,19 @@ impl Changes {
             match written {
                 Some(written) => {
                     for name in written {
-                        check(name)?;
+                        check(name, new.get(name))?;
                     }
                 }
                 None => {
                     if old.keys().any(|key| !new.contains_key(key)) {
                         return None;
                     }
-                    for name in new.keys() {
-                        check(name)?;
+                    for (name, value) in new.iter() {
+                        check(name, Some(value))?;
                     }
                 }
             }
-            Some(changed)
+            Some(())
         }
         if !Arc::ptr_eq(&old.reading_streams, &new.reading_streams) {
             keyed(
@@ -5666,6 +5666,8 @@ impl ReactiveSession {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
         self.collector_begin();
+        // Before anything the event writes: a clock event's due
+        // qualifications below write observation and examination records.
         self.begin_write_log();
         self.effects.clear();
         self.cues.clear();
