@@ -2156,7 +2156,17 @@ impl ReactiveSession {
             let state = attention_from_name(attention)?;
             match state {
                 _ if declared.attention.get(name) == Some(&state) => {}
-                Attention::Unexamined => {}
+                // D046: no event leaves a caveat unexamined once the
+                // declarations leave it otherwise.
+                Attention::Unexamined => {
+                    if let Some(left) = declared.attention.get(name) {
+                        return Err(format!(
+                            "caveat {name} is unexamined, but the declarations leave it {}, \
+                             and no reactive event leaves a caveat unexamined",
+                            attention_name(*left)
+                        ));
+                    }
+                }
                 Attention::Deferred | Attention::Examining => {
                     return Err(format!(
                         "caveat {name} is {attention}, which no reactive event leaves"
@@ -2830,6 +2840,7 @@ impl ReactiveSession {
             .filter(|edge| edge.relation == Relation::Reopens)
             .map(|edge| edge.to)
             .collect::<HashSet<_>>();
+        let costs = self.examination_costs();
         for (what, records) in [
             ("observation", &save.observation_qualifications),
             ("examination", &save.examination_qualifications),
@@ -2882,6 +2893,14 @@ impl ReactiveSession {
                     };
                     return Err(format!("{what} of {name}: {name} is not {kind}"));
                 }
+                // D046: only an event's examination leaves a record, and a
+                // caveat only the declarations examine has none.
+                if what == "examination" && !costs.contains_key(name) {
+                    return Err(format!(
+                        "examination of {name}: no rule or procedure of this program examines \
+                         {name}"
+                    ));
+                }
                 self.check_provenance(
                     &format!("{what} of {name}"),
                     &provenance.0,
@@ -2928,6 +2947,9 @@ impl ReactiveSession {
                 )?;
             }
         }
+        // What the declarations spent as the program loaded, before the
+        // save replaces it.
+        let declared_spent = self.resources.as_ref().map_or(0, |ledger| ledger.spent);
         match (&mut self.resources, &save.resources) {
             (None, None) => {}
             (Some(ledger), Some(saved))
@@ -2941,28 +2963,39 @@ impl ReactiveSession {
             _ => return Err("its attention budget does not match the program".into()),
         }
         // Each examined caveat cost at least the least any rule examining it
-        // charges, and the budget spent all of it. A caveat the declarations
-        // leave examined is not counted: no event need have examined it
-        // (D043).
+        // charges, and the budget spent all of it on top of what the
+        // declarations spent. A caveat the declarations leave examined is
+        // counted only when its examination record shows an event examined
+        // it again: no event need have examined it (D043, D046).
         if let Some(ledger) = &self.resources {
-            let costs = self.examination_costs();
             let least: u128 = save
                 .graph
                 .attention
                 .iter()
                 .filter(|(name, attention)| {
                     attention.as_str() == "examined"
-                        && declared.attention.get(*name) != Some(&Attention::Examined)
+                        && (declared.attention.get(*name) != Some(&Attention::Examined)
+                            || save.examination_qualifications.contains_key(*name))
                 })
                 .filter_map(|(name, _)| costs.get(name))
                 .map(|cost| u128::from(*cost))
                 .sum();
-            if least > u128::from(ledger.spent) {
-                return Err(format!(
-                    "examined caveats cost at least {least} attention to examine, more than the \
-                     {} the budget spent",
-                    ledger.spent
-                ));
+            if least + u128::from(declared_spent) > u128::from(ledger.spent) {
+                return Err(if declared_spent == 0 {
+                    format!(
+                        "examined caveats cost at least {least} attention to examine, more than \
+                         the {} the budget spent",
+                        ledger.spent
+                    )
+                } else {
+                    format!(
+                        "examined caveats cost at least {least} attention to examine and the \
+                         declarations spent {declared_spent}, {} in all, more than the {} the \
+                         budget spent",
+                        least + u128::from(declared_spent),
+                        ledger.spent
+                    )
+                });
             }
         }
         if save.cue_qualifications.len() != save.cues.len() {
@@ -3081,7 +3114,7 @@ impl ReactiveSession {
             }) {
                 return Err(format!("an effect names unknown {name}"));
             }
-            self.check_effect_against_save(effect, save, observed)?;
+            self.check_effect_against_save(effect, save, observed, declared_spent)?;
             if !self.last_event_can_make(
                 effect,
                 &last_effects,
@@ -3762,6 +3795,7 @@ impl ReactiveSession {
         effect: &EffectReport,
         save: &ReactiveSave,
         observed: &HashSet<NodeId>,
+        declared_spent: u64,
     ) -> Result<(), String> {
         let kind = effect_kind(effect);
         let fail = |message: &str| format!("{kind} effect {message}");
@@ -3817,12 +3851,19 @@ impl ReactiveSession {
             EffectReport::Reveal { .. } => {}
             EffectReport::Examine { caveat, cost } => {
                 named(self.require_kind(caveat, "caveat"))?;
-                if self
-                    .resources
-                    .as_ref()
-                    .is_none_or(|resources| *cost > resources.spent)
-                {
+                let Some(resources) = self.resources.as_ref() else {
                     return Err(fail("spends more attention than the budget spent"));
+                };
+                if *cost > resources.spent {
+                    return Err(fail("spends more attention than the budget spent"));
+                }
+                // The declarations spent theirs as the program loaded, before
+                // any event (D046).
+                if *cost > resources.spent.saturating_sub(declared_spent) {
+                    return Err(fail(&format!(
+                        "spends more attention than the budget spent after the \
+                         {declared_spent} the declarations spent"
+                    )));
                 }
             }
             EffectReport::Commit { action, retained } => {

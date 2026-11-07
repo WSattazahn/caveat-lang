@@ -142,9 +142,10 @@ fn a_save_keeps_the_attention_a_declaration_leaves() {
 }
 
 #[test]
-fn a_caveat_the_declarations_leave_examined_is_not_counted_against_spent() {
+fn a_caveat_the_declarations_leave_examined_counts_once_an_event_examines_it() {
     // The declaration spent 1 on `stale`, and `check` examines it for 3,
-    // which the budget has not spent before `check` runs.
+    // which the budget has not spent before `check` runs. After it, the
+    // examination record counts `stale` (D046).
     let source = program(true, "examine stale cost 1;\n");
     let mut live = ReactiveSession::from_source(&source).unwrap();
     assert_eq!(saved(&live)["resources"]["spent"], 1);
@@ -185,11 +186,19 @@ fn attention_no_declaration_or_event_leaves_is_still_refused() {
     // A caveat the declarations leave examining or deferred is examined only
     // by an event, which the budget pays for and which leaves a record:
     // `check` examines `stale` for 3. A declaration that examined `stale`
-    // before a later one deferred it pays for none of that.
-    for (declarations, spent) in [
-        ("examine stale;\n", 0),
-        ("defer stale;\n", 0),
-        ("examine stale cost 1;\ndefer stale;\n", 1),
+    // before a later one deferred it pays for none of that, and since D046
+    // what it spent is counted besides.
+    let short = "examined caveats cost at least 3 attention to examine, more than the 0 the \
+                 budget spent";
+    for (declarations, spent, expected) in [
+        ("examine stale;\n", 0, short),
+        ("defer stale;\n", 0, short),
+        (
+            "examine stale cost 1;\ndefer stale;\n",
+            1,
+            "examined caveats cost at least 3 attention to examine and the declarations spent \
+             1, 4 in all, more than the 1 the budget spent",
+        ),
     ] {
         let source = program(true, declarations);
         let mut live = ReactiveSession::from_source(&source).unwrap();
@@ -197,14 +206,7 @@ fn attention_no_declaration_or_event_leaves_is_still_refused() {
         assert_eq!(save["resources"]["spent"], spent, "{declarations}");
         save["graph"]["attention"]["stale"] = "examined".into();
         save["examination_qualifications"]["stale"] = json!({});
-        refused(
-            &source,
-            &save,
-            &format!(
-                "examined caveats cost at least 3 attention to examine, more than the {spent} \
-                 the budget spent"
-            ),
-        );
+        refused(&source, &save, expected);
         send(&mut live, "check");
         let mut save = saved(&live);
         save["examination_qualifications"]
@@ -219,8 +221,8 @@ fn attention_no_declaration_or_event_leaves_is_still_refused() {
     }
     // `deep`, which the declarations leave unexamined, is checked as before:
     // `probe` examines it for 3, and the budget spent only the declaration's
-    // 1. The declared `stale` adds nothing to the least cost, though `check`
-    // could examine it for 3.
+    // 1, which since D046 is counted too. The declared `stale` adds nothing
+    // to the least cost, though `check` could examine it for 3.
     let source = program(true, "examine stale cost 1;\n");
     let mut save = saved(&ReactiveSession::from_source(&source).unwrap());
     save["graph"]["attention"]["deep"] = "examined".into();
@@ -228,7 +230,8 @@ fn attention_no_declaration_or_event_leaves_is_still_refused() {
     refused(
         &source,
         &save,
-        "examined caveats cost at least 3 attention to examine, more than the 1 the budget spent",
+        "examined caveats cost at least 3 attention to examine and the declarations spent 1, 4 \
+         in all, more than the 1 the budget spent",
     );
     // A caveat no rule or procedure examines is refused beside a declared
     // one.
