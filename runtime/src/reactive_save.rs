@@ -3142,9 +3142,20 @@ impl ReactiveSession {
                 &basis.provenance,
             )?;
         }
-        // After the journal's own diagnostics: what each entry records.
+        // After the journal's own diagnostics: what each entry records. A
+        // commit's entry records its grounds' evidence and caveats, which
+        // `check_saved_journal` has matched to them, but not their markers.
+        // A caveat the grounds carry through a record that departed before
+        // the commit is accounted for by that history's marker, here as in
+        // the commitment's basis (D049).
         for entry in &save.decision_journal {
-            self.check_attachable("decision journal", &journal_witnesses(entry), caveats)?;
+            let mut witnesses = journal_witnesses(entry);
+            if entry.change == "committed" {
+                if let Some(grounds) = save.commitment_grounds.get(&entry.commitment) {
+                    witnesses.departed = grounds.0.departed.clone();
+                }
+            }
+            self.check_attachable("decision journal", &witnesses, caveats)?;
         }
         // F317-F322: and the other way, every membership the graph records
         // has its record, as every event that adds one leaves it. Evidence
