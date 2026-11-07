@@ -6127,6 +6127,7 @@ impl ReactiveSession {
                                 .symbols
                                 .name_of(edge.from)
                                 .expect("a reopening's cause is named");
+                            self.require_reopening_cause(cause)?;
                             grounds.merge(&self.qualify_core(cause, &[])?)?;
                         }
                     }
@@ -6537,6 +6538,21 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// What reading `reopened(…)` requires of a cause that reopened the
+    /// commitment: evidence that is observed or retired. Only a declaration
+    /// reopens with evidence not yet observed, and reading that reopening,
+    /// for its value or for its grounds, refuses the event as reading
+    /// `qualified(…)` of the evidence would (D045).
+    fn require_reopening_cause(&self, cause: &str) -> Result<(), EvalError> {
+        if !self.is_retired(cause) && !self.predicate("observed", cause)? {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {cause}"),
+            ));
+        }
+        Ok(())
+    }
+
     /// `qualify_core` once `require_qualifiable` has passed.
     fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         // The evidence's name goes ahead of the caveats; the extras follow.
@@ -6671,7 +6687,9 @@ impl ReactiveSession {
                         && edge.to == id
                         && edge.relation == Relation::Reopens
                     {
-                        provenance.merge(&self.qualify(name_of(edge.from), &[])?)?;
+                        let cause = name_of(edge.from);
+                        self.require_reopening_cause(cause)?;
+                        provenance.merge(&self.qualify(cause, &[])?)?;
                     }
                 }
                 // The basis is frozen, but the evidence it lists is read as it
