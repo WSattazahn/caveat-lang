@@ -245,6 +245,11 @@ The outcome's evidence stays pinned against
 hold's reasons are. A series has no window and a revision holds at most one
 outcome, so the pins are bounded by the series' `limit`.
 
+Its lineage pins nothing. When a record the lineage names departs, the name
+leaves it and joins its history's marker, as in a basis
+([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), and restore
+checks its markers as it checks every other provenance's.
+
 ## 5. Views and explain
 
 - `caveat-reactive-view/0.1` and `/0.2` show the journal entries and the
@@ -296,7 +301,8 @@ At this profile's revision:
 - `runtime/src/reactive_expr.rs` parses `resolved(…)` and `outcome(…)`, and
   hands a program's own `fn resolved` or `fn outcome` its calls.
 - `runtime/src/reactive_save.rs` restores and validates outcomes as section
-  4 says; `runtime/src/reactive_departure.rs` pins an outcome's evidence.
+  4 says; `runtime/src/reactive_departure.rs` pins an outcome's evidence
+  and compacts its lineage.
 - `runtime/src/link.rs` protects `resolve` and `materialized` by position in
   a module.
 - `runtime/tests/outcomes.rs` covers an outcome that changes nothing else, a
@@ -306,9 +312,16 @@ At this profile's revision:
   with and without an outcome, forged outcomes refused on restore, a
   withdrawn outcome's caveat, the calibration example, and a procedure
   resolving in a windowed program.
+- `runtime/tests/d041_outcome_lineage_compacts.rs` covers an outcome's
+  lineage when a record it names departs: its marker, the archive, and
+  restore.
 - The kit's types, `explain` and the starter's assessment carry the new
   journal change and revision field.
 
 ## Changes
 
 - 2026-10-24: drafted and implemented for 1.3.
+- 2026-11-07 (D041): an outcome's lineage compacts when a record it names
+  departs, and restore checks its markers. Before, the departed names stayed
+  in it and restore refused every later save of the session. See
+  [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md), "Changes".

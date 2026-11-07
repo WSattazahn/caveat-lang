@@ -334,6 +334,21 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-07 (D041): a save written after a record that an outcome's
+  lineage named has departed restores. An outcome's lineage is frozen, as a
+  reopening's basis is ([Outcomes 0.1](caveat-outcomes-0.1.md)), and a
+  frozen lineage replaces a departed record's name with its history's marker
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), but
+  departure never compacted an outcome's lineage. It kept the departed names,
+  and restore refused every later save of the session with "outcome of D@K:
+  R must name a declared evidence", breaking the promise that a 1.x save
+  restores. Departure now compacts it. A save an earlier runtime wrote after
+  such a departure still names the departed records, and is still refused.
+  Restore now also checks the lineage's markers, `inherited` names and kept
+  caveats as it checks every other provenance's, so it refuses one that no
+  source mechanism produces. Every other save restores, or is refused with
+  the same message, as before.
+
 - 2026-11-07 (D040): restore accepts the retirement of a journal entry
   reported by an event that reaches a `resolve`. A resolve records an entry
   in the decision journal ([Outcomes 0.1](caveat-outcomes-0.1.md)), and an

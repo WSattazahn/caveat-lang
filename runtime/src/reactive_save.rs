@@ -1121,6 +1121,11 @@ impl ReactiveSession {
                 format!("decision series {name}"),
                 &series.selection_qualifications,
             ));
+            for revision in &series.revisions {
+                if let Some(outcome) = &revision.outcome {
+                    provenances.push((format!("outcome of {}", revision.id), &outcome.lineage));
+                }
+            }
         }
         for scheduled in &save.scheduled_qualifications {
             provenances.push(("scheduled qualification".into(), &scheduled.guard));

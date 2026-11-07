@@ -321,7 +321,8 @@ provenances, and on no other:
 10. an examination qualification (`examination_qualifications.C`);
 11. a reopening qualification (`reopening_qualifications.C`);
 12. a predicate qualification (`predicate_qualifications.P.N`);
-13. a cue's qualification (`cue_qualifications[i]`).
+13. a cue's qualification (`cue_qualifications[i]`);
+14. an outcome's lineage (`decision_series.D.revisions[i].outcome.lineage`).
 
 These are all the provenances the save schema holds. A later profile that
 adds a provenance to the save adds it to this list. Only 2, and 4 for a
@@ -432,6 +433,12 @@ inherited chain as one range.
 the same rule. An entry still in the window keeps its `because` exact. That
 pins what it cites, which is bounded by the window. Its basis compacts. Nothing
 else cites journal entries.
+
+**Outcomes.** An outcome's lineage ([Outcomes 0.1](caveat-outcomes-0.1.md))
+is frozen when the revision is resolved, as a basis is, and compacts as a
+basis does: when a record it names departs, the name leaves the lineage and
+joins its history's marker. Only the outcome's `because` stays exact and
+pinned.
 
 ## Gate
 
@@ -574,3 +581,17 @@ provenance read in its range.
   about D. One current revision per series bounds what this pins. No output,
   save or exit status changes. The owner chose this reading on 2026-10-18.
   The riders and older Changes entries keep their original words.
+- 2026-11-07 (D041): an outcome's lineage compacts. Outcomes 0.1 (1.3)
+  added the lineage to the save but not to the list in "Save and restore",
+  and departure never compacted it, so a record it named departed and its
+  name stayed. Restore refused every later save of the session with "outcome
+  of D@K: R must name a declared evidence", a value that read the outcome
+  copied the departed names, and a marker the outcome's value joined as it
+  resolved was never published to the archive. Departure now compacts the
+  lineage and lists it among the departed record's holders, the archive
+  publishes its markers' membership, and restore checks its markers,
+  `inherited` names and kept caveats as it checks every other provenance's.
+  The list in "Save and restore" gains it as its 14th provenance. It pins
+  nothing, as before; only the outcome's `because` pins. A session in which
+  no outcome's lineage holds a departed record gives the same saves,
+  snapshots, views and archive as before.
