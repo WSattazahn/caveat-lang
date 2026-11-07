@@ -334,6 +334,18 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-07 (D040): restore accepts the retirement of a journal entry
+  reported by an event that reaches a `resolve`. A resolve records an entry
+  in the decision journal ([Outcomes 0.1](caveat-outcomes-0.1.md)), and an
+  entry added to a full `journal window` first retires the oldest
+  ([Windows 0.1](caveat-windows-0.1.md)), but restore accepted that
+  retirement only from an event that reaches a commit, a reopening or a
+  sample. It refused the save the runtime wrote after such a resolve with
+  "retire effect is not one the last event can make", so no save of the
+  session restored until its next accepted event, breaking the promise that
+  a 1.x save restores. Every other save restores, or is refused with the
+  same message, as before.
+
 - 2026-11-07 (D039): restore checks the decision journal against what it
   reads of the graph once, instead of reading the graph again for each
   entry. For each reopening it read every relation once for each record its
