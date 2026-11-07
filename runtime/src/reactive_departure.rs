@@ -747,7 +747,7 @@ impl ReactiveSession {
             .values()
             .any(|basis| names_any(&basis.provenance, &departing))
         {
-            for (name, basis) in Arc::make_mut(&mut self.commitment_bases).iter_mut() {
+            for (name, basis) in self.commitment_bases.make_mut().iter_mut() {
                 compact(
                     &mut basis.provenance,
                     &departing,
@@ -764,7 +764,7 @@ impl ReactiveSession {
             .values()
             .any(|grounds| names_any(grounds, &departing))
         {
-            for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {
+            for (name, grounds) in self.commitment_grounds.make_mut().iter_mut() {
                 compact(
                     grounds,
                     &departing,
@@ -783,7 +783,7 @@ impl ReactiveSession {
                     .iter()
                     .any(|reading| names_any(&reading.provenance, &departing))
         }) {
-            for (name, stream) in Arc::make_mut(&mut self.reading_streams).iter_mut() {
+            for (name, stream) in self.reading_streams.make_mut().iter_mut() {
                 // Compaction changes only what names a departing record, so
                 // a stream that names none stays shared.
                 if !names_any(&stream.selection_qualifications, &departing)
@@ -825,7 +825,7 @@ impl ReactiveSession {
             .values()
             .any(|series| names_any(&series.selection_qualifications, &departing))
         {
-            for (name, series) in Arc::make_mut(&mut self.decision_series).iter_mut() {
+            for (name, series) in self.decision_series.make_mut().iter_mut() {
                 compact(
                     &mut series.selection_qualifications,
                     &departing,
@@ -855,7 +855,7 @@ impl ReactiveSession {
                 .values()
                 .any(|provenance| names_any(provenance, &departing))
             {
-                for (name, provenance) in Arc::make_mut(map).iter_mut() {
+                for (name, provenance) in map.make_mut().iter_mut() {
                     if departing.contains_key(name) {
                         continue;
                     }
@@ -981,8 +981,7 @@ impl ReactiveSession {
                 ("reopening", &mut self.reopening_qualifications),
             ] {
                 if map.contains_key(record) {
-                    qualifications
-                        .insert(kind.to_string(), Arc::make_mut(map).remove(record).unwrap());
+                    qualifications.insert(kind.to_string(), map.remove(record).unwrap());
                 }
             }
             if self
@@ -1018,8 +1017,7 @@ impl ReactiveSession {
                         Arc::strong_count(&self.reading_streams) > 1,
                         Arc::strong_count(stream) > 1,
                     );
-                    let streams = Arc::make_mut(&mut self.reading_streams);
-                    let stream = Arc::make_mut(streams.get_mut(history).unwrap());
+                    let stream = Arc::make_mut(self.reading_streams.get_mut(history).unwrap());
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.finish_cow();
                     reading = Some(stream.occurrences.remove(index));
@@ -1201,17 +1199,17 @@ impl ReactiveSession {
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
-            for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {
+            for basis in self.commitment_bases.make_mut().values_mut() {
                 settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
-            for grounds in Arc::make_mut(&mut self.commitment_grounds).values_mut() {
+            for grounds in self.commitment_grounds.make_mut().values_mut() {
                 settle_provenance(grounds, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
-            for stream in Arc::make_mut(&mut self.reading_streams).values_mut() {
+            for stream in self.reading_streams.make_mut().values_mut() {
                 // Settling a settled root publishes nothing, so a stream
                 // holding only settled roots stays shared, as a cell does.
                 if settled(&stream.selection_qualifications)
@@ -1230,7 +1228,7 @@ impl ReactiveSession {
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
-            for series in Arc::make_mut(&mut self.decision_series).values_mut() {
+            for series in self.decision_series.make_mut().values_mut() {
                 settle_provenance(&mut series.selection_qualifications, &mut nodes, &mut seen);
             }
         }
@@ -1249,7 +1247,7 @@ impl ReactiveSession {
             ),
         ] {
             if unchanged.is_none_or(|old| !Arc::ptr_eq(old, map)) {
-                for provenance in Arc::make_mut(map).values_mut() {
+                for provenance in map.make_mut().values_mut() {
                     settle_provenance(provenance, &mut nodes, &mut seen);
                 }
             }
