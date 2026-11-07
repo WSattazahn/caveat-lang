@@ -6504,24 +6504,6 @@ impl ReactiveSession {
         self.qualify_checked(evidence, extras)
     }
 
-    /// Where `qualify_core` looks for the caveats of `evidence`, once it has
-    /// checked that `evidence` can be qualified.
-    pub(crate) fn qualification_roots(&self, evidence: &str) -> Result<Vec<NodeId>, String> {
-        self.require_qualifiable(evidence, &[])
-            .map_err(String::from)?;
-        Ok(self.qualify_roots(evidence, &[]))
-    }
-
-    /// The caveats reaching `roots`, with taken-back relations still
-    /// counted: every caveat a decision journal entry made on them may cite.
-    /// These are names to check an entry against, not a lineage, so the
-    /// provenance limits do not apply to them: a reopening that ends a hold
-    /// cites every deferred cause, the causes may have gained caveats since,
-    /// and a caveat taken back still counts.
-    pub(crate) fn caveats_before_take_back(&self, roots: Vec<NodeId>) -> Vec<String> {
-        self.caveats_reaching(roots, false, 0)
-    }
-
     /// What `qualify_core` requires: `evidence` names evidence that is
     /// observed or retired, and each extra names a caveat.
     fn require_qualifiable(&self, evidence: &str, extras: &[String]) -> Result<(), EvalError> {

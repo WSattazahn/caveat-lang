@@ -8,6 +8,7 @@
 //! limit is checked, and a malformed save is an error, never a panic.
 use super::*;
 use serde::Deserialize;
+use std::borrow::Cow;
 
 pub const REACTIVE_SAVE_SCHEMA: &str = "caveat-reactive-save/0.1";
 const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
@@ -327,6 +328,74 @@ fn journal_witnesses(entry: &JournalEntry) -> Provenance {
     }
 }
 
+/// What `check_saved_journal` reads of the graph and the program for each
+/// entry, read out of them once for the whole journal rather than once for
+/// each entry (D039). The check holds the session shared, so neither changes
+/// while it runs, and each answer here is the one the session's own read
+/// gives.
+struct JournalReads<'a> {
+    /// The caveats with a `qualifies` relation to each node, in graph order.
+    qualified_by: HashMap<NodeId, Vec<NodeId>>,
+    /// The claims each node supports or opposes, which `qualify_roots`
+    /// searches with evidence.
+    bears_on: HashMap<NodeId, Vec<NodeId>>,
+    /// Each node with a `supports` or `opposes` relation, and the observation
+    /// ledger: what `predicate("observed")` reads.
+    stance: HashSet<NodeId>,
+    ledger: HashSet<&'a str>,
+    ranks: ObservationRanks<'a>,
+    /// The `reopens` relations events added, by commitment, in graph order.
+    reopens: HashMap<NodeId, Vec<NodeId>>,
+    /// The caveats reaching each root an entry has needed.
+    reaching: Reaching,
+    /// `event_can_change_decision`, by its arguments.
+    changes: HashMap<(&'a str, &'a str, &'a str), bool>,
+    /// The first revision of each name in each series.
+    revisions: HashMap<(&'a str, &'a str), &'a DecisionRevision>,
+}
+
+/// The caveats reaching each root, kept for every entry that needs them.
+/// Caveats can qualify caveats, so what one root reaches can be most of the
+/// graph's caveats, and many roots can reach the same ones: what is kept is
+/// held to the size of the graph, and a root past that is walked where it is
+/// needed.
+struct Reaching {
+    by_root: HashMap<NodeId, HashSet<NodeId>>,
+    /// How many more caveats `by_root` may hold.
+    room: usize,
+}
+
+/// The caveats reaching `root` through `qualifies` relations, a taken-back
+/// relation still counted, as `caveats_reaching` counts it with
+/// `honor_take_back` false: every caveat an entry made on it may cite.
+fn caveats_reaching_root<'m>(
+    qualified_by: &HashMap<NodeId, Vec<NodeId>>,
+    reaching: &'m mut Reaching,
+    root: NodeId,
+) -> Cow<'m, HashSet<NodeId>> {
+    if reaching.by_root.contains_key(&root) {
+        return Cow::Borrowed(&reaching.by_root[&root]);
+    }
+    let mut frontier = vec![root];
+    let mut visited = HashSet::default();
+    let mut caveats = HashSet::default();
+    while let Some(id) = frontier.pop() {
+        if visited.insert(id) {
+            for &caveat in qualified_by.get(&id).into_iter().flatten() {
+                caveats.insert(caveat);
+                frontier.push(caveat);
+            }
+        }
+    }
+    match reaching.room.checked_sub(caveats.len()) {
+        Some(room) => {
+            reaching.room = room;
+            Cow::Borrowed(reaching.by_root.entry(root).or_insert(caveats))
+        }
+        None => Cow::Owned(caveats),
+    }
+}
+
 /// A commitment retains exactly its basis's caveats and relies on exactly its
 /// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
 /// and relies on to that basis, so anything more would change what the next
@@ -439,6 +508,8 @@ struct Declared {
 struct CaveatSources {
     /// By evidence as the source names it.
     attachable: HashMap<String, HashSet<String>>,
+    /// The other way round: by caveat, the evidence that can carry it.
+    carriers: HashMap<String, Vec<String>>,
     unpaired: HashSet<String>,
 }
 
@@ -1379,6 +1450,7 @@ impl ReactiveSession {
         if qualified != withdrawn {
             return Err("withdrawals disagree with the graph's withdrawn relations".into());
         }
+        let holdable = self.holdable_series();
         for withdrawal in &save.withdrawals {
             // Findings 86, 89: its event reaches a `withdraw` of that
             // evidence for that reason. Guards are not evaluated.
@@ -1387,7 +1459,7 @@ impl ReactiveSession {
                 because: withdrawal.because.clone(),
             };
             let reached = self.reached_effects(Some(&withdrawal.event));
-            if !self.last_event_can_make(&report, &reached, None) {
+            if !self.last_event_can_make(&report, &reached, None, &holdable) {
                 return Err(format!(
                     "the withdrawal of {} by {}: no withdraw of that event withdraws {} because {}",
                     withdrawal.evidence, withdrawal.event, withdrawal.evidence, withdrawal.because
@@ -1878,7 +1950,7 @@ impl ReactiveSession {
             .map(|(name, _)| name.clone())
             .chain(self.reading_streams.keys().cloned())
             .collect::<HashSet<_>>();
-        let attachable = evidence
+        let attachable: HashMap<String, HashSet<String>> = evidence
             .into_iter()
             .map(|name| {
                 let mut roots = vec![name.clone()];
@@ -1889,8 +1961,18 @@ impl ReactiveSession {
             .collect();
         unpaired.extend(incoming(examined.iter().cloned().collect()));
         unpaired.extend(examined);
+        let mut carriers: HashMap<String, Vec<String>> = HashMap::default();
+        for (evidence, caveats) in &attachable {
+            for caveat in caveats {
+                carriers
+                    .entry(caveat.clone())
+                    .or_default()
+                    .push(evidence.clone());
+            }
+        }
         CaveatSources {
             attachable,
+            carriers,
             unpaired,
         }
     }
@@ -2361,10 +2443,12 @@ impl ReactiveSession {
         provenance: &Provenance,
         caveats: &CaveatSources,
     ) -> Result<(), String> {
-        // What each source of its evidence can attach, each source once: a
-        // decision journal entry can cite many occurrences of one stream,
-        // and no limit keeps its witnesses few.
-        let mut sources: Option<Vec<&HashSet<String>>> = None;
+        // The sources of its evidence that can attach a caveat, each once. A
+        // decision journal entry can cite many occurrences of one stream, and
+        // many caveats of many sources, and no limit keeps its witnesses
+        // few: each caveat is looked for among the sources that can carry it
+        // or among these, whichever are fewer.
+        let mut sources: Option<HashSet<&str>> = None;
         for name in &provenance.caveats {
             if caveats.unpaired.contains(name.as_str()) {
                 continue;
@@ -2372,23 +2456,27 @@ impl ReactiveSession {
             let sources = sources.get_or_insert_with(|| {
                 // A departed record's qualifications stay with what carried
                 // it, so its history's marker can account for one.
-                let mut evidence = provenance
+                provenance
                     .evidence
                     .iter()
                     .map(|evidence| self.source_evidence(evidence))
                     .chain(provenance.departed.keys().map(String::as_str))
-                    .collect::<Vec<_>>();
-                evidence.sort_unstable();
-                evidence.dedup();
-                evidence
-                    .into_iter()
-                    .filter_map(|evidence| caveats.attachable.get(evidence))
+                    .filter(|source| caveats.attachable.contains_key(*source))
                     .collect()
             });
-            if !sources
-                .iter()
-                .any(|attachable| attachable.contains(name.as_str()))
-            {
+            let carried = match caveats.carriers.get(name.as_str()) {
+                Some(carriers) if carriers.len() <= sources.len() => carriers
+                    .iter()
+                    .any(|source| sources.contains(source.as_str())),
+                Some(_) => sources.iter().any(|source| {
+                    caveats
+                        .attachable
+                        .get(*source)
+                        .is_some_and(|attachable| attachable.contains(name.as_str()))
+                }),
+                None => false,
+            };
+            if !carried {
                 return Err(format!("{what}: {name} cannot qualify any of its evidence"));
             }
         }
@@ -2449,6 +2537,7 @@ impl ReactiveSession {
         caveats: &CaveatSources,
         declared: &Declared,
     ) -> Result<(), String> {
+        let holdable = self.holdable_series();
         for (name, basis) in &save.commitment_bases {
             self.require_commitment(name)?;
             if basis.value.is_some_and(|value| !value.is_finite()) {
@@ -2582,7 +2671,8 @@ impl ReactiveSession {
             // A hold is of a series the source can hold, with a current
             // revision; it defers only while some reason holds it, each name
             // observed evidence, once (spec/caveat-holds-0.1.md).
-            if (!series.on_hold.is_empty() && (series.current.is_none() || !self.holdable(name)))
+            if (!series.on_hold.is_empty()
+                && (series.current.is_none() || !holdable.contains(name.as_str())))
                 || (series.on_hold.is_empty() && !series.deferred.is_empty())
             {
                 return Err(format!(
@@ -2759,7 +2849,7 @@ impl ReactiveSession {
                                 )
                             || matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
                                 && save.decision_series.iter().any(|(series, record)| {
-                                    self.holdable(series)
+                                    holdable.contains(series.as_str())
                                         && record
                                             .revisions
                                             .iter()
@@ -2970,7 +3060,12 @@ impl ReactiveSession {
                 return Err(format!("an effect names unknown {name}"));
             }
             self.check_effect_against_save(effect, save, observed)?;
-            if !self.last_event_can_make(effect, &last_effects, save.last_event.as_deref()) {
+            if !self.last_event_can_make(
+                effect,
+                &last_effects,
+                save.last_event.as_deref(),
+                &holdable,
+            ) {
                 return Err(format!(
                     "{} effect is not one the last event can make",
                     effect_kind(effect)
@@ -3076,6 +3171,58 @@ impl ReactiveSession {
             .is_none_or(|parameter| parameter.min.value() >= 0.0)
     }
 
+    /// What `check_saved_journal` reads for each entry, read once: see
+    /// `JournalReads`.
+    fn journal_reads<'a>(&'a self, save: &'a ReactiveSave) -> JournalReads<'a> {
+        let mut reads = JournalReads {
+            qualified_by: HashMap::default(),
+            bears_on: HashMap::default(),
+            stance: HashSet::default(),
+            ledger: self.observations.iter().map(String::as_str).collect(),
+            ranks: self.observation_ranks(),
+            reopens: HashMap::default(),
+            reaching: Reaching {
+                by_root: HashMap::default(),
+                room: self.graph.nodes.len() + self.graph.edges.len(),
+            },
+            changes: HashMap::default(),
+            revisions: HashMap::default(),
+        };
+        for (position, edge) in self.graph.edges.iter().enumerate() {
+            let kind = |id| self.graph.nodes.get(id);
+            match edge.relation {
+                Relation::Qualifies
+                    if matches!(kind(&edge.from), Some(NodeKind::Caveat { .. })) =>
+                {
+                    reads
+                        .qualified_by
+                        .entry(edge.to)
+                        .or_default()
+                        .push(edge.from);
+                }
+                Relation::Supports | Relation::Opposes => {
+                    reads.stance.insert(edge.from);
+                    if matches!(kind(&edge.to), Some(NodeKind::Claim { .. })) {
+                        reads.bears_on.entry(edge.from).or_default().push(edge.to);
+                    }
+                }
+                Relation::Reopens if position >= self.loaded.edges => {
+                    reads.reopens.entry(edge.to).or_default().push(edge.from);
+                }
+                _ => {}
+            }
+        }
+        for (name, series) in save.decision_series.iter() {
+            for revision in &series.revisions {
+                reads
+                    .revisions
+                    .entry((name.as_str(), revision.id.as_str()))
+                    .or_insert(revision);
+            }
+        }
+        reads
+    }
+
     /// Check historical records against the source and the independently saved
     /// graph/bases. This establishes consistency, not authenticity: without an
     /// event log or signature an internally consistent edited save is still data.
@@ -3088,9 +3235,11 @@ impl ReactiveSession {
         if (save.sequence == 0) != save.last_event.is_none() {
             return Err(fail("sequence and last event disagree"));
         }
+        let mut reads = self.journal_reads(save);
         let monotonic_time = self.source_clock_is_monotonic();
         let mut committed = HashSet::default();
-        let mut reopened: HashMap<&str, Vec<&str>> = HashMap::default();
+        // Each commitment's reopening causes in journal order, and as a set.
+        let mut reopened: HashMap<&str, (Vec<&str>, HashSet<&str>)> = HashMap::default();
         let mut current: HashMap<&str, &str> = HashMap::default();
         let mut previous: Option<&JournalEntry> = None;
         let mut latest_elapsed = None;
@@ -3141,7 +3290,14 @@ impl ReactiveSession {
             {
                 return Err(fail("entry event or sequence order is inconsistent"));
             }
-            if !self.event_can_change_decision(&entry.event, &entry.decision, &entry.change) {
+            let key = (
+                entry.event.as_str(),
+                entry.decision.as_str(),
+                entry.change.as_str(),
+            );
+            if !*reads.changes.entry(key).or_insert_with(|| {
+                self.event_can_change_decision(&entry.event, &entry.decision, &entry.change)
+            }) {
                 return Err(fail("event cannot make this decision change"));
             }
             if let Some(elapsed) = entry.elapsed {
@@ -3169,28 +3325,43 @@ impl ReactiveSession {
             }
             let provenance = journal_witnesses(entry);
             self.check_names("decision journal", &provenance, observed, None)?;
+            // `in_observation_order` and `predicate("observed")`, on the
+            // ranks and observations read once.
+            let mut ranked = provenance
+                .evidence
+                .iter()
+                .map(|name| (reads.ranks.rank(name), name.as_str()))
+                .collect::<Vec<_>>();
+            ranked.sort();
+            let observed_now = |name: &str| {
+                self.symbols.get(name).is_some_and(|id| {
+                    matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
+                        && !self.is_retired(name)
+                        && (reads.ledger.contains(name) || reads.stance.contains(id))
+                })
+            };
             if provenance.evidence.len() != entry.because.len()
-                || entry.because != self.in_observation_order(provenance.evidence.iter())
-                || entry.caveats
-                    != provenance
-                        .caveats
-                        .iter()
-                        .map(|caveat| caveat.to_string())
-                        .collect::<Vec<_>>()
                 || entry
                     .because
                     .iter()
-                    .any(|name| !self.predicate("observed", name).unwrap_or(false))
+                    .map(String::as_str)
+                    .ne(ranked.iter().map(|(_, name)| *name))
+                || entry
+                    .caveats
+                    .iter()
+                    .map(String::as_str)
+                    .ne(provenance.caveats.iter().map(|caveat| caveat.as_str()))
+                || entry.because.iter().any(|name| !observed_now(name))
             {
                 return Err(fail(
                     "entry witnesses are unobserved, repeated, or out of order",
                 ));
             }
-            if let Some(series) = save.decision_series.get(&entry.decision) {
-                let revision = series
+            if save.decision_series.contains_key(&entry.decision) {
+                let revision = reads
                     .revisions
-                    .iter()
-                    .find(|revision| revision.id == entry.commitment)
+                    .get(&(entry.decision.as_str(), entry.commitment.as_str()))
+                    .copied()
                     .ok_or_else(|| fail("commitment does not belong to its decision series"))?;
                 if entry.change == "committed" {
                     if revision.sequence != entry.sequence || revision.event != entry.event {
@@ -3262,29 +3433,59 @@ impl ReactiveSession {
                 }
                 // A hold, a deferred reopening and a release change no
                 // reopening cause (spec/caveat-holds-0.1.md).
-                let reopening = entry.change == "reopened";
-                let seen = reopened.entry(&entry.commitment).or_default();
-                let mut roots = Vec::new();
-                for evidence in &entry.because {
-                    if reopening {
-                        if seen.contains(&evidence.as_str()) {
+                let (causes, seen) = reopened.entry(&entry.commitment).or_default();
+                if entry.change == "reopened" {
+                    for evidence in &entry.because {
+                        if !seen.insert(evidence) {
                             return Err(fail("reopening repeats an existing cause"));
                         }
-                        seen.push(evidence);
+                        causes.push(evidence);
                     }
-                    roots.extend(self.qualification_roots(evidence)?);
                 }
-                // What reaches any witness is what reaches one of them, so
-                // one walk serves them all.
-                let related_caveats = self
-                    .caveats_before_take_back(roots)
-                    .into_iter()
-                    .collect::<NameSet>();
                 // Qualification only adds relations, and a take-back marks one
                 // without removing it (Take-back 0.1), so a reopening's
                 // caveats are a subset of what its witnesses' relations,
                 // marked or not, carry today; equality would rewrite time.
-                if !provenance.caveats.is_subset(&related_caveats) {
+                // Each cause passed `predicate("observed")` above, so its
+                // qualification roots are itself and the claims it bears on.
+                // What reaches any root is what reaches one of them, so a
+                // root's caveats are walked once for the journal while
+                // `Reaching` has room for them, and once for each entry that
+                // needs them past that; an entry citing no caveat walks none.
+                let mut unrelated = HashSet::default();
+                for caveat in &provenance.caveats {
+                    // `check_names` found each a declared caveat.
+                    let Some(&id) = self.symbols.get(caveat.as_str()) else {
+                        return Err(fail("reopening cites caveats unrelated to its witnesses"));
+                    };
+                    unrelated.insert(id);
+                }
+                let mut roots = HashSet::default();
+                'causes: for evidence in &entry.because {
+                    // And each cause declared evidence.
+                    let Some(&id) = self.symbols.get(evidence) else {
+                        return Err(format!("{evidence} must name a declared evidence"));
+                    };
+                    let claims = reads.bears_on.get(&id).map_or(&[][..], Vec::as_slice);
+                    for &root in std::iter::once(&id).chain(claims) {
+                        if unrelated.is_empty() {
+                            break 'causes;
+                        }
+                        if !roots.insert(root) {
+                            continue;
+                        }
+                        let reach =
+                            caveats_reaching_root(&reads.qualified_by, &mut reads.reaching, root);
+                        if unrelated.len() <= reach.len() {
+                            unrelated.retain(|caveat| !reach.contains(caveat));
+                        } else {
+                            for caveat in reach.iter() {
+                                unrelated.remove(caveat);
+                            }
+                        }
+                    }
+                }
+                if !unrelated.is_empty() {
                     return Err(fail("reopening cites caveats unrelated to its witnesses"));
                 }
             }
@@ -3314,15 +3515,10 @@ impl ReactiveSession {
             {
                 return Err(fail("created commitment has no journal entry"));
             }
-            let causes = reopened.get(name.as_str()).cloned().unwrap_or_default();
-            let edges = self
-                .graph
-                .edges
-                .iter()
-                .skip(self.loaded.edges)
-                .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
-                .map(|edge| edge.from)
-                .collect::<Vec<_>>();
+            let causes = reopened
+                .get(name.as_str())
+                .map_or(&[][..], |(causes, _)| causes.as_slice());
+            let edges = reads.reopens.get(id).map_or(&[][..], Vec::as_slice);
             let recorded = causes
                 .iter()
                 .map(|name| self.symbols[*name])
@@ -3472,13 +3668,20 @@ impl ReactiveSession {
         )
     }
 
-    pub(super) fn holdable(&self, series: &str) -> bool {
-        self.reached_effects(None).into_iter().any(|effect| {
-            matches!(
-                effect,
-                Effect::Reopen { action, form: DecisionChange::Hold, .. } if action == series
-            )
-        })
+    /// Each series a rule or procedure can put on hold, read once for every
+    /// record that asks (spec/caveat-holds-0.1.md).
+    fn holdable_series(&self) -> HashSet<String> {
+        self.reached_effects(None)
+            .into_iter()
+            .filter_map(|effect| match effect {
+                Effect::Reopen {
+                    action,
+                    form: DecisionChange::Hold,
+                    ..
+                } => Some(action.clone()),
+                _ => None,
+            })
+            .collect()
     }
 
     /// Every effect a rule of `event` reaches, or with `None` of any event,
@@ -3737,6 +3940,7 @@ impl ReactiveSession {
         effect: &EffectReport,
         reached: &[&Effect],
         last_event: Option<&str>,
+        holdable: &HashSet<String>,
     ) -> bool {
         let named = |reported: &str, source: &str| {
             reported == source || occurrence_parts(reported).is_some_and(|(base, _)| base == source)
@@ -3762,7 +3966,7 @@ impl ReactiveSession {
         // A reopening of a series the program can hold may also name causes
         // deferred by earlier events, at a release or when a withdrawal
         // reaches a revision on hold (spec/caveat-holds-0.1.md).
-        let holdable = |series: &str| self.holdable(series);
+        let holdable = |series: &str| holdable.contains(series);
         reached.iter().any(|rule| match (effect, rule) {
             (
                 EffectReport::Sample {
@@ -4024,5 +4228,52 @@ mod journal_order_tests {
             return;
         }
         panic!("no names put the symbol table's order against name order");
+    }
+}
+
+#[cfg(test)]
+mod journal_reach_tests {
+    use super::*;
+
+    /// Evidence 1 to 4, each qualified by caveat 10, which caveats 11, 12 and
+    /// 13 qualify in turn, and 10 qualifies 13: each evidence is reached by
+    /// 10 to 13.
+    fn hub() -> HashMap<NodeId, Vec<NodeId>> {
+        let mut qualified_by: HashMap<NodeId, Vec<NodeId>> = HashMap::default();
+        for evidence in 1..=4 {
+            qualified_by.entry(evidence).or_default().push(10);
+        }
+        qualified_by.entry(10).or_default().extend([11, 12, 13]);
+        qualified_by.entry(13).or_default().push(10);
+        qualified_by
+    }
+
+    /// What reaches a root is kept while it fits the room left, and walked
+    /// again where it is asked for once the room is spent: the same answer
+    /// either way.
+    #[test]
+    fn caveats_reaching_a_root_past_the_room_are_walked_again_not_kept() {
+        let expected = [10, 11, 12, 13].into_iter().collect::<HashSet<NodeId>>();
+        let qualified_by = hub();
+        let mut reaching = Reaching {
+            by_root: HashMap::default(),
+            room: 9,
+        };
+        for round in 0..2 {
+            for root in 1..=4 {
+                let reach = caveats_reaching_root(&qualified_by, &mut reaching, root);
+                assert_eq!(*reach, expected, "root {root}, round {round}");
+                assert_eq!(
+                    matches!(reach, Cow::Borrowed(_)),
+                    root <= 2,
+                    "root {root}, round {round}"
+                );
+            }
+        }
+        assert_eq!(reaching.room, 1);
+        assert_eq!(reaching.by_root.len(), 2);
+        // Nothing reaches a caveat no caveat qualifies, which takes no room.
+        assert!(caveats_reaching_root(&qualified_by, &mut reaching, 11).is_empty());
+        assert_eq!(reaching.room, 1);
     }
 }

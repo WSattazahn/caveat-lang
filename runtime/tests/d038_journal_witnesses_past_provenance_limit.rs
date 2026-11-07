@@ -12,7 +12,7 @@
 //! Restore now checks those names without the limits a lineage keeps to. See
 //! spec/caveat-save-0.1.md ("Changes").
 use caveat_runtime::reactive::{check_save_with, CheckOptions, ReactiveSession};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 const RECORDS: CheckOptions = CheckOptions {
     unused: false,
@@ -53,15 +53,33 @@ struct Restored {
     /// How the live session answered each of the next events, and the
     /// restored session the same: `accepted` or a refusal's code.
     next: Vec<String>,
+    /// The journal entries that departed into the archive during the next
+    /// events, the same in both.
+    departed: Vec<Value>,
 }
 
-/// Plays `events` on `source` and checks that the session's save restores,
-/// as JSON and as a struct, to the same save and snapshot, and that the
-/// records check of `caveat check --save` accepts it. Then the restored
-/// session must answer each of `next` as the live one does and save the
-/// same, a save that restores in turn.
+fn as_json<T: serde::Serialize>(value: &T) -> Value {
+    serde_json::to_value(value).unwrap()
+}
+
+/// The journal entries among drained archive items.
+fn journal_entries(items: &Value) -> impl Iterator<Item = &Value> {
+    items
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| item.get("journal_entry"))
+}
+
+/// Plays `events` on `source`, drains its archive (a restored session's
+/// starts empty) and checks that the session's save restores, as JSON and as
+/// a struct, to the same save, snapshot and views, and that the records
+/// check of `caveat check --save` accepts it. Then the restored session must
+/// answer each of `next` as the live one does, with the same views and the
+/// same archive after each, and save the same, a save that restores in turn.
 fn restores_and_plays_on(source: &str, events: &[&str], next: &[&str]) -> Restored {
     let mut live = played(source, events);
+    live.drain_archive();
     let saved = live.save_json().unwrap();
     let mut restored = ReactiveSession::restore_json(source, &saved)
         .unwrap_or_else(|error| panic!("restore_json refused the runtime's own save: {error}"));
@@ -75,6 +93,16 @@ fn restores_and_plays_on(source: &str, events: &[&str], next: &[&str]) -> Restor
         live.snapshot(),
         "snapshot after restore_json"
     );
+    assert_eq!(
+        as_json(&restored.view()),
+        as_json(&live.view()),
+        "view after restore_json"
+    );
+    assert_eq!(
+        as_json(&restored.view_v2()),
+        as_json(&live.view_v2()),
+        "View 0.2 after restore_json"
+    );
     let structured = ReactiveSession::restore(source, &live.save().unwrap())
         .unwrap_or_else(|error| panic!("restore refused the runtime's own save: {error}"));
     assert_eq!(structured.save_json().unwrap(), saved, "save after restore");
@@ -82,6 +110,7 @@ fn restores_and_plays_on(source: &str, events: &[&str], next: &[&str]) -> Restor
         .unwrap_or_else(|error| panic!("the records check refused the save: {error}"));
 
     let mut answers = Vec::new();
+    let mut departed = Vec::new();
     for event in next {
         let live_answer = outcome(&mut live, event);
         assert_eq!(
@@ -90,6 +119,23 @@ fn restores_and_plays_on(source: &str, events: &[&str], next: &[&str]) -> Restor
             "{event} after restore"
         );
         answers.push(answer(&live_answer).to_string());
+        assert_eq!(
+            as_json(&restored.view()),
+            as_json(&live.view()),
+            "view after {event}"
+        );
+        assert_eq!(
+            as_json(&restored.view_v2()),
+            as_json(&live.view_v2()),
+            "View 0.2 after {event}"
+        );
+        let items = as_json(&live.drain_archive());
+        assert_eq!(
+            as_json(&restored.drain_archive()),
+            items,
+            "archive after {event}"
+        );
+        departed.extend(journal_entries(&items).cloned());
     }
     let saved_next = live.save_json().unwrap();
     assert_eq!(
@@ -104,6 +150,7 @@ fn restores_and_plays_on(source: &str, events: &[&str], next: &[&str]) -> Restor
     Restored {
         journal: saved["decision_journal"].as_array().unwrap().clone(),
         next: answers,
+        departed,
     }
 }
 
@@ -421,4 +468,320 @@ fn a_large_reopening_citing_a_caveat_unrelated_to_its_causes_is_refused() {
         ReactiveSession::restore(&source, &save).err().unwrap(),
         "cannot restore save: decision journal: reopening cites caveats unrelated to its witnesses"
     );
+}
+
+/// A journal window of two entries, and two more series, so that each of
+/// their commits retires an older entry, which then departs.
+const WINDOWED: &str = "journal window 2;\n\
+    decisions z1 limit 4;\n\
+    decisions z2 limit 4;\n\
+    event zc1;\n\
+    event zc2;\n\
+    on zc1 commit z1 because enough using 1;\n\
+    on zc2 commit z2 because enough using 1;\n";
+
+/// After a restore, the window retires the oversized reopening, and it
+/// departs into the archive with every name it cites, as it does live.
+#[test]
+fn a_release_reopening_with_1200_caveats_departs_after_restore_as_it_does_live() {
+    let source = format!("{}{WINDOWED}", deferred_causes(600, "a", "b"));
+    let restored = restores_and_plays_on(
+        &source,
+        &deferred_then("unfreeze"),
+        &["decide", "zc1", "zc2", "bump"],
+    );
+    let departed = restored
+        .departed
+        .iter()
+        .find(|entry| entry["change"] == "reopened")
+        .unwrap_or_else(|| panic!("the reopening never departed: {:?}", restored.departed));
+    assert_eq!(names(&departed["because"]), ["e1", "e2"]);
+    assert_eq!(names(&departed["caveats"]).len(), 1200);
+    assert_eq!(
+        restored.next,
+        ["provenance_limit", "accepted", "accepted", "accepted"]
+    );
+}
+
+/// `d` is held because of `e`, which comes to carry 1,024 caveats after the
+/// hold, with the window above.
+fn held_then_flagged() -> String {
+    late_caveats(
+        &short_names(1024),
+        &format!("event freeze;\non freeze hold d because e;\n{WINDOWED}"),
+    )
+}
+
+/// A save whose held entry cites every caveat its cause carries now: no
+/// event wrote it, but each caveat reaches the cause, so it restores (A3:
+/// restore does not authenticate history). The window retires the entry
+/// during the next events and it departs with all 1,025 names, and the save
+/// after restores.
+#[test]
+fn a_hand_edited_held_entry_of_1025_names_departs_after_restore() {
+    let source = held_then_flagged();
+    let mut save = played(&source, &["report", "decide", "freeze", "flag"])
+        .save()
+        .unwrap();
+    let held = save
+        .decision_journal
+        .iter_mut()
+        .find(|entry| entry.change == "held")
+        .unwrap();
+    held.caveats = short_names(1024);
+    let mut restored = ReactiveSession::restore(&source, &save)
+        .unwrap_or_else(|error| panic!("the edited save was refused: {error}"));
+    let mut answers = Vec::new();
+    let mut departed = Vec::new();
+    for event in ["zc1", "zc2", "bump"] {
+        answers.push(answer(&outcome(&mut restored, event)).to_string());
+        as_json(&restored.view());
+        as_json(&restored.view_v2());
+        departed.extend(journal_entries(&as_json(&restored.drain_archive())).cloned());
+    }
+    assert_eq!(answers, ["accepted", "accepted", "accepted"]);
+    let held = departed
+        .iter()
+        .find(|entry| entry["change"] == "held")
+        .unwrap_or_else(|| panic!("the held entry never departed: {departed:?}"));
+    assert_eq!(names(&held["because"]), ["e"]);
+    assert_eq!(names(&held["caveats"]).len(), 1024);
+    let saved = restored.save_json().unwrap();
+    ReactiveSession::restore_json(&source, &saved)
+        .unwrap_or_else(|error| panic!("the save after was refused: {error}"));
+}
+
+/// The generator of the save fuzz in save_restore.rs.
+struct Mulberry(u32);
+
+impl Mulberry {
+    fn next(&mut self) -> u32 {
+        self.0 = self.0.wrapping_add(0x6d2b_79f5);
+        let mut t = self.0;
+        t = (t ^ (t >> 15)).wrapping_mul(t | 1);
+        t ^= t.wrapping_add((t ^ (t >> 7)).wrapping_mul(t | 61));
+        t ^ (t >> 14)
+    }
+
+    fn below(&mut self, n: usize) -> usize {
+        self.next() as usize % n.max(1)
+    }
+}
+
+/// Every place in `value`, as the keys and indexes that lead to it.
+fn places(value: &Value, at: Vec<Value>, out: &mut Vec<Vec<Value>>) {
+    out.push(at.clone());
+    match value {
+        Value::Object(fields) => {
+            for (key, child) in fields {
+                let mut next = at.clone();
+                next.push(key.clone().into());
+                places(child, next, out);
+            }
+        }
+        Value::Array(items) => {
+            for (index, child) in items.iter().enumerate() {
+                let mut next = at.clone();
+                next.push(index.into());
+                places(child, next, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn place<'a>(value: &'a mut Value, path: &[Value]) -> Option<&'a mut Value> {
+    let pointer = path
+        .iter()
+        .map(|step| match step {
+            Value::String(key) => format!("/{}", key.replace('~', "~0").replace('/', "~1")),
+            other => format!("/{other}"),
+        })
+        .collect::<String>();
+    value.pointer_mut(&pointer)
+}
+
+fn remove(value: &mut Value, path: &[Value]) {
+    let Some((last, parent)) = path.split_last() else {
+        return;
+    };
+    match (place(value, parent), last) {
+        (Some(Value::Object(fields)), Value::String(key)) => {
+            fields.remove(key);
+        }
+        (Some(Value::Array(items)), Value::Number(index)) => {
+            if let Some(index) = index.as_u64().filter(|index| *index < items.len() as u64) {
+                items.remove(index as usize);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// One to three alterations of a copy of `save`, half of them inside the
+/// oversized entry: the save fuzz's (a value replaced or removed), and a name
+/// added to a list, one of its names repeated, or the list reversed.
+fn altered(
+    save: &Value,
+    everywhere: &[Vec<Value>],
+    inside: &[Vec<Value>],
+    words: &[&str],
+    random: &mut Mulberry,
+) -> Value {
+    let mut altered = save.clone();
+    for _ in 0..1 + random.below(3) {
+        let pool = if random.below(2) == 0 {
+            inside
+        } else {
+            everywhere
+        };
+        let path = &pool[random.below(pool.len())];
+        let alteration = random.below(11);
+        if alteration == 7 {
+            remove(&mut altered, path);
+            continue;
+        }
+        let Some(target) = place(&mut altered, path) else {
+            continue;
+        };
+        let word = words[random.below(words.len())];
+        match (alteration, target) {
+            (0, target) => *target = Value::Null,
+            (1, target) => *target = word.into(),
+            (2, target) => *target = (random.below(2000) as f64 - 1000.0).into(),
+            (3, target) => *target = json!([]),
+            (4, target) => *target = json!({}),
+            (5, target) => *target = json!([word]),
+            (6, target) => *target = u64::MAX.into(),
+            (8, Value::Array(items)) => {
+                let at = random.below(items.len() + 1);
+                items.insert(at, word.into());
+            }
+            (9, Value::Array(items)) if !items.is_empty() => {
+                let copy = items[random.below(items.len())].clone();
+                items.push(copy);
+            }
+            (10, Value::Array(items)) => items.reverse(),
+            _ => {}
+        }
+    }
+    altered
+}
+
+/// Restores `text` and plays `next` on it, reading the snapshot, both views
+/// and the archive after each event: `Ok(false)` if restore refused it,
+/// `Ok(true)` if every event was answered and the save after restores.
+fn plays_on(source: &str, text: &str, next: &[&str]) -> Result<bool, String> {
+    let Ok(mut session) = ReactiveSession::restore_json(source, text) else {
+        return Ok(false);
+    };
+    for event in next {
+        session
+            .dispatch_outcome_json(event, "{}")
+            .map_err(|fatal| format!("{event} was fatal: {}", fatal.message))?;
+        session.snapshot();
+        as_json(&session.view());
+        as_json(&session.view_v2());
+        session.drain_archive();
+    }
+    let saved = session.save_json()?;
+    ReactiveSession::restore_json(source, &saved)
+        .map_err(|error| format!("the save after {next:?} was refused: {error}"))?;
+    Ok(true)
+}
+
+/// Alters `save` round after round from each seed, half the time inside its
+/// journal entry past the limits: whatever restore accepts must play on with
+/// no panic and no fatal outcome, and its save must restore.
+/// D038_FUZZ_ROUNDS runs it longer.
+fn fuzz_past_the_limits(source: &str, save: &str, words: &[&str], next: &[&str], seeds: [u32; 2]) {
+    let save: Value = serde_json::from_str(save).unwrap();
+    let entry = save["decision_journal"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|entry| names(&entry["because"]).len() + names(&entry["caveats"]).len() > 1024)
+        .expect("an entry past the limits");
+    let mut everywhere = Vec::new();
+    places(&save, Vec::new(), &mut everywhere);
+    let prefix = [json!("decision_journal"), json!(entry)];
+    let inside = everywhere
+        .iter()
+        .filter(|path| path.starts_with(&prefix))
+        .cloned()
+        .collect::<Vec<_>>();
+    let rounds = std::env::var("D038_FUZZ_ROUNDS")
+        .ok()
+        .and_then(|rounds| rounds.parse().ok())
+        .unwrap_or(40);
+    for seed in seeds {
+        let mut random = Mulberry(seed);
+        let mut accepted = 0;
+        for round in 0..rounds {
+            let text = altered(&save, &everywhere, &inside, words, &mut random).to_string();
+            match std::panic::catch_unwind(|| plays_on(source, &text, next)) {
+                Ok(Ok(played)) => accepted += u32::from(played),
+                Ok(Err(failure)) => panic!("seed {seed}, round {round}: {failure}"),
+                Err(_) => panic!("seed {seed}, round {round}: panicked"),
+            }
+        }
+        eprintln!("seed {seed}, {rounds} rounds: accepted {accepted}");
+    }
+}
+
+#[test]
+fn altered_saves_with_a_release_reopening_of_1200_caveats_never_crash() {
+    let source = format!("{}{WINDOWED}", deferred_causes(600, "a", "b"));
+    let mut live = played(&source, &deferred_then("unfreeze"));
+    let save = live.save_json().unwrap();
+    let words = [
+        "e1",
+        "e2",
+        "base",
+        "team",
+        "a1",
+        "b600",
+        "gate@1",
+        "gate",
+        "journal@3",
+        "released",
+        "reopened",
+        "",
+        "z1@1",
+    ];
+    let next = [
+        "decide", "zc1", "retract", "zc2", "unfreeze", "freeze", "bump",
+    ];
+    fuzz_past_the_limits(&source, &save, &words, &next, [1, 2]);
+    // Unaltered, it plays on.
+    assert_eq!(answer(&outcome(&mut live, "zc1")), "accepted");
+}
+
+#[test]
+fn altered_saves_with_a_hand_edited_held_entry_of_1025_names_never_crash() {
+    let source = held_then_flagged();
+    let mut save = played(&source, &["report", "decide", "freeze", "flag"])
+        .save()
+        .unwrap();
+    let held = save
+        .decision_journal
+        .iter_mut()
+        .find(|entry| entry.change == "held")
+        .unwrap();
+    held.caveats = short_names(1024);
+    let save = serde_json::to_string(&save).unwrap();
+    let words = [
+        "e",
+        "c0000",
+        "c1023",
+        "d@1",
+        "d",
+        "held",
+        "reopened",
+        "journal@2",
+        "",
+        "z2@1",
+    ];
+    let next = ["zc1", "doubt", "decide", "zc2", "flag", "bump"];
+    fuzz_past_the_limits(&source, &save, &words, &next, [3, 4]);
 }
