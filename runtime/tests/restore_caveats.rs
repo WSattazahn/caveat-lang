@@ -204,3 +204,26 @@ fn a_caveat_the_source_could_have_attached_restores_without_proof_it_did() {
     let lineage = with_caveat(&save, "/states/level/lineage", "late");
     restores(&with_caveat(&lineage, "/states/level/grounds", "late"));
 }
+
+// A departure marker naming a history the program does not have: nothing
+// the source attaches comes through it, so the check passes over it rather
+// than failing on it. A caveat no other evidence of the lineage can carry is
+// refused for that; with only caveats its evidence carries, the marker itself
+// is refused, by the check of departed records that follows.
+#[test]
+fn a_marker_of_an_unknown_history_attaches_no_caveat() {
+    let mut save = saved();
+    let lineage = &mut save["states"]["level"]["lineage"];
+    lineage["departed"] =
+        json!([{"history": "bogus", "read": 1, "from": 1, "through": 1, "departed_at": 1}]);
+    lineage["caveats"] = json!(["drift", "forged"]);
+    refused(
+        &save,
+        "state level: forged cannot qualify any of its evidence",
+    );
+    save["states"]["level"]["lineage"]["caveats"] = json!(["drift"]);
+    refused(
+        &save,
+        "state level holds departed records of bogus, which has no window",
+    );
+}

@@ -334,6 +334,22 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-07 (D039): restore checks the decision journal against what it
+  reads of the graph once, instead of reading the graph again for each
+  entry. For each reopening it read every relation once for each record its
+  walk reached, for each witness it read the observation ledger and every
+  relation to find it observed, and for each series a record asked about it
+  read every effect of the program. A save the runtime wrote, of 2 MB, took
+  15 minutes to restore where loading its program took a tenth of a second,
+  against the promise above that restoring costs what loading costs plus the
+  size of the save. Restore now reads the relations, the observations and
+  the series the program can hold once, and walks what reaches each cause
+  once for the whole journal, keeping those walks while they fit in the size
+  of the graph. Past that, as when caveats qualify caveats that many causes
+  share, a cause is walked again for each entry that cites it, so such a
+  journal can still cost more than its size. Every save restores, or is
+  refused with the same message, as before.
+
 - 2026-11-02 (D038): restore no longer holds a decision journal entry's
   names to the provenance limits of 1,024 names and 65,536 bytes of them.
   An entry is not a lineage. A reopening that ends a hold, by a release or by
