@@ -290,7 +290,8 @@ export function lateRequest(fixture, index, beforeRecord) {
 
 const commitmentMutationAnchor = '        // Current values only. Commitment bases and grounds, reading\n' +
   '        // archives and the journal record what was known then.\n';
-const basisMutation = '        for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {\n' +
+// make_mut writes any record, and tells the event's write log so.
+const basisMutation = '        for basis in self.commitment_bases.make_mut().values_mut() {\n' +
   '            if basis.provenance.evidence.contains(evidence) {\n' +
   '                basis.provenance.merge(&added)?;\n' +
   '            }\n' +
@@ -301,7 +302,7 @@ const commitmentMutations = {
   // so this mutant rewrites all three and restore validation still accepts its
   // saves: only the comparison with the model can catch it.
   records: '        // Deliberate mutation: the late caveat reaches every commitment record.\n' + basisMutation +
-    '        for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {\n' +
+    '        for (name, grounds) in self.commitment_grounds.make_mut().iter_mut() {\n' +
     '            if grounds.evidence.contains(evidence) {\n' +
     '                grounds.merge(&added)?;\n' +
     '                for index in 0..self.journal.len() {\n' +
@@ -478,14 +479,16 @@ export function reopenRequest(fixture, index, beforeRecord) {
 }
 
 // The session writes its graph only through reactive_write.rs, so the
-// retained-caveats mutant edits the reopening there.
-const reopenAnchor = '        Arc::make_mut(&mut self.graph.0).reopen(commitment, because);\n';
+// retained-caveats mutant edits the reopening there. It removes edges, so it
+// writes through write_any, which tells the event's write log that anything
+// may have changed, as every write that removes edges must.
+const reopenAnchor = '        self.graph.write().reopen(commitment, because);\n';
 const journalAnchor = '            because,\n            caveats: caveats.into_iter().collect(),\n';
 const reopenMutations = {
   // The reopened commitment loses the caveats it retained.
   retained: ['reactive_write.rs', reopenAnchor, reopenAnchor +
     '        // Deliberate mutation: reopening drops the retained caveats.\n' +
-    '        Arc::make_mut(&mut self.graph.0).edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n'],
+    '        self.graph.write_any().edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n'],
   // The journal records the cause without its caveats.
   cause: ['reactive.rs', journalAnchor,
     '            because,\n' +
