@@ -235,7 +235,13 @@ save is refused with an error, and never crashes the runtime, when:
   relation, a `qualify` or `reopen` its relation, a `commit` a basis holding
   the caveats it retains, an `examine` attention spent at least its cost
   besides what the declarations spent, a `renew` its occurrence in the
-  renewals, a `withdraw` its withdrawal record;
+  renewals, a `withdraw` its withdrawal record. The last event paid for
+  each `examine` it reports, in full, so the save is also refused when the
+  costs of all its `examine` effects, added to what the declarations
+  spent, sum to more than the budget's `spent`, a caveat examined twice
+  counting twice. That sum is checked apart from the least costs above:
+  the least costs of the caveats examined before the last event are not
+  added to it, so neither check refuses a save that meets each sum alone;
 - it reports an effect that no rule effect the last event reaches could make:
   one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
   `qualify`, `renew` or `withdraw`) on the same names, where a renewable
@@ -363,6 +369,27 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-08 (D053): restore refuses a save whose last event's `examine`
+  effects cost more together than its budget spent besides what the
+  declarations spent. It checked each effect's cost on its own. An event
+  pays for every examination it makes, in full, after what the
+  declarations and earlier events spent, so a session's `spent` is at
+  least what the declarations spent plus all the last event's examine
+  costs. A save whose `spent` covered each `examine` alone but not their
+  sum was accepted, though no session of the program writes it: with rules
+  that examine `a` and `b` for 3 each on `check` and for 1 each on
+  `cheap`, a save after `check` was accepted with its `spent` edited from
+  6 to 3. The gap predates D046 and does not depend on declarations.
+  Restore now refuses such a save, with "examine effects spend 6 attention
+  together, more than the 3 the budget spent" (which also names what the
+  declarations spent, when they spent any), after every other check, so a
+  save it refused before is refused with the same message, and only a save
+  whose last event reports two or more `examine` effects can be refused
+  where it was accepted before. The last event's examines are not added to
+  the least costs of the caveats examined before it, which are checked
+  apart as before, so neither check refuses a save that meets each sum
+  alone. The saves sessions write restore as before.
 
 - 2026-11-08 (D052): restore checks an observation record's key against the
   effects that leave records. Only an event's `reveal`, `sample` or `renew`
