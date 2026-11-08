@@ -508,6 +508,29 @@ struct Declared {
     attention: HashMap<String, Attention>,
 }
 
+/// The evidence a save may name, read once for every record restore checks.
+/// See `restore_graph`.
+struct Observed {
+    /// Evidence observed explicitly or by a stance-bearing relation. A record
+    /// that retires keeps both, so it stays here: it was observed when it was
+    /// cited. What an event names itself must be here: a withdrawal's
+    /// evidence and reason, a hold, a deferral, an outcome's `because`, the
+    /// evidence of a scheduled qualification or of an observation record, a
+    /// permission's grant, a retention reason, the cause of a reopening a
+    /// rule made, a witness of a journal entry other than a commit's, and
+    /// what the last event's effects report.
+    evidence: HashSet<NodeId>,
+    /// Retired evidence a declaration's `reopen` names that no event
+    /// observed, with the sequence the save says it retired at (D051). The
+    /// declaration cites it as the program loads, and once it retires
+    /// `reopened(...)` reads it observed or not, so what that read makes may
+    /// cite it: a lineage or grounds, a basis and its `relies_on` relations,
+    /// a commit's journal entry, a reading, an outcome, and the
+    /// qualifications a record keeps. Before it retires the read is refused
+    /// (D045), so a record the save dates cites it only from then on.
+    declared_causes: HashMap<NodeId, u64>,
+}
+
 /// The caveats a value can carry, as the loaded source can attach them:
 /// those a value resting on each evidence can carry, and those a value can
 /// carry with no evidence that bears them. See `caveat_sources`.
@@ -921,13 +944,13 @@ impl ReactiveSession {
         let caveats = self.caveat_sources();
         let declared = self.declared_memberships();
         let observed = self.restore_graph(save, &declared)?;
-        self.restore_withdrawals(save, &observed)?;
+        self.restore_withdrawals(save, &observed.evidence)?;
         self.restore_taken_back(save)?;
         self.restore_states(&save.states, &observed, &caveats)?;
         self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_retired(save)?;
-        self.restore_permissions(save, &observed)?;
-        self.restore_retention_reasons(save, &observed)?;
+        self.restore_permissions(save, &observed.evidence)?;
+        self.restore_retention_reasons(save, &observed.evidence)?;
         self.restore_departures(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
@@ -2048,12 +2071,12 @@ impl ReactiveSession {
         }
     }
 
-    /// The graph as the save leaves it, and the evidence it observes.
+    /// The graph as the save leaves it, and the evidence its records may name.
     fn restore_graph(
         &mut self,
         save: &ReactiveSave,
         declared: &Declared,
-    ) -> Result<HashSet<NodeId>, String> {
+    ) -> Result<Observed, String> {
         let saved = &save.graph;
         let committable = self.committable_actions();
         let (possible, _) = self.qualification_sources();
@@ -2148,16 +2171,27 @@ impl ReactiveSession {
         // when the event added the relation, and stays observed: the next
         // commitment and qualification that read it require it. Checked
         // against the whole graph, which holds the observation somewhere.
-        self.restore_observations(save)?;
-        let observed = self.observed_evidence();
+        // A basis may also rely on a retired cause a declaration's `reopen`
+        // names, which no event need have observed (D051); a reopening a
+        // rule made names its cause itself.
+        let mut declared_causes = self.retired_declared_causes(save);
+        self.restore_observations(save, &declared_causes)?;
+        let evidence = self.observed_evidence();
+        // A declared cause an event observed, with a stance or in the
+        // ledger, is cited as other observed evidence is, and no record is
+        // dated by its retirement.
+        declared_causes.retain(|id, _| !evidence.contains(id));
+        let observed = Observed {
+            evidence,
+            declared_causes,
+        };
         for [from, name, to] in &saved.relations {
-            let evidence = match name.as_str() {
-                "relies_on" => to,
-                "reopens" => from,
+            match name.as_str() {
+                "relies_on" => self.require_cited(to, &observed),
+                "reopens" => self.require_observed(from, &observed.evidence),
                 _ => continue,
-            };
-            self.require_observed(evidence, &observed)
-                .map_err(|error| format!("relation {from} {name} {to}: {error}"))?;
+            }
+            .map_err(|error| format!("relation {from} {name} {to}: {error}"))?;
         }
         // Findings 123, 188-191: attention no examination of the source can
         // leave. A reactive event only ever leaves a caveat examined, by an
@@ -2244,7 +2278,11 @@ impl ReactiveSession {
         targets
     }
 
-    fn restore_observations(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    fn restore_observations(
+        &mut self,
+        save: &ReactiveSave,
+        declared_causes: &HashMap<NodeId, u64>,
+    ) -> Result<(), String> {
         let Some(observations) = &save.observations else {
             return Ok(());
         };
@@ -2346,9 +2384,21 @@ impl ReactiveSession {
             }
             last_reading = Some((reading.sequence, *node));
             for evidence in &reading.provenance.evidence {
-                if positions
-                    .get(evidence.as_str())
-                    .is_none_or(|position| position > rank)
+                // A retired cause a declaration's `reopen` names that the
+                // ledger does not hold was never observed, and a reading may
+                // cite it once it has retired (D051). One the ledger holds was
+                // observed before it retired: a reading cites it only after
+                // the ledger observes it, as other evidence.
+                let declared_cause = !positions.contains_key(evidence.as_str())
+                    && self
+                        .symbols
+                        .get(evidence.as_str())
+                        .and_then(|id| declared_causes.get(id))
+                        .is_some_and(|retired| *retired <= reading.sequence);
+                if !declared_cause
+                    && positions
+                        .get(evidence.as_str())
+                        .is_none_or(|position| position > rank)
                 {
                     return Err(format!(
                         "reading {} cites evidence not yet observed: {evidence}",
@@ -2419,6 +2469,22 @@ impl ReactiveSession {
             .collect()
     }
 
+    /// The evidence a declaration's `reopen` names that the save says has
+    /// retired, with the sequence it says it retired at: what a record may
+    /// cite though no event observed it (D051). Only a renewal retires
+    /// declared evidence, and `restore_retired` checks each retirement the
+    /// save lists.
+    fn retired_declared_causes(&self, save: &ReactiveSave) -> HashMap<NodeId, u64> {
+        self.graph.edges[..self.loaded.edges]
+            .iter()
+            .filter(|edge| edge.relation == Relation::Reopens)
+            .filter_map(|edge| {
+                let retired = save.retired.get(self.symbols.name_of(edge.from)?)?;
+                Some((edge.from, *retired))
+            })
+            .collect()
+    }
+
     /// Evidence enters a lineage or a record only once observed, and stays
     /// observed.
     fn require_observed(&self, name: &str, observed: &HashSet<NodeId>) -> Result<(), String> {
@@ -2433,35 +2499,84 @@ impl ReactiveSession {
         }
     }
 
+    /// What a record cites: observed evidence, or a retired cause a
+    /// declaration's `reopen` names (D051). Refused as `require_observed`
+    /// refuses.
+    fn require_cited(&self, name: &str, observed: &Observed) -> Result<(), String> {
+        if self
+            .symbols
+            .get(name)
+            .is_some_and(|id| observed.declared_causes.contains_key(id))
+        {
+            return Ok(());
+        }
+        self.require_observed(name, &observed.evidence)
+    }
+
+    /// What a record the save dates cites, made by the event at `made`: a
+    /// retired declared cause no event observed only once it had retired,
+    /// since reading `reopened(...)` before then is refused (D045, D051).
+    /// Refused as `require_observed` refuses; `check_provenance` checks the
+    /// rest.
+    fn check_cited_once_retired(
+        &self,
+        what: &str,
+        provenance: &Provenance,
+        observed: &Observed,
+        made: u64,
+    ) -> Result<(), String> {
+        for name in &provenance.evidence {
+            if self
+                .symbols
+                .get(name.as_str())
+                .and_then(|id| observed.declared_causes.get(id))
+                .is_some_and(|retired| *retired > made)
+            {
+                return Err(format!("{what}: {name} is not observed"));
+            }
+        }
+        Ok(())
+    }
+
     /// A provenance whose names are all declared or created evidence and
     /// caveats, and whose evidence is observed: a commitment made on it, or a
-    /// qualification of it, requires that. With `caveats`, each caveat is
-    /// also one the source can attach to it.
+    /// qualification of it, requires that. It is what a record cites, so its
+    /// evidence may also be a retired declared cause (D051). With `caveats`,
+    /// each caveat is also one the source can attach to it.
     fn check_provenance(
         &self,
         what: &str,
         provenance: &Provenance,
-        observed: &HashSet<NodeId>,
+        observed: &Observed,
         caveats: Option<&CaveatSources>,
     ) -> Result<(), String> {
         provenance
             .validate()
             .map_err(|error| format!("{what}: {error}"))?;
-        self.check_names(what, provenance, observed, caveats)
+        self.check_names(what, provenance, observed, true, caveats)
     }
 
     /// `check_provenance` without the limits on one lineage's size, for names
-    /// that are not a lineage: a decision journal entry's witnesses.
+    /// that are not a lineage: a decision journal entry's witnesses. They are
+    /// what a record `cited`, or else what an event named itself, which a
+    /// retired declared cause cannot be (D051).
     fn check_names(
         &self,
         what: &str,
         provenance: &Provenance,
-        observed: &HashSet<NodeId>,
+        observed: &Observed,
+        cited: bool,
         caveats: Option<&CaveatSources>,
     ) -> Result<(), String> {
         for name in &provenance.evidence {
             self.require_kind(name, "evidence")
-                .and_then(|()| self.require_observed(name, observed))
+                .and_then(|()| {
+                    if cited {
+                        self.require_cited(name, observed)
+                    } else {
+                        self.require_observed(name, &observed.evidence)
+                    }
+                })
                 .map_err(|error| format!("{what}: {error}"))?;
         }
         for name in &provenance.caveats {
@@ -2537,7 +2652,7 @@ impl ReactiveSession {
     fn restore_states(
         &mut self,
         saved: &BTreeMap<String, SavedState>,
-        observed: &HashSet<NodeId>,
+        observed: &Observed,
         caveats: &CaveatSources,
     ) -> Result<(), String> {
         if let Some(name) = saved.keys().find(|name| !self.states.contains_key(name)) {
@@ -2573,11 +2688,26 @@ impl ReactiveSession {
     fn restore_records(
         &mut self,
         save: &ReactiveSave,
-        observed: &HashSet<NodeId>,
+        observed: &Observed,
         caveats: &CaveatSources,
         declared: &Declared,
     ) -> Result<(), String> {
         let holdable = self.holdable_series();
+        // When the save says an event made each commitment: a revision's
+        // sequence, or that of the commitment's `committed` journal entry
+        // while the journal holds it. A basis is frozen then.
+        let made = save
+            .decision_series
+            .values()
+            .flat_map(|series| &series.revisions)
+            .map(|revision| (revision.id.as_str(), revision.sequence))
+            .chain(
+                save.decision_journal
+                    .iter()
+                    .filter(|entry| entry.change == "committed")
+                    .map(|entry| (entry.commitment.as_str(), entry.sequence)),
+            )
+            .collect::<HashMap<_, _>>();
         for (name, basis) in &save.commitment_bases {
             self.require_commitment(name)?;
             if basis.value.is_some_and(|value| !value.is_finite()) {
@@ -2597,12 +2727,11 @@ impl ReactiveSession {
                     ));
                 }
             }
-            self.check_provenance(
-                &format!("commitment {name}"),
-                &basis.provenance,
-                observed,
-                Some(caveats),
-            )?;
+            let what = format!("commitment {name}");
+            self.check_provenance(&what, &basis.provenance, observed, Some(caveats))?;
+            if let Some(made) = made.get(name.as_str()) {
+                self.check_cited_once_retired(&what, &basis.provenance, observed, *made)?;
+            }
         }
         for (name, grounds) in &save.commitment_grounds {
             self.require_commitment(name)?;
@@ -2659,11 +2788,13 @@ impl ReactiveSession {
                 if occurrence.sequence == 0 || occurrence.sequence > save.sequence {
                     return Err(format!("reading {} is out of sequence", occurrence.id));
                 }
-                self.check_provenance(
-                    &format!("reading {}", occurrence.id),
+                let what = format!("reading {}", occurrence.id);
+                self.check_provenance(&what, &occurrence.provenance, observed, Some(caveats))?;
+                self.check_cited_once_retired(
+                    &what,
                     &occurrence.provenance,
                     observed,
-                    Some(caveats),
+                    occurrence.sequence,
                 )?;
                 self.check_reading_stance(save, name, occurrence)?;
                 self.check_reading_note(save, name, occurrence)?;
@@ -2721,14 +2852,14 @@ impl ReactiveSession {
             }
             for (index, evidence) in series.on_hold.iter().enumerate() {
                 self.require_kind(evidence, "evidence")?;
-                self.require_observed(evidence, observed)?;
+                self.require_observed(evidence, &observed.evidence)?;
                 if series.on_hold[..index].contains(evidence) {
                     return Err(format!("decision series {name} holds {evidence} twice"));
                 }
             }
             for (index, evidence) in series.deferred.iter().enumerate() {
                 self.require_kind(evidence, "evidence")?;
-                self.require_observed(evidence, observed)?;
+                self.require_observed(evidence, &observed.evidence)?;
                 if series.deferred[..index].contains(evidence) {
                     return Err(format!("decision series {name} defers {evidence} twice"));
                 }
@@ -2810,7 +2941,7 @@ impl ReactiveSession {
         let (_, schedulable) = self.qualification_sources();
         for scheduled in &save.scheduled_qualifications {
             self.require_kind(&scheduled.evidence, "evidence")?;
-            self.require_observed(&scheduled.evidence, observed)?;
+            self.require_observed(&scheduled.evidence, &observed.evidence)?;
             self.require_kind(&scheduled.caveat, "caveat")?;
             let evidence = self.source_evidence(&scheduled.evidence);
             if !schedulable.contains(&(scheduled.caveat.clone(), evidence.to_string())) {
@@ -2854,6 +2985,23 @@ impl ReactiveSession {
             .map(|edge| edge.to)
             .collect::<HashSet<_>>();
         let costs = self.examination_costs();
+        // When the save says an event last joined each reopening's record:
+        // the latest `reopened`, `held`, `deferred` or `released` entry of its
+        // commitment while the journal holds one. Each reopening, hold,
+        // deferral and release that joins the record journals one of these
+        // for that commitment in the same event, and the journal departs
+        // oldest first (D051).
+        let joined = save
+            .decision_journal
+            .iter()
+            .filter(|entry| {
+                matches!(
+                    entry.change.as_str(),
+                    "reopened" | "held" | "deferred" | "released"
+                )
+            })
+            .map(|entry| (entry.commitment.as_str(), entry.sequence))
+            .collect::<HashMap<_, _>>();
         for (what, records) in [
             ("observation", &save.observation_qualifications),
             ("examination", &save.examination_qualifications),
@@ -2863,7 +3011,7 @@ impl ReactiveSession {
                 let id = self.symbols.get(name);
                 let fits = match what {
                     "observation" => {
-                        id.is_some_and(|id| observed.contains(id))
+                        id.is_some_and(|id| observed.evidence.contains(id))
                             || occurrence_parts(name)
                                 .is_some_and(|(base, _)| self.renewals.contains_key(base))
                                 && self.require_kind(name, "evidence").is_ok()
@@ -2914,12 +3062,11 @@ impl ReactiveSession {
                          {name}"
                     ));
                 }
-                self.check_provenance(
-                    &format!("{what} of {name}"),
-                    &provenance.0,
-                    observed,
-                    Some(caveats),
-                )?;
+                let record = format!("{what} of {name}");
+                self.check_provenance(&record, &provenance.0, observed, Some(caveats))?;
+                if let Some(joined) = joined.get(name.as_str()).filter(|_| what == "reopening") {
+                    self.check_cited_once_retired(&record, &provenance.0, observed, *joined)?;
+                }
             }
         }
         let decisions = self.decision_names();
@@ -3055,7 +3202,7 @@ impl ReactiveSession {
                     let departed = self.departed_in_last_event(save, evidence);
                     if !departed {
                         self.require_kind(evidence, "evidence")?;
-                        self.require_observed(evidence, observed)?;
+                        self.require_observed(evidence, &observed.evidence)?;
                     }
                     match (relation, target) {
                         (None, None) => {
@@ -3127,7 +3274,7 @@ impl ReactiveSession {
             }) {
                 return Err(format!("an effect names unknown {name}"));
             }
-            self.check_effect_against_save(effect, save, observed, declared_spent)?;
+            self.check_effect_against_save(effect, save, &observed.evidence, declared_spent)?;
             if !self.last_event_can_make(
                 effect,
                 &last_effects,
@@ -3305,11 +3452,7 @@ impl ReactiveSession {
     /// Check historical records against the source and the independently saved
     /// graph/bases. This establishes consistency, not authenticity: without an
     /// event log or signature an internally consistent edited save is still data.
-    fn check_saved_journal(
-        &self,
-        save: &ReactiveSave,
-        observed: &HashSet<NodeId>,
-    ) -> Result<(), String> {
+    fn check_saved_journal(&self, save: &ReactiveSave, observed: &Observed) -> Result<(), String> {
         let fail = |message: &str| format!("decision journal: {message}");
         if (save.sequence == 0) != save.last_event.is_none() {
             return Err(fail("sequence and last event disagree"));
@@ -3403,7 +3546,11 @@ impl ReactiveSession {
                 return Err(fail("entry value differs from its frozen commitment"));
             }
             let provenance = journal_witnesses(entry);
-            self.check_names("decision journal", &provenance, observed, None)?;
+            // A commit's entry records its grounds' evidence, which a record
+            // cites and which may be a retired declared cause (D051). Any
+            // other entry's witnesses are causes an event named itself.
+            let cited = entry.change == "committed";
+            self.check_names("decision journal", &provenance, observed, cited, None)?;
             // `in_observation_order` and `predicate("observed")`, on the
             // ranks and observations read once.
             let mut ranked = provenance
@@ -3415,8 +3562,9 @@ impl ReactiveSession {
             let observed_now = |name: &str| {
                 self.symbols.get(name).is_some_and(|id| {
                     matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
-                        && !self.is_retired(name)
-                        && (reads.ledger.contains(name) || reads.stance.contains(id))
+                        && ((!self.is_retired(name)
+                            && (reads.ledger.contains(name) || reads.stance.contains(id)))
+                            || (cited && observed.declared_causes.contains_key(id)))
                 })
             };
             if provenance.evidence.len() != entry.because.len()
@@ -3703,7 +3851,7 @@ impl ReactiveSession {
         series: &str,
         revision: &DecisionRevision,
         outcome: &Outcome,
-        observed: &HashSet<u64>,
+        observed: &Observed,
         caveats: &CaveatSources,
     ) -> Result<(), String> {
         let fail = |reason: &str| format!("revision {} has an outcome {reason}", revision.id);
@@ -3722,7 +3870,7 @@ impl ReactiveSession {
         }
         for (index, evidence) in outcome.because.iter().enumerate() {
             self.require_kind(evidence, "evidence")?;
-            self.require_observed(evidence, observed)?;
+            self.require_observed(evidence, &observed.evidence)?;
             if outcome.because[..index].contains(evidence) {
                 return Err(fail(&format!("that cites {evidence} twice")));
             }
@@ -3739,12 +3887,9 @@ impl ReactiveSession {
                 return Err(fail(&format!("whose materialized {caveat} it cannot hold")));
             }
         }
-        self.check_provenance(
-            &format!("outcome of {}", revision.id),
-            &outcome.lineage,
-            observed,
-            Some(caveats),
-        )
+        let what = format!("outcome of {}", revision.id);
+        self.check_provenance(&what, &outcome.lineage, observed, Some(caveats))?;
+        self.check_cited_once_retired(&what, &outcome.lineage, observed, outcome.sequence)
     }
 
     /// Each series a rule or procedure can put on hold, read once for every
@@ -4305,8 +4450,12 @@ mod journal_order_tests {
             edited
                 .decision_journal
                 .retain(|entry| entry.commitment != plain && entry.change != "reopened");
+            let observed = Observed {
+                evidence: restored.observed_evidence(),
+                declared_causes: HashMap::default(),
+            };
             assert_eq!(
-                restored.check_saved_journal(&edited, &restored.observed_evidence()),
+                restored.check_saved_journal(&edited, &observed),
                 Err("decision journal: created commitment has no journal entry".to_string())
             );
             assert_eq!(

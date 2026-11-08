@@ -140,10 +140,36 @@ Restore refuses a save when:
   its retirement reopens a decision because of it.
 
 Retired evidence counts as observed for every check that requires cited
-evidence to have been observed: it was observed when it was cited. As with
-every restore check, a save that passes holds records the program could hold,
-not records events are shown to have produced
-([Save 0.1](caveat-save-0.1.md)).
+evidence to have been observed: it was observed when it was cited. Evidence
+a declaration's `reopen` names may never have been observed. `reopen hold
+because sensor;` cites `sensor` as the program loads, a renewal can retire
+it before any event observes it, and once it has retired, reading
+`reopened(hold)` carries it, as a read of other retired evidence does; until
+then that read is refused ([Dispatch 0.1](caveat-dispatch-0.1.md), D045).
+Restore accepts such a retired cause that no event observed wherever a
+record cites it: a state's lineage or grounds, a commitment's basis, grounds
+and `relies_on` relations, the journal entry of a commit, a reading, an
+outcome's lineage, and the qualifications records keep. A record the save
+dates may cite it only from the event the save says retired it: a reading or
+an outcome by its own sequence; a commitment's basis by its revision's
+sequence, or that of its commit's journal entry; and a reopening's record by
+the latest `reopened`, `held`, `deferred` or `released` journal entry of its
+commitment, since each reopening, hold, deferral and release that joins the
+record journals one of these in the same event, and the journal departs
+oldest first. A record that carries no date, such as a state's lineage or
+the observation, examination and predicate qualifications, is not dated, and
+neither is one whose only date is a journal entry that has departed. A cause
+an event observed before it retired, with a stance or in the observation
+ledger, is cited as other observed evidence is, so in a session with an
+observation ledger a reading may cite it only once the ledger observes it.
+What an event names itself must have been observed, so restore still refuses
+the cause as a withdrawal's evidence or reason, a hold or a deferral, an
+outcome's reason, the evidence of a scheduled qualification, the key of an
+observation record, a permission's grant, a retention reason, the cause of a
+`reopens` relation a rule made, a witness of a journal entry other than a
+commit's, or evidence the last event's effects report. As with every restore
+check, a save that passes holds records the program could hold, not records
+events are shown to have produced ([Save 0.1](caveat-save-0.1.md)).
 
 ## Decision series: not in rc.15
 
@@ -171,6 +197,35 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-08 (D051): restore accepts a save that cites evidence a
+  declaration's `reopen` names once a renewal has retired it, though no
+  event observed it. `reopen hold because sensor;` cites `sensor` as the
+  program loads, and once `sensor` has retired, `reopened(hold)` reads it
+  observed or not, so what that read makes carries it: a lineage or grounds,
+  a commitment's basis with its `relies_on` relations and journal entry, a
+  reading, an outcome's lineage, and the qualifications records keep. This
+  profile counted retired evidence as observed because it was observed when
+  it was cited, which such a cause need not have been. Restore refused the
+  save the runtime wrote after such a read, and every later save that still
+  held what it made, with "state seen: sensor is not observed" and the like,
+  breaking the promise that a 1.x save restores. It now accepts such a cause
+  that no event observed wherever a record cites it, and in a reading, a
+  commitment's basis, an outcome or a reopening's record only from the event
+  the save says retired it, since the read is refused before then. A
+  reopening's record, which a hold, a deferral and a release join too, is
+  dated by the latest reopening, hold, deferral or release the journal holds
+  for its commitment. A cause an event observed is cited as other observed
+  evidence is: in a session with an observation ledger, a reading may cite
+  it only once the ledger observes it. What an event names itself must still
+  have been observed, so a save that names the cause there is still refused.
+  A save refused only because a record cites such a cause now restores,
+  unless a reading, a basis, an outcome or a reopening's record cites it
+  before the save says it retired: that save is still refused, for a basis
+  now with "commitment other: sensor is not observed" and the like in place
+  of the message of its `relies_on` relation. A save with another fault too,
+  such as a retirement restore refuses, may now be refused for that fault
+  instead. A save in which no record cites such a cause restores, or is
+  refused with the same message, as before.
 - 2026-10-05 (rc.15, specified): new profile. Declared windows on reading
   streams, renewable evidence and the journal; retirement as a reported,
   transactional effect that keeps every record; the `retired` snapshot and
