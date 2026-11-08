@@ -31,6 +31,10 @@ is computed by `source_identity` in [reactive.rs](../runtime/src/reactive.rs).
 which the saved delta cannot reconstruct. `restore_records` likewise requires
 each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
+`check_last_event_spending`, run after every other check, requires the costs
+of the last event's `examine` effects, a caveat examined twice counting
+twice, added to what the declarations spent, to fit the budget's `spent`
+(D053).
 
 Since rc.11, a single added `["phantom", "qualifies", "sensor"]` relation is
 refused when no mechanism of the loaded source can add that pair, and accepted
@@ -102,7 +106,10 @@ its events, have left it? It refuses, with an explicit restore error:
 - `examined` on a caveat no `examine` reaches, in a rule or in a procedure a
   rule calls, procedures specialized for the caveat they are passed included;
 - examined caveats whose least examination costs, one examination each, sum
-  with what the declarations spent to more than the budget's `spent`.
+  with what the declarations spent to more than the budget's `spent`;
+- `examine` effects of the last event whose costs, each paid in full, sum
+  with what the declarations spent to more than the budget's `spent`
+  (D053).
 
 A declaration leaves a caveat `examined`, `examining` or `deferred` as the
 program loads (`examine stale cost 1;`, `examine stale;`, `defer stale;`).
@@ -124,16 +131,24 @@ counted once at its cheapest, so attention the program could have left is
 accepted though no event of the session left it: with `stale` and `deep`
 each examinable, a save that spent enough for both can mark both examined
 after only one was (since rc.13, with the examination record each
-examination leaves). Removing an examination an event made restores too,
-leaving that caveat at the attention the program loads it with (unexamined,
-unless the declarations leave it otherwise), just as removing a `qualifies`
-relation restores without it; since the table-key checks below, its
-examination record must go with it. Neither check establishes what the
-session did.
+examination leaves). Only the last event's examines are also counted at the
+costs it reports, all together (D053). That sum is checked apart from the
+least costs, not added to them, so neither check refuses a save that meets
+each, though no session spends so little: where one event examines `c` for
+5, another examines `a` and `b` for 3 each and a third examines both for 1
+each, a session that runs the first and then the second has spent 11, and a
+save after them that says 7 restores, since the last event's 6 fits it and
+so do the least costs, 1 each for `a` and `b` and 5 for `c`. Removing an
+examination an event made restores too, leaving that caveat at the
+attention the program loads it with (unexamined, unless the declarations
+leave it otherwise), just as removing a `qualifies` relation restores
+without it; since the table-key checks below, its examination record must
+go with it. Neither check establishes what the session did.
 
 The fixtures in [restore_attention.rs](../runtime/tests/restore_attention.rs),
 [d043_declared_attention_restores.rs](../runtime/tests/d043_declared_attention_restores.rs),
 [d046_declared_attention_forgeries_refused.rs](../runtime/tests/d046_declared_attention_forgeries_refused.rs),
+[d053_last_event_examines_fit_spent_together.rs](../runtime/tests/d053_last_event_examines_fit_spent_together.rs),
 [save_restore.rs](../runtime/tests/save_restore.rs) (every attention value on
 every caveat of the fuzz's played save), the
 [restore boundary fixtures](../kit/test/restore-contract.test.mjs) and the

@@ -982,17 +982,23 @@ impl ReactiveSession {
         // Taken from the program as loaded, before the save changes it.
         let caveats = self.caveat_sources();
         let declared = self.declared_memberships();
+        // What the declarations spent as the program loaded, before the
+        // save replaces it.
+        let declared_spent = self.resources.as_ref().map_or(0, |ledger| ledger.spent);
         let observed = self.restore_graph(save, &declared)?;
         self.restore_withdrawals(save, &observed.evidence)?;
         self.restore_taken_back(save)?;
         self.restore_states(&save.states, &observed, &caveats)?;
-        self.restore_records(save, &observed, &caveats, &declared)?;
+        self.restore_records(save, &observed, &caveats, &declared, declared_spent)?;
         self.restore_retired(save)?;
         self.restore_permissions(save, &observed.evidence)?;
         self.restore_retention_reasons(save, &observed.evidence)?;
         self.restore_departures(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
+        // After every other check, so that a save refused before for
+        // anything else keeps its message (D053).
+        self.check_last_event_spending(save, declared_spent)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -2816,6 +2822,7 @@ impl ReactiveSession {
         observed: &Observed,
         caveats: &CaveatSources,
         declared: &Declared,
+        declared_spent: u64,
     ) -> Result<(), String> {
         let holdable = self.holdable_series();
         // When the save says an event made each commitment: a revision's
@@ -3268,9 +3275,6 @@ impl ReactiveSession {
                 )?;
             }
         }
-        // What the declarations spent as the program loaded, before the
-        // save replaces it.
-        let declared_spent = self.resources.as_ref().map_or(0, |ledger| ledger.spent);
         match (&mut self.resources, &save.resources) {
             (None, None) => {}
             (Some(ledger), Some(saved))
@@ -4195,6 +4199,8 @@ impl ReactiveSession {
                          {declared_spent} the declarations spent"
                     )));
                 }
+                // All of the last event's examines together are checked
+                // last, by `check_last_event_spending` (D053).
             }
             EffectReport::Commit { action, retained } => {
                 named(self.require_commitment(action))?;
@@ -4320,6 +4326,55 @@ impl ReactiveSession {
             }
         }
         Ok(())
+    }
+
+    /// D053: the last event paid for every `examine` it reports, each in
+    /// full, after what the declarations spent as the program loaded and
+    /// what earlier events spent, so the budget spent at least what the
+    /// declarations spent plus all those costs together.
+    /// `check_effect_against_save` checks each cost on its own, which a
+    /// save can meet while the sum is more. By now `self`'s budget is the
+    /// save's and every effect is one the last event can make; with no
+    /// budget, no `examine` effect got this far. The least costs of the
+    /// caveats examined before the last event, which `restore_records`
+    /// checks, are not added to the sum: the two are checked apart
+    /// (docs/RESTORE_TRUST_BOUNDARY.md, "Attention").
+    fn check_last_event_spending(
+        &self,
+        save: &ReactiveSave,
+        declared_spent: u64,
+    ) -> Result<(), String> {
+        let Some(ledger) = &self.resources else {
+            return Ok(());
+        };
+        // Summed wide, as the least costs are: a save may list an effect
+        // any number of times, and no sum of the `u64` costs a save can
+        // hold overflows a `u128`.
+        let costs: u128 = save
+            .effects
+            .iter()
+            .filter_map(|effect| match effect {
+                EffectReport::Examine { cost, .. } => Some(u128::from(*cost)),
+                _ => None,
+            })
+            .sum();
+        let total = costs + u128::from(declared_spent);
+        if total <= u128::from(ledger.spent) {
+            return Ok(());
+        }
+        Err(if declared_spent == 0 {
+            format!(
+                "examine effects spend {costs} attention together, more than the {} the \
+                 budget spent",
+                ledger.spent
+            )
+        } else {
+            format!(
+                "examine effects spend {costs} attention together and the declarations spent \
+                 {declared_spent}, {total} in all, more than the {} the budget spent",
+                ledger.spent
+            )
+        })
     }
 
     /// Whether a rule effect the last event reaches, `reached`, could report
