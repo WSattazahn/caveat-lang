@@ -7002,10 +7002,15 @@ impl ReactiveSession {
                             )
                             .into());
                         }
+                        // A computed delay depends on what the session has
+                        // seen, so a negative one refuses the event rather
+                        // than ending the session (D042).
                         if after < 0.0 {
-                            return Err(
-                                "qualify after requires a nonnegative number of seconds".into()
-                            );
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                "qualify after requires a nonnegative number of seconds",
+                            )
+                            .into());
                         }
                         if self.scheduled.len() >= MAX_SCHEDULED_QUALIFICATIONS {
                             return Err(DispatchFailure::rejected(
