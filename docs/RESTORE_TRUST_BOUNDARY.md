@@ -18,7 +18,7 @@ that the saved account is reachable through a complete historical event sequence
 | Property | Current runtime check | Host responsibility |
 | --- | --- | --- |
 | Format and program matching | Required fields, known schema/fields and matching source fingerprint | Select the intended source and runtime; the fingerprint is an identifier, not authentication |
-| Saved graph | Known endpoints, allowed relation kinds and endpoint kinds; each `qualifies` pair one the source can make; each caveat's attention one its examinations and budget can leave; additional checks for recorded observations and commitments | Establish whether the supplied account is one the host trusts |
+| Saved graph | Known endpoints, allowed relation kinds and endpoint kinds; each `qualifies` pair one the source can make; each caveat's attention one its declarations, or its examinations and budget, can leave; additional checks for recorded observations and commitments | Establish whether the supplied account is one the host trusts |
 | Current values | Present states are declared, finite and in range; grounds fit lineage | Preserve the saved delta; omitted entries deliberately retain source initialization |
 | Historical decisions | Journal, bases, grounds, revisions and graph agree under the documented checks; selected event/effect reachability is checked | Establish that the recorded inputs, guard outcomes and permissions actually occurred |
 | Persistence | The runtime's original save text preserves numeric values, including signed zero | Store and return that string intact; define ownership, integrity and freshness requirements |
@@ -91,27 +91,43 @@ A save's `graph.attention` once restored with a kind check only, so a save
 could mark any caveat `examined` without spending its budget, and
 `examined(...)` guards then held as if the examination had happened (findings
 123, 188–191). Restore now asks the same question of attention that it asks
-of qualifications: could some sequence of this program's events have left
-it? It refuses, with an explicit restore error:
+of qualifications: could this program's declarations, or some sequence of
+its events, have left it? It refuses, with an explicit restore error:
 
-- `deferred` and `examining`, which only a game session sets;
+- `deferred` and `examining`, which no reactive event leaves, unless the
+  declarations leave the caveat so (see below);
 - `examined` in a program with no attention budget;
 - `examined` on a caveat no `examine` reaches, in a rule or in a procedure a
   rule calls, procedures specialized for the caveat they are passed included;
 - examined caveats whose least examination costs, one examination each, sum
   to more than the budget's `spent`.
 
+A declaration leaves a caveat `examined`, `examining` or `deferred` as the
+program loads (`examine stale cost 1;`, `examine stale;`, `defer stale;`).
+Since D043 the attention the declarations leave is accepted as it stands,
+and a caveat they leave `examined` adds nothing to the least cost, since no
+event need have examined it; what the declarations spent is not counted
+either. Before D043 restore checked that attention as if an event had left
+it. It refused every save that still held a declared `examining` or
+`deferred`, or a declared `examined` that no rule examines, and a declared
+`examined` that a rule could examine whenever `spent` fell short of the least
+costs: with `examine stale cost 1;` and a rule that examines `stale` for 3,
+the save written before any event was refused.
+
 The policy is conservative. Guards are not evaluated, and an examination is
 counted once at its cheapest, so attention the program could have left is
 accepted though no event of the session left it: with `stale` and `deep`
 each examinable, a save that spent enough for both can mark both examined
 after only one was (since rc.13, with the examination record each
-examination leaves). Removing an examination restores too, leaving that
-caveat unexamined, just as removing a `qualifies` relation restores without
-it; since the table-key checks below, its examination record must go with
-it. Neither check establishes what the session did.
+examination leaves). Removing an examination an event made restores too,
+leaving that caveat at the attention the program loads it with (unexamined,
+unless the declarations leave it otherwise), just as removing a `qualifies`
+relation restores without it; since the table-key checks below, its
+examination record must go with it. Neither check establishes what the
+session did.
 
 The fixtures in [restore_attention.rs](../runtime/tests/restore_attention.rs),
+[d043_declared_attention_restores.rs](../runtime/tests/d043_declared_attention_restores.rs),
 [save_restore.rs](../runtime/tests/save_restore.rs) (every attention value on
 every caveat of the fuzz's played save), the
 [restore boundary fixtures](../kit/test/restore-contract.test.mjs) and the

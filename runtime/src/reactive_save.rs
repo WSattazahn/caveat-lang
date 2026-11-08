@@ -237,7 +237,8 @@ fn full_map(records: &BTreeMap<String, Compact>) -> BTreeMap<String, Provenance>
         .collect()
 }
 
-/// What events did to the graph, since the program loaded.
+/// What events did to the graph since the program loaded, and the attention
+/// and open commitments it holds.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, expecting = "a graph object")]
 pub struct SavedGraph {
@@ -497,14 +498,19 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 /// (caveat, evidence) pairs, evidence named as the source names it.
 type QualificationPairs = HashSet<(String, String)>;
 
+/// What the program's declarations leave as it loads, before any event: the
+/// evidence they relate to a claim, and the attention they leave caveats in.
+/// See `declared_memberships`.
+struct Declared {
+    observed: HashSet<String>,
+    /// Each caveat whose attention, once every declaration has run, is
+    /// `examined`, `examining` or `deferred`, with that attention.
+    attention: HashMap<String, Attention>,
+}
+
 /// The caveats a value can carry, as the loaded source can attach them:
 /// those a value resting on each evidence can carry, and those a value can
 /// carry with no evidence that bears them. See `caveat_sources`.
-struct Declared {
-    observed: HashSet<String>,
-    examined: HashSet<String>,
-}
-
 struct CaveatSources {
     /// By evidence as the source names it.
     attachable: HashMap<String, HashSet<String>>,
@@ -914,7 +920,7 @@ impl ReactiveSession {
         // Taken from the program as loaded, before the save changes it.
         let caveats = self.caveat_sources();
         let declared = self.declared_memberships();
-        let observed = self.restore_graph(save)?;
+        let observed = self.restore_graph(save, &declared)?;
         self.restore_withdrawals(save, &observed)?;
         self.restore_taken_back(save)?;
         self.restore_states(&save.states, &observed, &caveats)?;
@@ -1984,7 +1990,8 @@ impl ReactiveSession {
 
     /// The memberships the program declares as it loads: evidence its
     /// declarations relate to a claim, which is observed from the start, and
-    /// caveats they examine. No event made these, so they have no records.
+    /// the attention they leave caveats in, examined ones among them. No
+    /// event made these, so they have no records.
     fn declared_memberships(&self) -> Declared {
         let names: HashMap<NodeId, &str> = self
             .symbols
@@ -1999,21 +2006,20 @@ impl ReactiveSession {
             .filter(|edge| matches!(edge.relation, Relation::Supports | Relation::Opposes))
             .filter_map(|edge| names.get(&edge.from).map(|name| name.to_string()))
             .collect();
-        let examined = self
+        let attention = self
             .symbols
             .iter()
-            .filter(|(_, id)| {
-                matches!(
-                    self.graph.nodes.get(id),
-                    Some(NodeKind::Caveat {
-                        attention: Attention::Examined,
-                        ..
-                    })
-                )
+            .filter_map(|(name, id)| match self.graph.nodes.get(id) {
+                Some(NodeKind::Caveat { attention, .. }) if *attention != Attention::Unexamined => {
+                    Some((name.clone(), *attention))
+                }
+                _ => None,
             })
-            .map(|(name, _)| name.clone())
             .collect();
-        Declared { observed, examined }
+        Declared {
+            observed,
+            attention,
+        }
     }
 
     /// The name the source gives `evidence`: its stream or renewable evidence
@@ -2030,7 +2036,11 @@ impl ReactiveSession {
     }
 
     /// The graph as the save leaves it, and the evidence it observes.
-    fn restore_graph(&mut self, save: &ReactiveSave) -> Result<HashSet<NodeId>, String> {
+    fn restore_graph(
+        &mut self,
+        save: &ReactiveSave,
+        declared: &Declared,
+    ) -> Result<HashSet<NodeId>, String> {
         let saved = &save.graph;
         let committable = self.committable_actions();
         let (possible, _) = self.qualification_sources();
@@ -2138,12 +2148,14 @@ impl ReactiveSession {
         }
         // Findings 123, 188-191: attention no examination of the source can
         // leave. A reactive event only ever leaves a caveat examined, by an
-        // `examine` the budget pays for.
+        // `examine` the budget pays for. D043: the attention a declaration
+        // leaves as the program loads claims nothing an event did.
         let costs = self.examination_costs();
         for (name, attention) in &saved.attention {
             self.require_kind(name, "caveat")?;
             let state = attention_from_name(attention)?;
             match state {
+                _ if declared.attention.get(name) == Some(&state) => {}
                 Attention::Unexamined => {}
                 Attention::Deferred | Attention::Examining => {
                     return Err(format!(
@@ -2929,14 +2941,19 @@ impl ReactiveSession {
             _ => return Err("its attention budget does not match the program".into()),
         }
         // Each examined caveat cost at least the least any rule examining it
-        // charges, and the budget spent all of it.
+        // charges, and the budget spent all of it. A caveat the declarations
+        // leave examined is not counted: no event need have examined it
+        // (D043).
         if let Some(ledger) = &self.resources {
             let costs = self.examination_costs();
             let least: u128 = save
                 .graph
                 .attention
                 .iter()
-                .filter(|(_, attention)| attention.as_str() == "examined")
+                .filter(|(name, attention)| {
+                    attention.as_str() == "examined"
+                        && declared.attention.get(*name) != Some(&Attention::Examined)
+                })
                 .filter_map(|(name, _)| costs.get(name))
                 .map(|cost| u128::from(*cost))
                 .sum();
@@ -3118,7 +3135,7 @@ impl ReactiveSession {
         }
         for (name, attention) in &save.graph.attention {
             if attention == "examined"
-                && !declared.examined.contains(name)
+                && declared.attention.get(name) != Some(&Attention::Examined)
                 && !save.examination_qualifications.contains_key(name)
             {
                 return Err(format!("examined caveat {name} has no examination record"));
