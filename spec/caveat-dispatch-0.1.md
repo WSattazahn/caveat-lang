@@ -153,7 +153,7 @@ and no output changes.
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
-| `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
+| `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed, or reads `reopened(ACTION)`, or cites it with `because reopened(ACTION)`, while evidence a declaration reopened ACTION with is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether an event or a declaration made it and whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
 | `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0), or that a reversible decision in force forecloses ([Foreclosure 0.2](caveat-foreclosure-0.2.md), 1.4 draft). |
 | `evaluation` | `caveated_irreversible` | An executed `commit` of an irreversible series rests on a caveat of consequence `material` or above that its `retaining` clause does not name ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0). |
@@ -278,6 +278,20 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-11-07 (D045): an event that reads `reopened(ACTION)`, or cites it
+  with `because reopened(ACTION)`, while evidence a declaration reopened
+  ACTION with is not observed is `evaluation/unobserved_evidence`, as
+  reading `qualified(…)` of that evidence is. A `reopen` in a rule refuses
+  unobserved evidence, but a declaration such as `reopen hold because
+  sensor;` loads before anything is observed, and both the value
+  `reopened(hold)` reads and the grounds a citation of it cites carry that
+  evidence. Before it, such an event was fatal `unclassified`, although the
+  runtime had already rolled it back, so a host lost the session over what
+  the session had not yet seen. The rollback and the diagnostic text are
+  unchanged, no accepted event changes, and no code is added or reassigned.
+  A binding that reads it as the program loads is still rejected when the
+  program loads.
 
 - 2026-11-07 (D044): a `commit` of a commitment the program declared is
   `evaluation/already_committed`, as a second `commit` of one an event made
