@@ -57,6 +57,28 @@ Memory and save size grow with retained history. Window sizes alone do not
 bound live memory or saves; see the
 [history integration guide](../kit/docs/HISTORY.md). A host that opens many
 sessions without closing them can exhaust the runtime's WebAssembly memory.
+Restore takes a state save of any size, and its time and memory grow with the
+save. Measured 2026-11-08 with Node 22.23.4 in a 4-core Linux container
+(2.1 GHz Xeon) and the release WebAssembly runtime built from dc1ef01f on
+main, one restore grew the instance's memory by 1.85 times the save's length
+for a save of 1,626,915 characters and by 1.99 times for one of 16,266,842
+characters, both written by a session whose states hold long lineages, and by
+8.4 times for a save of 14,306,946 characters that holds one windowed history
+at its limit of 65,536 records. In a native release build in the same
+container, restoring saves of that shape with 16,384 to 65,536 records raised
+peak resident memory by 13.5 to 13.9 times their length. Restore's time grows
+with the square of the records one windowed history holds: the 65,536-record
+save took 12.5 seconds to restore in that WebAssembly runtime at load average
+2.9, and 66 seconds in the same container at load average about 25. Before
+D070 it refused a state save over 16 MiB, though a session could write one
+([save contract](../spec/caveat-save-0.1.md#changes)). A restore that runs out
+of WebAssembly memory is not refused: it traps the instance, and every session
+on it is lost. The kit's error then says the runtime ran out of memory while
+restoring a save (or, in `runtime.check`, checking one), and gives the save's
+length in characters. A JavaScript host cannot pass or receive a save longer
+than its engine's longest string (about 512 Mi characters in V8). A host that
+restores saves from a party it does not trust bounds their size itself, as the
+MCP server does at 2 MiB.
 
 The throughput program, run with `node perf.mjs` beside an installed
 `caveat-lang@1.3.0`:

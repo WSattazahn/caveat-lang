@@ -154,7 +154,8 @@ one exists and rewrites it after every accepted event and every restore, so a
 host that stops and starts again loses nothing and keeps no save logic of its
 own; the file holds the compact save where the runtime has one. Exit status:
 0 closed, 1 a fatal outcome ended the session or the state file could not be
-written, 2 the program does not load or the state file is not a save of it.
+written, 2 the program does not load, the state file is not a save of it, or
+the runtime failed restoring it.
 
 doctor checks Node, package/runtime identity, a real test session and PATH
 command ownership. It inspects other executables without running them.
@@ -624,10 +625,14 @@ async function serveProgram(options) {
   let server;
   try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore }); } catch (error) {
     // The runtime reads the save before the program, so a program that does
-    // not load is told apart by opening it fresh: that is a load error.
+    // not load is told apart by opening it fresh: that is a load error. A
+    // runtime that trapped restoring the file, as when the save is too large
+    // for its memory (D070), cannot open anything again: its own error
+    // stands, as fatal.
     let kind = 'load';
     let message = error.message;
-    if (restore !== null) {
+    if (restore !== null && runtime.trapped) kind = 'fatal';
+    else if (restore !== null) {
       try {
         runtime.open(inputs.source).close();
         kind = 'state';

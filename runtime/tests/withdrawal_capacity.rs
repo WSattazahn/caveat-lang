@@ -47,10 +47,9 @@ fn capacity_refusal_is_preappend_and_atomic_then_prior_collection_frees_room() {
         "synthesized valid-input candidate: held={HELD_LIMIT}, bytes={}",
         saved.len()
     );
-    assert!(
-        saved.len() < 16 * 1024 * 1024,
-        "ordinary save input byte limit unchanged"
-    );
+    // An assertion here kept this synthesized save under restore's 16 MiB
+    // limit. Restore takes a state save of any size since D070, and the test
+    // builds this save itself, so no runtime change could move its length.
     let mut game = ReactiveSession::restore_json(source, &saved).unwrap();
     drop(saved);
     assert!(game.drain_archive().is_empty(), "restore never collects");

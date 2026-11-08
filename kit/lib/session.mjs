@@ -647,11 +647,13 @@ export function createRuntime(SessionClass, identity = {}) {
     lifecycle.collected?.register(session, undefined, session);
     return session;
   };
-  // The error for a call that trapped, kind as given unless it trapped.
-  const failure = (error, kind) => {
+  // The error for a call that trapped, kind as given unless it trapped. A
+  // call that restores or checks a save passes its text, and which it was
+  // doing, for trapMessage.
+  const failure = (error, kind, save, during) => {
     if (!isTrap(error)) return new CaveatError(kind, messageOf(error));
     lifecycle.trapped = true;
-    return new CaveatError('fatal', runtime.trapMessage(error));
+    return new CaveatError('fatal', runtime.trapMessage(error, save, during));
   };
   const runtime = {
     identity: Object.freeze({ ...identity }),
@@ -666,12 +668,26 @@ export function createRuntime(SessionClass, identity = {}) {
     // What a trap means. A runtime that can say it ran out of memory
     // (out_of_memory) is named as the cause, with the sessions still open:
     // a host that never closes its sessions exhausts memory this way, and
-    // the bare trap says only "unreachable" (Glowcap round 8, item 7).
-    trapMessage(error) {
+    // the bare trap says only "unreachable" (Glowcap round 8, item 7). A
+    // call that was restoring or checking a save passes the save's text and
+    // `during`, 'restoring' (the default) or 'checking': restore takes a save
+    // of any size (D070), and one too large for memory runs out however few
+    // sessions are open, so the message names the restore or check and the
+    // save's length. Open sessions hold memory as well, so it counts them and,
+    // when there are any, still says to close them.
+    trapMessage(error, save, during = 'restoring') {
       if (typeof SessionClass.out_of_memory !== 'function') return messageOf(error);
       let outOfMemory = false;
       try { outOfMemory = SessionClass.out_of_memory() === true; } catch { /* the trap stands as reported */ }
       if (!outOfMemory) return messageOf(error);
+      if (typeof save === 'string') {
+        const checking = during === 'checking';
+        return `the runtime ran out of WebAssembly memory while ${checking ? 'checking' : 'restoring'} a save of ${save.length} characters, `
+          + `with ${lifecycle.open} other session(s) open (trap: ${messageOf(error)}). `
+          + `${checking ? 'Checking' : 'Restoring'} a save needs memory that grows with its length. `
+          + (lifecycle.open > 0 ? 'Close each session with close() once it is no longer needed. ' : '')
+          + 'This runtime instance is now unusable; load it again.';
+      }
       return `the runtime ran out of WebAssembly memory with ${lifecycle.open} session(s) open `
         + `(trap: ${messageOf(error)}). Close each session with close() once it is no longer needed. `
         + 'This runtime instance is now unusable; load it again.';
@@ -717,14 +733,16 @@ export function createRuntime(SessionClass, identity = {}) {
       if (save !== undefined) {
         // The program must load first, so its error is reported as load.
         try { new SessionClass(source).free(); } catch (error) { throw failure(error, 'load'); }
-        try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore'); }
+        try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore', save, 'checking'); }
       }
       try {
         if (withdrawals || names) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, ...(withdrawals ? { withdrawals } : {}), ...(names ? { names } : {}), save })));
         if (records) return JSON.parse(SessionClass.check_options(source, JSON.stringify({ unused, records, save })));
         return JSON.parse(unused ? SessionClass.check_with(source, true) : SessionClass.check(source));
       } catch (error) {
-        throw failure(error, 'load');
+        // check_options reads the save with its options and restores it
+        // again, when there is one; it can run out of memory reading them.
+        throw failure(error, 'load', save, 'checking');
       }
     },
     // The program's events, states, bindings and declared names
@@ -744,7 +762,7 @@ export function createRuntime(SessionClass, identity = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string' || typeof saved !== 'string') throw new TypeError('source and save must be text');
       try { return opened(SessionClass.restore(source, saved)); } catch (error) {
-        throw failure(error, 'restore');
+        throw failure(error, 'restore', saved);
       }
     },
   };

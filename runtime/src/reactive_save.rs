@@ -11,7 +11,6 @@ use serde::Deserialize;
 use std::borrow::Cow;
 
 pub const REACTIVE_SAVE_SCHEMA: &str = "caveat-reactive-save/0.1";
-const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
 /// The largest sequence restore accepts: 2^53 - 1, the largest integer a JSON
 /// host reads exactly. The sequence counts accepted events, and at ten
 /// million a second 2^53 of them take over 28 years, so a save past it was
@@ -914,11 +913,10 @@ impl ReactiveSession {
         if Self::is_replay_save(save) {
             return Self::restore_replay_json(source, save);
         }
-        if save.len() > MAX_SAVE_BYTES {
-            return Err(format!(
-                "cannot restore save: larger than {MAX_SAVE_BYTES} bytes"
-            ));
-        }
+        // A state save of any length is parsed (D070). Nothing bounds the save
+        // a session writes, so a fixed limit here refused saves the runtime
+        // itself wrote. A host that restores saves from a party it does not
+        // trust bounds their size itself, as the MCP server does at 2 MiB.
         let save: ReactiveSave =
             serde_json::from_str(save).map_err(|error| format!("cannot restore save: {error}"))?;
         Self::restore(source, &save)

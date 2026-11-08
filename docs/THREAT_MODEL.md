@@ -77,6 +77,12 @@ outside itself.
   not prove a save came from a real event history. A host that needs that
   stores saves where they cannot be altered, or keeps the event log and
   replays it.
+- Restore does not bound a state save's size: nothing bounds the size of the
+  state save a session writes, and restoring one costs time and memory that
+  grow with it. A save too large for the runtime's memory traps the instance
+  and every session on it rather than being refused. A host that restores
+  saves from a party it does not trust bounds their size first, as the MCP
+  server's `caveat_dispatch` does at 2 MiB ([MCP server](../kit/docs/MCP.md)).
 
 ### The MCP server
 

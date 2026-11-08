@@ -275,8 +275,13 @@ export interface CaveatRuntime {
   readonly openSessions: number;
   /** Called by a session's `close()`; hosts do not call it. */
   released(session: CaveatSession): void;
-  /** The message a trap is reported with: names running out of memory when the runtime can tell. */
-  trapMessage(error: unknown): string;
+  /**
+   * The message a trap is reported with: names running out of memory when the
+   * runtime can tell, with the sessions still open. Given the text of the save
+   * being restored, or checked when `during` is `"checking"`, it also names
+   * the restore or check and the save's length.
+   */
+  trapMessage(error: unknown, save?: string, during?: 'restoring' | 'checking'): string;
   /** Throws `CaveatError("load")` when the source does not load. */
   open(source: string): CaveatSession;
   /** Advisory warnings for a program that loads; throws as `open` does when it does not. */

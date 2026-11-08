@@ -24,7 +24,10 @@ Started with `--state FILE`, the line also carries
 `"state":{"path":"FILE","restored":true}`, where `restored` says whether the
 session came from the file (see "State file"). A file that is not a save of the
 program, or one that cannot be read or written, is reported the same way with
-`"kind":"state"`, and the server exits with status 2 without serving.
+`"kind":"state"`, and the server exits with status 2 without serving. When the
+runtime fails while restoring the file, as when the save is too large for its
+memory, the line has `"kind":"fatal"` and the runtime's error, and the server
+exits with status 2 without serving.
 
 ## Requests
 
@@ -123,7 +126,23 @@ requests since the session opened or was last restored. Windowed snapshots
 retain live records and compact departed summaries; exact departed history
 requires the archive kept by the host.
 
+A `restore` takes a state save of any size, as the runtime does
+([Save 0.1](caveat-save-0.1.md)); a restore that runs out of memory is fatal,
+not a request error, and so is restoring the state file at start (see
+"Starting"). A host that passes on saves from a party it does not trust bounds
+their size first.
+
 ## Changes
+
+- 2026-11-08 (D070): `restore` takes a state save of any size, as the runtime
+  now does; a save longer than 16 MiB was a request error. A `restore` request
+  that runs out of memory is fatal, and the server exits with status 1. A
+  state file whose restore at start fails the runtime, as when it runs out of
+  memory, is reported on the first line with `"kind":"fatal"` and the
+  runtime's error, and the server exits with status 2 as for any file it
+  cannot start from. The first line said `"kind":"load"` and "this runtime
+  instance trapped; load a fresh one" for such a file, and `"kind":"state"`
+  for a state file longer than 16 MiB.
 
 - 2026-10-18: `view` request, and `view: true` on `dispatch`, for a display
   that does not need the snapshot; `--state FILE` keeps the session in a file
