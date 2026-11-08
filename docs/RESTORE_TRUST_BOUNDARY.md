@@ -150,21 +150,32 @@ predicate guards kept for skipped effects, and the withdrawal record's
 `event` once restored with their values checked and their keys trusted
 (findings 86, 89, 96, 118–120). Restore now refuses a record that could not
 belong where it is: an observation of evidence neither observed nor made by a
-renewal, an examination of a caveat the save leaves unexamined or that no
-rule or procedure examines (D046), a reopening of
-a commitment no `reopens` relation names, a predicate guard on a name of the
-wrong kind, and a withdrawal whose event reaches no `withdraw` of that
-evidence for that reason, in a rule or a procedure a rule calls.
+renewal, or on a name that no `reveal`, `sample` or `renew` in a rule, or in a
+procedure a rule reaches, leaves a record on (D052), an examination of a
+caveat the save leaves unexamined or that no rule or procedure examines
+(D046), a reopening of a commitment no `reopens` relation names, a predicate
+guard on a name of the wrong kind, and a withdrawal whose event reaches no
+`withdraw` of that evidence for that reason, in a rule or a procedure a rule
+calls. Evidence a declaration relates to a claim is observed as the program
+loads, and has no observation record until an event reveals it with a stance
+its declarations do not give it. A renewal leaves one on the occurrence it
+makes only when its guard rests on something, which needs a condition or call
+argument on its way that reads a state, the graph or a history.
 
 The policy is the same as above. A predicate guard on a name of the right
-kind restores though no skipped effect kept it, and a withdrawal by an event
-that could withdraw that evidence restores whether or not its guard held.
+kind restores though no skipped effect kept it, an observation record
+restores on a name a reached effect leaves records on though none left one
+there (whether a renewal's guard can rest on anything is read from the
+source, from what the conditions and call arguments on its way read, not
+from what they held), and a withdrawal by an event that could withdraw that
+evidence restores whether or not its guard held.
 Round 7's F263 found that removing a withdrawal record together with its
 `withdrawn qualifies` relation restores, so `withdrawn(...)` then reads
 false; that is still accepted. A save without a record the session made is
 one the source could have written had the event not happened, and restore
 does not establish which events happened. The fixtures are in
-[restore_tables.rs](../runtime/tests/restore_tables.rs).
+[restore_tables.rs](../runtime/tests/restore_tables.rs) and
+[d052_observation_record_needs_an_observing_rule.rs](../runtime/tests/d052_observation_record_needs_an_observing_rule.rs).
 
 ## Caveats in saved provenance (rc.13)
 
