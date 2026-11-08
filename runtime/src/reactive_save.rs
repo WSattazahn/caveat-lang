@@ -1379,20 +1379,33 @@ impl ReactiveSession {
         // No reopening after a record retired names it as its reason. A later
         // basis may still hold it through one that already cites it, such as
         // a predecessor's (Reactive 0.5).
+        let mut holdable = None;
         for entry in save
             .decision_journal
             .iter()
             .filter(|entry| entry.change == "reopened")
         {
             for (record, at) in &save.retired {
-                // A release reopens for what its hold deferred, which may
-                // have retired since; the hold kept it from departing
-                // (spec/caveat-holds-0.1.md).
+                if entry.sequence <= *at || !entry.because.iter().any(|name| name == record) {
+                    continue;
+                }
+                // A reopening that ends a hold, at a release or when it
+                // breaks through for a withdrawal, reopens for what the hold
+                // deferred, which may have retired since; the hold kept it
+                // from departing (spec/caveat-holds-0.1.md, D050). Only a
+                // program that withdraws can break through.
                 let released =
                     self.event_can_change_decision(&entry.event, &entry.decision, "released");
                 if !released
-                    && entry.sequence > *at
-                    && entry.because.iter().any(|name| name == record)
+                    && !holdable
+                        .get_or_insert_with(|| {
+                            if self.withdraws() {
+                                self.holdable_series()
+                            } else {
+                                HashSet::default()
+                            }
+                        })
+                        .contains(entry.decision.as_str())
                 {
                     return Err(format!(
                         "{} {} after {record} retired reads it",

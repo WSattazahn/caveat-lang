@@ -346,6 +346,23 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-07 (D050): restore accepts a reopening that broke through a hold
+  and cites a cause the hold had deferred, which retired while it waited. A
+  hold never keeps in force a revision that rests on withdrawn evidence: a
+  `reopen` of it, by a rule or a trigger, goes ahead because of its own
+  causes and every deferred one ([Holds 0.1](caveat-holds-0.1.md)). The hold
+  keeps each deferred cause from departing, not from retiring. Restore let a
+  reopening cite a record that had retired before it only when its event
+  could release the series. It refused the save the runtime wrote after such
+  a break-through, and every later save that still held the reopening, with
+  "D@K reopened after R retired reads it", breaking the promise that a 1.x
+  save restores. It now also lets a reopening of a series the program can
+  hold cite one when the program can withdraw, since only a withdrawal
+  breaks through a hold. Otherwise a save in which a reopening cites a
+  record that retired before it is still refused, unless the reopening's
+  event could release the series. Every other save restores, or is refused
+  with the same message, as before.
+
 - 2026-11-07 (D049): restore accepts a commit's journal entry when the
   commitment's grounds carried one of its caveats through a record that had
   departed before the commit. A departed record's qualifications stay in
