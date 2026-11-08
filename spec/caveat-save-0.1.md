@@ -370,6 +370,26 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-08 (D055): restore refuses a save in which the last event's
+  reopening of a series names a cause that event could not name, in a
+  program that can hold the series but cannot withdraw. A reopening names
+  causes deferred by earlier events only when it ends a hold: at a release,
+  or when it breaks through the hold for a withdrawal
+  ([Holds 0.1](caveat-holds-0.1.md)). Restore let a reopening of any series
+  the program can hold, by a rule or a trigger, name any cause, whatever its
+  event could do. So in a program that holds a series but cannot withdraw,
+  it accepted a save whose last event's `reopen`, or trigger, named
+  evidence only another event's `reopen` selects, though no session of the
+  program writes one. It now lets such a reopening name a cause its own
+  selector does not select only when the program can withdraw, since only a
+  withdrawal breaks through a hold, as the D050 check does. A release needs
+  no exception: restore reads the causes it reopens for as the release's
+  own effect. Such a save is now refused with "reopen effect is not one the
+  last event can make", as it is in a program that holds nothing. Saves the
+  program writes restore as before. In a program that withdraws, or that
+  holds no series, every save restores, or is refused with the same
+  message, as before.
+
 - 2026-11-08 (D053): restore refuses a save whose last event's `examine`
   effects cost more together than its budget spent besides what the
   declarations spent. It checked each effect's cost on its own. An event
