@@ -4412,9 +4412,13 @@ impl ReactiveSession {
             }
         };
         // A reopening of a series the program can hold may also name causes
-        // deferred by earlier events, at a release or when a withdrawal
-        // reaches a revision on hold (spec/caveat-holds-0.1.md).
-        let holdable = |series: &str| holdable.contains(series);
+        // deferred by earlier events, but only when it ends the hold
+        // (spec/caveat-holds-0.1.md). At a release, the `release` itself
+        // reports them, below. Otherwise only a withdrawal ends a hold, by
+        // breaking through it, so in a program that cannot withdraw a
+        // reopening names only what its own selector, or its trigger's
+        // stream, selects (D055).
+        let breaks_through = |series: &str| holdable.contains(series) && self.withdraws();
         reached.iter().any(|rule| match (effect, rule) {
             (
                 EffectReport::Sample {
@@ -4483,7 +4487,9 @@ impl ReactiveSession {
             ) => {
                 named(action, source)
                     && match form {
-                        DecisionChange::Reopen => selects(because, selector) || holdable(source),
+                        DecisionChange::Reopen => {
+                            selects(because, selector) || breaks_through(source)
+                        }
                         DecisionChange::Release => true,
                         DecisionChange::Hold => false,
                     }
@@ -4493,7 +4499,7 @@ impl ReactiveSession {
                     || self
                         .reopening_triggers
                         .iter()
-                        .any(|(series, _, _)| named(action, series) && holdable(series)))
+                        .any(|(series, _, _)| named(action, series) && breaks_through(series)))
                     && self.reopening_triggers.iter().any(|(series, triggers, _)| {
                         named(action, series)
                             && triggers
