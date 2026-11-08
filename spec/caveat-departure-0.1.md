@@ -205,8 +205,10 @@ An archive entry holds what the record was when it departed:
   Compaction 0.1's "The archive entry" requires: `kind` is `state`,
   `commitment`, `series`, `stream`, `scheduled`, `cue` or `qualification`;
   `name` is the state, commitment, series, stream, scheduled target, cue index
-  or qualified record; `in` is the field (`lineage`, `grounds`, `basis`,
-  `selection_qualifications`, `reopening_qualifications`, `guard`, and so on).
+  or qualified record, or for a reading's provenance the reading and for an
+  outcome's lineage its revision; `in` is the field (`lineage`, `grounds`,
+  `basis`, `selection_qualifications`, `reopening_qualifications`, `guard`,
+  `outcome`, and so on).
   Bindings are computed again from states rather than saved, so they are not
   holders.
 
@@ -336,6 +338,12 @@ and 60 cycles apart from the digits of growing numbers, with the raw bytes
 recorded beside them.
 
 ## Changes
+
+- 2026-11-07 (D041): an outcome's lineage is a holder: `kind` `series`,
+  `name` its revision, `in` `outcome`
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md), "Changes").
+  The holder rows above also say what a reading's provenance names, as the
+  runtime writes it.
 
 - 2026-10-11 (rc.18, specified; implemented in P4): a take-back record departs
   with its occurrence and pins nothing, and a current value that held a

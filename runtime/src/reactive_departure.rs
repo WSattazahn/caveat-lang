@@ -820,11 +820,14 @@ impl ReactiveSession {
                 }
             }
         }
-        if self
-            .decision_series
-            .values()
-            .any(|series| names_any(&series.selection_qualifications, &departing))
-        {
+        if self.decision_series.values().any(|series| {
+            names_any(&series.selection_qualifications, &departing)
+                || series
+                    .revisions
+                    .iter()
+                    .filter_map(|revision| revision.outcome.as_ref())
+                    .any(|outcome| names_any(&outcome.lineage, &departing))
+        }) {
             for (name, series) in self.decision_series.make_mut().iter_mut() {
                 compact(
                     &mut series.selection_qualifications,
@@ -835,6 +838,22 @@ impl ReactiveSession {
                     holder("series", name, "selection_qualifications"),
                     &mut holders,
                 );
+                // An outcome's lineage is frozen, as a basis is, and compacts
+                // as a basis does: the outcome pins only its `because`. See
+                // spec/caveat-outcomes-0.1.md.
+                for revision in &mut series.revisions {
+                    if let Some(outcome) = &mut revision.outcome {
+                        compact(
+                            &mut outcome.lineage,
+                            &departing,
+                            &live_take_backs,
+                            sequence,
+                            &self.source_id,
+                            holder("series", &revision.id, "outcome"),
+                            &mut holders,
+                        );
+                    }
+                }
             }
         }
         for (field, map) in [
@@ -1230,6 +1249,11 @@ impl ReactiveSession {
         if old.is_none_or(|old| !Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
             for series in self.decision_series.make_mut().values_mut() {
                 settle_provenance(&mut series.selection_qualifications, &mut nodes, &mut seen);
+                for revision in &mut series.revisions {
+                    if let Some(outcome) = &mut revision.outcome {
+                        settle_provenance(&mut outcome.lineage, &mut nodes, &mut seen);
+                    }
+                }
             }
         }
         for (map, unchanged) in [
