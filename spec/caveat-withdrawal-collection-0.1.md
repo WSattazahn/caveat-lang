@@ -48,8 +48,9 @@ pins that departure itself releases. Collection then adds a set `C`:
    Edges inside a group, including a self-edge, do not keep it.
 4. **Conservative vetoes.** A record referenced by a retained computational
    holder (state lineage or grounds, a commitment's basis or grounds, a stream
-   or series selection's qualifications, a pending guard or qualifier owned by a
-   declaration) is not added to `C` while that holder holds the reference. The
+   or series selection's qualifications, a decision outcome's lineage, a
+   pending guard or qualifier owned by a declaration) is not added to `C`
+   while that holder holds the reference. The
    veto applies only to membership in `C`. It is not a pin, and it changes
    neither `D0` nor what ordinary departure may compact. When the holder is
    replaced or cleared, the veto goes with it.
@@ -180,3 +181,15 @@ rc.15 C3 save).
 
 - 0.1 (1.0 cycle): the rc.16 collector contract made specification. The rule
   and its observable differences are unchanged from what rc.16 shipped.
+- 2026-11-07 (D047): a decision outcome's lineage is a holder under rule 4.
+  Outcomes ([Outcomes 0.1](caveat-outcomes-0.1.md), 1.3) added a retained
+  lineage that names what the outcome's value read, but rule 4 did not list
+  it, so collection could take a self-withdrawn record that only an
+  outcome's lineage named. A runtime without collection keeps that record,
+  pinned by its own withdrawal reason. After the collection, `outcome(D)`
+  lost `withdrawn`, and so did a binding or a state that read it and the
+  grounds of a commitment made using it, whose `rests_on_withdrawn` turned
+  false. "What changes for a program with windows" promises those the same
+  as without collection. The record now stays retired and the outcome keeps
+  `withdrawn`. A program in which no outcome's lineage names a record
+  collection could take gives the same output as before.

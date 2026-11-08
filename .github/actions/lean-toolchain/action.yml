@@ -1,0 +1,43 @@
+name: Pinned Lean toolchain
+description: >
+  Install the Lean release the Lean jobs pin and put its bin directory in
+  CAVEAT_LEAN_BIN. The release archive is kept in the Actions cache, so a
+  GitHub Releases outage does not fail a run once an earlier run has fetched
+  it, and a download that misses the cache retries for up to ten minutes.
+  A cached or downloaded archive is checked against the pinned SHA-256 before
+  it is unpacked, and only a checked archive is saved to the cache.
+runs:
+  using: composite
+  steps:
+    - id: cache
+      name: Restore the pinned Lean archive from the cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.cache/caveat-lean
+        key: lean-4.34.1-linux-47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4
+    - name: Download the pinned Lean archive
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$HOME/.cache/caveat-lean"
+        # GitHub Releases can answer 5xx for minutes at a time. Up to 40
+        # retries 15 seconds apart, so the 600-second limit is what stops them;
+        # each attempt is bounded, so a stalled download is retried too.
+        curl --fail --location --max-time 300 --retry 40 --retry-delay 15 --retry-max-time 600 \
+          https://github.com/leanprover/lean4/releases/download/v4.34.1/lean-4.34.1-linux.tar.zst \
+          --output "$HOME/.cache/caveat-lean/lean-4.34.1-linux.tar.zst"
+    - name: Check the archive against the pin and unpack it
+      shell: bash
+      run: |
+        set -euo pipefail
+        archive="$HOME/.cache/caveat-lean/lean-4.34.1-linux.tar.zst"
+        echo "47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4  $archive" | sha256sum --check
+        tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
+        echo "CAVEAT_LEAN_BIN=$RUNNER_TEMP/lean-4.34.1-linux/bin" >> "$GITHUB_ENV"
+    - name: Save the checked archive to the cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ~/.cache/caveat-lean
+        key: lean-4.34.1-linux-47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4
