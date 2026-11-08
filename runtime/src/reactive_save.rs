@@ -1026,7 +1026,16 @@ impl ReactiveSession {
         self.check_last_event_spending(save, declared_spent)?;
         self.check_retirement_dates(save)?;
         self.check_hold_entries(save)?;
+        // Last, so that a save refused before is refused as it was (D054).
+        self.check_history_reach()?;
         self.settle_archive_provenance(None, false);
+        // Debug builds check the bound after every later event when the
+        // restored session lies within it, as every one restored from a save
+        // of a program with a window does: restore refused any other.
+        #[cfg(debug_assertions)]
+        {
+            self.reach_exact = self.within_history_reach();
+        }
         Ok(())
     }
 

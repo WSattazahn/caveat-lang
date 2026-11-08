@@ -1292,6 +1292,155 @@ pub struct Reads {
     pub graph_unnamed: bool,
 }
 
+/// What a read takes of the thing it names, for the bound of finding D054.
+/// Evidence, a stream's readings and a caveat are read through their records
+/// whatever the read. A decision's parts have bounds of their own, so each
+/// read of one takes only the parts the runtime reads for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Read {
+    /// `observed`, `carries`, `has_sample`, `examined` and `qualified`: the
+    /// records of the evidence, of the stream's readings or of the caveat.
+    Records,
+    /// `latest`, `history_at`, `history_count` and a fold: a stream's
+    /// readings, or a series' bases with its selection.
+    Value,
+    /// `grounds_of`: a revision's grounds, with the series' selection.
+    Grounds,
+    /// `outcome` and `resolved`: a revision's outcome, or the series'
+    /// selection where it has none.
+    Outcome,
+    /// `committed` and `in_basis`: a revision's basis and its reopening
+    /// record, its `committed` record and the series' selection.
+    Committed,
+    /// `reopened` and `on_hold`: what `committed` takes, the `reopened`
+    /// record, and each cause of the reopening through its records.
+    Reopened,
+    /// `withdrawn`, `rests_on_withdrawn` and `permission_withdrawn`: the
+    /// `withdrawn` record of what the predicate asks about, and the reason
+    /// of each withdrawal it finds through its records. Nothing else of the
+    /// evidence or the decision it asks about.
+    Withdrawn,
+}
+
+/// What an expression's value can carry the lineage of (finding D054): the
+/// states it reads, and every graph or history name it asks about with what
+/// the read takes of it. See `Expr::collect_carried`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Carried {
+    /// Numeric names looked up, and the states `has_caveat` and `is_set`
+    /// ask about. Parameters and constants carry nothing of their own.
+    pub states: BTreeSet<String>,
+    /// The evidence, stream, series, commitment or caveat each graph or
+    /// history read names, and what the read takes of it.
+    pub graph: BTreeSet<(Read, String)>,
+    /// Could read anything.
+    pub anything: bool,
+}
+
+impl Carried {
+    /// What a predicate `kind` asked of `name` reads, as `predicate_tracked`
+    /// answers it. An occurrence or a `latest` asks the same of the record
+    /// it names.
+    fn predicate(&mut self, kind: &str, name: &str) {
+        let read = match kind {
+            IS_SET => {
+                self.states.insert(name.into());
+                return;
+            }
+            _ if kind.starts_with("has_caveat:") => {
+                self.states.insert(name.into());
+                return;
+            }
+            "committed" => Read::Committed,
+            "reopened" | ON_HOLD => Read::Reopened,
+            RESOLVED | AT_REVISION_RESOLVED => Read::Outcome,
+            "withdrawn"
+            | "withdrawn_latest"
+            | "permission_withdrawn"
+            | "rests_on_withdrawn"
+            | AT_REVISION => Read::Withdrawn,
+            // `observed`, `carries`, `has_sample`, `examined` and the rest.
+            _ => Read::Records,
+        };
+        self.graph.insert((read, name.into()));
+    }
+}
+
+/// What an expression's grounds can carry from (finding D054): what each
+/// read gives a value's grounds as `evaluate_grounds` reads it, which is
+/// less than its lineage. See `Expr::collect_grounded`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Grounded {
+    /// The states whose grounds it reads: a numeric name, and the states
+    /// `has_caveat` and `is_set` ask about.
+    pub states: BTreeSet<String>,
+    /// The decisions whose grounds `committed`, `reopened` and `in_basis`
+    /// read.
+    pub decisions: BTreeSet<String>,
+    /// The decisions whose reopening causes `reopened` names.
+    pub causes: BTreeSet<String>,
+    /// The decisions whose hold reasons `on_hold` names.
+    pub holds: BTreeSet<String>,
+    /// Asks a withdrawal predicate, whose grounds name the reasons of the
+    /// withdrawals it finds.
+    pub withdrawals: bool,
+    /// The evidence or stream `qualified`, `observed` and `carries` name,
+    /// with its caveats and without what its records hold.
+    pub named: BTreeSet<String>,
+    /// The names read as the lineage reads them, with what the read takes:
+    /// through a history or an outcome, and `has_sample` and `resolved`.
+    pub graph: BTreeSet<(Read, String)>,
+    /// Could read anything.
+    pub anything: bool,
+}
+
+impl Grounded {
+    /// What a predicate `kind` asked of `name` gives grounds, as
+    /// `predicate_grounds` answers it. An occurrence or a `latest` asks the
+    /// same of the record it names.
+    fn predicate(&mut self, kind: &str, name: &str) {
+        match kind {
+            IS_SET => {
+                self.states.insert(name.into());
+            }
+            _ if kind.starts_with("has_caveat:") => {
+                self.states.insert(name.into());
+            }
+            "committed" => {
+                self.decisions.insert(name.into());
+            }
+            "reopened" => {
+                self.decisions.insert(name.into());
+                self.causes.insert(name.into());
+            }
+            ON_HOLD => {
+                self.holds.insert(name.into());
+            }
+            "withdrawn"
+            | "withdrawn_latest"
+            | "permission_withdrawn"
+            | "rests_on_withdrawn"
+            | AT_REVISION => self.withdrawals = true,
+            "observed" => {
+                self.named.insert(name.into());
+            }
+            _ if kind.starts_with("carries:") => {
+                self.named.insert(name.into());
+            }
+            // The caveat and those that qualify it, no evidence.
+            "examined" => {}
+            // The outcome's lineage, as the lineage reads it.
+            RESOLVED | AT_REVISION_RESOLVED => {
+                self.graph.insert((Read::Outcome, name.into()));
+            }
+            // `has_sample` and the rest: as the lineage reads.
+            _ => {
+                self.graph.insert((Read::Records, name.into()));
+            }
+        }
+    }
+}
+
 /// What a route term compares its name with: a number in the source, or a
 /// name, which the host reads at load if it names a fixed value. See
 /// [`Expr::route_terms`].
@@ -1779,6 +1928,206 @@ impl Expr {
                     argument.collect_sources(sources);
                 }
                 body.collect_sources(sources);
+            }
+        }
+    }
+
+    /// Everything this expression's lineage can carry from, taken or not:
+    /// what restore bounds a saved provenance by (finding D054). Each read
+    /// is kept with what it takes of the thing it names, as `evaluate` reads
+    /// it: `in_basis` takes the revision's records and nothing of the
+    /// evidence it looks for, and `qualified` the evidence's records and
+    /// nothing of the caveats it attaches by name. Every branch is included,
+    /// so this over-approximates. Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_carried(&self, carried: &mut Carried) {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed => {}
+            Node::Variable(name) => {
+                carried.states.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+                carried.predicate(kind, name);
+            }
+            Node::AtOccurrence(kind, name, index) => {
+                carried.predicate(kind, name);
+                index.collect_carried(carried);
+            }
+            // The revision's records, as `committed` asked of it reads them.
+            // The evidence is only looked for in its grounds.
+            Node::InBasis(basis, children) => {
+                carried
+                    .graph
+                    .insert((Read::Committed, basis.series.clone()));
+                for child in children {
+                    child.collect_carried(carried);
+                }
+            }
+            Node::Outcome(name, index) => {
+                carried.graph.insert((Read::Outcome, name.clone()));
+                if let Some(index) = index {
+                    index.collect_carried(carried);
+                }
+            }
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                carried.graph.insert((Read::Value, name.clone()));
+            }
+            Node::GroundsOf(name) => {
+                carried.graph.insert((Read::Grounds, name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                index.collect_carried(carried);
+            }
+            Node::Fold(name, initial, _) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                initial.collect_carried(carried);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                initial.collect_carried(carried);
+                body.collect_carried(carried);
+            }
+            // The evidence through its records. The caveats are attached by
+            // name: nothing reads their examination records.
+            Node::Qualified(value, evidence, _) => {
+                carried.graph.insert((Read::Records, evidence.clone()));
+                value.collect_carried(carried);
+            }
+            Node::Unary(_, value) => value.collect_carried(carried),
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                left.collect_carried(carried);
+                right.collect_carried(carried);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_carried(carried);
+                yes.collect_carried(carried);
+                no.collect_carried(carried);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+            }
+            // An unexpanded call's body is unknown here. Sessions expand
+            // every call before evaluating.
+            Node::UserCall(_, arguments) => {
+                carried.anything = true;
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+                body.collect_carried(carried);
+            }
+        }
+    }
+
+    /// Everything this expression's grounds can carry from, taken or not, as
+    /// `evaluate_grounds` reads each node (finding D054): a state gives its
+    /// grounds, `committed` and `in_basis` the commitment's grounds,
+    /// `reopened` those and the names of what reopened it, `on_hold` the
+    /// names of the reasons it is held for, a withdrawal predicate the names
+    /// of its reasons, `qualified`, `observed` and `carries` the name of the
+    /// evidence alone, and an `only_if` condition nothing. A read through a
+    /// history or an outcome gives what the lineage would. Every branch is
+    /// included, so this over-approximates. Exhaustive for the same reason
+    /// as `collect_reads`.
+    pub fn collect_grounded(&self, grounded: &mut Grounded) {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed => {}
+            Node::Variable(name) => {
+                grounded.states.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+                grounded.predicate(kind, name);
+            }
+            Node::AtOccurrence(kind, name, index) => {
+                grounded.predicate(kind, name);
+                index.collect_grounded(grounded);
+            }
+            // The revision's grounds; the evidence is only looked for there.
+            Node::InBasis(basis, children) => {
+                grounded.decisions.insert(basis.series.clone());
+                for child in children {
+                    child.collect_grounded(grounded);
+                }
+            }
+            Node::Outcome(name, index) => {
+                grounded.graph.insert((Read::Outcome, name.clone()));
+                if let Some(index) = index {
+                    index.collect_grounded(grounded);
+                }
+            }
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+            }
+            Node::GroundsOf(name) => {
+                grounded.graph.insert((Read::Grounds, name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                index.collect_grounded(grounded);
+            }
+            Node::Fold(name, initial, _) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                initial.collect_grounded(grounded);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                initial.collect_grounded(grounded);
+                body.collect_grounded(grounded);
+            }
+            // The evidence and the caveats that qualify it, not its records.
+            Node::Qualified(value, evidence, _) => {
+                grounded.named.insert(evidence.clone());
+                value.collect_grounded(grounded);
+            }
+            Node::Unary(_, value) => value.collect_grounded(grounded),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_grounded(grounded);
+                right.collect_grounded(grounded);
+            }
+            // The condition's reads are left out of grounds.
+            Node::OnlyIf(_, value) => value.collect_grounded(grounded),
+            Node::If(condition, yes, no) => {
+                condition.collect_grounded(grounded);
+                yes.collect_grounded(grounded);
+                no.collect_grounded(grounded);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+            }
+            Node::UserCall(_, arguments) => {
+                grounded.anything = true;
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+                body.collect_grounded(grounded);
             }
         }
     }

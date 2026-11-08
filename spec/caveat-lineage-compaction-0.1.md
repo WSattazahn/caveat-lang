@@ -406,6 +406,13 @@ Restore refuses a save when:
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's;
+- in a program with a window, a marker or a record's name is in a
+  provenance, or a record is named as the cause of an outcome, a hold, a
+  deferral, a `reopens` relation or a withdrawal, in a part of the session
+  that no rule, procedure, reopening trigger or declaration of the program
+  can carry that history's records into, as [Save 0.1](caveat-save-0.1.md)'s
+  "Restore validation" bounds each part; no provenance can hold a marker of
+  the journal, whose entries none names;
 - a name in `inherited` is not also in the same provenance's `evidence`;
 - `inherited` appears in a save of a program without a window. The 14
   holders above are every provenance the schema has, so a field anywhere
@@ -611,3 +618,11 @@ provenance read in its range.
   nothing, as before; only the outcome's `because` pins. A session in which
   no outcome's lineage holds a departed record gives the same saves,
   snapshots, views and archive as before.
+- 2026-11-13 (D054): in a program with a window, restore refuses a marker
+  or a record's name in a part of the session that no rule, procedure,
+  reopening trigger or declaration of the program can carry that history's
+  records into, and a cause named outside its part's bound. Restore checked
+  a marker's range, count and date, but not which provenance held it, so a
+  marker copied into a provenance its program never carries that history
+  into restored. "Save and restore" lists the check;
+  [Save 0.1](caveat-save-0.1.md) says how each part's bound is derived.
