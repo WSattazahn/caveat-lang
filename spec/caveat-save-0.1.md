@@ -194,6 +194,24 @@ save is refused with an error, and never crashes the runtime, when:
   wrong kind (`observed` evidence, `examined` a caveat, `committed` and
   `reopened` an action a rule commits or reopens, a decision series or a
   restored commitment);
+- an observation record is keyed by a name that no `reveal`, `sample` or
+  `renew` in a rule, or in a procedure a rule reaches, leaves a record on. A
+  `reveal` leaves one on its evidence's current occurrence when it gives
+  that occurrence a stance it lacks or, neutral, finds it unobserved, so on
+  evidence a declaration relates to a claim only with a stance no
+  declaration gives it. A `sample` leaves one on the reading it takes. A
+  `renew` leaves one on the occurrence it makes when its guard rests on
+  something, since the record is what the guard rests on
+  ([Renewal 0.1](caveat-renewal-0.1.md)). Its guard is made of the
+  conditions on its rule, its step and the steps on the way to it, with the
+  arguments of the calls on the way, and only a read of a state, the graph
+  or a history rests on anything: a payload field, a constant, the clock and
+  a literal are plain, and a procedure's parameter rests on what its
+  argument does. Conditions are not evaluated: restore takes a `reveal` or
+  `sample` to leave its record whatever its conditions hold, and a `renew`
+  to leave one whenever one of those conditions or arguments reads a state,
+  the graph or a history, whatever that rests on. It does not establish that
+  an event left the record, or could have;
 - the graph records a membership without the record every event that adds
   it leaves: evidence an event observed (a restored `supports` or `opposes`
   relation, or an entry of `observations`) without an observation record, a
@@ -345,6 +363,41 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-08 (D052): restore checks an observation record's key against the
+  effects that leave records. Only an event's `reveal`, `sample` or `renew`
+  leaves an observation record, and evidence a declaration relates to a
+  claim is observed as the program loads without one (D043). Restore
+  accepted a record keyed by any observed evidence, so a save could hold one
+  that no session of the program holds, and the restored session's later
+  reads of that evidence carried what it lists. Restore now refuses an
+  observation record on a name that no `reveal`, `sample` or `renew` in a
+  rule, or in a procedure a rule reaches, leaves a record on, with
+  "observation of E: no rule or procedure of this program reveals E". A
+  `reveal` leaves its record on the evidence's current occurrence, and only
+  when it gives that occurrence a stance it lacks or, neutral, finds it
+  unobserved. On evidence a declaration relates to a claim, then, only a
+  reveal with a stance no declaration gives it leaves one, and a record
+  there is refused otherwise, with "... reveals E with a stance no
+  declaration gives it". A `renew` leaves one only on the occurrence it
+  makes, and only when its guard rests on something. Its guard is made of
+  the conditions on its rule, its step and the steps on the way, with the
+  arguments of the calls on the way, and only a read of a state, the graph
+  or a history rests on anything: a payload field, a constant, the clock and
+  a literal are plain, and a procedure's parameter rests on what its
+  argument does. A record on an occurrence is refused with "... reveals E,
+  or renews it with a guard" when no rule reveals E and none of those
+  conditions and arguments, for any `renew` of E, reads a state, the graph
+  or a history, and with "... reveals or renews E" when no rule reveals or
+  renews E. Conditions and arguments are not evaluated, and a read of a
+  state counts whatever the state rests on, so a record on a name these
+  effects leave records on restores whether or not an event left it there.
+  Saves the program writes restore as before, including records on evidence
+  both a declaration and a rule observe, on evidence no declaration relates
+  to a claim that a rule reveals neutrally, on the occurrences reveals and
+  renewals leave them on, and on readings, and so does every kit fixture
+  save. A save that holds no such record restores, or is refused with the
+  same message, as before.
 
 - 2026-11-07 (D050): restore accepts a reopening that broke through a hold
   and cites a cause the hold had deferred, which retired while it waited. A

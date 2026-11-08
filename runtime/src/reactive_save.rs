@@ -499,13 +499,52 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 type QualificationPairs = HashSet<(String, String)>;
 
 /// What the program's declarations leave as it loads, before any event: the
-/// evidence they relate to a claim, and the attention they leave caveats in.
-/// See `declared_memberships`.
+/// evidence they relate to a claim, with the stances they give it, and the
+/// attention they leave caveats in. See `declared_memberships`.
 struct Declared {
-    observed: HashSet<String>,
+    /// Each piece of evidence a declaration relates to a claim, which is
+    /// observed from the start, with every (relation, claim) declared for it.
+    stances: HashMap<String, Vec<(Relation, String)>>,
     /// Each caveat whose attention, once every declaration has run, is
     /// `examined`, `examining` or `deferred`, with that attention.
     attention: HashMap<String, Attention>,
+}
+
+impl Declared {
+    /// Whether a declaration relates `evidence` to a claim.
+    fn observes(&self, evidence: &str) -> bool {
+        self.stances.contains_key(evidence)
+    }
+
+    /// Whether a declaration relates `evidence` to `claim` by `relation`.
+    fn gives(&self, evidence: &str, relation: Relation, claim: &str) -> bool {
+        self.stances.get(evidence).is_some_and(|stances| {
+            stances
+                .iter()
+                .any(|(given, to)| *given == relation && to == claim)
+        })
+    }
+}
+
+/// D052: the names the `reveal`, `sample` and `renew` effects rules reach
+/// leave observation records on, read from the source. See
+/// `observation_sources`.
+#[derive(Default)]
+struct ObservationSources<'a> {
+    /// Evidence a `reveal` names, with a stance or neutral. Its record goes
+    /// on the evidence's current occurrence.
+    revealed: HashSet<&'a str>,
+    /// The evidence of those that a `reveal` can leave a record on under its
+    /// own name: one with a stance no declaration gives it, or a neutral one
+    /// of evidence no declaration relates to a claim.
+    own: HashSet<&'a str>,
+    /// Streams a `sample` reads. Its record goes on the reading it takes.
+    sampled: HashSet<&'a str>,
+    /// Evidence a `renew` names, and whether a condition or call argument on
+    /// the way to one of them reads a state, the graph or a history, the
+    /// only reads that put anything in its guard. A renewal leaves a record,
+    /// on the occurrence it makes, only when its guard holds something.
+    renewed: HashMap<&'a str, bool>,
 }
 
 /// The evidence a save may name, read once for every record restore checks.
@@ -1825,6 +1864,91 @@ impl ReactiveSession {
         costs
     }
 
+    /// D052: the names the `reveal`, `sample` and `renew` effects in a rule,
+    /// or in a procedure a rule reaches, leave observation records on. A
+    /// `reveal` leaves one on its evidence's current occurrence when it adds
+    /// a stance that occurrence lacks, or, neutral, when the occurrence is
+    /// not observed; on the evidence's own name, then, only with a stance no
+    /// declaration gives it, or neutrally when no declaration relates it to
+    /// a claim. A `sample` leaves one on the reading it takes, and a `renew`
+    /// on the occurrence it makes when its guard holds anything. That guard
+    /// is the lineage of the conditions on its rule, on the steps on the way
+    /// and on its own step, with that of each argument a call on the way
+    /// passes. Only a read of a state, the graph or a history carries
+    /// lineage: a payload field, a constant, the clock and a literal carry
+    /// none, and a procedure's parameter carries its argument's. Conditions
+    /// are not evaluated: a `reveal` or `sample` counts whatever its
+    /// conditions hold, and a `renew` counts as guarded when one of those
+    /// conditions or arguments reads a state, the graph or a history,
+    /// whatever that holds. Restore does not establish that an event left a
+    /// record these allow, or could have.
+    fn observation_sources(&self, declared: &Declared) -> ObservationSources<'_> {
+        // Whether `expression` reads a state, the graph or a history, or
+        // calls a function not yet expanded, which could read anything (a
+        // loaded program has none). A procedure's parameter does not count:
+        // on a path where no argument reads one of those, every parameter is
+        // plain, and on any other path the walk already counts the renewal
+        // as guarded.
+        let lineage = |expression: &Expr| {
+            let mut reads = Reads::default();
+            expression.collect_reads(&mut reads);
+            reads.graph
+                || reads.anything
+                || reads
+                    .names
+                    .iter()
+                    .any(|name| self.states.contains_key(name))
+        };
+        let mut sources = ObservationSources::default();
+        let mut pending = self
+            .rules
+            .iter()
+            .map(|rule| (&rule.effect, lineage(&rule.condition)))
+            .collect::<Vec<_>>();
+        let mut visited = HashSet::default();
+        while let Some((effect, guarded)) = pending.pop() {
+            match effect {
+                // Each argument's lineage joins the guard of every step.
+                Effect::Call { name, arguments } => {
+                    let guarded = guarded || arguments.iter().any(lineage);
+                    if visited.insert((name.as_str(), guarded)) {
+                        if let Some(procedure) = self.procedures.get(name) {
+                            pending.extend(
+                                procedure.body.iter().map(|step| {
+                                    (&step.effect, guarded || lineage(&step.condition))
+                                }),
+                            );
+                        }
+                    }
+                }
+                Effect::Observe { evidence } => {
+                    sources.revealed.insert(evidence.as_str());
+                    if !declared.observes(evidence) {
+                        sources.own.insert(evidence.as_str());
+                    }
+                }
+                Effect::Reveal {
+                    evidence,
+                    relation,
+                    claim,
+                } => {
+                    sources.revealed.insert(evidence.as_str());
+                    if !declared.gives(evidence, *relation, claim) {
+                        sources.own.insert(evidence.as_str());
+                    }
+                }
+                Effect::Sample { stream, .. } => {
+                    sources.sampled.insert(stream.as_str());
+                }
+                Effect::Renew { evidence } => {
+                    *sources.renewed.entry(evidence.as_str()).or_default() |= guarded;
+                }
+                _ => {}
+            }
+        }
+        sources
+    }
+
     /// Findings F330, F333, F335-F337: the caveats some mechanism of the
     /// loaded source can attach to a value. A value resting on evidence
     /// carries what qualifies that evidence (a pair `qualification_sources`
@@ -2025,23 +2149,27 @@ impl ReactiveSession {
     }
 
     /// The memberships the program declares as it loads: evidence its
-    /// declarations relate to a claim, which is observed from the start, and
-    /// the attention they leave caveats in, examined ones among them. No
-    /// event made these, so they have no records.
+    /// declarations relate to a claim, which is observed from the start, with
+    /// the stances they give it, and the attention they leave caveats in,
+    /// examined ones among them. No event made these, so they have no records.
     fn declared_memberships(&self) -> Declared {
         let names: HashMap<NodeId, &str> = self
             .symbols
             .iter()
             .map(|(name, id)| (*id, name.as_str()))
             .collect();
-        let observed = self
-            .graph
-            .edges
-            .iter()
-            .take(self.loaded.edges)
-            .filter(|edge| matches!(edge.relation, Relation::Supports | Relation::Opposes))
-            .filter_map(|edge| names.get(&edge.from).map(|name| name.to_string()))
-            .collect();
+        let mut stances = HashMap::<String, Vec<(Relation, String)>>::default();
+        for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            if !matches!(edge.relation, Relation::Supports | Relation::Opposes) {
+                continue;
+            }
+            if let Some(evidence) = names.get(&edge.from) {
+                let given = stances.entry(evidence.to_string()).or_default();
+                if let Some(claim) = names.get(&edge.to) {
+                    given.push((edge.relation, claim.to_string()));
+                }
+            }
+        }
         let attention = self
             .symbols
             .iter()
@@ -2052,10 +2180,7 @@ impl ReactiveSession {
                 _ => None,
             })
             .collect();
-        Declared {
-            observed,
-            attention,
-        }
+        Declared { stances, attention }
     }
 
     /// The name the source gives `evidence`: its stream or renewable evidence
@@ -2985,6 +3110,7 @@ impl ReactiveSession {
             .map(|edge| edge.to)
             .collect::<HashSet<_>>();
         let costs = self.examination_costs();
+        let sources = self.observation_sources(declared);
         // When the save says an event last joined each reopening's record:
         // the latest `reopened`, `held`, `deferred` or `released` entry of its
         // commitment while the journal holds one. Each reopening, hold,
@@ -3053,6 +3179,41 @@ impl ReactiveSession {
                         _ => "a commitment a reopens relation names",
                     };
                     return Err(format!("{what} of {name}: {name} is not {kind}"));
+                }
+                // D052: only an event's reveal, sample or renewal leaves an
+                // observation record. A reading's record is its sample's,
+                // and an occurrence's a reveal's of its renewable evidence or
+                // a renewal's whose guard can hold something. The evidence's
+                // own name takes one only from a reveal that adds to what the
+                // declarations leave: a stance they do not give it, or a
+                // neutral reveal of evidence they do not observe.
+                if what == "observation" {
+                    let source = self.source_evidence(name);
+                    let revealed = sources.revealed.contains(source);
+                    let missing = if self.reading_streams.contains_key(source) {
+                        (!sources.sampled.contains(source)).then(|| format!("samples {source}"))
+                    } else if source != name {
+                        match (revealed, sources.renewed.get(source)) {
+                            (true, _) | (_, Some(true)) => None,
+                            (false, Some(false)) => {
+                                Some(format!("reveals {source}, or renews it with a guard"))
+                            }
+                            (false, None) => Some(format!("reveals or renews {source}")),
+                        }
+                    } else if sources.own.contains(source) {
+                        None
+                    } else if revealed {
+                        Some(format!(
+                            "reveals {source} with a stance no declaration gives it"
+                        ))
+                    } else {
+                        Some(format!("reveals {source}"))
+                    };
+                    if let Some(missing) = missing {
+                        return Err(format!(
+                            "observation of {name}: no rule or procedure of this program {missing}"
+                        ));
+                    }
                 }
                 // D046: only an event's examination leaves a record, and a
                 // caveat only the declarations examine has none.
@@ -3330,7 +3491,7 @@ impl ReactiveSession {
             .filter(|[_, relation, _]| relation == "supports" || relation == "opposes")
             .map(|[evidence, _, _]| evidence)
             .chain(save.observations.iter().flatten());
-        for name in observation.filter(|name| !declared.observed.contains(*name)) {
+        for name in observation.filter(|name| !declared.observes(name)) {
             if !save.observation_qualifications.contains_key(name) {
                 return Err(format!(
                     "observed evidence {name} has no observation record"
