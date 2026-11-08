@@ -338,16 +338,7 @@ jobs:
       - name: Install the pinned Rust toolchain
         run: rustup toolchain install && rustc --version
       - name: Install the pinned Lean toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/lean-4.34.1-linux.tar.zst"
-          curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.34.1/lean-4.34.1-linux.tar.zst \
-            --output "$archive"
-          echo "47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4  $archive" | sha256sum --check
-          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
-          echo "CAVEAT_LEAN_BIN=$RUNNER_TEMP/lean-4.34.1-linux/bin" >> "$GITHUB_ENV"
+        uses: ./.github/actions/lean-toolchain
       - name: Check fixture and infrastructure failure handling
         run: npm run test:lean-conformance
       - name: Compare proved operations with production runtimes and semantic mutants
