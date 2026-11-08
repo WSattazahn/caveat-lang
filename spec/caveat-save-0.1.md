@@ -346,6 +346,23 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-07 (D049): restore accepts a commit's journal entry when the
+  commitment's grounds carried one of its caveats through a record that had
+  departed before the commit. A departed record's qualifications stay in
+  every provenance that carried them, and the grounds hold its history's
+  marker, as the commitment's basis does, which accounts for the caveat in
+  the basis ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)).
+  The entry records the grounds' evidence and caveats but not their markers,
+  and restore checked its caveats without them. It refused the save the
+  runtime wrote after such a commit, and every later save that still held
+  the entry, with "decision journal: K cannot qualify any of its evidence",
+  breaking the promise that a 1.x save restores. A commit `using
+  outcome(D)`, accepted since D041, reached it once a record the outcome
+  named had departed, as did commits whose grounds carried `withdrawn` or a
+  stream's caveat through a reading that had departed. Restore now checks a
+  commit's entry with its grounds' markers. Every other save restores, or is
+  refused with the same message, as before.
+
 - 2026-11-07 (D046): restore refuses four kinds of save no session of the
   program leaves, each about what its declarations leave or spend as it
   loads (D043). It accepted `unexamined` on a caveat the declarations leave
