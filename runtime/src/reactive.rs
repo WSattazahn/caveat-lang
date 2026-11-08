@@ -5122,20 +5122,25 @@ impl ReactiveSession {
                     return Ok(());
                 }
                 // A guard already in the lineage changes nothing; writing it
-                // anyway would copy the shared cell.
+                // anyway would copy the shared cell. The whole guard counts:
+                // its markers, inherited names and kept caveats, and its
+                // reads of names the lineage holds only as inherited (D048).
+                // The first test is `merged`'s answer when none of those is
+                // there, without copying the lineage to find it.
                 let current = &cell.value.provenance;
-                if guard.evidence.is_subset(&current.evidence)
+                if guard.departed.is_empty()
+                    && guard.inherited.is_empty()
+                    && guard.kept.is_empty()
+                    && current.inherited.is_empty()
+                    && guard.evidence.is_subset(&current.evidence)
                     && guard.caveats.is_subset(&current.caveats)
                 {
                     return Ok(());
                 }
-                return self
-                    .states
-                    .cell_mut(slot)
-                    .value
-                    .provenance
-                    .merge(guard)
-                    .map_err(Into::into);
+                if let Some(merged) = current.merged(guard)? {
+                    self.states.cell_mut(slot).value.provenance = merged;
+                }
+                return Ok(());
             }
             // A guard the selection already holds writes nothing, so the
             // shared map is not copied.
