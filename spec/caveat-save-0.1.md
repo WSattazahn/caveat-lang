@@ -135,22 +135,23 @@ save is refused with an error, and never crashes the runtime, when:
   commitment its `retaining` caveats. Conditions are not evaluated: the
   caveat is one the program could have attached, not one an event is shown
   to have attached;
-- a caveat's saved attention is not `unexamined` and is neither the one the
-  declarations leave it in as the program loads nor one an examination of
-  the loaded source can leave. A declaration can leave a caveat `examined`,
-  `examining` or `deferred` (`examine stale cost 1;`, `examine stale;`,
-  `defer stale;`), and a reactive event leaves a caveat only `examined`, so
-  `deferred` and `examining` are refused unless the declarations leave the
-  caveat so. An `examined` caveat the declarations do not leave `examined`
-  is refused when the program has no attention budget, or when no `examine`
-  in a rule, or in a procedure a rule reaches, names it; and those examined
-  caveats together are refused when the least cost at which the source
-  examines each one sums to more than the budget's `spent`. A caveat the
-  declarations leave `examined` adds nothing to that sum, since no event
-  need have examined it, and what the declarations spent is not counted
-  either. Conditions are not evaluated and an examination is counted once:
-  the attention is one the program could have left, not one an event is
-  shown to have left;
+- a caveat's saved attention is neither the one the declarations leave it
+  in as the program loads nor one an examination of the loaded source can
+  leave. A declaration can leave a caveat `examined`, `examining` or
+  `deferred` (`examine stale cost 1;`, `examine stale;`, `defer stale;`),
+  and a reactive event leaves a caveat only `examined`, so `deferred` and
+  `examining` are refused unless the declarations leave the caveat so, and
+  `unexamined` is refused when they leave it otherwise. An `examined`
+  caveat the declarations do not leave `examined` is refused when the
+  program has no attention budget, or when no `examine` in a rule, or in a
+  procedure a rule reaches, names it; and the examined caveats are refused
+  together when the least cost at which the source examines each one,
+  added to what the declarations spent, sums to more than the budget's
+  `spent`. A caveat the declarations leave `examined` adds nothing to that
+  sum unless its examination record shows an event examined it again,
+  since no event need have examined it. Conditions are not evaluated and an
+  examination is counted once: the attention is one the program could have
+  left, not one an event is shown to have left;
 - a relation connects kinds of node no event relates. Events add `supports`
   and `opposes` from evidence to a claim, `qualifies` from a caveat to
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
@@ -187,7 +188,8 @@ save is refused with an error, and never crashes the runtime, when:
 - a qualification record is keyed by a name its record cannot belong to:
   an observation record by evidence that is neither observed nor an
   occurrence a renewal made, an examination record by a caveat the save does
-  not leave examined, a reopening record by a commitment no `reopens`
+  not leave examined or that no `examine` in a rule, or in a procedure a rule
+  reaches, names, a reopening record by a commitment no `reopens`
   relation names, and a skipped effect's predicate guard by a name of the
   wrong kind (`observed` evidence, `examined` a caveat, `committed` and
   `reopened` an action a rule commits or reopens, a decision series or a
@@ -213,8 +215,9 @@ save is refused with an error, and never crashes the runtime, when:
 - an effect's names do not have the kinds its place needs, or the save does
   not hold what it reports: a `sample` its reading in the stream and its
   relation, a `qualify` or `reopen` its relation, a `commit` a basis holding
-  the caveats it retains, an `examine` attention spent at least its cost, a
-  `renew` its occurrence in the renewals, a `withdraw` its withdrawal record;
+  the caveats it retains, an `examine` attention spent at least its cost
+  besides what the declarations spent, a `renew` its occurrence in the
+  renewals, a `withdraw` its withdrawal record;
 - it reports an effect that no rule effect the last event reaches could make:
   one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
   `qualify`, `renew` or `withdraw`) on the same names, where a renewable
@@ -342,6 +345,24 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-07 (D046): restore refuses four kinds of save no session of the
+  program leaves, each about what its declarations leave or spend as it
+  loads (D043). It accepted `unexamined` on a caveat the declarations leave
+  `examined`, `examining` or `deferred`, though no event leaves a caveat
+  unexamined, and on a caveat they leave `examined` the restored session
+  then read `examined(...)` as false; an examination record for a caveat no
+  rule or procedure examines, though only an event's examination leaves one;
+  examined caveats whose least costs fit the budget's `spent` only because
+  what the declarations spent was left out, or because a caveat the
+  declarations leave `examined` was left out though its examination record
+  shows an event examined it again; and a last event's `examine` whose cost
+  fits `spent` only with what the declarations spent. Saves the program
+  writes restore as before. A save of a program whose declarations leave
+  every caveat unexamined restores, or is refused with the same message, as
+  before. For a program whose declarations spend attention, a refusal of the
+  least cost now also names what they spent; for one whose declarations
+  attend to a caveat but spend nothing, it keeps its message.
 
 - 2026-11-07 (D043): restore accepts the attention a declaration leaves. A
   declaration such as `examine stale cost 1;`, `examine stale;` or `defer

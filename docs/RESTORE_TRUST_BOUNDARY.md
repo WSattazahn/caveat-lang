@@ -96,23 +96,28 @@ its events, have left it? It refuses, with an explicit restore error:
 
 - `deferred` and `examining`, which no reactive event leaves, unless the
   declarations leave the caveat so (see below);
+- `unexamined` on a caveat the declarations leave otherwise, since no
+  reactive event leaves a caveat unexamined (D046);
 - `examined` in a program with no attention budget;
 - `examined` on a caveat no `examine` reaches, in a rule or in a procedure a
   rule calls, procedures specialized for the caveat they are passed included;
 - examined caveats whose least examination costs, one examination each, sum
-  to more than the budget's `spent`.
+  with what the declarations spent to more than the budget's `spent`.
 
 A declaration leaves a caveat `examined`, `examining` or `deferred` as the
 program loads (`examine stale cost 1;`, `examine stale;`, `defer stale;`).
 Since D043 the attention the declarations leave is accepted as it stands,
 and a caveat they leave `examined` adds nothing to the least cost, since no
-event need have examined it; what the declarations spent is not counted
-either. Before D043 restore checked that attention as if an event had left
-it. It refused every save that still held a declared `examining` or
-`deferred`, or a declared `examined` that no rule examines, and a declared
-`examined` that a rule could examine whenever `spent` fell short of the least
-costs: with `examine stale cost 1;` and a rule that examines `stale` for 3,
-the save written before any event was refused.
+event need have examined it, unless its examination record shows an event
+examined it again (D046). Since D046 what the declarations spent is counted
+with the least costs, and an examination record needs a rule or procedure
+that examines its caveat, since a declaration leaves none. Before D043
+restore checked that attention as if an event had left it. It refused
+every save that still held a declared `examining` or `deferred`, or a
+declared `examined` that no rule examines, and a declared `examined`
+that a rule could examine whenever `spent` fell short of the least costs:
+with `examine stale cost 1;` and a rule that examines `stale` for 3, the
+save written before any event was refused.
 
 The policy is conservative. Guards are not evaluated, and an examination is
 counted once at its cheapest, so attention the program could have left is
@@ -128,6 +133,7 @@ session did.
 
 The fixtures in [restore_attention.rs](../runtime/tests/restore_attention.rs),
 [d043_declared_attention_restores.rs](../runtime/tests/d043_declared_attention_restores.rs),
+[d046_declared_attention_forgeries_refused.rs](../runtime/tests/d046_declared_attention_forgeries_refused.rs),
 [save_restore.rs](../runtime/tests/save_restore.rs) (every attention value on
 every caveat of the fuzz's played save), the
 [restore boundary fixtures](../kit/test/restore-contract.test.mjs) and the
@@ -144,7 +150,8 @@ predicate guards kept for skipped effects, and the withdrawal record's
 `event` once restored with their values checked and their keys trusted
 (findings 86, 89, 96, 118–120). Restore now refuses a record that could not
 belong where it is: an observation of evidence neither observed nor made by a
-renewal, an examination of a caveat the save leaves unexamined, a reopening of
+renewal, an examination of a caveat the save leaves unexamined or that no
+rule or procedure examines (D046), a reopening of
 a commitment no `reopens` relation names, a predicate guard on a name of the
 wrong kind, and a withdrawal whose event reaches no `withdraw` of that
 evidence for that reason, in a rule or a procedure a rule calls.
