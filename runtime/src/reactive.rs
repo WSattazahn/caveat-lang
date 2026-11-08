@@ -5569,7 +5569,11 @@ impl ReactiveSession {
         }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
-        // it has succeeded, so a failed event hands them back untouched.
+        // it has succeeded, so a failed event hands them back untouched. A
+        // windowed program's withdrawal collector moves in the same way, below.
+        // Neither comes back if the event unwinds instead of failing: this
+        // session is then left without its shown bindings and with an empty
+        // collector, so a host must discard it, as after any panic.
         if !self.identifiers.has_room_for(&new_identifiers) {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Limit,
@@ -5584,7 +5588,23 @@ impl ReactiveSession {
         // The archive stays out of the transaction's copy: the event appends
         // to an empty one, kept only if it succeeds.
         let archive = std::mem::take(&mut self.archive);
-        let mut next = self.clone();
+        // A windowed program's withdrawal collector moves into the
+        // transaction rather than being copied: it writes its indexes in
+        // place and logs what undoes each write, so a refused event hands
+        // back exactly what it held. This session keeps an empty collector
+        // meanwhile; if `run_event` unwinds, that is all it keeps (see the
+        // shown bindings above). Without a window the collector is never
+        // written, so the copy shares it.
+        let windowed = self.windowed();
+        let mut next = if windowed {
+            let mut collector = std::mem::take(&mut self.collector);
+            collector.begin();
+            let mut next = self.clone();
+            next.collector = collector;
+            next
+        } else {
+            self.clone()
+        };
         self.archive = archive;
         next.put_shown(shown);
         if !new_identifiers.is_empty() {
@@ -5598,6 +5618,9 @@ impl ReactiveSession {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::CommitCleanup);
+                if windowed {
+                    next.collector.commit();
+                }
                 let mut archive = std::mem::take(&mut self.archive);
                 archive.append(&mut next.archive);
                 *self = next;
@@ -5614,6 +5637,10 @@ impl ReactiveSession {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
+                if windowed {
+                    std::mem::swap(&mut self.collector, &mut next.collector);
+                    self.collector.rollback();
+                }
                 Err(error)
             }
         }

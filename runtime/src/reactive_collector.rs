@@ -15,7 +15,9 @@
 //! other seeds are traced, and the search stays among unsupported records. A
 //! holder that retires breaks no path unless it is unsupported itself, and
 //! then it is a reason that retired; a record becomes a reason only while it
-//! is current, so becoming one is never a loss.
+//! is current, so becoming one is never a loss. The indexes are written in
+//! place inside the event's transaction, with a log that undoes a refusal
+//! exactly.
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -219,7 +221,7 @@ pub struct WithdrawalCollectionMetrics {
     pub peak_work_items: usize,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Default)]
 pub(super) struct WithdrawalCollector {
     owners: Arc<BTreeMap<CollectorOwner, CollectorSet<Name>>>,
     incoming: Arc<BTreeMap<Name, CollectorSet<CollectorOwner>>>,
@@ -233,8 +235,92 @@ pub(super) struct WithdrawalCollector {
     /// last collection: each may be unsupported now. Only a reason can be
     /// unsupported, so a loss of any other record is not kept.
     queued: BTreeSet<Name>,
+    /// While an event runs, what it wrote, so a refusal puts it back. Not
+    /// state: equality leaves it out.
+    transaction: Option<Box<Transaction>>,
     #[cfg(feature = "collector-metrics")]
     metrics: WithdrawalCollectionMetrics,
+}
+
+impl PartialEq for WithdrawalCollector {
+    fn eq(&self, other: &Self) -> bool {
+        #[cfg(feature = "collector-metrics")]
+        if self.metrics != other.metrics {
+            return false;
+        }
+        self.owners == other.owners
+            && self.incoming == other.incoming
+            && self.reasons == other.reasons
+            && self.pending == other.pending
+            && self.dirty == other.dirty
+            && self.queued == other.queued
+    }
+}
+
+impl Eq for WithdrawalCollector {}
+
+/// A copy shares the indexes, so the first write to one copies it. The copy
+/// has no transaction: only the session an event runs in commits or rolls it
+/// back. A session copied while an event runs is a debug check's, read and
+/// dropped; the session that replaces this one at the end of an event is the
+/// one the event ran in.
+impl Clone for WithdrawalCollector {
+    fn clone(&self) -> Self {
+        Self {
+            owners: Arc::clone(&self.owners),
+            incoming: Arc::clone(&self.incoming),
+            reasons: Arc::clone(&self.reasons),
+            pending: Arc::clone(&self.pending),
+            dirty: self.dirty.clone(),
+            queued: self.queued.clone(),
+            transaction: None,
+            #[cfg(feature = "collector-metrics")]
+            metrics: self.metrics,
+        }
+    }
+}
+
+/// An event's writes to the collector, from `begin`: the indexes are written
+/// in place, and `rollback` undoes each write in reverse order. The work
+/// queues and diagnostics are small between events and kept whole.
+#[derive(Debug)]
+struct Transaction {
+    undo: Vec<Undo>,
+    dirty: BTreeSet<CollectorOwner>,
+    queued: BTreeSet<Name>,
+    #[cfg(feature = "collector-metrics")]
+    metrics: WithdrawalCollectionMetrics,
+    /// Debug builds: a copy of the whole collector, which a rollback must
+    /// give back exactly.
+    #[cfg(debug_assertions)]
+    before: WithdrawalCollector,
+}
+
+/// One write, as what undoes it.
+#[derive(Debug)]
+enum Undo {
+    /// The owner held this set, or nothing, before.
+    Owner(CollectorOwner, Option<CollectorSet<Name>>),
+    /// The owner gained this reference.
+    OwnerGained(CollectorOwner, Name),
+    /// The owner lost this reference and still holds others.
+    OwnerLost(CollectorOwner, Name),
+    /// The record gained this holder.
+    Gained(Name, CollectorOwner),
+    /// The record lost this holder.
+    Lost(Name, CollectorOwner),
+    /// The record's holders, removed whole.
+    Incoming(Name, CollectorSet<CollectorOwner>),
+    /// So many withdrawals named the reason, or none.
+    Reason(Name, Option<usize>),
+    /// The pending target's references, or none.
+    Pending(String, Option<BTreeMap<Name, usize>>),
+}
+
+fn log(transaction: &mut Option<Box<Transaction>>, undo: Undo) {
+    if let Some(transaction) = transaction {
+        transaction.undo.push(undo);
+    }
 }
 
 macro_rules! metric {
@@ -247,6 +333,120 @@ macro_rules! metric {
 }
 
 impl WithdrawalCollector {
+    /// Start an event's transaction. The session moves its collector into
+    /// the event instead of copying it, so the indexes are written in place;
+    /// every write from here is logged until `commit` or `rollback`.
+    pub(super) fn begin(&mut self) {
+        debug_assert!(self.transaction.is_none(), "one transaction at a time");
+        self.transaction = Some(Box::new(Transaction {
+            undo: Vec::new(),
+            dirty: self.dirty.clone(),
+            queued: self.queued.clone(),
+            #[cfg(feature = "collector-metrics")]
+            metrics: self.metrics,
+            #[cfg(debug_assertions)]
+            before: self.deep_copy(),
+        }));
+    }
+
+    /// The event was accepted: what its writes replaced is dropped.
+    pub(super) fn commit(&mut self) {
+        self.transaction = None;
+    }
+
+    /// The event was refused: undo its writes, newest first, and restore the
+    /// queues and diagnostics, so the collector is exactly as it was.
+    pub(super) fn rollback(&mut self) {
+        let Some(transaction) = self.transaction.take() else {
+            return;
+        };
+        let transaction = *transaction;
+        for undo in transaction.undo.into_iter().rev() {
+            match undo {
+                Undo::Owner(owner, previous) => {
+                    let owners = Arc::make_mut(&mut self.owners);
+                    match previous {
+                        Some(references) => owners.insert(owner, references),
+                        None => owners.remove(&owner),
+                    };
+                }
+                Undo::OwnerGained(owner, name) => {
+                    let owners = Arc::make_mut(&mut self.owners);
+                    let references = owners.get_mut(&owner).expect("a logged reference");
+                    references.remove(&name);
+                    if references.is_empty() {
+                        owners.remove(&owner);
+                    }
+                }
+                Undo::OwnerLost(owner, name) => {
+                    Arc::make_mut(&mut self.owners)
+                        .entry(owner)
+                        .or_default()
+                        .insert(name);
+                }
+                Undo::Gained(name, owner) => {
+                    let incoming = Arc::make_mut(&mut self.incoming);
+                    let holders = incoming.get_mut(&name).expect("a logged holder");
+                    holders.remove(&owner);
+                    if holders.is_empty() {
+                        incoming.remove(&name);
+                    }
+                }
+                Undo::Lost(name, owner) => {
+                    Arc::make_mut(&mut self.incoming)
+                        .entry(name)
+                        .or_default()
+                        .insert(owner);
+                }
+                Undo::Incoming(name, holders) => {
+                    Arc::make_mut(&mut self.incoming).insert(name, holders);
+                }
+                Undo::Reason(name, previous) => {
+                    let reasons = Arc::make_mut(&mut self.reasons);
+                    match previous {
+                        Some(count) => reasons.insert(name, count),
+                        None => reasons.remove(&name),
+                    };
+                }
+                Undo::Pending(target, previous) => {
+                    let pending = Arc::make_mut(&mut self.pending);
+                    match previous {
+                        Some(references) => pending.insert(target, references),
+                        None => pending.remove(&target),
+                    };
+                }
+            }
+        }
+        self.dirty = transaction.dirty;
+        self.queued = transaction.queued;
+        #[cfg(feature = "collector-metrics")]
+        {
+            self.metrics = transaction.metrics;
+        }
+        #[cfg(debug_assertions)]
+        debug_assert!(
+            *self == transaction.before,
+            "a refused event leaves the withdrawal collector exactly as it was"
+        );
+    }
+
+    /// Debug builds: a copy that shares no index with this collector, so
+    /// the transaction still writes its own indexes in place.
+    #[cfg(debug_assertions)]
+    fn deep_copy(&self) -> Self {
+        Self {
+            owners: Arc::new((*self.owners).clone()),
+            incoming: Arc::new((*self.incoming).clone()),
+            reasons: Arc::new((*self.reasons).clone()),
+            pending: Arc::new((*self.pending).clone()),
+            dirty: self.dirty.clone(),
+            queued: self.queued.clone(),
+            transaction: None,
+            #[cfg(feature = "collector-metrics")]
+            metrics: self.metrics,
+        }
+    }
+
     /// A pin `record` had was released. Only a withdrawal reason can be left
     /// with withdrawal pins alone, so only a reason is queued.
     pub(super) fn released(&mut self, record: &str) {
@@ -315,7 +515,11 @@ impl WithdrawalCollector {
         }
         let incoming = Arc::make_mut(&mut self.incoming);
         for name in gained {
-            incoming.entry(name).or_default().insert(owner.clone());
+            incoming
+                .entry(name.clone())
+                .or_default()
+                .insert(owner.clone());
+            log(&mut self.transaction, Undo::Gained(name, owner.clone()));
         }
         for name in lost {
             let holders = incoming.get_mut(&name).expect("indexed reference");
@@ -325,15 +529,17 @@ impl WithdrawalCollector {
             }
             // A reason that loses a holder may be left unsupported.
             if self.reasons.contains_key(&name) {
-                self.queued.insert(name);
+                self.queued.insert(name.clone());
             }
+            log(&mut self.transaction, Undo::Lost(name, owner.clone()));
         }
         let owners = Arc::make_mut(&mut self.owners);
-        if references.is_empty() {
-            owners.remove(&owner);
+        let previous = if references.is_empty() {
+            owners.remove(&owner)
         } else {
-            owners.insert(owner, references);
-        }
+            owners.insert(owner.clone(), references)
+        };
+        log(&mut self.transaction, Undo::Owner(owner, previous));
     }
 
     /// Add `names` to what `owner` references. Only a name it does not hold
@@ -352,10 +558,15 @@ impl WithdrawalCollector {
                 .entry(owner.clone())
                 .or_default()
                 .insert(name.clone());
+            log(
+                &mut self.transaction,
+                Undo::OwnerGained(owner.clone(), name.clone()),
+            );
             Arc::make_mut(&mut self.incoming)
-                .entry(name)
+                .entry(name.clone())
                 .or_default()
                 .insert(owner.clone());
+            log(&mut self.transaction, Undo::Gained(name, owner.clone()));
         }
     }
 
@@ -379,6 +590,7 @@ impl WithdrawalCollector {
                 reasons.insert(name.clone(), count - 1);
             }
         }
+        log(&mut self.transaction, Undo::Reason(name, previous));
         self.dirty.insert(CollectorOwner::Record(subject.into()));
         // An added reason is not queued: a withdrawal names its reason's
         // current occurrence, which is not eligible, so nothing it gains can
@@ -431,8 +643,8 @@ impl WithdrawalCollector {
             if !self.incoming.contains_key(record.as_str()) {
                 continue;
             }
-            let holders = Arc::make_mut(&mut self.incoming)
-                .remove(record.as_str())
+            let (name, holders) = Arc::make_mut(&mut self.incoming)
+                .remove_entry(record.as_str())
                 .expect("checked above");
             for owner in holders.iter() {
                 metric!(self, references_scanned, 1);
@@ -444,10 +656,15 @@ impl WithdrawalCollector {
                     {
                         let pending = Arc::make_mut(&mut self.pending);
                         let references = pending.get_mut(target.as_str()).expect("checked above");
+                        let previous = references.clone();
                         references.remove(record.as_str());
                         if references.is_empty() {
                             pending.remove(target.as_str());
                         }
+                        log(
+                            &mut self.transaction,
+                            Undo::Pending(target.to_string(), Some(previous)),
+                        );
                     }
                 }
                 let Some(references) = self.owners.get(owner) else {
@@ -458,14 +675,20 @@ impl WithdrawalCollector {
                 }
                 let owners = Arc::make_mut(&mut self.owners);
                 if references_len(owners, owner) == 1 {
-                    owners.remove(owner);
+                    let previous = owners.remove(owner);
+                    log(&mut self.transaction, Undo::Owner(owner.clone(), previous));
                 } else {
                     owners
                         .get_mut(owner)
                         .expect("checked above")
                         .remove(record.as_str());
+                    log(
+                        &mut self.transaction,
+                        Undo::OwnerLost(owner.clone(), name.clone()),
+                    );
                 }
             }
+            log(&mut self.transaction, Undo::Incoming(name, holders));
         }
         for record in departing.keys() {
             self.replace(
@@ -593,6 +816,7 @@ impl ReactiveSession {
         );
         let collector = &mut self.collector;
         let pending = Arc::make_mut(&mut collector.pending);
+        let previous = pending.get(&scheduled.evidence).cloned();
         let references = pending.entry(scheduled.evidence.clone()).or_default();
         for name in scheduled.guard.evidence.iter() {
             if add {
@@ -611,6 +835,10 @@ impl ReactiveSession {
         if references.is_empty() {
             pending.remove(&scheduled.evidence);
         }
+        log(
+            &mut collector.transaction,
+            Undo::Pending(scheduled.evidence.clone(), previous),
+        );
         collector.replace(
             CollectorOwner::Pending(scheduled.evidence.as_str().into()),
             refs,
@@ -1294,6 +1522,70 @@ mod tests {
         collector.dirty.clear();
         collector.queued.clear();
         collector
+    }
+
+    #[test]
+    fn a_rollback_restores_every_index_and_queue_exactly() {
+        let original = populated();
+        let mut collector = original.deep_copy();
+        let (owners, incoming) = (
+            Arc::as_ptr(&collector.owners),
+            Arc::as_ptr(&collector.incoming),
+        );
+        collector.begin();
+        // Grow and shrink sets through their representation boundaries.
+        collector.replace(
+            CollectorOwner::State(name("state")),
+            (3..20).map(|n| name(&format!("held@{n}"))).collect(),
+        );
+        collector.replace(
+            CollectorOwner::Record(name("holder@3")),
+            CollectorSet::default(),
+        );
+        collector.replace(
+            CollectorOwner::Record(name("new@1")),
+            CollectorSet::from([name("held@1")]),
+        );
+        collector.extend(
+            &CollectorOwner::Graph(name("decision@1")),
+            ["held@4", "held@7", "held@30"],
+        );
+        collector.withdrawal("held@1", "held@2", false);
+        collector.withdrawal("held@9", "held@9", true);
+        collector.released("held@2");
+        collector.retired("held@9");
+        collector
+            .dirty
+            .insert(CollectorOwner::Record(name("held@8")));
+        assert_eq!(
+            collector.queued,
+            BTreeSet::from([name("held@2"), name("held@9")])
+        );
+        collector.forget(&BTreeMap::from([
+            ("held@5".into(), ("held".into(), 5)),
+            ("held@4".into(), ("held".into(), 4)),
+            ("new@1".into(), ("new".into(), 1)),
+        ]));
+        assert!(collector.queued.is_empty() && collector.dirty.is_empty());
+        assert_ne!(collector, original);
+        // The transaction wrote the indexes it alone holds in place.
+        assert_eq!(Arc::as_ptr(&collector.owners), owners);
+        assert_eq!(Arc::as_ptr(&collector.incoming), incoming);
+
+        collector.rollback();
+        assert_eq!(collector, original);
+        assert_eq!(*collector.owners, *original.owners);
+        assert_eq!(*collector.incoming, *original.incoming);
+        assert_eq!(*collector.reasons, *original.reasons);
+        assert_eq!(*collector.pending, *original.pending);
+        assert!(collector.transaction.is_none());
+
+        // A committed transaction keeps what it wrote.
+        collector.begin();
+        collector.withdrawal("held@9", "held@9", true);
+        collector.commit();
+        assert_eq!(collector.reasons.get("held@9"), Some(&1));
+        assert!(collector.transaction.is_none());
     }
 
     #[test]

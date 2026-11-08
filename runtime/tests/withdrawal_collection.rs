@@ -481,19 +481,27 @@ fn a_mutual_group_waits_for_two_roots_and_archives_atomically_after_retry() {
 
 #[test]
 fn failed_due_event_keeps_pending_target_and_guard_indexes() {
-    let source = format!("{SELF}\ncaveat stale consequence material; state divisor = 1; event later; event tick dt min 0 max 0.1; event fail dt min 0 max 0.1;\non later when qualified(1,a) == 1 qualify a with stale after 0.1;\non fail set divisor = 0; bind hud.guard = 1 / divisor;");
+    // `tick` is the time event. When it is due, the scheduled qualification
+    // applies: its target, a@2, loses that pin and its guard's hold on
+    // a@2. Then `tick` is refused, by a rule before collection or by a
+    // binding after collection has taken a@2. Either refusal must keep both
+    // pending indexes, so that the same `tick`, accepted, collects a@2.
+    let source = format!("{SELF}\ncaveat stale consequence material; state divisor = 1; state refusal = 0;\nevent later; event arm r min 0 max 2; event tick dt min 0 max 0.1;\non later when qualified(1,a) == 1 qualify a with stale after 0.1;\non arm set refusal = r;\non tick when refusal == 1 reject \"not yet\";\non tick when refusal == 2 set divisor = 0; bind hud.guard = 1 / divisor;");
     let mut game = ReactiveSession::from_source(&source).unwrap();
     for event in ["cycle", "later", "cycle"] {
         send(&mut game, event);
     }
-    let before = game.save_json().unwrap();
-    assert!(game
-        .apply("fail", &BTreeMap::from([("dt".into(), 0.1)]))
-        .is_err());
-    assert_eq!(game.save_json().unwrap(), before);
-    assert!(game.drain_archive().is_empty());
-    game.apply("tick", &BTreeMap::from([("dt".into(), 0.1)]))
-        .unwrap();
+    let arm = |refusal: f64| BTreeMap::from([("r".into(), refusal)]);
+    let tick = BTreeMap::from([("dt".into(), 0.1)]);
+    for refusal in [1.0, 2.0] {
+        game.apply("arm", &arm(refusal)).unwrap();
+        let before = game.save_json().unwrap();
+        assert!(game.apply("tick", &tick).is_err(), "{refusal}");
+        assert_eq!(game.save_json().unwrap(), before, "{refusal}");
+        assert!(game.drain_archive().is_empty(), "{refusal}");
+    }
+    game.apply("arm", &arm(0.0)).unwrap();
+    game.apply("tick", &tick).unwrap();
     assert_eq!(names(&game.drain_archive()), ["a@2"]);
 }
 
@@ -793,4 +801,291 @@ on cut renew a; on cut reveal a supports seen; on cut renew b; on cut reveal b s
         );
     }
     assert_eq!(game.save_json().unwrap(), restored.save_json().unwrap());
+}
+
+/// A program whose `cycle` collects the previous a@N, which only its own
+/// withdrawal pins, and departs the previous reading in `D0`. A skipped
+/// guard gave `peak`'s lineage that reading's name, so the departure
+/// compacts it and removes the name from the collector's index. `fail` and
+/// `overflow` do the same and are then refused, by a binding that divides by
+/// zero and by the text limit: `run_event` departs records before it
+/// evaluates bindings.
+fn refused_after_collection() -> String {
+    let wide = "A".repeat(65_520);
+    let steps = |event: &str| {
+        format!(
+            "on {event} renew a; on {event} reveal a supports seen; on {event} withdraw a because a;\n\
+             on {event} sample r = v supports seen; on {event} when latest(r) > 10 set peak = 1;\n"
+        )
+    };
+    format!(
+        "claim seen;\nevidence a from \"a\"; renewable a window 1;\n\
+         evidence glimpse from \"g\"; readings r from glimpse window 1;\n\
+         state peak = 0 min 0 max 1; state divisor = 1; state big = 0 min 0 max 2000000;\n\
+         event cycle v min 0 max 10; event fail v min 0 max 10; event overflow v min 0 max 10;\n\
+         {}{}on fail set divisor = 0;\n{}on overflow set big = 1234567.123456789;\n\
+         bind hud.guard = 1 / divisor;\nbind wide.text = \"{wide}\" + text(big);\n",
+        steps("cycle"),
+        steps("fail"),
+        steps("overflow"),
+    )
+}
+
+fn v(value: f64) -> BTreeMap<String, f64> {
+    BTreeMap::from([("v".into(), value)])
+}
+
+/// Each archived record's holders, by name. A provenance item names its
+/// record too, but has no holders.
+fn holders(archive: &Value) -> BTreeMap<String, Value> {
+    archive
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| {
+            let holders = item.get("holders")?.clone();
+            Some((item["record"].as_str()?.to_string(), holders))
+        })
+        .collect()
+}
+
+#[test]
+fn a_refusal_after_collection_and_compaction_leaves_no_trace() {
+    let source = refused_after_collection();
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    let mut twin = ReactiveSession::from_source(&source).unwrap();
+    let compacted = BTreeMap::from([
+        ("a@2".to_string(), json!([])),
+        (
+            "r@1".to_string(),
+            json!([{"kind": "state", "name": "peak", "in": "lineage"}]),
+        ),
+    ]);
+    for session in [&mut game, &mut twin] {
+        session.apply("cycle", &v(1.0)).unwrap();
+        session.apply("cycle", &v(2.0)).unwrap();
+        let archive = serde_json::to_value(session.drain_archive()).unwrap();
+        assert_eq!(holders(&archive), compacted);
+    }
+    let before = game.save_json().unwrap();
+    let snapshot = game.snapshot();
+    #[cfg(feature = "collector-metrics")]
+    let metrics = game.withdrawal_collection_metrics();
+    // A binding then divides by zero, or a binding's text passes the limit.
+    for (event, origin, code) in [
+        ("fail", "evaluation", "expression"),
+        ("overflow", "limit", "text_limit"),
+    ] {
+        let outcome =
+            serde_json::to_value(game.dispatch_outcome_json(event, r#"{"v":3}"#).unwrap()).unwrap();
+        assert_eq!(outcome["outcome"], "rejected", "{event}: {outcome}");
+        assert_eq!(outcome["origin"], origin, "{event}: {outcome}");
+        assert_eq!(outcome["code"], code, "{event}: {outcome}");
+        assert_eq!(game.save_json().unwrap(), before, "{event}");
+        assert_eq!(game.snapshot(), snapshot, "{event}");
+        assert!(game.drain_archive().is_empty(), "{event}");
+        #[cfg(feature = "collector-metrics")]
+        assert_eq!(game.withdrawal_collection_metrics(), metrics, "{event}");
+    }
+    // The same steps, accepted, collect a@3, depart r@2 and compact
+    // `peak`'s lineage: what the refused events did before their bindings.
+    let mut restored = ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
+    for value in [3.0, 4.0, 5.0] {
+        let mut archives = Vec::new();
+        for session in [&mut game, &mut twin, &mut restored] {
+            session.apply("cycle", &v(value)).unwrap();
+            archives.push(serde_json::to_value(session.drain_archive()).unwrap());
+        }
+        if value == 3.0 {
+            let compacted = BTreeMap::from([
+                ("a@3".to_string(), json!([])),
+                (
+                    "r@2".to_string(),
+                    json!([{"kind": "state", "name": "peak", "in": "lineage"}]),
+                ),
+            ]);
+            assert_eq!(holders(&archives[0]), compacted);
+        }
+        assert_eq!(archives[0], archives[1], "{value}");
+        assert_eq!(archives[2], archives[1], "{value}");
+        let save = twin.save_json().unwrap();
+        assert_eq!(game.save_json().unwrap(), save, "{value}");
+        assert_eq!(restored.save_json().unwrap(), save, "{value}");
+    }
+}
+
+#[test]
+fn a_refused_time_event_restores_its_due_qualification() {
+    // `tick` applies the due qualification, which removes the scheduled
+    // entry that pins a@2 and whose guard holds it, collects a@2, and is
+    // then refused by a binding. The refusal must put the scheduled entry
+    // back: undoing the collection without it would leave the indexes
+    // without the pending pin, and the same `tick`, accepted later, must
+    // collect a@2 exactly as a session that never saw the refusal.
+    let source = format!(
+        "{SELF}caveat stale consequence material; state divisor = 1; state armed = 0;\n\
+         event later; event arm; event disarm; event tick dt min 0 max 0.1;\n\
+         on later when qualified(1,a) == 1 qualify a with stale after 0.1;\n\
+         on arm set armed = 1; on disarm set armed = 0;\n\
+         on tick when armed == 1 set divisor = 0;\n\
+         bind hud.guard = 1 / divisor;\n"
+    );
+    let tick = BTreeMap::from([("dt".to_string(), 0.1)]);
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["cycle", "later", "cycle", "arm"] {
+        send(&mut game, event);
+    }
+    assert!(game.drain_archive().is_empty());
+    let mut twin = game.clone();
+    let before = game.save_json().unwrap();
+    assert!(game.apply("tick", &tick).is_err());
+    assert_eq!(game.save_json().unwrap(), before);
+    assert!(game.drain_archive().is_empty());
+    for session in [&mut game, &mut twin] {
+        send(session, "disarm");
+        session.apply("tick", &tick).unwrap();
+        assert_eq!(names(&session.drain_archive()), ["a@2"]);
+    }
+    assert_eq!(game.save_json().unwrap(), twin.save_json().unwrap());
+}
+
+#[test]
+fn a_refused_event_that_schedules_or_compacts_a_pending_guard_leaves_no_trace() {
+    // `later_fail` schedules a qualification whose guard names a@2, and
+    // `sample_fail` departs the reading r@1 that a pending guard names,
+    // which removes it from the scheduled entry; both are then refused by
+    // a binding. Neither change may survive the refusal in the scheduled
+    // index: the session then plays exactly as one that never saw them.
+    let source = format!(
+        "{SELF}caveat stale consequence material; state divisor = 1;\n\
+         evidence g from \"g\"; readings r from g window 1;\n\
+         event later; event later_fail; event sample v min 0 max 10; event sample_fail v min 0 max 10;\n\
+         event tick dt min 0 max 0.1;\n\
+         on later when latest(r) > 0 qualify a with stale after 0.1;\n\
+         on later_fail when qualified(1,a) == 1 qualify a with stale after 0.1; on later_fail set divisor = 0;\n\
+         on sample sample r = v supports seen;\n\
+         on sample_fail sample r = v supports seen; on sample_fail set divisor = 0;\n\
+         bind hud.guard = 1 / divisor;\n"
+    );
+    let tick = BTreeMap::from([("dt".to_string(), 0.1)]);
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    send(&mut game, "cycle");
+    game.apply("sample", &v(1.0)).unwrap();
+    send(&mut game, "later");
+    let twin = game.clone();
+    let before = game.save_json().unwrap();
+    assert!(game.apply("later_fail", &BTreeMap::new()).is_err());
+    assert!(game.apply("sample_fail", &v(2.0)).is_err());
+    assert_eq!(game.save_json().unwrap(), before);
+    // Play on twice: once departing r@1 before the qualification is due,
+    // and once applying it first, while its guard still names r@1.
+    for play in [
+        [
+            ("cycle", BTreeMap::new()),
+            ("sample", v(3.0)),
+            ("tick", tick.clone()),
+            ("cycle", BTreeMap::new()),
+            ("sample", v(4.0)),
+        ],
+        [
+            ("tick", tick.clone()),
+            ("cycle", BTreeMap::new()),
+            ("sample", v(3.0)),
+            ("cycle", BTreeMap::new()),
+            ("sample", v(4.0)),
+        ],
+    ] {
+        let mut transcripts = Vec::new();
+        for mut session in [game.clone(), twin.clone()] {
+            let mut transcript = Vec::new();
+            for (event, payload) in &play {
+                session.apply(event, payload).unwrap();
+                transcript.push(names(&session.drain_archive()));
+            }
+            transcript.push(vec![session.save_json().unwrap()]);
+            transcripts.push(transcript);
+        }
+        assert_eq!(transcripts[0], transcripts[1]);
+    }
+}
+
+/// `self.cav` with a binding that `fail` makes divide by zero.
+const SELF_FAIL: &str = "claim seen;\nevidence a from \"a\"; renewable a window 1;\nevent cycle;\non cycle renew a;\non cycle reveal a supports seen;\non cycle withdraw a because a;\nstate divisor = 1;\nevent fail;\non fail set divisor = 0;\nbind hud.guard = 1 / divisor;\n";
+
+/// `SELF_FAIL` after three cycles, saved by v0.1.0-rc.15 (3a88ba0f), which
+/// had no collector: a@2 and a@3 are retired and nothing holds them.
+const SELF_FAIL_RC15: &str = r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:749e6758d3d57658:236","sequence":3,"last_event":"cycle","elapsed":0.0,"states":{},"graph":{"nodes":[{"kind":"occurrence","name":"a@2"},{"kind":"occurrence","name":"a@3"},{"kind":"occurrence","name":"a@4"}],"relations":[["a@2","supports","seen"],["withdrawn","qualifies","a@2"],["a@3","supports","seen"],["withdrawn","qualifies","a@3"],["a@4","supports","seen"],["withdrawn","qualifies","a@4"]]},"renewals":{"a":["a","a@2","a@3","a@4"]},"withdrawals":[{"evidence":"a@2","because":"a@2","sequence":1,"event":"cycle"},{"evidence":"a@3","because":"a@3","sequence":2,"event":"cycle"},{"evidence":"a@4","because":"a@4","sequence":3,"event":"cycle"}],"observation_qualifications":{"a@2":{},"a@3":{},"a@4":{}},"retired":{"a":1,"a@2":2,"a@3":3},"effects":[{"kind":"retire","history":"a","record":"a@3"},{"kind":"renew","evidence":"a","occurrence":"a@4"},{"kind":"reveal","evidence":"a@4","relation":"supports","target":"seen"},{"kind":"withdraw","evidence":"a@4","because":"a@4"}]}"#;
+
+#[test]
+fn a_refusal_after_collection_just_after_a_restore_keeps_the_restored_seeds() {
+    // Restore queues every retired reason for the first accepted event.
+    // Here that event is refused after collection has taken the queue, so
+    // the refusal must put the queue back. From the older save, where a@2
+    // and a@3 are unreachable, nothing else would queue them again: the
+    // next accepted event would collect only a@4. From a save this runtime
+    // wrote, a@2 is reachable, `release_last` queues it again, and only a
+    // debug build's rollback check sees a lost queue.
+    let own_ground =
+        include_str!("../../experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav");
+    let mut game = ReactiveSession::from_source(own_ground).unwrap();
+    for event in ["cycle", "hold", "cycle", "release_first"] {
+        send(&mut game, event);
+    }
+    let current = game.save_json().unwrap();
+    for (source, save, next, collected) in [
+        (
+            SELF_FAIL,
+            SELF_FAIL_RC15,
+            "cycle",
+            vec!["a@2", "a@3", "a@4"],
+        ),
+        (own_ground, current.as_str(), "release_last", vec!["a@2"]),
+    ] {
+        let mut refused = ReactiveSession::restore_json(source, save).unwrap();
+        let mut twin = ReactiveSession::restore_json(source, save).unwrap();
+        let before = refused.save_json().unwrap();
+        assert!(refused.apply("fail", &BTreeMap::new()).is_err(), "{next}");
+        assert_eq!(refused.save_json().unwrap(), before, "{next}");
+        assert!(refused.drain_archive().is_empty(), "{next}");
+        for session in [&mut refused, &mut twin] {
+            send(session, next);
+            assert_eq!(names(&session.drain_archive()), collected, "{next}");
+        }
+        assert_eq!(refused.save_json().unwrap(), twin.save_json().unwrap());
+    }
+}
+
+#[test]
+fn what_if_on_a_windowed_session_leaves_its_later_outputs_unchanged() {
+    use caveat_runtime::web::WebReactiveSession;
+    let source = refused_after_collection();
+    let mut asked = WebReactiveSession::new(&source).unwrap();
+    let mut plain = WebReactiveSession::new(&source).unwrap();
+    for (event, payload) in [
+        ("cycle", r#"{"v":1}"#),
+        ("cycle", r#"{"v":2}"#),
+        ("fail", r#"{"v":3}"#),
+        ("cycle", r#"{"v":3}"#),
+        ("overflow", r#"{"v":4}"#),
+        ("cycle", r#"{"v":4}"#),
+    ] {
+        // Ask what every event would do: one that collects and compacts,
+        // and two refused after doing so.
+        for (asked_event, asked_payload) in [
+            ("cycle", r#"{"v":9}"#),
+            ("fail", r#"{"v":9}"#),
+            ("overflow", r#"{"v":9}"#),
+        ] {
+            asked
+                .what_if_view_outcome(asked_event, asked_payload)
+                .unwrap();
+        }
+        assert_eq!(
+            asked.dispatch_view_outcome(event, payload).unwrap(),
+            plain.dispatch_view_outcome(event, payload).unwrap(),
+            "{event}"
+        );
+        assert_eq!(asked.save().unwrap(), plain.save().unwrap(), "{event}");
+        assert_eq!(asked.drain_archive(), plain.drain_archive(), "{event}");
+    }
 }
