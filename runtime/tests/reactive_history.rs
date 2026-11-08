@@ -420,3 +420,25 @@ fn late_provenance_overflow_rolls_back_the_new_reading_and_reopening() {
     assert!(error.contains("provenance exceeds"), "{error}");
     assert_eq!(game.snapshot(), before);
 }
+
+#[test]
+fn a_reading_inherits_the_caveats_on_its_evidence_and_no_other_qualifier() {
+    // `forecast qualifies sensor` names evidence as what qualifies `sensor`:
+    // it is not a caveat, so a reading taken from `sensor` does not inherit it.
+    let mut game = session(
+        r#"
+        forecast qualifies sensor;
+        readings flow from sensor limit 4;
+        event first value min -8 max 8;
+        on first sample flow = value supports eastward;
+    "#,
+    );
+    let first = game.dispatch_json("first", r#"{"value":2}"#).unwrap();
+    let qualifying = first
+        .relations
+        .iter()
+        .filter(|edge| edge.to == "flow@1" && edge.relation == "qualifies")
+        .map(|edge| edge.from.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(qualifying, ["calibration"]);
+}

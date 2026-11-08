@@ -12,6 +12,7 @@
 //! The graph and the session's keyed records (`Records`) also log what an
 //! event writes to them, from the start of the event until `Changes` has
 //! read what it changed, so that check reads only what the event wrote.
+use super::relations::{Departed, Link, List, Relations};
 use super::*;
 use crate::Edge;
 use std::fmt;
@@ -71,33 +72,129 @@ pub(super) fn seal_declared(graph: EpistemicGraph, symbols: HashMap<String, Node
 }
 
 /// The session's graph, sealed like the other containers, with the nodes an
-/// event wrote. It reads as the graph's `Arc`. Only the session methods below
-/// write it: each says which node it adds or changes, and until records
-/// depart an event only adds edges. So after an event `Changes` compares
-/// only the nodes it wrote and the edges past the old count, where it
-/// compared every node and edge before.
+/// event wrote and each record's relations (`Relations`). It reads as the
+/// graph's `Arc`. Only the session methods below write it: each says which
+/// node it adds or changes, and until records depart an event only adds
+/// edges. So after an event `Changes` compares only the nodes it wrote and
+/// the edges past the old count, where it compared every node and edge
+/// before; and each edge added or removed is added to or removed from the
+/// relation lists, which reads look records up in instead of scanning every
+/// edge.
 pub(super) struct SealedGraph {
     graph: Arc<EpistemicGraph>,
+    relations: Arc<Relations>,
     written: Written<NodeId>,
 }
 
 impl SealedGraph {
     fn new(graph: EpistemicGraph) -> Self {
         Self {
+            relations: Arc::new(Relations::new(&graph.edges)),
             graph: Arc::new(graph),
             written: Written::Any,
         }
     }
 
     /// The graph, to add edges to or to write the nodes the caller notes.
+    /// The caller keeps the edges it adds with `added`.
     fn write(&mut self) -> &mut EpistemicGraph {
         Arc::make_mut(&mut self.graph)
     }
 
-    /// The graph, to write anything: the log no longer says what changed.
-    fn write_any(&mut self) -> &mut EpistemicGraph {
+    /// Keeps, in the relation lists, the edges added since they last held
+    /// every edge.
+    fn added(&mut self) {
+        let held = self.relations.held();
+        if let Some(edges) = self
+            .graph
+            .edges
+            .get(held..)
+            .filter(|edges| !edges.is_empty())
+        {
+            Arc::make_mut(&mut self.relations).add(edges);
+        }
+    }
+
+    /// Removes the nodes of `ids` and every edge that touches one, passing
+    /// each removed edge to `removed` in graph order. The log no longer says
+    /// what changed.
+    fn depart(&mut self, ids: &HashMap<NodeId, String>, mut removed: impl FnMut(&Edge)) {
         self.written = Written::Any;
-        Arc::make_mut(&mut self.graph)
+        let graph = Arc::make_mut(&mut self.graph);
+        let departing = |id: NodeId| ids.contains_key(&id);
+        let mut departed = Departed::default();
+        graph.edges.retain(|edge| {
+            if departing(edge.from) || departing(edge.to) {
+                removed(edge);
+                departed.note(edge);
+                false
+            } else {
+                true
+            }
+        });
+        if departed.any() {
+            Arc::make_mut(&mut self.relations).depart(departed, departing);
+        }
+        for id in ids.keys() {
+            graph.nodes.remove(id);
+            graph.origins.remove(id);
+        }
+    }
+
+    /// `id`'s `list` of relations, in graph order.
+    fn list(&self, id: NodeId, list: List) -> &[Link] {
+        debug_assert_eq!(
+            self.relations.held(),
+            self.graph.edges.len(),
+            "the relation lists hold every edge"
+        );
+        self.relations.list(id, list)
+    }
+
+    /// What `id` supports or opposes, in graph order.
+    pub(super) fn stance(&self, id: NodeId) -> &[Link] {
+        self.list(id, List::Stance)
+    }
+
+    /// What commitment `id` retains or relies on, in graph order.
+    pub(super) fn basis(&self, id: NodeId) -> &[Link] {
+        self.list(id, List::Basis)
+    }
+
+    /// What qualifies `id`, in graph order.
+    pub(super) fn qualifiers(&self, id: NodeId) -> &[Link] {
+        self.list(id, List::Qualifiers)
+    }
+
+    /// What reopens commitment `id`, in graph order.
+    pub(super) fn reopeners(&self, id: NodeId) -> &[Link] {
+        self.list(id, List::Reopeners)
+    }
+
+    /// Whether any edge is `qualifies`.
+    pub(super) fn qualifies_any(&self) -> bool {
+        self.relations.qualifies_any()
+    }
+
+    /// Whether an edge `from relation to` is in the graph.
+    pub(super) fn related(&self, from: NodeId, relation: Relation, to: NodeId) -> bool {
+        match List::place(from, relation, to) {
+            Some((list, keeper, other)) => self
+                .list(keeper, list)
+                .iter()
+                .any(|link| link.other == other && link.relation == relation),
+            None => self
+                .graph
+                .edges
+                .iter()
+                .any(|edge| edge.from == from && edge.to == to && edge.relation == relation),
+        }
+    }
+
+    /// The relation lists hold exactly this graph's edges.
+    #[cfg(any(debug_assertions, test))]
+    pub(super) fn check(&self) {
+        self.relations.check(&self.graph.edges);
     }
 
     fn note(&mut self, id: NodeId) {
@@ -197,11 +294,13 @@ impl Deref for SealedGraph {
     }
 }
 
-/// A copy shares the graph but not the log, as a copy of `Records` does.
+/// A copy shares the graph and its relation lists but not the log, as a
+/// copy of `Records` does.
 impl Clone for SealedGraph {
     fn clone(&self) -> Self {
         Self {
             graph: Arc::clone(&self.graph),
+            relations: Arc::clone(&self.relations),
             written: Written::Any,
         }
     }
@@ -728,6 +827,7 @@ impl ReactiveSession {
         reason: StopReason,
     ) -> NodeId {
         let id = self.graph.write().commit_because(&name, retained, reason);
+        self.graph.added();
         self.graph.note(id);
         self.symbols.insert(name, id);
         id
@@ -735,6 +835,21 @@ impl ReactiveSession {
 
     pub(super) fn relate(&mut self, from: NodeId, relation: Relation, to: NodeId) {
         self.graph.write().relate(from, relation, to);
+        self.graph.added();
+    }
+
+    /// `relate` for each of `relations` in order, with the lists keeping
+    /// them all at once, as a restore adds every relation its save holds.
+    pub(super) fn relate_all(&mut self, relations: &[(NodeId, Relation, NodeId)]) {
+        // A save that adds no relation leaves the graph the loaded one.
+        if relations.is_empty() {
+            return;
+        }
+        let graph = self.graph.write();
+        for &(from, relation, to) in relations {
+            graph.relate(from, relation, to);
+        }
+        self.graph.added();
     }
 
     pub(super) fn set_node_attention(&mut self, caveat: NodeId, state: Attention) {
@@ -745,6 +860,7 @@ impl ReactiveSession {
     /// Opens `commitment` and records that `because` reopened it.
     pub(super) fn reopen_commitment(&mut self, commitment: NodeId, because: NodeId) {
         self.graph.write().reopen(commitment, because);
+        self.graph.added();
         self.graph.note(commitment);
     }
 
@@ -768,25 +884,15 @@ impl ReactiveSession {
         ids: &HashMap<NodeId, String>,
         mut removed: impl FnMut(&Edge, &str, &str),
     ) {
-        let graph = self.graph.write_any();
         let names = &self.symbols;
-        graph.edges.retain(|edge| {
-            if ids.contains_key(&edge.from) || ids.contains_key(&edge.to) {
-                let name = |id| {
-                    names
-                        .name_of(id)
-                        .expect("a removed edge relates named records")
-                };
-                removed(edge, name(edge.from), name(edge.to));
-                false
-            } else {
-                true
-            }
+        self.graph.depart(ids, |edge| {
+            let name = |id| {
+                names
+                    .name_of(id)
+                    .expect("a removed edge relates named records")
+            };
+            removed(edge, name(edge.from), name(edge.to));
         });
-        for id in ids.keys() {
-            graph.nodes.remove(id);
-            graph.origins.remove(id);
-        }
         for record in ids.values() {
             self.symbols.remove(record);
         }
@@ -1447,5 +1553,68 @@ bind h.few = latest(few) when has_sample(few);
         let arc = Arc::new(vec![String::from("a")]);
         assert_eq!(format!("{sealed:?}"), format!("{arc:?}"));
         assert_eq!(format!("{sealed:#?}"), format!("{arc:#?}"));
+    }
+
+    #[cfg(debug_assertions)]
+    const TWO_STANCES: &str = "claim x;\nclaim y;\nevidence a from \"tool\";\nevidence b from \"tool\";\na supports x;\nb supports y;\nevent idle;\n";
+
+    /// Numbers `session`'s relation lists as if its graph's relations had
+    /// come the other way round. Each record still keeps what it keeps and
+    /// the count is right, so no read can tell; only the check can.
+    #[cfg(debug_assertions)]
+    fn misnumber(session: &mut ReactiveSession) {
+        let reversed: Vec<Edge> = session.graph.edges.iter().rev().cloned().collect();
+        session.graph.relations = Arc::new(Relations::new(&reversed));
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "is numbered in graph order")]
+    fn an_event_checks_the_relation_lists() {
+        let mut session = ReactiveSession::from_source(TWO_STANCES).unwrap();
+        misnumber(&mut session);
+        let _ = session.dispatch_json("idle", "{}");
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "is numbered in graph order")]
+    fn a_restore_checks_the_relation_lists() {
+        let save = ReactiveSession::from_source_cached(TWO_STANCES)
+            .unwrap()
+            .save()
+            .unwrap();
+        // A restore starts from the session this thread loaded last.
+        LOADED.with_borrow_mut(|loaded| {
+            let (_, session) = loaded
+                .iter_mut()
+                .find(|(source, _)| source == TWO_STANCES)
+                .expect("the program loaded");
+            misnumber(session);
+        });
+        let _ = ReactiveSession::restore(TWO_STANCES, &save);
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "the relation lists hold every edge")]
+    fn a_read_checks_that_the_lists_hold_every_edge() {
+        let mut session = ReactiveSession::from_source(TWO_STANCES).unwrap();
+        let (a, y) = (session.symbols["a"], session.symbols["y"]);
+        // An edge written without `added`: the lists do not hold it.
+        session.graph.write().relate(a, Relation::Supports, y);
+        let _ = session.graph.stance(a);
+    }
+
+    #[test]
+    fn a_restore_that_adds_no_relation_shares_the_loaded_graph() {
+        let save = ReactiveSession::from_source_cached(TWO_STANCES)
+            .unwrap()
+            .save()
+            .unwrap();
+        let one = ReactiveSession::restore(TWO_STANCES, &save).unwrap();
+        let two = ReactiveSession::restore(TWO_STANCES, &save).unwrap();
+        // Neither restore wrote the graph, so both hold the loaded one.
+        assert!(Arc::ptr_eq(&one.graph.graph, &two.graph.graph));
     }
 }

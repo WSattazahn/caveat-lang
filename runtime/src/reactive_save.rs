@@ -910,6 +910,8 @@ impl ReactiveSession {
         session
             .apply_save(save)
             .map_err(|error| format!("cannot restore save: {error}"))?;
+        #[cfg(debug_assertions)]
+        session.graph.check();
         Ok(session)
     }
 
@@ -2334,6 +2336,9 @@ impl ReactiveSession {
             }
             self.add_named(name.clone(), kind);
         }
+        // Checked one by one and added together, so that the relation lists
+        // take them in one pass.
+        let mut relations = Vec::with_capacity(saved.relations.len());
         for [from, name, to] in &saved.relations {
             let lookup = |name: &str| {
                 self.symbols
@@ -2366,8 +2371,9 @@ impl ReactiveSession {
                     self.source_evidence(to)
                 ));
             }
-            self.relate(from_id, relation, to_id);
+            relations.push((from_id, relation, to_id));
         }
+        self.relate_all(&relations);
         // Evidence a commitment relies on, or that reopens one, was observed
         // when the event added the relation, and stays observed: the next
         // commitment and qualification that read it require it. Checked
