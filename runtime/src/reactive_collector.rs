@@ -1,6 +1,21 @@
 //! Draft withdrawal collection. Exact references veto only additional
 //! departures; they never become ordinary pins. Owners make record-local
 //! metadata conditional, so an unreachable cycle cannot root itself.
+//!
+//! An event decides collection from what it changed. Only an eligible record
+//! whose every pin is a withdrawal pin, and whose every holder is an eligible
+//! record or departs in `D0`, can be collected: it is *unsupported*. Every
+//! other eligible record is a root. Such a record is a key of `reasons`, so an
+//! event with no standing withdrawal collects nothing and traces nothing. A
+//! record that becomes unreachable lost support in this event, at the last
+//! break of every root path it had, and the record just past that break is
+//! unsupported: a reason that lost a pin, lost a holder, or retired, or one
+//! that a record departing in `D0` held. Those reasons are the seeds. A seed
+//! that a supported record holds is reached, with all it reaches, so only the
+//! other seeds are traced, and the search stays among unsupported records. A
+//! holder that retires breaks no path unless it is unsupported itself, and
+//! then it is a reason that retired; a record becomes a reason only while it
+//! is current, so becoming one is never a loss.
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -58,6 +73,35 @@ impl<T: Ord> CollectorSet<T> {
             Self::Many(values) => (&[], Some(values)),
         };
         small.iter().chain(many.into_iter().flatten())
+    }
+
+    fn contains<Q>(&self, value: &Q) -> bool
+    where
+        T: std::borrow::Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        match self {
+            Self::Empty => false,
+            Self::One(existing) => existing.borrow() == value,
+            Self::Small(values) => values
+                .binary_search_by(|existing| existing.borrow().cmp(value))
+                .is_ok(),
+            Self::Many(values) => values.contains(value),
+        }
+    }
+
+    /// The set of `values`, given in any order and with repeats. Sorted once,
+    /// so a large set is built in one pass, not by one insertion per value;
+    /// the form is the one inserting them one by one gives.
+    fn from_unsorted(mut values: Vec<T>) -> Self {
+        values.sort();
+        values.dedup();
+        match values.len() {
+            0 => Self::Empty,
+            1 => Self::One(values.pop().expect("one value")),
+            len if len <= SMALL_REFERENCE_LIMIT => Self::Small(values),
+            _ => Self::Many(values.into_iter().collect()),
+        }
     }
 
     fn insert(&mut self, value: T) -> bool {
@@ -151,16 +195,27 @@ impl<T: Ord, const N: usize> From<[T; N]> for CollectorSet<T> {
 }
 
 /// Diagnostics describe the last accepted event, not rejected attempts.
-/// `peak_work_items` counts live algorithm work-set entries, not heap bytes.
 #[cfg(feature = "collector-metrics")]
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct WithdrawalCollectionMetrics {
+    /// Owners whose references the event changed and that were read again.
     pub dirty_owners: usize,
+    /// Names read to keep the indexes: those owners' references, scheduled
+    /// guards, relations, and the holders of departing records.
     pub references_scanned: usize,
+    /// Unsupported records the search visited: the seeds it traced and the
+    /// unsupported records connected to them. A seed a supported record
+    /// holds is not visited.
     pub vertices_visited: usize,
+    /// Holder and reference edges the search followed, including those of
+    /// the pass that finds what a root reaches.
     pub edges_visited: usize,
+    /// Seeds checked: the reasons that lost a pin or a holder or retired,
+    /// and those a record departing in `D0` held.
     pub candidates_examined: usize,
+    /// Records collection added to the batch.
     pub collected: usize,
+    /// Live work-set entries at most, not heap bytes.
     pub peak_work_items: usize,
 }
 
@@ -174,6 +229,9 @@ pub(super) struct WithdrawalCollector {
     reasons: Arc<BTreeMap<Name, usize>>,
     pending: Arc<BTreeMap<String, BTreeMap<Name, usize>>>,
     dirty: BTreeSet<CollectorOwner>,
+    /// Withdrawal reasons that lost a pin or a holder, or retired, since the
+    /// last collection: each may be unsupported now. Only a reason can be
+    /// unsupported, so a loss of any other record is not kept.
     queued: BTreeSet<Name>,
     #[cfg(feature = "collector-metrics")]
     metrics: WithdrawalCollectionMetrics,
@@ -189,9 +247,25 @@ macro_rules! metric {
 }
 
 impl WithdrawalCollector {
-    pub(super) fn queue(&mut self, record: &str) {
-        let name = self.name(record);
-        self.queued.insert(name);
+    /// A pin `record` had was released. Only a withdrawal reason can be left
+    /// with withdrawal pins alone, so only a reason is queued.
+    pub(super) fn released(&mut self, record: &str) {
+        self.queue_reason(record);
+    }
+
+    /// `record` retired, so it is eligible now. Only a reason can be
+    /// unsupported, and a retired record never becomes one, so only a reason
+    /// is queued. What it holds lost nothing unless it is unsupported itself:
+    /// a supported holder still roots what it references, and one departing
+    /// in `D0` is a seed of its own.
+    pub(super) fn retired(&mut self, record: &str) {
+        self.queue_reason(record);
+    }
+
+    fn queue_reason(&mut self, record: &str) {
+        if let Some((name, _)) = self.reasons.get_key_value(record) {
+            self.queued.insert(name.clone());
+        }
     }
 
     /// The name already indexed for `name`, so copies share its text, or a
@@ -209,58 +283,49 @@ impl WithdrawalCollector {
     }
 
     fn replace(&mut self, owner: CollectorOwner, references: CollectorSet<Name>) {
-        // Compare borrowed sets before any copy-on-write, including when this
-        // owner has no references. Keep the old set borrowed for the diff too.
-        if self
-            .owners
-            .get(&owner)
-            .map_or(references.is_empty(), |previous| previous == &references)
-        {
+        // Compare borrowed sets before any write, including when this owner
+        // has no references. Keep the old set borrowed for the diff too.
+        let previous = self.owners.get(&owner);
+        if previous.map_or(references.is_empty(), |previous| previous == &references) {
             return;
         }
-        if let Some(record) = owner.record() {
-            self.queue(record);
-        }
-        let incoming = Arc::make_mut(&mut self.incoming);
+        let mut gained = Vec::new();
+        let mut lost = Vec::new();
         {
             // Both iterators are ordered. Merge once instead of looking up
             // each old/new member again when an owner has many references.
-            let mut previous = self
-                .owners
-                .get(&owner)
-                .into_iter()
-                .flat_map(CollectorSet::iter)
-                .peekable();
-            let mut next = references.iter().peekable();
+            let mut before = previous.into_iter().flat_map(CollectorSet::iter).peekable();
+            let mut after = references.iter().peekable();
             loop {
-                let order = match (previous.peek(), next.peek()) {
-                    (Some(before), Some(after)) => before.cmp(after),
+                let order = match (before.peek(), after.peek()) {
+                    (Some(old), Some(new)) => old.cmp(new),
                     (Some(_), None) => std::cmp::Ordering::Less,
                     (None, Some(_)) => std::cmp::Ordering::Greater,
                     (None, None) => break,
                 };
-                let (name, add) = match order {
-                    std::cmp::Ordering::Less => (previous.next().unwrap(), false),
-                    std::cmp::Ordering::Greater => (next.next().unwrap(), true),
+                match order {
+                    std::cmp::Ordering::Less => lost.push(before.next().unwrap().clone()),
+                    std::cmp::Ordering::Greater => gained.push(after.next().unwrap().clone()),
                     std::cmp::Ordering::Equal => {
-                        previous.next();
-                        next.next();
-                        continue;
-                    }
-                };
-                self.queued.insert(name.clone());
-                if add {
-                    incoming
-                        .entry(name.clone())
-                        .or_default()
-                        .insert(owner.clone());
-                } else {
-                    let owners = incoming.get_mut(name).expect("indexed reference");
-                    owners.remove(&owner);
-                    if owners.is_empty() {
-                        incoming.remove(name);
+                        before.next();
+                        after.next();
                     }
                 }
+            }
+        }
+        let incoming = Arc::make_mut(&mut self.incoming);
+        for name in gained {
+            incoming.entry(name).or_default().insert(owner.clone());
+        }
+        for name in lost {
+            let holders = incoming.get_mut(&name).expect("indexed reference");
+            holders.remove(&owner);
+            if holders.is_empty() {
+                incoming.remove(&name);
+            }
+            // A reason that loses a holder may be left unsupported.
+            if self.reasons.contains_key(&name) {
+                self.queued.insert(name);
             }
         }
         let owners = Arc::make_mut(&mut self.owners);
@@ -271,24 +336,54 @@ impl WithdrawalCollector {
         }
     }
 
+    /// Add `names` to what `owner` references. Only a name it does not hold
+    /// yet is written, so the work is what changes, not what the owner holds.
+    fn extend<'a>(&mut self, owner: &CollectorOwner, names: impl IntoIterator<Item = &'a str>) {
+        for name in names {
+            if self
+                .owners
+                .get(owner)
+                .is_some_and(|references| references.contains(name))
+            {
+                continue;
+            }
+            let name = self.name(name);
+            Arc::make_mut(&mut self.owners)
+                .entry(owner.clone())
+                .or_default()
+                .insert(name.clone());
+            Arc::make_mut(&mut self.incoming)
+                .entry(name)
+                .or_default()
+                .insert(owner.clone());
+        }
+    }
+
     pub(super) fn withdrawal(&mut self, subject: &str, reason: &str, add: bool) {
-        let name = self.name(reason);
-        let reverse = Arc::make_mut(&mut self.reasons);
+        let name = self
+            .reasons
+            .get_key_value(reason)
+            .map_or_else(|| reason.into(), |(name, _)| name.clone());
+        let reasons = Arc::make_mut(&mut self.reasons);
+        let previous = reasons.get(reason).copied();
         // Callers add only the first withdrawal of a subject, and remove only
         // after removing its authoritative subject -> reason entry. Duplicate
         // language effects therefore never increment this derived count.
         if add {
-            *reverse.entry(name).or_default() += 1;
+            reasons.insert(name.clone(), previous.unwrap_or(0) + 1);
         } else {
-            let count = reverse.get_mut(reason).expect("indexed withdrawal reason");
-            *count -= 1;
-            if *count == 0 {
-                reverse.remove(reason);
+            let count = previous.expect("indexed withdrawal reason");
+            if count == 1 {
+                reasons.remove(reason);
+            } else {
+                reasons.insert(name.clone(), count - 1);
             }
         }
         self.dirty.insert(CollectorOwner::Record(subject.into()));
-        self.queue(subject);
-        self.queue(reason);
+        // An added reason is not queued: a withdrawal names its reason's
+        // current occurrence, which is not eligible, so nothing it gains can
+        // leave it unsupported. If it retires later in this event, `retired`
+        // queues it then.
     }
 
     fn peak(&mut self, count: usize) {
@@ -300,37 +395,76 @@ impl WithdrawalCollector {
         let _ = count;
     }
 
+    /// The references of `record`'s own owner that are withdrawal reasons:
+    /// the only records its retirement or departure can leave unsupported.
+    /// Read from whichever side is smaller.
+    fn reason_references(&self, record: &Name) -> Vec<Name> {
+        let owner = CollectorOwner::Record(record.clone());
+        let Some(references) = self.owners.get(&owner) else {
+            return Vec::new();
+        };
+        if references.len() <= self.reasons.len() {
+            references
+                .iter()
+                .filter(|name| self.reasons.contains_key(*name))
+                .cloned()
+                .collect()
+        } else {
+            self.reasons
+                .keys()
+                .filter(|reason| {
+                    self.incoming
+                        .get(*reason)
+                        .is_some_and(|holders| holders.contains(&owner))
+                })
+                .cloned()
+                .collect()
+        }
+    }
+
     fn forget(&mut self, departing: &BTreeMap<String, (String, u64)>) {
         // Compaction removes exactly these names from all surviving holders.
         // Visit their inverse references instead of scanning the session.
         for record in departing.keys() {
-            let incoming = self
-                .incoming
-                .get(record.as_str())
-                .cloned()
-                .unwrap_or_default();
-            for owner in incoming.iter() {
+            // Unrelated departures must not copy the shared reverse index
+            // merely to remove a key that is absent from it.
+            if !self.incoming.contains_key(record.as_str()) {
+                continue;
+            }
+            let holders = Arc::make_mut(&mut self.incoming)
+                .remove(record.as_str())
+                .expect("checked above");
+            for owner in holders.iter() {
                 metric!(self, references_scanned, 1);
                 if let CollectorOwner::Pending(target) = owner {
-                    let pending = Arc::make_mut(&mut self.pending);
-                    if let Some(refs) = pending.get_mut(target.as_str()) {
-                        refs.remove(record.as_str());
-                        if refs.is_empty() {
+                    if self
+                        .pending
+                        .get(target.as_str())
+                        .is_some_and(|references| references.contains_key(record.as_str()))
+                    {
+                        let pending = Arc::make_mut(&mut self.pending);
+                        let references = pending.get_mut(target.as_str()).expect("checked above");
+                        references.remove(record.as_str());
+                        if references.is_empty() {
                             pending.remove(target.as_str());
                         }
                     }
                 }
-                if let Some(refs) = Arc::make_mut(&mut self.owners).get_mut(owner) {
-                    refs.remove(record.as_str());
-                    if refs.is_empty() {
-                        Arc::make_mut(&mut self.owners).remove(owner);
-                    }
+                let Some(references) = self.owners.get(owner) else {
+                    continue;
+                };
+                if !references.contains(record.as_str()) {
+                    continue;
                 }
-            }
-            // Unrelated departures must not copy the shared reverse index
-            // merely to remove a key that is absent from it.
-            if self.incoming.contains_key(record.as_str()) {
-                Arc::make_mut(&mut self.incoming).remove(record.as_str());
+                let owners = Arc::make_mut(&mut self.owners);
+                if references_len(owners, owner) == 1 {
+                    owners.remove(owner);
+                } else {
+                    owners
+                        .get_mut(owner)
+                        .expect("checked above")
+                        .remove(record.as_str());
+                }
             }
         }
         for record in departing.keys() {
@@ -348,6 +482,13 @@ impl WithdrawalCollector {
         // batch already; no established work is deferred to a later event.
         self.queued.clear();
     }
+}
+
+fn references_len(
+    owners: &BTreeMap<CollectorOwner, CollectorSet<Name>>,
+    owner: &CollectorOwner,
+) -> usize {
+    owners.get(owner).map_or(0, CollectorSet::len)
 }
 
 impl ReactiveSession {
@@ -450,7 +591,8 @@ impl ReactiveSession {
             references_scanned,
             scheduled.guard.evidence.len()
         );
-        let pending = Arc::make_mut(&mut self.collector.pending);
+        let collector = &mut self.collector;
+        let pending = Arc::make_mut(&mut collector.pending);
         let references = pending.entry(scheduled.evidence.clone()).or_default();
         for name in scheduled.guard.evidence.iter() {
             if add {
@@ -465,11 +607,11 @@ impl ReactiveSession {
                 }
             }
         }
-        let refs = references.keys().cloned().collect();
+        let refs = CollectorSet::from_unsorted(references.keys().cloned().collect());
         if references.is_empty() {
             pending.remove(&scheduled.evidence);
         }
-        self.collector.replace(
+        collector.replace(
             CollectorOwner::Pending(scheduled.evidence.as_str().into()),
             refs,
         );
@@ -487,20 +629,13 @@ impl ReactiveSession {
         if !self.windowed() {
             return;
         }
-        let owner = CollectorOwner::Graph(action.into());
-        let mut refs = self
-            .collector
-            .owners
-            .get(&owner)
-            .cloned()
-            .unwrap_or_default();
         metric!(self.collector, references_scanned, reasons.len());
-        refs.extend(reasons.map(Name::from));
-        self.collector.replace(owner, refs);
+        self.collector
+            .extend(&CollectorOwner::Graph(action.into()), reasons);
     }
 
     fn collector_references(&self, owner: &CollectorOwner) -> (CollectorSet<Name>, usize) {
-        let mut references = CollectorSet::default();
+        let mut references = Vec::new();
         let mut scanned = 0;
         let mut include = |provenance: &Provenance| {
             scanned += provenance.evidence.len();
@@ -566,20 +701,21 @@ impl ReactiveSession {
                 }
                 if let Some(reason) = self.withdrawal_reasons.get(name.as_str()) {
                     scanned += 1;
-                    references.insert(self.collector.name(reason));
+                    references.push(self.collector.name(reason));
                 }
             }
             CollectorOwner::Graph(_) | CollectorOwner::Pending(_) => {
-                references = self
+                let held = self
                     .collector
                     .owners
                     .get(owner)
                     .cloned()
                     .unwrap_or_default();
-                scanned += references.len();
+                scanned += held.len();
+                return (held, scanned);
             }
         }
-        (references, scanned)
+        (CollectorSet::from_unsorted(references), scanned)
     }
 
     pub(super) fn rebuild_withdrawal_collector(&mut self) {
@@ -644,8 +780,8 @@ impl ReactiveSession {
                 .or_default() += 1;
         }
         for owner in owners {
-            self.collector
-                .replace(owner.clone(), self.collector_references(&owner).0);
+            let references = self.collector_references(&owner).0;
+            self.collector.replace(owner, references);
         }
         for scheduled in self.scheduled.as_ref().clone() {
             self.collector_schedule(&scheduled, true);
@@ -662,9 +798,17 @@ impl ReactiveSession {
                 self.collector_reopens(&names[&edge.from], [names[&edge.to].as_str()].into_iter());
             }
         }
-        self.collector
-            .queued
-            .extend(self.retired.keys().map(|name| name.as_str().into()));
+        // The first accepted event considers every retired record that can
+        // be unsupported: a withdrawal reason, as every pinned record is
+        // otherwise a root and an unpinned one departs ordinarily.
+        let seeds = self
+            .collector
+            .reasons
+            .keys()
+            .filter(|name| self.retired.contains_key(name.as_str()))
+            .cloned()
+            .collect::<Vec<_>>();
+        self.collector.queued.extend(seeds);
         self.collector.dirty.clear();
         self.collector_begin();
     }
@@ -675,12 +819,168 @@ impl ReactiveSession {
             && self.departable_name(name)
     }
 
-    /// Trace only changed connected candidate regions. Traversal is undirected
-    /// to discover external roots, then directed to retain their dependencies.
-    /// A root release can expose an entire old region; no work cap changes the
-    /// event's acceptance or defers established departures. Only a program
-    /// with a window has a collector, so the caller asks first and an event
-    /// elsewhere does not pay for the call.
+    /// Whether `record` is eligible and nothing roots it directly: every pin
+    /// it has is a withdrawal pin, and every holder departs ordinarily or is
+    /// an eligible record. Only such a record can be collected. Decided
+    /// against this event's `D0`, once per record per collection.
+    fn collector_unsupported(
+        &self,
+        record: &Name,
+        ordinary: &BTreeMap<String, (String, u64)>,
+        known: &mut BTreeMap<Name, bool>,
+    ) -> bool {
+        if let Some(unsupported) = known.get(record) {
+            return *unsupported;
+        }
+        let unsupported = self.collector_eligible(record, ordinary)
+            && self.pin_counts.get(record.as_str()).copied().unwrap_or(0)
+                <= self.collector.reasons.get(record).copied().unwrap_or(0)
+            && self.collector.incoming.get(record).is_none_or(|holders| {
+                holders.iter().all(|owner| {
+                    owner.record().is_some_and(|holder| {
+                        ordinary.contains_key(holder) || self.collector_eligible(holder, ordinary)
+                    })
+                })
+            });
+        known.insert(record.clone(), unsupported);
+        unsupported
+    }
+
+    /// The unsupported records this event's losses reach: each queued reason,
+    /// and each reason a record departing in `D0` held, that is unsupported
+    /// and that no supported record holds. One a supported record holds is
+    /// reached, with all it reaches, so it cannot lead to a collectible
+    /// record: what became unreachable lies past a seed that is unreached
+    /// itself.
+    fn collector_candidates(
+        &self,
+        queued: BTreeSet<Name>,
+        ordinary: &BTreeMap<String, (String, u64)>,
+        known: &mut BTreeMap<Name, bool>,
+    ) -> (BTreeSet<Name>, usize) {
+        let mut examined = 0;
+        let mut candidates = BTreeSet::new();
+        let held = ordinary.keys().flat_map(|record| {
+            self.collector
+                .reason_references(&self.collector.name(record))
+        });
+        for seed in queued.into_iter().chain(held) {
+            examined += 1;
+            if self.collector_unsupported(&seed, ordinary, known)
+                && !self.collector_entered(&seed, ordinary, known)
+            {
+                candidates.insert(seed);
+            }
+        }
+        (candidates, examined)
+    }
+
+    /// Whether a supported record holds unsupported `record`. Every holder of
+    /// an unsupported record departs in `D0` or is an eligible record, and a
+    /// supported eligible record is a root.
+    fn collector_entered(
+        &self,
+        record: &Name,
+        ordinary: &BTreeMap<String, (String, u64)>,
+        known: &mut BTreeMap<Name, bool>,
+    ) -> bool {
+        self.collector.incoming.get(record).is_some_and(|holders| {
+            holders.iter().any(|owner| match owner {
+                CollectorOwner::Record(holder) => {
+                    !ordinary.contains_key(holder.as_str())
+                        && !self.collector_unsupported(holder, ordinary, known)
+                }
+                _ => false,
+            })
+        })
+    }
+
+    /// Every unsupported record connected to `candidates` through unsupported
+    /// records, and those of them that a root holds. A root path into this
+    /// region enters it at an unsupported record a root holds, so nothing
+    /// outside it decides what inside it is reachable.
+    fn collector_region(
+        &self,
+        candidates: BTreeSet<Name>,
+        ordinary: &BTreeMap<String, (String, u64)>,
+        known: &mut BTreeMap<Name, bool>,
+    ) -> (BTreeSet<Name>, BTreeSet<Name>, usize, usize) {
+        let mut stack = candidates.iter().cloned().collect::<Vec<_>>();
+        let mut region = candidates;
+        let mut entered = BTreeSet::new();
+        let (mut vertices, mut edges) = (0, 0);
+        while let Some(record) = stack.pop() {
+            vertices += 1;
+            if let Some(holders) = self.collector.incoming.get(&record) {
+                for owner in holders.iter() {
+                    edges += 1;
+                    // Every holder of an unsupported record departs ordinarily
+                    // or is an eligible record; only a record's own references
+                    // are dependencies.
+                    let CollectorOwner::Record(holder) = owner else {
+                        continue;
+                    };
+                    if ordinary.contains_key(holder.as_str()) {
+                        continue;
+                    }
+                    if self.collector_unsupported(holder, ordinary, known) {
+                        if region.insert(holder.clone()) {
+                            stack.push(holder.clone());
+                        }
+                    } else {
+                        entered.insert(record.clone());
+                    }
+                }
+            }
+            if let Some(references) = self
+                .collector
+                .owners
+                .get(&CollectorOwner::Record(record.clone()))
+            {
+                for name in references.iter() {
+                    edges += 1;
+                    if !region.contains(name) && self.collector_unsupported(name, ordinary, known) {
+                        region.insert(name.clone());
+                        stack.push(name.clone());
+                    }
+                }
+            }
+        }
+        (region, entered, vertices, edges)
+    }
+
+    /// The records of `region` that no record of `entered` reaches through
+    /// records' own references.
+    fn collector_unreached(
+        &self,
+        region: &BTreeSet<Name>,
+        entered: BTreeSet<Name>,
+    ) -> (BTreeSet<Name>, usize) {
+        let mut reached = BTreeSet::new();
+        let mut stack = entered.into_iter().collect::<Vec<_>>();
+        let mut edges = 0;
+        while let Some(record) = stack.pop() {
+            if !reached.insert(record.clone()) {
+                continue;
+            }
+            if let Some(references) = self.collector.owners.get(&CollectorOwner::Record(record)) {
+                for name in references.iter() {
+                    edges += 1;
+                    if region.contains(name) && !reached.contains(name) {
+                        stack.push(name.clone());
+                    }
+                }
+            }
+        }
+        (region.difference(&reached).cloned().collect(), edges)
+    }
+
+    /// Collect what this event left unreachable. Only unsupported records are
+    /// traced, starting from what lost support; a root release can expose an
+    /// entire old region. No work cap changes the event's acceptance or
+    /// defers established departures. Only a program with a window has a
+    /// collector, so the caller asks first and an event elsewhere does not
+    /// pay for the call.
     pub(super) fn collect_withdrawals(&mut self, departing: &mut BTreeMap<String, (String, u64)>) {
         debug_assert!(self.windowed(), "only a windowed program collects");
         for owner in std::mem::take(&mut self.collector.dirty) {
@@ -689,101 +989,27 @@ impl ReactiveSession {
             metric!(self.collector, references_scanned, _scanned);
             self.collector.replace(owner, refs);
         }
-        for record in departing.keys() {
-            if let Some(refs) = self
-                .collector
-                .owners
-                .get(&CollectorOwner::Record(record.as_str().into()))
-            {
-                self.collector.queued.extend(refs.iter().cloned());
-            }
+        let queued = std::mem::take(&mut self.collector.queued);
+        // Every eligible record has a pin, or it would depart in D0, so an
+        // unsupported record has withdrawal pins and is a reason.
+        if self.collector.reasons.is_empty() {
+            #[cfg(debug_assertions)]
+            self.check_collection(departing, &BTreeSet::new());
+            return;
         }
-        let mut queued = std::mem::take(&mut self.collector.queued);
-        let mut considered = BTreeSet::new();
-        let mut additional = BTreeSet::new();
-        self.collector.peak(queued.len());
-        while let Some(seed) = queued.pop_first() {
-            metric!(self.collector, candidates_examined, 1);
-            if considered.contains(&seed) || !self.collector_eligible(&seed, departing) {
-                continue;
-            }
-            let mut pending = BTreeSet::from([seed]);
-            let mut region = BTreeSet::new();
-            let mut roots = BTreeSet::new();
-            while let Some(record) = pending.pop_first() {
-                if !region.insert(record.clone()) {
-                    continue;
-                }
-                metric!(self.collector, vertices_visited, 1);
-                let reason_pins = self.collector.reasons.get(&record).copied().unwrap_or(0);
-                if self.pin_counts.get(record.as_str()).copied().unwrap_or(0) > reason_pins {
-                    roots.insert(record.clone());
-                }
-                if let Some(incoming) = self.collector.incoming.get(&record) {
-                    for owner in incoming.iter() {
-                        metric!(self.collector, edges_visited, 1);
-                        match owner.record() {
-                            Some(name) if departing.contains_key(name) => {}
-                            Some(name) if self.collector_eligible(name, departing) => {
-                                if !region.contains(name) {
-                                    pending.insert(name.into());
-                                }
-                            }
-                            _ => {
-                                roots.insert(record.clone());
-                            }
-                        }
-                    }
-                }
-                if let Some(outgoing) = self
-                    .collector
-                    .owners
-                    .get(&CollectorOwner::Record(record.clone()))
-                {
-                    for name in outgoing.iter() {
-                        metric!(self.collector, edges_visited, 1);
-                        if self.collector_eligible(name, departing) && !region.contains(name) {
-                            pending.insert(name.clone());
-                        }
-                    }
-                }
-                self.collector.peak(
-                    queued.len()
-                        + pending.len()
-                        + region.len()
-                        + roots.len()
-                        + considered.len()
-                        + additional.len(),
-                );
-            }
-            let mut reachable = BTreeSet::new();
-            while let Some(record) = roots.pop_first() {
-                if !reachable.insert(record.clone()) {
-                    continue;
-                }
-                if let Some(outgoing) = self.collector.owners.get(&CollectorOwner::Record(record)) {
-                    for name in outgoing.iter() {
-                        metric!(self.collector, edges_visited, 1);
-                        if region.contains(name) && !reachable.contains(name) {
-                            roots.insert(name.clone());
-                        }
-                    }
-                }
-                self.collector.peak(
-                    queued.len()
-                        + region.len()
-                        + roots.len()
-                        + reachable.len()
-                        + considered.len()
-                        + additional.len(),
-                );
-            }
-            additional.extend(region.difference(&reachable).cloned());
-            self.collector.peak(
-                queued.len() + region.len() + reachable.len() + considered.len() + additional.len(),
-            );
-            considered.extend(region);
-        }
+        let mut known = BTreeMap::new();
+        let (candidates, _examined) = self.collector_candidates(queued, departing, &mut known);
+        metric!(self.collector, candidates_examined, _examined);
+        let (region, entered, _vertices, _edges) =
+            self.collector_region(candidates, departing, &mut known);
+        metric!(self.collector, vertices_visited, _vertices);
+        metric!(self.collector, edges_visited, _edges);
+        let work = region.len() + entered.len() + known.len();
+        let (additional, _reaching) = self.collector_unreached(&region, entered);
+        metric!(self.collector, edges_visited, _reaching);
+        self.collector.peak(work + additional.len());
+        #[cfg(debug_assertions)]
+        self.check_collection(departing, &additional);
         metric!(self.collector, collected, additional.len());
         for record in additional {
             let record = record.to_string();
@@ -802,11 +1028,71 @@ impl ReactiveSession {
             .retain(|record| !departing.contains_key(record));
     }
 
+    /// Debug builds: the records collection takes are exactly the eligible
+    /// records that no root reaches, found from every eligible record rather
+    /// than from what the event changed.
+    #[cfg(debug_assertions)]
+    fn check_collection(
+        &self,
+        ordinary: &BTreeMap<String, (String, u64)>,
+        collected: &BTreeSet<Name>,
+    ) {
+        let eligible = self
+            .retired
+            .keys()
+            .map(String::as_str)
+            .filter(|name| self.collector_eligible(name, ordinary))
+            .collect::<BTreeSet<_>>();
+        let mut stack = eligible
+            .iter()
+            .copied()
+            .filter(|name| {
+                self.pin_counts.get(*name).copied().unwrap_or(0)
+                    > self.collector.reasons.get(*name).copied().unwrap_or(0)
+                    || self.collector.incoming.get(*name).is_some_and(|holders| {
+                        holders.iter().any(|owner| {
+                            owner.record().is_none_or(|holder| {
+                                !ordinary.contains_key(holder) && !eligible.contains(holder)
+                            })
+                        })
+                    })
+            })
+            .collect::<Vec<_>>();
+        let mut reached = BTreeSet::new();
+        while let Some(name) = stack.pop() {
+            if !reached.insert(name) {
+                continue;
+            }
+            if let Some(references) = self
+                .collector
+                .owners
+                .get(&CollectorOwner::Record(name.into()))
+            {
+                stack.extend(
+                    references
+                        .iter()
+                        .map(Name::as_str)
+                        .filter(|reference| eligible.contains(reference)),
+                );
+            }
+        }
+        let unreached = eligible.difference(&reached).copied().collect::<Vec<_>>();
+        let collected = collected.iter().map(Name::as_str).collect::<Vec<_>>();
+        debug_assert_eq!(
+            collected, unreached,
+            "collection takes exactly the eligible records no root reaches"
+        );
+    }
+
     #[cfg(debug_assertions)]
     pub(super) fn check_withdrawal_collector(&self) {
         if !self.windowed() {
             return;
         }
+        debug_assert!(
+            self.collector.dirty.is_empty() && self.collector.queued.is_empty(),
+            "collection leaves no work for a later event"
+        );
         let mut rebuilt = self.clone();
         rebuilt.rebuild_withdrawal_collector();
         debug_assert_eq!(
@@ -844,6 +1130,14 @@ mod tests {
         assert_eq!(actual.len(), expected.len());
         assert_eq!(actual.is_empty(), expected.is_empty());
         assert_eq!(actual, &expected.iter().cloned().collect());
+        assert_eq!(
+            actual,
+            &CollectorSet::from_unsorted(expected.iter().rev().cloned().collect()),
+            "a set built at once has the form inserting one by one gives"
+        );
+        for value in expected {
+            assert!(actual.contains(value.as_str()));
+        }
     }
 
     #[test]
@@ -864,6 +1158,7 @@ mod tests {
                 let name = format!("record@{:02}", (step * 17) % 32);
                 assert_eq!(actual.remove(name.as_str()), expected.remove(name.as_str()));
                 assert!(!actual.remove(name.as_str()));
+                assert!(!actual.contains(name.as_str()));
                 assert_same_references(&actual, &expected);
                 assert_eq!(original.len(), 32, "mutating a clone preserves its source");
             }
@@ -972,5 +1267,66 @@ mod tests {
         );
         assert!(!Arc::ptr_eq(&transaction.incoming, &original.incoming));
         assert!(!Arc::ptr_eq(&transaction.owners, &original.owners));
+    }
+
+    /// A collector holding a little of everything an event can write.
+    fn populated() -> WithdrawalCollector {
+        let mut collector = WithdrawalCollector::default();
+        let many = (0..12)
+            .map(|n| name(&format!("held@{n}")))
+            .collect::<CollectorSet<_>>();
+        collector.replace(CollectorOwner::State(name("state")), many);
+        collector.replace(
+            CollectorOwner::Record(name("holder@3")),
+            CollectorSet::from([name("held@1"), name("held@2")]),
+        );
+        collector.extend(&CollectorOwner::Graph(name("decision@1")), ["held@4"]);
+        collector.withdrawal("held@1", "held@2", true);
+        collector.withdrawal("held@3", "held@2", true);
+        Arc::make_mut(&mut collector.pending).insert(
+            "target@1".into(),
+            BTreeMap::from([(name("held@5"), 2), (name("held@6"), 1)]),
+        );
+        collector.replace(
+            CollectorOwner::Pending(name("target@1")),
+            CollectorSet::from([name("held@5"), name("held@6")]),
+        );
+        collector.dirty.clear();
+        collector.queued.clear();
+        collector
+    }
+
+    #[test]
+    fn only_withdrawal_reasons_are_queued_by_losses() {
+        let mut collector = populated();
+        collector.released("held@1");
+        collector.replace(
+            CollectorOwner::Record(name("holder@3")),
+            CollectorSet::from([name("held@2")]),
+        );
+        assert!(collector.queued.is_empty(), "held@1 names no reason");
+        collector.replace(
+            CollectorOwner::Record(name("holder@3")),
+            CollectorSet::default(),
+        );
+        assert_eq!(
+            collector.queued,
+            BTreeSet::from([name("held@2")]),
+            "a lost holder"
+        );
+        collector.queued.clear();
+        collector.released("held@2");
+        assert_eq!(
+            collector.queued,
+            BTreeSet::from([name("held@2")]),
+            "a lost pin"
+        );
+        collector.queued.clear();
+        // Becoming a reason is no loss; retiring is one only for a reason.
+        collector.withdrawal("held@7", "held@7", true);
+        collector.retired("held@8");
+        assert!(collector.queued.is_empty());
+        collector.retired("held@7");
+        assert_eq!(collector.queued, BTreeSet::from([name("held@7")]));
     }
 }

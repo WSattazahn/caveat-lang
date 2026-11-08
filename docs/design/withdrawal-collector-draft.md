@@ -262,25 +262,32 @@ an intentional archive representation change, not a new eligibility rule.
 
 The proposed implementation maintains owner → exact-reference dependencies
 and an inverse index. Real create/replace/merge/clear/retire/depart mutation
-sites dirty the owners whose references changed. Candidate regions are queued
-on relevant retirement, root release and edge/owner changes. One restore/load
-rebuild and debug full-index audits are allowed; an unconditional full-session
-root/edge reconstruction every accepted event is not this draft.
+sites dirty the owners whose references changed. Only losses queue work: a
+withdrawal reason that loses a pin or a holder, or retires, and a reason that
+a record departing in `D0` holds. A gained pin or reference queues nothing,
+and a session with no standing withdrawal does no collection work (D056).
+One restore/load rebuild, which queues every retired reason, and debug
+full-index audits are allowed; an unconditional full-session root/edge
+reconstruction every accepted event is not this draft.
 
 An affected region can be discovered through incoming/outgoing dependencies,
 then tested for directed reachability from independent/external required
-holders. Trial reachability or SCC work is `O(V_region + E_region)` plus changed
-reference/index-maintenance and archive/compaction work at the graph-visit level.
-The implementation's ordered-map/set lookups add logarithmic factors and
-string-comparison costs; the visit count is not a linear wall-time guarantee.
-The initial draft
-indexes use `Arc<BTreeMap<...>>`; the first copy-on-write mutation in a
-transaction can clone a whole retained index, including nested maps/sets.
-That cost is additional to the region traversal and is not counted by its
-vertex/edge counters. Do not describe total event cost as proportional only
-to changed references or the affected region. Include a tiny mutation beside
-a large unrelated retained region in whole-event allocation/time measurements.
-The no-unconditional-full-trace requirement is not a claim of persistent-map
+holders. A region holds only records that could be collected (eligible, every
+pin a withdrawal pin, every holder eligible or departing in `D0`); a queued
+reason that an eligible record outside that set holds is reached through it and
+is not traced. Trial reachability or SCC work is `O(V_region + E_region)` plus
+changed reference/index-maintenance and archive/compaction work at the
+graph-visit level. The implementation's ordered-map/set lookups add logarithmic
+factors and string-comparison costs; the visit count is not a linear wall-time
+guarantee. The initial draft indexes use `Arc<BTreeMap<...>>`; the first
+copy-on-write mutation in a transaction can clone a whole retained index,
+including nested maps/sets. That cost is additional to the region traversal
+and is not counted by its vertex/edge counters, which count the records the
+search visits, each of which could be collected, and the edges it follows. Do
+not describe total event cost as proportional only to changed references or
+the affected region. Include a tiny mutation beside a large unrelated retained
+region in whole-event allocation/time measurements. The
+no-unconditional-full-trace requirement is not a claim of persistent-map
 logarithmic updates.
 
 The traversed region itself may be the whole retained graph when one root is

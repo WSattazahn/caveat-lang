@@ -195,6 +195,130 @@ fn reachable_chain_survives_and_unchanged_events_do_not_trace_it() {
     }
 }
 
+/// `anyall`: four groups of a reading window, a decision series and a state
+/// read through bindings, under a journal window, with no withdrawal. Every
+/// retired reading stays pinned, in one retained region per group that
+/// grows with the session; the base collector's work per event grew with
+/// the square of the session's length here. With `chain`, every `look` also
+/// extends the reachable withdrawal chain of `reachable-chain.cav`.
+fn anyall(chain: bool) -> String {
+    let mut source = String::from(
+        "claim seen;\nevidence glimpse from \"a glimpse\";\njournal window 3;\n\
+         event look v min 0 max 10;\nevent decide;\n",
+    );
+    for group in 0..4 {
+        source += &format!(
+            "readings s{group} from glimpse window 3;\ndecisions d{group} limit 120;\n\
+             state t{group} = 0 min 0 max 1000;\n\
+             on look when not has_sample(s{group}) sample s{group} = v supports seen;\n\
+             on look when has_sample(s{group}) and latest(s{group}) >= 0 sample s{group} = v supports seen;\n\
+             on look set t{group} = latest(s{group}) because latest(s{group});\n\
+             on decide when committed(d{group}) and not reopened(d{group}) reopen d{group} because latest(s{group});\n\
+             on decide commit d{group} because enough using history_count(s{group});\n\
+             bind h.c{group} = history_count(s{group});\nbind h.t{group} = t{group};\n"
+        );
+    }
+    if chain {
+        source += "evidence a from \"a\"; renewable a window 1;\n\
+                   evidence b from \"b\"; renewable b window 1;\n\
+                   event initialize; on initialize reveal b supports seen;\n\
+                   on look renew a; on look reveal a supports seen; on look withdraw a because b;\n\
+                   on look renew b; on look reveal b supports seen; on look withdraw b because a;\n";
+    }
+    source
+}
+
+/// `anyall`'s script: three looks and a decision, `events` in all, after
+/// the chain's `initialize`.
+fn anyall_script(events: usize, chain: bool) -> Vec<(&'static str, BTreeMap<String, f64>)> {
+    let start = chain.then(|| ("initialize", BTreeMap::new()));
+    start
+        .into_iter()
+        .chain((0..events).map(|n| match n % 4 {
+            3 => ("decide", BTreeMap::new()),
+            _ => ("look", BTreeMap::from([("v".into(), (n * 7 % 11) as f64)])),
+        }))
+        .collect()
+}
+
+#[test]
+fn a_cycle_that_keeps_the_chain_rooted_does_not_trace_it_again() {
+    // Each cycle retires the two records at the chain's live end. The one
+    // retired first is held by the other, which a current record holds, so
+    // both stay reached without the older chain being visited again.
+    let chain =
+        include_str!("../../experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav");
+    let cycles = std::iter::once(("initialize", BTreeMap::new()))
+        .chain(std::iter::repeat_n(("cycle", BTreeMap::new()), 24))
+        .collect::<Vec<_>>();
+    for (source, script) in [
+        (chain.to_string(), cycles),
+        (anyall(true), anyall_script(96, true)),
+    ] {
+        let mut game = ReactiveSession::from_source(&source).unwrap();
+        for (n, (event, payload)) in script.iter().enumerate() {
+            game.apply(event, payload)
+                .unwrap_or_else(|error| panic!("{event}: {error}"));
+            #[cfg(feature = "collector-metrics")]
+            if n > 3 {
+                let metrics = game.withdrawal_collection_metrics();
+                assert!(metrics.vertices_visited <= 2, "event {n}: {metrics:?}");
+                assert_eq!(metrics.collected, 0, "event {n}");
+            }
+            #[cfg(not(feature = "collector-metrics"))]
+            let _ = n;
+        }
+        assert!(game.snapshot().retired.contains_key("a@2"));
+        assert!(names(&game.drain_archive())
+            .iter()
+            .all(|name| !name.starts_with("a@") && !name.starts_with("b@")));
+        // Restore seeds every retired reason; the next accepted event reaches
+        // the whole chain again from its root and still collects nothing.
+        let mut restored =
+            ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
+        let (event, payload) = &script[script.len() - 4];
+        restored.apply(event, payload).unwrap();
+        game.apply(event, payload).unwrap();
+        let archive = names(&game.drain_archive());
+        assert_eq!(names(&restored.drain_archive()), archive);
+        assert!(archive
+            .iter()
+            .all(|name| !name.starts_with("a@") && !name.starts_with("b@")));
+        assert_eq!(restored.save_json().unwrap(), game.save_json().unwrap());
+    }
+}
+
+/// The work an event's collection does depends on what the event changed,
+/// not on how long the session has run: the last decision round of a
+/// session four times longer visits no more. The base collector traced the
+/// whole retained graph here at every event.
+#[cfg(feature = "collector-metrics")]
+#[test]
+fn anyall_collection_work_per_event_does_not_grow_with_the_session() {
+    for chain in [false, true] {
+        let source = anyall(chain);
+        let tail = |events: usize| {
+            let mut game = ReactiveSession::from_source(&source).unwrap();
+            let mut metrics = Vec::new();
+            for (event, payload) in anyall_script(events, chain) {
+                game.apply(event, &payload)
+                    .unwrap_or_else(|error| panic!("{event}: {error}"));
+                metrics.push(game.withdrawal_collection_metrics());
+            }
+            metrics.split_off(metrics.len() - 4)
+        };
+        let (short, long) = (tail(40), tail(160));
+        for (short, long) in short.iter().zip(&long) {
+            assert_eq!(
+                (long.vertices_visited, long.edges_visited),
+                (short.vertices_visited, short.edges_visited),
+                "chain {chain}: {short:?} then {long:?}"
+            );
+            assert_eq!(long.collected, 0, "chain {chain}");
+        }
+    }
+}
+
 #[test]
 fn authentic_older_saves_rebuild_without_collecting_until_an_accepted_event() {
     let fixtures: Vec<Value> = [
@@ -538,6 +662,135 @@ fn a_skipped_uncreated_commitment_is_a_real_owner_on_restore_and_clear() {
         assert!(session.drain_archive().is_empty());
         send(session, "finish");
         assert_eq!(names(&session.drain_archive()), ["a@2"]);
+    }
+    assert_eq!(game.save_json().unwrap(), restored.save_json().unwrap());
+}
+
+// Collection searches from what an event lost: a reason that lost a pin
+// (`pending_target_pins_survive_until_the_last_scheduled_application`, and
+// `shared_reason_multiplicity_does_not_hide_a_scheduled_target_pin` in
+// collector_index_compaction.rs) or a holder
+// (`transferred_skipped_guard_lineage_vetoes_only_additional_collection`), or
+// retired (`isolated_self_and_mutual_cycles_depart_with_both_directions_archived`),
+// a reason a record departing in `D0` held
+// (`later_readable_history_preserves_the_reason_until_the_holder_departs`), and
+// after a restore every retired reason
+// (`authentic_older_saves_rebuild_without_collecting_until_an_accepted_event`).
+// Each of those tests, and each of the five tests below, fails on its own
+// assertions if the search misses that loss.
+
+#[test]
+fn a_withdrawal_added_after_its_reason_lost_a_pin_collects_when_the_reason_retires() {
+    // The due qualification releases a@2's pin before the withdrawal makes
+    // it a reason, so only its retirement later in the event marks it.
+    let source = format!("{SELF}\ncaveat stale consequence material; event fresh; event later; event tick dt min 0 max 0.1;\non fresh renew a; on fresh reveal a supports seen; on later qualify a with stale after 0.1;\non tick withdraw a because a; on tick renew a;");
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["fresh", "later"] {
+        send(&mut game, event);
+    }
+    let mut restored = ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
+    for session in [&mut game, &mut restored] {
+        session
+            .apply("tick", &BTreeMap::from([("dt".into(), 0.1)]))
+            .unwrap();
+        assert_eq!(names(&session.drain_archive()), ["a@2"]);
+    }
+    assert_eq!(game.save_json().unwrap(), restored.save_json().unwrap());
+}
+
+#[test]
+fn a_holder_that_retires_leaves_the_reasons_it_held_collectible() {
+    // b@2 holds a@2 and a@2 holds b@2. a@2 retires first and stays, held by
+    // the current b@2; when b@2 retires nothing current holds either.
+    let source = r#"
+claim seen; evidence a from "a"; renewable a window 1; evidence b from "b"; renewable b window 1;
+event make; event retire_a; event retire_b;
+on make renew a; on make renew b; on make reveal a supports seen; on make reveal b supports seen;
+on make withdraw a because b; on make withdraw b because a;
+on retire_a renew a; on retire_b renew b;
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    send(&mut game, "make");
+    send(&mut game, "retire_a");
+    assert!(game.drain_archive().is_empty());
+    assert!(game.snapshot().retired.contains_key("a@2"));
+    send(&mut game, "retire_b");
+    assert_eq!(names(&game.drain_archive()), ["a@2", "b@2"]);
+    ReactiveSession::restore_json(source, &game.save_json().unwrap()).unwrap();
+}
+
+#[test]
+fn a_reason_whose_last_current_holder_departs_ordinarily_joins_that_batch() {
+    // b@2's qualifier names a@2, and a scheduled qualification pins b@2
+    // after it retires. When that applies, b@2 departs in D0 and nothing
+    // else happens to a@2.
+    let source = format!("{SELF}\nevidence b from \"b\"; renewable b window 1; caveat stale consequence material;\nevent mark; event later; event advance; event tick dt min 0 max 0.1;\non mark renew b; on mark when qualified(1,a) == 1 reveal b supports seen;\non later qualify b with stale after 0.1; on advance renew b;");
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["cycle", "mark", "later", "cycle", "advance"] {
+        send(&mut game, event);
+    }
+    assert!(game.drain_archive().is_empty());
+    assert!(game.snapshot().retired.contains_key("a@2"));
+    assert!(game.snapshot().retired.contains_key("b@2"));
+    game.apply("tick", &BTreeMap::from([("dt".into(), 0.1)]))
+        .unwrap();
+    assert_eq!(names(&game.drain_archive()), ["a@2", "b@2"]);
+    ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
+}
+
+#[test]
+fn a_wide_ordinary_holder_still_seeds_the_reason_it_held() {
+    // As above, but b@2's qualifier also reads c and d, so b@2 references
+    // more records than there are withdrawal reasons (a@2 and a@3), and the
+    // reasons it held are found from the reasons' side, by their holders.
+    // A search that finds none from that side never starts from a@2, and
+    // a@2 stays after b@2 departs.
+    let source = format!("{SELF}\nevidence b from \"b\"; renewable b window 1; evidence c from \"c\"; evidence d from \"d\";\ncaveat stale consequence material;\nevent mark; event later; event advance; event tick dt min 0 max 0.1;\non mark reveal c supports seen; on mark reveal d supports seen; on mark renew b;\non mark when qualified(1,a) == 1 and qualified(1,c) >= 0 and qualified(1,d) >= 0 reveal b supports seen;\non later qualify b with stale after 0.1; on advance renew b;");
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["cycle", "mark", "later", "cycle", "advance"] {
+        send(&mut game, event);
+    }
+    assert!(game.drain_archive().is_empty());
+    assert!(game.snapshot().retired.contains_key("a@2"));
+    assert!(game.snapshot().retired.contains_key("b@2"));
+    let mut restored = ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
+    for session in [&mut game, &mut restored] {
+        session
+            .apply("tick", &BTreeMap::from([("dt".into(), 0.1)]))
+            .unwrap();
+        assert_eq!(names(&session.drain_archive()), ["a@2", "b@2"]);
+    }
+    assert_eq!(game.save_json().unwrap(), restored.save_json().unwrap());
+}
+
+#[test]
+fn cutting_a_chain_from_its_current_root_collects_all_of_it_at_once() {
+    // Self-withdrawn records linked by observation qualifiers,
+    // a@4 -> b@3 -> a@3 -> b@2 -> a@2, rooted by the current a@4 and b@3.
+    // `cut` renews a and b with no link, so a@4 and b@3 retire and the whole
+    // chain departs in that event. Only a@4 and b@3 are seeds; the rest is
+    // reached from them through their own references, which a search that
+    // leaves a record only through its holders never follows.
+    let source = r#"
+claim seen; evidence a from "a"; renewable a window 1; evidence b from "b"; renewable b window 1;
+event start; event link; event cut;
+on start renew a; on start reveal a supports seen; on start withdraw a because a;
+on link renew b; on link when qualified(1,a) == 1 reveal b supports seen; on link withdraw b because b;
+on link renew a; on link when qualified(1,b) == 1 reveal a supports seen; on link withdraw a because a;
+on cut renew a; on cut reveal a supports seen; on cut renew b; on cut reveal b supports seen;
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    for event in ["start", "link", "link"] {
+        send(&mut game, event);
+    }
+    assert!(game.drain_archive().is_empty());
+    let mut restored = ReactiveSession::restore_json(source, &game.save_json().unwrap()).unwrap();
+    for session in [&mut game, &mut restored] {
+        send(session, "cut");
+        assert_eq!(
+            names(&session.drain_archive()),
+            ["a@2", "a@3", "a@4", "b@2", "b@3"]
+        );
     }
     assert_eq!(game.save_json().unwrap(), restored.save_json().unwrap());
 }

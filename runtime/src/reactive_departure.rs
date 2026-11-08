@@ -593,8 +593,9 @@ impl ReactiveSession {
     }
 
     pub(crate) fn add_pin(&mut self, name: &str) {
+        // A pin only adds support: nothing it gives can leave a record
+        // unreachable, so the collector is not told.
         if self.windowed() {
-            self.collector.queue(name);
             *Arc::make_mut(&mut self.pin_counts)
                 .entry(name.to_string())
                 .or_insert(0) += 1;
@@ -605,7 +606,7 @@ impl ReactiveSession {
         if !self.windowed() {
             return;
         }
-        self.collector.queue(name);
+        self.collector.released(name);
         let counts = Arc::make_mut(&mut self.pin_counts);
         let count = counts
             .get_mut(name)

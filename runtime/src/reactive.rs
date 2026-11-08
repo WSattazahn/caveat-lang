@@ -9055,7 +9055,7 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
-        self.collector.queue(&record);
+        self.collector.retired(&record);
         Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {
