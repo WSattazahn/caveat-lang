@@ -684,8 +684,13 @@ pub(super) fn occurrence_number(name: &str) -> Option<u64> {
 
 pub(super) fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
     let (base, ordinal) = name.rsplit_once('@')?;
-    let ordinal: usize = ordinal.parse().ok()?;
-    (ordinal >= 1 && ordinal.to_string() == name[base.len() + 1..]).then_some((base, ordinal))
+    // Only the decimal `to_string` writes for a number from 1: digits alone,
+    // with no sign and no leading zero. Checked on the text, so a name is
+    // read without building one.
+    if ordinal.starts_with('0') || !ordinal.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    Some((base, ordinal.parse().ok()?))
 }
 
 impl ReactiveSession {
@@ -4900,5 +4905,59 @@ on cycle withdraw a because a;
             ratio < BOUND,
             "restore_retired took {ratio:.1} times as long for {LARGE} records as for {SMALL}"
         );
+    }
+}
+
+#[cfg(test)]
+mod occurrence_parts_tests {
+    use super::occurrence_parts;
+
+    /// How `occurrence_parts` read a name before it checked the text: parse
+    /// the ordinal, then keep it only from 1 and only if writing it back gives
+    /// the same text.
+    fn parsed_and_written_back(name: &str) -> Option<(&str, usize)> {
+        let (base, ordinal) = name.rsplit_once('@')?;
+        let ordinal: usize = ordinal.parse().ok()?;
+        (ordinal >= 1 && ordinal.to_string() == name[base.len() + 1..]).then_some((base, ordinal))
+    }
+
+    #[test]
+    fn the_text_check_reads_every_name_as_parsing_and_writing_back_did() {
+        let overflow = format!("a@{}0", usize::MAX);
+        let largest = format!("a@{}", usize::MAX);
+        for name in [
+            "a@5",
+            "a@12",
+            "journal@3",
+            "a@b@7",
+            "@4",
+            "a@+5",
+            "a@-5",
+            "a@05",
+            "a@0",
+            "a@00",
+            "a@",
+            "a",
+            "",
+            "a@ 5",
+            "a@5 ",
+            "a@1_000",
+            "a@1e3",
+            "a@0x1f",
+            "a@\u{0665}",
+            "a@1\u{0662}",
+            "a@\u{ff15}",
+            &largest,
+            &overflow,
+        ] {
+            assert_eq!(
+                occurrence_parts(name),
+                parsed_and_written_back(name),
+                "{name:?}"
+            );
+        }
+        assert_eq!(occurrence_parts("a@b@7"), Some(("a@b", 7)));
+        assert_eq!(occurrence_parts(&largest), Some(("a", usize::MAX)));
+        assert_eq!(occurrence_parts(&overflow), None);
     }
 }

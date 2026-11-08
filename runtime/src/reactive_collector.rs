@@ -5,18 +5,18 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum CollectorOwner {
-    State(String),
-    Record(String),
-    Stream(String),
-    Series(String),
-    Graph(String),
-    Pending(String),
+    State(Name),
+    Record(Name),
+    Stream(Name),
+    Series(Name),
+    Graph(Name),
+    Pending(Name),
 }
 
 impl CollectorOwner {
     fn record(&self) -> Option<&str> {
         match self {
-            Self::Record(name) | Self::Graph(name) => Some(name),
+            Self::Record(name) | Self::Graph(name) => Some(name.as_str()),
             _ => None,
         }
     }
@@ -166,15 +166,15 @@ pub struct WithdrawalCollectionMetrics {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct WithdrawalCollector {
-    owners: Arc<BTreeMap<CollectorOwner, CollectorSet<String>>>,
-    incoming: Arc<BTreeMap<String, CollectorSet<CollectorOwner>>>,
+    owners: Arc<BTreeMap<CollectorOwner, CollectorSet<Name>>>,
+    incoming: Arc<BTreeMap<Name, CollectorSet<CollectorOwner>>>,
     // Only multiplicity is needed to distinguish withdrawal pins from roots.
     // Exact subject -> reason identities remain in withdrawal_reasons and
     // Record owner references, and in the authoritative withdrawal records.
-    reasons: Arc<BTreeMap<String, usize>>,
-    pending: Arc<BTreeMap<String, BTreeMap<String, usize>>>,
+    reasons: Arc<BTreeMap<Name, usize>>,
+    pending: Arc<BTreeMap<String, BTreeMap<Name, usize>>>,
     dirty: BTreeSet<CollectorOwner>,
-    queued: BTreeSet<String>,
+    queued: BTreeSet<Name>,
     #[cfg(feature = "collector-metrics")]
     metrics: WithdrawalCollectionMetrics,
 }
@@ -190,10 +190,25 @@ macro_rules! metric {
 
 impl WithdrawalCollector {
     pub(super) fn queue(&mut self, record: &str) {
-        self.queued.insert(record.into());
+        let name = self.name(record);
+        self.queued.insert(name);
     }
 
-    fn replace(&mut self, owner: CollectorOwner, references: CollectorSet<String>) {
+    /// The name already indexed for `name`, so copies share its text, or a
+    /// new one.
+    fn name(&self, name: &str) -> Name {
+        self.incoming
+            .get_key_value(name)
+            .map(|(name, _)| name.clone())
+            .or_else(|| {
+                self.reasons
+                    .get_key_value(name)
+                    .map(|(name, _)| name.clone())
+            })
+            .unwrap_or_else(|| name.into())
+    }
+
+    fn replace(&mut self, owner: CollectorOwner, references: CollectorSet<Name>) {
         // Compare borrowed sets before any copy-on-write, including when this
         // owner has no references. Keep the old set borrowed for the diff too.
         if self
@@ -257,12 +272,13 @@ impl WithdrawalCollector {
     }
 
     pub(super) fn withdrawal(&mut self, subject: &str, reason: &str, add: bool) {
+        let name = self.name(reason);
         let reverse = Arc::make_mut(&mut self.reasons);
         // Callers add only the first withdrawal of a subject, and remove only
         // after removing its authoritative subject -> reason entry. Duplicate
         // language effects therefore never increment this derived count.
         if add {
-            *reverse.entry(reason.into()).or_default() += 1;
+            *reverse.entry(name).or_default() += 1;
         } else {
             let count = reverse.get_mut(reason).expect("indexed withdrawal reason");
             *count -= 1;
@@ -288,20 +304,24 @@ impl WithdrawalCollector {
         // Compaction removes exactly these names from all surviving holders.
         // Visit their inverse references instead of scanning the session.
         for record in departing.keys() {
-            let incoming = self.incoming.get(record).cloned().unwrap_or_default();
+            let incoming = self
+                .incoming
+                .get(record.as_str())
+                .cloned()
+                .unwrap_or_default();
             for owner in incoming.iter() {
                 metric!(self, references_scanned, 1);
                 if let CollectorOwner::Pending(target) = owner {
                     let pending = Arc::make_mut(&mut self.pending);
-                    if let Some(refs) = pending.get_mut(target) {
-                        refs.remove(record);
+                    if let Some(refs) = pending.get_mut(target.as_str()) {
+                        refs.remove(record.as_str());
                         if refs.is_empty() {
-                            pending.remove(target);
+                            pending.remove(target.as_str());
                         }
                     }
                 }
                 if let Some(refs) = Arc::make_mut(&mut self.owners).get_mut(owner) {
-                    refs.remove(record);
+                    refs.remove(record.as_str());
                     if refs.is_empty() {
                         Arc::make_mut(&mut self.owners).remove(owner);
                     }
@@ -309,17 +329,17 @@ impl WithdrawalCollector {
             }
             // Unrelated departures must not copy the shared reverse index
             // merely to remove a key that is absent from it.
-            if self.incoming.contains_key(record) {
-                Arc::make_mut(&mut self.incoming).remove(record);
+            if self.incoming.contains_key(record.as_str()) {
+                Arc::make_mut(&mut self.incoming).remove(record.as_str());
             }
         }
         for record in departing.keys() {
             self.replace(
-                CollectorOwner::Record(record.clone()),
+                CollectorOwner::Record(record.as_str().into()),
                 CollectorSet::default(),
             );
             self.replace(
-                CollectorOwner::Graph(record.clone()),
+                CollectorOwner::Graph(record.as_str().into()),
                 CollectorSet::default(),
             );
         }
@@ -343,8 +363,12 @@ impl ReactiveSession {
         }
     }
 
-    pub(super) fn collector_dirty(&mut self, owner: CollectorOwner) {
+    /// Queues an owner whose references may have changed for a recount at
+    /// the next collection. Only a program with a window keeps a collector,
+    /// so elsewhere the owner is not even built.
+    pub(super) fn collector_dirty(&mut self, owner: impl FnOnce(&Self) -> CollectorOwner) {
         if self.windowed() {
+            let owner = owner(self);
             self.collector.dirty.insert(owner);
         }
     }
@@ -355,13 +379,13 @@ impl ReactiveSession {
         }
         let owner = match effect {
             Effect::Set { name, .. } | Effect::Unset { name } => {
-                CollectorOwner::State(name.clone())
+                CollectorOwner::State(name.as_str().into())
             }
             Effect::Sample { stream, .. } => {
-                self.collector_dirty(CollectorOwner::Stream(stream.clone()));
-                let current = self.reading_streams[stream].current.clone();
-                if let Some(current) = current {
-                    self.collector_dirty(CollectorOwner::Record(current));
+                let dirty = &mut self.collector.dirty;
+                dirty.insert(CollectorOwner::Stream(stream.as_str().into()));
+                if let Some(current) = self.reading_streams[stream].current.as_deref() {
+                    dirty.insert(CollectorOwner::Record(current.into()));
                 }
                 return;
             }
@@ -370,7 +394,7 @@ impl ReactiveSession {
                 latest: true,
                 ..
             } => match self.latest_target(evidence) {
-                Some(name) => CollectorOwner::Record(name),
+                Some(name) => CollectorOwner::Record(name.into()),
                 None => return,
             },
             Effect::Reveal { evidence, .. }
@@ -379,27 +403,30 @@ impl ReactiveSession {
             | Effect::Qualify { evidence, .. } => {
                 CollectorOwner::Record(self.occurrence(evidence).into())
             }
-            Effect::Examine { caveat, .. } => CollectorOwner::Record(caveat.clone()),
+            Effect::Examine { caveat, .. } => CollectorOwner::Record(caveat.as_str().into()),
             // An outcome may be of any revision (spec/caveat-outcomes-0.1.md).
-            Effect::Resolve(resolution) => CollectorOwner::Series(resolution.action.clone()),
+            Effect::Resolve(resolution) => {
+                CollectorOwner::Series(resolution.action.as_str().into())
+            }
             Effect::Commit { action, .. } | Effect::Reopen { action, .. } => {
-                self.collector_dirty(CollectorOwner::Series(action.clone()));
+                self.collector
+                    .dirty
+                    .insert(CollectorOwner::Series(action.as_str().into()));
                 let current = self
                     .decision_series
                     .get(action)
-                    .and_then(|series| series.current.clone())
-                    .unwrap_or_else(|| action.clone());
-                CollectorOwner::Record(current)
+                    .and_then(|series| series.current.as_deref())
+                    .unwrap_or(action);
+                CollectorOwner::Record(current.into())
             }
             Effect::Withdraw {
                 target: EvidenceSelector::Every(name),
                 ..
             } => {
-                if !self.windowed() {
-                    return;
-                }
                 for occurrence in self.every_occurrence(name).unwrap_or_default() {
-                    self.collector_dirty(CollectorOwner::Record(occurrence));
+                    self.collector
+                        .dirty
+                        .insert(CollectorOwner::Record(occurrence.into()));
                 }
                 return;
             }
@@ -407,11 +434,11 @@ impl ReactiveSession {
                 let Some(name) = self.withdrawal_target(target) else {
                     return;
                 };
-                CollectorOwner::Record(name)
+                CollectorOwner::Record(name.into())
             }
             _ => return,
         };
-        self.collector_dirty(owner);
+        self.collector.dirty.insert(owner);
     }
 
     pub(super) fn collector_schedule(&mut self, scheduled: &ScheduledQualification, add: bool) {
@@ -425,9 +452,9 @@ impl ReactiveSession {
         );
         let pending = Arc::make_mut(&mut self.collector.pending);
         let references = pending.entry(scheduled.evidence.clone()).or_default();
-        for name in &scheduled.guard.evidence {
+        for name in scheduled.guard.evidence.iter() {
             if add {
-                *references.entry(name.to_string()).or_default() += 1;
+                *references.entry(name.clone()).or_default() += 1;
             } else {
                 let count = references
                     .get_mut(name.as_str())
@@ -442,11 +469,17 @@ impl ReactiveSession {
         if references.is_empty() {
             pending.remove(&scheduled.evidence);
         }
-        self.collector
-            .replace(CollectorOwner::Pending(scheduled.evidence.clone()), refs);
+        self.collector.replace(
+            CollectorOwner::Pending(scheduled.evidence.as_str().into()),
+            refs,
+        );
     }
 
-    pub(super) fn collector_reopens(&mut self, action: &str, reasons: &[String]) {
+    pub(super) fn collector_reopens<'a>(
+        &mut self,
+        action: &str,
+        reasons: impl ExactSizeIterator<Item = &'a str>,
+    ) {
         // ReliesOn sources and Reopens targets are commitments, which do not
         // depart. Graph owners therefore only supply external roots; candidate
         // dependency traversal needs Record owners alone.
@@ -461,17 +494,17 @@ impl ReactiveSession {
             .get(&owner)
             .cloned()
             .unwrap_or_default();
-        refs.extend(reasons.iter().cloned());
         metric!(self.collector, references_scanned, reasons.len());
+        refs.extend(reasons.map(Name::from));
         self.collector.replace(owner, refs);
     }
 
-    fn collector_references(&self, owner: &CollectorOwner) -> (CollectorSet<String>, usize) {
+    fn collector_references(&self, owner: &CollectorOwner) -> (CollectorSet<Name>, usize) {
         let mut references = CollectorSet::default();
         let mut scanned = 0;
         let mut include = |provenance: &Provenance| {
             scanned += provenance.evidence.len();
-            references.extend(provenance.evidence.iter().map(|name| name.to_string()));
+            references.extend(provenance.evidence.iter().cloned());
         };
         match owner {
             CollectorOwner::State(name) => {
@@ -481,12 +514,12 @@ impl ReactiveSession {
                 }
             }
             CollectorOwner::Stream(name) => {
-                if let Some(stream) = self.reading_streams.get(name) {
+                if let Some(stream) = self.reading_streams.get(name.as_str()) {
                     include(&stream.selection_qualifications);
                 }
             }
             CollectorOwner::Series(name) => {
-                if let Some(series) = self.decision_series.get(name) {
+                if let Some(series) = self.decision_series.get(name.as_str()) {
                     include(&series.selection_qualifications);
                     // An outcome's lineage holds what its value read, as a
                     // basis does, so it vetoes collection (rule 4 of
@@ -506,19 +539,19 @@ impl ReactiveSession {
                     &self.examination_qualifications,
                     &self.reopening_qualifications,
                 ] {
-                    if let Some(provenance) = map.get(name) {
+                    if let Some(provenance) = map.get(name.as_str()) {
                         include(provenance);
                     }
                 }
                 for targets in self.predicate_qualifications.values() {
-                    if let Some(provenance) = targets.get(name) {
+                    if let Some(provenance) = targets.get(name.as_str()) {
                         include(provenance);
                     }
                 }
-                if let Some(basis) = self.commitment_bases.get(name) {
+                if let Some(basis) = self.commitment_bases.get(name.as_str()) {
                     include(&basis.provenance);
                 }
-                if let Some(grounds) = self.commitment_grounds.get(name) {
+                if let Some(grounds) = self.commitment_grounds.get(name.as_str()) {
                     include(grounds);
                 }
                 if let Some((history, number)) = save::occurrence_parts(name) {
@@ -531,9 +564,9 @@ impl ReactiveSession {
                         }
                     }
                 }
-                if let Some(reason) = self.withdrawal_reasons.get(name) {
+                if let Some(reason) = self.withdrawal_reasons.get(name.as_str()) {
                     scanned += 1;
-                    references.insert(reason.clone());
+                    references.insert(self.collector.name(reason));
                 }
             }
             CollectorOwner::Graph(_) | CollectorOwner::Pending(_) => {
@@ -555,20 +588,26 @@ impl ReactiveSession {
             return;
         }
         let mut owners = BTreeSet::new();
-        owners.extend(self.states.names().cloned().map(CollectorOwner::State));
+        owners.extend(
+            self.states
+                .names()
+                .map(|name| CollectorOwner::State(name.as_str().into())),
+        );
         owners.extend(
             self.reading_streams
                 .keys()
-                .cloned()
-                .map(CollectorOwner::Stream),
+                .map(|name| CollectorOwner::Stream(name.as_str().into())),
         );
         owners.extend(
             self.decision_series
                 .keys()
-                .cloned()
-                .map(CollectorOwner::Series),
+                .map(|name| CollectorOwner::Series(name.as_str().into())),
         );
-        owners.extend(self.symbols.keys().cloned().map(CollectorOwner::Record));
+        owners.extend(
+            self.symbols
+                .keys()
+                .map(|name| CollectorOwner::Record(name.as_str().into())),
+        );
         // A skipped one-off commitment has predicate metadata before its
         // symbol exists. Rebuild from actual holder keys as well as symbols.
         for map in [
@@ -576,26 +615,32 @@ impl ReactiveSession {
             &self.examination_qualifications,
             &self.reopening_qualifications,
         ] {
-            owners.extend(map.keys().cloned().map(CollectorOwner::Record));
+            owners.extend(
+                map.keys()
+                    .map(|name| CollectorOwner::Record(name.as_str().into())),
+            );
         }
         for targets in self.predicate_qualifications.values() {
-            owners.extend(targets.keys().cloned().map(CollectorOwner::Record));
+            owners.extend(
+                targets
+                    .keys()
+                    .map(|name| CollectorOwner::Record(name.as_str().into())),
+            );
         }
         owners.extend(
             self.commitment_bases
                 .keys()
-                .cloned()
-                .map(CollectorOwner::Record),
+                .map(|name| CollectorOwner::Record(name.as_str().into())),
         );
         owners.extend(
             self.commitment_grounds
                 .keys()
-                .cloned()
-                .map(CollectorOwner::Record),
+                .map(|name| CollectorOwner::Record(name.as_str().into())),
         );
         for reason in self.withdrawal_reasons.values() {
+            let name = self.collector.name(reason);
             *Arc::make_mut(&mut self.collector.reasons)
-                .entry(reason.clone())
+                .entry(name)
                 .or_default() += 1;
         }
         for owner in owners {
@@ -612,12 +657,14 @@ impl ReactiveSession {
             .collect::<HashMap<_, _>>();
         for edge in self.graph.edges.clone() {
             if edge.relation == Relation::Reopens {
-                self.collector_reopens(&names[&edge.to], &[names[&edge.from].clone()]);
+                self.collector_reopens(&names[&edge.to], [names[&edge.from].as_str()].into_iter());
             } else if edge.relation == Relation::ReliesOn {
-                self.collector_reopens(&names[&edge.from], &[names[&edge.to].clone()]);
+                self.collector_reopens(&names[&edge.from], [names[&edge.to].as_str()].into_iter());
             }
         }
-        self.collector.queued.extend(self.retired.keys().cloned());
+        self.collector
+            .queued
+            .extend(self.retired.keys().map(|name| name.as_str().into()));
         self.collector.dirty.clear();
         self.collector_begin();
     }
@@ -625,17 +672,17 @@ impl ReactiveSession {
     fn collector_eligible(&self, name: &str, ordinary: &BTreeMap<String, (String, u64)>) -> bool {
         self.retired.contains_key(name)
             && !ordinary.contains_key(name)
-            && self.departable(name).is_some()
+            && self.departable_name(name)
     }
 
     /// Trace only changed connected candidate regions. Traversal is undirected
     /// to discover external roots, then directed to retain their dependencies.
     /// A root release can expose an entire old region; no work cap changes the
-    /// event's acceptance or defers established departures.
+    /// event's acceptance or defers established departures. Only a program
+    /// with a window has a collector, so the caller asks first and an event
+    /// elsewhere does not pay for the call.
     pub(super) fn collect_withdrawals(&mut self, departing: &mut BTreeMap<String, (String, u64)>) {
-        if !self.windowed() {
-            return;
-        }
+        debug_assert!(self.windowed(), "only a windowed program collects");
         for owner in std::mem::take(&mut self.collector.dirty) {
             let (refs, _scanned) = self.collector_references(&owner);
             metric!(self.collector, dirty_owners, 1);
@@ -646,7 +693,7 @@ impl ReactiveSession {
             if let Some(refs) = self
                 .collector
                 .owners
-                .get(&CollectorOwner::Record(record.clone()))
+                .get(&CollectorOwner::Record(record.as_str().into()))
             {
                 self.collector.queued.extend(refs.iter().cloned());
             }
@@ -669,7 +716,7 @@ impl ReactiveSession {
                 }
                 metric!(self.collector, vertices_visited, 1);
                 let reason_pins = self.collector.reasons.get(&record).copied().unwrap_or(0);
-                if self.pin_counts.get(&record).copied().unwrap_or(0) > reason_pins {
+                if self.pin_counts.get(record.as_str()).copied().unwrap_or(0) > reason_pins {
                     roots.insert(record.clone());
                 }
                 if let Some(incoming) = self.collector.incoming.get(&record) {
@@ -679,7 +726,7 @@ impl ReactiveSession {
                             Some(name) if departing.contains_key(name) => {}
                             Some(name) if self.collector_eligible(name, departing) => {
                                 if !region.contains(name) {
-                                    pending.insert(name.to_string());
+                                    pending.insert(name.into());
                                 }
                             }
                             _ => {
@@ -739,14 +786,13 @@ impl ReactiveSession {
         }
         metric!(self.collector, collected, additional.len());
         for record in additional {
+            let record = record.to_string();
             if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
                 self.collector.withdrawal(&record, &reason, false);
                 self.release_pin(&reason);
             }
-            departing.insert(
-                record.clone(),
-                self.departable(&record).expect("eligible candidate"),
-            );
+            let place = self.departable(&record).expect("eligible candidate");
+            departing.insert(record, place);
         }
     }
 
@@ -785,6 +831,10 @@ impl ReactiveSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn name(text: &str) -> Name {
+        text.into()
+    }
 
     fn assert_same_references(actual: &CollectorSet<String>, expected: &BTreeSet<String>) {
         assert_eq!(
@@ -837,8 +887,9 @@ mod tests {
     #[test]
     fn unchanged_references_preserve_shared_indexes_and_do_not_queue_work() {
         for count in [1, 2, SMALL_REFERENCE_LIMIT, SMALL_REFERENCE_LIMIT + 1, 32] {
-            let owner = CollectorOwner::Record("holder@2".into());
-            let references: CollectorSet<_> = (0..count).map(|n| format!("record@{n}")).collect();
+            let owner = CollectorOwner::Record(name("holder@2"));
+            let references: CollectorSet<_> =
+                (0..count).map(|n| name(&format!("record@{n}"))).collect();
             let mut original = WithdrawalCollector::default();
             original.replace(owner.clone(), references.clone());
             original.queued.clear();
@@ -846,7 +897,7 @@ mod tests {
 
             transaction.replace(owner, references);
             transaction.replace(
-                CollectorOwner::Graph("absent".into()),
+                CollectorOwner::Graph(name("absent")),
                 CollectorSet::default(),
             );
 
@@ -879,9 +930,9 @@ mod tests {
 
     #[test]
     fn forget_absent_record_preserves_shared_indexes() {
-        let owner = CollectorOwner::State("kept".into());
+        let owner = CollectorOwner::State(name("kept"));
         let mut original = WithdrawalCollector::default();
-        original.replace(owner, CollectorSet::from(["held@2".into()]));
+        original.replace(owner, CollectorSet::from([name("held@2")]));
         let mut transaction = original.clone();
 
         transaction.forget(&BTreeMap::from([(
@@ -897,8 +948,8 @@ mod tests {
 
     #[test]
     fn forget_present_record_preserves_original_shared_indexes() {
-        let owner = CollectorOwner::State("kept".into());
-        let references = CollectorSet::from(["held@2".into(), "other@2".into()]);
+        let owner = CollectorOwner::State(name("kept"));
+        let references = CollectorSet::from([name("held@2"), name("other@2")]);
         let mut original = WithdrawalCollector::default();
         original.replace(owner.clone(), references.clone());
         let mut transaction = original.clone();
@@ -912,7 +963,7 @@ mod tests {
         );
         assert_eq!(
             transaction.owners.get(&owner),
-            Some(&CollectorSet::from(["other@2".into()]))
+            Some(&CollectorSet::from([name("other@2")]))
         );
         assert!(!transaction.incoming.contains_key("held@2"));
         assert_eq!(
