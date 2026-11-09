@@ -374,3 +374,5 @@
 {"event":"report_restore_size"}
 {"event":"approve","payload":{"item":1511}}
 {"event":"decide_restore_size","payload":{"option":1}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":453}}
