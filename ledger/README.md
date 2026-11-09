@@ -77,10 +77,10 @@ The withdrawn inference reads the same way:
 | Kind | Names | Meaning |
 | --- | --- | --- |
 | claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `minor_safe`, `runtime_correct`, `approved_by_owner`, `plugin_listable` | what evidence bears on |
-| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed`, `notes_name_old_runtime` | what a reader must see next to a piece of evidence |
-| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), main runs at a minor release (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
-| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing`, `minor_release` (value: the minor, 110 for 1.1.0) | series: each may be reopened and revised, never overwritten |
-| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `main_run`, `ship_minor`, `find`, `review`, the `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
+| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed`, `notes_name_old_runtime`, `chosen_by_team` | what a reader must see next to a piece of evidence |
+| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), main runs at a minor release (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, the reports decisions rest on, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
+| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing`, `minor_release` (value: the minor, 110 for 1.1.0), `restore_size` (value: the option chosen for restore's 16 MiB limit) | series: each may be reopened and revised, never overwritten |
+| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `main_run`, `ship_minor`, `find`, `release_build_shows`, `review`, the `report_*` reports and `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
 
 A decision is refused until its grounds exist and the owner has approved
 that item: `merge` needs a rerun with 0 divergences, a green CI run and
@@ -96,6 +96,9 @@ the two forms' place in 1.1, 1111–1113 for `carries(latest(STREAM), C)` in 1.1
 1301–1303 for what to explore after 1.2 (study first, 1303), 1311–1313 for its follow-up (the authoring card, 1311),
 1501–1503 for the general layer's task languages (Python and JavaScript 1501, a Caveat task language 1502,
 WebAssembly from any language 1503; the owner chose all three, approved in the order 1501, 1503, 1502),
+1511–1514 for restore's 16 MiB save size limit (D070: remove it 1511, keep it and refuse the events
+that would pass it 1512, raise it 1513, keep a default that hosts can raise 1514; the owner left the choice
+to the team, which removed it, 1511, and the decision's grounds carry the caveat `chosen_by_team`),
 7000 plus the version for publishing the OpenAI plugin, so 7111 for 1.1.1).
 
 ## Keep it going

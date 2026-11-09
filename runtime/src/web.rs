@@ -89,9 +89,10 @@ impl WebReactiveSession {
     }
 
     /// Whether this runtime instance has failed to allocate memory. After a
-    /// trap, true means the instance ran out of WebAssembly memory, most
-    /// often because sessions were never freed. Reading it is safe after a
-    /// trap; nothing else is. Always false outside WebAssembly.
+    /// trap, true means the instance ran out of WebAssembly memory, as when
+    /// sessions are never freed or a restored save is too large for it.
+    /// Reading it is safe after a trap; nothing else is. Always false
+    /// outside WebAssembly.
     pub fn out_of_memory() -> bool {
         #[cfg(target_arch = "wasm32")]
         return allocation::FAILED.load(std::sync::atomic::Ordering::Relaxed);

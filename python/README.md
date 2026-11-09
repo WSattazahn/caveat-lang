@@ -47,7 +47,9 @@ This builds the native module once (a few minutes). Python 3.9 or later.
 
 `caveat.open(source)` loads a program and returns a `Session`;
 `caveat.restore(source, save)` resumes one from `Session.save()` text, with
-the exact source it came from. A session is a context manager.
+the exact source it came from. A session is a context manager. Restore takes a
+state save of any size, and a save is not signed: bound the size of a save you
+did not write, and keep saves where only your application writes them.
 
 `session.dispatch(event, payload)` sends one event. The payload holds exactly
 the parameters the program declares for that event (`event observe

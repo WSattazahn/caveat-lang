@@ -82,7 +82,10 @@ syntax; read it before writing your own program.
 - **Saves are not authenticated.** A save records its source's SHA-256, so it
   will not restore against a different program. It is not signed: an edited
   save can drop a caveat or change a value and still restore. Keep saves where
-  only your application writes them, or sign them yourself.
+  only your application writes them, or sign them yourself. Restore takes a
+  state save of any size, and one too large for the runtime's memory traps
+  the runtime and every session on it; bound the size of a save you did not
+  write before restoring it.
 - **It does not know who sent an event.** Your application decides who may
   send what.
 - **It is slower than plain code.** On a small program, a few thousand events
@@ -496,6 +499,15 @@ says it ran out of memory and how many sessions were still open
 (`runtime.openSessions`). Load the runtime again to continue. Code that uses
 the runtime's `WebReactiveSession` directly frees a session with `free()`, and
 `WebReactiveSession.out_of_memory()` tells whether a trap came from memory.
+
+Restoring a save needs memory that grows with the save's length (the
+[limits](https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md)
+give measured figures), so a large save can run the runtime out of memory
+with no other session open. Its `fatal` error then says the runtime ran out
+of memory while restoring a save, or while checking one in `runtime.check`,
+gives the save's length in characters and counts the other sessions open;
+when any are open, it still says to close each session once it is no longer
+needed. Load the runtime again as above.
 
 In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
 Serve the installed files over HTTP and load the runtime from URLs (adjust

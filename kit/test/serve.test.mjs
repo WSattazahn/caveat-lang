@@ -5,11 +5,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { defaultRuntimeDirectory } from '../lib/node.mjs';
 import { createServer, SERVE_SCHEMA } from '../lib/serve.mjs';
 import { faulty, real, thermostat } from './helpers.mjs';
 
@@ -285,5 +286,57 @@ test('the serve command keeps a state file across runs when asked', async () => 
     const elsewhere = spawnSync(process.execPath, [cli, 'validate', '--state', state, program], { input: '', encoding: 'utf8' });
     assert.equal(elsewhere.status, 2);
     assert.match(elsewhere.stderr, /unknown option --state for validate/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+// A runtime directory for --runtime: the real runtime, except that restoring
+// a save runs out of memory, as a save too large for the runtime's memory
+// does: restore traps, and out_of_memory() then says so.
+async function exhaustingRuntimeDirectory(directory) {
+  const real = defaultRuntimeDirectory();
+  await copyFile(path.join(real, 'caveat_runtime_bg.wasm'), path.join(directory, 'caveat_runtime_bg.wasm'));
+  const realModule = pathToFileURL(path.join(real, 'caveat_runtime.js')).href;
+  await writeFile(path.join(directory, 'caveat_runtime.js'), `// Written by kit/test/serve.test.mjs: the real runtime, whose restore runs out of memory.
+const real = await import(${JSON.stringify(realModule)} + '?exhausting=' + encodeURIComponent(import.meta.url));
+let exhausted = false;
+export class WebReactiveSession extends real.WebReactiveSession {
+  static restore() { exhausted = true; throw new WebAssembly.RuntimeError('unreachable'); }
+  static out_of_memory() { return exhausted; }
+}
+export default function init(args) { return real.default(args); }
+`);
+  return directory;
+}
+
+// D070 review: restore takes a state save of any size, so restoring the
+// state file at start can run the runtime out of memory. The server then
+// opened the program on the trapped runtime and reported that refusal, "this
+// runtime instance trapped; load a fresh one", as a program that does not
+// load.
+test('d070_serve_state_out_of_memory: a state file whose restore runs out of memory is reported as fatal', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-serve-oom-'));
+  try {
+    const program = path.join(directory, 'thermostat.cav');
+    await writeFile(program, thermostat);
+    const session = real.open(thermostat);
+    session.dispatch('read', { value: 17 });
+    const saved = session.save();
+    session.close();
+    const state = path.join(directory, 'thermostat.save');
+    await writeFile(state, saved);
+    const runtime = await exhaustingRuntimeDirectory(await mkdtemp(path.join(directory, 'runtime-')));
+    const result = spawnSync(process.execPath, [cli, 'serve', '--runtime', runtime, '--state', state, program], { input: '', encoding: 'utf8' });
+    assert.equal(result.status, 2, result.stderr);
+    assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), [{
+      schema: 'caveat-serve/0.1',
+      ready: false,
+      error: {
+        kind: 'fatal',
+        message: `the runtime ran out of WebAssembly memory while restoring a save of ${saved.length} characters, `
+          + 'with 0 other session(s) open (trap: unreachable). Restoring a save needs memory that grows with its length. '
+          + 'This runtime instance is now unusable; load it again.',
+      },
+    }]);
+    assert.equal(await readFile(state, 'utf8'), saved, 'the state file is left as it was');
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

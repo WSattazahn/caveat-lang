@@ -332,6 +332,26 @@
             "/commitment_grounds/minor_release@3": { "evidence": ["main_tree@3"], "caveats": [] }
         } }
       ]
+    },
+    {
+      "id": "L10",
+      "title": "Restore's size limit is decided only on the report that it refused saves sessions write, and on the owner's go for 1510 plus the option",
+      "steps": [
+        { "expect": { "/bindings/ledger/restore_size": "undecided" } },
+        { "send": "decide_restore_size", "payload": { "option": 1 }, "rejected": "no report to decide on" },
+        { "send": "report_restore_size" },
+        { "send": "approve", "payload": { "item": 1501 } },
+        { "send": "decide_restore_size", "payload": { "option": 1 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "send": "approve", "payload": { "item": 1512 } },
+        { "send": "decide_restore_size", "payload": { "option": 1 }, "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "expect": { "/bindings/ledger/restore_size": "undecided" } },
+        { "send": "approve", "payload": { "item": 1511 } },
+        { "send": "decide_restore_size", "payload": { "option": 1 } },
+        { "expect": {
+            "/bindings/ledger/restore_size": "restore takes a state save of any size; a host bounds saves it does not trust",
+            "/commitment_grounds/restore_size@1": { "evidence": ["restore_size_report"], "caveats": ["chosen_by_team"] }
+        } }
+      ]
     }
   ]
 }

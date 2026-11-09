@@ -30,10 +30,24 @@ let resumed = ReactiveSession::restore(source, &save)?;
 ```
 
 Restoring costs what loading the program costs plus the size of the save, not
-the length of the game. With the same source and runtime contract, restoring
-the intact save text produced by the runtime preserves the saved session's
-full snapshot and the outcomes and effects of later events. Acceptance of an
-edited save does not promise equivalence to the session before the edit.
+the length of the game. Restore takes a state save of any length, and its time
+and memory grow with the save. Two parts can cost more than their size: a
+decision journal whose causes share caveats (see the D039 entry under
+[Changes](#changes)), and a windowed history's retired records. Restore looks
+each retired record up among the records its history holds, so its time grows
+with the square of the records one history holds: a save holding one history
+at its limit of 65,536 records (14,306,946 bytes) took 12.5 seconds to restore
+in the release WebAssembly runtime, built from dc1ef01f and run under Node
+22.23.4 in a 4-core container at load average 2.9 (the
+[limits](../docs/LIMITS.md) give its memory), and restore does that work again
+for each such history a save holds. A restore that runs out of memory is not
+refused: in WebAssembly it traps the runtime instance and every session on
+it. A host that restores saves from a party it does not trust bounds their
+size itself, as the MCP server does at 2 MiB. With
+the same source and runtime contract, restoring the intact save text produced
+by the runtime preserves the saved session's full snapshot and the outcomes
+and effects of later events. Acceptance of an edited save does not promise
+equivalence to the session before the edit.
 
 ## What a save holds
 
@@ -275,6 +289,16 @@ save is refused with an error, and never crashes the runtime, when:
   any other, past the bound too: a session resumed from an edited save at or
   near the bound plays on, but its saves past the bound are refused.
 
+A state save is not refused for its length. Nothing bounds the save a session
+writes, so restore parses a save of any length, at the cost described at the
+top of this document: time and memory that grow with the save, more for a
+journal whose causes share caveats or a windowed history with many retired
+records, and a trap, not a refusal, when the runtime runs out of memory. A
+host that restores saves from a party it does not trust bounds their size
+before restoring them, as the MCP server does at 2 MiB. A
+[replay save](caveat-replay-save-0.1.md) keeps its bound of 4,096 bytes, since
+the runtime never writes a longer one.
+
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
 current caveats: later qualification does not rewrite history. In a program
@@ -369,6 +393,22 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-08 (D070): restore takes a state save of any length. It refused
+  one longer than 16 MiB (16,777,216 bytes) with "cannot restore save:
+  larger than 16777216 bytes", but nothing bounds the save a session
+  writes, so it refused saves the runtime itself wrote, breaking the promise
+  above that restoring the intact save text the runtime produced preserves
+  the saved session: a program whose states each held a lineage at the
+  provenance limits accepted every event, and its save of 19.4 MB
+  (19,436,363 bytes) was refused. Restore now parses a state save of any
+  length; its time and memory grow with the save, as above, and a save too
+  large for the runtime's memory traps the instance where it was refused
+  before. A host that restores saves from a party it does not trust bounds
+  their size itself, as the MCP server does at 2 MiB. Every save restore
+  accepted before restores as before, and every save it refused for another
+  reason is refused with the same message. A replay save keeps its bound of
+  4,096 bytes.
 
 - 2026-11-08 (D055): restore refuses a save in which the last event's
   reopening of a series names a cause that event could not name, in a
