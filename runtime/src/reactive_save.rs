@@ -1315,6 +1315,18 @@ impl ReactiveSession {
     /// The windowed history a retired record belongs to, as the save holds
     /// it, or None.
     fn history_of_record(&self, save: &ReactiveSave, record: &str) -> Option<String> {
+        self.history_of_record_in(save, None, record)
+    }
+
+    /// `history_of_record`. With `held`, the records each windowed stream
+    /// and renewal holds that `restore_retired` lists, a record is looked up
+    /// there instead of in a scan of the records its history holds (D071).
+    fn history_of_record_in(
+        &self,
+        save: &ReactiveSave,
+        held: Option<&HashMap<&str, (&str, u64)>>,
+        record: &str,
+    ) -> Option<String> {
         // A stream or renewable may be named `journal` when the program has
         // no journal window; load refuses a windowed one beside it.
         if let Some(index) = record
@@ -1332,7 +1344,10 @@ impl ReactiveSession {
         if !self.windows.contains(base) {
             return None;
         }
-        let held = if let Some(stream) = save.reading_streams.get(base) {
+        let held = if let Some(held) = held {
+            held.get(record)
+                .is_some_and(|&(history, _)| history == base)
+        } else if let Some(stream) = save.reading_streams.get(base) {
             stream
                 .occurrences
                 .iter()
@@ -1351,6 +1366,40 @@ impl ReactiveSession {
 
     /// The `retired` map: see spec/caveat-windows-0.1.md, "Save and restore".
     fn restore_retired(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        // Each record a windowed stream or renewal holds in the save, with
+        // its history and, for a stream's occurrence, its sequence (0 for a
+        // renewal's record), listed once, so that each retired record is
+        // looked up here rather than scanned for among the records its
+        // history holds, which took time quadratic in them (D071). A record
+        // is listed only under the history its name gives, the one
+        // `history_of_record` looks in, and of a name listed twice the first
+        // entry stands, as a scan finds it. restore_graph and restore_records
+        // have already refused a save whose stream or renewal lists a record
+        // twice or one of another history, so these two rules only guard
+        // against a change to those checks; the one name listed twice here
+        // is a renewable's own, from `once` and from the start of its
+        // renewals, with the same entry both times.
+        let mut held: HashMap<&str, (&str, u64)> = HashMap::default();
+        for history in self.windows.iter() {
+            let own = |record: &str| {
+                occurrence_parts(record).map_or(record, |(base, _)| base) == history.as_str()
+            };
+            if let Some(stream) = save.reading_streams.get(history) {
+                for occurrence in &stream.occurrences {
+                    if own(occurrence.id.as_str()) {
+                        held.entry(occurrence.id.as_str())
+                            .or_insert((history.as_str(), occurrence.sequence));
+                    }
+                }
+            } else if self.renewals.contains_key(history) {
+                let listed = save.renewals.get(history).into_iter().flatten();
+                for record in std::iter::once(history).chain(listed) {
+                    if own(record.as_str()) {
+                        held.entry(record.as_str()).or_insert((history.as_str(), 0));
+                    }
+                }
+            }
+        }
         let added = |record: &str| -> u64 {
             if let Some(index) = record
                 .strip_prefix("journal@")
@@ -1360,16 +1409,13 @@ impl ReactiveSession {
                 return save.decision_journal[(index - save.journal_departed - 1) as usize]
                     .sequence;
             }
-            let base = occurrence_parts(record).map_or(record, |(base, _)| base);
-            if let Some(stream) = save.reading_streams.get(base) {
-                if let Some(occurrence) = stream.occurrences.iter().find(|o| o.id == record) {
-                    return occurrence.sequence;
-                }
-            }
-            0
+            held.get(record).map_or(0, |&(_, sequence)| sequence)
         };
         for (record, at) in &save.retired {
-            if self.history_of_record(save, record).is_none() {
+            if self
+                .history_of_record_in(save, Some(&held), record)
+                .is_none()
+            {
                 return Err(format!(
                     "retired {record} is no record of a windowed history it holds"
                 ));
@@ -1451,8 +1497,19 @@ impl ReactiveSession {
             .iter()
             .filter(|entry| entry.change == "reopened")
         {
-            for (record, at) in &save.retired {
-                if entry.sequence <= *at || !entry.because.iter().any(|name| name == record) {
+            // The retired records the entry cites, each looked up, in the
+            // retired map's order, which visiting every retired record for
+            // each entry followed: of several faults, the same one is
+            // reported first (D071).
+            let mut cited = entry
+                .because
+                .iter()
+                .filter_map(|name| save.retired.get_key_value(name))
+                .collect::<Vec<_>>();
+            cited.sort_unstable();
+            cited.dedup();
+            for (record, at) in cited {
+                if entry.sequence <= *at {
                     continue;
                 }
                 // A reopening that ends a hold, at a release or when it
@@ -4735,5 +4792,113 @@ mod journal_reach_tests {
         // Nothing reaches a caveat no caveat qualifies, which takes no room.
         assert!(caveats_reaching_root(&qualified_by, &mut reaching, 11).is_empty());
         assert_eq!(reaching.room, 1);
+    }
+}
+
+/// D071: `restore_retired` looks each retired record up in the records each
+/// windowed history holds, listed once, rather than scanning that history's
+/// records for it. A whole restore cannot show this: `restore_records`, which
+/// runs first, checks each occurrence the graph holds against the same list
+/// in time that grows with its square. So this times `restore_retired` alone,
+/// on the save shape of tests/withdrawal_capacity.rs.
+#[cfg(test)]
+mod d071_retired_index_tests {
+    use super::*;
+    use std::time::Duration;
+
+    /// tests/withdrawal_capacity.rs's program: `a` keeps 1 record live, so a
+    /// save that holds N of its records has retired N - 1.
+    const SOURCE: &str = "claim seen;
+evidence a from \"a\"; renewable a window 1;
+event cycle;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle withdraw a because a;
+";
+
+    /// The part of that save `restore_retired` reads, with `held` records.
+    fn save(held: usize) -> ReactiveSave {
+        let mut renewals = vec![serde_json::json!("a")];
+        let mut retired = serde_json::Map::new();
+        retired.insert("a".into(), serde_json::json!(1));
+        for n in 2..=held {
+            let record = format!("a@{n}");
+            renewals.push(serde_json::json!(record));
+            if n < held {
+                retired.insert(record, serde_json::json!(n));
+            }
+        }
+        serde_json::from_value(serde_json::json!({
+            "schema": REACTIVE_SAVE_SCHEMA,
+            "source_id": "",
+            "sequence": held - 1,
+            "states": {},
+            "renewals": {"a": renewals},
+            "retired": retired,
+        }))
+        .unwrap()
+    }
+
+    /// This thread's CPU time, which other processes and threads do not
+    /// advance.
+    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+    fn cpu_time() -> Duration {
+        #[repr(C)]
+        struct Timespec {
+            seconds: std::ffi::c_long,
+            nanoseconds: std::ffi::c_long,
+        }
+        extern "C" {
+            fn clock_gettime(clock: i32, time: *mut Timespec) -> i32;
+        }
+        const CLOCK_THREAD_CPUTIME_ID: i32 = 3;
+        let mut time = Timespec {
+            seconds: 0,
+            nanoseconds: 0,
+        };
+        // SAFETY: clock_gettime writes one timespec through a valid pointer.
+        let status = unsafe { clock_gettime(CLOCK_THREAD_CPUTIME_ID, &mut time) };
+        assert_eq!(status, 0, "clock_gettime");
+        Duration::new(time.seconds as u64, time.nanoseconds as u32)
+    }
+
+    /// Elsewhere, the time since the first call.
+    #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+    fn cpu_time() -> Duration {
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        START.get_or_init(std::time::Instant::now).elapsed()
+    }
+
+    /// Seconds `restore_retired` takes to accept `save`, the least of `runs`.
+    fn time(save: &ReactiveSave, runs: usize) -> f64 {
+        (0..runs)
+            .map(|_| {
+                let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+                let start = cpu_time();
+                session.restore_retired(save).unwrap();
+                (cpu_time() - start).as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min)
+    }
+
+    /// 32 times the records: about 32 times as long when each is looked up,
+    /// up to 1,024 times when each is scanned for.
+    #[test]
+    fn d071_retired_records_are_looked_up_not_scanned() {
+        const SMALL: usize = 1_024;
+        const LARGE: usize = 32_768;
+        const BOUND: f64 = 4.0 * (LARGE / SMALL) as f64;
+        let small = time(&save(SMALL), 5);
+        let large = time(&save(LARGE), 3);
+        let ratio = large / small;
+        eprintln!(
+            "restore_retired: {SMALL} records {:.2} ms, {LARGE} records {:.2} ms, ratio {ratio:.1}, bound {BOUND}",
+            small * 1e3,
+            large * 1e3
+        );
+        assert!(
+            ratio < BOUND,
+            "restore_retired took {ratio:.1} times as long for {LARGE} records as for {SMALL}"
+        );
     }
 }

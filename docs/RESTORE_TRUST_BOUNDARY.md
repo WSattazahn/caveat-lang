@@ -22,7 +22,7 @@ that the saved account is reachable through a complete historical event sequence
 | Current values | Present states are declared, finite and in range; grounds fit lineage | Preserve the saved delta; omitted entries deliberately retain source initialization |
 | Historical decisions | Journal, bases, grounds, revisions and graph agree under the documented checks; selected event/effect reachability is checked | Establish that the recorded inputs, guard outcomes and permissions actually occurred |
 | Persistence | The runtime's original save text preserves numeric values, including signed zero | Store and return that string intact; define ownership, integrity and freshness requirements |
-| Size | None: restore takes a state save of any length, and its time and memory grow with the save, faster for a long journal or a windowed history with many retired records (D070). A restore that runs out of WebAssembly memory traps the instance and every session on it; it is not a refusal | Bound the size of a save from a party the host does not trust before restoring it, as the MCP server does at 2 MiB |
+| Size | None: restore takes a state save of any length (D070), and its time and memory grow with the save, faster in the steps the save contract lists, among them a decision journal whose causes share caveats (D039) and a windowed history that holds many records (D071). A restore that runs out of WebAssembly memory traps the instance and every session on it; it is not a refusal | Bound the size of a save from a party the host does not trust before restoring it, as the MCP server does at 2 MiB |
 
 The implementation is in [reactive_save.rs](../runtime/src/reactive_save.rs):
 `restore_json`, `apply_save`, `restore_graph`, `restore_states` and
