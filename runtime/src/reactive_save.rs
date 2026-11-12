@@ -222,10 +222,11 @@ impl<'de> Deserialize<'de> for Compact {
     }
 }
 
-fn compact_map(records: &BTreeMap<String, Provenance>) -> BTreeMap<String, Compact> {
+fn compact_map<'a>(
+    records: impl Iterator<Item = (&'a str, &'a Provenance)>,
+) -> BTreeMap<String, Compact> {
     records
-        .iter()
-        .map(|(name, provenance)| (name.clone(), provenance.into()))
+        .map(|(name, provenance)| (name.to_string(), provenance.into()))
         .collect()
 }
 
@@ -234,6 +235,16 @@ fn full_map(records: &BTreeMap<String, Compact>) -> BTreeMap<String, Provenance>
         .iter()
         .map(|(name, compact)| (name.clone(), compact.0.clone()))
         .collect()
+}
+
+/// `full_map`, into the records a session keeps by name.
+fn full_records(records: &BTreeMap<String, Compact>) -> NamedRecords<Provenance> {
+    NamedRecords::new(
+        records
+            .iter()
+            .map(|(name, compact)| (name.clone(), compact.0.clone()))
+            .collect(),
+    )
 }
 
 /// What events did to the graph since the program loaded, and the attention
@@ -758,8 +769,7 @@ impl ReactiveSession {
             .graph
             .nodes
             .keys()
-            .filter(|id| **id > self.loaded.last_node)
-            .copied()
+            .filter(|id| *id > self.loaded.last_node)
             .collect::<Vec<_>>();
         created.sort_unstable();
         let mut nodes = Vec::new();
@@ -789,9 +799,9 @@ impl ReactiveSession {
                 NodeKind::Caveat {
                     attention: state, ..
                 } if *state != Attention::Unexamined => {
-                    attention.insert(name_of(id)?, attention_name(*state).into());
+                    attention.insert(name_of(&id)?, attention_name(*state).into());
                 }
-                NodeKind::Commitment { open: true, .. } => open.push(name_of(id)?),
+                NodeKind::Commitment { open: true, .. } => open.push(name_of(&id)?),
                 _ => {}
             }
         }
@@ -867,13 +877,18 @@ impl ReactiveSession {
             commitment_permissions: (*self.commitment_permissions).clone(),
             retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
-            observation_qualifications: compact_map(&self.observation_qualifications),
-            examination_qualifications: compact_map(&self.examination_qualifications),
-            reopening_qualifications: compact_map(&self.reopening_qualifications),
+            observation_qualifications: compact_map(self.observation_qualifications.iter()),
+            examination_qualifications: compact_map(self.examination_qualifications.iter()),
+            reopening_qualifications: compact_map(self.reopening_qualifications.iter()),
             predicate_qualifications: self
                 .predicate_qualifications
                 .iter()
-                .map(|(kind, targets)| (kind.clone(), compact_map(targets)))
+                .map(|(kind, targets)| {
+                    let records = targets
+                        .iter()
+                        .map(|(name, provenance)| (name.as_str(), provenance));
+                    (kind.clone(), compact_map(records))
+                })
                 .collect(),
             decision_journal: self.journal.to_vec(),
             retired: (*self.retired).clone(),
@@ -3691,9 +3706,9 @@ impl ReactiveSession {
             renewals.get_mut(name).expect("checked above").occurrences = occurrences.clone();
         }
         self.scheduled = Arc::new(save.scheduled_qualifications.clone());
-        self.observation_qualifications = Records::new(full_map(&save.observation_qualifications));
-        self.examination_qualifications = Records::new(full_map(&save.examination_qualifications));
-        self.reopening_qualifications = Records::new(full_map(&save.reopening_qualifications));
+        self.observation_qualifications = full_records(&save.observation_qualifications);
+        self.examination_qualifications = full_records(&save.examination_qualifications);
+        self.reopening_qualifications = full_records(&save.reopening_qualifications);
         self.predicate_qualifications = Arc::new(
             save.predicate_qualifications
                 .iter()

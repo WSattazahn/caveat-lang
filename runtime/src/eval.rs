@@ -1,5 +1,6 @@
 use crate::ast::{ConditionalAction, Program, Statement};
 use crate::fast_hash::HashMap;
+use crate::idmap::IdMap;
 use crate::{Attention, Edge, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -11,7 +12,7 @@ pub struct ResourceLedger {
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EpistemicSnapshot {
-    pub nodes: HashMap<NodeId, NodeKind>,
+    pub nodes: IdMap<NodeKind>,
     pub edges: Vec<Edge>,
     pub resources: Option<ResourceLedger>,
 }

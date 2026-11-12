@@ -191,7 +191,7 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::{NameTable, Records, Same, Sealed, SealedGraph};
+use write::{Logged, NameTable, NamedRecords, RecordMap, Records, Same, Sealed, SealedGraph};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1768,13 +1768,16 @@ impl Changes {
         let mut changed = BTreeSet::new();
         // Keyed records: every changed key must place in a history. Only the
         // records the event wrote can differ, when its log says which.
-        fn keyed<V: Same>(
-            old: &Records<V>,
-            new: &Records<V>,
+        fn keyed<M: RecordMap>(
+            old: &Logged<M>,
+            new: &Logged<M>,
             added_only: bool,
             place: &dyn Fn(&str) -> Option<String>,
             changed: &mut BTreeSet<String>,
-        ) -> Option<()> {
+        ) -> Option<()>
+        where
+            M::Value: Same,
+        {
             #[cfg(debug_assertions)]
             if new.written().is_some() {
                 let (mut logged, mut every) = (BTreeSet::new(), BTreeSet::new());
@@ -1790,16 +1793,19 @@ impl Changes {
         // Adds to `changed` where the records of `written` changed, or of
         // every name when `None`; `None` if one was removed, one that may
         // only be added to changed, or one changed that does not place.
-        fn places<V: Same>(
-            old: &Records<V>,
-            new: &Records<V>,
+        fn places<M: RecordMap>(
+            old: &Logged<M>,
+            new: &Logged<M>,
             written: Option<&BTreeSet<String>>,
             added_only: bool,
             place: &dyn Fn(&str) -> Option<String>,
             changed: &mut BTreeSet<String>,
-        ) -> Option<()> {
-            let mut check = |name: &str, value: Option<&V>| -> Option<()> {
-                match (old.get(name), value) {
+        ) -> Option<()>
+        where
+            M::Value: Same,
+        {
+            let mut check = |name: &str, value: Option<&M::Value>| -> Option<()> {
+                match (old.record(name), value) {
                     (Some(previous), Some(value)) if previous.same(value) => {}
                     (None, None) => {}
                     (Some(_), None) => return None,
@@ -1813,14 +1819,14 @@ impl Changes {
             match written {
                 Some(written) => {
                     for name in written {
-                        check(name, new.get(name))?;
+                        check(name, new.record(name))?;
                     }
                 }
                 None => {
-                    if old.keys().any(|key| !new.contains_key(key)) {
+                    if old.records().any(|(name, _)| new.record(name).is_none()) {
                         return None;
                     }
-                    for (name, value) in new.iter() {
+                    for (name, value) in new.records() {
                         check(name, Some(value))?;
                     }
                 }
@@ -2424,9 +2430,9 @@ pub struct ReactiveSession {
     /// The graph as the program declared it: events add nodes after
     /// `last_node` and edges after `edges`.
     loaded: LoadedGraph,
-    observation_qualifications: Records<Provenance>,
-    examination_qualifications: Records<Provenance>,
-    reopening_qualifications: Records<Provenance>,
+    observation_qualifications: NamedRecords<Provenance>,
+    examination_qualifications: NamedRecords<Provenance>,
+    reopening_qualifications: NamedRecords<Provenance>,
     predicate_qualifications: Arc<BTreeMap<String, BTreeMap<String, Provenance>>>,
     // Fixed at load and shared by every transaction.
     ranges: Arc<BTreeMap<String, StateRange>>,
@@ -2722,9 +2728,9 @@ impl ReactiveSession {
             elapsed: 0.0,
             time_event: None,
             loaded: LoadedGraph::default(),
-            observation_qualifications: Records::default(),
-            examination_qualifications: Records::default(),
-            reopening_qualifications: Records::default(),
+            observation_qualifications: NamedRecords::default(),
+            examination_qualifications: NamedRecords::default(),
+            reopening_qualifications: NamedRecords::default(),
             predicate_qualifications: Arc::default(),
             ranges: Arc::new(BTreeMap::new()),
             constants: Arc::new(constants),
@@ -3310,7 +3316,7 @@ impl ReactiveSession {
             .collect();
         session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
-            last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
+            last_node: session.graph.nodes.keys().max().unwrap_or(0),
             edges: session.graph.edges.len(),
             states: Arc::clone(&session.states.cells),
         };
@@ -5233,15 +5239,18 @@ impl ReactiveSession {
     /// Adds `guard` to `records`' record for `name`, as `merge_predicate_record`
     /// does for a predicate's.
     fn merge_record(
-        records: &mut Records<Provenance>,
+        records: &mut NamedRecords<Provenance>,
         name: &str,
         guard: &Provenance,
     ) -> Result<(), EvalError> {
         let Some(record) = records.get(name) else {
-            return records.entry(name.to_string()).or_default().merge(guard);
+            // The record is there, empty, before the merge that may fail.
+            records.insert(name.to_string(), Provenance::default());
+            return records.get_mut(name).expect("just added").merge(guard);
         };
         if let Some(merged) = record.merged(guard)? {
-            *records.get_mut(name).expect("found above") = merged;
+            let replaced = records.replace(name, merged);
+            assert!(replaced, "found above");
         }
         Ok(())
     }
@@ -5256,10 +5265,12 @@ impl ReactiveSession {
     }
 
     /// Writes each of `merged` over its record in `records`, copying a
-    /// shared map only when there is something to write.
-    fn replace_records(records: &mut Records<Provenance>, merged: Vec<(String, Provenance)>) {
+    /// shared map only when there is something to write, and no record that
+    /// is written over.
+    fn replace_records(records: &mut NamedRecords<Provenance>, merged: Vec<(String, Provenance)>) {
         for (name, lineage) in merged {
-            *records.get_mut(&name).expect("listed above") = lineage;
+            let replaced = records.replace(&name, lineage);
+            assert!(replaced, "listed above");
         }
     }
 
@@ -8258,13 +8269,13 @@ impl ReactiveSession {
             .observation_qualifications
             .iter()
             .filter(|(_, lineage)| unkept(lineage))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name.to_string())
             .collect::<Vec<_>>();
         let examinations = self
             .examination_qualifications
             .iter()
             .filter(|(_, lineage)| unkept(lineage))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name.to_string())
             .collect::<Vec<_>>();
         let predicates = self
             .predicate_qualifications
@@ -8421,7 +8432,7 @@ impl ReactiveSession {
             for (name, record) in self.observation_qualifications.iter() {
                 if listed(record) {
                     if let Some(merged) = record.merged(&lineage)? {
-                        observations.push((name.clone(), merged));
+                        observations.push((name.to_string(), merged));
                     }
                     change(name);
                 }
@@ -8430,7 +8441,7 @@ impl ReactiveSession {
             for (name, record) in self.examination_qualifications.iter() {
                 if listed(record) {
                     if let Some(merged) = record.merged(&lineage)? {
-                        examinations.push((name.clone(), merged));
+                        examinations.push((name.to_string(), merged));
                     }
                     change(name);
                 }
@@ -9525,9 +9536,9 @@ impl ReactiveSession {
             decision_series: (**self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),
-            observation_qualifications: (**self.observation_qualifications).clone(),
-            examination_qualifications: (**self.examination_qualifications).clone(),
-            reopening_qualifications: (**self.reopening_qualifications).clone(),
+            observation_qualifications: self.observation_qualifications.to_map(),
+            examination_qualifications: self.examination_qualifications.to_map(),
+            reopening_qualifications: self.reopening_qualifications.to_map(),
             predicate_qualifications: (*self.predicate_qualifications).clone(),
             controls: (*self.controls).clone(),
             clock: self.clock.clone(),

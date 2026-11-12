@@ -979,10 +979,7 @@ impl ReactiveSession {
             &self.examination_qualifications,
             &self.reopening_qualifications,
         ] {
-            owners.extend(
-                map.keys()
-                    .map(|name| CollectorOwner::Record(name.as_str().into())),
-            );
+            owners.extend(map.keys().map(|name| CollectorOwner::Record(name.into())));
         }
         for targets in self.predicate_qualifications.values() {
             owners.extend(

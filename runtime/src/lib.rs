@@ -5,9 +5,11 @@ pub mod chunked;
 pub mod eval;
 pub mod game_session;
 pub mod graphics;
+pub mod idmap;
 pub mod link;
 mod load_diagnostics;
 pub mod map;
+pub mod ordmap;
 pub mod parser;
 pub mod presentation;
 pub mod reactive;
@@ -26,7 +28,8 @@ pub mod web_source_library;
 pub mod world3d;
 
 pub mod fast_hash;
-use crate::fast_hash::{HashMap, HashSet};
+use crate::fast_hash::HashSet;
+use crate::idmap::IdMap;
 use std::collections::VecDeque;
 
 pub type NodeId = u64;
@@ -117,14 +120,14 @@ pub struct QualificationImpact {
 #[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
-    pub nodes: HashMap<NodeId, NodeKind>,
+    pub nodes: IdMap<NodeKind>,
     pub edges: Vec<Edge>,
     /// The part whose declarations are being read right now.
     authoring: Option<String>,
     /// Which part declared each node. A program with no `origin` statement
     /// records nothing rather than guessing, so "unattributed" is visible
     /// instead of being filled in with a default.
-    pub origins: HashMap<NodeId, String>,
+    pub origins: IdMap<String>,
 }
 
 impl EpistemicGraph {

@@ -9,11 +9,12 @@
 //! and an index kept inside its container, as the names keep theirs by node
 //! (`NameTable`), moves with it.
 //!
-//! The graph and the session's keyed records (`Records`) also log what an
+//! The graph and the session's keyed records (`Logged`) also log what an
 //! event writes to them, from the start of the event until `Changes` has
 //! read what it changed, so that check reads only what the event wrote.
 use super::relations::{Departed, Link, List, Relations};
 use super::*;
+use crate::ordmap::OrdMap;
 use crate::Edge;
 use std::fmt;
 use std::ops::Deref;
@@ -275,10 +276,10 @@ fn added<'a>(
             }
         }
         None => {
-            if old.nodes.keys().any(|id| !new.nodes.contains_key(id)) {
+            if old.nodes.keys().any(|id| !new.nodes.contains_key(&id)) {
                 return None;
             }
-            for &id in new.nodes.keys() {
+            for id in new.nodes.keys() {
                 check(id)?;
             }
         }
@@ -295,7 +296,7 @@ impl Deref for SealedGraph {
 }
 
 /// A copy shares the graph and its relation lists but not the log, as a
-/// copy of `Records` does.
+/// copy of `Logged` does.
 impl Clone for SealedGraph {
     fn clone(&self) -> Self {
         Self {
@@ -490,9 +491,181 @@ impl NodeNames {
 /// write it, and each says which record it writes, so after an event
 /// `Changes` compares only the records the event wrote, where it compared
 /// every record of the kind before.
-pub(super) struct Records<V> {
-    map: Arc<BTreeMap<String, V>>,
+pub(super) struct Logged<M> {
+    map: Arc<M>,
     written: Written<String>,
+}
+
+/// Records in the standard ordered map, which the first write of an event
+/// copies whole. The views read these maps too.
+pub(super) type Records<V> = Logged<BTreeMap<String, V>>;
+
+/// Records in a map that the first write of an event copies only on the way
+/// down to its record (`Named`).
+pub(super) type NamedRecords<V> = Logged<Named<V>>;
+
+/// What `Logged` asks of the map it keeps its records in.
+pub(super) trait RecordMap: Clone + Default {
+    type Value;
+
+    /// How many records the map holds.
+    fn count(&self) -> usize;
+    fn record(&self, name: &str) -> Option<&Self::Value>;
+    fn record_mut(&mut self, name: &str) -> Option<&mut Self::Value>;
+    /// Puts `value` at `name`, and says whether a record was there.
+    fn put(&mut self, name: String, value: Self::Value) -> bool;
+    /// Takes the record `name` out, and says whether there was one.
+    fn take(&mut self, name: &str) -> bool;
+    /// Every record with its name, in the order of the names.
+    fn records(&self) -> impl Iterator<Item = (&str, &Self::Value)>;
+}
+
+impl<V: Clone> RecordMap for BTreeMap<String, V> {
+    type Value = V;
+
+    fn count(&self) -> usize {
+        self.len()
+    }
+
+    fn record(&self, name: &str) -> Option<&V> {
+        self.get(name)
+    }
+
+    fn record_mut(&mut self, name: &str) -> Option<&mut V> {
+        self.get_mut(name)
+    }
+
+    fn put(&mut self, name: String, value: V) -> bool {
+        self.insert(name, value).is_some()
+    }
+
+    fn take(&mut self, name: &str) -> bool {
+        self.remove(name).is_some()
+    }
+
+    fn records(&self) -> impl Iterator<Item = (&str, &V)> {
+        self.iter().map(|(name, value)| (name.as_str(), value))
+    }
+}
+
+/// Records by name in a map that a copy shares whole and a write copies only
+/// on the way down to its record (`OrdMap`), where the standard ordered map
+/// is copied name by name and record by record. A name is kept as shared
+/// text, so a copied block copies none. It reads as the ordered map it
+/// stands in for, with each name as a `&str`.
+pub(super) struct Named<V>(OrdMap<Arc<str>, V>);
+
+impl<V> Clone for Named<V> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<V> Default for Named<V> {
+    fn default() -> Self {
+        Self(OrdMap::new())
+    }
+}
+
+impl<V> Named<V> {
+    #[cfg(test)]
+    pub(super) fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[cfg(test)]
+    pub(super) fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub(super) fn get(&self, name: &str) -> Option<&V> {
+        self.0.get(name)
+    }
+
+    /// Every record with its name, in the order of the names.
+    pub(super) fn iter(&self) -> impl Iterator<Item = (&str, &V)> {
+        self.0.iter().map(|(name, value)| (&**name, value))
+    }
+
+    pub(super) fn keys(&self) -> impl Iterator<Item = &str> {
+        self.0.keys().map(|name| &**name)
+    }
+
+    pub(super) fn values(&self) -> impl Iterator<Item = &V> {
+        self.0.values()
+    }
+}
+
+impl<V: Clone> Named<V> {
+    /// The records in a standard ordered map, for what is handed out whole.
+    pub(super) fn to_map(&self) -> BTreeMap<String, V> {
+        self.iter()
+            .map(|(name, value)| (name.to_string(), value.clone()))
+            .collect()
+    }
+}
+
+impl<V: Clone> FromIterator<(String, V)> for Named<V> {
+    fn from_iter<I: IntoIterator<Item = (String, V)>>(records: I) -> Self {
+        Self(
+            records
+                .into_iter()
+                .map(|(name, value)| (Arc::from(name), value))
+                .collect(),
+        )
+    }
+}
+
+impl<V> std::ops::Index<&str> for Named<V> {
+    type Output = V;
+
+    fn index(&self, name: &str) -> &V {
+        self.get(name).expect("no record of this name")
+    }
+}
+
+/// Prints what the ordered map printed, so a session's debug output is
+/// unchanged.
+impl<V: fmt::Debug> fmt::Debug for Named<V> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl<V: Clone> RecordMap for Named<V> {
+    type Value = V;
+
+    fn count(&self) -> usize {
+        self.0.len()
+    }
+
+    fn record(&self, name: &str) -> Option<&V> {
+        self.0.get(name)
+    }
+
+    fn record_mut(&mut self, name: &str) -> Option<&mut V> {
+        self.0.get_mut(name)
+    }
+
+    /// A name the map holds already keeps its text. The record replaced is
+    /// dropped as the map held it, so one a copy shares is not copied.
+    fn put(&mut self, name: String, value: V) -> bool {
+        self.0
+            .insert_by(
+                |held| (**held).cmp(name.as_str()),
+                || Arc::from(name.as_str()),
+                value,
+            )
+            .is_some()
+    }
+
+    fn take(&mut self, name: &str) -> bool {
+        self.0.remove(name).is_some()
+    }
+
+    fn records(&self) -> impl Iterator<Item = (&str, &V)> {
+        self.iter()
+    }
 }
 
 /// What an event wrote to one container.
@@ -562,11 +735,14 @@ fn same_record<V: Same>(new: Option<&V>, old: Option<&V>) -> bool {
 }
 
 /// Whether two maps hold the same records by the same names.
-fn same_records<V: Same>(new: &BTreeMap<String, V>, old: &BTreeMap<String, V>) -> bool {
-    new.len() == old.len()
+fn same_records<M: RecordMap>(new: &M, old: &M) -> bool
+where
+    M::Value: Same,
+{
+    new.count() == old.count()
         && new
-            .iter()
-            .zip(old)
+            .records()
+            .zip(old.records())
             .all(|((name, new), (other, old))| name == other && new.same(old))
 }
 
@@ -647,8 +823,8 @@ impl Written<String> {
     }
 }
 
-impl<V> Records<V> {
-    pub(super) fn new(map: BTreeMap<String, V>) -> Self {
+impl<M: RecordMap> Logged<M> {
+    pub(super) fn new(map: M) -> Self {
         Self {
             map: Arc::new(map),
             written: Written::Any,
@@ -673,38 +849,47 @@ impl<V> Records<V> {
     }
 
     fn note(&mut self, name: &str) {
-        self.written.note(name, self.map.len());
+        self.written.note(name, self.map.count());
     }
-}
 
-impl<V: Clone> Records<V> {
-    pub(super) fn insert(&mut self, name: String, value: V) -> Option<V> {
+    /// Puts `value` at `name`, and says whether a record was there.
+    pub(super) fn insert(&mut self, name: String, value: M::Value) -> bool {
         self.note(&name);
-        Arc::make_mut(&mut self.map).insert(name, value)
+        Arc::make_mut(&mut self.map).put(name, value)
     }
 
-    /// The record `name`, to write, if there is one. Copies the map first
-    /// when another session shares it.
-    pub(super) fn get_mut(&mut self, name: &str) -> Option<&mut V> {
-        let records = self.map.len();
-        let record = Arc::make_mut(&mut self.map).get_mut(name)?;
+    /// The record `name`, to write, if there is one. Copies first what the
+    /// map copies to be written, when another session shares it.
+    pub(super) fn get_mut(&mut self, name: &str) -> Option<&mut M::Value> {
+        let records = self.map.count();
+        let record = Arc::make_mut(&mut self.map).record_mut(name)?;
         self.written.note(name, records);
         Some(record)
     }
 
-    pub(super) fn entry(
-        &mut self,
-        name: String,
-    ) -> std::collections::btree_map::Entry<'_, String, V> {
-        self.note(&name);
-        Arc::make_mut(&mut self.map).entry(name)
-    }
-
-    pub(super) fn remove(&mut self, name: &str) -> Option<V> {
+    /// Takes the record `name` out, and says whether there was one.
+    pub(super) fn remove(&mut self, name: &str) -> bool {
         self.note(name);
-        Arc::make_mut(&mut self.map).remove(name)
+        Arc::make_mut(&mut self.map).take(name)
     }
+}
 
+impl<V: Clone> NamedRecords<V> {
+    /// Writes `value` over the record `name`, if there is one, and says
+    /// whether there is. The record it replaces is not read, so a map that
+    /// shares it with another session copies none of it, where `get_mut`
+    /// copies the record to hand it out.
+    pub(super) fn replace(&mut self, name: &str, value: V) -> bool {
+        let records = self.map.count();
+        let replaced = Arc::make_mut(&mut self.map).0.replace(name, value);
+        if replaced {
+            self.written.note(name, records);
+        }
+        replaced
+    }
+}
+
+impl<V: Clone> Records<V> {
     /// The whole map, to write any of it: the log no longer says which
     /// records changed.
     pub(super) fn make_mut(&mut self) -> &mut BTreeMap<String, V> {
@@ -713,7 +898,10 @@ impl<V: Clone> Records<V> {
     }
 }
 
-impl<V: Same> Records<V> {
+impl<M: RecordMap> Logged<M>
+where
+    M::Value: Same,
+{
     /// Whether these are the records `old` holds, where `old` is the session
     /// this event began from: only the records it wrote can differ, when its
     /// log says which.
@@ -728,29 +916,29 @@ impl<V: Same> Records<V> {
         let unchanged = match self.written.only() {
             Some(names) => names
                 .iter()
-                .all(|name| same_record(self.map.get(name), old.map.get(name))),
-            None => same_records(&self.map, &old.map),
+                .all(|name| same_record(self.map.record(name), old.map.record(name))),
+            None => same_records(&*self.map, &*old.map),
         };
         debug_assert_eq!(
             unchanged,
-            same_records(&self.map, &old.map),
+            same_records(&*self.map, &*old.map),
             "an event wrote a record its log does not name"
         );
         unchanged
     }
 }
 
-impl<V> Deref for Records<V> {
-    type Target = Arc<BTreeMap<String, V>>;
+impl<M> Deref for Logged<M> {
+    type Target = Arc<M>;
 
-    fn deref(&self) -> &Arc<BTreeMap<String, V>> {
+    fn deref(&self) -> &Arc<M> {
         &self.map
     }
 }
 
 /// A copy shares the records but not the log: nothing says what was
 /// written to it, so any record may have changed.
-impl<V> Clone for Records<V> {
+impl<M> Clone for Logged<M> {
     fn clone(&self) -> Self {
         Self {
             map: Arc::clone(&self.map),
@@ -759,15 +947,15 @@ impl<V> Clone for Records<V> {
     }
 }
 
-impl<V> Default for Records<V> {
+impl<M: RecordMap> Default for Logged<M> {
     fn default() -> Self {
-        Self::new(BTreeMap::new())
+        Self::new(M::default())
     }
 }
 
 /// Prints what the map's `Arc` printed, so a session's debug output is
 /// unchanged.
-impl<V: fmt::Debug> fmt::Debug for Records<V> {
+impl<M: fmt::Debug> fmt::Debug for Logged<M> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.map.fmt(formatter)
     }
@@ -1131,7 +1319,7 @@ mod tests {
         *records.get_mut("a").unwrap() = 10;
         records.insert(String::from("d"), 4);
         records.remove("b");
-        *records.entry(String::from("e")).or_default() += 5;
+        records.insert(String::from("e"), 5);
         assert_eq!(written(&records), Some(vec!["a", "b", "d", "e"]));
         assert!(!records.unchanged_since(&before));
         // The copy taken before the event is untouched.
@@ -1433,6 +1621,48 @@ bind h.few = latest(few) when has_sample(few);
     }
 
     #[test]
+    fn a_graph_write_copies_the_node_it_writes_and_no_other() {
+        let before = logged_program(
+            "claim ok;\ncaveat c consequence low;\nevidence e from \"tool\";\n\
+             decisions d limit 2;\nevent decide;\non decide commit d because enough using 1;\n",
+        );
+        let mut session = before.clone();
+        let c = session.symbols["c"];
+        session.set_node_attention(c, Attention::Examined);
+        let added = session.add_named_caveat(String::from("late"), "late", Consequence::Low);
+        let commitment = session.commit_named(String::from("d@1"), &[], StopReason::Enough);
+        assert!(!Arc::ptr_eq(&before.graph, &session.graph));
+        assert_eq!(session.graph.nodes.len(), before.graph.nodes.len() + 2);
+        // Every node the session began with is still the one `before` holds,
+        // but for the caveat written; the two added are the session's alone.
+        for (id, node) in &before.graph.nodes {
+            assert_eq!(
+                std::ptr::eq(node, &session.graph.nodes[&id]),
+                id != c,
+                "node {id}"
+            );
+        }
+        assert!(!before.graph.nodes.contains_key(&added));
+        assert!(!before.graph.nodes.contains_key(&commitment));
+        assert!(matches!(
+            before.graph.nodes[&c],
+            NodeKind::Caveat {
+                attention: Attention::Unexamined,
+                ..
+            }
+        ));
+        // Departure takes nodes out of the session's graph and leaves them
+        // in the copy.
+        let departing = HashMap::from_iter([(added, String::from("late"))]);
+        session.depart_records(&departing, |_, _, _| {});
+        assert!(!session.graph.nodes.contains_key(&added));
+        assert_eq!(session.graph.nodes.len(), before.graph.nodes.len() + 1);
+        for (id, node) in &before.graph.nodes {
+            assert_eq!(std::ptr::eq(node, &session.graph.nodes[&id]), id != c);
+        }
+    }
+
+    #[test]
     fn an_event_logs_every_container_from_before_its_first_rule() {
         let mut session = ReactiveSession::from_source(
             "claim ok;\nevidence e from \"tool\";\nstate a = 0;\nevent see v min 0 max 1;\n\
@@ -1538,6 +1768,185 @@ bind h.few = latest(few) when has_sample(few);
         let arc = Arc::new(BTreeMap::from([(String::from("a"), 1)]));
         assert_eq!(format!("{records:?}"), format!("{arc:?}"));
         assert_eq!(format!("{records:#?}"), format!("{arc:#?}"));
+        let named: NamedRecords<u32> =
+            NamedRecords::new([(String::from("a"), 1)].into_iter().collect());
+        assert_eq!(format!("{named:?}"), format!("{arc:?}"));
+        assert_eq!(format!("{named:#?}"), format!("{arc:#?}"));
+    }
+
+    /// The records of `map`, as `(name, value)` pairs in the order held.
+    fn held<M: RecordMap<Value = u32>>(records: &Logged<M>) -> Vec<(String, u32)> {
+        records
+            .records()
+            .map(|(name, value)| (name.to_string(), *value))
+            .collect()
+    }
+
+    #[test]
+    fn named_records_answer_and_log_as_records_do() {
+        // The same writes to both kinds, event after event, each beside the
+        // copy its event began from.
+        let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+        let mut below = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        for names in [3, 40, 400] {
+            let start: Vec<(String, u32)> = (0..names / 2).map(|n| (format!("r{n}"), n)).collect();
+            let mut plain: Records<u32> = Records::new(start.iter().cloned().collect());
+            let mut named: NamedRecords<u32> = NamedRecords::new(start.into_iter().collect());
+            let (mut plain_before, mut named_before) = (plain.clone(), named.clone());
+            for step in 0..4_000 {
+                let name = format!("r{}", below(names as u64));
+                match below(16) {
+                    0 => {
+                        plain.end();
+                        named.end();
+                    }
+                    1 => {
+                        (plain_before, named_before) = (plain.clone(), named.clone());
+                        plain.begin();
+                        named.begin();
+                    }
+                    2..=6 => {
+                        assert_eq!(
+                            plain.insert(name.clone(), step),
+                            named.insert(name.clone(), step)
+                        );
+                    }
+                    7..=9 => assert_eq!(plain.remove(&name), named.remove(&name)),
+                    10..=12 => {
+                        let wrote = |record: Option<&mut u32>| {
+                            record.map(|value| {
+                                *value += 1;
+                                *value
+                            })
+                        };
+                        assert_eq!(wrote(plain.get_mut(&name)), wrote(named.get_mut(&name)));
+                    }
+                    13 => {
+                        let wrote = plain.get_mut(&name).map(|value| *value = step).is_some();
+                        assert_eq!(named.replace(&name, step), wrote);
+                    }
+                    _ => {
+                        assert_eq!(plain.get(&name), named.get(&name));
+                        assert_eq!(plain.contains_key(&name), named.get(&name).is_some());
+                    }
+                }
+                assert_eq!(plain.written(), named.written());
+                assert_eq!(
+                    plain.unchanged_since(&plain_before),
+                    named.unchanged_since(&named_before)
+                );
+                assert_eq!(plain.len(), named.len());
+                assert_eq!(plain.is_empty(), named.is_empty());
+                if step % 97 == 0 {
+                    assert_eq!(held(&plain), held(&named));
+                    assert_eq!(held(&plain_before), held(&named_before));
+                    assert!(named.keys().eq(plain.keys().map(String::as_str)));
+                    assert!(named.values().eq(plain.values()));
+                    assert_eq!(named.to_map(), **plain);
+                }
+            }
+            assert_eq!(held(&plain), held(&named));
+            assert_eq!(held(&plain_before), held(&named_before));
+        }
+    }
+
+    #[test]
+    fn a_write_to_named_records_copies_the_record_it_writes_and_no_other() {
+        static COPIES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        #[derive(Debug, PartialEq)]
+        struct Counted(u32);
+        impl Clone for Counted {
+            fn clone(&self) -> Self {
+                COPIES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                Counted(self.0)
+            }
+        }
+        impl Same for Counted {
+            fn same(&self, other: &Self) -> bool {
+                self == other
+            }
+        }
+        let copies = || COPIES.load(std::sync::atomic::Ordering::Relaxed);
+        let before: NamedRecords<Counted> = NamedRecords::new(
+            (0..1_000)
+                .map(|n| (format!("r{n:04}"), Counted(n)))
+                .collect(),
+        );
+        let made = copies();
+        let mut records = before.clone();
+        records.begin();
+        // A record that is not there copies nothing.
+        assert!(records.get_mut("absent").is_none());
+        assert!(!records.remove("absent"));
+        assert!(!records.replace("absent", Counted(0)));
+        assert_eq!(copies(), made);
+        assert!(records.unchanged_since(&before));
+        // Writing one record copies that record alone.
+        records.get_mut("r0500").unwrap().0 = 0;
+        assert_eq!(copies(), made + 1);
+        records.get_mut("r0500").unwrap().0 = 1;
+        assert_eq!(copies(), made + 1);
+        // Writing over one copies none, and says which it wrote.
+        assert!(records.replace("r0600", Counted(9)));
+        assert_eq!(copies(), made + 1);
+        assert_eq!(before["r0600"], Counted(600));
+        assert_eq!(records["r0600"], Counted(9));
+        let written = records.written().expect("so few writes are logged");
+        assert!(written.contains("r0600"));
+        // Adding, replacing and removing beside it copies none.
+        assert!(!records.insert(String::from("r0500a"), Counted(7)));
+        assert!(records.insert(String::from("r0501"), Counted(8)));
+        assert!(records.remove("r0499"));
+        assert_eq!(
+            copies(),
+            made + 1,
+            "what is replaced or removed is not copied"
+        );
+        assert!(!records.unchanged_since(&before));
+        assert_eq!(before.len(), 1_000);
+        assert_eq!(before["r0500"], Counted(500));
+        assert_eq!(before["r0501"], Counted(501));
+        assert_eq!(before["r0499"], Counted(499));
+        assert_eq!(records["r0500"], Counted(1));
+        assert_eq!(records.len(), 1_000);
+    }
+
+    #[test]
+    fn a_record_under_another_name_is_a_change() {
+        // Copied, a map's log says nothing of what was written, so it is
+        // compared whole: the same records under other names differ.
+        fn moved<M: RecordMap<Value = u32>>(before: Logged<M>) {
+            let mut records = before.clone();
+            assert!(records.remove("a"));
+            assert!(!records.insert(String::from("b"), 1));
+            assert_eq!(records.written(), None);
+            assert!(!records.unchanged_since(&before));
+        }
+        moved(Records::new(BTreeMap::from([(String::from("a"), 1)])));
+        moved(NamedRecords::new(
+            [(String::from("a"), 1)].into_iter().collect(),
+        ));
+    }
+
+    #[test]
+    fn a_name_named_records_hold_keeps_its_text() {
+        let mut records: NamedRecords<u32> = NamedRecords::default();
+        records.insert(String::from("a"), 1);
+        let text = |records: &NamedRecords<u32>| records.keys().next().unwrap().as_ptr();
+        let first = text(&records);
+        // A copy keeps the first text alive, so text made anew could not be
+        // put where it was: the same address is the same text.
+        let copy = records.clone();
+        assert!(records.insert(String::from("a"), 2));
+        assert_eq!(text(&records), first);
+        assert_eq!(text(&copy), first);
+        assert_eq!(records.get("a"), Some(&2));
+        assert_eq!(copy.get("a"), Some(&1));
     }
 
     #[test]
