@@ -180,6 +180,8 @@ pub use view_patch::{
 mod collector;
 #[path = "reactive_departure.rs"]
 mod departure;
+#[path = "reactive_relations.rs"]
+mod relations;
 #[path = "reactive_write.rs"]
 mod write;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
@@ -1625,6 +1627,8 @@ impl Changes {
         {
             old.symbols.check();
             new.symbols.check();
+            old.graph.check();
+            new.graph.check();
         }
         let names = new.states.changed_since(&old.states);
         // Copy-on-write fields an event never wrote still share their pointer.
@@ -6152,16 +6156,13 @@ impl ReactiveSession {
                     .cloned()
                     .unwrap_or_default();
                 if kind == "reopened" {
-                    let id = self.symbols[name];
-                    for edge in &self.graph.edges {
-                        if edge.to == id && edge.relation == Relation::Reopens {
-                            let cause = self
-                                .symbols
-                                .name_of(edge.from)
-                                .expect("a reopening's cause is named");
-                            self.require_reopening_cause(cause)?;
-                            grounds.merge(&self.qualify_core(cause, &[])?)?;
-                        }
+                    for link in self.graph.reopeners(self.symbols[name]) {
+                        let cause = self
+                            .symbols
+                            .name_of(link.other)
+                            .expect("a reopening's cause is named");
+                        self.require_reopening_cause(cause)?;
+                        grounds.merge(&self.qualify_core(cause, &[])?)?;
                     }
                 }
                 grounds
@@ -6188,10 +6189,7 @@ impl ReactiveSession {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
                     && !self.is_retired(name)
                     && (self.observations.iter().any(|observed| observed == name)
-                        || self.graph.edges.iter().any(|edge| {
-                            edge.from == *id
-                                && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                        }))
+                        || !self.graph.stance(*id).is_empty())
             }
             "examined" => matches!(
                 self.graph.nodes.get(id),
@@ -6367,17 +6365,9 @@ impl ReactiveSession {
         honor_take_back: bool,
         before: usize,
     ) -> Vec<String> {
-        // Only `qualifies` relations lead anywhere. Read them out of the
-        // graph once, in graph order, rather than the whole graph once for
-        // each node reached.
-        let qualifies = self
-            .graph
-            .edges
-            .iter()
-            .filter(|edge| edge.relation == Relation::Qualifies)
-            .collect::<Vec<_>>();
-        // What this answer rests on: the relations into each node it visits.
-        if qualifies.is_empty() {
+        // Only `qualifies` relations lead anywhere. What this answer rests
+        // on: the relations into each node it visits.
+        if !self.graph.qualifies_any() {
             consult(|record| record.reached.extend(roots));
             return Vec::new();
         }
@@ -6391,7 +6381,7 @@ impl ReactiveSession {
                 continue;
             }
             let mut passed = HashMap::default();
-            for edge in qualifies.iter().filter(|edge| edge.to == id) {
+            for link in self.graph.qualifiers(id) {
                 let marked = marked.get_or_insert_with(|| {
                     if honor_take_back {
                         self.marked_relations()
@@ -6400,19 +6390,19 @@ impl ReactiveSession {
                     }
                 });
                 // A taken-back relation no longer qualifies what it names.
-                if let Some(count) = marked.get(&(edge.from, id)) {
-                    let seen = passed.entry(edge.from).or_insert(0);
+                if let Some(count) = marked.get(&(link.other, id)) {
+                    let seen = passed.entry(link.other).or_insert(0);
                     if *seen < *count {
                         *seen += 1;
                         continue;
                     }
                 }
                 if matches!(
-                    self.graph.nodes.get(&edge.from),
+                    self.graph.nodes.get(&link.other),
                     Some(NodeKind::Caveat { .. })
                 ) {
-                    caveats.insert(edge.from);
-                    frontier.push(edge.from);
+                    caveats.insert(link.other);
+                    frontier.push(link.other);
                 }
             }
         }
@@ -6603,14 +6593,15 @@ impl ReactiveSession {
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
         roots.extend(
             self.graph
-                .edges
+                .stance(id)
                 .iter()
-                .filter(|edge| {
-                    edge.from == id
-                        && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                        && matches!(self.graph.nodes.get(&edge.to), Some(NodeKind::Claim { .. }))
+                .filter(|link| {
+                    matches!(
+                        self.graph.nodes.get(&link.other),
+                        Some(NodeKind::Claim { .. })
+                    )
                 })
-                .map(|edge| edge.to),
+                .map(|link| link.other),
         );
         roots
     }
@@ -6706,20 +6697,28 @@ impl ReactiveSession {
                         .name_of(id)
                         .expect("a commitment relates named records")
                 };
-                for edge in &self.graph.edges {
-                    if edge.from == id && edge.relation == Relation::Retains {
-                        provenance
-                            .merge(&Provenance::from_names([], [name_of(edge.to).to_string()])?)?;
-                    } else if edge.from == id && edge.relation == Relation::ReliesOn {
+                // What it retains and relies on, and what reopened it, in
+                // graph order.
+                let reopeners = if kind == "reopened" {
+                    self.graph.reopeners(id)
+                } else {
+                    &[]
+                };
+                for link in relations::in_graph_order(self.graph.basis(id), reopeners) {
+                    if link.relation == Relation::Retains {
+                        provenance.merge(&Provenance::from_names(
+                            [],
+                            [name_of(link.other).to_string()],
+                        )?)?;
+                    } else if link.relation == Relation::ReliesOn {
                         // Commitment basis is historical. Do not re-query its
                         // original value or replace its frozen qualifications.
-                        provenance
-                            .merge(&Provenance::from_names([name_of(edge.to).to_string()], [])?)?;
-                    } else if kind == "reopened"
-                        && edge.to == id
-                        && edge.relation == Relation::Reopens
-                    {
-                        let cause = name_of(edge.from);
+                        provenance.merge(&Provenance::from_names(
+                            [name_of(link.other).to_string()],
+                            [],
+                        )?)?;
+                    } else {
+                        let cause = name_of(link.other);
                         self.require_reopening_cause(cause)?;
                         provenance.merge(&self.qualify(cause, &[])?)?;
                     }
@@ -6897,33 +6896,23 @@ impl ReactiveSession {
                 // qualification is live. Caveats about an earlier occurrence
                 // are not taken away: spec/caveat-renewal-0.1.md.
                 let current = self.symbols[self.occurrence(&readings.template)];
-                let mut inherited = self
-                    .graph
-                    .edges
-                    .iter()
-                    .filter(|edge| edge.to == template && edge.relation == Relation::Qualifies)
-                    .filter(|edge| {
-                        matches!(
-                            self.graph.nodes.get(&edge.from),
-                            Some(NodeKind::Caveat { .. })
-                        )
-                    })
-                    .map(|edge| edge.from)
-                    .filter(|caveat| Some(*caveat) != withdrawn)
-                    .collect::<Vec<_>>();
-                if current != template {
-                    let live = self
-                        .graph
-                        .edges
+                let caveats_of = |id: NodeId| {
+                    self.graph
+                        .qualifiers(id)
                         .iter()
-                        .filter(|edge| edge.to == current && edge.relation == Relation::Qualifies)
-                        .filter(|edge| {
+                        .filter(|link| {
                             matches!(
-                                self.graph.nodes.get(&edge.from),
+                                self.graph.nodes.get(&link.other),
                                 Some(NodeKind::Caveat { .. })
                             )
                         })
-                        .map(|edge| edge.from)
+                        .map(|link| link.other)
+                };
+                let mut inherited = caveats_of(template)
+                    .filter(|caveat| Some(*caveat) != withdrawn)
+                    .collect::<Vec<_>>();
+                if current != template {
+                    let live = caveats_of(current)
                         .filter(|caveat| {
                             Some(caveat) != self.symbols.get(WITHDRAWN)
                                 && !inherited.contains(caveat)
@@ -7284,12 +7273,7 @@ impl ReactiveSession {
                 let evidence = &self.occurrence(evidence).to_string();
                 let from = self.symbols[evidence];
                 let to = self.symbols[claim];
-                if !self
-                    .graph
-                    .edges
-                    .iter()
-                    .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
-                {
+                if !self.graph.related(from, *relation, to) {
                     self.clear_predicate_dependency("observed", evidence);
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
@@ -7823,9 +7807,7 @@ impl ReactiveSession {
         let id = self.symbols[&revision];
         for caveat in &resolution.materialized {
             let caveat_id = self.symbols[caveat];
-            let retained = self.graph.edges.iter().any(|edge| {
-                edge.from == id && edge.to == caveat_id && edge.relation == Relation::Retains
-            });
+            let retained = self.graph.related(id, Relation::Retains, caveat_id);
             if !retained {
                 return Err(DispatchFailure::rejected(
                     RejectionOrigin::Evaluation,
@@ -8019,10 +8001,7 @@ impl ReactiveSession {
             .into_iter()
             .filter(|evidence| {
                 let from = self.symbols[evidence];
-                !kept.contains(evidence)
-                    && !self.graph.edges.iter().any(|edge| {
-                        edge.from == from && edge.to == id && edge.relation == Relation::Reopens
-                    })
+                !kept.contains(evidence) && !self.graph.related(from, Relation::Reopens, id)
             })
             .collect()
     }
@@ -8161,11 +8140,9 @@ impl ReactiveSession {
     fn has_live_relation(&self, caveat: NodeId, occurrence: NodeId) -> bool {
         let relations = self
             .graph
-            .edges
+            .qualifiers(occurrence)
             .iter()
-            .filter(|edge| {
-                edge.from == caveat && edge.to == occurrence && edge.relation == Relation::Qualifies
-            })
+            .filter(|link| link.other == caveat)
             .count();
         let marked = self
             .taken_back
@@ -9203,36 +9180,23 @@ impl ReactiveSession {
         {
             return BTreeSet::new();
         }
-        // Every relation from one of them, so a pair appears once for each
-        // of its relations.
-        let mut relations = self
-            .graph
-            .edges
+        // Every relation from one of them into the evidence `provenance`
+        // lists, so a pair appears once for each of its relations.
+        let mut relations = provenance
+            .evidence
             .iter()
-            .filter(|edge| edge.relation == Relation::Qualifies && lacks(edge.from))
-            .map(|edge| (edge.from, edge.to))
+            .filter_map(|name| self.symbols.get(name.as_str()).copied())
+            .flat_map(|evidence| {
+                self.graph
+                    .qualifiers(evidence)
+                    .iter()
+                    .filter(|link| lacks(link.other))
+                    .map(move |link| (link.other, evidence))
+            })
             .collect::<Vec<_>>();
         if relations.is_empty() {
             return BTreeSet::new();
         }
-        // The evidence `provenance` lists, by node. Each node has one name.
-        let mut listed = provenance
-            .evidence
-            .iter()
-            .filter_map(|name| {
-                self.symbols
-                    .get(name.as_str())
-                    .map(|&id| (id, name.as_str()))
-            })
-            .collect::<Vec<_>>();
-        listed.sort_unstable();
-        let name_of = |evidence: NodeId| {
-            listed
-                .binary_search_by_key(&evidence, |&(id, _)| id)
-                .ok()
-                .map(|at| listed[at].1)
-        };
-        relations.retain(|&(_, evidence)| name_of(evidence).is_some());
         relations.sort_unstable();
         // As `has_live_relation`: a pair is live while it has more relations
         // than take-backs have marked. A take-back names the pair's caveat
@@ -9241,7 +9205,9 @@ impl ReactiveSession {
             if self.taken_back.is_empty() {
                 return 0;
             }
-            let (Some(caveat), Some(evidence)) = (late_name(caveat), name_of(evidence)) else {
+            let (Some(caveat), Some(evidence)) =
+                (late_name(caveat), self.symbols.name_of(evidence))
+            else {
                 return 0;
             };
             self.taken_back

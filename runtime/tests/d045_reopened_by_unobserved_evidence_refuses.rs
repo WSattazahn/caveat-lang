@@ -136,3 +136,24 @@ fn a_binding_that_reads_it_as_the_program_loads_is_still_rejected() {
         "binding view.reopened: cannot qualify a value with unobserved evidence sensor"
     );
 }
+
+#[test]
+fn reading_committed_does_not_read_what_reopened_the_commitment() {
+    // `committed(hold)` rests on what `hold` was committed on, not on what
+    // reopened it: it is not refused while `sensor` is unobserved, and it
+    // does not carry `sensor` once `see` observes it.
+    let source = program("on go when committed(hold) set seen = seen + 10;");
+    let mut session = ReactiveSession::from_source(&source).unwrap();
+    for event in ["go", "see", "go"] {
+        let outcome = dispatch(&mut session, event);
+        assert_eq!(outcome["outcome"], "accepted", "{event}: {outcome}");
+    }
+    let snapshot = session.snapshot();
+    assert_eq!(snapshot.values["seen"], 22.0);
+    let carried = serde_json::to_value(&snapshot.qualified_values["seen"]).unwrap();
+    assert_eq!(
+        carried["provenance"]["evidence"],
+        serde_json::json!([]),
+        "{carried}"
+    );
+}

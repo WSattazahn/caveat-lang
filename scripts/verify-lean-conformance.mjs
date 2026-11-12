@@ -480,15 +480,18 @@ export function reopenRequest(fixture, index, beforeRecord) {
 
 // The session writes its graph only through reactive_write.rs, so the
 // retained-caveats mutant edits the reopening there. It removes edges, so it
-// writes through write_any, which tells the event's write log that anything
-// may have changed, as every write that removes edges must.
+// seals the graph again. A newly sealed graph's log says that anything may
+// have changed, and its relation lists are made from its edges, which is
+// what every write that removes edges must leave.
 const reopenAnchor = '        self.graph.write().reopen(commitment, because);\n';
 const journalAnchor = '            because,\n            caveats: caveats.into_iter().collect(),\n';
 const reopenMutations = {
   // The reopened commitment loses the caveats it retained.
   retained: ['reactive_write.rs', reopenAnchor, reopenAnchor +
     '        // Deliberate mutation: reopening drops the retained caveats.\n' +
-    '        self.graph.write_any().edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n'],
+    '        let mut graph = (*self.graph.graph).clone();\n' +
+    '        graph.edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n' +
+    '        self.graph = SealedGraph::new(graph);\n'],
   // The journal records the cause without its caveats.
   cause: ['reactive.rs', journalAnchor,
     '            because,\n' +
