@@ -411,6 +411,28 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-12 (D058): restore accepts a caveat that a `resolve` attached. An
+  outcome's lineage takes its value's lineage, that of `K` in `resolve
+  revision(D, K)` and that of an occurrence's index
+  ([Outcomes 0.1](caveat-outcomes-0.1.md)), so a `qualified(VALUE, EVIDENCE,
+  CAVEAT)` or an `examined(CAVEAT)` in one of them puts the caveat in it.
+  Restore accepts a caveat in a saved provenance when an expression of the
+  source can attach it (the rc.13 entry below), and it read the expressions
+  of every effect but `resolve`. It refused the save the runtime wrote after
+  `resolve r = qualified(v, e, k3) because latest(c);`, and every later save
+  that still held the outcome, with "outcome of R@K: C cannot qualify any of
+  its evidence", breaking the promise that a 1.x save restores. The same
+  expression in a `set` or a `sample` restored. Restore now reads a
+  resolve's value, its revision index and its occurrence index as it reads
+  the expressions of the other effects, in a rule or in a procedure a rule
+  reaches. The bound is the program's, as before: a caveat a `resolve` can
+  attach to some evidence is accepted in any provenance that names that
+  evidence, since a state or a commitment that reads `outcome(D)` carries
+  it. A caveat that no expression of the source attaches, or attaches only
+  to evidence the provenance does not name, is still refused with the same
+  message. A save that carries no caveat only a `resolve` attaches restores,
+  or is refused with the same message, as before.
+
 - 2026-11-08 (D071): restore checks a windowed history's retired records in
   time that grows with their number, not with its square. For each retired
   record it read the records its history holds until it found it, and for a

@@ -2142,6 +2142,16 @@ impl ReactiveSession {
                     }
                     unpaired.extend(retaining.iter().cloned());
                 }
+                // An outcome's lineage takes its value's, that of the index
+                // in `revision(D, K)` and that of an occurrence's index. See
+                // spec/caveat-outcomes-0.1.md.
+                Effect::Resolve(resolution) => {
+                    read(&resolution.value);
+                    resolution.revision.iter().for_each(&mut read);
+                    if let EvidenceSelector::Occurrence { index, .. } = &resolution.because {
+                        read(index);
+                    }
+                }
                 _ => {}
             }
         }
