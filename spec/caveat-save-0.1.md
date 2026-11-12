@@ -411,6 +411,17 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-12 (D060): restore refuses a retirement that the save's other
+  dates contradict: one dated at the save's `sequence` that the last event's
+  effects do not report, and a retired reading or journal entry not dated at
+  the sequence of the record that took its place in the window
+  ([Windows 0.1](caveat-windows-0.1.md), "Save and restore"). Restore held
+  such a date only to the save's `sequence` and to the retired record's own,
+  so it accepted a retirement dated at an event that added nothing to the
+  record's history. Both checks run after every other, so a save refused
+  before is refused with the same message, and a save the runtime wrote
+  restores as before.
+
 - 2026-11-12 (D059): restore accepts the saves of a program that names a
   windowed reading stream or renewable evidence `journal` and has no
   `journal window`. Such a history's records are named `journal@K`, as the
