@@ -196,6 +196,10 @@ jobs:
       - name: Codex plugin connects the server this Worker deploys
         run: node -e 'const fs = require("fs"); const name = /^name = "(.+)"/m.exec(fs.readFileSync("hosted-mcp/wrangler.toml", "utf8"))[1]; const url = JSON.parse(fs.readFileSync("plugins/caveat/.codex-plugin/mcp.json", "utf8")).mcpServers["caveat-lang"].url; if (url !== `https://${name}.waltersattazahn.workers.dev/mcp`) throw new Error(url)'
 
+  # The native checks run as three jobs side by side. Each runs the same
+  # commands it ran when they were one job; they share no build, so each
+  # compiles what it tests. As one job the two debug test suites ran one after
+  # the other, about 14 minutes each, and made the whole run about 34 minutes.
   native:
     name: native runtime
     runs-on: ubuntu-24.04
@@ -215,18 +219,40 @@ jobs:
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       # The maximum supported call depth needs more stack in unoptimized tests.
-      # Keep the optimized runtime independently checked with the default stack.
+      # Keep the optimized runtime independently checked with the default stack
+      # (native-optimized below).
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
         env:
           RUST_MIN_STACK: 16777216
+      - name: CLI and CAVEAT Map playthroughs
+        run: |
+          printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+      - name: Free disk and memory after the build
+        if: always()
+        run: df -h / && free -m && du -sh runtime/target
+
+  native-reactive:
+    name: native runtime, reactive-only and diagnostic features
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - name: Free disk and memory before the build
+        run: df -h / && free -m
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
       - name: Lint the reactive-only runtime
         run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
       - name: Test the reactive-only runtime
         run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
         env:
           RUST_MIN_STACK: 16777216
-      - name: Maximum supported call depth on the optimized default stack
-        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
       - name: Withdrawal collector diagnostics and paired retention cases
         run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection --test collector_index_compaction --test withdrawal_batch_extraction
         env:
@@ -239,16 +265,25 @@ jobs:
         run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
       - name: Native event-phase allocation-origin mode
         run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
+      - name: Free disk and memory after the build
+        if: always()
+        run: df -h / && free -m && du -sh runtime/target
+
+  native-optimized:
+    name: native runtime, optimized builds
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - name: Free disk and memory before the build
+        run: df -h / && free -m
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - name: Maximum supported call depth on the optimized default stack
+        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
       - name: Withdrawal collector at the real storage capacity
         run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
-      - name: CLI and CAVEAT Map playthroughs
-        run: |
-          printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
       - name: Free disk and memory after the build
         if: always()
         run: df -h / && free -m && du -sh runtime/target
