@@ -892,24 +892,25 @@ impl ReactiveSession {
                 &mut self.reopening_qualifications,
             ),
         ] {
-            if map
-                .values()
-                .any(|provenance| names_any(provenance, &departing))
-            {
-                for (name, provenance) in map.make_mut().iter_mut() {
-                    if departing.contains_key(name) {
-                        continue;
-                    }
-                    compact(
-                        provenance,
-                        &departing,
-                        &live_take_backs,
-                        sequence,
-                        &self.source_id,
-                        holder("qualification", name, field),
-                        &mut holders,
-                    );
-                }
+            // Compaction changes only what names a departing record, so
+            // only those records are written, in the order of their names.
+            let named = map
+                .iter()
+                .filter(|(name, provenance)| {
+                    names_any(provenance, &departing) && !departing.contains_key(*name)
+                })
+                .map(|(name, _)| name.to_string())
+                .collect::<Vec<_>>();
+            for name in named {
+                compact(
+                    map.get_mut(&name).expect("listed above"),
+                    &departing,
+                    &live_take_backs,
+                    sequence,
+                    &self.source_id,
+                    holder("qualification", &name, field),
+                    &mut holders,
+                );
             }
         }
         if self.predicate_qualifications.values().any(|targets| {
@@ -1021,8 +1022,9 @@ impl ReactiveSession {
                 ("examination", &mut self.examination_qualifications),
                 ("reopening", &mut self.reopening_qualifications),
             ] {
-                if map.contains_key(record) {
-                    qualifications.insert(kind.to_string(), map.remove(record).unwrap());
+                if let Some(provenance) = map.get(record).cloned() {
+                    map.remove(record);
+                    qualifications.insert(kind.to_string(), provenance);
                 }
             }
             if self
@@ -1293,9 +1295,21 @@ impl ReactiveSession {
             ),
         ] {
             if unchanged.is_none_or(|old| !Arc::ptr_eq(old, map)) {
-                for provenance in map.make_mut().values_mut() {
+                // Settling a settled root publishes nothing, so only a
+                // record that holds an unsettled one is written.
+                let unsettled = map
+                    .iter()
+                    .filter(|(_, provenance)| !settled(provenance))
+                    .map(|(name, _)| name.to_string())
+                    .collect::<Vec<_>>();
+                for name in unsettled {
+                    let provenance = map.get_mut(&name).expect("listed above");
                     settle_provenance(provenance, &mut nodes, &mut seen);
                 }
+                debug_assert!(
+                    map.values().all(settled),
+                    "a qualification record holds a root left unsettled"
+                );
             }
         }
         if old.is_none_or(|old| {
