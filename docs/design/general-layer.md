@@ -854,7 +854,9 @@ Step 3's design note settles four questions, from these facts:
 ## Step 4: a Caveat task language
 
 The owner asked for a Caveat language that does this work well: a strong
-choice, never a requirement. It runs in step 3's box, so to the runner it is
+choice, never a requirement. It is Caveat's own official language for work,
+built for checking first: where making it easier to check and easier to
+write pull apart, checking wins (owner, 2026-11-12). It runs in step 3's box, so to the runner it is
 one more boxed task, with the same wall, protocol and grants as any other.
 
 What would make it the strong choice, each shown by its examples before the
@@ -1080,8 +1082,11 @@ PRs below do not list them.
     ability its file does not list does not load; a report carries the inputs
     its value came from; a rerun from kept inputs gives the same reports, byte
     for byte; and agents write the tasks from the one-page reference, with the
-    share that pass first time counted. The guide recommends the Caveat task
-    language only where this shows it does better.
+    share that pass first time counted. Because the task language is built
+    for checking first, two more measures: whether a reviewer given only the
+    record catches a seeded wrong report, and the tokens and time an agent
+    spends writing each task. The guide recommends the Caveat task language
+    only where this shows it does better.
 
 ## The owner's choice
 
