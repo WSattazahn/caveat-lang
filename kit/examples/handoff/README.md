@@ -81,7 +81,7 @@ mattering.
 
 ## Letting the program check the sender
 
-[Agents 0.1](../../docs/reference/spec/caveat-agents-0.1.md), a 1.4 draft,
+[Agents 0.1](../../../spec/caveat-agents-0.1.md), a 1.4 draft,
 lets the program say which agent may send which event:
 
 ```caveat
@@ -113,5 +113,5 @@ how to try it.
 - Only an irreversible decision forecloses. "We ruled out a rewrite" is a
   decision that can be undone, so `sub_rewrite` is refused by a guard with a
   message, and `explain` shows no link between the two
-  ([foreclosure](../../docs/reference/spec/caveat-foreclosure-0.1.md),
+  ([foreclosure](../../../spec/caveat-foreclosure-0.1.md),
   "Questions settled", 5).

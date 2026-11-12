@@ -42,8 +42,8 @@ After `remember 85`, `assess`, then `learn_stale`:
 | A decision using `freshness@2` | Its grounds include that occurrence and `stale`. |
 
 The test checks the archive, current grounds and journal separately, including
-save/restore. See [late qualification](../../docs/reference/spec/caveat-late-qualification-0.1.md)
-and [reading identity](../../docs/reference/spec/caveat-reactive-0.5.md).
+save/restore. See [late qualification](../../../spec/caveat-late-qualification-0.1.md)
+and [reading identity](../../../spec/caveat-reactive-0.5.md).
 
 **Reassessment does not resample.** The Q1 sequence is executable in
 `test_qualification.py`: after learning stale, `reconsider` and `assess` without

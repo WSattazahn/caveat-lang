@@ -338,11 +338,11 @@ Four more commands:
 
 - `caveat validate umbrella.cav` lists what a program declares.
 - `caveat check umbrella.cav` points out patterns worth a second look, such as
-  rules repeated across events (see [Check 0.1](reference/spec/caveat-check-0.1.md)).
+  rules repeated across events (see [Check 0.1](../../spec/caveat-check-0.1.md)).
 - `caveat replay umbrella.cav events.jsonl` prints each event's outcome and
   snapshot as JSON lines.
 - `caveat serve umbrella.cav` keeps a session open for another program to
-  drive (see [Serve 0.1](reference/spec/caveat-serve-0.1.md)).
+  drive (see [Serve 0.1](../../spec/caveat-serve-0.1.md)).
 
 ## 6. Keep going
 
@@ -350,13 +350,13 @@ Four more commands:
   outcomes and common mistakes. The [worked example](WORKED_EXAMPLE.md) takes a
   larger program through every command.
 - [The documentation index](README.md) lists everything in this package.
-- The [authoring guide](reference/docs/AI_AUTHORING.md) covers time, evidence
+- The [authoring guide](../../docs/AI_AUTHORING.md) covers time, evidence
   that ages, reconsidering decisions, and a checklist for testing policies.
-- [Scenarios 0.1](reference/spec/caveat-scenarios-0.1.md) specifies every step
+- [Scenarios 0.1](../../spec/caveat-scenarios-0.1.md) specifies every step
   and matcher in scenario files.
 - The language profiles start at
-  [Reactive 0.1](reference/spec/caveat-reactive-0.1.md); later profiles add to
-  it, up to [Reactive 0.7](reference/spec/caveat-reactive-0.7.md).
-- The [thermostat example](reference/examples/thermostat_history.cav) and its
-  [scenarios](reference/examples/thermostat_history.scenarios.json) show readings kept
+  [Reactive 0.1](../../spec/caveat-reactive-0.1.md); later profiles add to
+  it, up to [Reactive 0.7](../../spec/caveat-reactive-0.7.md).
+- The [thermostat example](../../examples/thermostat_history.cav) and its
+  [scenarios](../../examples/thermostat_history.scenarios.json) show readings kept
   over time and a decision revised on every reading.

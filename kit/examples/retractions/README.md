@@ -60,7 +60,7 @@ decisions based on it and the values and displays that cite it.
 `npx --no-install caveat-lang check --withdrawals retraction.cav` reports the
 first two of these when a rule is missing: C010 for a commit that nothing
 guards, C011 for a decision no withdrawal reopens
-([check](../../docs/reference/spec/caveat-check-0.1.md)).
+([check](../../../spec/caveat-check-0.1.md)).
 
 - **A guard on every commit.** Withdrawn evidence still has a value, and a
   commit rule that reads it records a decision whose grounds carry the

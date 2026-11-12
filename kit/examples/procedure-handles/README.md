@@ -42,5 +42,5 @@ and `correction_note`, preserve old grounds, and continue across save/restore.
 The correction event here requests reconsideration; it does not withdraw a
 measurement. Neither procedure automatically reassesses the decision.
 
-See [procedure symbols](../../docs/reference/spec/caveat-procedure-symbols-0.1.md)
+See [procedure symbols](../../../spec/caveat-procedure-symbols-0.1.md)
 for the language contract.

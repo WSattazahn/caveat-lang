@@ -27,8 +27,8 @@ The lead line is already in place on main (`README.md`, `kit/README.md`,
 > keeps each claim with the evidence and caveats it rests on. When a source
 > turns out wrong, the decisions that rested on it reopen, and `caveat explain`
 > shows what each one stood on. Agents can call it directly through
-> `npx caveat-lang mcp`. [Authoring and checking Caveat programs](docs/AI_AUTHORING.md) is the
-> guide for agent authors; [Limits](docs/LIMITS.md) says what it does not do.
+> `npx caveat-lang mcp`. [Authoring and checking Caveat programs](AI_AUTHORING.md) is the
+> guide for agent authors; [Limits](LIMITS.md) says what it does not do.
 
 ### waltsdesigns.com (Caveat apartment demo)
 

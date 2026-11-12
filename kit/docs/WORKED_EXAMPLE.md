@@ -235,7 +235,7 @@ An expected rejection takes one of these forms:
 | `"text"` | A `policy` refusal with exactly this message. |
 | `{"origin": "policy", "code": "reject"}` | The program's own `reject`, with any message. |
 | `{"origin": "policy", "code": "not_permitted"}` | A commit whose `permitted by` found no grant. |
-| `{"origin": "input", "code": "bound_exceeded"}` | A payload outside its declared range. Codes for each origin are in [dispatch](reference/spec/caveat-dispatch-0.1.md). |
+| `{"origin": "input", "code": "bound_exceeded"}` | A payload outside its declared range. Codes for each origin are in [dispatch](../../spec/caveat-dispatch-0.1.md). |
 
 Name the code whenever two kinds of refusal could both happen. Without being
 asked, the runner also checks four things:

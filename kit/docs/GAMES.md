@@ -25,11 +25,11 @@ route, and exposing an informant reopens every plan that rested on their word.
 | A rumour that is doubted, not disproved | `qualify latest(S) with C`, a caveat; `unqualify` takes the doubt back |
 | A choice the player can't take back | `decisions D limit 1 irreversible forecloses OTHER` |
 | A cutscene that must not be interrupted | `hold D because E`; reopenings wait for `release` |
-| "Did any informant say so?", "how many guards saw you?" | `any(for informant as $i: …)`, `sum(for guard as $g: …)`: one term per member, so a new NPC is one `entity` line (draft, [across members](reference/spec/caveat-across-members-0.1.md)) |
+| "Did any informant say so?", "how many guards saw you?" | `any(for informant as $i: …)`, `sum(for guard as $g: …)`: one term per member, so a new NPC is one `entity` line (draft, [across members](../../spec/caveat-across-members-0.1.md)) |
 
 To withdraw everything one source said, write
 `withdraw every SOURCE because PROOF` (draft for 1.4, [untrusted
-sources](reference/spec/caveat-untrusted-sources-0.1.md)): it withdraws the
+sources](../../spec/caveat-untrusted-sources-0.1.md)): it withdraws the
 source and every reading sampled from it. A plain `withdraw SOURCE` does not
 reach readings already taken, since each sample is its own observation
 (Withdrawal 0.1, "Predicates").
@@ -38,14 +38,14 @@ reach readings already taken, since each sample is its own observation
 
 Send story events, not frames. A rule decides when an input becomes
 evidence; sampling every frame records one reading per frame and fills the
-save ([authoring guide](reference/docs/AI_AUTHORING.md#what-grows-the-save)).
+save ([authoring guide](../../docs/AI_AUTHORING.md#what-grows-the-save)).
 
 - **Time.** Declare `event advance dt min 0 max 100; clock advance every 1;`
   and send the frame's milliseconds when time matters to the story; read
   `elapsed()` in rules. Do not name your own event `tick`: `tick` may only
   carry a `dt` within `0..0.1` seconds. For a countdown that must agree to
   the frame, send whole units and carry the remainder
-  ([elapsed](reference/spec/caveat-elapsed-0.1.md)).
+  ([elapsed](../../spec/caveat-elapsed-0.1.md)).
 - **Cost.** Measured on caveat-lang 1.3.0 in Node 22 on one 2.8 GHz server
   core, one event took about 30 microseconds for a clock `advance` and about
   90 for an accepted intel report, reading only `bindings`. That is far
