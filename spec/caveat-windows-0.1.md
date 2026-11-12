@@ -197,6 +197,12 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-12 (D059): a windowed stream or renewable evidence named
+  `journal`, in a program without `journal window`, restores and departs as
+  one of any other name does. Restore refused the save written by each
+  event that retired one of its records, and its recount of pins dropped a
+  journal entry's once a record of that entry's name had retired. See
+  [Save 0.1](caveat-save-0.1.md), "Changes".
 - 2026-11-08 (D051): restore accepts a save that cites evidence a
   declaration's `reopen` names once a renewal has retired it, though no
   event observed it. `reopen hold because sensor;` cites `sensor` as the

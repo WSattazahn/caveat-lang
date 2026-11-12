@@ -524,8 +524,12 @@ impl ReactiveSession {
                 }
             }
         }
+        // An entry retires only under `journal window`. Without one, a
+        // retired record named `journal@K` is a stream's or a renewable
+        // evidence's, and the `K`th entry still pins what it cites (D059).
+        let retires = self.journal_window.is_some();
         for (index, entry) in self.journal.iter().enumerate() {
-            if !self.retired.contains_key(&self.journal_name(index)) {
+            if !(retires && self.retired.contains_key(&self.journal_name(index))) {
                 for name in entry.because.iter().chain(&entry.permitted_by) {
                     pin(name, "journal entry");
                 }

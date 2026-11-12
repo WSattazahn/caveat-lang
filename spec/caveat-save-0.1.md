@@ -411,6 +411,29 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-12 (D059): restore accepts the saves of a program that names a
+  windowed reading stream or renewable evidence `journal` and has no
+  `journal window`. Such a history's records are named `journal@K`, as the
+  decision journal's entries are under a journal window
+  ([Windows 0.1](caveat-windows-0.1.md)), and two of restore's steps took
+  the name for the journal's without asking whether the journal has a
+  window. Restore refused the save written by each event that retired such
+  a record with "retire effect is not one the last event can make", since
+  without a journal window no event retires a journal entry. And when it
+  counted the pins of the records a save holds, it left out those of the
+  `K`th journal entry once the record `journal@K` had retired, as if that
+  entry had retired: it refused a save in which only that entry pinned a
+  retired record with "retired R is pinned by nothing, so it would have
+  departed", and where another pin let the save restore, the restored
+  session later let the record depart while the session that wrote the
+  save still held it. Both broke the promise that a 1.x save restores and
+  plays on. Debug builds, which count pins again after every event, stopped
+  on "incremental pin counts". Restore now reads `journal` as the journal's
+  history only in a program with a journal window, as its other steps did.
+  A program with a journal window, and one with no history named `journal`,
+  is checked as before: its saves restore, or are refused with the same
+  message.
+
 - 2026-11-12 (D058): restore accepts a caveat that a `resolve` attached. An
   outcome's lineage takes its value's lineage, that of `K` in `resolve
   revision(D, K)` and that of an occurrence's index
