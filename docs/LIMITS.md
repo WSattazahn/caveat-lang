@@ -67,10 +67,17 @@ characters, both written by a session whose states hold long lineages, and by
 at its limit of 65,536 records. In a native release build in the same
 container, restoring saves of that shape with 16,384 to 65,536 records raised
 peak resident memory by 13.5 to 13.9 times their length. Restore's time grows
-with the square of the records one windowed history holds: the 65,536-record
-save took 12.5 seconds to restore in that WebAssembly runtime at load average
-2.9, and 66 seconds in the same container at load average about 25. Before
-D070 it refused a state save over 16 MiB, though a session could write one
+faster than the save in the steps the
+[save contract](../spec/caveat-save-0.1.md) lists. Timed by the restoring
+thread's CPU clock in native release builds in the same container, at load
+averages of 3.8 to 8.2, the save of that shape with 65,536 records took 5.0 to
+5.6 seconds to restore, and saves of the form a session writes that hold a
+reading stream at the same limit took 14.9 to 47.0 seconds. Before D071 made
+the check of retired records linear, the save of that shape took 9.6 to 10.1
+seconds in the native builds, and 12.5 seconds by wall clock in the
+WebAssembly runtime above at load average 2.9 (66 seconds at load average
+about 25). Before D070 it
+refused a state save over 16 MiB, though a session could write one
 ([save contract](../spec/caveat-save-0.1.md#changes)). A restore that runs out
 of WebAssembly memory is not refused: it traps the instance, and every session
 on it is lost. The kit's error then says the runtime ran out of memory while

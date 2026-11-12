@@ -31,23 +31,41 @@ let resumed = ReactiveSession::restore(source, &save)?;
 
 Restoring costs what loading the program costs plus the size of the save, not
 the length of the game. Restore takes a state save of any length, and its time
-and memory grow with the save. Two parts can cost more than their size: a
+and memory grow with the save. Some parts cost more than their size. One is a
 decision journal whose causes share caveats (see the D039 entry under
-[Changes](#changes)), and a windowed history's retired records. Restore looks
-each retired record up among the records its history holds, so its time grows
-with the square of the records one history holds: a save holding one history
-at its limit of 65,536 records (14,306,946 bytes) took 12.5 seconds to restore
-in the release WebAssembly runtime, built from dc1ef01f and run under Node
-22.23.4 in a 4-core container at load average 2.9 (the
-[limits](../docs/LIMITS.md) give its memory), and restore does that work again
-for each such history a save holds. A restore that runs out of memory is not
-refused: in WebAssembly it traps the runtime instance and every session on
-it. A host that restores saves from a party it does not trust bounds their
-size itself, as the MCP server does at 2 MiB. With
-the same source and runtime contract, restoring the intact save text produced
-by the runtime preserves the saved session's full snapshot and the outcomes
-and effects of later events. Acceptance of an edited save does not promise
-equivalence to the session before the edit.
+[Changes](#changes)). Another is a windowed history that holds many records:
+restore looks each reading or renewal occurrence the graph holds up among the
+records its history holds, and reads those records again for each `departed`
+marker on the history and each effect of the last event that names a record of
+it, so that time grows with the records one history holds times the number of
+those occurrences, markers and effects, and is spent again for each such
+history a save holds. Other steps search lists that span the whole save, so
+splitting the same readings among several histories does not make them
+cheaper: for each reading sampled without a stance, restore searches every
+relation in the graph and the observations; for each evidence observed, it
+searches the observations, the graph's edges and the session's names; and for
+each reading with a note, it searches the identifiers. For each commitment,
+restore also copies the causes it was reopened for once per cause, so a
+commitment reopened for k causes costs time with the square of k; a session
+refuses an event that would give one more than 1,024. Timed by the restoring
+thread's CPU clock in native release builds on a shared 4-core container at
+load averages of 3.8 to 9, a save in which one renewable evidence holds its
+limit of 65,536 records, 65,535 of them retired, took 5.0 to 5.6 seconds to
+restore (the [limits](../docs/LIMITS.md) give its memory). Saves of the form a
+session writes, each holding a reading stream of 65,536 readings that
+reopenings cite, took 14.9 to 47.0 seconds over six programs, the longest for
+readings sampled without a stance. In saves built by hand that restore
+accepts, a history of 8,191 records with a `departed` marker in the
+observation qualification of each occurrence took 11.5 seconds, and one of
+8,193 records after an event that departed 8,192 others took 11.1 seconds. A
+history's retired records are checked in time that grows with their number
+(see the D071 entry). A restore that runs out of memory is not refused: in
+WebAssembly it traps the runtime instance and every session on it. A host that
+restores saves from a party it does not trust bounds their size itself, as the
+MCP server does at 2 MiB. With the same source and runtime contract, restoring
+the intact save text produced by the runtime preserves the saved session's
+full snapshot and the outcomes and effects of later events. Acceptance of an
+edited save does not promise equivalence to the session before the edit.
 
 ## What a save holds
 
@@ -291,13 +309,12 @@ save is refused with an error, and never crashes the runtime, when:
 
 A state save is not refused for its length. Nothing bounds the save a session
 writes, so restore parses a save of any length, at the cost described at the
-top of this document: time and memory that grow with the save, more for a
-journal whose causes share caveats or a windowed history with many retired
-records, and a trap, not a refusal, when the runtime runs out of memory. A
-host that restores saves from a party it does not trust bounds their size
-before restoring them, as the MCP server does at 2 MiB. A
-[replay save](caveat-replay-save-0.1.md) keeps its bound of 4,096 bytes, since
-the runtime never writes a longer one.
+top of this document: time and memory that grow with the save, faster than
+the save in the steps listed there, and a trap, not a refusal, when the
+runtime runs out of memory. A host that restores saves from a party it does
+not trust bounds their size before restoring them, as the MCP server does at
+2 MiB. A [replay save](caveat-replay-save-0.1.md) keeps its bound of 4,096
+bytes, since the runtime never writes a longer one.
 
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
@@ -393,6 +410,31 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-08 (D071): restore checks a windowed history's retired records in
+  time that grows with their number, not with its square. For each retired
+  record it read the records its history holds until it found it, and for a
+  reading read them again for its sequence; for each reopening in the decision
+  journal it read every retired record. A save in which one renewable evidence
+  holds its limit of 65,536 records, 65,535 of them retired, took 9.6 to 10.1
+  seconds to restore in native release builds, timed by the restoring thread's
+  CPU clock at load averages of 3.9 to 5.6, four to five times as long as a
+  save with half as many records. In the release WebAssembly runtime built
+  from dc1ef01f, which checks retired records as restore did before this
+  change, it took 12.5 seconds by wall clock in Node at load average 2.9. A
+  journal of 16,640 entries, all but 2 retired, took 0.88 seconds in one of
+  the native builds, 3.8 times as long as one with half as many entries.
+  Restore now lists the records each windowed history holds once, looks each
+  retired record up there, and looks each reopening's causes up among the
+  retired records, checking them in the same order as before. In the same
+  native builds the same saves now take 5.0 to 5.6 and 0.13 seconds. Restore
+  still reads a history's records for each of its occurrences in the graph,
+  which takes time that grows with the square of the records one history
+  holds: a build with that step indexed as well, which this change does not
+  make, restored the first save in 0.60 seconds against 5.0. The other steps
+  described at the top of this document are unchanged. Every save restores, or
+  is refused with the same message, as before, and a save with several faults
+  is refused for the same one.
 
 - 2026-11-08 (D070): restore takes a state save of any length. It refused
   one longer than 16 MiB (16,777,216 bytes) with "cannot restore save:
