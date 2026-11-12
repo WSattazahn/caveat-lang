@@ -593,8 +593,9 @@ impl ReactiveSession {
     }
 
     pub(crate) fn add_pin(&mut self, name: &str) {
+        // A pin only adds support: nothing it gives can leave a record
+        // unreachable, so the collector is not told.
         if self.windowed() {
-            self.collector.queue(name);
             *Arc::make_mut(&mut self.pin_counts)
                 .entry(name.to_string())
                 .or_insert(0) += 1;
@@ -605,7 +606,7 @@ impl ReactiveSession {
         if !self.windowed() {
             return;
         }
-        self.collector.queue(name);
+        self.collector.released(name);
         let counts = Arc::make_mut(&mut self.pin_counts);
         let count = counts
             .get_mut(name)
@@ -653,6 +654,21 @@ impl ReactiveSession {
         Some((history.to_string(), number as u64))
     }
 
+    /// Whether `departable` names a place for `record`, without building it:
+    /// the collector asks this of every record and holder it looks at.
+    pub(super) fn departable_name(&self, record: &str) -> bool {
+        let departable = if let Some(number) = record
+            .strip_prefix("journal@")
+            .filter(|_| self.journal_window.is_some())
+        {
+            number.parse::<u64>().is_ok()
+        } else {
+            save::occurrence_parts(record).is_some()
+        };
+        debug_assert_eq!(departable, self.departable(record).is_some(), "{record}");
+        departable
+    }
+
     /// At the end of an event: every retired record that nothing pins
     /// departs. Reported after every other effect, by history and number.
     pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
@@ -688,7 +704,9 @@ impl ReactiveSession {
                 departing.insert(record, place);
             }
         }
-        self.collect_withdrawals(&mut departing);
+        if self.windowed() {
+            self.collect_withdrawals(&mut departing);
+        }
         if departing.is_empty() {
             #[cfg(debug_assertions)]
             self.check_withdrawal_collector();

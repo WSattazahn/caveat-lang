@@ -136,13 +136,30 @@ adds.
 ## Cost
 
 Collection is incremental. Indexes map each holder to the records it
-references, and the mutation sites that change a reference mark the affected
-region. Restore rebuilds the indexes once; no event rebuilds them from the
-whole session. Work in one event is proportional to the affected region plus
-index and copy costs, and the region can be the whole retained graph when one
-root is released. There is no constant-time or bounded-memory promise.
-rc.16 measured 55–60 ms for a synchronous release of 3,000 mutual cycles. Hosts
-set and test their own budgets.
+references, and the mutation sites that change a reference update them.
+Restore rebuilds the indexes once; no event rebuilds them from the whole
+session.
+
+Only an eligible record whose every pin is a withdrawal pin, and whose every
+holder is an eligible record or departs in `D0`, can be collected. Every
+eligible record has a pin, or it departs in `D0`, so only a withdrawal reason
+can be: a session with no standing withdrawal does no collection work. The
+search starts from what the event lost: a reason that lost a pin or a holder,
+or retired, and a reason that a record departing in `D0` held. It visits only
+records that can be collected and are connected to those reasons. A reason
+that an eligible record which cannot be collected holds is reached through
+that record, so the search does not start from it. An event that loses
+nothing traces nothing.
+
+The indexes are written in place while the event runs, and a refused event
+undoes them from a log of what each write replaced, newest first. They are
+not copied for the event; a copy of the session, such as a what-if's, copies
+an index when it first writes it. Work in one event is proportional to the
+region the search reaches plus the references the event changed, and the
+region can hold every retained record that could be collected when one root
+is released. There is no constant-time or bounded-memory promise. rc.16 measured
+55–60 ms for a synchronous release of 3,000 mutual cycles. Hosts set and test
+their own budgets.
 
 Windows plus collection do not bound a save. A reachable reason chain is
 required and is kept, so it grows with play.
@@ -165,8 +182,10 @@ rc.15 C3 save).
 | Vetoes affect only `C` and clear with their holder | `transferred_skipped_guard_lineage_vetoes_only_additional_collection`, `procedure_arguments_and_skipped_procedure_guards_keep_their_actual_holders`, `stream_and_series_selection_holders_veto_until_successful_overwrite`, `declaration_qualifiers_are_roots_and_successful_predicate_clear_releases` |
 | Record-owned metadata does not root | `record_owned_qualification_inside_a_cycle_is_not_an_external_root` |
 | Status and citations unchanged | `reopened_commitment_keeps_reason_graph_and_current_status`, `explicit_citations_keep_exact_old_membership_and_refuse_current_alias_substitution`, `later_readable_history_preserves_the_reason_until_the_holder_departs` |
-| Transaction rollback | `failed_due_event_keeps_pending_target_and_guard_indexes` |
-| Restore collects nothing until an accepted event | `authentic_older_saves_rebuild_without_collecting_until_an_accepted_event`, `a_skipped_uncreated_commitment_is_a_real_owner_on_restore_and_clear` |
+| Transaction rollback | `failed_due_event_keeps_pending_target_and_guard_indexes`, `a_refused_time_event_restores_its_due_qualification`, `a_refused_event_that_schedules_or_compacts_a_pending_guard_leaves_no_trace`, `a_refusal_after_collection_and_compaction_leaves_no_trace`, `a_refusal_after_collection_just_after_a_restore_keeps_the_restored_seeds`, `what_if_on_a_windowed_session_leaves_its_later_outputs_unchanged` |
+| Collection starts from what an event lost, and reaches what those reasons reference | `a_withdrawal_added_after_its_reason_lost_a_pin_collects_when_the_reason_retires`, `a_holder_that_retires_leaves_the_reasons_it_held_collectible`, `a_reason_whose_last_current_holder_departs_ordinarily_joins_that_batch`, `a_wide_ordinary_holder_still_seeds_the_reason_it_held`, `cutting_a_chain_from_its_current_root_collects_all_of_it_at_once` |
+| Work follows the event, not the session (Cost) | `a_cycle_that_keeps_the_chain_rooted_does_not_trace_it_again`, `anyall_collection_work_per_event_does_not_grow_with_the_session` (both check the work with `collector-metrics`) |
+| Restore collects nothing until an accepted event | `authentic_older_saves_rebuild_without_collecting_until_an_accepted_event`, `a_skipped_uncreated_commitment_is_a_real_owner_on_restore_and_clear`, `a_refusal_after_collection_just_after_a_restore_keeps_the_restored_seeds` |
 | Capacity difference | `withdrawal_capacity.rs`: `capacity_refusal_is_preappend_and_atomic_then_prior_collection_frees_room` |
 
 ## Not in this profile
@@ -193,3 +212,17 @@ rc.15 C3 save).
   as without collection. The record now stays retired and the outcome keeps
   `withdrawn`. A program in which no outcome's lineage names a record
   collection could take gives the same output as before.
+- 2026-11-08 (D056): collection's work follows what an event lost. The
+  collector queued every record an event's pins and references touched,
+  traced the whole region of eligible records connected to each, and the
+  event's copy of the session copied each index the event wrote. In a
+  session whose retired records stay pinned and connected, each event so
+  traced and copied what was retained, and the work per event grew with
+  the session. The search now starts from a reason that lost a pin or a
+  holder, or retired, or that a record departing in `D0` held, and visits
+  only records that can be collected; the indexes are written in place and
+  a refused event undoes them from a log (see Cost). The rule is unchanged,
+  and so is every output, including which records depart at which event.
+  Debug builds check each collection against the rule computed from every
+  eligible record, and each rollback against a copy taken when the event
+  began.

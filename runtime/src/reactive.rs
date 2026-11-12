@@ -5569,7 +5569,11 @@ impl ReactiveSession {
         }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
-        // it has succeeded, so a failed event hands them back untouched.
+        // it has succeeded, so a failed event hands them back untouched. A
+        // windowed program's withdrawal collector moves in the same way, below.
+        // Neither comes back if the event unwinds instead of failing: this
+        // session is then left without its shown bindings and with an empty
+        // collector, so a host must discard it, as after any panic.
         if !self.identifiers.has_room_for(&new_identifiers) {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Limit,
@@ -5584,7 +5588,23 @@ impl ReactiveSession {
         // The archive stays out of the transaction's copy: the event appends
         // to an empty one, kept only if it succeeds.
         let archive = std::mem::take(&mut self.archive);
-        let mut next = self.clone();
+        // A windowed program's withdrawal collector moves into the
+        // transaction rather than being copied: it writes its indexes in
+        // place and logs what undoes each write, so a refused event hands
+        // back exactly what it held. This session keeps an empty collector
+        // meanwhile; if `run_event` unwinds, that is all it keeps (see the
+        // shown bindings above). Without a window the collector is never
+        // written, so the copy shares it.
+        let windowed = self.windowed();
+        let mut next = if windowed {
+            let mut collector = std::mem::take(&mut self.collector);
+            collector.begin();
+            let mut next = self.clone();
+            next.collector = collector;
+            next
+        } else {
+            self.clone()
+        };
         self.archive = archive;
         next.put_shown(shown);
         if !new_identifiers.is_empty() {
@@ -5598,6 +5618,9 @@ impl ReactiveSession {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::CommitCleanup);
+                if windowed {
+                    next.collector.commit();
+                }
                 let mut archive = std::mem::take(&mut self.archive);
                 archive.append(&mut next.archive);
                 *self = next;
@@ -5614,6 +5637,10 @@ impl ReactiveSession {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
+                if windowed {
+                    std::mem::swap(&mut self.collector, &mut next.collector);
+                    self.collector.rollback();
+                }
                 Err(error)
             }
         }
@@ -6737,7 +6764,7 @@ impl ReactiveSession {
         {
             return;
         }
-        self.collector_dirty(CollectorOwner::Record(name.into()));
+        self.collector_dirty(|_| CollectorOwner::Record(name.into()));
         let dependencies = Arc::make_mut(&mut self.predicate_qualifications);
         let targets = dependencies.get_mut(kind).expect("checked above");
         targets.remove(name);
@@ -7533,14 +7560,7 @@ impl ReactiveSession {
                     }
                     self.relate(id, Relation::ReliesOn, self.symbols[evidence.as_str()]);
                 }
-                self.collector_reopens(
-                    &name,
-                    &provenance
-                        .evidence
-                        .iter()
-                        .map(|name| name.to_string())
-                        .collect::<Vec<_>>(),
-                );
+                self.collector_reopens(&name, provenance.evidence.iter().map(Name::as_str));
                 // The thresholds the commit named: its own expressions and
                 // each enclosing guard (spec/caveat-thresholds-0.1.md).
                 let mut thresholds = BTreeMap::new();
@@ -8076,7 +8096,7 @@ impl ReactiveSession {
         let because = self.in_observation_order(because.iter());
         self.end_hold(action);
         let current = current.to_string();
-        self.collector_reopens(&current, &because);
+        self.collector_reopens(&current, because.iter().map(String::as_str));
         self.clear_predicate_dependency("reopened", &current);
         self.join_reopening(&current, basis)?;
         // Reported before the reopen that adds the entry.
@@ -8312,7 +8332,9 @@ impl ReactiveSession {
                 .remove(caveat);
         }
         for (slot, in_value, in_grounds) in states {
-            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
+            self.collector_dirty(|session| {
+                CollectorOwner::State(session.states.names[slot].as_str().into())
+            });
             let cell = self.states.cell_mut(slot);
             if in_value {
                 cell.value.provenance.caveats.remove(caveat);
@@ -8357,7 +8379,9 @@ impl ReactiveSession {
             if !(in_value || in_grounds) {
                 continue;
             }
-            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
+            self.collector_dirty(|session| {
+                CollectorOwner::State(session.states.names[slot].as_str().into())
+            });
             // Merged on copies first: a cell that already holds all of it is
             // left as it is, rather than copied to write the same lineage.
             let cell = &self.states.cells[slot];
@@ -8407,15 +8431,22 @@ impl ReactiveSession {
             // record's references before departure runs (D016).
             // Merged on copies first, in the same order: only a record the
             // lineage adds to is written, and a map none of whose records
-            // changes is not copied.
+            // changes is not copied. Only a program with a window keeps a
+            // collector to tell.
+            let windowed = self.windowed();
             let mut changed = BTreeSet::new();
+            let mut change = |name: &str| {
+                if windowed {
+                    changed.insert(Name::from(name));
+                }
+            };
             let mut observations = Vec::new();
             for (name, record) in self.observation_qualifications.iter() {
                 if listed(record) {
                     if let Some(merged) = record.merged(&lineage)? {
                         observations.push((name.clone(), merged));
                     }
-                    changed.insert(name.clone());
+                    change(name);
                 }
             }
             let mut examinations = Vec::new();
@@ -8424,7 +8455,7 @@ impl ReactiveSession {
                     if let Some(merged) = record.merged(&lineage)? {
                         examinations.push((name.clone(), merged));
                     }
-                    changed.insert(name.clone());
+                    change(name);
                 }
             }
             let mut predicates = Vec::new();
@@ -8434,7 +8465,7 @@ impl ReactiveSession {
                         if let Some(merged) = record.merged(&lineage)? {
                             predicates.push((kind.clone(), name.clone(), merged));
                         }
-                        changed.insert(name.clone());
+                        change(name);
                     }
                 }
             }
@@ -8450,7 +8481,7 @@ impl ReactiveSession {
                 }
             }
             for name in changed {
-                self.collector_dirty(CollectorOwner::Record(name));
+                self.collector_dirty(|_| CollectorOwner::Record(name));
             }
         }
         self.effects.push(EffectReport::Qualify {
@@ -9051,7 +9082,7 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
-        self.collector.queue(&record);
+        self.collector.retired(&record);
         Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {
@@ -9417,7 +9448,7 @@ impl ReactiveSession {
             )
             .into());
         };
-        self.collector_dirty(CollectorOwner::Record(occurrence.clone()));
+        self.collector_dirty(|_| CollectorOwner::Record(occurrence.as_str().into()));
         Ok((occurrence, tracked.provenance))
     }
 
