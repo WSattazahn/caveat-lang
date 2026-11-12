@@ -2404,7 +2404,7 @@ pub struct ReactiveSession {
     /// Withdrawn observations, in the order they were withdrawn.
     withdrawals: Sealed<Vec<Withdrawal>>,
     /// Taken-back qualifications, in the order they were taken back.
-    taken_back: Sealed<Vec<TakeBack>>,
+    taken_back: write::TakeBacks,
     /// The caveats some `unqualify` names, fixed at load; empty in a program
     /// that does not take back.
     take_back_caveats: Arc<BTreeSet<String>>,
@@ -6385,25 +6385,22 @@ impl ReactiveSession {
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
         let mut visited = HashSet::default();
         let mut caveats = HashSet::default();
-        // Counted when a relation first reaches a node, not before.
-        let mut marked = None;
+        let marks = honor_take_back && !self.taken_back.is_empty();
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
             let mut passed = HashMap::default();
             for link in self.graph.qualifiers(id) {
-                let marked = marked.get_or_insert_with(|| {
-                    if honor_take_back {
-                        self.marked_relations()
-                    } else {
-                        HashMap::default()
-                    }
-                });
                 // A taken-back relation no longer qualifies what it names.
-                if let Some(count) = marked.get(&(link.other, id)) {
+                let count = if marks {
+                    self.take_backs_naming(link.other, id)
+                } else {
+                    0
+                };
+                if count > 0 {
                     let seen = passed.entry(link.other).or_insert(0);
-                    if *seen < *count {
+                    if *seen < count {
                         *seen += 1;
                         continue;
                     }
@@ -8128,22 +8125,34 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// How many `CAVEAT qualifies OCCURRENCE` relations a take-back has
-    /// marked, by caveat and occurrence. The marked relations of a pair are
+    /// How many take-backs name `caveat` and `occurrence`. A take-back names
+    /// them by name, and a name has one node. Each takes back one relation:
     /// its first ones in graph order, since a take-back marks the one live
-    /// relation and a qualify adds one only when none is live. Empty unless
-    /// the program has taken something back. See spec/caveat-take-back-0.1.md.
-    fn marked_relations(&self) -> HashMap<(NodeId, NodeId), usize> {
-        let mut marked = HashMap::default();
-        for record in self.taken_back.iter() {
-            if let (Some(&caveat), Some(&occurrence)) = (
-                self.symbols.get(&record.caveat),
-                self.symbols.get(&record.evidence),
-            ) {
-                *marked.entry((caveat, occurrence)).or_insert(0) += 1;
-            }
+    /// relation and a qualify adds one only when none is live. Nothing in a
+    /// program that has taken nothing back. See spec/caveat-take-back-0.1.md.
+    fn take_backs_naming(&self, caveat: NodeId, occurrence: NodeId) -> usize {
+        if self.taken_back.is_empty() {
+            return 0;
         }
-        marked
+        let count = match (
+            self.symbols.name_of(caveat),
+            self.symbols.name_of(occurrence),
+        ) {
+            (Some(caveat), Some(occurrence)) => self.taken_back.count(caveat, occurrence),
+            _ => 0,
+        };
+        debug_assert_eq!(
+            count,
+            self.taken_back
+                .iter()
+                .filter(|record| {
+                    self.symbols.get(&record.caveat) == Some(&caveat)
+                        && self.symbols.get(&record.evidence) == Some(&occurrence)
+                })
+                .count(),
+            "take-back counts by node"
+        );
+        count
     }
 
     /// Whether `caveat qualifies occurrence` through a relation no take-back
@@ -8155,15 +8164,7 @@ impl ReactiveSession {
             .iter()
             .filter(|link| link.other == caveat)
             .count();
-        let marked = self
-            .taken_back
-            .iter()
-            .filter(|record| {
-                self.symbols.get(&record.caveat) == Some(&caveat)
-                    && self.symbols.get(&record.evidence) == Some(&occurrence)
-            })
-            .count();
-        relations > marked
+        relations > self.take_backs_naming(caveat, occurrence)
     }
 
     /// A record holds the take-back caveats it carries: reading it back keeps
@@ -9221,10 +9222,7 @@ impl ReactiveSession {
             else {
                 return 0;
             };
-            self.taken_back
-                .iter()
-                .filter(|record| record.caveat == caveat && record.evidence == evidence)
-                .count()
+            self.taken_back.count(caveat, evidence)
         };
         relations
             .chunk_by(|left, right| left == right)
