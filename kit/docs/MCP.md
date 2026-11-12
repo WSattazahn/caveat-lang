@@ -82,7 +82,7 @@ before scenarios if it finds an error-severity diagnostic; advisory diagnostics
 are included in its report and do not stop the scenarios.
 
 `source` is inline program text. Events are objects with `event` and optional
-`payload`. `scenarios` is a [scenario document](reference/spec/caveat-scenarios-0.1.md)
+`payload`. `scenarios` is a [scenario document](../../spec/caveat-scenarios-0.1.md)
 whose source, including per-scenario overrides, must be `inline.cav`. The bridge
 has no user-file lookup: the supplied text is its only virtual source file.
 Unknown argument fields are rejected.
@@ -129,7 +129,7 @@ its first events and no `save`. Each result's `report.save` is the session's
 save text; the next call passes it back unchanged as `save`, with the same
 source, and sends only the new events. It is the smallest save the session
 holds: the positional replay save while the accepted events fit in one
-([Replay save 0.2](reference/spec/caveat-replay-save-0.2.md), 4,096 bytes), and the
+([Replay save 0.2](../../spec/caveat-replay-save-0.2.md), 4,096 bytes), and the
 state save after that. Both restore to the same session. An agent writes the
 save back on every call, so the smaller save saves it tokens: a six-event
 ledger's save is about 80 tokens instead of 1,100. The server keeps nothing between calls,
@@ -202,6 +202,6 @@ timeout, cancellation and recovery retain separate checks.
 This reduces unnecessary environment exposure. It does not turn the subprocess
 into an operating-system sandbox, authenticate the selected runtime, or mean
 that a third-party scanner's capability notices have been cleared.
-The [interface review](reference/docs/MCP_AUTHORING_DESIGN.md) defines the
+The [interface review](../../docs/MCP_AUTHORING_DESIGN.md) defines the
 protocol choices, resource limits and required regression evidence. The
 [agent quickstart](AGENT_START.md) introduces the same tools through the CLI.

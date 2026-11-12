@@ -52,7 +52,7 @@ The north plan: you were played
 | The player can't set out on nothing, or twice | `reject` rules whose messages the host shows | I04 |
 
 A new informant is one `entity` line: every rule and sum is written once per
-kind. `sum(for KIND as $x: E)` is a draft ([across members](../../docs/reference/spec/caveat-across-members-0.1.md));
+kind. `sum(for KIND as $x: E)` is a draft ([across members](../../../spec/caveat-across-members-0.1.md));
 it expands to `$g_ocelot_ok + $g_eva_ok` here.
 
 See [Caveat in a game](../../docs/GAMES.md) for the loop, saves and cost.

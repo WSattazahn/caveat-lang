@@ -54,9 +54,9 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
    has several items or streams that follow the same rules, write the rules
    once, with a `for` block or a `proc`, as the card shows, not once per item. Then read
    [Caveat on one page](REFERENCE.md) before inventing syntax. The
-   [authoring guide](reference/docs/AI_AUTHORING.md) covers lifecycle and
+   [authoring guide](../../docs/AI_AUTHORING.md) covers lifecycle and
    qualification details; specifications linked there define the contracts.
-2. State required outcomes in [scenarios](reference/spec/caveat-scenarios-0.1.md).
+2. State required outcomes in [scenarios](../../spec/caveat-scenarios-0.1.md).
    Include a refusal, a correction and an assertion that earlier grounds remain
    unchanged. `validate` answers whether source loads; `check` offers warnings;
    `test` checks the stated outcomes. They answer different questions.
@@ -101,7 +101,7 @@ difference between archived readings and future values.
 ## Type a JavaScript or TypeScript host
 
 `caveat types PROGRAM > program.d.ts` writes declarations from the program's
-[interface](reference/spec/caveat-interface-0.1.md): each event's payload
+[interface](../../spec/caveat-interface-0.1.md): each event's payload
 fields, each displayed value with its type, and the state, cue, decision,
 reading-stream, evidence, caveat and claim names. `typed` from
 `caveat-lang/types` returns the session unchanged, with those types:

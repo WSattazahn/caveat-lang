@@ -114,3 +114,31 @@ export function rewriteLinks(markdown, { from, revision, shipped }) {
   }
   return { text: text + markdown.slice(at), rewritten };
 }
+
+// The kit's own document at repository path `from` (under kit/), as it is
+// packed. In the repository its links are written against the repository, so
+// they work on GitHub. In the package a repository file that pack-docs.json
+// copies sits at docs/reference/ plus its repository path, so a link to one
+// is rewritten to that copy. A link to a file under kit/ is the same relative
+// path in both places and is kept. Any other relative link names a file the
+// package does not hold, and is refused. Returns the packed markdown and each
+// link that was rewritten.
+export function packageLinks(markdown, { from, shipped }) {
+  if (!from.startsWith('kit/')) throw new Error(`${from} is not a kit document`);
+  const directory = path.posix.dirname(from.slice('kit/'.length));
+  const rewritten = [];
+  let text = '';
+  let at = 0;
+  for (const { target, start, end } of markdownLinks(markdown)) {
+    if (!isRelative(target)) continue;
+    const { path: file, anchor } = resolveLink(from, target);
+    if (!file || file === '.' || file.startsWith('../')) throw new Error(`${from} links to ${target}, which is outside the repository`);
+    if (file.startsWith('kit/')) continue;
+    if (!shipped(file)) throw new Error(`${from} links to ${target}, and the package does not ship ${file}`);
+    const packed = `${path.posix.relative(directory, `docs/reference/${file}`)}${anchor}`;
+    rewritten.push({ target, packed });
+    text += markdown.slice(at, start) + packed;
+    at = end;
+  }
+  return { text: text + markdown.slice(at), rewritten };
+}

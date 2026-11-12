@@ -58,7 +58,7 @@ A send answers each of these questions separately:
 | Field | Meaning |
 | --- | --- |
 | `handled` | The request reached the session. False: the payload cannot be sent as JSON, or the session failed (`error.kind` is `payload` or `fatal`). Nothing changed. |
-| `accepted` | The program accepted the event. False: `rejection` holds the origin, code and message ([dispatch outcomes](reference/spec/caveat-dispatch-0.1.md)), and the session is unchanged. |
+| `accepted` | The program accepted the event. False: `rejection` holds the origin, code and message ([dispatch outcomes](../../spec/caveat-dispatch-0.1.md)), and the session is unchanged. |
 | `durable` | The store holds a checkpoint at the session's current sequence. Accepted but not durable means a restart would resume from the event before; `flush()` retries. |
 | `archived` | No drained archive item is still waiting for the store. An item that waits is in the checkpoint, so it is not lost, and it is retried. |
 

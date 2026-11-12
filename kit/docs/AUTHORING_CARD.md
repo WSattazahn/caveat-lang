@@ -3,7 +3,7 @@
 One program, the commands that check it and the mistakes that cost the most,
 on one page. It is for an agent writing a program for a task: read this first,
 then look up only what it lacks in [Caveat on one page](REFERENCE.md). The
-[authoring guide](reference/docs/AI_AUTHORING.md) and the
+[authoring guide](../../docs/AI_AUTHORING.md) and the
 [documentation index](README.md) are for questions this card and the
 reference leave open.
 
@@ -243,4 +243,4 @@ const save = session.save({ compact: true, positional: true });
   far larger: 34,488 bytes for this program after 514 events, about 64 bytes
   more for each event after that (measured on 1.2.0). Events a host can send
   without end, such as flag and unflag, need a cap when the store has a size
-  limit ([what grows the save](reference/docs/AI_AUTHORING.md#what-grows-the-save)).
+  limit ([what grows the save](../../docs/AI_AUTHORING.md#what-grows-the-save)).
