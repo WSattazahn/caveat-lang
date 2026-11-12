@@ -137,6 +137,49 @@ must be of the series' current revision, and its event must reach an effect
 that can make it: `hold` for `held`, `reopen` or a trigger for `deferred`,
 `release` for `released`.
 
+A hold, a deferral and a release each journal their entry in the event that
+makes them, and a reopening ends a hold (section 2). So restore also reads
+each revision's `held`, `deferred`, `released` and `reopened` entries in
+order, and holds them, the two fields and the revision's reopening record to
+each other (D062):
+
+- A `deferred` or a `released` entry is of a revision on hold, and no `held`,
+  `deferred` or `released` entry follows its revision's `reopened`. A `held`
+  entry names no reason the hold has already, and a `deferred` entry no cause
+  deferred already.
+- A `released` entry of a hold that deferred causes is followed directly by
+  the `reopened` entry that cites those causes and no other, at the same
+  event.
+- Any other `reopened` entry is made by a `reopen` or a trigger of its event,
+  not by a `release`. Of a revision on hold it is a withdrawal breaking
+  through: the program has a `withdraw`, and the entry cites every deferred
+  cause.
+- No revision is committed while the one before it is on hold.
+- A series' `on_hold` and `deferred` are what its current revision's entries
+  leave: the reasons held and the causes deferred since the revision was
+  committed or last released. A reopened revision has neither.
+- A revision's reopening record has a `held`, `deferred`, `released` or
+  `reopened` entry of that revision, since each of them joins it.
+
+A windowed journal departs oldest first
+([Departure 0.1](caveat-departure-0.1.md)). While it holds a revision's
+`committed` entry it holds every later entry of that revision, and they say
+all of its hold; so do the entries from a `released` or a `reopened` one on.
+With a revision's earlier entries departed, the ones left say only part of
+its hold. Restore then requires what they do say: the series holds and defers
+at least what they name, a release is followed by the reopening of at least
+the causes they defer, and a `reopened` entry that is the journal's first may
+be its release's. The reopening record is held to the entries only while the
+journal holds the revision's `committed` entry.
+
+Restore still does not authenticate history. It reads what the entries say,
+and not what a selector could have selected. So once a hold has ended it
+accepts a journal with all of the hold's entries taken out, when another
+entry of the revision accounts for its reopening record. In a program that
+withdraws it also accepts a journal with a `deferred` entry taken out before
+the reopening that broke through the hold: that `reopened` entry then cites
+one more cause, as a `reopen` naming several does.
+
 ## 5. Check
 
 [`caveat check`](caveat-check-0.1.md) counts a `release` as a path that
@@ -209,3 +252,12 @@ the 30 that do not load give the same error. No accepted program changes.
   runtime now orders the causes first, so the graph's relations, the effects
   and the journal entry follow observation order. Only reopenings whose causes
   arrived out of that order change. Tests: `runtime/tests/d021_journal_order.rs`.
+- 2026-11-12: D062 fixed. Restore held each series and each journal entry to
+  the program, and not to each other, so it accepted a save whose journal
+  left out the `held` entry of a hold in force, the `deferred` entry of a
+  cause still deferred, or the `released` entry of a hold that had ended.
+  Section 4 now says what a revision's entries, its series and its reopening
+  record must agree on, and what a windowed journal leaves unsaid. The check
+  runs after every other, so a save refused before is refused with the same
+  message, and a save the runtime wrote restores as before. Tests:
+  `runtime/tests/d062_hold_entries.rs`.

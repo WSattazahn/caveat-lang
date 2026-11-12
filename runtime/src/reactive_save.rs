@@ -1022,9 +1022,10 @@ impl ReactiveSession {
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         // After every other check, so that a save refused before for
-        // anything else keeps its message (D053, D060).
+        // anything else keeps its message (D053, D060, D062).
         self.check_last_event_spending(save, declared_spent)?;
         self.check_retirement_dates(save)?;
+        self.check_hold_entries(save)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1646,6 +1647,254 @@ impl ReactiveSession {
             if around.is_none_or(|(least, most)| *at < least || *at > most) {
                 return Err(format!(
                     "retired {record} is not dated at the event that added {history}@{successor}"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// D062: a hold, a deferred reopening and a release each journal an entry
+    /// in the event that makes them, and a reopening ends a hold. So the
+    /// `held`, `deferred`, `released` and `reopened` entries of a revision,
+    /// read in order, leave its hold (spec/caveat-holds-0.1.md).
+    /// `restore_records` and `check_saved_journal` hold each series and each
+    /// entry to the program; this holds them to each other:
+    ///
+    /// - a `deferred` or a `released` entry is of a revision on hold, and no
+    ///   `held`, `deferred` or `released` entry follows its revision's
+    ///   `reopened`; a `held` entry names no reason held already, and a
+    ///   `deferred` entry no cause deferred already;
+    /// - a `released` entry of a hold that deferred causes is followed by the
+    ///   `reopened` entry that cites them, and only them, at the same event;
+    /// - any other `reopened` entry is a `reopen`'s or a trigger's of its
+    ///   event. Of a revision on hold it is a withdrawal breaking through:
+    ///   the program withdraws, and the entry cites every deferred cause;
+    /// - no revision is committed while the one before it is on hold;
+    /// - a series' `on_hold` and `deferred` are what its current revision's
+    ///   entries leave, and a reopened revision has neither;
+    /// - a revision's reopening record has an entry of the revision that
+    ///   joined it.
+    ///
+    /// The journal departs oldest first. While it holds a revision's
+    /// `committed` entry it holds every later entry of the revision, and they
+    /// say all of its hold; so do the entries from a `released` or a
+    /// `reopened` one on. With a series revision's earlier entries departed,
+    /// the held ones say only what its hold holds at least. A commitment that
+    /// is no series' revision is never on hold.
+    fn check_hold_entries(&self, save: &ReactiveSave) -> Result<(), String> {
+        /// What the entries read so far leave of one decision's hold.
+        struct Hold<'a> {
+            revision: &'a str,
+            /// Whether those entries say all of it.
+            exact: bool,
+            reopened: bool,
+            reasons: HashSet<&'a str>,
+            deferred: HashSet<&'a str>,
+        }
+        let fail = |message: String| format!("decision journal: {message}");
+        let unheld = |revision, exact| Hold {
+            revision,
+            exact,
+            reopened: false,
+            reasons: HashSet::default(),
+            deferred: HashSet::default(),
+        };
+        fn names(list: &[String]) -> HashSet<&str> {
+            list.iter().map(String::as_str).collect()
+        }
+        let partial = save.journal_departed > 0;
+        let mut holds: HashMap<&str, Hold> = HashMap::default();
+        // The commitments with an entry that joins a reopening record, and
+        // those whose `committed` entry the journal holds.
+        let mut joined = HashSet::default();
+        let mut committed = HashSet::default();
+        // After a `released` entry: its revision, its sequence, the causes
+        // its hold deferred, and whether they are all of them.
+        let mut released: Option<(&str, u64, HashSet<&str>, bool)> = None;
+        // Whether each event reaches a `reopen` or a trigger of a decision:
+        // what defers a reopening is what makes one.
+        let mut reopens: HashMap<(&str, &str), bool> = HashMap::default();
+        for (index, entry) in save.decision_journal.iter().enumerate() {
+            let (decision, revision) = (entry.decision.as_str(), entry.commitment.as_str());
+            // The reopening a release makes follows its `released` entry.
+            let mut by_release = false;
+            if let Some((of, sequence, causes, all)) = released.take() {
+                let follows =
+                    entry.change == "reopened" && revision == of && entry.sequence == sequence;
+                if follows && (!causes.is_empty() || !all) {
+                    let cited = names(&entry.because);
+                    by_release = causes.is_subset(&cited) && (!all || cited.len() == causes.len());
+                }
+                if !causes.is_empty() && !by_release {
+                    return Err(fail(format!(
+                        "{of} is released without the reopening its hold deferred"
+                    )));
+                }
+            }
+            if entry.change == "committed" {
+                if let Some(before) = holds.get(decision) {
+                    if !before.reasons.is_empty() || !before.deferred.is_empty() {
+                        return Err(fail(format!(
+                            "{revision} follows {}, which is on hold",
+                            before.revision
+                        )));
+                    }
+                }
+                committed.insert(revision);
+                holds.insert(decision, unheld(revision, true));
+                continue;
+            }
+            if !matches!(
+                entry.change.as_str(),
+                "reopened" | "held" | "deferred" | "released"
+            ) {
+                continue;
+            }
+            joined.insert(revision);
+            let known = !partial || !save.decision_series.contains_key(decision);
+            let hold = holds
+                .entry(decision)
+                .or_insert_with(|| unheld(revision, known));
+            if hold.revision != revision {
+                *hold = unheld(revision, known);
+            }
+            if entry.change == "reopened" {
+                if !by_release {
+                    // The entry before this one is not its release's, unless
+                    // that one departed: a `reopen` made this one.
+                    let made = (index == 0 && partial)
+                        || *reopens.entry((&entry.event, decision)).or_insert_with(|| {
+                            self.event_can_change_decision(&entry.event, decision, "deferred")
+                        });
+                    if !made {
+                        return Err(fail(format!(
+                            "{revision} is reopened by {}, which only releases it, and not \
+                             because of what its hold deferred",
+                            entry.event
+                        )));
+                    }
+                    if (!hold.reasons.is_empty() || !hold.deferred.is_empty()) && !self.withdraws()
+                    {
+                        return Err(fail(format!(
+                            "{revision} is reopened while on hold, with no release, in a \
+                             program that withdraws nothing"
+                        )));
+                    }
+                    if !hold.deferred.is_empty() {
+                        let cited = names(&entry.because);
+                        if let Some(cause) = hold.deferred.difference(&cited).min() {
+                            return Err(fail(format!(
+                                "{revision} is reopened without {cause}, which its hold deferred"
+                            )));
+                        }
+                    }
+                }
+                *hold = Hold {
+                    reopened: true,
+                    ..unheld(revision, true)
+                };
+                continue;
+            }
+            if hold.reopened {
+                return Err(fail(format!(
+                    "{revision} has a {} entry after its reopening",
+                    entry.change
+                )));
+            }
+            if entry.change != "held" && hold.exact && hold.reasons.is_empty() {
+                return Err(fail(format!(
+                    "{revision} has a {} entry while not on hold",
+                    entry.change
+                )));
+            }
+            match entry.change.as_str() {
+                "held" => {
+                    for reason in &entry.because {
+                        if !hold.reasons.insert(reason) {
+                            return Err(fail(format!(
+                                "{revision} is held because of {reason} twice"
+                            )));
+                        }
+                    }
+                }
+                "deferred" => {
+                    for cause in &entry.because {
+                        if !hold.deferred.insert(cause) {
+                            return Err(fail(format!("{revision} defers {cause} twice")));
+                        }
+                    }
+                }
+                _ => {
+                    let causes = std::mem::take(&mut hold.deferred);
+                    released = Some((revision, entry.sequence, causes, hold.exact));
+                    *hold = unheld(revision, true);
+                }
+            }
+        }
+        if let Some((revision, _, causes, _)) = &released {
+            if !causes.is_empty() {
+                return Err(fail(format!(
+                    "{revision} is released without the reopening its hold deferred"
+                )));
+            }
+        }
+        let none = HashSet::default();
+        for (name, series) in &save.decision_series {
+            let Some(current) = series.current.as_deref() else {
+                continue;
+            };
+            let reopened = self.symbols.get(current).is_some_and(|id| {
+                matches!(
+                    self.graph.nodes.get(id),
+                    Some(NodeKind::Commitment { open: true, .. })
+                )
+            });
+            if reopened && !series.on_hold.is_empty() {
+                return Err(format!(
+                    "decision series {name} holds {current}, which is reopened"
+                ));
+            }
+            let hold = holds
+                .get(name.as_str())
+                .filter(|hold| hold.revision == current);
+            let exact = hold.map_or(!partial, |hold| hold.exact);
+            for (verb, listed, journaled) in [
+                (
+                    "hold",
+                    &series.on_hold,
+                    hold.map_or(&none, |hold| &hold.reasons),
+                ),
+                (
+                    "defer",
+                    &series.deferred,
+                    hold.map_or(&none, |hold| &hold.deferred),
+                ),
+            ] {
+                if listed.is_empty() && journaled.is_empty() {
+                    continue;
+                }
+                if let Some(cause) = journaled.difference(&names(listed)).min() {
+                    return Err(format!(
+                        "decision series {name} does not {verb} {cause}, which its journal does"
+                    ));
+                }
+                let unjournaled = |cause: &&String| !journaled.contains(cause.as_str());
+                if let Some(cause) = listed.iter().find(unjournaled).filter(|_| exact) {
+                    return Err(format!(
+                        "decision series {name} {verb}s {cause}, which its journal does not"
+                    ));
+                }
+            }
+        }
+        for name in save.reopening_qualifications.keys() {
+            let revision = occurrence_parts(name)
+                .is_some_and(|(series, _)| save.decision_series.contains_key(series));
+            if revision
+                && (!partial || committed.contains(name.as_str()))
+                && !joined.contains(name.as_str())
+            {
+                return Err(format!(
+                    "reopening of {name}: no journal entry reopens, holds, defers or releases it"
                 ));
             }
         }
