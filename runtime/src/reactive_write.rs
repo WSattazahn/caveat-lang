@@ -58,7 +58,129 @@ pub(super) struct Declared {
     pub(super) symbols: NameTable,
     pub(super) observations: Sealed<Vec<String>>,
     pub(super) withdrawals: Sealed<Vec<Withdrawal>>,
-    pub(super) taken_back: Sealed<Vec<TakeBack>>,
+    pub(super) taken_back: TakeBacks,
+}
+
+/// The take-backs, in the order they were made, with how many name each
+/// occurrence and caveat, so that a read looks the two names up where it
+/// read every take-back. The counts follow from the list and are written
+/// only where it is; a copy shares both, and a write copies only the blocks
+/// of the counts on the way down to its occurrence. It reads like the list's
+/// `Arc`.
+pub(super) struct TakeBacks {
+    list: Arc<Vec<TakeBack>>,
+    /// By occurrence name: each caveat a take-back names with it, with how
+    /// many do. An occurrence is taken back from a handful of caveats at
+    /// most, so a short list.
+    counts: Named<Vec<(Arc<str>, usize)>>,
+}
+
+impl TakeBacks {
+    fn new(list: Vec<TakeBack>) -> Self {
+        let mut counts = Named::default();
+        for record in &list {
+            Self::count_in(&mut counts, record);
+        }
+        Self {
+            list: Arc::new(list),
+            counts,
+        }
+    }
+
+    fn count_in(counts: &mut Named<Vec<(Arc<str>, usize)>>, record: &TakeBack) {
+        if let Some(caveats) = counts.0.get_mut(record.evidence.as_str()) {
+            match caveats
+                .iter_mut()
+                .find(|(caveat, _)| **caveat == *record.caveat)
+            {
+                Some((_, count)) => *count += 1,
+                None => caveats.push((Arc::from(record.caveat.as_str()), 1)),
+            }
+        } else {
+            counts.0.insert(
+                Arc::from(record.evidence.as_str()),
+                vec![(Arc::from(record.caveat.as_str()), 1)],
+            );
+        }
+    }
+
+    fn count_out(counts: &mut Named<Vec<(Arc<str>, usize)>>, record: &TakeBack) {
+        let caveats = counts
+            .0
+            .get_mut(record.evidence.as_str())
+            .expect("a take-back's occurrence is counted");
+        let at = caveats
+            .iter()
+            .position(|(caveat, _)| **caveat == *record.caveat)
+            .expect("a take-back's caveat is counted");
+        caveats[at].1 -= 1;
+        if caveats[at].1 == 0 {
+            caveats.swap_remove(at);
+            if caveats.is_empty() {
+                counts.0.remove(record.evidence.as_str());
+            }
+        }
+    }
+
+    fn push(&mut self, record: TakeBack) {
+        Self::count_in(&mut self.counts, &record);
+        Arc::make_mut(&mut self.list).push(record);
+    }
+
+    fn retain(&mut self, mut keep: impl FnMut(&TakeBack) -> bool) {
+        let counts = &mut self.counts;
+        Arc::make_mut(&mut self.list).retain(|record| {
+            let kept = keep(record);
+            if !kept {
+                Self::count_out(counts, record);
+            }
+            kept
+        });
+    }
+
+    /// How many take-backs name `caveat` and `occurrence`. A debug build
+    /// counts them in the list too.
+    pub(super) fn count(&self, caveat: &str, occurrence: &str) -> usize {
+        let count = self
+            .counts
+            .get(occurrence)
+            .and_then(|caveats| caveats.iter().find(|(held, _)| **held == *caveat))
+            .map_or(0, |(_, count)| *count);
+        debug_assert_eq!(
+            count,
+            self.list
+                .iter()
+                .filter(|record| record.caveat == caveat && record.evidence == occurrence)
+                .count(),
+            "take-back counts by name"
+        );
+        count
+    }
+}
+
+impl Deref for TakeBacks {
+    type Target = Arc<Vec<TakeBack>>;
+
+    fn deref(&self) -> &Arc<Vec<TakeBack>> {
+        &self.list
+    }
+}
+
+impl Clone for TakeBacks {
+    fn clone(&self) -> Self {
+        Self {
+            list: Arc::clone(&self.list),
+            counts: self.counts.clone(),
+        }
+    }
+}
+
+/// Prints what the list's `Arc` printed, so a session's debug output is
+/// unchanged.
+impl fmt::Debug for TakeBacks {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.list.fmt(formatter)
+    }
 }
 
 /// The graph and names a program declares, sealed for the session it loads.
@@ -68,7 +190,7 @@ pub(super) fn seal_declared(graph: EpistemicGraph, symbols: HashMap<String, Node
         symbols: NameTable::new(symbols),
         observations: Sealed::new(Vec::new()),
         withdrawals: Sealed::new(Vec::new()),
-        taken_back: Sealed::new(Vec::new()),
+        taken_back: TakeBacks::new(Vec::new()),
     }
 }
 
@@ -1117,15 +1239,15 @@ impl ReactiveSession {
     }
 
     pub(super) fn set_taken_back(&mut self, records: Vec<TakeBack>) {
-        self.taken_back = Sealed::new(records);
+        self.taken_back = TakeBacks::new(records);
     }
 
     pub(super) fn push_take_back(&mut self, record: TakeBack) {
-        Arc::make_mut(&mut self.taken_back.0).push(record);
+        self.taken_back.push(record);
     }
 
     pub(super) fn retain_taken_back(&mut self, keep: impl FnMut(&TakeBack) -> bool) {
-        Arc::make_mut(&mut self.taken_back.0).retain(keep);
+        self.taken_back.retain(keep);
     }
 }
 
@@ -1914,6 +2036,83 @@ bind h.few = latest(few) when has_sample(few);
         assert_eq!(before["r0499"], Counted(499));
         assert_eq!(records["r0500"], Counted(1));
         assert_eq!(records.len(), 1_000);
+    }
+
+    #[test]
+    fn take_back_counts_follow_the_list() {
+        fn record(caveat: u64, evidence: u64) -> TakeBack {
+            TakeBack {
+                evidence: format!("e@{evidence}"),
+                caveat: format!("k{caveat}"),
+                sequence: 0,
+                event: String::from("t"),
+                agent: None,
+            }
+        }
+        fn check(take_backs: &TakeBacks) {
+            for caveat in 0..4 {
+                for evidence in 0..40 {
+                    let (caveat, evidence) = (format!("k{caveat}"), format!("e@{evidence}"));
+                    // `count` checks itself against the list in a debug build;
+                    // this test checks it in any build.
+                    let listed = take_backs
+                        .iter()
+                        .filter(|record| record.caveat == caveat && record.evidence == evidence)
+                        .count();
+                    assert_eq!(take_backs.count(&caveat, &evidence), listed);
+                }
+            }
+            let mut counted = 0;
+            for (_, caveats) in take_backs.counts.iter() {
+                assert!(!caveats.is_empty(), "an occurrence counted with no caveat");
+                for (_, count) in caveats {
+                    assert!(*count > 0, "a caveat counted none");
+                    counted += count;
+                }
+            }
+            assert_eq!(counted, take_backs.len());
+        }
+        let mut state = 0x2545_f491_4f6c_dd1d_u64;
+        let mut next = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        let mut take_backs = TakeBacks::new(vec![record(0, 0), record(0, 0), record(1, 0)]);
+        check(&take_backs);
+        let mut copies = Vec::new();
+        for step in 0..2_000 {
+            match next(8) {
+                0..=4 => take_backs.push(record(next(4), next(40))),
+                5 => {
+                    let gone = next(40);
+                    take_backs.retain(|record| record.evidence != format!("e@{gone}"));
+                }
+                6 => {
+                    let caveat = format!("k{}", next(4));
+                    let mut first = true;
+                    take_backs.retain(|record| {
+                        let taken = first && record.caveat == caveat;
+                        first &= !taken;
+                        !taken
+                    });
+                }
+                _ => {
+                    let list = (**take_backs).clone();
+                    take_backs = TakeBacks::new(list);
+                }
+            }
+            check(&take_backs);
+            if step % 250 == 0 {
+                copies.push(((**take_backs).clone(), take_backs.clone()));
+            }
+        }
+        // A copy keeps the counts of its list, whatever was written after it.
+        for (list, copy) in &copies {
+            assert_eq!(copy.as_slice(), list.as_slice());
+            check(copy);
+        }
     }
 
     #[test]
