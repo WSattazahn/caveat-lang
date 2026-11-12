@@ -33,9 +33,20 @@ fn capacity_refusal_is_preappend_and_atomic_then_prior_collection_frees_room() {
             retired.insert(record, json!(n));
         }
     }
+    // The save 65,535 `cycle` events leave. Its last event is the cycle that
+    // retired `a@65535`, which the save dates at that event, so it reports
+    // what that cycle did, as the fixture's own save of three cycles does:
+    // restore holds a retirement dated at the last event to that event's
+    // effects (D060).
+    let last = format!("a@{HELD_LIMIT}");
     save["sequence"] = json!(HELD_LIMIT - 1);
-    save["last_event"] = json!("collector_noop");
-    save["effects"] = json!([]);
+    save["last_event"] = json!("cycle");
+    save["effects"] = json!([
+        {"kind":"retire","history":"a","record":format!("a@{}", HELD_LIMIT - 1)},
+        {"kind":"renew","evidence":"a","occurrence":last},
+        {"kind":"reveal","evidence":last,"relation":"supports","target":"seen"},
+        {"kind":"withdraw","evidence":last,"because":last},
+    ]);
     save["graph"] = json!({"nodes":nodes,"relations":relations});
     save["renewals"]["a"] = json!(renewals);
     save["withdrawals"] = json!(withdrawals);
