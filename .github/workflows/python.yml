@@ -72,13 +72,15 @@ jobs:
       matrix:
         include:
           - name: macOS (arm64 and x86_64)
-            # macos-latest, not a numbered image: GitHub cuts capacity on the
-            # older arm64 images first, and a job pinned to one (macos-14 on
-            # #365, macos-15 on #461 and #462) waited 15 minutes for a runner
-            # and was cancelled ("not acquired by Runner of type hosted even
-            # after multiple attempts"). Any arm64 image builds the same
-            # universal2 wheel; its macOS minimum comes from the Rust targets,
-            # not the image.
+            # macos-latest, not a numbered image, so the job follows GitHub's
+            # current arm64 image. Any arm64 image builds the same universal2
+            # wheel; its macOS minimum comes from the Rust targets, not the
+            # image. A job cancelled after 15 minutes with "not acquired by
+            # Runner of type hosted even after multiple attempts" got no
+            # runner: on 2026-11-12, from 15:10 to 20:00 UTC, GitHub's arm64
+            # macOS capacity cancelled jobs on macos-15 (#461, #462) and on
+            # macos-latest (#464, carmack.yml's replay) alike, so no label
+            # avoids it; its one re-run is the remedy.
             runner: macos-latest
             target: universal2-apple-darwin
             rust_targets: aarch64-apple-darwin x86_64-apple-darwin
