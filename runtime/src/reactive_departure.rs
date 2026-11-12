@@ -827,9 +827,14 @@ impl ReactiveSession {
                     &mut holders,
                 );
                 for reading in &mut stream.occurrences {
-                    if departing.contains_key(&reading.id) {
+                    // A reading that names no departing record is not
+                    // compacted, so it stays shared.
+                    if departing.contains_key(&reading.id)
+                        || !names_any(&reading.provenance, &departing)
+                    {
                         continue;
                     }
+                    let reading = Arc::make_mut(reading);
                     compact(
                         &mut reading.provenance,
                         &departing,
@@ -986,13 +991,8 @@ impl ReactiveSession {
                 ]);
             });
         }
-        if self
-            .observations
-            .iter()
-            .any(|name| departing.contains_key(name))
-        {
-            self.retain_observations(|name| !departing.contains_key(name));
-        }
+        // A record the ledger holds has a name, so a departing one is in `ids`.
+        self.depart_observations(ids.keys().copied());
         let mut withdrawals = self.depart_withdrawals(&departing).into_iter().peekable();
         let mut taken_back = BTreeMap::<String, Vec<TakeBack>>::new();
         if self
@@ -1063,7 +1063,9 @@ impl ReactiveSession {
                     let stream = Arc::make_mut(self.reading_streams.get_mut(history).unwrap());
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.finish_cow();
-                    reading = Some(stream.occurrences.remove(index));
+                    // The session this event began from still holds the
+                    // reading, so the archive takes a copy of its own.
+                    reading = Some(Arc::unwrap_or_clone(stream.occurrences.remove(index)));
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.removed();
                 }
@@ -1265,8 +1267,12 @@ impl ReactiveSession {
                 }
                 let stream = Arc::make_mut(stream);
                 settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
+                // A reading with only settled roots stays shared too.
                 for reading in &mut stream.occurrences {
-                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                    if !settled(&reading.provenance) {
+                        let reading = Arc::make_mut(reading);
+                        settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                    }
                 }
             }
         }

@@ -350,10 +350,9 @@ struct JournalReads<'a> {
     /// The claims each node supports or opposes, which `qualify_roots`
     /// searches with evidence.
     bears_on: HashMap<NodeId, Vec<NodeId>>,
-    /// Each node with a `supports` or `opposes` relation, and the observation
-    /// ledger: what `predicate("observed")` reads.
+    /// Each node with a `supports` or `opposes` relation: what
+    /// `predicate("observed")` reads beside the observation ledger.
     stance: HashSet<NodeId>,
-    ledger: HashSet<&'a str>,
     ranks: ObservationRanks<'a>,
     /// The `reopens` relations events added, by commitment, in graph order.
     reopens: HashMap<NodeId, Vec<NodeId>>,
@@ -868,9 +867,15 @@ impl ReactiveSession {
                 .renewals
                 .iter()
                 .filter(|(_, renewal)| renewal.occurrences.len() > 1)
-                .map(|(name, renewal)| (name.clone(), renewal.occurrences.clone()))
+                .map(|(name, renewal)| {
+                    let occurrences = renewal.occurrences.iter();
+                    (
+                        name.clone(),
+                        occurrences.map(|name| name.as_str().to_owned()).collect(),
+                    )
+                })
                 .collect(),
-            observations: (!self.observations.is_empty()).then(|| (**self.observations).clone()),
+            observations: (!self.observations.is_empty()).then(|| self.observation_names()),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (**self.withdrawals).clone(),
             taken_back: (**self.taken_back).clone(),
@@ -2713,7 +2718,12 @@ impl ReactiveSession {
                 }
             }
         }
-        self.set_observations(observations.clone());
+        // Each name is declared evidence, and none is given twice.
+        let records = observations
+            .iter()
+            .map(|name| self.symbols[name])
+            .collect::<Vec<_>>();
+        self.set_observations(records);
         Ok(())
     }
 
@@ -2771,7 +2781,7 @@ impl ReactiveSession {
                     )
             })
             .map(|edge| edge.from)
-            .chain(self.observations.iter().map(|name| self.symbols[name]))
+            .chain(self.observations.iter())
             .collect()
     }
 
@@ -3546,7 +3556,7 @@ impl ReactiveSession {
                     }
                     match (relation, target) {
                         (None, None) => {
-                            if !departed && !self.observations.iter().any(|name| name == evidence) {
+                            if !departed && !self.in_ledger(evidence) {
                                 return Err(
                                     "neutral reveal effect is missing its observation record"
                                         .into(),
@@ -3703,7 +3713,8 @@ impl ReactiveSession {
         self.decision_series = Records::new(save.decision_series.clone());
         let renewals = Arc::make_mut(&mut self.renewals);
         for (name, occurrences) in &save.renewals {
-            renewals.get_mut(name).expect("checked above").occurrences = occurrences.clone();
+            renewals.get_mut(name).expect("checked above").occurrences =
+                occurrences.iter().map(Name::from).collect();
         }
         self.scheduled = Arc::new(save.scheduled_qualifications.clone());
         self.observation_qualifications = full_records(&save.observation_qualifications);
@@ -3744,7 +3755,6 @@ impl ReactiveSession {
             qualified_by: HashMap::default(),
             bears_on: HashMap::default(),
             stance: HashSet::default(),
-            ledger: self.observations.iter().map(String::as_str).collect(),
             ranks: self.observation_ranks(),
             reopens: HashMap::default(),
             reaching: Reaching {
@@ -3903,7 +3913,7 @@ impl ReactiveSession {
                 self.symbols.get(name).is_some_and(|id| {
                     matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
                         && ((!self.is_retired(name)
-                            && (reads.ledger.contains(name) || reads.stance.contains(id)))
+                            && (self.observations.holds(*id) || reads.stance.contains(id)))
                             || (cited && observed.declared_causes.contains_key(id)))
                 })
             };
