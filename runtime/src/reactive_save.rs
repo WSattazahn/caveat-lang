@@ -1002,8 +1002,9 @@ impl ReactiveSession {
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         // After every other check, so that a save refused before for
-        // anything else keeps its message (D053).
+        // anything else keeps its message (D053, D060).
         self.check_last_event_spending(save, declared_spent)?;
+        self.check_retirement_dates(save)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1545,6 +1546,89 @@ impl ReactiveSession {
             }
         }
         self.retired = Arc::new(save.retired.clone());
+        Ok(())
+    }
+
+    /// D060: a record retires as its history adds the record that takes its
+    /// place in the window, in that record's event. `restore_retired` holds
+    /// a retirement's date to the save's sequence and to the retired record's
+    /// own; this holds it to what else the save dates:
+    ///
+    /// - a retirement dated at the last event is one of that event's retire
+    ///   effects, in every windowed history, renewable evidence among them;
+    /// - a reading or a journal entry numbered K, under a window of N, is
+    ///   retired at the sequence of the one numbered K + N. When that
+    ///   reading has departed, the retirement lies between the sequences of
+    ///   the nearest readings held before and after it. Journal entries
+    ///   depart oldest first, so a retired entry's is always held.
+    ///
+    /// A renewal's records carry no sequence, so nothing else dates one.
+    /// `restore_records` and `restore_retired` have passed: each history's
+    /// records are in order and its live ones are its newest, so the record
+    /// K + N of a retired one is no newer than the newest, which is held.
+    fn check_retirement_dates(&self, save: &ReactiveSave) -> Result<(), String> {
+        // The records the last event's effects retire, listed once, and only
+        // for a save that dates a retirement at the last event.
+        let mut reported: Option<HashSet<&str>> = None;
+        for (record, at) in &save.retired {
+            if *at == save.sequence
+                && !reported
+                    .get_or_insert_with(|| {
+                        save.effects
+                            .iter()
+                            .filter_map(|effect| match effect {
+                                EffectReport::Retire { record, .. } => Some(record.as_str()),
+                                _ => None,
+                            })
+                            .collect()
+                    })
+                    .contains(record.as_str())
+            {
+                return Err(format!(
+                    "retired {record} is dated at the last event, which did not retire it"
+                ));
+            }
+            let Some((history, number)) = occurrence_parts(record) else {
+                continue;
+            };
+            let number = number as u64;
+            // The record that took this one's place, and the sequences of
+            // the records held nearest to it: its own, twice, when the save
+            // holds it.
+            let successor;
+            let around;
+            if let Some(window) = self.journal_window.filter(|_| history == "journal") {
+                successor = number.saturating_add(window as u64);
+                around = successor
+                    .checked_sub(save.journal_departed)
+                    .and_then(|index| index.checked_sub(1))
+                    .and_then(|index| save.decision_journal.get(index as usize))
+                    .map(|entry| (entry.sequence, entry.sequence));
+            } else if let Some(stream) = save
+                .reading_streams
+                .get(history)
+                .filter(|_| self.windows.contains(history))
+            {
+                successor = number.saturating_add(stream.limit as u64);
+                let held = &stream.occurrences;
+                let next = held.partition_point(|reading| reading.ordinal < successor);
+                around = held.get(next).map(|after| {
+                    let before = if after.ordinal == successor {
+                        after
+                    } else {
+                        &held[next.saturating_sub(1)]
+                    };
+                    (before.sequence, after.sequence)
+                });
+            } else {
+                continue;
+            }
+            if around.is_none_or(|(least, most)| *at < least || *at > most) {
+                return Err(format!(
+                    "retired {record} is not dated at the event that added {history}@{successor}"
+                ));
+            }
+        }
         Ok(())
     }
 

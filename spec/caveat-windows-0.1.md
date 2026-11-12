@@ -133,11 +133,24 @@ Restore refuses a save when:
   session does not hold;
 - a retirement is dated 0, past the save's `sequence`, or before the record
   it retires was added;
+- a retirement dated at the save's `sequence` is not one of the last event's
+  `retire` effects;
+- a retired reading or journal entry numbered `K`, under a window of `N`, is
+  not dated at the sequence of the one numbered `K + N`, which took its place
+  in the window. When that reading has
+  [departed](caveat-departure-0.1.md), the retirement must lie between the
+  sequences of the nearest readings held before and after it;
 - a windowed history's live records are not exactly its newest
   `min(N, total)`: a gap, a live record older than a retired one, or more live
   records than its window;
 - a retired record is the current occurrence, or a journal entry dated after
   its retirement reopens a decision because of it.
+
+A record retires as its history adds the record that takes its place in the
+window, in that record's event, so its retirement carries that event's
+sequence. A renewable evidence's records carry no sequence: restore holds a
+renewal's retirement to the order of its records and, when it is dated at
+the save's `sequence`, to the last event's effects, and to nothing else.
 
 Retired evidence counts as observed for every check that requires cited
 evidence to have been observed: it was observed when it was cited. Evidence
@@ -197,6 +210,25 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-12 (D060): restore holds a retirement's date to what else the save
+  dates. It checked only that the date was not 0, not past the save's
+  `sequence` and not before the retired record was added, so it accepted a
+  retirement dated at an event that added nothing to the record's history.
+  With `renewable sensor window 1;`, a first event that renews `sensor` and
+  a second that renews nothing, a save edited to say the second event
+  retired `sensor` restored. A record retires as its history adds the record
+  that takes its place in the window, in that record's event. Restore now
+  refuses a retirement dated at the save's `sequence` that is not one of the
+  last event's `retire` effects, with "retired sensor is dated at the last
+  event, which did not retire it", and a retired reading or journal entry
+  numbered `K`, under a window of `N`, that is not dated at the sequence of
+  the one numbered `K + N`, with "retired a@1 is not dated at the event that
+  added a@2". When that reading has departed, the date must lie between the
+  sequences of the nearest readings held before and after it. A renewal's
+  records carry no sequence, so a renewal's retirement dated before the last
+  event is held to the order of its records only, as before. Both checks run
+  after every other, so a save refused before is refused with the same
+  message. A save the runtime wrote restores as before.
 - 2026-11-12 (D059): a windowed stream or renewable evidence named
   `journal`, in a program without `journal window`, restores and departs as
   one of any other name does. Restore refused the save written by each
