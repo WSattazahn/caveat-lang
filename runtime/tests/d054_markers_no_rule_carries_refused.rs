@@ -43,14 +43,15 @@
 //! each evidence the state's grounds name, and `reopened` and `on_hold`
 //! each evidence that reopened the commitment. A qualification's guard
 //! joins only the live records that list what it qualifies, and a
-//! qualification adds only caveats to a state's grounds. In a program with
-//! a window, a marker, a record's name, or a cause a series or a withdrawal
-//! keeps is refused outside its part's bound. Guards are not evaluated, so
-//! what some rule could carry restores whether or not one did, and saves
-//! the runtime writes restore as before. Each part's content moves only
-//! into parts whose bound contains its own, so a session restored from a
-//! save within the bound stays within it. See spec/caveat-save-0.1.md
-//! ("Changes").
+//! qualification adds only caveats to a state's grounds. A marker, a
+//! record's name, or a cause a series or a withdrawal keeps is refused
+//! outside its part's bound: in a program with a window, and since D061 in
+//! every program (`d061_windowless_names_bounded.rs`). Guards are not
+//! evaluated, so what some rule could carry restores whether or not one
+//! did, and saves the runtime writes restore as before. Each part's content
+//! moves only into parts whose bound contains its own, so a session
+//! restored from a save within the bound stays within it. See
+//! spec/caveat-save-0.1.md ("Changes").
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::{json, Value};
 
@@ -604,8 +605,8 @@ fn no_provenance_can_name_a_record_no_rule_carries_into_it() {
     refused(ALL, &forged, &no_rule_carries("state s", "e"));
 }
 
-/// No history has a window, so nothing departs and no marker can form:
-/// restore reads no name here.
+/// No history has a window, so nothing departs and no marker can form, but
+/// restore reads the names a session holds all the same (D061).
 const WINDOWLESS: &str = "claim seen;
 evidence e from \"e\";
 evidence f from \"f\";
@@ -620,13 +621,15 @@ on go set s = qualified(1, f);
 on flag qualify e with shaky;
 ";
 
+/// Restore accepted any name here before D061, and the next `go` dropped it.
 #[test]
-fn a_program_without_a_window_restores_any_name() {
+fn a_program_without_a_window_refuses_a_name_no_rule_carries() {
     let save = plays_and_restores(WINDOWLESS, &[("see", "{}"), ("go", "{}")]);
+    assert_eq!(save["states"]["s"]["lineage"]["evidence"], json!(["f"]));
     let mut forged = save.clone();
     forged["states"]["s"]["lineage"]["evidence"] = json!(["e", "f"]);
-    let played = plays_on(WINDOWLESS, &forged, &[("flag", "{}"), ("go", "{}")]);
-    assert_eq!(played["states"]["s"]["lineage"]["evidence"], json!(["f"]));
+    refused(WINDOWLESS, &forged, &no_rule_carries("state s", "e"));
+    plays_on(WINDOWLESS, &save, &[("flag", "{}"), ("go", "{}")]);
 }
 
 /// Two commits in one event: the journal keeps the second entry, and the
@@ -4157,7 +4160,7 @@ fn a_declared_reopening_reads_its_evidence() {
 
 /// A declaration reopens `p` because of `CAUSE`, which the tests make a
 /// caveat, a claim or a commitment, none of which a history holds. `go`
-/// renews `g`, whose window has restore read the names a session holds.
+/// renews `g`, whose window lets its records depart.
 const DECLARED_CAUSES: &str = "claim seen;
 caveat k consequence low;
 evidence g from \"g\";
@@ -4595,8 +4598,7 @@ on sel resolve d = 1 because caveated(s, k);
 /// A name without a window is bounded as a marker's history is: the outcome
 /// takes `g` from the record of what it selects, in a program whose window
 /// is on a stream nothing samples, and in the same program without the
-/// window, where restore reads no name and debug builds still check every
-/// event.
+/// window, where restore reads the names as well since D061.
 #[test]
 fn a_caveated_selector_reads_a_plain_name_through_the_record() {
     let windowed =

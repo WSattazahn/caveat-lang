@@ -2,18 +2,20 @@
 //! (finding D054). Departure turns the names of a windowed history's records
 //! into one marker of that history, in the provenance that named them, so a
 //! marker stands only where some rule or declaration can carry a record of
-//! its history. In a program with a window, restore refuses a provenance
-//! that holds a marker or a record's name, or a cause a series or a
-//! withdrawal keeps, that no rule or declaration of the program can carry
-//! into it. See spec/caveat-save-0.1.md, "Restore validation".
+//! its history. Restore refuses a provenance that holds a marker or a
+//! record's name, or a cause a series or a withdrawal keeps, that no rule
+//! or declaration of the program can carry into it: in every program since
+//! finding D061, and before it only in a program with a window. See
+//! spec/caveat-save-0.1.md, "Restore validation".
 //!
-//! The bound is computed once, as the program loads, from its rules,
-//! procedures, reopening triggers and declarations. Guards are not evaluated:
-//! an effect that ran and one that was skipped carry the same. A procedure's
-//! steps carry what any call of it passes, and a read carries whatever it
-//! could find. So a marker some rule could carry in restores whether or not
-//! one did: like the rest of restore, this checks what is possible, not what
-//! happened.
+//! The bound is computed once per loaded program, from its rules,
+//! procedures, reopening triggers and declarations: when restore first
+//! needs it, and in debug builds as the program loads. Guards are not
+//! evaluated: an effect that ran and one that was skipped carry the same. A
+//! procedure's steps carry what any call of it passes, and a read carries
+//! whatever it could find. So a marker some rule could carry in restores
+//! whether or not one did: like the rest of restore, this checks what is
+//! possible, not what happened.
 //!
 //! Each part of a thing has its own bound, from what writes it: a state's
 //! lineage, and its grounds, which take what its initializer's and its sets'
@@ -36,6 +38,15 @@
 //! after` effects evaluate; the withdrawals' reasons; and each cue. What a
 //! release's `because` selects goes into the reopening record and is kept
 //! as no cause.
+//!
+//! A procedure's parameter grounds on what its argument gives grounds. In a
+//! program without a window it also grounds on what the argument carries,
+//! its whole lineage, as releases before rc.12 grounded it (F268): a save of
+//! such a program can be that old, and windows came in rc.15 (D061). Each
+//! parameter has its own bound, and a step's grounds take a call's argument
+//! only through the parameter the step reads, as `evaluate_grounds` reads a
+//! parameter by its name: a step that reads none, such as `set s = 5`, takes
+//! nothing of the arguments, though its lineage takes all of them.
 //!
 //! A read takes the parts the runtime reads for it, and no other part of
 //! what it names (`Read`). A read of evidence or of a stream takes the
@@ -143,9 +154,10 @@ pub(crate) enum Owner {
     /// What a procedure's steps run on: the guard and arguments of every
     /// call of it.
     Call(String),
-    /// What a procedure's parameters ground on: what every call's arguments
-    /// give grounds.
-    Arguments(String),
+    /// What a procedure's parameter grounds on: what the argument every call
+    /// passes for it gives grounds, and in a program without a window what
+    /// that argument carries too (D061).
+    Parameter(String, String),
     /// What a withdrawal predicate's lineage takes: the reason of every
     /// withdrawal, read through its records.
     Withdrawals,
@@ -211,6 +223,10 @@ struct Flows<'a> {
     /// For each owner, the owners that read through its records each record
     /// the owner can name.
     through: Vec<Vec<usize>>,
+    /// The procedure whose steps are being walked, if any: a name one of its
+    /// steps reads that is no state is its parameter of that name, as
+    /// `evaluate` and `evaluate_grounds` look names up.
+    procedure: Option<&'a Procedure>,
 }
 
 impl<'a> Flows<'a> {
@@ -227,6 +243,7 @@ impl<'a> Flows<'a> {
             everything: Vec::new(),
             joined: Vec::new(),
             through: Vec::new(),
+            procedure: None,
         };
         // Every stream and every declared evidence, renewable or not, in name
         // order. The graph holds only declared nodes while the program loads.
@@ -356,7 +373,7 @@ impl<'a> Flows<'a> {
                 Owner::Reopening(series.clone()),
             ],
             // A parameter's grounds lie within its lineage.
-            Owner::Arguments(procedure) => vec![Owner::Call(procedure.clone())],
+            Owner::Parameter(procedure, _) => vec![Owner::Call(procedure.clone())],
             // A withdrawal predicate's lineage names each reason too.
             Owner::WithdrawalReasons => vec![Owner::Withdrawals],
             _ => Vec::new(),
@@ -470,6 +487,10 @@ impl<'a> Flows<'a> {
         }
     }
 
+    /// What an expression's value can carry. A parameter it reads carries
+    /// what the parameter grounds on; the rest of what the call passes, its
+    /// guard and every argument, reaches each step through the step's guard
+    /// (`program`).
     fn expression(&mut self, expression: &Expr, sources: &mut Sources) {
         let mut carried = Carried::default();
         expression.collect_carried(&mut carried);
@@ -479,6 +500,8 @@ impl<'a> Flows<'a> {
                 sources
                     .owners
                     .insert(self.owner(Owner::State(state.clone())));
+            } else {
+                self.parameter(state, sources);
             }
         }
         for (read, name) in &carried.graph {
@@ -496,6 +519,8 @@ impl<'a> Flows<'a> {
     /// reads grounds on: never the guard of the rule that writes them, nor
     /// the guard behind a state or a commitment the value reads, though a
     /// record read whole brings what its own writer read, guard included.
+    /// In a procedure's step, a parameter gives what it grounds on, and a
+    /// step that reads none takes nothing of the call's arguments (D061).
     fn grounds(&mut self, expression: &Expr, sources: &mut Sources) {
         let mut grounded = Grounded::default();
         expression.collect_grounded(&mut grounded);
@@ -506,6 +531,8 @@ impl<'a> Flows<'a> {
                 sources
                     .owners
                     .insert(self.owner(Owner::StateGrounds(state.clone())));
+            } else {
+                self.parameter(state, sources);
             }
         }
         for decision in &grounded.decisions {
@@ -532,6 +559,24 @@ impl<'a> Flows<'a> {
         }
         for (read, name) in &grounded.graph {
             self.read(*read, name, sources);
+        }
+    }
+
+    /// A name that is no state, read by a step of the procedure being
+    /// walked: what the procedure's parameter of that name grounds on. A
+    /// name that is not one of its parameters is a constant, which carries
+    /// nothing, and outside a procedure a payload field is plain too.
+    fn parameter(&mut self, name: &str, sources: &mut Sources) {
+        let Some(procedure) = self.procedure else {
+            return;
+        };
+        if procedure
+            .parameters
+            .iter()
+            .any(|parameter| parameter == name)
+        {
+            let owner = self.owner(Owner::Parameter(procedure.name.clone(), name.to_string()));
+            sources.owners.insert(owner);
         }
     }
 
@@ -599,9 +644,7 @@ impl<'a> Flows<'a> {
     /// Where an effect's records go, and what they carry: its guard, every
     /// expression it evaluates, and what it selects. A skipped effect keeps
     /// its guard in the same owner as one that ran, or in a selection.
-    /// `arguments` is what a parameter grounds on where the effect runs: a
-    /// procedure's arguments, or nothing in a rule.
-    fn effect(&mut self, effect: &Effect, guard: &Sources, arguments: &Sources) {
+    fn effect(&mut self, effect: &Effect, guard: &Sources) {
         let session = self.session;
         let mut sources = guard.clone();
         let targets = match effect {
@@ -611,13 +654,26 @@ impl<'a> Flows<'a> {
             } => {
                 // A parameter grounds a value as its argument would inline:
                 // on what the argument gives grounds, never on the call's
-                // guard.
-                let mut grounds = arguments.clone();
+                // guard. Releases before rc.12 grounded it on the argument's
+                // whole lineage (F268), and only a program without a window
+                // can have a save that old, so there it takes what the
+                // argument carries too (D061). Each parameter has its own
+                // bound, which only a step that reads it takes (`grounds`).
                 for argument in passed {
                     self.expression(argument, &mut sources);
-                    self.grounds(argument, &mut grounds);
                 }
-                self.connect(&grounds, Owner::Arguments(name.clone()));
+                let parameters = session
+                    .procedures
+                    .get(name)
+                    .map_or(&[][..], |procedure| &procedure.parameters[..]);
+                for (parameter, argument) in parameters.iter().zip(passed) {
+                    let mut grounds = Sources::default();
+                    self.grounds(argument, &mut grounds);
+                    if !session.windowed() {
+                        self.expression(argument, &mut grounds);
+                    }
+                    self.connect(&grounds, Owner::Parameter(name.clone(), parameter.clone()));
+                }
                 vec![Owner::Call(name.clone())]
             }
             Effect::Sample {
@@ -718,9 +774,10 @@ impl<'a> Flows<'a> {
                 // what the value, or with `because` the citations alone, give
                 // grounds as `evaluate_grounds` reads them: never the set's
                 // guard, and of a state the value reads only that state's
-                // grounds (D054).
+                // grounds (D054), and of a parameter only what it grounds on
+                // (D061).
                 self.expression(value, &mut sources);
-                let mut grounds = arguments.clone();
+                let mut grounds = Sources::default();
                 match because {
                     None => self.grounds(value, &mut grounds),
                     Some(citations) => {
@@ -747,7 +804,7 @@ impl<'a> Flows<'a> {
                 // The grounds are what the commit uses, cites and gives as
                 // reasons give grounds; its guard, its permission and a
                 // predecessor's basis stay in the basis (D054).
-                let mut grounds = arguments.clone();
+                let mut grounds = Sources::default();
                 for expression in using
                     .iter()
                     .chain(citing)
@@ -829,14 +886,15 @@ impl<'a> Flows<'a> {
         for rule in session.rules.iter() {
             let mut guard = Sources::default();
             self.expression(&rule.condition, &mut guard);
-            self.effect(&rule.effect, &guard, &Sources::default());
+            self.effect(&rule.effect, &guard);
             if let Effect::Call { name, .. } = &rule.effect {
                 called.push(name.as_str());
             }
         }
         // Each procedure a rule reaches, once: its steps run on what any call
-        // passes, so a call's guard and arguments flow into every step, and
-        // its arguments' grounds into what a step grounds on.
+        // passes, so a call's guard and arguments flow into every step's
+        // lineage, and an argument's grounds into what a step grounds on
+        // where the step reads that argument's parameter (D061).
         let mut reached = BTreeSet::new();
         while let Some(name) = called.pop() {
             if !reached.insert(name) {
@@ -846,19 +904,17 @@ impl<'a> Flows<'a> {
                 continue;
             };
             let call = self.owner(Owner::Call(name.to_string()));
-            let mut arguments = Sources::default();
-            arguments
-                .owners
-                .insert(self.owner(Owner::Arguments(name.to_string())));
+            self.procedure = Some(procedure);
             for step in &procedure.body {
                 let mut guard = Sources::default();
                 guard.owners.insert(call);
                 self.expression(&step.condition, &mut guard);
-                self.effect(&step.effect, &guard, &arguments);
+                self.effect(&step.effect, &guard);
                 if let Effect::Call { name, .. } = &step.effect {
                     called.push(name.as_str());
                 }
             }
+            self.procedure = None;
         }
         // A declared reopening trigger reopens its series because of the
         // reading just taken, under the sample's guard, which the stream's
@@ -1069,6 +1125,23 @@ impl ReactiveSession {
         let mut flows = Flows::new(self);
         flows.program();
         flows.close()
+    }
+
+    /// The program's bound, computed the first time it is asked for. The
+    /// session that first asks computes it, so it must be one as its program
+    /// loaded, before any event or save: restore asks before it applies a
+    /// save, and debug builds as the program loads. A later caller, played
+    /// or restored, reads what that one computed. Every clone of a loaded
+    /// session shares it, so a program `from_source_cached` keeps computes
+    /// it once (D061).
+    pub(crate) fn history_reach_bound(&self) -> &HistoryReach {
+        self.reach.get_or_init(|| {
+            debug_assert_eq!(
+                self.sequence, 0,
+                "the bound is computed as the program loaded"
+            );
+            self.history_reach()
+        })
     }
 
     /// The history a record belongs to: its reading stream or renewable
@@ -1339,7 +1412,7 @@ impl ReactiveSession {
     /// journal's records.
     fn reaches(&self, owner: &Owner, history: &str) -> bool {
         !(self.journal_window.is_some() && history == "journal")
-            && self.reach.carries(owner, history)
+            && self.history_reach_bound().carries(owner, history)
     }
 
     /// The history of `record`, a name `owner` holds at `place`, when
@@ -1350,19 +1423,16 @@ impl ReactiveSession {
             return None;
         }
         let history = self.record_history(record);
-        (!self.reach.carries(owner, history)).then_some(history)
+        (!self.history_reach_bound().carries(owner, history)).then_some(history)
     }
 
-    /// Restore's check of finding D054, after every other: each marker a
-    /// provenance holds, each name it holds and each cause a series or a
-    /// withdrawal holds is of a history some rule or declaration of the
+    /// Restore's check of findings D054 and D061, after every other: each
+    /// marker a provenance holds, each name it holds and each cause a series
+    /// or a withdrawal holds is of a history some rule or declaration of the
     /// program can carry into it. A program without a window holds no
-    /// marker, restore refused one already, and a name there can lead to
-    /// none, so its names are not read.
+    /// marker, since restore refused one already, but its names and causes
+    /// are read as in any other program (D061).
     pub(crate) fn check_history_reach(&self) -> Result<(), String> {
-        if !self.windowed() {
-            return Ok(());
-        }
         let refusal = |place: Place<'_>, history: &str| {
             format!(
                 "{place}: no rule or declaration of this program carries records of {history} into it"
@@ -1392,43 +1462,17 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// Whether every marker, every name and every cause the session holds is
-    /// within the bound: true of every session the program makes, which
-    /// debug builds check after load and after every event, and of every
-    /// session restored from a save of a program with a window. A save of a
-    /// program without one may hold names out of it, which no event made;
-    /// then the check is off for that session.
-    #[cfg(debug_assertions)]
-    pub(crate) fn within_history_reach(&self) -> bool {
-        self.held(None).iter().all(|(place, owner, provenance)| {
-            provenance
-                .departed
-                .keys()
-                .all(|history| self.reaches(owner, history))
-                && provenance
-                    .evidence
-                    .iter()
-                    .all(|record| self.unreached(place, owner, record.as_str()).is_none())
-        }) && self
-            .causes(None)
-            .iter()
-            .all(|(place, owner, cause)| self.unreached(place, owner, cause).is_none())
-    }
-
     /// Debug builds: every marker, every name and every cause the session
     /// holds is of a history some rule or declaration carries into it. Each
     /// part's content moves only into provenances whose bound contains its
     /// own, so a session that starts within the bound stays within it, and
     /// a failure is a flow the bound misses, which would make restore refuse
     /// a save the runtime wrote: the bound is what to fix. It runs after a
-    /// program loads and after every event; restore decides, through
-    /// `reach_exact`, whether it applies to the session restored. With
-    /// `old`, only the kinds an event changed are read.
+    /// program loads and after every event, a restored session's included,
+    /// since restore accepts only one within the bound (D061). With `old`,
+    /// only the kinds an event changed are read.
     #[cfg(debug_assertions)]
     pub(crate) fn check_history_reach_held(&self, old: Option<&Self>) {
-        if !self.reach_exact {
-            return;
-        }
         for (place, owner, provenance) in self.held(old) {
             for history in provenance.departed.keys() {
                 assert!(
@@ -1480,6 +1524,9 @@ on st set t = latest(b) because latest(d);
     #[test]
     fn a_citation_carries_a_departed_marker_into_grounds_within_the_bound() {
         let mut session = ReactiveSession::from_source(CITED).unwrap();
+        // The bound is the loaded program's, in release builds too, where
+        // loading does not compute it.
+        session.history_reach_bound();
         for (step, (event, payload)) in [
             ("sb", r#"{"v":5}"#),
             ("cd", r#"{"v":1}"#),
@@ -1525,6 +1572,8 @@ on go renew e;
         .unwrap();
         let grounds = &session.states.get("s").unwrap().grounds;
         assert!(!grounds.evidence.is_empty());
-        assert!(session.reach.carries(&Owner::StateGrounds("s".into()), "e"));
+        assert!(session
+            .history_reach_bound()
+            .carries(&Owner::StateGrounds("s".into()), "e"));
     }
 }

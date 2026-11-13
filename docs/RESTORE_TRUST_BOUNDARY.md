@@ -32,10 +32,11 @@ is computed by `source_identity` in [reactive.rs](../runtime/src/reactive.rs).
 which the saved delta cannot reconstruct. `restore_records` likewise requires
 each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
-`check_last_event_spending`, run after every other check, requires the costs
-of the last event's `examine` effects, a caveat examined twice counting
-twice, added to what the declarations spent, to fit the budget's `spent`
-(D053).
+`check_last_event_spending`, run after every check older than it (only the
+retirement-date check of D060, the hold-entry check of D062 and the
+history-reach check of D054 follow it), requires the costs of the last
+event's `examine` effects, a caveat examined twice counting twice, added to
+what the declarations spent, to fit the budget's `spent` (D053).
 
 Since rc.11, a single added `["phantom", "qualifies", "sensor"]` relation is
 refused when no mechanism of the loaded source can add that pair, and accepted
@@ -227,7 +228,7 @@ session did. The fixtures are in
 attaches, added to every provenance of the played save) and the
 [restore boundary fixtures](../kit/test/restore-contract.test.mjs).
 
-## Departure markers in saved provenance (D054)
+## Departure markers and names in saved provenance (D054, D061)
 
 When a record of a windowed history departs, each provenance that named it
 keeps a marker of that history in the name's place
@@ -237,18 +238,36 @@ save says departed, but not which provenance held it. A marker copied into a
 provenance its program never carries that history into restored, and the
 caveats the departed records carried came with it: a commitment on a stream
 sampled without reading `a` could keep a caveat of `a`'s departed readings
-(D054). In a program with a window, restore now refuses a marker or a
-record's name in a provenance, and a record that an outcome, a hold, a
-deferral, a `reopens` relation an event added or a withdrawal names as its
-cause, when no rule, procedure, reopening trigger or declaration of the
-loaded source can carry that history's records into the part of the
-session that holds it. A relation a declaration makes is the program's: a
-save holds none, and restore makes it again from the source, so its cause,
-which can be a caveat, a claim or a commitment, is not read.
+(D054). Restore now refuses a marker or a record's name in a provenance,
+and a record that an outcome, a hold, a deferral, a `reopens` relation an
+event added or a withdrawal names as its cause, when no rule, procedure,
+reopening trigger or declaration of the loaded source can carry that
+history's records into the part of the session that holds it. A relation a
+declaration makes is the program's: a save holds none, and restore makes it
+again from the source, so its cause, which can be a caveat, a claim or a
+commitment, is not read.
+
+D054 applied this only to a program with a window, where a record can
+depart. A program without one keeps no marker, but its provenances and causes
+name records all the same, and the caveats and grounds that follow a name
+came with a forged one: a lineage citing evidence that no rule carries into
+its state restored, and later events kept it (D061). Restore applies the
+bound to every program now. One part is wider in a program without a window:
+a procedure's parameter there grounds on what its argument carries, its
+whole lineage, as well as on what the argument gives grounds, because
+releases before rc.12 grounded a parameter so (F268), and only such a program
+can have a save that old, since windows came in rc.15. The rc.11 save that
+`runtime/tests/parameter_grounds.rs` restores holds such grounds. Each
+parameter has its own bound, and a step's grounds take an argument only
+through the parameter the step reads, as the runtime grounds it: D054 gave
+each step's grounds what all of a call's arguments give grounds, so grounds
+naming what an argument reads restored on a step such as `set s = 5`, with
+a window or without one, though no release grounds that step on anything.
 
 `history_reach` in [reactive_reach.rs](../runtime/src/reactive_reach.rs)
-derives the bound once, as the program loads. Each part of what a session
-holds has its own bound, from what writes it: a state's lineage, and its
+derives the bound once per loaded program, when restore first needs it, and
+in debug builds as the program loads. Each part of what a session holds has
+its own bound, from what writes it: a state's lineage, and its
 grounds, which take what its initializer's and its sets' values or citations
 ground on, as the runtime evaluates grounds, and so never the guard of the
 rule that sets the state, though what a value reads can hold the guard of
@@ -274,7 +293,8 @@ into the reopening record, and the series keeps none of it as a cause.
 
 What an effect evaluates (its guard, its values, what it cites or selects, a
 call's arguments) flows into what the effect writes, a procedure's steps run
-on what any call of it passes, a reopening trigger reads its condition and
+on what any call of it passes, though a step grounds on an argument only
+through the parameter it reads, a reopening trigger reads its condition and
 its stream, and the declarations carry what they leave. A read carries the
 parts the runtime reads for it, and no other part of what it names: a read
 of evidence or of a stream, the record's name and what its observation and
@@ -342,12 +362,10 @@ plays on, and the saves it writes pass the check. Debug builds rely on that:
 after a program loads and after every event they check that each marker,
 name and cause a session holds is within the bound, so a flow the bound
 misses fails any test that plays it, rather than refusing a save the runtime
-wrote. Restore decides whether those checks apply to the session it makes:
-they are off only for a session restored from a save of a program without a
-window that holds a name out of the bound, since restore does not read such
-a program's names, none can become a marker, and no event could have put
-that name there. The fixtures are in
-[d054_markers_no_rule_carries_refused.rs](../runtime/tests/d054_markers_no_rule_carries_refused.rs).
+wrote. Since restore reads the bound in every program (D061), every session
+it makes is within it, and the checks apply to each. The fixtures are in
+[d054_markers_no_rule_carries_refused.rs](../runtime/tests/d054_markers_no_rule_carries_refused.rs)
+and [d061_windowless_names_bounded.rs](../runtime/tests/d061_windowless_names_bounded.rs).
 
 ## Memberships and their records (rc.13)
 

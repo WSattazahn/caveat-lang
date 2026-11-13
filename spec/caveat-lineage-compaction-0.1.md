@@ -34,7 +34,9 @@ what the archive entry must name.
 
 **A program without a window is unchanged**: no record of it ever departs, so
 no marker ever appears, and its lineages, grounds, snapshots, saves, views and
-scenario outcomes are exactly as before.
+scenario outcomes are exactly as before. Restore bounds the names its saves
+hold as it bounds any program's, a procedure's parameter there grounding on
+its argument's whole lineage as well (D061; "Save and restore").
 
 ## The finding
 
@@ -406,8 +408,8 @@ Restore refuses a save when:
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's;
-- in a program with a window, a marker or a record's name is in a
-  provenance, or a record is named as the cause of an outcome, a hold, a
+- a marker or a record's name is in a provenance, or a record is named as
+  the cause of an outcome, a hold, a
   deferral, a `reopens` relation an event added or a withdrawal, in a part
   of the session that no rule, procedure, reopening trigger or declaration
   of the program can carry that history's records into, as
@@ -496,7 +498,9 @@ adapter's figure, and the gate is measured on the runtime.
 
 For every program without a window, the implementation's gate is the seeded
 save sweep (`runtime/examples/save_sweep.rs`) over the repository's reactive
-programs, with digests identical before and after.
+programs, with digests identical before and after. Since D061 restore applies
+the bound of "Save and restore" to those programs too, so a save the sweep
+writes that the bound refused would change its digest.
 
 ## Decision
 
@@ -626,3 +630,12 @@ provenance read in its range.
   marker copied into a provenance its program never carries that history
   into restored. "Save and restore" lists the check;
   [Save 0.1](caveat-save-0.1.md) says how each part's bound is derived.
+- 2026-11-13 (D061): restore refuses a record's name, or a cause, outside
+  its part's bound in a program without a window too, where it read none.
+  Such a program keeps no marker, but a lineage citing evidence no rule
+  carries into it restored, with the caveats that follow the name. A
+  procedure's parameter there grounds on its argument's whole lineage as
+  well, as releases before rc.12 grounded it, and in every program a step's
+  grounds take an argument only through the parameter the step reads.
+  "Save and restore" lists the check; [Save 0.1](caveat-save-0.1.md) says
+  how each part's bound is derived.

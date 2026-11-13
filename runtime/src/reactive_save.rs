@@ -926,6 +926,9 @@ impl ReactiveSession {
     /// same outcome for every later event, as the session that was saved.
     pub fn restore(source: &str, save: &ReactiveSave) -> Result<Self, String> {
         let mut session = Self::from_source_cached(source)?;
+        // The bound restore checks the save by comes from the program as it
+        // loaded, so it is computed before the save is applied (D061).
+        session.history_reach_bound();
         session.replay = None;
         session
             .apply_save(save)
@@ -1026,16 +1029,11 @@ impl ReactiveSession {
         self.check_last_event_spending(save, declared_spent)?;
         self.check_retirement_dates(save)?;
         self.check_hold_entries(save)?;
-        // Last, so that a save refused before is refused as it was (D054).
+        // Last, so that a save refused before is refused as it was (D054,
+        // D061). A session restored lies within the bound, which debug
+        // builds check after every later event.
         self.check_history_reach()?;
         self.settle_archive_provenance(None, false);
-        // Debug builds check the bound after every later event when the
-        // restored session lies within it, as every one restored from a save
-        // of a program with a window does: restore refused any other.
-        #[cfg(debug_assertions)]
-        {
-            self.reach_exact = self.within_history_reach();
-        }
         Ok(())
     }
 
