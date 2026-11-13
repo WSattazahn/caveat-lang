@@ -171,29 +171,30 @@ save is refused with an error, and never crashes the runtime, when:
   history, or the name of a record of one, that no rule, procedure,
   reopening trigger or declaration of the loaded source can carry into it,
   or an outcome, a hold, a deferral, a `reopens` relation that an event
-  added or a withdrawal names as its cause a record that none can carry
-  into the part the cause belongs to
-  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)). A relation
-  a declaration makes is the program's: a save holds none, and restore
-  makes it again from the source, so its cause, which can be a caveat, a
-  claim or a commitment, is not read. Each part of what a session holds
-  has its own bound, from what writes it:
-  a state's lineage, and its grounds, which take what its initializer's and
-  its sets' values, or their citations, ground on as the runtime evaluates
-  grounds, so never the guard of the rule that sets the state, though what a
-  value reads can hold the guard of the rule that wrote it; a reading
-  stream's readings, their observation and `observed` records, and its
-  selection, which only a skipped sample's guard writes; an evidence's
-  observation and `observed` records; the `withdrawn` records of an evidence
-  or of a stream's readings, which take the guards of its skipped
-  withdrawals; a decision series' or a commitment's bases, its `committed`
-  and `reopened` records, which take the guards of its skipped commits and
-  reopenings, its grounds (what its commits use, cite and give as reasons,
-  as they ground on), its outcomes and the evidence they name (only what its
-  resolves select), its reopening records and the evidence that reopened it
-  or that a hold defers (only what its `reopen` effects select, the stream a
-  reopening trigger watches and the evidence a declaration reopens it with),
-  the reasons of its hold (only what its `hold` effects select), and its
+  added or a withdrawal names as its cause a record that none can carry into
+  the part the cause belongs to
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)). A relation a
+  declaration makes is the program's: a save holds none, and restore makes
+  it again from the source, so its cause, which can be a caveat, a claim or
+  a commitment, is not read. Each part of what a session holds has its own
+  bound, from what writes it: a state's lineage, and its grounds, which take
+  what its initializer's and its sets' values, or their citations, ground on
+  as the runtime evaluates grounds, so never the guard of the rule that sets
+  the state, though what a value reads can hold the guard of the rule that
+  wrote it; a reading stream's readings, their observation and `observed`
+  records, and its selection, which only a skipped sample's guard writes; an
+  evidence's observation and `observed` records; the `withdrawn` records of
+  an evidence or of a stream's readings, which take the guards of its
+  skipped withdrawals; a decision series' or a commitment's bases, its
+  `committed` record, which takes the guards of a commitment's skipped
+  commits (a series' skipped commit writes its selection instead), its
+  `reopened` record, which takes the guards of its skipped reopenings, its
+  grounds (what its commits use, cite and give as reasons, as they ground
+  on), its outcomes and the evidence they name (only what its resolves
+  select), its reopening records and the evidence that reopened it or that a
+  hold defers (only what its `reopen` effects select, the stream a reopening
+  trigger watches and the evidence a declaration reopens it with), the
+  reasons of its hold (only what its `hold` effects select), and its
   selection, which only a skipped commit's guard writes; the guards
   scheduled on each evidence or stream, which take what its
   `qualify ... after` effects evaluate; a caveat's examination records; the
@@ -209,42 +210,46 @@ save is refused with an error, and never crashes the runtime, when:
   names. A read of evidence or of a stream carries the record's name and
   what its observation and `observed` records can hold, and a read of a
   stream also what its readings and its selection can; a value read of a
-  stream is bounded as any other read of it, though the runtime reads only
-  the readings and the selection for it. Of a series or a commitment, a
-  value read (`latest`, `history_at`, `history_count` or a fold) carries the
-  bases, `grounds_of` the grounds, `outcome` and `resolved` the outcomes,
-  `committed` and `in_basis` the bases, the reopening records and the
-  `committed` records, and `reopened` and `on_hold` those and the `reopened`
-  records, each with the selection. `in_basis` carries nothing of the
-  evidence it looks for, and `qualified` nothing of a caveat it attaches by
-  name. A withdrawal predicate (`withdrawn`, `rests_on_withdrawn` or
-  `permission_withdrawn`) carries the `withdrawn` records of what it asks
-  about and the reason of each withdrawal, read through its records, and
-  nothing else of the evidence or the decision it asks about. In grounds,
-  `qualified`, `observed` and `carries` give only the name of the evidence
-  they ask about, and a cause that an outcome, a series or a withdrawal
-  keeps is the name its `because` selects. Two reads take a name from what
-  the session holds and read it through its records: a
-  `because caveated(STATE, CAVEAT)` reads, with the state's lineage, each
-  evidence the state's grounds name; and `reopened` and `on_hold`, and with
-  them the next revision's basis, read each evidence that reopened the
-  commitment again, as its records stand then. What the second finds is
-  bounded with the reopening records, so a read that carries those carries
-  it. A part's content also flows into what takes it whole, whatever wrote
-  it: grounds into their lineage or basis, a cause into its outcome or
-  reopening, a selection into what inherits it, and a reopening and a
-  `reopened` record into the next revision's basis. The guard of a
+  stream, and `has_sample`, is bounded as any other read of it, though the
+  runtime reads only the readings and the selection for them. Of a series or
+  a commitment, a value read (`latest`, `history_at`, `history_count` or a
+  fold) carries the bases, `grounds_of` the grounds, `outcome` and
+  `resolved` the outcomes, `committed` and `in_basis` the bases, the
+  reopening records and the `committed` records, and `reopened` and
+  `on_hold` those and the `reopened` records, each with the selection. The
+  runtime reads the selection for `outcome` and `in_basis` never, and for
+  `resolved` only while the series has no outcome, but a selection flows
+  into the outcomes and the bases anyway, so this widens no bound.
+  `in_basis` carries nothing of the evidence it looks for, and `qualified`
+  nothing of a caveat it attaches by name. A withdrawal predicate
+  (`withdrawn`, `rests_on_withdrawn` or `permission_withdrawn`) carries the
+  `withdrawn` records of what it asks about and the reason of each
+  withdrawal, read through its records, and nothing else of the evidence or
+  the decision it asks about. In grounds, `qualified`, `observed` and
+  `carries` give only the name of the evidence they ask about, and a cause
+  that an outcome, a series or a withdrawal keeps is the name its `because`
+  selects. Two reads take a name from what the session holds and read it
+  through its records: a `because caveated(STATE, CAVEAT)` reads, with the
+  state's lineage, each evidence the state's grounds name; and `reopened`
+  and `on_hold`, and with them the next revision's basis, read each evidence
+  that reopened the commitment again, as its records stand then. What the
+  second finds is bounded with the reopening records, so a read that carries
+  those carries it. A part's content also flows into what takes it whole,
+  whatever wrote it: grounds into their lineage or basis, a cause into its
+  outcome or reopening, a selection into what inherits it, and a reopening
+  and a `reopened` record into the next revision's basis. The guard of a
   qualification or a withdrawal, and a scheduled guard when it applies,
   joins each state lineage and each observation, examination or predicate
   record that lists the record it qualifies then; readings, bases, outcomes,
   reopening records, grounds, selections, scheduled guards and cues keep
-  what was read when they were written, and nothing joins them later. A part
-  can hold a history's records, and so its marker, only when such flows lead
-  to it from a read of that history or from a name of one, and a reading
-  also holds its own name. So each part's content moves only into parts
-  whose bound contains its own, and a session restored from a save this
-  check accepts stays within the bound as it plays on. A journal entry's
-  name never enters a provenance, so none holds a marker of the journal.
+  what was read when they were written, and no record or guard joins them
+  later: a qualification adds only caveats to a state's grounds. A part can
+  hold a history's records, and so its marker, only when such flows lead to
+  it from a read of that history or from a name of one, and a reading also
+  holds its own name. So each part's content moves only into parts whose
+  bound contains its own, and a session restored from a save this check
+  accepts stays within the bound as it plays on. A journal entry's name
+  never enters a provenance, so none holds a marker of the journal.
   Conditions are not evaluated: the marker is one the program could have
   left there, not one an event is shown to have left;
 - a caveat's saved attention is neither the one the declarations leave it
@@ -495,35 +500,34 @@ validation and host trust mechanisms separately from this contract.
   marker, or the name of a record, in a part of the session that no rule,
   procedure, reopening trigger or declaration of the program can carry that
   history's records into, and a cause that an outcome, a hold, a deferral, a
-  `reopens` relation an event added or a withdrawal names outside its
-  part's bound. A marker stands where a provenance named records that have
-  since departed.
-  Since rc.16 restore has checked a marker's history, range, count and date
-  against what departed, but not which provenance held it. So a save of a
-  program whose `b` samples never read `a` could hold, in a commitment on
-  `latest(b)`, a marker of `a`'s departed readings, copied from the save of
-  a program whose sample guard reads `a`. With that save's grounds and the
-  caveat its journal entry records, which D049 accepts with the grounds'
-  marker, the restored commitment carried a caveat no event of its own
-  program gives it. A live record's name in such a provenance would have
-  become such a marker when it departed, and a read of a cause takes what
-  qualifies it. Restore now derives, once per program, which histories each
-  part can carry records of. A state's lineage and its grounds, a stream's
-  readings, their observation and `observed` records and its selection, an
-  evidence's observation and `observed` records, the `withdrawn` records of
-  each, a series' bases, grounds, outcomes, reopenings, `committed` and
-  `reopened` records and selection, the causes its outcomes and reopenings
-  name, the reasons of its hold, the guards scheduled on each evidence or
-  stream, the withdrawals' reasons and each cue have their own bound. A read
-  carries only the parts the runtime reads for it, and each part's content
-  moves only into parts whose bound contains its own. Grounds take what the
-  values and citations that write them ground on, as the runtime evaluates
-  grounds, so a commitment's grounds can hold a marker, and its journal
-  entry the caveat that comes with it, only where what its commits use, cite
-  or give as reasons can carry it. Guards are not evaluated, so a marker
-  some rule could carry restores whether or not one did. The check runs
-  after every other, so a save refused before is refused with the same
-  message, and saves the runtime writes restore as before.
+  `reopens` relation an event added or a withdrawal names outside its part's
+  bound. A marker stands where a provenance named records that have since
+  departed. Since rc.16 restore has checked a marker's history, range, count
+  and date against what departed, but not which provenance held it. So a
+  save of a program whose `b` samples never read `a` could hold, in a
+  commitment on `latest(b)`, a marker of `a`'s departed readings, copied
+  from the save of a program whose sample guard reads `a`. With that save's
+  grounds and the caveat its journal entry records, which D049 accepts with
+  the grounds' marker, the restored commitment carried a caveat no event of
+  its own program gives it. A live record's name in such a provenance would
+  have become such a marker when it departed, and a read of a cause takes
+  what qualifies it. Restore now derives, once per program, which histories
+  each part can carry records of. A state's lineage and its grounds, a
+  stream's readings, their observation and `observed` records and its
+  selection, an evidence's observation and `observed` records, the
+  `withdrawn` records of each, a series' bases, grounds, outcomes,
+  reopenings, `committed` and `reopened` records and selection, the causes
+  its outcomes and reopenings name, the reasons of its hold, the guards
+  scheduled on each evidence or stream, the withdrawals' reasons and each
+  cue have their own bound. A read carries only the parts the runtime reads
+  for it, and each part's content moves only into parts whose bound contains
+  its own. Grounds take what the values and citations that write them ground
+  on, as the runtime evaluates grounds, so a commitment's grounds can hold a
+  marker, and its journal entry the caveat that comes with it, only where
+  what its commits use, cite or give as reasons can carry it. Guards are not
+  evaluated, so a marker some rule could carry restores whether or not one
+  did. The check runs after every other, so a save refused before is refused
+  with the same message, and saves the runtime writes restore as before.
 
 - 2026-11-12 (D062): restore holds a revision's `held`, `deferred`,
   `released` and `reopened` journal entries, its series' `on_hold` and

@@ -1306,11 +1306,14 @@ pub enum Read {
     Value,
     /// `grounds_of`: a revision's grounds, with the series' selection.
     Grounds,
-    /// `outcome` and `resolved`: a revision's outcome, or the series'
-    /// selection where it has none.
+    /// `outcome` and `resolved`: a revision's outcome, or, for `resolved`,
+    /// the series' selection where it has none.
     Outcome,
     /// `committed` and `in_basis`: a revision's basis and its reopening
-    /// record, its `committed` record and the series' selection.
+    /// record, its `committed` record and, for `committed`, the series'
+    /// selection. `in_basis` asks about one revision and reads no
+    /// selection; the bound gives it the selection all the same, which
+    /// widens nothing, since the bases take what a selection holds.
     Committed,
     /// `reopened` and `on_hold`: what `committed` takes, the `reopened`
     /// record, and each cause of the reopening through its records.

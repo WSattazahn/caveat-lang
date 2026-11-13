@@ -11,40 +11,46 @@
 //! which D049 accepts with the grounds' marker, the restored commitment
 //! carried a caveat no event of its own program could give it.
 //!
-//! Restore now bounds each part of what a session holds by the histories the
-//! program's rules and declarations can carry into that part: a state's
-//! lineage, and apart from it its grounds, which take what its initializer's
-//! and its sets' values or citations ground on, never the guard of the rule
-//! that sets it; a stream's readings, their observation and `observed`
-//! records, and its selection, which only a skipped sample writes; an
-//! evidence's observation and `observed` records; the `withdrawn` records of
-//! an evidence or of a stream's readings, which take the guards of skipped
-//! withdrawals; a commitment's or a series' basis, its grounds, which take
-//! what its commits use, cite and give as reasons as they ground on, and its
-//! `committed` and `reopened` records, which take the guards of skipped
-//! commits and reopenings; a series' outcomes and the evidence they name,
-//! its reopening records and the evidence that reopened it or that a hold
+//! Restore now bounds each part of what a session holds by the histories
+//! the program's rules and declarations can carry into that part: a state's
+//! lineage, and apart from it its grounds, which take what its
+//! initializer's and its sets' values or citations ground on, never the
+//! guard of the rule that sets it; a stream's readings, their observation
+//! and `observed` records, and its selection, which only a skipped sample
+//! writes; an evidence's observation and `observed` records; the
+//! `withdrawn` records of an evidence or of a stream's readings, which take
+//! the guards of skipped withdrawals; a commitment's or a series' basis,
+//! its grounds, which take what its commits use, cite and give as reasons
+//! as they ground on, its `committed` record, which takes the guards of a
+//! commitment's skipped commits (a series' skipped commit writes its
+//! selection instead), and its `reopened` record, which takes the guards of
+//! skipped reopenings; a series' outcomes and the evidence they name, its
+//! reopening records and the evidence that reopened it or that a hold
 //! defers, the reasons of its hold, and its selection, which only a skipped
-//! commit writes; the guards scheduled on each evidence, which take what its
-//! `qualify ... after` rules evaluate; the withdrawals' reasons; and each
-//! cue. A read carries the parts the runtime reads for it and no other part
-//! of what it names: of a series or a commitment, a value read its bases,
-//! `grounds_of` its grounds, `outcome` and `resolved` its outcomes,
+//! commit writes; the guards scheduled on each evidence, which take what
+//! its `qualify ... after` rules evaluate; the withdrawals' reasons; and
+//! each cue. A read carries the parts the runtime reads for it and no other
+//! part of what it names: of a series or a commitment, a value read its
+//! bases, `grounds_of` its grounds, `outcome` and `resolved` its outcomes,
 //! `committed` and `in_basis` its bases, its reopening records and its
 //! `committed` records, and `reopened` and `on_hold` those and its
-//! `reopened` records, each with its selection; and a withdrawal predicate
-//! the `withdrawn` records of what it asks about and the withdrawals'
-//! reasons. Two reads take a name the session holds and read it through its
-//! records: a `because caveated(STATE, CAVEAT)` each evidence the state's
-//! grounds name, and `reopened` and `on_hold` each evidence that reopened
-//! the commitment. A qualification's guard joins only the live records that
-//! list what it qualifies. In a program with a window, a marker, a record's
-//! name, or a cause a series or a withdrawal keeps is refused outside its
-//! part's bound. Guards are not evaluated, so what some rule could carry
-//! restores whether or not one did, and saves the runtime writes restore as
-//! before. Each part's content moves only into parts whose bound contains
-//! its own, so a session restored from a save within the bound stays within
-//! it. See spec/caveat-save-0.1.md ("Changes").
+//! `reopened` records, each with its selection, which the runtime reads for
+//! `outcome` and `in_basis` never and for `resolved` only while the series
+//! has no outcome, though the outcomes and the bases take what it holds;
+//! and a withdrawal predicate the `withdrawn` records of what it asks about
+//! and the withdrawals' reasons. Two reads take a name the session holds
+//! and read it through its records: a `because caveated(STATE, CAVEAT)`
+//! each evidence the state's grounds name, and `reopened` and `on_hold`
+//! each evidence that reopened the commitment. A qualification's guard
+//! joins only the live records that list what it qualifies, and a
+//! qualification adds only caveats to a state's grounds. In a program with
+//! a window, a marker, a record's name, or a cause a series or a withdrawal
+//! keeps is refused outside its part's bound. Guards are not evaluated, so
+//! what some rule could carry restores whether or not one did, and saves
+//! the runtime writes restore as before. Each part's content moves only
+//! into parts whose bound contains its own, so a session restored from a
+//! save within the bound stays within it. See spec/caveat-save-0.1.md
+//! ("Changes").
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::{json, Value};
 
@@ -5096,6 +5102,110 @@ fn a_read_of_a_series_carries_the_parts_it_reads() {
         assert!(carries(&save, "state s", "a"), "{read}: {save}");
         assert!(carries(&save, "state u", "a"), "{read}: {save}");
         assert!(!holds(&grounds_of(&save, "u"), "a"), "{read}: {save}");
+    }
+}
+
+/// `close` resolves `d0` because of `x`, and `re` reopens `d1` because of
+/// `y`; nothing else selects either. `d1@2`, committed after the
+/// reopening, resolves because of `e`. `go` sets `s` from `READ`.
+const CAUSE_READS: &str = "claim seen;
+evidence glimpse from \"a glimpse\";
+evidence e from \"e\";
+evidence x from \"x\";
+evidence y from \"y\";
+readings a from glimpse window 1;
+decisions d0 limit 4;
+decisions d1 limit 4;
+state s = 0;
+event la v min 0 max 10;
+event see;
+event c0;
+event c1;
+event re;
+event close;
+event go;
+fn sum(total, reading) = total + reading;
+on la sample a = v supports seen;
+on see reveal e supports seen;
+on see reveal x supports seen;
+on see reveal y supports seen;
+on c0 commit d0 because enough using 1;
+on c1 commit d1 because enough using 1;
+on re reopen d1 because y;
+on close resolve d0 = 1 because x;
+on close resolve d1 = 1 because e;
+on go set s = READ;
+";
+
+/// A cause is a name the series keeps beside its parts, and a read takes
+/// it only with the part it belongs to: an outcome's cause with the
+/// outcome, which `outcome` and `resolved` read and no value read,
+/// `grounds_of`, `committed`, `in_basis`, `reopened` or `on_hold` does;
+/// and a reopening's cause with the reopening record, which `grounds_of`,
+/// `outcome` and `resolved` do not read. So the cause's name is refused in
+/// the lineage of the state set from such a read.
+#[test]
+fn a_read_of_a_series_takes_no_cause_of_a_part_it_does_not_read() {
+    for (read, cause) in [
+        ("latest(d0)", "x"),
+        ("history_at(d0, 0)", "x"),
+        ("history_count(d0)", "x"),
+        ("fold_history(d0, 0, sum)", "x"),
+        ("grounds_of(d0)", "x"),
+        ("if(committed(d0), 1, 2)", "x"),
+        ("if(in_basis(d0, e), 1, 2)", "x"),
+        ("if(reopened(d0), 1, 2)", "x"),
+        ("if(on_hold(d0), 1, 2)", "x"),
+        ("grounds_of(d1)", "y"),
+        ("outcome(d1)", "y"),
+        ("outcome(revision(d1, 2))", "y"),
+        ("if(resolved(d1), 1, 2)", "y"),
+    ] {
+        let source = CAUSE_READS.replace("READ", read);
+        let save = plays_and_restores(
+            &source,
+            &[
+                ("see", "{}"),
+                ("la", ONE),
+                ("c0", "{}"),
+                ("c1", "{}"),
+                ("re", "{}"),
+                ("c1", "{}"),
+                ("close", "{}"),
+                ("go", "{}"),
+            ],
+        );
+        let series = &save["decision_series"];
+        assert_eq!(
+            series["d0"]["revisions"][0]["outcome"]["because"],
+            json!(["x"]),
+            "{read}: {save}"
+        );
+        assert!(carries(&save, "reopening of d1@1", "y"), "{read}: {save}");
+        assert!(!carries(&save, "state s", cause), "{read}: {save}");
+        refused(
+            &source,
+            &lineage_naming(&save, "s", cause),
+            &no_rule_carries("state s", cause),
+        );
+    }
+    // And with the part they belong to, a read takes them.
+    for (read, cause) in [("outcome(d0)", "x"), ("latest(d1)", "y")] {
+        let source = CAUSE_READS.replace("READ", read);
+        let save = plays_and_restores(
+            &source,
+            &[
+                ("see", "{}"),
+                ("la", ONE),
+                ("c0", "{}"),
+                ("c1", "{}"),
+                ("re", "{}"),
+                ("c1", "{}"),
+                ("close", "{}"),
+                ("go", "{}"),
+            ],
+        );
+        assert!(carries(&save, "state s", cause), "{read}: {save}");
     }
 }
 

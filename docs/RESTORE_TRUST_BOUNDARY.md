@@ -262,14 +262,15 @@ outcomes and the evidence they name (only what its resolves select), its
 reopening records and the evidence that reopened it or that a hold defers
 (only what its `reopen` effects select, the stream a reopening trigger
 watches and the evidence a declaration reopens it with), the reasons of its
-hold (only what its `hold` effects select), its `committed` and `reopened`
-records, which take the guards of its skipped commits and reopenings, and
-its selection, which only a skipped commit's guard writes; the guards
-scheduled on each evidence or stream, which take what its
-`qualify ... after` effects evaluate; a caveat's records; the withdrawals'
-reasons (only what a withdrawal's `because` selects); and each cue, which
-takes the guards of its own emits. What a `release` selects goes into the
-reopening record, and the series keeps none of it as a cause.
+hold (only what its `hold` effects select), its `committed` record, which
+takes the guards of a commitment's skipped commits (a series' skipped commit
+writes its selection instead), its `reopened` record, which takes the guards
+of its skipped reopenings, and its selection, which only a skipped commit's
+guard writes; the guards scheduled on each evidence or stream, which take
+what its `qualify ... after` effects evaluate; a caveat's records; the
+withdrawals' reasons (only what a withdrawal's `because` selects); and each
+cue, which takes the guards of its own emits. What a `release` selects goes
+into the reopening record, and the series keeps none of it as a cause.
 
 What an effect evaluates (its guard, its values, what it cites or selects, a
 call's arguments) flows into what the effect writes, a procedure's steps run
@@ -302,22 +303,28 @@ qualification or a withdrawal, and a scheduled guard when it applies, joins
 each state lineage and each observation, examination or predicate record
 that lists the record it qualifies then; readings, bases, outcomes,
 reopening records, grounds, selections, scheduled guards and cues keep what
-was read when they were written. So a part can hold a history's records, and
-its marker, only when these flows lead to it from a read of that history or
-a name of one; a reading also holds its own name. A journal entry's name
-never enters a provenance, so a marker of the journal is refused anywhere.
+was read when they were written, and no record or guard joins them later: a
+qualification adds only caveats to a state's grounds. So a part can hold a
+history's records, and its marker, only when these flows lead to it from a
+read of that history or a name of one; a reading also holds its own name. A
+journal entry's name never enters a provenance, so a marker of the journal
+is refused anywhere.
 
 The bound has to contain everything the runtime can write, and where the
 runtime reads less than a whole part it is knowingly wider than the read. A
-value read of a stream is given what the readings' observation and
-`observed` records can hold, though the runtime reads only the readings and
-the selection for it. What `reopened` finds in the records of what reopened
-a commitment is bounded with the reopening records, so `committed` and
-`in_basis`, which carry those, are given it too. A withdrawal predicate is
-given the reason of every withdrawal, whichever it finds. And
-`withdrawn(latest(S))` is given the `withdrawn` records of `S`'s readings,
-where the guard of a skipped withdrawal of the current reading is kept,
-though the runtime does not read them for it.
+value read of a stream, and `has_sample`, is given what the readings'
+observation and `observed` records can hold, though the runtime reads only
+the readings and the selection for them. What `reopened` finds in the
+records of what reopened a commitment is bounded with the reopening records,
+so `committed` and `in_basis`, which carry those, are given it too.
+`outcome`, `resolved` and `in_basis` are given the series' selection, which
+the runtime reads for `resolved` only while the series has no outcome, and
+for the other two never; a selection flows into the outcomes and the bases
+anyway, so this widens no bound. A withdrawal predicate is given the reason
+of every withdrawal, whichever it finds. And `withdrawn(latest(S))` is given
+the `withdrawn` records of `S`'s readings, where the guard of a skipped
+withdrawal of the current reading is kept, though the runtime does not read
+them for it.
 
 The policy is the same as above. Guards are not evaluated, so a marker that
 a rule whose guard never held could carry restores, and a marker some rule
