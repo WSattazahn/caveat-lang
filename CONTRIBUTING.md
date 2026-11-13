@@ -24,7 +24,9 @@ Open a pull request against `main`. A pull request is accepted when:
    adds a regression case named after the finding it fixes. Changed documented
    behavior updates the documentation in the same pull request.
 2. **CI is green.** The [runtime workflow](.github/workflows/runtime.yml) and
-   format check run on every pull request.
+   format check run on every pull request. A push that only adds lines to the
+   ledger's events carries round 1's result for the jobs that cannot read
+   them ([round-1 carry](scripts/ci-reuse/README.md)).
 3. **It keeps the 1.x promise.** A 1.x minor only adds: the same programs give
    the same output bytes and exit statuses ([COMPATIBILITY.md](docs/COMPATIBILITY.md)).
    A change to what the language means is its own specification pull request

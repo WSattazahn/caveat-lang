@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { CARRIED_NAMES, CARRY_JOB, CARRY_NOTICE } from '../ci-reuse/reuse.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const PROGRAM = path.join(here, 'done.cav');
@@ -34,6 +35,23 @@ async function pages(api, url, key, stop = () => false) {
 
 export const touchesRuntime = name => name.startsWith('runtime/') || name.startsWith('spec/');
 export const checkOutcome = run => (run.status !== 'completed' ? 'running' : PASSING.has(run.conclusion) ? 'passed' : 'failed');
+
+// The checks that carried round 1's result over to this head without running
+// (scripts/ci-reuse/README.md): present only when the head's round-1 carry
+// check succeeded, and only the checks whose own carry step left its notice.
+// A job run again in full afterwards, alone or with the rest of the head,
+// left no notice on its latest check run.
+export async function carriedChecks(api, repository, runs) {
+  const carry = runs.find(run => run.name === CARRY_JOB && run.status === 'completed' && run.conclusion === 'success');
+  if (!carry) return null;
+  const names = [];
+  for (const run of runs) {
+    if (!CARRIED_NAMES.includes(run.name) || run.conclusion !== 'success' || !(run.output?.annotations_count > 0)) continue;
+    const annotations = await pages(api, `/repos/${repository}/check-runs/${run.id}/annotations`, null);
+    if (annotations.some(annotation => annotation.annotation_level === 'notice' && annotation.title === CARRY_NOTICE)) names.push(run.name);
+  }
+  return { from: carry.html_url ?? null, names };
+}
 
 // The pull requests merged to main after the one that last changed the ledger.
 export async function ledgerOwed(api, repository, exclude) {
@@ -71,7 +89,7 @@ export async function gatherFacts({ api, repository = REPOSITORY, number }) {
     { event: 'decide', payload: {} },
   ];
   return { pull: { number, head, base: pull.base.ref, behind_by: comparison.behind_by, title: pull.title, merged_at: pull.merged_at ?? null },
-    runs: runs.map(run => ({ name: run.name, outcome: checkOutcome(run) })), files, ledger, changesLedger: files.includes(LEDGER), events };
+    runs: runs.map(run => ({ name: run.name, outcome: checkOutcome(run) })), carried: await carriedChecks(api, repository, runs), files, ledger, changesLedger: files.includes(LEDGER), events };
 }
 
 // Sends the facts and returns the verdict, its reasons and the record.
@@ -105,14 +123,17 @@ function githubApi() {
 }
 
 export function report(facts, verdict) {
-  const { pull, ledger } = facts;
+  const { pull, ledger, carried } = facts;
   const failing = facts.runs.filter(run => run.outcome !== 'passed').map(run => `${run.name} (${run.outcome})`);
   const behind = pull.behind_by ? ` (${pull.behind_by} commit${pull.behind_by === 1 ? '' : 's'} behind ${pull.base})` : '';
+  const carriedNote = carried?.names.length
+    ? `; ${carried.names.length} of them carried round 1's result over to this head without running (${CARRY_JOB}${carried.from ? `: ${carried.from}` : ''})` : '';
+  const sweepNote = carried?.names.includes(SWEEP_CHECK) && verdict.reasons.sweep === 'needed, and green' ? ', carried over from round 1, whose tree differs only by the ledger lines this head adds' : '';
   return [
     `#${pull.number} at ${pull.head.slice(0, 7)}: ${verdict.reasons.verdict}${pull.merged_at ? ` (already merged, ${pull.merged_at})` : ''}`,
     `  main: ${verdict.reasons.main}${behind}`,
-    `  checks: ${verdict.reasons.checks}${failing.length ? `: ${failing.join(', ')}` : ''}`,
-    `  sweep: ${verdict.reasons.sweep}`,
+    `  checks: ${verdict.reasons.checks}${failing.length ? `: ${failing.join(', ')}` : ''}${carriedNote}`,
+    `  sweep: ${verdict.reasons.sweep}${sweepNote}`,
     `  ledger: ${verdict.reasons.ledger}${ledger.owed.length ? ` (${ledger.owed.map(n => `#${n}`).join(', ')}, merged since #${ledger.carrier ?? '?'} changed it)` : ''}`
       + (facts.changesLedger ? '; this PR changes the ledger, so check it carries them' : ''),
   ].join('\n');
@@ -124,7 +145,7 @@ async function main() {
   assert.ok(Number.isSafeInteger(number), 'Usage: node scripts/done-check/done.mjs PR [--explain] [--json] [--strict]');
   const facts = await gatherFacts({ api: githubApi(), number });
   const verdict = await decide({ facts, kit: await loadKit() });
-  if (args.includes('--json')) console.log(JSON.stringify({ pull: facts.pull, ready: verdict.ready, reasons: verdict.reasons, owed: facts.ledger.owed }, null, 2));
+  if (args.includes('--json')) console.log(JSON.stringify({ pull: facts.pull, ready: verdict.ready, reasons: verdict.reasons, owed: facts.ledger.owed, carried: facts.carried }, null, 2));
   else console.log(report(facts, verdict));
   if (args.includes('--explain')) console.log(`\n${verdict.explanation}`);
   if (args.includes('--strict') && !verdict.ready) process.exitCode = 1;

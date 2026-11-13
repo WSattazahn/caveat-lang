@@ -129,6 +129,13 @@ Add a scenario when new behavior needs an expectation. Keep `explain` honest:
 if a decision's `based on` line does not say what it actually rested on, the
 rule is wrong, not the record.
 
+Only add lines at the end of `events.jsonl`. A push that does nothing else,
+such as a pull request's "green CI and approval" commit, replays the record
+in core semantics and runs carmack in full, and the runtime jobs that never
+read this file carry round 1's result instead of running again
+([round-1 carry](../scripts/ci-reuse/README.md)). A push that edits or
+removes a line runs everything.
+
 ## Where it pinches
 
 Kept here because the pinches are findings about the language, and the point
