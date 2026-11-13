@@ -544,7 +544,7 @@ impl fmt::Debug for SealedGraph {
 #[derive(Clone)]
 pub(super) struct NameTable {
     by_name: NameMap,
-    by_node: Arc<NodeNames>,
+    by_node: NodeNames,
 }
 
 /// Two tables are equal when they name the same nodes by the same names; the
@@ -582,7 +582,7 @@ impl NameTable {
         }
         Self {
             by_name: names,
-            by_node: Arc::new(by_node),
+            by_node,
         }
     }
 
@@ -607,7 +607,7 @@ impl NameTable {
     /// Whether the two tables share all they hold, so are the same table
     /// without either being read.
     pub(super) fn shares_all(&self, other: &Self) -> bool {
-        self.by_name.shares_all(&other.by_name) && Arc::ptr_eq(&self.by_node, &other.by_node)
+        self.by_name.shares_all(&other.by_name) && self.by_node.shares_all(&other.by_node)
     }
 
     /// The name of `id`'s record, if it has one.
@@ -623,7 +623,7 @@ impl NameTable {
 
     /// Names `id`. A name given again leaves the node it named without one.
     fn insert(&mut self, name: String, id: NodeId) {
-        let by_node = Arc::make_mut(&mut self.by_node);
+        let by_node = &mut self.by_node;
         debug_assert!(
             by_node.get(id).is_none_or(|held| held == name),
             "a node has one name"
@@ -638,7 +638,7 @@ impl NameTable {
     /// Removes `name`, and the name of the node it named.
     fn remove(&mut self, name: &str) {
         if let Some(id) = self.by_name.remove(name) {
-            Arc::make_mut(&mut self.by_node).set(id, None);
+            self.by_node.set(id, None);
         }
     }
 
@@ -652,8 +652,11 @@ impl NameTable {
     }
 }
 
-/// How many names one chunk of `NodeNames` holds.
-const NAME_CHUNK: usize = 64;
+/// How many names one chunk of `NodeNames` holds. A write copies its chunk
+/// whole: 32 names take 512 bytes, below the 1,024 at which the system
+/// allocator tidies its free lists first, which a chunk of 64 cost each event
+/// that named a record.
+const NAME_CHUNK: usize = 32;
 /// `NAME_CHUNK` counted in node ids.
 const CHUNK_NODES: NodeId = NAME_CHUNK as NodeId;
 
@@ -662,12 +665,13 @@ type NameChunk = [Option<Arc<str>>; NAME_CHUNK];
 /// Each named record's name, by node, in fixed-size chunks keyed by where
 /// they sit among node ids. Ids count up and are never reused, and departure
 /// removes old records, so a chunk that names nothing is dropped: what the
-/// names hold, and what a copy or a comparison of them reads, grows with the
-/// records named now rather than with every id the session has issued. A copy
-/// shares every chunk, and a write copies only the chunk it changes.
+/// names hold, and what a comparison of them reads, grows with the records
+/// named now rather than with every id the session has issued. A copy shares
+/// every chunk and every block of the map they sit in, and a write copies
+/// only the chunk it changes and the blocks on the way down to it.
 #[derive(Clone, Default)]
 struct NodeNames {
-    chunks: BTreeMap<NodeId, Arc<NameChunk>>,
+    chunks: IdMap<NameChunk>,
 }
 
 impl NodeNames {
@@ -684,14 +688,17 @@ impl NodeNames {
     fn set(&mut self, id: NodeId, name: Option<Arc<str>>) {
         let (at, slot) = Self::place(id);
         if let Some(name) = name {
-            let chunk = self
-                .chunks
-                .entry(at)
-                .or_insert_with(|| Arc::new(std::array::from_fn(|_| None)));
-            Arc::make_mut(chunk)[slot] = Some(name);
+            match self.chunks.get_mut(&at) {
+                Some(chunk) => chunk[slot] = Some(name),
+                None => {
+                    let mut chunk: NameChunk = std::array::from_fn(|_| None);
+                    chunk[slot] = Some(name);
+                    self.chunks.insert(at, chunk);
+                }
+            }
             return;
         }
-        let Some(chunk) = self.chunks.get_mut(&at) else {
+        let Some(chunk) = self.chunks.get(&at) else {
             return;
         };
         if chunk[slot].is_none() {
@@ -704,23 +711,27 @@ impl NodeNames {
             .all(|(held, name)| held == slot || name.is_none())
         {
             self.chunks.remove(&at);
-        } else {
-            Arc::make_mut(chunk)[slot] = None;
+        } else if let Some(chunk) = self.chunks.get_mut(&at) {
+            chunk[slot] = None;
         }
     }
 
+    /// Whether the two are one tree, so hold the same names without either
+    /// being read.
+    fn shares_all(&self, other: &Self) -> bool {
+        self.chunks.shares_all(&other.chunks)
+    }
+
     /// Whether every node named here has the same name in `other`. Each
-    /// chunk held names a node, so one `other` lacks is not kept.
+    /// chunk held names a node, so one `other` lacks is not kept. The chunks
+    /// and blocks the two share are not read.
     fn kept_in(&self, other: &Self) -> bool {
-        self.chunks.iter().all(|(at, chunk)| {
-            other.chunks.get(at).is_some_and(|kept| {
-                Arc::ptr_eq(chunk, kept)
-                    || chunk.iter().zip(kept.iter()).all(|(name, kept)| {
-                        name.as_ref().is_none_or(|name| {
-                            kept.as_ref()
-                                .is_some_and(|kept| Arc::ptr_eq(name, kept) || name == kept)
-                        })
-                    })
+        self.chunks.within(&other.chunks, |chunk, kept| {
+            chunk.iter().zip(kept.iter()).all(|(name, kept)| {
+                name.as_ref().is_none_or(|name| {
+                    kept.as_ref()
+                        .is_some_and(|kept| Arc::ptr_eq(name, kept) || name == kept)
+                })
             })
         })
     }
@@ -1500,7 +1511,7 @@ mod tests {
         after.set(last, None);
         assert!(!after.chunks.contains_key(&1));
         assert_eq!(before.get(last), Some("b"));
-        assert!(Arc::ptr_eq(&before.chunks[&0], &after.chunks[&0]));
+        assert!(std::ptr::eq(&before.chunks[&0], &after.chunks[&0]));
         assert!(after.kept_in(&before));
         assert!(!before.kept_in(&after));
     }
@@ -1511,8 +1522,8 @@ mod tests {
         let before = names(&[(1, "a"), (last, "b")]);
         let mut after = before.clone();
         after.set(last + 1, Some(Arc::from("c")));
-        assert!(Arc::ptr_eq(&before.chunks[&0], &after.chunks[&0]));
-        assert!(!Arc::ptr_eq(&before.chunks[&1], &after.chunks[&1]));
+        assert!(std::ptr::eq(&before.chunks[&0], &after.chunks[&0]));
+        assert!(!std::ptr::eq(&before.chunks[&1], &after.chunks[&1]));
         assert_eq!(before.get(last + 1), None);
         assert_eq!(after.get(last + 1), Some("c"));
     }
