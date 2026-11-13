@@ -281,8 +281,13 @@ export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) 
       const inputFiles = await stageRustAuditInputs(inputs, artifact.build.revision, examplePaths,
         async file => (await command(`build-${file.replaceAll('/', '-').replaceAll('.', '-')}`, 'git',
           ['show', `${artifact.build.revision}:${file}`])).stdout);
-      // Fetch the exact recorded lock on fresh CI hosts before the offline tree.
-      await command('fetch-build-crates', 'cargo', ['fetch', '--manifest-path', path.join(inputs, 'Cargo.toml'), '--locked', '--target', 'wasm32-unknown-unknown'], { cwd: inputs });
+      // Fetch every crate the recorded lock names, for every platform, before
+      // the offline tree: that tree also asks for crates only other platforms
+      // use (it stopped at cpufeatures, which sha2 uses on x86 and Arm), and a
+      // fetch for the WebAssembly target alone leaves them out. On a host whose
+      // Cargo cache is empty, as when the cached auditor is not built first,
+      // the scan then failed.
+      await command('fetch-build-crates', 'cargo', ['fetch', '--manifest-path', path.join(inputs, 'Cargo.toml'), '--locked'], { cwd: inputs });
       // Resolves the recorded manifest/lock without changing either or compiling.
       const tree = await command('reactive-linked-tree', 'cargo', ['tree', '--manifest-path', path.join(inputs, 'Cargo.toml'), '--locked', '--offline',
         '--target', 'wasm32-unknown-unknown', '--no-default-features', '-e', 'normal,no-proc-macro', '--prefix', 'none', '--format', '{p}'], { cwd: inputs });
