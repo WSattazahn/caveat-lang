@@ -19,6 +19,9 @@ const BITS: u32 = 5;
 const WIDTH: usize = 1 << BITS;
 /// The height at which a tree has a slot for every `u64`.
 const TALLEST: u32 = (u64::BITS - 1) / BITS;
+/// Keys in a run: the keys that one block of the lowest level holds, which
+/// agree in every bit but the lowest five.
+pub const RUN: u64 = WIDTH as u64;
 
 enum Block<V> {
     /// Above the lowest level, a slot holds the block one level down.
@@ -106,7 +109,12 @@ impl<V> IdMap<V> {
     }
 
     pub fn get(&self, id: &u64) -> Option<&V> {
-        let id = *id;
+        self.leaf(*id)?[slot(*id, 0)].as_deref()
+    }
+
+    /// The slots of the block of the lowest level that has the slot of `id`,
+    /// when the tree has that block.
+    fn leaf(&self, id: u64) -> Option<&[Option<Arc<V>>; WIDTH]> {
         let mut block = self.root.as_deref()?;
         if !covers(self.height, id) {
             return None;
@@ -118,9 +126,18 @@ impl<V> IdMap<V> {
                     block = slots[slot(id, level)].as_deref()?;
                     level -= 1;
                 }
-                Block::Leaf(slots) => return slots[slot(id, level)].as_deref(),
+                Block::Leaf(slots) => return Some(slots),
             }
         }
+    }
+
+    /// The slots of the keys of the run that holds `id`, from the multiple of
+    /// [`RUN`] at or below `id` to the next, in the order of the keys, each
+    /// with the value at its key if the map holds one; none when it holds no
+    /// key of the run. One block holds them all, so they take one walk down
+    /// the tree, where getting the values one by one takes a walk for each.
+    pub fn run(&self, id: u64) -> &[Option<Arc<V>>] {
+        self.leaf(id).map_or(&[], |slots| slots.as_slice())
     }
 
     pub fn contains_key(&self, id: &u64) -> bool {
@@ -229,6 +246,62 @@ impl<V> IdMap<V> {
             there = below;
         }
         walk(here, there, &mut false)
+    }
+
+    /// Whether `later` holds every key of this map, each with a value that
+    /// `kept` answers true for, given this map's value and `later`'s. A block
+    /// or a value both maps share is not read, so `kept` must answer true
+    /// for a value and itself: a map and a copy an event wrote to are
+    /// compared in time proportional to what the event wrote.
+    pub fn within(&self, later: &Self, mut kept: impl FnMut(&V, &V) -> bool) -> bool {
+        fn walk<V>(
+            here: &Arc<Block<V>>,
+            later: &Arc<Block<V>>,
+            kept: &mut impl FnMut(&V, &V) -> bool,
+        ) -> bool {
+            if Arc::ptr_eq(here, later) {
+                return true;
+            }
+            match (&**here, &**later) {
+                (Block::Branch(here), Block::Branch(later)) => {
+                    here.iter().zip(later).all(|slots| match slots {
+                        (Some(here), Some(later)) => walk(here, later, kept),
+                        (Some(_), None) => false,
+                        (None, _) => true,
+                    })
+                }
+                (Block::Leaf(here), Block::Leaf(later)) => {
+                    here.iter().zip(later).all(|slots| match slots {
+                        (Some(here), Some(later)) => Arc::ptr_eq(here, later) || kept(here, later),
+                        (Some(_), None) => false,
+                        (None, _) => true,
+                    })
+                }
+                _ => false,
+            }
+        }
+        let Some(here) = &self.root else {
+            return true;
+        };
+        // A taller tree holds a key past every key `later` has room for.
+        if self.height > later.height {
+            return false;
+        }
+        let Some(mut there) = later.root.as_ref() else {
+            return false;
+        };
+        // The keys this tree has room for are under the first slot of each
+        // level `later` has above it.
+        for _ in self.height..later.height {
+            let Block::Branch(slots) = &**there else {
+                return false;
+            };
+            let Some(below) = &slots[0] else {
+                return false;
+            };
+            there = below;
+        }
+        walk(here, there, &mut kept)
     }
 
     /// Put `value` at `id`, and return the value that was there, as the map
@@ -966,6 +1039,91 @@ mod tests {
         }
         // Both answers came up, and often.
         assert!(held > 1_000, "{held}");
+    }
+
+    #[test]
+    fn a_map_is_within_another_that_holds_its_keys_with_values_kept() {
+        // Against a sorted map: every key held, with a value no smaller.
+        fn check(one: &IdMap<u64>, other: &IdMap<u64>) {
+            for (here, later) in [(one, other), (other, one)] {
+                let expected = here
+                    .iter()
+                    .all(|(id, value)| later.get(&id).is_some_and(|kept| kept >= value));
+                assert_eq!(
+                    here.within(later, |value, kept| kept >= value),
+                    expected,
+                    "{here:?} in {later:?}"
+                );
+            }
+        }
+        let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
+        let mut held = 0;
+        for spread in [3, 40, 1_100, 40_000, u64::MAX] {
+            let mut map: IdMap<u64> = IdMap::new();
+            let mut copies = vec![map.clone()];
+            for step in 0..800u64 {
+                let id = if spread == u64::MAX {
+                    rng.next() >> rng.below(64)
+                } else {
+                    rng.below(spread)
+                };
+                match rng.below(8) {
+                    0..=3 => {
+                        map.insert(id, step);
+                    }
+                    4 => {
+                        map.remove(&id);
+                    }
+                    5 => {
+                        if let Some(value) = map.get_mut(&id) {
+                            *value = value.saturating_sub(1);
+                        }
+                    }
+                    _ => {
+                        if let Some(value) = map.get_mut(&id) {
+                            *value += 1;
+                        }
+                    }
+                }
+                if step % 5 == 0 {
+                    if copies.len() == 8 {
+                        copies.remove(rng.below(8) as usize);
+                    }
+                    copies.push(map.clone());
+                }
+                for copy in &copies {
+                    check(copy, &map);
+                    held += usize::from(copy.within(&map, |value, kept| kept >= value));
+                }
+                if step % 89 == 0 {
+                    let rebuilt: IdMap<u64> = map.iter().map(|(id, v)| (id, *v)).collect();
+                    for copy in &copies {
+                        check(copy, &rebuilt);
+                    }
+                }
+            }
+        }
+        assert!(held > 1_000, "{held}");
+    }
+
+    #[test]
+    fn what_two_maps_share_is_not_read_to_tell_that_one_is_within_the_other() {
+        let mut asked = 0;
+        let earlier: IdMap<u64> = (0..40_010).map(|id| (id, id)).collect();
+        let mut later = earlier.clone();
+        assert!(earlier.within(&later, |_, _| {
+            asked += 1;
+            false
+        }));
+        later.insert(40_010, 0);
+        later.insert(1 << 30, 0);
+        *later.get_mut(&7).unwrap() += 1;
+        assert!(earlier.within(&later, |value, kept| {
+            asked += 1;
+            kept >= value
+        }));
+        assert_eq!(asked, 1, "only the value written is read");
+        assert!(!later.within(&earlier, |_, _| true));
     }
 
     #[test]
