@@ -159,6 +159,78 @@ impl<V> IdMap<V> {
         }
     }
 
+    /// Whether `later`, read in the order of its keys, begins with this map:
+    /// it holds every key of this map with an equal value, and none of its
+    /// other keys comes before a key of this map. A block or a value that
+    /// both maps share is not read, so a map and a copy that keys were added
+    /// to are compared in time proportional to what was added.
+    pub fn begins(&self, later: &Self) -> bool
+    where
+        V: PartialEq,
+    {
+        /// Reads two blocks of one level slot by slot, in key order. `past`
+        /// says that `later` has shown a key this map lacks: a key of this
+        /// map after that one is out of place.
+        fn walk<V: PartialEq>(
+            here: &Arc<Block<V>>,
+            later: &Arc<Block<V>>,
+            past: &mut bool,
+        ) -> bool {
+            if Arc::ptr_eq(here, later) {
+                // No block is empty, so this one holds a key of this map.
+                return !*past;
+            }
+            match (&**here, &**later) {
+                (Block::Branch(here), Block::Branch(later)) => {
+                    here.iter().zip(later).all(|slots| match slots {
+                        (Some(here), Some(later)) => walk(here, later, past),
+                        (Some(_), None) => false,
+                        (None, later) => {
+                            *past |= later.is_some();
+                            true
+                        }
+                    })
+                }
+                (Block::Leaf(here), Block::Leaf(later)) => {
+                    here.iter().zip(later).all(|slots| match slots {
+                        (Some(here), Some(later)) => {
+                            !*past && (Arc::ptr_eq(here, later) || here == later)
+                        }
+                        (Some(_), None) => false,
+                        (None, later) => {
+                            *past |= later.is_some();
+                            true
+                        }
+                    })
+                }
+                _ => false,
+            }
+        }
+        let Some(here) = &self.root else {
+            return true;
+        };
+        // A taller tree holds a key past every key `later` has room for.
+        if self.height > later.height {
+            return false;
+        }
+        let Some(mut there) = later.root.as_ref() else {
+            return false;
+        };
+        // The keys this tree has room for are under the first slot of each
+        // level `later` has above it, and the keys under the other slots of
+        // those levels all come after them.
+        for _ in self.height..later.height {
+            let Block::Branch(slots) = &**there else {
+                return false;
+            };
+            let Some(below) = &slots[0] else {
+                return false;
+            };
+            there = below;
+        }
+        walk(here, there, &mut false)
+    }
+
     /// Put `value` at `id`, and return the value that was there, as the map
     /// held it: a copy of the map may share it, and it is not copied to be
     /// handed back.
@@ -816,5 +888,146 @@ mod tests {
         let small: IdMap<&str> = [(3, "c"), (1, "a")].into_iter().collect();
         assert_eq!(format!("{small:?}"), r#"{1: "a", 3: "c"}"#);
         assert_eq!(small[&3], "c");
+    }
+
+    #[test]
+    fn a_map_begins_another_when_its_keys_and_values_come_first_in_it() {
+        fn listed(map: &IdMap<u64>) -> Vec<(u64, u64)> {
+            map.iter().map(|(id, value)| (id, *value)).collect()
+        }
+        // Each way round, against the lists of keys and values.
+        fn check(one: &IdMap<u64>, other: &IdMap<u64>) {
+            for (earlier, later) in [(one, other), (other, one)] {
+                assert_eq!(
+                    earlier.begins(later),
+                    listed(later).starts_with(&listed(earlier)),
+                    "{earlier:?} in {later:?}"
+                );
+            }
+        }
+        let mut rng = Rng(0x2545_f491_4f6c_dd1d);
+        let mut held = 0;
+        for spread in [3, 40, 1_100, 40_000, u64::MAX] {
+            let mut map: IdMap<u64> = IdMap::new();
+            let mut copies = vec![map.clone()];
+            for step in 0..800u64 {
+                let id = if spread == u64::MAX {
+                    rng.next() >> rng.below(64)
+                } else {
+                    rng.below(spread)
+                };
+                match rng.below(10) {
+                    // Most often a key past the last, as a ledger numbers
+                    // what it is given.
+                    0..=4 => {
+                        let past = map
+                            .keys()
+                            .last()
+                            .map_or(0, |last| last.saturating_add(1 + rng.below(3)));
+                        map.insert(past, step);
+                    }
+                    5 => {
+                        map.insert(id, step);
+                    }
+                    6 => {
+                        map.remove(&id);
+                    }
+                    7 if !map.is_empty() => {
+                        let nth = rng.below(map.len() as u64) as usize;
+                        let id = map.keys().nth(nth).unwrap();
+                        map.remove(&id);
+                    }
+                    _ => {
+                        if let Some(value) = map.get_mut(&id) {
+                            *value += 1;
+                        }
+                    }
+                }
+                check_shape(&map);
+                if step % 5 == 0 {
+                    if copies.len() == 8 {
+                        copies.remove(rng.below(8) as usize);
+                    }
+                    copies.push(map.clone());
+                }
+                for copy in &copies {
+                    check(copy, &map);
+                    held += usize::from(copy.begins(&map) && copy.len() < map.len());
+                }
+                // A map built again shares nothing, and answers the same.
+                if step % 89 == 0 {
+                    let rebuilt: IdMap<u64> = listed(&map).into_iter().collect();
+                    assert!(map.begins(&rebuilt) && rebuilt.begins(&map));
+                    for copy in &copies {
+                        check(copy, &rebuilt);
+                    }
+                }
+            }
+        }
+        // Both answers came up, and often.
+        assert!(held > 1_000, "{held}");
+    }
+
+    #[test]
+    fn what_two_maps_share_is_not_read_to_tell_that_one_begins_the_other() {
+        static COMPARED: AtomicIsize = AtomicIsize::new(0);
+        #[derive(Clone)]
+        struct Counted(u64);
+        impl PartialEq for Counted {
+            fn eq(&self, other: &Self) -> bool {
+                COMPARED.fetch_add(1, Ordering::Relaxed);
+                self.0 == other.0
+            }
+        }
+        let compared = || COMPARED.swap(0, Ordering::Relaxed);
+
+        let earlier: IdMap<Counted> = (0..40_010).map(|id| (id, Counted(id))).collect();
+        let mut later = earlier.clone();
+        assert!(earlier.begins(&later) && later.begins(&earlier));
+        // Keys added past the last: into the last leaf, a copy of it that
+        // shares its values, and into leaves of their own.
+        for id in 40_010..40_100 {
+            later.insert(id, Counted(id));
+        }
+        assert!(earlier.begins(&later));
+        assert!(!later.begins(&earlier));
+        // And past what the tree had room for, so that it grows a level.
+        later.insert(1 << 30, Counted(0));
+        assert!(later.height > earlier.height);
+        assert!(earlier.begins(&later));
+        assert!(!later.begins(&earlier));
+        assert_eq!(compared(), 0, "a value both maps share is not compared");
+
+        // A value written is the map's own, and the one that is compared.
+        later.get_mut(&12_345).unwrap().0 = 12_345;
+        assert!(earlier.begins(&later));
+        assert_eq!(compared(), 1);
+        later.get_mut(&12_345).unwrap().0 = 0;
+        assert!(!earlier.begins(&later));
+        assert_eq!(compared(), 1);
+        later.get_mut(&12_345).unwrap().0 = 12_345;
+        // A key taken out, and one put in before the last.
+        let mut without = later.clone();
+        without.remove(&7);
+        assert!(!earlier.begins(&without));
+        let mut shorter = earlier.clone();
+        shorter.remove(&40_000);
+        assert!(!shorter.begins(&later), "40,000 comes before 40,009");
+        shorter.remove(&40_009);
+        assert!(!shorter.begins(&later));
+        for id in 40_001..40_009 {
+            shorter.remove(&id);
+        }
+        assert!(shorter.begins(&later) && shorter.begins(&earlier));
+        // An empty map begins every map, and only an empty map begins it.
+        let empty = IdMap::new();
+        assert!(empty.begins(&later) && empty.begins(&empty));
+        assert!(!later.begins(&empty));
+
+        // Maps that share nothing are compared value by value.
+        compared();
+        let rebuilt: IdMap<Counted> = (0..40_050).map(|id| (id, Counted(id))).collect();
+        assert!(earlier.begins(&rebuilt));
+        assert_eq!(compared(), 40_010);
     }
 }

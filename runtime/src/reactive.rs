@@ -191,7 +191,9 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
-use write::{Logged, NameTable, NamedRecords, RecordMap, Records, Same, Sealed, SealedGraph};
+use write::{
+    Logged, NameTable, NamedRecords, Observations, RecordMap, Records, Same, Sealed, SealedGraph,
+};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -1046,7 +1048,9 @@ pub struct ReadingStream {
     pub template: String,
     pub limit: usize,
     pub current: Option<String>,
-    pub occurrences: Vec<ReadingOccurrence>,
+    /// Each reading is shared with the copies of the stream, so a sample
+    /// copies the list of them and no reading.
+    pub occurrences: Vec<Arc<ReadingOccurrence>>,
     pub selection_qualifications: Provenance,
 }
 
@@ -1088,7 +1092,9 @@ pub struct DecisionSeries {
 pub struct Renewal {
     pub limit: usize,
     /// First to current: the declared name, then `NAME@2`, `NAME@3`, ...
-    pub occurrences: Vec<String>,
+    /// Each name is shared with the copies of the record, so a renewal
+    /// copies the list of them and no name.
+    pub occurrences: Vec<Name>,
     /// The caveats declared on the evidence. Every occurrence inherits them.
     #[serde(skip)]
     template_caveats: Vec<NodeId>,
@@ -1629,6 +1635,8 @@ impl Changes {
             new.symbols.check();
             old.graph.check();
             new.graph.check();
+            old.check_observations();
+            new.check_observations();
         }
         let names = new.states.changed_since(&old.states);
         // Copy-on-write fields an event never wrote still share their pointer.
@@ -1637,7 +1645,7 @@ impl Changes {
         }
         let graph = !new.graph.unchanged_since(&old.graph)
             || !same(&old.symbols, &new.symbols)
-            || !same(&old.observations, &new.observations)
+            || old.observations != new.observations
             || !new
                 .observation_qualifications
                 .unchanged_since(&old.observation_qualifications)
@@ -1897,9 +1905,7 @@ impl Changes {
         if !Arc::ptr_eq(&old.symbols, &new.symbols) && !old.symbols.kept_in(&new.symbols) {
             return None;
         }
-        if !Arc::ptr_eq(&old.observations, &new.observations)
-            && !new.observations.starts_with(&old.observations)
-        {
+        if !old.observations.begins(&new.observations) {
             return None;
         }
         if !Arc::ptr_eq(&old.graph, &new.graph) {
@@ -2398,7 +2404,7 @@ pub struct ReactiveSession {
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
-    observations: Sealed<Vec<String>>,
+    observations: Observations,
     /// Texts received for `id` parameters, in handle order.
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
@@ -2986,7 +2992,7 @@ impl ReactiveSession {
                         .collect();
                     let renewal = Renewal {
                         limit: *limit,
-                        occurrences: vec![evidence.clone()],
+                        occurrences: vec![Name::from(evidence)],
                         template_caveats,
                     };
                     if Arc::make_mut(&mut session.renewals)
@@ -6199,8 +6205,7 @@ impl ReactiveSession {
             "observed" => {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
                     && !self.is_retired(name)
-                    && (self.observations.iter().any(|observed| observed == name)
-                        || !self.graph.stance(*id).is_empty())
+                    && (self.observations.holds(*id) || !self.graph.stance(*id).is_empty())
             }
             "examined" => matches!(
                 self.graph.nodes.get(id),
@@ -6443,31 +6448,29 @@ impl ReactiveSession {
     }
 
     /// Start explicit ordering only when an edge cannot represent observation.
-    fn record_observation(&mut self, evidence: &str, neutral: bool) {
+    fn record_observation(&mut self, evidence: NodeId, neutral: bool) {
         if self.observations.is_empty() && neutral {
-            let mut observations = Vec::<String>::new();
+            let mut observed = Vec::new();
+            let mut seen = HashSet::default();
             for edge in &self.graph.edges {
                 if matches!(edge.relation, Relation::Supports | Relation::Opposes)
                     && matches!(
                         self.graph.nodes.get(&edge.from),
                         Some(NodeKind::Evidence { .. })
                     )
+                    && seen.insert(edge.from)
                 {
-                    let name = self
-                        .symbols
-                        .name_of(edge.from)
-                        .expect("observed evidence is named");
-                    if !observations.iter().any(|observed| observed == name) {
-                        observations.push(name.to_string());
-                    }
+                    debug_assert!(
+                        self.symbols.name_of(edge.from).is_some(),
+                        "observed evidence is named"
+                    );
+                    observed.push(edge.from);
                 }
             }
-            self.set_observations(observations);
+            self.set_observations(observed);
         }
-        if (neutral || !self.observations.is_empty())
-            && !self.observations.iter().any(|name| name == evidence)
-        {
-            self.push_observation(evidence.to_string());
+        if (neutral || !self.observations.is_empty()) && !self.observations.holds(evidence) {
+            self.push_observation(evidence);
         }
     }
 
@@ -6487,25 +6490,13 @@ impl ReactiveSession {
 
     /// Where each name was first observed: its place in the observation
     /// ledger, or, for a session without one, the place of its first
-    /// `supports` or `opposes` edge. Built once, read for many names.
+    /// `supports` or `opposes` edge. Each name's rank is looked up where it
+    /// is kept: nothing is built to read them.
     pub(crate) fn observation_ranks(&self) -> ObservationRanks<'_> {
-        if self.observations.is_empty() {
-            let mut first = HashMap::default();
-            for (position, edge) in self.graph.edges.iter().enumerate() {
-                if matches!(edge.relation, Relation::Supports | Relation::Opposes) {
-                    first.entry(edge.from).or_insert(position);
-                }
-            }
-            ObservationRanks::Edges {
-                symbols: &self.symbols,
-                first,
-            }
-        } else {
-            let mut first = HashMap::default();
-            for (position, name) in self.observations.iter().enumerate() {
-                first.entry(name.as_str()).or_insert(position);
-            }
-            ObservationRanks::Ledger(first)
+        ObservationRanks {
+            symbols: &self.symbols,
+            ledger: (!self.observations.is_empty()).then_some(&self.observations),
+            graph: &self.graph,
         }
     }
 
@@ -6941,7 +6932,7 @@ impl ReactiveSession {
                         source,
                     },
                 );
-                self.record_observation(&name, stance.is_none());
+                self.record_observation(id, stance.is_none());
                 if let Some((relation, claim)) = stance {
                     self.relate(id, *relation, self.symbols[claim]);
                 }
@@ -6960,7 +6951,7 @@ impl ReactiveSession {
                 let readings = Self::stream_mut(&mut self.reading_streams, stream);
                 readings.current = Some(name.clone());
                 readings.selection_qualifications = Provenance::default();
-                readings.occurrences.push(ReadingOccurrence {
+                readings.occurrences.push(Arc::new(ReadingOccurrence {
                     id: name.clone(),
                     ordinal,
                     sequence: self.sequence,
@@ -6976,7 +6967,7 @@ impl ReactiveSession {
                         .map(|(relation, _)| relation_name(*relation).into()),
                     claim: stance.as_ref().map(|(_, claim)| claim.clone()),
                     note: note.clone(),
-                });
+                }));
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
                     id: name,
@@ -7186,7 +7177,7 @@ impl ReactiveSession {
                     .get_mut(evidence)
                     .expect("validated renewable evidence")
                     .occurrences
-                    .push(name.clone());
+                    .push(Name::from(&name));
                 self.effects.push(EffectReport::Renew {
                     evidence: evidence.clone(),
                     occurrence: name,
@@ -7265,7 +7256,7 @@ impl ReactiveSession {
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
                     Self::merge_record(&mut self.observation_qualifications, &evidence, &guard)?;
-                    self.record_observation(&evidence, true);
+                    self.record_observation(self.symbols[&evidence], true);
                     self.effects.push(EffectReport::Reveal {
                         evidence,
                         relation: None,
@@ -7286,7 +7277,7 @@ impl ReactiveSession {
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
                     Self::merge_record(&mut self.observation_qualifications, evidence, &guard)?;
-                    self.record_observation(evidence, false);
+                    self.record_observation(from, false);
                     self.relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
@@ -8226,7 +8217,11 @@ impl ReactiveSession {
         // stream `unqualify latest(…)` names.
         let occurrences = match (only, self.renewals.get(evidence)) {
             (Some(only), _) => vec![only.to_string()],
-            (None, Some(renewal)) => renewal.occurrences.clone(),
+            (None, Some(renewal)) => renewal
+                .occurrences
+                .iter()
+                .map(|name| name.as_str().to_owned())
+                .collect(),
             (None, None) => vec![evidence.to_string()],
         };
         let marked = occurrences
@@ -8507,7 +8502,7 @@ impl ReactiveSession {
             return name;
         };
         consult(|record| record.renewals.push(consulted_key("", name)));
-        renewal.occurrences.last().map_or(name, String::as_str)
+        renewal.occurrences.last().map_or(name, Name::as_str)
     }
 
     /// A predicate's target as the source names it, resolved: predicates on
@@ -8815,7 +8810,12 @@ impl ReactiveSession {
             vec![name]
         } else {
             match self.renewals.get(name) {
-                Some(renewal) => listed.extend(renewal.occurrences.iter().cloned()),
+                Some(renewal) => listed.extend(
+                    renewal
+                        .occurrences
+                        .iter()
+                        .map(|name| name.as_str().to_owned()),
+                ),
                 None => listed.push(name.to_string()),
             }
             self.reading_streams
@@ -9063,7 +9063,7 @@ impl ReactiveSession {
             self.oldest_live_beyond_window(&stream.occurrences, |record| &record.id, stream.limit)
         } else {
             let renewal = &self.renewals[history];
-            self.oldest_live_beyond_window(&renewal.occurrences, String::as_str, renewal.limit)
+            self.oldest_live_beyond_window(&renewal.occurrences, Name::as_str, renewal.limit)
         };
         if let Some(oldest) = oldest {
             self.retire(history, oldest);
@@ -9400,7 +9400,8 @@ impl ReactiveSession {
         } else {
             format!("{evidence}@{index}")
         };
-        (renewal.occurrences.contains(&name) && !self.is_retired(&name)).then_some(name)
+        (renewal.occurrences.iter().any(|held| *held == name) && !self.is_retired(&name))
+            .then_some(name)
     }
 
     /// `occurrence(EVIDENCE, INDEX)` in an effect: the held occurrence the
@@ -9514,7 +9515,7 @@ impl ReactiveSession {
                 .collect(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
-            observations: (**self.observations).clone(),
+            observations: self.observation_names(),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (**self.withdrawals).clone(),
             taken_back: (**self.taken_back).clone(),
@@ -11459,23 +11460,26 @@ impl<'de> serde::Deserialize<'de> for Payload {
 /// First-observation ranks; see `ReactiveSession::observation_ranks`. A name
 /// never observed ranks last, so a sort by `(rank, name)` puts it after the
 /// observed ones, in name order.
-pub(crate) enum ObservationRanks<'a> {
-    Ledger(HashMap<&'a str, usize>),
-    Edges {
-        symbols: &'a HashMap<String, NodeId>,
-        first: HashMap<NodeId, usize>,
-    },
+pub(crate) struct ObservationRanks<'a> {
+    symbols: &'a NameTable,
+    /// The observation ledger, in a session that has one.
+    ledger: Option<&'a Observations>,
+    graph: &'a SealedGraph,
 }
 
 impl ObservationRanks<'_> {
-    pub(crate) fn rank(&self, name: &str) -> usize {
-        match self {
-            Self::Ledger(first) => first.get(name).copied(),
-            Self::Edges { symbols, first } => {
-                symbols.get(name).and_then(|id| first.get(id).copied())
-            }
-        }
-        .unwrap_or(usize::MAX)
+    /// The number the ledger gave the record named `name`, or without a
+    /// ledger the number of the first relation by which it supports or
+    /// opposes a claim: the relations a record keeps are in graph order, and
+    /// so are their numbers.
+    pub(crate) fn rank(&self, name: &str) -> u64 {
+        self.symbols
+            .get(name)
+            .and_then(|id| match self.ledger {
+                Some(ledger) => ledger.rank(*id),
+                None => self.graph.stance(*id).first().map(|link| link.serial),
+            })
+            .unwrap_or(u64::MAX)
     }
 }
 

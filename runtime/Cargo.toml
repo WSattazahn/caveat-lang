@@ -37,7 +37,7 @@ required-features = ["event-phase-profile"]
 
 [dependencies]
 sha2 = "0.10"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 # float_roundtrip: parse every f64 exactly. The default rounds some 17-digit
 # numbers by one unit in the last place, so a restored clock drifted and a
 # `>= 45` test moved by a tick (found by the round-6 differential fuzz).

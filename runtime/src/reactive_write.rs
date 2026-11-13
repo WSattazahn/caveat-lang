@@ -1,8 +1,9 @@
 //! One write path for the containers that reads will index: the graph, the
 //! names, the observation ledger, the withdrawals and the take-backs. Each is
-//! `Sealed`: anything can read it as the `Arc` it holds, and only this module
-//! can make one or write into one, so no write can skip what its session
-//! methods keep up to date. Each method makes the same change, in the same
+//! sealed: anything can read it, the ledger through its own methods and the
+//! others (`Sealed`) as the `Arc` they hold, and only this module can make
+//! one or write into one, so no write can skip what its session methods
+//! keep up to date. Each method makes the same change, in the same
 //! container, that its callers made before it existed. Outside this module a
 //! sealed container can still be copied, so code that holds a session could
 //! swap in a copy of one whole, from this session or another; nothing does,
@@ -14,6 +15,7 @@
 //! read what it changed, so that check reads only what the event wrote.
 use super::relations::{Departed, Link, List, Relations};
 use super::*;
+use crate::idmap::IdMap;
 use crate::ordmap::OrdMap;
 use crate::Edge;
 use std::fmt;
@@ -51,12 +53,106 @@ impl<T: fmt::Debug> fmt::Debug for Sealed<T> {
     }
 }
 
+/// The observation ledger: the evidence observed, in the order it was first
+/// observed, once a neutral reveal has started one. It is sealed as the other
+/// containers are: anything can read it, and only the session methods below
+/// write it.
+///
+/// A record takes the next number when it is observed and keeps it, and a
+/// record that departs leaves its number unused, so the records in the order
+/// of their numbers are the ledger in order. A copy shares both maps whole,
+/// and a write copies the blocks on the way to one slot of each. Whether the
+/// ledger holds a record, where the record stands and whether an event only
+/// added to the ledger are each read without walking it.
+#[derive(Clone, Default)]
+pub(super) struct Observations {
+    /// The records by number: the ledger in order.
+    order: IdMap<NodeId>,
+    /// Each record's number.
+    numbers: IdMap<u64>,
+    /// The number the next record takes.
+    next: u64,
+}
+
+impl Observations {
+    /// Whether no ledger has been started: a ledger holds a record from its
+    /// first neutral reveal on, unless every record it held has departed.
+    pub(super) fn is_empty(&self) -> bool {
+        self.order.is_empty()
+    }
+
+    /// Whether the ledger holds `id`.
+    pub(super) fn holds(&self, id: NodeId) -> bool {
+        self.numbers.contains_key(&id)
+    }
+
+    /// Where `id` stands in the ledger: a record observed before another has
+    /// the lower number.
+    pub(super) fn rank(&self, id: NodeId) -> Option<u64> {
+        self.numbers.get(&id).copied()
+    }
+
+    /// The records, in the order they were observed.
+    pub(super) fn iter(&self) -> impl ExactSizeIterator<Item = NodeId> + '_ {
+        self.order.iter().map(|(_, id)| *id)
+    }
+
+    /// Whether `later`, this ledger after an event, begins with it: it holds
+    /// each record of this ledger at its number, and no other record before
+    /// the last of them. The numbers an event gives are past every number
+    /// given before it, so this is whether the event only added records.
+    /// What the two share is not read.
+    pub(super) fn begins(&self, later: &Self) -> bool {
+        self.order.begins(&later.order)
+    }
+
+    fn push(&mut self, id: NodeId) {
+        debug_assert!(!self.holds(id), "a record is observed once");
+        self.order.insert(self.next, id);
+        self.numbers.insert(id, self.next);
+        self.next += 1;
+    }
+
+    fn remove(&mut self, id: NodeId) {
+        if let Some(number) = self.numbers.remove(&id) {
+            self.order.remove(&number);
+        }
+    }
+
+    /// The two maps are each other turned around, exactly.
+    #[cfg(any(debug_assertions, test))]
+    fn check(&self) {
+        debug_assert_eq!(self.order.len(), self.numbers.len());
+        for (number, id) in &self.order {
+            debug_assert!(number < self.next, "record {id} has number {number}");
+            debug_assert_eq!(self.numbers.get(id), Some(&number), "the number of {id}");
+        }
+    }
+}
+
+/// Two ledgers are equal when they hold the same records in the same order,
+/// whatever numbers the records have. A ledger and a copy of it that was not
+/// written since are not read.
+impl PartialEq for Observations {
+    fn eq(&self, other: &Self) -> bool {
+        self.order.shares_all(&other.order)
+            || (self.order.len() == other.order.len() && self.iter().eq(other.iter()))
+    }
+}
+
+/// Prints the records in ledger order, each by its node.
+impl fmt::Debug for Observations {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.debug_list().entries(self.iter()).finish()
+    }
+}
+
 /// A session's sealed containers as its program declares them: the graph and
 /// its names, and no observations, withdrawals or take-backs yet.
 pub(super) struct Declared {
     pub(super) graph: SealedGraph,
     pub(super) symbols: NameTable,
-    pub(super) observations: Sealed<Vec<String>>,
+    pub(super) observations: Observations,
     pub(super) withdrawals: Sealed<Vec<Withdrawal>>,
     pub(super) taken_back: TakeBacks,
 }
@@ -188,7 +284,7 @@ pub(super) fn seal_declared(graph: EpistemicGraph, symbols: HashMap<String, Node
     Declared {
         graph: SealedGraph::new(graph),
         symbols: NameTable::new(symbols),
-        observations: Sealed::new(Vec::new()),
+        observations: Observations::default(),
         withdrawals: Sealed::new(Vec::new()),
         taken_back: TakeBacks::new(Vec::new()),
     }
@@ -1208,18 +1304,64 @@ impl ReactiveSession {
         }
     }
 
-    /// Replaces the observation ledger: its first materialization, or a
-    /// restore.
-    pub(super) fn set_observations(&mut self, observations: Vec<String>) {
-        self.observations = Sealed::new(observations);
+    /// Replaces the observation ledger with `records` in their order, each
+    /// given once: its first materialization, or a restore.
+    pub(super) fn set_observations(&mut self, records: impl IntoIterator<Item = NodeId>) {
+        let mut ledger = Observations::default();
+        for id in records {
+            ledger.push(id);
+        }
+        self.observations = ledger;
     }
 
-    pub(super) fn push_observation(&mut self, evidence: String) {
-        Arc::make_mut(&mut self.observations.0).push(evidence);
+    /// Adds `evidence`, which the ledger does not hold, at its end.
+    pub(super) fn push_observation(&mut self, evidence: NodeId) {
+        self.observations.push(evidence);
     }
 
-    pub(super) fn retain_observations(&mut self, keep: impl FnMut(&String) -> bool) {
-        Arc::make_mut(&mut self.observations.0).retain(keep);
+    /// Takes each of `records` that the ledger holds out of it.
+    pub(super) fn depart_observations(&mut self, records: impl IntoIterator<Item = NodeId>) {
+        for id in records {
+            self.observations.remove(id);
+        }
+    }
+
+    /// The ledger's records by name, in ledger order.
+    pub(super) fn observation_names(&self) -> Vec<String> {
+        self.observations
+            .iter()
+            .map(|id| {
+                self.symbols
+                    .name_of(id)
+                    .expect("an observed record is named")
+                    .to_string()
+            })
+            .collect()
+    }
+
+    /// Whether the ledger holds the record named `name`.
+    pub(super) fn in_ledger(&self, name: &str) -> bool {
+        self.symbols
+            .get(name)
+            .is_some_and(|id| self.observations.holds(*id))
+    }
+
+    /// The ledger's two maps agree, and each of its records is named
+    /// evidence: what lets it keep records by node where saves, and the
+    /// rules that read it, name them.
+    #[cfg(any(debug_assertions, test))]
+    pub(super) fn check_observations(&self) {
+        self.observations.check();
+        for id in self.observations.iter() {
+            debug_assert!(
+                self.symbols.name_of(id).is_some(),
+                "observed record {id} has no name"
+            );
+            debug_assert!(
+                matches!(self.graph.nodes.get(&id), Some(NodeKind::Evidence { .. })),
+                "observed record {id} is not evidence"
+            );
+        }
     }
 
     pub(super) fn set_withdrawals(&mut self, withdrawals: Vec<Withdrawal>) {
@@ -1785,6 +1927,166 @@ bind h.few = latest(few) when has_sample(few);
     }
 
     #[test]
+    fn the_ledger_reads_as_the_list_of_records_it_stands_in_for() {
+        // Records are added at the end and taken out anywhere, as observing
+        // and departing do, and a node's number is never given again.
+        let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+        let mut below = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        let mut ledger = Observations::default();
+        let mut list: Vec<NodeId> = Vec::new();
+        let mut node = 0;
+        // Copies taken on the way, each with the list of that moment.
+        let mut earlier: Vec<(Observations, Vec<NodeId>)> = Vec::new();
+        let (mut began, mut equal) = (0, 0);
+        for step in 0..3_000 {
+            match below(8) {
+                0..=4 => {
+                    node += 1 + below(40);
+                    ledger.push(node);
+                    list.push(node);
+                }
+                5 | 6 if !list.is_empty() => {
+                    let id = list.remove(below(list.len() as u64) as usize);
+                    ledger.remove(id);
+                }
+                // A record the ledger does not hold leaves it as it is.
+                _ => ledger.remove(node + 1),
+            }
+            ledger.check();
+            assert!(ledger.iter().eq(list.iter().copied()), "step {step}");
+            assert_eq!(ledger.iter().len(), list.len());
+            assert_eq!(ledger.is_empty(), list.is_empty());
+            for (before, listed) in &earlier {
+                assert_eq!(before.begins(&ledger), list.starts_with(listed));
+                assert_eq!(*before == ledger, *listed == list);
+                began += usize::from(before.begins(&ledger));
+                equal += usize::from(*before == ledger);
+            }
+            if step % 40 == 0 {
+                for pair in list.windows(2) {
+                    assert!(ledger.rank(pair[0]).unwrap() < ledger.rank(pair[1]).unwrap());
+                }
+                assert!(list.iter().all(|id| ledger.holds(*id)));
+                assert!(!ledger.holds(node + 1));
+                assert_eq!(ledger.rank(node + 1), None);
+                // Built again from the list it numbers its records afresh,
+                // and is the same ledger.
+                let mut rebuilt = Observations::default();
+                for &id in &list {
+                    rebuilt.push(id);
+                }
+                assert_eq!(ledger, rebuilt);
+                assert_eq!(format!("{ledger:?}"), format!("{list:?}"));
+                if earlier.len() == 6 {
+                    earlier.remove(below(6) as usize);
+                }
+                earlier.push((ledger.clone(), list.clone()));
+            }
+        }
+        // Both answers came up, each way.
+        assert!(began > 200 && equal > 10, "{began} {equal}");
+    }
+
+    #[test]
+    fn ranks_order_names_as_the_ledger_and_the_relations_do() {
+        // A stream whose readings take a stance, so that its window takes
+        // relations out of the graph from the front, beside declared evidence.
+        let source = "claim seen;\nevidence e from \"e\";\nevidence f from \"f\";\n\
+             evidence g from \"g\";\nevidence h from \"h\";\nevidence feed from \"feed\";\n\
+             readings r from feed window 2;\nevent seee;\nevent seef;\nevent seeg;\n\
+             event look;\nevent read v min 0 max 9;\nevent note v min 0 max 9;\n\
+             on seee reveal e supports seen;\non seef reveal f opposes seen;\n\
+             on seeg reveal g supports seen;\non look reveal h;\n\
+             on read sample r = v supports seen;\non note sample r = v;\n";
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        // The order of every pair of names, as `rank` gives it and as the
+        // lists it stands in for give it: the place of a name in the
+        // ledger, or without one the place of its first `supports` or
+        // `opposes` relation in the graph.
+        fn check(session: &ReactiveSession, ledger: bool) {
+            assert_eq!(!session.observations.is_empty(), ledger);
+            let listed = session.observation_names();
+            let place = |name: &str| {
+                let found = if ledger {
+                    listed.iter().position(|held| held == name)
+                } else {
+                    session.symbols.get(name).and_then(|id| {
+                        session.graph.edges.iter().position(|edge| {
+                            edge.from == *id
+                                && matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                        })
+                    })
+                };
+                found.unwrap_or(usize::MAX)
+            };
+            let ranks = session.observation_ranks();
+            let mut names = session
+                .symbols
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>();
+            names.push("nowhere");
+            names.sort_unstable();
+            for one in &names {
+                for other in &names {
+                    assert_eq!(
+                        ranks.rank(one).cmp(&ranks.rank(other)),
+                        place(one).cmp(&place(other)),
+                        "{one} and {other}"
+                    );
+                }
+            }
+            session.check_observations();
+        }
+        let send = |session: &mut ReactiveSession, event: &str, ledger: bool| {
+            let payload = match event {
+                "read" | "note" => "{\"v\":1}",
+                _ => "{}",
+            };
+            let outcome = session
+                .dispatch_outcome_json(event, payload)
+                .unwrap_or_else(|fatal| panic!("{event}: {}", fatal.message));
+            let outcome = serde_json::to_string(&outcome).unwrap();
+            assert!(outcome.contains("accepted"), "{event}: {outcome}");
+            check(session, ledger);
+        };
+        check(&session, false);
+        for event in ["seef", "read", "read", "seee", "read", "read", "read"] {
+            send(&mut session, event, false);
+        }
+        // The window has taken readings and their relations out.
+        assert!(!session.symbols.contains_key("r@1"));
+        assert!(session.symbols.contains_key("r@5"));
+        let before = session.clone();
+        // The first neutral observation starts the ledger from the relations.
+        send(&mut session, "look", true);
+        assert_eq!(session.observation_names(), ["f", "e", "r@4", "r@5", "h"]);
+        assert!(before.observations.is_empty());
+        for event in ["note", "seeg", "read", "note", "look", "note"] {
+            send(&mut session, event, true);
+        }
+        assert_eq!(
+            session.observation_names(),
+            ["f", "e", "h", "g", "r@8", "r@9"]
+        );
+        // A save names the ledger's records, and a restore reads them back.
+        let save = session.save_json().unwrap();
+        assert!(save.contains(r#""observations":["f","e","h","g","r@8","r@9"]"#));
+        let restored = ReactiveSession::restore_json(source, &save).unwrap();
+        check(&restored, true);
+        // It gives the records it adds numbers of its own, so the two
+        // ledgers hold the same names and not the same nodes.
+        assert_eq!(restored.observation_names(), session.observation_names());
+        assert_ne!(restored.observations, session.observations);
+        assert_eq!(restored.save_json().unwrap(), save);
+    }
+
+    #[test]
     fn an_event_logs_every_container_from_before_its_first_rule() {
         let mut session = ReactiveSession::from_source(
             "claim ok;\nevidence e from \"tool\";\nstate a = 0;\nevent see v min 0 max 1;\n\
@@ -2169,6 +2471,96 @@ bind h.few = latest(few) when has_sample(few);
     /// Numbers `session`'s relation lists as if its graph's relations had
     /// come the other way round. Each record still keeps what it keeps and
     /// the count is right, so no read can tell; only the check can.
+    #[test]
+    fn a_sample_and_a_renewal_copy_their_lists_and_nothing_the_lists_hold() {
+        let source = "claim seen;\nevidence feed from \"feed\";\nevidence e from \"e\";\n\
+             readings r from feed limit 16;\nrenewable e limit 16;\n\
+             event read v min 0 max 9;\nevent again;\n\
+             on read sample r = v supports seen;\non again renew e;\n";
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for v in 0..3 {
+            let payload = format!("{{\"v\": {v}}}");
+            session.dispatch_json("read", &payload).unwrap();
+            session.dispatch_json("again", "{}").unwrap();
+        }
+        let before = session.clone();
+        session.dispatch_json("read", "{\"v\": 7}").unwrap();
+        session.dispatch_json("again", "{}").unwrap();
+        // Each reading the stream held is the one the session before holds.
+        let old = &before.reading_streams["r"].occurrences;
+        let new = &session.reading_streams["r"].occurrences;
+        assert_eq!((old.len(), new.len()), (3, 4));
+        assert!(old.iter().zip(new).all(|(old, new)| Arc::ptr_eq(old, new)));
+        // And each name the evidence had is the text the session before has.
+        let old = &before.renewals["e"].occurrences;
+        let new = &session.renewals["e"].occurrences;
+        assert_eq!((old.len(), new.len()), (4, 5));
+        assert!(old
+            .iter()
+            .zip(new)
+            .all(|(old, new)| std::ptr::eq(old.as_str(), new.as_str())));
+    }
+
+    #[test]
+    fn a_departure_rewrites_only_the_readings_that_name_what_departs() {
+        // Each reading of `b` is taken from the current reading of `a`, whose
+        // window holds one: a new reading of `a` takes the one before out of
+        // the session, and the readings of `b` that name it keep a marker.
+        let source = "claim seen;\nevidence feed from \"feed\";\nevidence src from \"src\";\n\
+             readings a from src window 1;\nreadings b from feed limit 16;\n\
+             event ina v min 0 max 9;\nevent inb;\n\
+             on ina sample a = v;\non inb sample b = latest(a);\n";
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        let mut rewritten = 0;
+        let mut shared = 0;
+        for (round, event) in [
+            "ina", "inb", "ina", "inb", "inb", "ina", "inb", "ina", "ina",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let before = session.clone();
+            let saved = before.save_json().unwrap();
+            let payload = format!("{{\"v\": {round}}}");
+            session
+                .dispatch_json(event, if event == "ina" { &payload } else { "{}" })
+                .unwrap();
+            let held = |session: &ReactiveSession| {
+                let readings = session.reading_streams["a"].occurrences.iter();
+                readings
+                    .map(|reading| reading.id.clone())
+                    .collect::<Vec<_>>()
+            };
+            let now = held(&session);
+            let departed = held(&before)
+                .into_iter()
+                .filter(|name| !now.contains(name))
+                .collect::<Vec<_>>();
+            let old = &before.reading_streams["b"].occurrences;
+            let new = &session.reading_streams["b"].occurrences;
+            for (old, new) in old.iter().zip(new) {
+                let named = departed
+                    .iter()
+                    .any(|name| old.provenance.evidence.contains(name));
+                assert_eq!(Arc::ptr_eq(old, new), !named, "round {round}: {}", old.id);
+                if named {
+                    rewritten += 1;
+                    assert!(new.provenance.departed.contains_key("a"), "round {round}");
+                    assert!(departed
+                        .iter()
+                        .all(|name| !new.provenance.evidence.contains(name)));
+                } else {
+                    shared += 1;
+                }
+            }
+            // The session before the event still holds what it held.
+            assert_eq!(before.save_json().unwrap(), saved, "round {round}");
+        }
+        // The four readings of `b` are each rewritten once, when the
+        // reading of `a` they were taken from departs.
+        assert_eq!((rewritten, shared), (4, 14));
+    }
+
     #[cfg(debug_assertions)]
     fn misnumber(session: &mut ReactiveSession) {
         let reversed: Vec<Edge> = session.graph.edges.iter().rev().cloned().collect();
