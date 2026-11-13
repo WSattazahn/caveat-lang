@@ -193,7 +193,11 @@ accepts a journal with all of the hold's entries taken out, when another
 entry of the revision accounts for its reopening record. In a program that
 withdraws it also accepts a journal with a `deferred` entry taken out before
 the reopening that broke through the hold: that `reopened` entry then cites
-one more cause, as a `reopen` naming several does.
+one more cause, as a `reopen` naming several does. In a program with a
+window, restore also refuses a hold's reason or a deferred cause, and a name
+or a departure marker in a reopening record, of a history that no rule or
+declaration of the program carries there ([Save 0.1](caveat-save-0.1.md),
+D054).
 
 ## 5. Check
 
@@ -281,3 +285,9 @@ the 30 that do not load give the same error. No accepted program changes.
   holds. The check runs after every other, so a save refused before is
   refused with the same message, and a save the runtime wrote restores as
   before. Tests: `runtime/tests/d062_hold_entries.rs`.
+- 2026-11-13: D054. In a program with a window, restore refuses a hold's
+  reason or a deferred cause, and a name or a departure marker in a reopening
+  record, of a history that no rule or declaration of the program carries
+  there (section 4; [Save 0.1](caveat-save-0.1.md)). The check runs after
+  those of section 4. Tests:
+  `runtime/tests/d054_markers_no_rule_carries_refused.rs`.

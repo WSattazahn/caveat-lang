@@ -1021,8 +1021,8 @@ impl ReactiveSession {
         self.restore_departures(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
-        // After every other check, so that a save refused before for
-        // anything else keeps its message (D053, D060, D062).
+        // After every check older than them, so that a save refused before
+        // for anything else keeps its message (D053, D060, D062).
         self.check_last_event_spending(save, declared_spent)?;
         self.check_retirement_dates(save)?;
         self.check_hold_entries(save)?;

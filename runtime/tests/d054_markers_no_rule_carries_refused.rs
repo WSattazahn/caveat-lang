@@ -107,9 +107,11 @@ fn no_rule_carries(place: &str, history: &str) -> String {
 /// `change` entry (`held` or `deferred`) of series `series`' current
 /// revision, and with the series' `on_hold` or `deferred` and the revision's
 /// reopening record made to agree. Restore holds the three to each other
-/// (D062), so a cause only the series lists is refused there first ("decision
-/// series r holds a@2, which its journal does not"), and one only the entry
-/// cites is refused for the record that leaves it out.
+/// (D062): a cause only the series lists is refused there first ("decision
+/// series r holds a@2, which its journal does not"), one only the entry
+/// cites for the series that leaves it out ("decision series r does not
+/// hold a@2, which its journal does"), and one both hold for the record that
+/// leaves it out.
 fn with_causes(save: &Value, series: &str, change: &str, causes: &[&str]) -> Value {
     let mut forged = save.clone();
     let revision = forged["decision_series"][series]["current"]
@@ -1459,6 +1461,36 @@ on re reopen d because e;
 on re reopen r because e;
 ";
 
+/// `PARTS` with a release of `r` because of a reading of `a`, which carries
+/// `a` into `r`'s reopening record but into neither its hold nor what it
+/// defers.
+const PARTS_RELEASED: &str = "claim seen;
+evidence glimpse from \"a glimpse\";
+evidence g2 from \"g2\";
+evidence e from \"e\";
+readings a from glimpse window 1;
+readings grants from g2 window 1;
+decisions d limit 4;
+decisions r limit 4;
+event la v min 0 max 10;
+event see;
+event decide;
+event close;
+event freeze;
+event re;
+event thaw;
+on la sample a = v supports seen;
+on see reveal e supports seen;
+on see sample grants = 3 supports seen;
+on decide commit d because enough using 1 permitted by latest(grants) for latest(a);
+on decide commit r because enough using 1 permitted by latest(grants) for latest(a);
+on close resolve d = 1 because e;
+on freeze hold r because e;
+on re reopen d because e;
+on re reopen r because e;
+on thaw release r because latest(a);
+";
+
 #[test]
 fn outcomes_reopenings_and_causes_hold_only_what_their_rules_carry() {
     let save = plays_and_restores(
@@ -1505,6 +1537,30 @@ fn outcomes_reopenings_and_causes_hold_only_what_their_rules_carry() {
         PARTS,
         &with_causes(&save, "r", "deferred", &["e", "a@2"]),
         &no_rule_carries("reopening of r@1", "a"),
+    );
+    // Where a release carries `a` into the record, the hold and the
+    // deferral are refused for it themselves.
+    let released = plays_and_restores(
+        PARTS_RELEASED,
+        &[
+            ("see", "{}"),
+            ("la", THREE),
+            ("decide", "{}"),
+            ("close", "{}"),
+            ("freeze", "{}"),
+            ("re", "{}"),
+            ("la", TWO),
+        ],
+    );
+    refused(
+        PARTS_RELEASED,
+        &with_causes(&released, "r", "held", &["e", "a@2"]),
+        &no_rule_carries("decision series r hold", "a"),
+    );
+    refused(
+        PARTS_RELEASED,
+        &with_causes(&released, "r", "deferred", &["e", "a@2"]),
+        &no_rule_carries("decision series r deferral", "a"),
     );
     // The cause of `d`'s reopening, as the journal, the graph and the
     // reopening record hold it together (D062): the reopening reads only
@@ -1626,6 +1682,38 @@ on unfreeze release r because e;
 on pull withdraw f because e;
 ";
 
+/// `CAUSES` with a release of `r` because of a reading of `a`, which carries
+/// `a` into `r`'s reopening record but into neither its hold nor what it
+/// defers.
+const CAUSES_RELEASED: &str = "claim seen;
+evidence glimpse from \"a glimpse\";
+evidence e from \"e\";
+evidence f from \"f\";
+readings a from glimpse window 1;
+decisions d limit 4;
+decisions r limit 4;
+event la v min 0 max 10;
+event see;
+event decide;
+event close;
+event freeze;
+event re;
+event unfreeze;
+event pull;
+event thaw;
+on la sample a = v supports seen;
+on see reveal e supports seen;
+on see reveal f supports seen;
+on decide commit d because enough using 1;
+on decide commit r because enough using 1;
+on close resolve d = 1 because e;
+on freeze hold r because e;
+on re when committed(r) reopen r because e;
+on unfreeze release r because e;
+on pull withdraw f because e;
+on thaw release r because latest(a);
+";
+
 #[test]
 fn a_cause_names_only_what_its_rule_selects() {
     let save = plays_and_restores(
@@ -1660,6 +1748,30 @@ fn a_cause_names_only_what_its_rule_selects() {
         CAUSES,
         &with_causes(&save, "r", "deferred", &["e", reading]),
         &no_rule_carries("reopening of r@1", "a"),
+    );
+    // Where a release carries `a` into the record, the hold and the
+    // deferral are refused for it themselves.
+    let released = plays_and_restores(
+        CAUSES_RELEASED,
+        &[
+            ("see", "{}"),
+            ("la", ONE),
+            ("decide", "{}"),
+            ("close", "{}"),
+            ("freeze", "{}"),
+            ("re", "{}"),
+            ("la", TWO),
+        ],
+    );
+    refused(
+        CAUSES_RELEASED,
+        &with_causes(&released, "r", "held", &["e", reading]),
+        &no_rule_carries("decision series r hold", "a"),
+    );
+    refused(
+        CAUSES_RELEASED,
+        &with_causes(&released, "r", "deferred", &["e", reading]),
+        &no_rule_carries("decision series r deferral", "a"),
     );
     // A cause of a reopening the journal records, and a withdrawal's
     // reason, are refused by the checks of the journal and of the event's
@@ -5149,6 +5261,36 @@ on re reopen d because f;
 on re reopen r because f;
 ";
 
+/// `TWO_CAUSES` with a release of `r` because of `e`, which carries `e` into
+/// `r`'s reopening record but into neither its hold nor what it defers.
+const TWO_CAUSES_RELEASED: &str = "claim seen;
+evidence glimpse from \"a glimpse\";
+evidence e from \"e\";
+evidence f from \"f\";
+readings a from glimpse window 1;
+decisions d limit 4;
+decisions r limit 4;
+event la v min 0 max 10;
+event see;
+event decide;
+event close;
+event shut;
+event freeze;
+event re;
+event thaw;
+on la sample a = v supports seen;
+on see reveal e supports seen;
+on see reveal f supports seen;
+on decide commit d because enough using 1;
+on decide commit r because enough using 1;
+on close resolve d = 1 because e;
+on shut resolve r = 1 because e;
+on freeze hold r because f;
+on re reopen d because f;
+on re reopen r because f;
+on thaw release r because e;
+";
+
 const TWO_CAUSES_PLAYED: [(&str, &str); 7] = [
     ("see", "{}"),
     ("la", THREE),
@@ -5226,6 +5368,19 @@ fn a_hold_names_nothing_a_resolve_selects() {
         TWO_CAUSES,
         &with_causes(&save, "r", "deferred", &["e", "f"]),
         &no_rule_carries("reopening of r@1", "e"),
+    );
+    // Where a release carries `e` into the record, the hold and the
+    // deferral are refused for it themselves.
+    let released = plays_and_restores(TWO_CAUSES_RELEASED, &TWO_CAUSES_PLAYED);
+    refused(
+        TWO_CAUSES_RELEASED,
+        &with_causes(&released, "r", "held", &["e", "f"]),
+        &no_rule_carries("decision series r hold", "e"),
+    );
+    refused(
+        TWO_CAUSES_RELEASED,
+        &with_causes(&released, "r", "deferred", &["e", "f"]),
+        &no_rule_carries("decision series r deferral", "e"),
     );
 }
 
