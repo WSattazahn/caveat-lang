@@ -63,11 +63,29 @@ const job = id => {
 };
 const needsOf = j => (field(j, 'needs') ?? '').replace(/^\[|\]$/g, '').split(',').map(name => name.trim()).filter(Boolean);
 
+test('the reader reads every job key in the workflow', () => {
+  // A key it did not read (a trailing comment, quotes) would fold that job
+  // into the one before it.
+  const lines = workflow.split('\n');
+  for (const line of lines.slice(lines.indexOf('jobs:') + 1)) {
+    if (/^ {2}\S/.test(line) && !/^\s*#/.test(line)) assert.match(line, /^ {2}[A-Za-z_][\w-]*:$/, line);
+  }
+});
+
 test('exactly the carried jobs can carry, under the check names the decision checks', () => {
   const gating = [...jobs.values()].filter(j => j.lines.some(line => line.includes('REUSED'))).map(j => j.id).sort();
   assert.deepEqual(gating, CARRIED.map(entry => entry.job).sort());
+  // A job that read the decision directly could skip itself on a carry
+  // without being carried, checked or recorded: only the carried jobs and
+  // the round-1 carry job may read it.
+  const readers = [...jobs.values()]
+    .filter(j => j.lines.some(line => /\bREUSED\b|needs\.changes\.outputs\.(reuse|round1_\w+|carried_names|decided_attempt)\b/.test(line)))
+    .map(j => j.id).sort();
+  assert.deepEqual(readers, [...CARRIED.map(entry => entry.job), 'round1-carry'].sort());
   for (const { job: id, names } of CARRIED) {
     const j = job(id);
+    // The check names come from the browser list alone.
+    assert.ok(!j.lines.some(line => /^ +(include|exclude):/.test(line)), `${id}: carried check names must come from the browser list`);
     const name = field(j, 'name');
     const browsers = /^ +browser: \[(.+)\]$/.exec(j.lines.find(line => /^ +browser: \[/.test(line)) ?? '')?.[1].split(',').map(b => b.trim());
     assert.deepEqual(browsers ? browsers.map(b => name.replace('${{ matrix.browser }}', b)) : [name], names, id);
@@ -111,18 +129,31 @@ test('a carrying job runs only its carry step, and a full run every other step',
     assert.match(carry.text, /exit 1/);
     // The weekly game QA retry count tells a carried check run by this notice.
     assert.ok(carry.text.includes(`echo "::notice title=${CARRY_NOTICE}::`), `${id}: the carry step must leave its notice`);
+    // reproducible's steps run in its checkout, which a carry never makes.
+    assert.match(carry.text, /\n {8}working-directory: \$\{\{ github\.workspace \}\}\n/, `${id}: the carry step must run in the workspace`);
     carrySteps.add(carry.text);
     assert.ok(rest.length > 1, id);
-    for (const step of rest) {
+    const envKeys = block(job(id), 'env').map(line => line.split(':')[0]);
+    for (const step of [carry, ...rest]) {
       const label = `${id}: ${step.name ?? step.uses ?? step.run}`;
       assert.ok(step.if, `${label} has no if`);
+      // This reader takes an if from its own line: no comment there, and no
+      // continuation on the next line.
+      assert.ok(!/\s#/.test(step.if), `${label}: a comment in if: ${step.if}`);
+      const at = step.lines.findIndex(line => line.startsWith('        if: '));
+      if (at + 1 < step.lines.length) assert.match(step.lines[at + 1], /^ {8}[\w-]+:( |$)/, `${label}: the if continues on the next line`);
+      // A name the job does not set would skip the step in every run.
+      for (const [, name] of step.if.matchAll(/\benv\.(\w+)/g)) assert.ok(envKeys.includes(name), `${label}: env.${name} is not set in ${id}`);
+      if (step === carry) continue;
       assert.ok(step.if === "env.REUSED != 'true'" || step.if.endsWith(" && env.REUSED != 'true'"), `${label}: if ${step.if}`);
       assert.ok(!/\|\||\bREUSED\b.*\bREUSED\b/.test(step.if), `${label}: if ${step.if}`);
     }
-    // Each full run takes the ledger's events out of its checkout first.
+    // Each full run puts the ledger's events out of reach first, whenever it
+    // checks out.
     const checkout = rest.findIndex(step => step.uses?.startsWith('actions/checkout@'));
     assert.ok(checkout >= 0, `${id} has no checkout`);
-    assert.equal(rest[checkout + 1]?.run, HIDE, `${id}: the step after the checkout must take the ledger's events out`);
+    assert.equal(rest[checkout + 1]?.run, HIDE, `${id}: the step after the checkout must put the ledger's events out of reach`);
+    assert.equal(rest[checkout + 1].if, rest[checkout].if, `${id}: the hide step must run whenever the checkout does`);
     assert.equal(rest.filter(step => step.uses?.startsWith('actions/checkout@')).length, 1, `${id}: one checkout`);
     assert.ok(!job(id).lines.some(line => /ledger\/|bench\/carmack|scripts\/done-check|test:ledger|test:done-check/.test(line)),
       `${id} must not name the ledger or its readers`);
@@ -158,6 +189,8 @@ test('the regression scope decides the carry with read-only access, and any fail
   assert.equal(decision['continue-on-error'], 'true');
   assert.equal(decision['timeout-minutes'], '2');
   assert.equal(decision.run, 'node scripts/ci-reuse/reuse.mjs');
+  // The off switch the README names reaches the decision.
+  assert.match(decision.text, /\n {10}ROUND1_REUSE: \$\{\{ vars\.ROUND1_REUSE \}\}(\n|$)/);
   assert.ok(steps.indexOf(decision) > steps.findIndex(step => step.id === 'scope'));
   // File names are printed between stop-commands, so none reads as a record.
   const listing = steps.find(step => step.id === 'scope').text;
@@ -182,6 +215,9 @@ test('everything that reads the ledger events still runs on the push that adds t
   assert.equal(field(core, 'if'), undefined);
   const runs = stepsOf(core).map(step => step.run);
   assert.ok(runs.includes('npm run test:ledger') && runs.includes('npm run test:ci-reuse'));
+  for (const run of ['npm run test:ledger', 'npm run test:ci-reuse']) {
+    assert.equal(stepsOf(core).find(step => step.run === run)?.if, undefined, `${run} must run on every push`);
+  }
   assert.match(JSON.parse(read('package.json')).scripts['test:ledger'], /node ledger\/replay-check\.mjs/);
   assert.match(read('.github/workflows/carmack.yml'), /\n {4}paths:\n(?: {6}- '.+'\n)*? {6}- 'ledger\/events\.jsonl'\n/);
 });

@@ -93,7 +93,8 @@ permission, a crash. The decision step continues on error and has a 2-minute
 limit. If the regression scope job fails, native runtime, the reactive-only
 suite, the compatibility gates, the Lean comparison and reproducible
 WebAssembly run in full. The Last Beacon and Light the Way need its games
-output, so they are skipped then, as they were before.
+output, so they are skipped then, as they were before, and Light the Way's
+required checks stay waiting.
 
 A run carries only in the attempt that decided. A re-run of failed jobs keeps
 the regression scope's outputs from the earlier attempt, so the carried jobs

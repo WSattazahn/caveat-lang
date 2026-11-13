@@ -89,3 +89,16 @@ test('a head that carried round 1 over is ready on the same checks, and the repo
   assert.equal(full.carried, null);
   assert.doesNotMatch(report(full, await decide({ facts: full, kit })), /carried/);
 });
+
+test('only carried checks that succeeded are reported carried, and an unneeded sweep is not called carried', async () => {
+  // Core failed on the new ledger lines, so the checks that need it were
+  // skipped; no runtime file changed, so the sweep was not needed.
+  const carry = { ...run(CARRY_JOB), html_url: 'https://github.com/o/r/actions/runs/2/job/9' };
+  const noted = (id, name, conclusion = 'success') => ({ ...run(name, 'completed', conclusion), id, output: { annotations_count: 1 } });
+  const runs = [run('core semantics', 'completed', 'failure'), noted(11, 'native runtime'), noted(12, 'Lean runtime comparison', 'skipped'),
+    noted(13, SWEEP_CHECK), carry];
+  const notice = [{ annotation_level: 'notice', title: CARRY_NOTICE, message: 'round 1 ran this job' }];
+  const facts = await gatherFacts({ api: github({ runs, files: ['README.md'], annotations: { 11: notice, 12: notice, 13: notice } }), repository, number: 9 });
+  assert.deepEqual(facts.carried.names, ['native runtime', SWEEP_CHECK]);
+  assert.doesNotMatch(report(facts, await decide({ facts, kit })), /sweep: .*carried over/);
+});

@@ -210,6 +210,25 @@ test('refuses before asking GitHub anything unless the push only adds ledger lin
   assert.deepEqual(calls, []);
 });
 
+test('judges the tree the run checked out, which holds current main, not the pull request head alone', async () => {
+  // In CI the checkout is the head merged with main. Main moved after round
+  // 1, so the merge holds code round 1 never ran, though the head itself
+  // only adds ledger lines.
+  const pr = pullRequest();
+  pr.git('checkout', '-q', 'main');
+  pr.write('runtime/src/other.rs', 'fn m() {}\n');
+  const moved = pr.commit('main moved');
+  pr.git('checkout', '-q', '--detach', pr.head);
+  pr.git('merge', '-q', '--no-ff', '--no-edit', moved);
+  const { decision, calls } = await decideFor(pr, { event: { pull_request: { ...eventOf(pr).pull_request, base: { sha: moved, ref: 'main' } } } });
+  assert.deepEqual(decision, { reuse: false, reason: 'files other than ledger/events.jsonl changed since the previous head (runtime/src/other.rs)' });
+  assert.deepEqual(calls, []);
+});
+
+test('the README states the age limit the decision uses', () => {
+  assert.match(readFileSync(new URL('./README.md', import.meta.url), 'utf8'), new RegExp(`less than ${MAX_AGE_MINUTES} minutes ago`));
+});
+
 test('refuses unless round 1 ran green, lately, on the same tree, and ran every carried job in full', async () => {
   const pr = pullRequest();
   const tree = pr.local.tree(pr.before);
