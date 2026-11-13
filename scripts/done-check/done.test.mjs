@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { checkOutcome, decide, gatherFacts, loadKit, report, SWEEP_CHECK, touchesRuntime } from './done.mjs';
+import { CARRY_JOB } from '../ci-reuse/reuse.mjs';
 
 const kit = await loadKit();
 const repository = 'WSattazahn/caveat-lang';
@@ -59,4 +60,20 @@ test('behind main, a failed check, or a runtime change without a green sweep is 
     assert.equal(verdict.ready, false);
     assert.match(report(facts, verdict), expected);
   }
+});
+
+test('a head that carried round 1 over is ready on the same checks, and the report says what was carried', async () => {
+  const carry = { ...run(CARRY_JOB), html_url: 'https://github.com/o/r/actions/runs/2/job/9' };
+  const runs = [run('core semantics'), run('native runtime'), run(SWEEP_CHECK), carry];
+  const facts = await gatherFacts({ api: github({ runs, files: ['runtime/src/lib.rs'] }), repository, number: 9 });
+  assert.deepEqual(facts.carried, { from: carry.html_url, names: ['native runtime', SWEEP_CHECK] });
+  const verdict = await decide({ facts, kit });
+  assert.equal(verdict.ready, true);
+  const text = report(facts, verdict);
+  assert.match(text, /checks: all 4 check runs passed; 2 of them carried round 1's result over to this head without running \(round-1 carry: https:\/\/github\.com\/o\/r\/actions\/runs\/2\/job\/9\)/);
+  assert.match(text, /sweep: needed, and green, carried over from round 1 on the same tree/);
+  // A skipped round-1 carry check means everything ran on this head.
+  const full = await gatherFacts({ api: github({ runs: [run('native runtime'), run(SWEEP_CHECK), run(CARRY_JOB, 'completed', 'skipped')], files: ['runtime/src/lib.rs'] }), repository, number: 9 });
+  assert.equal(full.carried, null);
+  assert.doesNotMatch(report(full, await decide({ facts: full, kit })), /carried/);
 });

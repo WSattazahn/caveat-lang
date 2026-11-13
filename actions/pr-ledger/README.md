@@ -105,6 +105,10 @@ new chapter; queries read them all.
 - It records what GitHub says when it runs. `record` on the merge event sees
   the checks as they stood at merge; `backfill` sees them as they stand now,
   after any re-runs.
+- It does not tell a check that ran on the head from one that carried round
+  1's result over to it ([round-1 carry](../../scripts/ci-reuse/README.md)).
+  A merge that rested on carried results also rests on the head's
+  `round-1 carry` check, so `rested-on --check "round-1 carry"` names them.
 - The author is what the pull request says: a bot account, a "Generated
   with" line in its description, or a `Co-authored-by` trailer naming Claude
   Code, Codex, Copilot, Devin, Cursor, Jules or Aider. It is not an

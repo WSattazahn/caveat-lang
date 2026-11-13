@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { retriedCommand, tallyRetries, overThreshold, issueTitle, report } from './game-qa-retries.mjs';
+import { retriedCommand, tallyRetries, overThreshold, issueTitle, issueBody, report, collect, expectedCount } from './game-qa-retries.mjs';
 
 const warn = message => ({ annotation_level: 'warning', message });
 
@@ -45,4 +45,57 @@ test('opens an issue once, then comments on the open one', async () => {
   assert.deepEqual(calls.filter(([method]) => method === 'POST').map(([, path]) => path),
     ['/repos/o/r/issues', '/repos/o/r/issues/7/comments']);
   assert.deepEqual(await report({ api, repository: 'o/r', tally: [{ ...entry, count: 2 }], log }), []);
+});
+
+test('a run that carried round 1 over counts as if it had run, so the guard needs no more flakiness to open an issue', () => {
+  const retry = warn("'npm run test:rescue' failed (exit 1); trying once more");
+  const run = (annotations = [], extra = {}) => ({ name: 'Light the Way (chromium)', html_url: 'https://example.test/r', annotations, ...extra });
+  const shape = tally => tally.map(({ count, runs, carried }) => ({ count, runs, carried }));
+  // Two retries in four runs that ran: not over the threshold.
+  const ran = tallyRetries([run([retry]), run([retry]), run(), run()]);
+  assert.deepEqual(shape(ran), [{ count: 2, runs: 4, carried: 0 }]);
+  assert.deepEqual(overThreshold(ran), []);
+  // The same two retries when two more runs carried (and one was skipped):
+  // judged as 3 retries in 6 runs, so the issue opens.
+  const carried = tallyRetries([run([retry]), run([retry]), run(), run(), run([], { carried: true }), run([], { carried: true }),
+    run([], { conclusion: 'skipped' })]);
+  assert.deepEqual(shape(carried), [{ count: 2, runs: 6, carried: 2 }]);
+  assert.equal(expectedCount(carried[0]), 3);
+  assert.deepEqual(overThreshold(carried).map(entry => entry.count), [2]);
+  assert.match(issueBody(carried[0]), /2 of the job's 6 runs carried round 1's result over without running \(scripts\/ci-reuse\), so the 2 retries count as 3, as if every run had run\./);
+  assert.doesNotMatch(issueBody(ran[0]), /carried/);
+  // A carried run's annotations are never read as retries.
+  assert.deepEqual(tallyRetries([run([retry], { carried: true })]), []);
+});
+
+test('collect marks the carried jobs of a run whose round-1 carry succeeded, and reads none of their annotations', async () => {
+  const requests = [];
+  const retry = warn("'npm run test:rescue' failed (exit 1); trying once more");
+  const checkRun = (id, name, conclusion = 'success') => ({ id, name, conclusion, html_url: `https://example.test/${id}`, output: { annotations_count: 1 } });
+  const api = async url => {
+    requests.push(url);
+    if (url.startsWith('/repos/o/r/actions/workflows/runtime.yml/runs?created=%3E%3D2026-11-06&')) return { workflow_runs: [{ check_suite_id: 1 }, { check_suite_id: 2 }] };
+    if (url.startsWith('/repos/o/r/actions/workflows/pages.yml/runs?')) return { workflow_runs: [] };
+    if (url.startsWith('/repos/o/r/check-suites/1/check-runs?filter=all&')) {
+      return { check_runs: [checkRun(11, 'round-1 carry'), checkRun(12, 'Light the Way (chromium)'), checkRun(13, 'Evidence games browser QA')] };
+    }
+    if (url.startsWith('/repos/o/r/check-suites/2/check-runs?filter=all&')) {
+      return { check_runs: [checkRun(21, 'round-1 carry', 'skipped'), checkRun(22, 'Light the Way (chromium)')] };
+    }
+    if (/^\/repos\/o\/r\/check-runs\/(11|13|21|22)\/annotations\?/.test(url)) return [retry];
+    throw new Error(`unexpected ${url}`);
+  };
+  const runs = await collect({ api, repository: 'o/r', since: new Date('2026-11-06T12:00:00Z') });
+  assert.deepEqual(runs.map(({ name, conclusion, carried }) => ({ name, conclusion, carried })), [
+    { name: 'round-1 carry', conclusion: 'success', carried: false },
+    { name: 'Light the Way (chromium)', conclusion: 'success', carried: true },
+    { name: 'Evidence games browser QA', conclusion: 'success', carried: false },
+    { name: 'round-1 carry', conclusion: 'skipped', carried: false },
+    { name: 'Light the Way (chromium)', conclusion: 'success', carried: false },
+  ]);
+  assert.ok(!requests.some(url => url.startsWith('/repos/o/r/check-runs/12/')), 'read a carried run');
+  const tally = tallyRetries(runs);
+  assert.deepEqual(tally.find(entry => entry.job === 'Light the Way (chromium)'), {
+    job: 'Light the Way (chromium)', command: 'npm run test:rescue', count: 1, examples: ['https://example.test/22'], runs: 2, carried: 1,
+  });
 });
