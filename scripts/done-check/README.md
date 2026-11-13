@@ -17,7 +17,7 @@ In a Claude session, run it with
 | --- | --- | --- |
 | GitHub's comparison of main with the head | `head contains_main` | the head contains current main (nothing to merge in) |
 | each check run on the head, the newest of its name | `check outcome, sweep` | none failed (cancelled and timed out count as failed), none still running, at least one |
-| the files the PR changes | `files runtime` | where a file under `runtime/` or `spec/` changes, the corpus and save sweep (the `rc.15 compatibility and departure gates` job) passed on this head, or carried round 1's result over to it on the same tree, which the report says ([round-1 carry](../ci-reuse/README.md)) |
+| the files the PR changes | `files runtime` | where a file under `runtime/` or `spec/` changes, the corpus and save sweep (the `rc.15 compatibility and departure gates` job) passed on this head, or carried round 1's result over to it from a tree that differs only by the ledger lines this head adds, which the report says ([round-1 carry](../ci-reuse/README.md)) |
 | PRs merged to main since the PR that last changed `ledger/events.jsonl` | `ledger owed` | nothing: owed events never block, but a ready verdict carries the `ledger_owed` caveat and the script names the PRs |
 
 It is advisory: it exits 0 whatever the verdict, unless `--strict` is given.

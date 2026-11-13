@@ -128,7 +128,7 @@ export function report(facts, verdict) {
   const behind = pull.behind_by ? ` (${pull.behind_by} commit${pull.behind_by === 1 ? '' : 's'} behind ${pull.base})` : '';
   const carriedNote = carried?.names.length
     ? `; ${carried.names.length} of them carried round 1's result over to this head without running (${CARRY_JOB}${carried.from ? `: ${carried.from}` : ''})` : '';
-  const sweepNote = carried?.names.includes(SWEEP_CHECK) && verdict.reasons.sweep === 'needed, and green' ? ', carried over from round 1 on the same tree' : '';
+  const sweepNote = carried?.names.includes(SWEEP_CHECK) && verdict.reasons.sweep === 'needed, and green' ? ', carried over from round 1, whose tree differs only by the ledger lines this head adds' : '';
   return [
     `#${pull.number} at ${pull.head.slice(0, 7)}: ${verdict.reasons.verdict}${pull.merged_at ? ` (already merged, ${pull.merged_at})` : ''}`,
     `  main: ${verdict.reasons.main}${behind}`,

@@ -64,6 +64,11 @@ test('a run that carried round 1 over counts as if it had run, so the guard need
   assert.deepEqual(overThreshold(carried).map(entry => entry.count), [2]);
   assert.match(issueBody(carried[0]), /2 of the job's 6 runs carried round 1's result over without running \(scripts\/ci-reuse\), so the 2 retries count as 3, as if every run had run\./);
   assert.doesNotMatch(issueBody(ran[0]), /carried/);
+  // Just past the threshold, the count never prints at it: 2 retries with 1
+  // of 50 runs carried is 2.04, which opens the issue and prints as 2.1.
+  const barely = { job: 'j', command: 'c', count: 2, runs: 50, carried: 1, examples: [] };
+  assert.equal(overThreshold([barely]).length, 1);
+  assert.match(issueBody(barely), /so the 2 retries count as 2\.1, as if every run had run\./);
   // A carried run's annotations are never read as retries.
   assert.deepEqual(tallyRetries([run([retry], { carried: true })]), []);
 });

@@ -1,7 +1,7 @@
 // Round-1 carry (README.md): when a push to a pull request adds nothing but
 // lines at the end of ledger/events.jsonl, the runtime jobs that never read
-// that file keep the result round 1 gave them on the same tree instead of
-// running again. This runs in the regression scope job of
+// that file keep the result round 1 gave them on the tree before those lines
+// instead of running again. This runs in the regression scope job of
 // .github/workflows/runtime.yml on every pull request run. It records the
 // tree the run tests, so a later push can carry this run's result, and
 // decides whether this run may carry an earlier one. Any doubt, and any

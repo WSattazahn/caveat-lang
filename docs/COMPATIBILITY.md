@@ -219,8 +219,8 @@ Each row names the steps of the runtime workflow
 (`.github/workflows/runtime.yml`) that run its checks on every pull request
 and on the release candidate; `kit/test/compatibility.test.mjs` checks that
 each named step exists. On a push that only adds lines to the ledger's
-events, some of these steps carry round 1's result on the same tree instead
-of running again ([round-1 carry](../scripts/ci-reuse/README.md)); a release
+events, some of these steps carry round 1's result, from a tree that differs
+only by those lines, instead of running again ([round-1 carry](../scripts/ci-reuse/README.md)); a release
 pull request and the run on main always run them.
 
 | Promise | Check | CI steps |

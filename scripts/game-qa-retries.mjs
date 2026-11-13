@@ -58,13 +58,18 @@ export function expectedCount({ count, runs = 0, carried = 0 }) {
   return carried > 0 && runs > carried ? count * runs / (runs - carried) : count;
 }
 
+// One decimal, rounded up, so a count past the threshold never prints at or
+// below it. The small allowance keeps float noise in a whole number (3 as
+// 3.0000000000000004) from rounding up.
+const shown = value => Math.ceil(value * 10 - 1e-9) / 10;
+
 export function issueTitle({ job, command }) {
   return `Game QA retries: ${job} / ${command}`;
 }
 
 export function issueBody(entry, { days = DAYS, threshold = THRESHOLD } = {}) {
   const carried = entry.carried > 0
-    ? [`${entry.carried} of the job's ${entry.runs} runs carried round 1's result over without running (scripts/ci-reuse), so the ${entry.count} retries count as ${Number(expectedCount(entry).toFixed(1))}, as if every run had run.`, '']
+    ? [`${entry.carried} of the job's ${entry.runs} runs carried round 1's result over without running (scripts/ci-reuse), so the ${entry.count} retries count as ${shown(expectedCount(entry))}, as if every run had run.`, '']
     : [];
   return [
     `\`${entry.command}\` in **${entry.job}** needed its automatic retry ${entry.count} times in the last ${days} days (more than ${threshold} opens this issue).`,
