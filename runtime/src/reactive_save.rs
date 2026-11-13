@@ -756,7 +756,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<_, _>>();
         let name_of = |id: &NodeId| {
             names
@@ -784,7 +784,7 @@ impl ReactiveSession {
             });
         }
         let mut relations = Vec::new();
-        for edge in &self.graph.edges[self.loaded.edges..] {
+        for edge in self.graph.edges.iter_from(self.loaded.edges) {
             relations.push([
                 name_of(&edge.from)?,
                 relation_name(edge.relation).into(),
@@ -1696,7 +1696,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<_, _>>();
         let qualified = self
             .graph
@@ -1956,11 +1956,8 @@ impl ReactiveSession {
     /// caveats. Guards are not evaluated: a pair is possible, not proof that
     /// an event made it.
     fn qualification_sources(&self) -> (QualificationPairs, QualificationPairs) {
-        let names: HashMap<NodeId, &str> = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.as_str()))
-            .collect();
+        let names: HashMap<NodeId, &str> =
+            self.symbols.iter().map(|(name, id)| (*id, name)).collect();
         let mut possible = HashSet::default();
         let mut scheduled = HashSet::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
@@ -2131,11 +2128,8 @@ impl ReactiveSession {
     /// Guards are not evaluated: a caveat listed here could have been
     /// attached, not shown to have been.
     fn caveat_sources(&self) -> CaveatSources {
-        let names: HashMap<NodeId, &str> = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.as_str()))
-            .collect();
+        let names: HashMap<NodeId, &str> =
+            self.symbols.iter().map(|(name, id)| (*id, name)).collect();
         let mut qualifiers: HashMap<String, HashSet<String>> = HashMap::default();
         let (possible, _) = self.qualification_sources();
         for (caveat, target) in possible {
@@ -2300,7 +2294,7 @@ impl ReactiveSession {
             .symbols
             .iter()
             .filter(|(_, id)| matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. })))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name.to_owned())
             .chain(self.reading_streams.keys().cloned())
             .collect::<HashSet<_>>();
         let attachable: HashMap<String, HashSet<String>> = evidence
@@ -2335,11 +2329,8 @@ impl ReactiveSession {
     /// the stances they give it, and the attention they leave caveats in,
     /// examined ones among them. No event made these, so they have no records.
     fn declared_memberships(&self) -> Declared {
-        let names: HashMap<NodeId, &str> = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.as_str()))
-            .collect();
+        let names: HashMap<NodeId, &str> =
+            self.symbols.iter().map(|(name, id)| (*id, name)).collect();
         let mut stances = HashMap::<String, Vec<(Relation, String)>>::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
             if !matches!(edge.relation, Relation::Supports | Relation::Opposes) {
@@ -2357,7 +2348,7 @@ impl ReactiveSession {
             .iter()
             .filter_map(|(name, id)| match self.graph.nodes.get(id) {
                 Some(NodeKind::Caveat { attention, .. }) if *attention != Attention::Unexamined => {
-                    Some((name.clone(), *attention))
+                    Some((name.to_owned(), *attention))
                 }
                 _ => None,
             })
@@ -2629,7 +2620,7 @@ impl ReactiveSession {
         // Source-declared observations existed before any event. Later first
         // stances need not have ledger order: a neutral reveal may precede them.
         let mut loaded = Vec::new();
-        for edge in &self.graph.edges[..self.loaded.edges] {
+        for edge in self.graph.edges.iter().take(self.loaded.edges) {
             if matches!(edge.relation, Relation::Supports | Relation::Opposes)
                 && matches!(
                     self.graph.nodes.get(&edge.from),
@@ -2641,8 +2632,8 @@ impl ReactiveSession {
                     .iter()
                     .find_map(|(name, id)| (*id == edge.from).then_some(name))
                     .unwrap();
-                if !loaded.contains(name) {
-                    loaded.push(name.clone());
+                if !loaded.iter().any(|held| held == name) {
+                    loaded.push(name.to_owned());
                 }
             }
         }
@@ -2659,7 +2650,7 @@ impl ReactiveSession {
                     .find_map(|(name, candidate)| (*candidate == id).then_some(name))
                     .unwrap()
             })
-            .filter(|name| !seen.contains(name.as_str()))
+            .filter(|name| !seen.contains(name))
             .min();
         if let Some(name) = omitted {
             return Err(format!("observations omits stance-bearing evidence {name}"));
@@ -2745,7 +2736,7 @@ impl ReactiveSession {
                 .filter(|(_, id)| {
                     matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
                 })
-                .map(|(name, _)| name.clone()),
+                .map(|(name, _)| name.to_owned()),
         );
         names
     }
@@ -2791,8 +2782,10 @@ impl ReactiveSession {
     /// declared evidence, and `restore_retired` checks each retirement the
     /// save lists.
     fn retired_declared_causes(&self, save: &ReactiveSave) -> HashMap<NodeId, u64> {
-        self.graph.edges[..self.loaded.edges]
+        self.graph
+            .edges
             .iter()
+            .take(self.loaded.edges)
             .filter(|edge| edge.relation == Relation::Reopens)
             .filter_map(|edge| {
                 let retired = save.retired.get(self.symbols.name_of(edge.from)?)?;
@@ -3620,7 +3613,7 @@ impl ReactiveSession {
                 EffectReport::Retire { .. } | EffectReport::Depart { .. } => Vec::new(),
             };
             if let Some(name) = names.into_iter().find(|name| {
-                !self.symbols.contains_key(*name) && !self.departed_in_last_event(save, name)
+                !self.symbols.contains_key(name) && !self.departed_in_last_event(save, name)
             }) {
                 return Err(format!("an effect names unknown {name}"));
             }
@@ -4086,14 +4079,11 @@ impl ReactiveSession {
             let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(id) else {
                 continue;
             };
-            if *id > self.loaded.last_node
-                && !committed.contains(name.as_str())
-                && !before_window(name)
-            {
+            if *id > self.loaded.last_node && !committed.contains(name) && !before_window(name) {
                 return Err(fail("created commitment has no journal entry"));
             }
             let causes = reopened
-                .get(name.as_str())
+                .get(name)
                 .map_or(&[][..], |(causes, _)| causes.as_slice());
             let edges = reads.reopens.get(id).map_or(&[][..], Vec::as_slice);
             let recorded = causes

@@ -273,7 +273,7 @@ impl GameSession {
         // Conditional relations are discoveries too; the older evaluator emits
         // Revealed events only for explicit `reveal` statements.
         for edge in &after.graph.edges {
-            if before.graph.edges.contains(edge)
+            if before.graph.edges.iter().any(|held| held == edge)
                 || !matches!(edge.relation, Relation::Supports | Relation::Opposes)
                 || !matches!(
                     after.graph.nodes.get(&edge.from),

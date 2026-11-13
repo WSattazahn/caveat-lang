@@ -7,8 +7,8 @@
 //! and after one accepted event, so applying it gives exactly the next view.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    relation_name, BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ObservationRanks,
-    ReactiveSession, TakeBack, DISPATCH_SCHEMA,
+    relation_name, BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, NameTable,
+    ObservationRanks, ReactiveSession, TakeBack, DISPATCH_SCHEMA,
 };
 use crate::chunked::Chunked;
 use crate::fast_hash::HashMap;
@@ -315,7 +315,7 @@ impl ReactiveSession {
             decision_series: Arc::clone(&self.decision_series),
             decision_journal: self.journal.clone(),
             graph: Arc::clone(&self.graph),
-            symbols: Arc::clone(&self.symbols),
+            symbols: self.symbols.clone(),
             taken_back: (!self.take_back_caveats.is_empty()).then(|| Arc::clone(&self.taken_back)),
         }
     }
@@ -429,7 +429,7 @@ pub(super) struct ViewParts {
     decision_journal: Chunked<JournalEntry>,
     /// The relations are the graph's edges, named through the symbols.
     graph: Arc<EpistemicGraph>,
-    symbols: Arc<HashMap<String, NodeId>>,
+    symbols: NameTable,
     taken_back: Option<Arc<Vec<TakeBack>>>,
 }
 
@@ -543,11 +543,8 @@ fn view_delta(
     }
 }
 
-fn names(symbols: &HashMap<String, NodeId>) -> HashMap<NodeId, &str> {
-    symbols
-        .iter()
-        .map(|(name, id)| (*id, name.as_str()))
-        .collect()
+fn names(symbols: &NameTable) -> HashMap<NodeId, &str> {
+    symbols.iter().map(|(name, id)| (*id, name)).collect()
 }
 
 fn relation(names: &HashMap<NodeId, &str>, edge: &Edge) -> MapRelation {
@@ -569,15 +566,20 @@ fn relation_changes(before: &ViewParts, after: &ViewParts) -> ListChanges {
     let edges = |old: &Edge, new: &Edge| {
         old.from == new.from && old.to == new.to && old.relation == new.relation
     };
-    if Arc::ptr_eq(&before.symbols, &after.symbols) {
-        list_changes(&before.graph.edges, &after.graph.edges, edges, |edge| {
-            value(&relation(named(), edge))
-        })
+    let old_edges = before.graph.edges.iter().collect::<Vec<_>>();
+    let new_edges = after.graph.edges.iter().collect::<Vec<_>>();
+    if before.symbols.shares_all(&after.symbols) {
+        list_changes(
+            &old_edges,
+            &new_edges,
+            |old, new| edges(old, new),
+            |edge| value(&relation(named(), edge)),
+        )
     } else {
         let old_names = names(&before.symbols);
         list_changes(
-            &before.graph.edges,
-            &after.graph.edges,
+            &old_edges,
+            &new_edges,
             |old, new| {
                 edges(old, new)
                     && old_names[&old.from] == named()[&new.from]

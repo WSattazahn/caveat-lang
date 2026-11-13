@@ -970,7 +970,7 @@ impl ReactiveSession {
         owners.extend(
             self.symbols
                 .keys()
-                .map(|name| CollectorOwner::Record(name.as_str().into())),
+                .map(|name| CollectorOwner::Record(name.into())),
         );
         // A skipped one-off commitment has predicate metadata before its
         // symbol exists. Rebuild from actual holder keys as well as symbols.
@@ -1014,9 +1014,10 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.clone()))
+            .map(|(name, id)| (*id, name.to_owned()))
             .collect::<HashMap<_, _>>();
-        for edge in self.graph.edges.clone() {
+        let edges = self.graph.edges.clone();
+        for edge in edges.iter() {
             if edge.relation == Relation::Reopens {
                 self.collector_reopens(&names[&edge.to], [names[&edge.from].as_str()].into_iter());
             } else if edge.relation == Relation::ReliesOn {

@@ -10,7 +10,9 @@
 //! the view `dispatch_view_outcome_json` returns: the same values in the same
 //! order, so the same JSON text.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
-use super::{relation_name, BindingValue, DecisionSeries, JournalEntry, ReactiveSession};
+use super::{
+    relation_name, BindingValue, DecisionSeries, JournalEntry, NameTable, ReactiveSession,
+};
 use super::{DISPATCH_SCHEMA, REACTIVE_VIEW_SCHEMA};
 use crate::chunked::Chunked;
 use crate::fast_hash::HashMap;
@@ -124,7 +126,7 @@ pub(super) struct PatchParts {
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     decision_journal: Chunked<JournalEntry>,
     graph: Arc<EpistemicGraph>,
-    symbols: Arc<HashMap<String, NodeId>>,
+    symbols: NameTable,
     /// Each node's name, as of `symbols`.
     names: Arc<HashMap<NodeId, String>>,
 }
@@ -228,10 +230,10 @@ fn same_binding(a: &BindingValue, b: &BindingValue) -> bool {
     }
 }
 
-fn node_names(symbols: &HashMap<String, NodeId>) -> HashMap<NodeId, String> {
+fn node_names(symbols: &NameTable) -> HashMap<NodeId, String> {
     symbols
         .iter()
-        .map(|(name, id)| (*id, name.clone()))
+        .map(|(name, id)| (*id, name.to_owned()))
         .collect()
 }
 
@@ -248,7 +250,7 @@ impl PatchParts {
             decision_series: Arc::clone(&session.decision_series),
             decision_journal: session.journal.clone(),
             graph: Arc::clone(&session.graph),
-            symbols: Arc::clone(&session.symbols),
+            symbols: session.symbols.clone(),
             names: Arc::new(node_names(&session.symbols)),
         }
     }
@@ -287,9 +289,9 @@ impl PatchParts {
             sync_whole(&mut self.effects, &session.effects, full),
         );
 
-        let old_symbols = std::mem::replace(&mut self.symbols, Arc::clone(&session.symbols));
+        let old_symbols = std::mem::replace(&mut self.symbols, session.symbols.clone());
         let old_names = Arc::clone(&self.names);
-        let symbols_changed = !Arc::ptr_eq(&old_symbols, &self.symbols);
+        let symbols_changed = !old_symbols.shares_all(&self.symbols);
         if symbols_changed {
             self.names = Arc::new(node_names(&self.symbols));
         }
@@ -358,16 +360,20 @@ impl PatchParts {
             let edges = |old: &Edge, new: &Edge| {
                 old.from == new.from && old.to == new.to && old.relation == new.relation
             };
+            let old_edges = old_graph.edges.iter().collect::<Vec<_>>();
+            let new_edges = self.graph.edges.iter().collect::<Vec<_>>();
+            let render = |edge: &&Edge| render(edge);
+            let edges = |old: &&Edge, new: &&Edge| edges(old, new);
             put(
                 "relations",
                 if full {
-                    list_changes(None, &self.graph.edges, edges, render)
+                    list_changes(None, &new_edges, edges, render)
                 } else if !symbols_changed {
-                    list_changes(Some(&old_graph.edges), &self.graph.edges, edges, render)
+                    list_changes(Some(&old_edges), &new_edges, edges, render)
                 } else {
                     list_changes(
-                        Some(&old_graph.edges),
-                        &self.graph.edges,
+                        Some(&old_edges),
+                        &new_edges,
                         |old, new| {
                             edges(old, new)
                                 && old_names.get(&old.from) == names.get(&new.from)

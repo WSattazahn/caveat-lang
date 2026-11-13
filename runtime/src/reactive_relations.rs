@@ -8,6 +8,7 @@
 //! makes asks for them.
 use super::*;
 use crate::Edge;
+use std::borrow::Borrow;
 use std::ops::Range;
 
 /// One relation, as the record that keeps it sees it.
@@ -249,7 +250,7 @@ impl Departed {
 
 impl Relations {
     /// The lists of the relations `edges` holds, numbered in their order.
-    pub(super) fn new(edges: &[Edge]) -> Self {
+    pub(super) fn new<E: Borrow<Edge>>(edges: &[E]) -> Self {
         let mut relations = Self::default();
         relations.add(edges);
         relations
@@ -257,13 +258,13 @@ impl Relations {
 
     /// Adds `edges`: the relations added to the graph since these last held
     /// all of it, in graph order.
-    pub(super) fn add(&mut self, edges: &[Edge]) {
+    pub(super) fn add<E: Borrow<Edge>>(&mut self, edges: &[E]) {
         if edges.len() >= BULK {
             self.add_all(edges);
             return;
         }
         let mut rest = edges;
-        while let Some(edge) = rest.first() {
+        while let Some(edge) = rest.first().map(E::borrow) {
             let Some((list, keeper, _)) = List::of(edge) else {
                 self.number(edge);
                 rest = &rest[1..];
@@ -274,15 +275,16 @@ impl Relations {
             let run = rest
                 .iter()
                 .take_while(|edge| {
-                    List::of(edge).is_some_and(|(at, by, _)| at == list && by == keeper)
+                    List::of((*edge).borrow()).is_some_and(|(at, by, _)| at == list && by == keeper)
                 })
                 .count();
             let (adding, after) = rest.split_at(run);
             let first = self.next;
             for edge in adding {
-                self.number(edge);
+                self.number(edge.borrow());
             }
             let links = adding.iter().zip(first..).map(|(edge, serial)| {
+                let edge = edge.borrow();
                 let (list, _, other) = List::of(edge).expect("each relation of the run is kept");
                 Link {
                     serial,
@@ -313,9 +315,9 @@ impl Relations {
     /// followed by the links added to it. Run by run, each run would move
     /// the rest of its chunk, once for each relation when the records that
     /// keep them take turns.
-    fn add_all(&mut self, edges: &[Edge]) {
+    fn add_all<E: Borrow<Edge>>(&mut self, edges: &[E]) {
         let mut added = Vec::with_capacity(edges.len());
-        for edge in edges {
+        for edge in edges.iter().map(E::borrow) {
             let serial = self.next;
             self.number(edge);
             if let Some((list, keeper, other)) = List::of(edge) {
@@ -470,7 +472,7 @@ impl Relations {
     /// order; each record's lists in list order, and no chunk that holds
     /// none.
     #[cfg(any(debug_assertions, test))]
-    pub(super) fn check(&self, edges: &[Edge]) {
+    pub(super) fn check<E: Borrow<Edge>>(&self, edges: &[E]) {
         assert_eq!(
             self.held,
             edges.len(),
@@ -479,7 +481,7 @@ impl Relations {
         let mut read = HashMap::<(NodeId, List), usize>::default();
         let mut last = None;
         let mut qualifies = 0;
-        for edge in edges {
+        for edge in edges.iter().map(E::borrow) {
             if edge.relation == Relation::Qualifies {
                 qualifies += 1;
             }

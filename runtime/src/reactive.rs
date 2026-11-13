@@ -1644,7 +1644,7 @@ impl Changes {
             Arc::ptr_eq(old, new) || **old == **new
         }
         let graph = !new.graph.unchanged_since(&old.graph)
-            || !same(&old.symbols, &new.symbols)
+            || !(old.symbols.shares_all(&new.symbols) || old.symbols == new.symbols)
             || old.observations != new.observations
             || !new
                 .observation_qualifications
@@ -1902,7 +1902,7 @@ impl Changes {
             )?;
         }
         // Names only gain symbols: every node named before keeps its name.
-        if !Arc::ptr_eq(&old.symbols, &new.symbols) && !old.symbols.kept_in(&new.symbols) {
+        if !old.symbols.shares_all(&new.symbols) && !old.symbols.kept_in(&new.symbols) {
             return None;
         }
         if !old.observations.begins(&new.observations) {
@@ -3742,7 +3742,7 @@ impl ReactiveSession {
             .iter()
             .filter_map(|(name, id)| {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
-                    .then_some(name.clone())
+                    .then_some(name.to_owned())
             })
             .collect::<HashSet<_>>();
         commitments.extend(self.decision_series.keys().cloned());
@@ -5883,7 +5883,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<_, _>>();
         ReactiveView {
             schema: REACTIVE_VIEW_SCHEMA,
@@ -5907,7 +5907,7 @@ impl ReactiveSession {
         let names = if needs_names {
             self.symbols
                 .iter()
-                .map(|(name, id)| (*id, name.as_str()))
+                .map(|(name, id)| (*id, name))
                 .collect::<HashMap<_, _>>()
         } else {
             HashMap::default()
@@ -5977,7 +5977,7 @@ impl ReactiveSession {
             .map(|(name, id, open)| {
                 let (retained, reopened_by) = &links[&id];
                 MapCommitment {
-                    action: name.clone(),
+                    action: name.to_owned(),
                     open,
                     retained_authorship: crate::map::retained_authorship_of(
                         &self.graph,
@@ -6434,7 +6434,7 @@ impl ReactiveSession {
             let mut names = self
                 .symbols
                 .iter()
-                .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
+                .filter_map(|(name, id)| caveats.contains(id).then_some(name.to_owned()))
                 .collect::<Vec<_>>();
             names.sort_unstable();
             return names;
@@ -8179,7 +8179,7 @@ impl ReactiveSession {
             .iter()
             .filter(|caveat| {
                 !provenance.kept.contains(*caveat)
-                    && self.symbols.get(*caveat).is_some_and(|&from| {
+                    && self.symbols.get(caveat).is_some_and(|&from| {
                         provenance.evidence.iter().any(|name| {
                             self.symbols
                                 .get(name.as_str())
@@ -9154,7 +9154,7 @@ impl ReactiveSession {
                 .symbols
                 .iter()
                 .filter(|(_, id)| reached.contains(id))
-                .map(|(name, _)| name.clone())
+                .map(|(name, _)| name.to_owned())
                 .collect::<Vec<_>>();
             names.sort_unstable();
             names
@@ -9440,7 +9440,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<_, _>>();
         let mut sorted = self.symbols.iter().collect::<Vec<_>>();
         sorted.sort_by_key(|(name, _)| *name);
@@ -9462,7 +9462,7 @@ impl ReactiveSession {
                 ),
                 NodeKind::Commitment { open, .. } => {
                     commitments.push(MapCommitment {
-                        action: name.clone(),
+                        action: name.to_owned(),
                         open: *open,
                         retained_authorship: crate::map::retained_authorship(
                             &self.graph,
@@ -9490,7 +9490,7 @@ impl ReactiveSession {
                 NodeKind::Observation { .. } => ("observation", None, None, None),
             };
             symbols.push(GameSymbol {
-                name: name.clone(),
+                name: name.to_owned(),
                 kind: kind.into(),
                 source,
                 written_by: self.graph.origin(*id).map(str::to_string),
@@ -11699,7 +11699,7 @@ mod caveat_order_tests {
             .symbols
             .iter()
             .filter(|(name, _)| name.starts_with('c'))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name)
             .collect::<Vec<_>>();
         let mut by_name = by_symbol.clone();
         by_name.sort_unstable();
@@ -11738,12 +11738,12 @@ mod provenance_limit_order_tests {
         session: &ReactiveSession,
         caveats: &[String],
     ) -> (Vec<String>, Vec<String>) {
-        let caveats = caveats.iter().collect::<BTreeSet<_>>();
+        let caveats = caveats.iter().map(String::as_str).collect::<BTreeSet<_>>();
         let walked = session
             .symbols
             .keys()
             .filter(|name| caveats.contains(name))
-            .cloned()
+            .map(str::to_owned)
             .collect::<Vec<_>>();
         let mut sorted = walked.clone();
         sorted.sort_unstable();

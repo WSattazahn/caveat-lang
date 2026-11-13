@@ -1108,7 +1108,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<NodeId, &str>>();
         let mut gaps = Vec::new();
         let mut look = |place: &'static str, name: &str, provenance: &Provenance| {
