@@ -68,21 +68,30 @@ test('a run that carried round 1 over counts as if it had run, so the guard need
   assert.deepEqual(tallyRetries([run([retry], { carried: true })]), []);
 });
 
-test('collect marks the carried jobs of a run whose round-1 carry succeeded, and reads none of their annotations', async () => {
-  const requests = [];
+test('collect marks a check run carried only when its own carry step says so', async () => {
   const retry = warn("'npm run test:rescue' failed (exit 1); trying once more");
-  const checkRun = (id, name, conclusion = 'success') => ({ id, name, conclusion, html_url: `https://example.test/${id}`, output: { annotations_count: 1 } });
+  const carriedNotice = { annotation_level: 'notice', title: 'Carried from round 1', message: 'https://example.test/runs/1 ran this job to success on tree t.' };
+  const checkRun = (id, name, conclusion = 'success', annotations_count = 1) => ({ id, name, conclusion, html_url: `https://example.test/${id}`, output: { annotations_count } });
+  const annotations = {
+    11: [{ annotation_level: 'notice', title: 'Round-1 carry', message: 'round 1 ran these jobs' }],
+    12: [carriedNotice],
+    13: [retry, carriedNotice], // not a job that can carry, whatever it prints
+    14: [retry], // the same job, run in full by a later attempt of the same run
+    15: [{ ...carriedNotice, title: 'Round-1 carry' }],
+    22: [retry],
+  };
   const api = async url => {
-    requests.push(url);
     if (url.startsWith('/repos/o/r/actions/workflows/runtime.yml/runs?created=%3E%3D2026-11-06&')) return { workflow_runs: [{ check_suite_id: 1 }, { check_suite_id: 2 }] };
     if (url.startsWith('/repos/o/r/actions/workflows/pages.yml/runs?')) return { workflow_runs: [] };
     if (url.startsWith('/repos/o/r/check-suites/1/check-runs?filter=all&')) {
-      return { check_runs: [checkRun(11, 'round-1 carry'), checkRun(12, 'Light the Way (chromium)'), checkRun(13, 'Evidence games browser QA')] };
+      return { check_runs: [checkRun(11, 'round-1 carry'), checkRun(12, 'Light the Way (chromium)'), checkRun(13, 'Evidence games browser QA'),
+        checkRun(14, 'Light the Way (chromium)'), checkRun(15, 'native runtime')] };
     }
     if (url.startsWith('/repos/o/r/check-suites/2/check-runs?filter=all&')) {
-      return { check_runs: [checkRun(21, 'round-1 carry', 'skipped'), checkRun(22, 'Light the Way (chromium)')] };
+      return { check_runs: [checkRun(21, 'round-1 carry', 'skipped', 0), checkRun(22, 'Light the Way (chromium)')] };
     }
-    if (/^\/repos\/o\/r\/check-runs\/(11|13|21|22)\/annotations\?/.test(url)) return [retry];
+    const id = /^\/repos\/o\/r\/check-runs\/(\d+)\/annotations\?/.exec(url)?.[1];
+    if (id && annotations[id]) return annotations[id];
     throw new Error(`unexpected ${url}`);
   };
   const runs = await collect({ api, repository: 'o/r', since: new Date('2026-11-06T12:00:00Z') });
@@ -90,12 +99,14 @@ test('collect marks the carried jobs of a run whose round-1 carry succeeded, and
     { name: 'round-1 carry', conclusion: 'success', carried: false },
     { name: 'Light the Way (chromium)', conclusion: 'success', carried: true },
     { name: 'Evidence games browser QA', conclusion: 'success', carried: false },
+    { name: 'Light the Way (chromium)', conclusion: 'success', carried: false },
+    { name: 'native runtime', conclusion: 'success', carried: false },
     { name: 'round-1 carry', conclusion: 'skipped', carried: false },
     { name: 'Light the Way (chromium)', conclusion: 'success', carried: false },
   ]);
-  assert.ok(!requests.some(url => url.startsWith('/repos/o/r/check-runs/12/')), 'read a carried run');
   const tally = tallyRetries(runs);
   assert.deepEqual(tally.find(entry => entry.job === 'Light the Way (chromium)'), {
-    job: 'Light the Way (chromium)', command: 'npm run test:rescue', count: 1, examples: ['https://example.test/22'], runs: 2, carried: 1,
+    job: 'Light the Way (chromium)', command: 'npm run test:rescue', count: 2, examples: ['https://example.test/14', 'https://example.test/22'], runs: 3, carried: 1,
   });
+  assert.equal(tally.find(entry => entry.job === 'Evidence games browser QA').count, 1);
 });

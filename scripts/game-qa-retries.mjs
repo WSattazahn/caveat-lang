@@ -3,7 +3,7 @@
 // issue for any job and command that needed its retry too often.
 // Keep counting separate from GitHub's transport so it is testable.
 import { pathToFileURL } from 'node:url';
-import { CARRIED_NAMES, CARRY_JOB } from './ci-reuse/reuse.mjs';
+import { CARRIED_NAMES, CARRY_NOTICE } from './ci-reuse/reuse.mjs';
 
 export const RETRY_MARK = 'trying once more';
 export const DAYS = 7;
@@ -106,14 +106,16 @@ export async function collect({ api, repository, since }) {
   for (const run of runs) {
     if (!run.check_suite_id) continue;
     const suiteRuns = await pages(api, `/repos/${repository}/check-suites/${run.check_suite_id}/check-runs?filter=all`, 'check_runs');
-    // In a run whose round-1 carry job succeeded, the carried jobs did not run.
-    const carrying = suiteRuns.some(checkRun => checkRun.name === CARRY_JOB && checkRun.conclusion === 'success');
     for (const checkRun of suiteRuns) {
-      const carried = carrying && CARRIED_NAMES.includes(checkRun.name);
-      const annotations = !carried && checkRun.output?.annotations_count > 0
+      const annotations = checkRun.output?.annotations_count > 0
         ? await pages(api, `/repos/${repository}/check-runs/${checkRun.id}/annotations`)
         : [];
-      checkRuns.push({ name: checkRun.name, html_url: checkRun.html_url, conclusion: checkRun.conclusion, carried, annotations });
+      // A job that carried round 1's result says so on its own check run, in
+      // its carry step's notice. Each attempt has its own check runs, so a
+      // re-run that ran the job in full is counted as run.
+      const carried = CARRIED_NAMES.includes(checkRun.name)
+        && annotations.some(annotation => annotation.annotation_level === 'notice' && annotation.title === CARRY_NOTICE);
+      checkRuns.push({ name: checkRun.name, html_url: checkRun.html_url, conclusion: checkRun.conclusion, carried, annotations: carried ? [] : annotations });
     }
   }
   return checkRuns;

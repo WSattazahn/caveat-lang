@@ -9,12 +9,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { CARRIED, CARRIED_NAMES, CARRY_JOB, CARRY_STEP, SCOPE_JOB } from './reuse.mjs';
+import { CARRIED, CARRIED_NAMES, CARRY_JOB, CARRY_NOTICE, CARRY_STEP, SCOPE_JOB } from './reuse.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = file => readFileSync(path.join(root, file), 'utf8');
 const workflow = read('.github/workflows/runtime.yml');
-const REUSED = "      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}";
+// Only a successful regression scope, and only in the attempt that decided:
+// a re-run of failed jobs keeps the scope's outputs and must run in full.
+const DECIDED_HERE = 'needs.changes.outputs.decided_attempt == github.run_attempt';
+const REUSED = `      REUSED: \${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && ${DECIDED_HERE} }}`;
 const HIDE = '.github/ci/hide-ledger-events.sh';
 
 // The jobs, each with its own lines; comment and blank lines left out.
@@ -75,9 +78,11 @@ test('exactly the carried jobs can carry, under the check names the decision che
   for (const id of ['core', 'kit-security', 'glowcap-page', 'changes']) assert.ok(!CARRIED.some(entry => entry.job === id), id);
 });
 
-test('a carried job waits for the regression scope, and runs in full when the scope failed', () => {
-  // Jobs that did not wait for the regression scope before must still run
-  // when it fails; the others were skipped then before too.
+test('a carried job waits for the regression scope; when the scope fails, the jobs that did not need it before still run', () => {
+  // native, native-reactive and compatibility did not wait for the
+  // regression scope before, and lean-conformance and reproducible waited
+  // only for core: they must still run when it fails. last-beacon and
+  // light-the-way need its games output, and were skipped then before too.
   const expected = {
     native: '${{ !cancelled() }}',
     'native-reactive': '${{ !cancelled() }}',
@@ -92,7 +97,7 @@ test('a carried job waits for the regression scope, and runs in full when the sc
     const j = job(id);
     assert.ok(needsOf(j).includes('changes'), `${id} must need changes`);
     assert.equal(field(j, 'if'), condition, id);
-    assert.ok(j.lines.includes(REUSED), `${id} must set REUSED only from a successful regression scope`);
+    assert.ok(j.lines.includes(REUSED), `${id} must set REUSED only from a successful regression scope, in the attempt that decided`);
   }
 });
 
@@ -104,6 +109,8 @@ test('a carrying job runs only its carry step, and a full run every other step',
     assert.equal(carry.if, "env.REUSED == 'true'", id);
     assert.match(carry.text, /"\$GITHUB_EVENT_NAME" != pull_request \|\|/, `${id}: a carry outside a pull request run must fail`);
     assert.match(carry.text, /exit 1/);
+    // The weekly game QA retry count tells a carried check run by this notice.
+    assert.ok(carry.text.includes(`echo "::notice title=${CARRY_NOTICE}::`), `${id}: the carry step must leave its notice`);
     carrySteps.add(carry.text);
     assert.ok(rest.length > 1, id);
     for (const step of rest) {
@@ -123,12 +130,25 @@ test('a carrying job runs only its carry step, and a full run every other step',
   assert.equal(carrySteps.size, 1, 'every carry step must be the same step');
 });
 
+test('the browser build that carried jobs use must match a rebuild made with the ledger events out of reach', () => {
+  // Core semantics builds it with the events in reach and does not hide them.
+  const users = CARRIED.map(entry => entry.job)
+    .filter(id => stepsOf(job(id)).some(step => step.uses?.startsWith('actions/download-artifact@') && step.lines.includes('          name: browser-dist')));
+  assert.deepEqual(users.sort(), ['last-beacon', 'lean-conformance', 'light-the-way', 'reproducible']);
+  const steps = stepsOf(job('reproducible'));
+  const build = steps.findIndex(step => step.run === 'npm run build');
+  assert.ok(build > steps.findIndex(step => step.run === HIDE), 'the rebuild must come after the hide');
+  const compare = steps.find(step => step.name === 'Require identical bytes');
+  assert.ok(compare?.lines.includes(`          diff -r --exclude='.*' "$first" dist`), 'every file of the build must be compared');
+});
+
 test('the regression scope decides the carry with read-only access, and any failure runs everything', () => {
   const scope = job('changes');
   assert.equal(field(scope, 'name'), SCOPE_JOB);
   assert.deepEqual(block(scope, 'permissions'), ['actions: read', 'checks: read', 'contents: read']);
   const outputs = block(scope, 'outputs');
-  for (const [output, from] of [['reuse', 'reuse'], ['round1_url', 'url'], ['round1_tree', 'tree'], ['round1_finished', 'finished'], ['carried_names', 'names']]) {
+  for (const [output, from] of [['reuse', 'reuse'], ['round1_url', 'url'], ['round1_tree', 'tree'], ['round1_finished', 'finished'],
+    ['carried_names', 'names'], ['decided_attempt', 'attempt']]) {
     assert.ok(outputs.includes(`${output}: \${{ steps.reuse.outputs.${from} }}`), output);
   }
   const steps = stepsOf(scope);
@@ -150,7 +170,7 @@ test('the round-1 carry job appears only in a carrying run, and refuses outside 
   assert.equal(marker.length, 1);
   const [j] = marker;
   assert.deepEqual(needsOf(j), ['changes']);
-  assert.equal(field(j, 'if'), "needs.changes.outputs.reuse == 'true'");
+  assert.equal(field(j, 'if'), `needs.changes.outputs.reuse == 'true' && ${DECIDED_HERE}`);
   const [step] = stepsOf(j);
   assert.match(step.text, /"\$GITHUB_EVENT_NAME" != pull_request \|\|/);
   assert.match(step.text, /exit 1/);
@@ -186,25 +206,43 @@ test('only known code names the ledger events file', () => {
   assert.deepEqual(grep('events\\.jsonl', 'ledger', ':!*.md'), ['ledger/replay-check.mjs']);
 });
 
-test('the hiding script takes the ledger events out and leaves git status clean', () => {
+test('the hiding script puts the ledger events out of reach and leaves the revision and git status as they were', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'ci-reuse-hide-'));
   try {
+    const run = (...args) => spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
     const git = (...args) => {
-      const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+      const result = run(...args);
       assert.equal(result.status, 0, result.stderr);
       return result.stdout;
     };
     git('init', '-q');
     mkdirSync(path.join(dir, 'ledger'));
-    writeFileSync(path.join(dir, 'ledger', 'events.jsonl'), '{"event":"merge"}\n');
+    const events = '{"event":"merge"}\n';
+    writeFileSync(path.join(dir, 'ledger', 'events.jsonl'), events);
+    writeFileSync(path.join(dir, 'ledger', 'README.md'), 'kept\n');
     git('add', '-A');
     git('-c', 'user.email=ci@example.test', '-c', 'user.name=ci', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'x');
+    const ids = () => git('rev-parse', 'HEAD', 'HEAD^{tree}', ':ledger/events.jsonl');
+    const before = ids();
     const hidden = spawnSync('bash', [path.join(root, HIDE)], { cwd: dir, encoding: 'utf8' });
     assert.equal(hidden.status, 0, hidden.stderr);
+    // Out of the checkout: reading the file fails, and git status stays clean.
     assert.equal(existsSync(path.join(dir, 'ledger', 'events.jsonl')), false);
+    assert.equal(readFileSync(path.join(dir, 'ledger', 'README.md'), 'utf8'), 'kept\n');
     assert.equal(git('status', '--porcelain', '--untracked-files=no'), '');
     assert.equal(git('status', '--short'), '');
-    assert.equal(git('show', 'HEAD:ledger/events.jsonl'), '{"event":"merge"}\n');
+    assert.equal(run('diff-index', '--quiet', 'HEAD', '--').status, 0);
+    // Out of git's reach: each read through git gets the placeholder line.
+    const placeholder = `ledger/events.jsonl is hidden from this job: ${HIDE}\n`;
+    assert.equal(git('show', 'HEAD:ledger/events.jsonl'), placeholder);
+    assert.equal(git('cat-file', 'blob', ':ledger/events.jsonl'), placeholder);
+    const archive = run('archive', '--format=tar', 'HEAD');
+    assert.equal(archive.status, 0, archive.stderr);
+    assert.ok(archive.stdout.includes(placeholder) && !archive.stdout.includes(events), 'git archive must give the placeholder');
+    for (const args of [['--cached', 'merge'], ['merge', 'HEAD']]) assert.equal(run('grep', '-q', ...args).status, 1, `git grep ${args.join(' ')}`);
+    // The commit, its tree and the index name what they named before.
+    assert.equal(ids(), before);
+    assert.equal(git('--no-replace-objects', 'show', 'HEAD:ledger/events.jsonl'), events);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

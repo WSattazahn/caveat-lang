@@ -57,12 +57,14 @@ function pullRequest({ approval = '{"event":"ci_run"}\n{"event":"approve"}\n' } 
 }
 
 const NOW = Date.parse('2026-11-13T02:00:00Z');
-const ENV = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_REPOSITORY: 'o/r', GITHUB_RUN_ID: '200', GAMES: 'true', LEGACY_DOOR: 'true' };
+const ENV = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_REPOSITORY: 'o/r', GITHUB_RUN_ID: '200', GITHUB_RUN_ATTEMPT: '1', GAMES: 'true', LEGACY_DOOR: 'true' };
 const eventOf = pr => ({
   action: 'synchronize', before: pr.before,
   pull_request: { head: { sha: pr.head, ref: 'feature', repo: { full_name: 'o/r' } }, base: { sha: pr.base, ref: 'main' } },
 });
-const fullJob = (name, id) => ({ id, name, conclusion: 'success', steps: [{ name: CARRY_STEP, conclusion: 'skipped' }, { name: 'the work', conclusion: 'success' }] });
+const fullJob = (name, id, completed_at = '2026-11-13T01:50:00Z') => ({
+  id, name, conclusion: 'success', completed_at, steps: [{ name: CARRY_STEP, conclusion: 'skipped' }, { name: 'the work', conclusion: 'success' }],
+});
 
 // GitHub as round 1 left it: a green run of the previous head that recorded
 // its tree, and ran every carried job in full.
@@ -78,7 +80,8 @@ function github(pr, { round1 = {}, runs, jobs, annotations } = {}) {
     calls.push(url);
     if (url === `/repos/o/r/actions/workflows/runtime.yml/runs?event=pull_request&head_sha=${pr.before}&per_page=100`) return { workflow_runs: runs ?? [run] };
     if (url === '/repos/o/r/actions/runs/100/jobs?filter=latest&per_page=100') {
-      return { jobs: jobs ?? [{ id: 7, name: SCOPE_JOB, conclusion: 'success', steps: [] }, ...CARRIED_NAMES.map((name, index) => fullJob(name, 10 + index))] };
+      return { jobs: jobs ?? [{ id: 7, name: SCOPE_JOB, conclusion: 'success', steps: [] },
+        ...CARRIED_NAMES.map((name, index) => fullJob(name, 10 + index, `2026-11-13T01:4${index}:00Z`))] };
     }
     if (url === '/repos/o/r/check-runs/7/annotations?per_page=100') {
       return annotations ?? [{ annotation_level: 'notice', title: 'Round-1 carry', message: 'Running everything: new code.' },
@@ -147,7 +150,8 @@ test('carries round 1 when the push only adds ledger lines and round 1 ran green
   assert.equal(decision.reuse, true, decision.reason);
   assert.equal(decision.url, 'https://github.com/o/r/actions/runs/100/attempts/1');
   assert.equal(decision.tree, pr.local.tree(pr.before));
-  assert.equal(decision.finished, '2026-11-13T01:55:00Z');
+  // When round 1 last finished a carried job, not when the run last changed.
+  assert.equal(decision.finished, '2026-11-13T01:47:00Z');
   assert.match(decision.reason, /^round 1 \(https:\/\/github\.com\/o\/r\/actions\/runs\/100\/attempts\/1\) ran these jobs to success on tree [0-9a-f]{40}; this push only adds lines at the end of ledger\/events\.jsonl$/);
   assert.equal(calls.length, 3);
   // Only the newest earlier run of this pull request's previous head counts.
@@ -170,6 +174,8 @@ test('refuses before asking GitHub anything unless the push only adds ledger lin
     [{ env: { ROUND1_REUSE: 'off' } }, 'turned off by the repository variable ROUND1_REUSE'],
     [{ env: { GITHUB_EVENT_NAME: 'push' } }, 'a push run, not a pull request run'],
     [{ env: { GITHUB_EVENT_NAME: 'workflow_dispatch' } }, 'a workflow_dispatch run, not a pull request run'],
+    [{ env: { GITHUB_RUN_ATTEMPT: undefined } }, 'the run names no attempt'],
+    [{ env: { GITHUB_RUN_ATTEMPT: '0' } }, 'the run names no attempt'],
     [{ event: { action: 'opened' } }, 'the pull request was opened, not pushed to'],
     [{ event: { action: 'reopened' } }, 'the pull request was reopened, not pushed to'],
     [{ event: { pull_request: { ...eventOf(pr).pull_request, head: { sha: pr.head, ref: 'feature', repo: { full_name: 'fork/r' } } } } },
@@ -235,6 +241,12 @@ test('refuses unless round 1 ran green, lately, on the same tree, and ran every 
     [{ jobs: [scope, ...carried.map((job, index) => (index === 7 ? { ...job, steps: [{ name: CARRY_STEP, conclusion: 'success' }] } : job))] },
       `round 1's ${CARRIED_NAMES[7]} did not run in full`],
     [{ jobs: [scope, ...carried.map((job, index) => (index === 2 ? { ...job, steps: [] } : job))] }, `round 1's ${CARRIED_NAMES[2]} did not run in full`],
+    // A re-run of other jobs, late: the run changed lately, but it copied this
+    // job with the time it really ran.
+    [{ jobs: [scope, ...carried.map((job, index) => (index === 5 ? { ...job, completed_at: new Date(NOW - (MAX_AGE_MINUTES + 1) * 60_000).toISOString() } : job))] },
+      `round 1's ${CARRIED_NAMES[5]} finished more than ${MAX_AGE_MINUTES} minutes ago`],
+    [{ jobs: [scope, ...carried.map((job, index) => (index === 1 ? { ...job, completed_at: null } : job))] },
+      `round 1's ${CARRIED_NAMES[1]} finished more than ${MAX_AGE_MINUTES} minutes ago`],
   ];
   for (const [state, reason] of cases) assert.deepEqual((await decideFor(pr, state)).decision, { reuse: false, reason });
   // This run's own scope must match round 1's.
@@ -264,7 +276,7 @@ test('main leaves the tested tree, decides, and writes its outputs in one write 
   ]);
   assert.equal(carried.outputs, [
     'reuse=true', 'url=https://github.com/o/r/actions/runs/100/attempts/1', `tree=${pr.local.tree(pr.before)}`,
-    'finished=2026-11-13T01:55:00Z', `names=${CARRIED_NAMES.join('; ')}`, '',
+    'finished=2026-11-13T01:47:00Z', `names=${CARRIED_NAMES.join('; ')}`, 'attempt=1', '',
   ].join('\n'));
   assert.match(carried.summary, /^### Round-1 carry\n\nCarrying: round 1 /);
 
@@ -276,7 +288,7 @@ test('main leaves the tested tree, decides, and writes its outputs in one write 
     `::notice title=${RECORD_TITLE}::tree=${headTree} head=${pr.head} games=true legacy_door=true reuse=false`,
     `::notice title=${DECISION_TITLE}::Running everything: the decision failed (GitHub answered 503 for /repos/o/r/actions/workflows/runtime.yml/runs).`,
   ]);
-  assert.equal(failed.outputs, 'reuse=false\nurl=\ntree=\nfinished=\nnames=\n');
+  assert.equal(failed.outputs, 'reuse=false\nurl=\ntree=\nfinished=\nnames=\nattempt=\n');
 
   // An unreadable event leaves no record, so the next push runs everything too.
   writeFileSync(files.GITHUB_EVENT_PATH, '{');
@@ -284,5 +296,5 @@ test('main leaves the tested tree, decides, and writes its outputs in one write 
   assert.equal(unreadable.decision.reuse, false);
   assert.match(unreadable.logs[0], /^::warning title=Round-1 carry::Running everything: the decision failed \(/);
   assert.equal(unreadable.logs[1], `::warning title=${DECISION_TITLE}::This run left no tested-tree record, so the next push runs everything.`);
-  assert.equal(unreadable.outputs, 'reuse=false\nurl=\ntree=\nfinished=\nnames=\n');
+  assert.equal(unreadable.outputs, 'reuse=false\nurl=\ntree=\nfinished=\nnames=\nattempt=\n');
 });

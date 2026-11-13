@@ -36,11 +36,34 @@ cannot see them carry round 1's result instead of running again.
 | `light-the-way` | Light the Way (chromium), Light the Way (webkit) |
 
 None of these jobs reads `ledger/events.jsonl`. To keep it that way, every
-full run of them takes the file out of its checkout right after the checkout
-([`hide-ledger-events.sh`](../../.github/ci/hide-ledger-events.sh)). If one of
-them ever starts to read it, it fails in round 1 instead of carrying a result
-that depended on the file. Git still treats the file as unchanged, so
-`git status` stays clean and the build's record of a clean tree is the same.
+full run of them puts the file out of the job's reach right after the checkout
+([`hide-ledger-events.sh`](../../.github/ci/hide-ledger-events.sh)):
+
+- The file leaves the checkout, so reading it fails and a walk of the folders
+  does not find it.
+- Git gives one placeholder line for its contents, so a read through git
+  (`git show`, `git archive`, `git grep`) gets that line instead of the
+  events.
+
+If one of them ever starts to read the file, the read fails in round 1 or
+gets the placeholder, never the events. HEAD and the index still name the
+real contents, so `git status` stays clean and the build's record of the
+revision and of a clean tree is the same. A job could still go around the
+placeholder on purpose (`git --no-replace-objects`); none of these does.
+
+Two things are outside the hide's reach:
+
+- **Core's browser build.** Core semantics replays the ledger, so it keeps the
+  events, and it makes the browser build with them in reach. The Lean
+  comparison, both games' browser QA and reproducible WebAssembly use that
+  build. Reproducible
+  WebAssembly rebuilds it with the events out of reach and requires every
+  file to match, so a build that came to depend on them fails in round 1.
+- **Ids.** The approval push makes a new commit, so its id, its tree's id and
+  the id git gives the events file all change. A job whose result depended
+  on an id rather than on the files would have to leave this list. None
+  does: these jobs write the revision into their reports, and no result
+  depends on which commit it is.
 
 ## When a run carries
 
@@ -60,12 +83,22 @@ only when all of these hold, checked in this order:
 6. Round 1 left exactly one tested-tree record. It says round 1 tested the
    previous head's own tree (so that head contained current main), that
    round 1 did not itself carry, and that it chose the same browser QA jobs.
-7. Every carried check ended with success in round 1, and ran in full there.
+7. Every carried check ended with success in round 1, ran in full there, and
+   finished less than 60 minutes ago. A re-run of other jobs keeps a job
+   with the time it really ran, and that is the time that counts.
 
 Steps 1 to 4 use only git, so round 1 asks GitHub nothing. Anything that goes
 wrong runs everything: GitHub not answering within 10 seconds, a missing
 permission, a crash. The decision step continues on error and has a 2-minute
-limit. If the regression scope job fails, the carried jobs run in full.
+limit. If the regression scope job fails, native runtime, the reactive-only
+suite, the compatibility gates, the Lean comparison and reproducible
+WebAssembly run in full. The Last Beacon and Light the Way need its games
+output, so they are skipped then, as they were before.
+
+A run carries only in the attempt that decided. A re-run of failed jobs keeps
+the regression scope's outputs from the earlier attempt, so the carried jobs
+it re-runs run in full: a re-run never carries past the 60 minutes or past
+`ROUND1_REUSE`.
 
 ## What a carried job does
 
@@ -79,7 +112,8 @@ the tree, when round 1 finished, and the jobs it carried. The PR ledger
 records it with the other checks a merge rested on, so
 `rested-on --check "round-1 carry"` lists every merge that rested on a carried
 result. The done check says how many checks on a head were carried, and when
-the sweep was one of them.
+the sweep was one of them. It tells a carried check by the notice its carry
+step left, so a job run again in full afterwards counts as run.
 
 ## What it does not change
 
@@ -89,7 +123,9 @@ the sweep was one of them.
 - The weekly game QA retry count ([`game-qa-retries.mjs`](../game-qa-retries.mjs))
   still opens an issue at the same flakiness per run. A carried run could not
   retry, so each job's retries are counted as if every one of its runs had
-  run: the count is scaled by its runs over the runs that ran.
+  run: the count is scaled by its runs over the runs that ran. It tells a
+  carried check run by the notice the carry step leaves on it, so a later
+  attempt that ran the job in full counts as run.
 
 ## Turning it off
 
@@ -107,6 +143,10 @@ runtime workflow by hand on the branch.
 - [`workflow.test.mjs`](workflow.test.mjs) reads the runtime workflow: only
   the jobs listed here can carry; when they carry they run nothing but the
   carry step, and when they do not they run as before; a failed regression
-  scope runs them in full; the decision has read-only access and continues on
-  error; core semantics still replays the ledger and carmack still runs on a
-  ledger push; and only known code names the ledger's events file.
+  scope still runs the jobs that did not need it before; they carry only in
+  the attempt that decided; the decision has read-only access and continues
+  on error; core semantics still replays the ledger and carmack still runs on
+  a ledger push; only known code names the ledger's events file; the hide
+  puts the events out of reach of the checkout and of git and leaves the
+  revision and `git status` as they were; and reproducible WebAssembly
+  compares every file of the browser build the carried jobs use.

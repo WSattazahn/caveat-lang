@@ -29,6 +29,7 @@ jobs:
       round1_tree: ${{ steps.reuse.outputs.tree }}
       round1_finished: ${{ steps.reuse.outputs.finished }}
       carried_names: ${{ steps.reuse.outputs.names }}
+      decided_attempt: ${{ steps.reuse.outputs.attempt }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -80,7 +81,9 @@ jobs:
       # ledger's events and round 1 ran green on the same tree, the jobs that
       # never read those events carry round 1's result instead of running
       # again. Any doubt or error runs everything; a push to main, a manual
-      # run and a pull request from a fork never carry.
+      # run and a pull request from a fork never carry. The jobs carry only in
+      # the attempt that decided, so a re-run of failed jobs, which keeps
+      # this job's outputs, runs them in full.
       - id: reuse
         name: Record the tested tree and decide whether round 1's result carries over
         if: github.event_name == 'pull_request'
@@ -99,7 +102,7 @@ jobs:
   round1-carry:
     name: round-1 carry
     needs: changes
-    if: needs.changes.outputs.reuse == 'true'
+    if: needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -270,9 +273,16 @@ jobs:
   # result (scripts/ci-reuse/README.md): each step but the first is skipped
   # when the regression scope proved that this push only adds lines at the
   # end of the ledger's events, which these jobs never read, and round 1 ran
-  # them to success on the same tree. Each full run takes those events out
-  # of its checkout, so a read fails there instead of passing unseen. A
-  # failed regression scope runs them in full.
+  # them to success on the same tree. Each full run puts those events out of
+  # its reach (.github/ci/hide-ledger-events.sh): reading the file fails, and
+  # git gives a placeholder line for it. Four of them use the browser build
+  # core makes with the events in reach; the reproducible job requires every
+  # file of it to match its own rebuild without them. They carry only in the
+  # attempt that decided: a re-run of failed jobs keeps the regression
+  # scope's outputs, and runs them in full. A failed regression scope runs
+  # native, native-reactive, compatibility, lean-conformance and reproducible
+  # in full; last-beacon and light-the-way need its games output and are
+  # skipped then, as they were before the carry.
   native:
     name: native runtime
     needs: changes
@@ -285,7 +295,7 @@ jobs:
     # job, so a full disk is not a likely cause.
     env:
       CARGO_PROFILE_DEV_DEBUG: line-tables-only
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -306,7 +316,7 @@ jobs:
         run: df -h / && free -m
       - if: env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
@@ -354,7 +364,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CARGO_PROFILE_DEV_DEBUG: line-tables-only
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -375,7 +385,7 @@ jobs:
         run: df -h / && free -m
       - if: env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
@@ -445,7 +455,7 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     env:
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -463,7 +473,7 @@ jobs:
           echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
       - if: env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
@@ -541,7 +551,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -559,7 +569,7 @@ jobs:
           echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
       - if: env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - if: env.REUSED != 'true'
@@ -609,7 +619,7 @@ jobs:
     if: ${{ !cancelled() && needs.core.result == 'success' }}
     runs-on: ubuntu-24.04
     env:
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     defaults:
       run:
         working-directory: elsewhere/caveat-lang
@@ -632,7 +642,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           path: elsewhere/caveat-lang
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - if: env.REUSED != 'true'
@@ -669,6 +679,13 @@ jobs:
             sha256sum "$first/$file" "dist/$file"
             cmp "$first/$file" "dist/$file"
           done
+          # Every other file as well. Core semantics built this browser build
+          # with the ledger's events in reach, and jobs that can carry round
+          # 1's result test it; this rebuild ran with them out of reach, so a
+          # file that came to depend on them fails here, in round 1. The
+          # artifact leaves out hidden files (.nojekyll), so the comparison
+          # leaves out the rebuild's.
+          diff -r --exclude='.*' "$first" dist
           if grep -a -q -e "$HOME" -e "$RUNNER_TEMP" "$first/pkg/caveat_runtime_bg.wasm"; then
             echo "::error::the WASM records a builder-specific path"
             exit 1
@@ -796,7 +813,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -814,7 +831,7 @@ jobs:
           echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
       - if: env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - if: env.REUSED != 'true'
@@ -861,7 +878,7 @@ jobs:
     # unexpanded name and would leave the required checks waiting.
     env:
       GAMES: ${{ needs.changes.outputs.games }}
-      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
       - name: Carry round 1's result
         if: env.REUSED == 'true'
@@ -881,7 +898,7 @@ jobs:
         run: echo "Docs-only pull request; Light the Way QA not needed."
       - if: env.GAMES == 'true' && env.REUSED != 'true'
         uses: actions/checkout@v5
-      - name: Take the ledger's events out of this checkout, so a read fails here
+      - name: Put the ledger's events out of this job's reach
         if: env.GAMES == 'true' && env.REUSED != 'true'
         run: .github/ci/hide-ledger-events.sh
       - if: env.GAMES == 'true' && env.REUSED != 'true'

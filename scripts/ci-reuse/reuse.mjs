@@ -10,8 +10,9 @@
 //   node scripts/ci-reuse/reuse.mjs
 //
 // Reads GITHUB_EVENT_PATH, GITHUB_EVENT_NAME, GITHUB_REPOSITORY,
-// GITHUB_RUN_ID, GITHUB_TOKEN, GITHUB_API_URL, GITHUB_OUTPUT,
-// GITHUB_STEP_SUMMARY, GAMES, LEGACY_DOOR and ROUND1_REUSE. Always exits 0.
+// GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, GITHUB_TOKEN, GITHUB_API_URL,
+// GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, GAMES, LEGACY_DOOR and ROUND1_REUSE.
+// Always exits 0.
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,6 +23,8 @@ export const LEDGER_EVENTS = 'ledger/events.jsonl';
 export const SCOPE_JOB = 'regression scope';
 export const CARRY_JOB = 'round-1 carry';
 export const CARRY_STEP = "Carry round 1's result";
+// The title of the notice a carried job's carry step leaves on its check run.
+export const CARRY_NOTICE = 'Carried from round 1';
 export const RECORD_TITLE = 'Tested tree';
 export const DECISION_TITLE = 'Round-1 carry';
 export const MAX_AGE_MINUTES = 60;
@@ -142,6 +145,8 @@ export async function decide({ env, event, git, api, now }) {
   const refuse = reason => ({ reuse: false, reason });
   if (env.ROUND1_REUSE === 'off') return refuse('turned off by the repository variable ROUND1_REUSE');
   if (env.GITHUB_EVENT_NAME !== 'pull_request') return refuse(`a ${env.GITHUB_EVENT_NAME || 'unnamed'} run, not a pull request run`);
+  // The workflow carries only in the attempt that decided (runtime.yml).
+  if (!/^[1-9][0-9]*$/.test(env.GITHUB_RUN_ATTEMPT ?? '')) return refuse('the run names no attempt');
   if (event.action !== 'synchronize') return refuse(`the pull request was ${event.action || 'changed'}, not pushed to`);
   const pull = event.pull_request;
   const repository = env.GITHUB_REPOSITORY;
@@ -180,14 +185,22 @@ export async function decide({ env, event, git, api, now }) {
   }
   if (record.reuse) return refuse('round 1 itself carried an earlier result');
   if (record.games !== env.GAMES || record.legacy_door !== env.LEGACY_DOOR) return refuse('round 1 decided a different set of browser QA jobs');
+  let last = null;
   for (const name of CARRIED_NAMES) {
     const job = jobs.find(candidate => candidate.name === name);
     if (job?.conclusion !== 'success') return refuse(`round 1's ${name} did not run to success`);
     const carry = (job.steps ?? []).find(step => step.name === CARRY_STEP);
     if (carry?.conclusion !== 'skipped') return refuse(`round 1's ${name} did not run in full`);
+    // A re-run of other jobs moves the run's time on, but copies this job
+    // with the time it really ran; that is the time that counts.
+    const finished = Date.parse(job.completed_at);
+    if (!Number.isFinite(finished) || now - finished > MAX_AGE_MINUTES * 60_000) {
+      return refuse(`round 1's ${name} finished more than ${MAX_AGE_MINUTES} minutes ago`);
+    }
+    if (!last || finished > Date.parse(last.completed_at)) last = job;
   }
   return {
-    reuse: true, url, tree: record.tree, finished: round1.updated_at,
+    reuse: true, url, tree: record.tree, finished: last.completed_at,
     reason: `round 1 (${url}) ran these jobs to success on tree ${record.tree}; this push only adds lines at the end of ${LEDGER_EVENTS}`,
   };
 }
@@ -222,9 +235,11 @@ export async function main({ env = process.env, now = Date.now(), git = localGit
   if (record) log(`::notice title=${RECORD_TITLE}::${decision.reuse ? record.replace(/reuse=false$/, 'reuse=true') : record}`);
   else log(`::warning title=${DECISION_TITLE}::This run left no tested-tree record, so the next push runs everything.`);
   log(`::notice title=${DECISION_TITLE}::${escapeData(decision.reuse ? `Carrying round 1's result: ${decision.reason}.` : `Running everything: ${decision.reason}.`)}`);
+  // attempt: the jobs carry only in the attempt that decided, so a re-run of
+  // failed jobs that keeps this job's outputs runs them in full.
   const outputs = decision.reuse
-    ? { reuse: 'true', url: decision.url, tree: decision.tree, finished: decision.finished, names: CARRIED_NAMES.join('; ') }
-    : { reuse: 'false', url: '', tree: '', finished: '', names: '' };
+    ? { reuse: 'true', url: decision.url, tree: decision.tree, finished: decision.finished, names: CARRIED_NAMES.join('; '), attempt: env.GITHUB_RUN_ATTEMPT }
+    : { reuse: 'false', url: '', tree: '', finished: '', names: '', attempt: '' };
   if (env.GITHUB_STEP_SUMMARY) {
     appendFileSync(env.GITHUB_STEP_SUMMARY, `### Round-1 carry\n\n${decision.reuse ? 'Carrying' : 'Running everything'}: ${decision.reason}.\n`);
   }
