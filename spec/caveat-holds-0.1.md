@@ -156,10 +156,14 @@ each other (D062):
   cause.
 - No revision is committed while the one before it is on hold, or in
   force: only a reopening lets a series take its next revision, and its
-  `reopened` entry follows every other entry of the revision.
-- Every reopening journals a `reopened` entry, and no entry of its revision
-  follows it. So the entries of a revision that the graph shows reopened end
-  with its `reopened` one.
+  `reopened` entry follows the revision's `committed`, `held`, `deferred`
+  and `released` ones. Nothing closes a reopened commitment, so the graph
+  shows every revision of a series but the last reopened, whatever the
+  journal has let depart.
+- Every reopening journals a `reopened` entry, and no `held`, `deferred` or
+  `released` entry of its revision follows it. So of a revision that the
+  graph shows reopened, the last `held`, `deferred`, `released` or
+  `reopened` entry is a `reopened` one.
 - A series' `on_hold` and `deferred` are what its current revision's entries
   leave: the reasons held and the causes deferred since the revision was
   committed or last released. A reopened revision has neither.
@@ -269,7 +273,8 @@ the 30 that do not load give the same error. No accepted program changes.
   cause still deferred, or the `released` entry of a hold that had ended.
   It also accepted a next revision after a hold released with nothing
   deferred and never reopened, the hold's entries standing in for the
-  reopening.
+  reopening, and under a journal window that had let the revision's entries
+  depart, a next revision after one the graph did not show reopened.
   Section 4 now says what a revision's entries, its series, its reopening
   record and the graph's reopening of it must agree on, and what a windowed
   journal leaves unsaid, which is nothing for a series no rule or procedure

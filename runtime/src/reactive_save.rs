@@ -1671,9 +1671,12 @@ impl ReactiveSession {
     ///   the program withdraws, and the entry cites every deferred cause;
     /// - no revision is committed while the one before it is on hold, or in
     ///   force: a series takes its next revision once the current one is
-    ///   reopened;
-    /// - a revision the graph shows reopened has its entries end with its
-    ///   reopening, since every reopening journals one and none follows it;
+    ///   reopened. Nothing closes a reopened commitment, so the graph shows
+    ///   every revision of a series but the last reopened, whatever the
+    ///   journal has let depart;
+    /// - of a revision the graph shows reopened, the last `held`, `deferred`,
+    ///   `released` or `reopened` entry is a `reopened` one, since every
+    ///   reopening journals one and none of the others follows it;
     /// - a series' `on_hold` and `deferred` are what its current revision's
     ///   entries leave, and a reopened revision has neither;
     /// - a revision's reopening record has an entry of the revision that
@@ -1723,9 +1726,10 @@ impl ReactiveSession {
                 )
             })
         };
-        // Every reopening journals a `reopened` entry, and no entry of its
-        // revision follows it, so the journal's entries of a revision the
-        // graph shows reopened end with it.
+        // Every reopening journals a `reopened` entry, and no `held`,
+        // `deferred` or `released` entry of its revision follows it, so of a
+        // revision the graph shows reopened, the last of these and the
+        // `reopened` ones that the journal holds is a `reopened` one.
         let settled = |hold: &Hold| {
             if !hold.reopened && open(hold.revision) {
                 return Err(fail(format!(
@@ -1773,9 +1777,10 @@ impl ReactiveSession {
                     }
                     settled(before)?;
                     // Nor in force: only a reopening lets a series take its
-                    // next revision, and its `reopened` entry follows every
-                    // other entry of the revision, so the journal holds it
-                    // when it holds any of them.
+                    // next revision, and its `reopened` entry follows the
+                    // revision's `committed`, `held`, `deferred` and
+                    // `released` ones, so the journal holds it when it holds
+                    // any of them.
                     if !before.reopened {
                         return Err(fail(format!(
                             "{revision} is committed while {} is in force",
@@ -1884,6 +1889,16 @@ impl ReactiveSession {
         }
         let none = HashSet::default();
         for (name, series) in &save.decision_series {
+            // A series takes its next revision only once the current one is
+            // reopened, and nothing closes a reopened commitment: every
+            // revision but the last is reopened, whatever the journal has
+            // let depart.
+            if let Some(pair) = series.revisions.windows(2).find(|pair| !open(&pair[0].id)) {
+                return Err(format!(
+                    "decision series {name} takes {} after {}, which is not reopened",
+                    pair[1].id, pair[0].id
+                ));
+            }
             let Some(current) = series.current.as_deref() else {
                 continue;
             };

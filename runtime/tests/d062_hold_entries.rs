@@ -625,9 +625,9 @@ fn no_revision_follows_one_on_hold() {
 
 /// Nor while it is in force. A release with nothing deferred leaves its
 /// revision in force, and only a reopening, which journals its entry after
-/// every other entry of the revision, lets the series take the next one.
-/// With that entry and the graph's reopening taken out, the hold's entries
-/// do not stand in for them.
+/// the revision's `committed`, `held`, `deferred` and `released` ones, lets
+/// the series take the next one. With that entry and the graph's reopening
+/// taken out, the hold's entries do not stand in for them.
 #[test]
 fn no_revision_follows_one_in_force() {
     let save = plays_and_restores(
@@ -656,6 +656,56 @@ fn no_revision_follows_one_in_force() {
         &forged,
         "decision journal: d@2 is committed while d@1 is in force",
     );
+}
+
+/// The graph without the reopening that lets the series take each revision
+/// after the first: nothing closes a reopened commitment, so every revision
+/// but the last is reopened, whatever the journal has let depart. Under
+/// `journal window 1` no entry of d@1 is left to say so.
+#[test]
+fn every_revision_but_the_last_is_reopened() {
+    let unreopened = |save: &Value, revision: &str| {
+        let mut forged = save.clone();
+        forged["graph"]["open"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|name| name != revision);
+        forged["graph"]["relations"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|relation| relation[1] != "reopens" || relation[2] != revision);
+        forged
+    };
+    let source = windowed(1);
+    let events = ["seee", "seef", "seeg", "dec", "pause", "rel", "go", "dec"];
+    let save = plays_and_restores(&source, &events);
+    assert_eq!(journal(&save), ["d@2 committed"]);
+    assert_eq!(save["graph"]["open"], json!(["d@1"]), "{save}");
+    let mut forged = unreopened(&save, "d@1");
+    const D1: &str = "decision series d takes d@2 after d@1, which is not reopened";
+    refused(&source, &forged, D1);
+    // And with its reopening record taken out too.
+    forged["reopening_qualifications"]
+        .as_object_mut()
+        .unwrap()
+        .remove("d@1");
+    refused(&source, &forged, D1);
+    // Of a series no rule holds.
+    let unheld = HOLD
+        .replace("on pause hold d because e;\n", "")
+        .replace("on more hold d because g;\n", "");
+    let unheld = format!("{unheld}journal window 1;\n");
+    let save = plays_and_restores(&unheld, &["seee", "seef", "dec", "go", "dec"]);
+    let mut forged = unreopened(&save, "d@1");
+    forged["reopening_qualifications"]
+        .as_object_mut()
+        .unwrap()
+        .remove("d@1");
+    refused(&unheld, &forged, D1);
+    // Of a revision before the one before the last.
+    let save = plays_and_restores(&source, &["seee", "seef", "dec", "go", "dec", "go", "dec"]);
+    assert_eq!(save["graph"]["open"], json!(["d@1", "d@2"]), "{save}");
+    refused(&source, &unreopened(&save, "d@1"), D1);
 }
 
 /// A hold and its release each join the revision's reopening record. With
@@ -788,9 +838,10 @@ fn a_series_nothing_holds_has_no_hold_under_a_window() {
     }
 }
 
-/// Every reopening journals a `reopened` entry, and no entry of its
-/// revision follows it. So the entries the journal holds of a revision the
-/// graph shows reopened end with that one.
+/// Every reopening journals a `reopened` entry, and no `held`, `deferred`
+/// or `released` entry of its revision follows it. So of a revision the
+/// graph shows reopened, the last `held`, `deferred`, `released` or
+/// `reopened` entry the journal holds is a `reopened` one.
 #[test]
 fn a_reopened_revision_has_its_entries_end_with_its_reopening() {
     let source = windowed(1);
