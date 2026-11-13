@@ -2,18 +2,20 @@
 //! (finding D054). Departure turns the names of a windowed history's records
 //! into one marker of that history, in the provenance that named them, so a
 //! marker stands only where some rule or declaration can carry a record of
-//! its history. In a program with a window, restore refuses a provenance
-//! that holds a marker or a record's name, or a cause a series or a
-//! withdrawal keeps, that no rule or declaration of the program can carry
-//! into it. See spec/caveat-save-0.1.md, "Restore validation".
+//! its history. Restore refuses a provenance that holds a marker or a
+//! record's name, or a cause a series or a withdrawal keeps, that no rule
+//! or declaration of the program can carry into it: in every program since
+//! finding D061, and before it only in a program with a window. See
+//! spec/caveat-save-0.1.md, "Restore validation".
 //!
-//! The bound is computed once, as the program loads, from its rules,
-//! procedures, reopening triggers and declarations. Guards are not evaluated:
-//! an effect that ran and one that was skipped carry the same. A procedure's
-//! steps carry what any call of it passes, and a read carries whatever it
-//! could find. So a marker some rule could carry in restores whether or not
-//! one did: like the rest of restore, this checks what is possible, not what
-//! happened.
+//! The bound is computed once per loaded program, from its rules,
+//! procedures, reopening triggers and declarations: when restore first
+//! needs it, and in debug builds as the program loads. Guards are not
+//! evaluated: an effect that ran and one that was skipped carry the same. A
+//! procedure's steps carry what any call of it passes, and a read carries
+//! whatever it could find. So a marker some rule could carry in restores
+//! whether or not one did: like the rest of restore, this checks what is
+//! possible, not what happened.
 //!
 //! Each part of a thing has its own bound, from what writes it: a state's
 //! lineage, and its grounds, which take what its initializer's and its sets'
@@ -36,6 +38,11 @@
 //! after` effects evaluate; the withdrawals' reasons; and each cue. What a
 //! release's `because` selects goes into the reopening record and is kept
 //! as no cause.
+//!
+//! A procedure's parameter grounds on what its argument gives grounds. In a
+//! program without a window it also grounds on what the argument carries,
+//! its whole lineage, as releases before rc.12 grounded it (F268): a save of
+//! such a program can be that old, and windows came in rc.15 (D061).
 //!
 //! A read takes the parts the runtime reads for it, and no other part of
 //! what it names (`Read`). A read of evidence or of a stream takes the
@@ -611,11 +618,17 @@ impl<'a> Flows<'a> {
             } => {
                 // A parameter grounds a value as its argument would inline:
                 // on what the argument gives grounds, never on the call's
-                // guard.
+                // guard. Releases before rc.12 grounded it on the argument's
+                // whole lineage (F268), and only a program without a window
+                // can have a save that old, so there it takes what the
+                // argument carries too (D061).
                 let mut grounds = arguments.clone();
                 for argument in passed {
                     self.expression(argument, &mut sources);
                     self.grounds(argument, &mut grounds);
+                    if !session.windowed() {
+                        self.expression(argument, &mut grounds);
+                    }
                 }
                 self.connect(&grounds, Owner::Arguments(name.clone()));
                 vec![Owner::Call(name.clone())]
@@ -1071,6 +1084,22 @@ impl ReactiveSession {
         flows.close()
     }
 
+    /// The program's bound, computed the first time it is asked for. The
+    /// session that asks must be one as its program loaded, before any event
+    /// or save: restore asks before it applies a save, and debug builds as
+    /// the program loads. Every clone of a loaded session shares what it
+    /// computes, so a program `from_source_cached` keeps computes it once
+    /// (D061).
+    pub(crate) fn history_reach_bound(&self) -> &HistoryReach {
+        self.reach.get_or_init(|| {
+            debug_assert_eq!(
+                self.sequence, 0,
+                "the bound is computed as the program loaded"
+            );
+            self.history_reach()
+        })
+    }
+
     /// The history a record belongs to: its reading stream or renewable
     /// evidence, or the record itself.
     pub(crate) fn record_history<'n>(&self, record: &'n str) -> &'n str {
@@ -1339,7 +1368,7 @@ impl ReactiveSession {
     /// journal's records.
     fn reaches(&self, owner: &Owner, history: &str) -> bool {
         !(self.journal_window.is_some() && history == "journal")
-            && self.reach.carries(owner, history)
+            && self.history_reach_bound().carries(owner, history)
     }
 
     /// The history of `record`, a name `owner` holds at `place`, when
@@ -1350,19 +1379,16 @@ impl ReactiveSession {
             return None;
         }
         let history = self.record_history(record);
-        (!self.reach.carries(owner, history)).then_some(history)
+        (!self.history_reach_bound().carries(owner, history)).then_some(history)
     }
 
-    /// Restore's check of finding D054, after every other: each marker a
-    /// provenance holds, each name it holds and each cause a series or a
-    /// withdrawal holds is of a history some rule or declaration of the
+    /// Restore's check of findings D054 and D061, after every other: each
+    /// marker a provenance holds, each name it holds and each cause a series
+    /// or a withdrawal holds is of a history some rule or declaration of the
     /// program can carry into it. A program without a window holds no
-    /// marker, restore refused one already, and a name there can lead to
-    /// none, so its names are not read.
+    /// marker, since restore refused one already, but its names and causes
+    /// are read as in any other program (D061).
     pub(crate) fn check_history_reach(&self) -> Result<(), String> {
-        if !self.windowed() {
-            return Ok(());
-        }
         let refusal = |place: Place<'_>, history: &str| {
             format!(
                 "{place}: no rule or declaration of this program carries records of {history} into it"
@@ -1392,43 +1418,17 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// Whether every marker, every name and every cause the session holds is
-    /// within the bound: true of every session the program makes, which
-    /// debug builds check after load and after every event, and of every
-    /// session restored from a save of a program with a window. A save of a
-    /// program without one may hold names out of it, which no event made;
-    /// then the check is off for that session.
-    #[cfg(debug_assertions)]
-    pub(crate) fn within_history_reach(&self) -> bool {
-        self.held(None).iter().all(|(place, owner, provenance)| {
-            provenance
-                .departed
-                .keys()
-                .all(|history| self.reaches(owner, history))
-                && provenance
-                    .evidence
-                    .iter()
-                    .all(|record| self.unreached(place, owner, record.as_str()).is_none())
-        }) && self
-            .causes(None)
-            .iter()
-            .all(|(place, owner, cause)| self.unreached(place, owner, cause).is_none())
-    }
-
     /// Debug builds: every marker, every name and every cause the session
     /// holds is of a history some rule or declaration carries into it. Each
     /// part's content moves only into provenances whose bound contains its
     /// own, so a session that starts within the bound stays within it, and
     /// a failure is a flow the bound misses, which would make restore refuse
     /// a save the runtime wrote: the bound is what to fix. It runs after a
-    /// program loads and after every event; restore decides, through
-    /// `reach_exact`, whether it applies to the session restored. With
-    /// `old`, only the kinds an event changed are read.
+    /// program loads and after every event, a restored session's included,
+    /// since restore accepts only one within the bound (D061). With `old`,
+    /// only the kinds an event changed are read.
     #[cfg(debug_assertions)]
     pub(crate) fn check_history_reach_held(&self, old: Option<&Self>) {
-        if !self.reach_exact {
-            return;
-        }
         for (place, owner, provenance) in self.held(old) {
             for history in provenance.departed.keys() {
                 assert!(
@@ -1525,6 +1525,8 @@ on go renew e;
         .unwrap();
         let grounds = &session.states.get("s").unwrap().grounds;
         assert!(!grounds.evidence.is_empty());
-        assert!(session.reach.carries(&Owner::StateGrounds("s".into()), "e"));
+        assert!(session
+            .history_reach_bound()
+            .carries(&Owner::StateGrounds("s".into()), "e"));
     }
 }

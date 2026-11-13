@@ -167,8 +167,8 @@ save is refused with an error, and never crashes the runtime, when:
   commitment its `retaining` caveats. Conditions are not evaluated: the
   caveat is one the program could have attached, not one an event is shown
   to have attached;
-- in a program with a window, a provenance holds a departure marker of a
-  history, or the name of a record of one, that no rule, procedure,
+- a provenance holds a departure marker of a history, or the name of a
+  record of one, that no rule, procedure,
   reopening trigger or declaration of the loaded source can carry into it,
   or an outcome, a hold, a deferral, a `reopens` relation that an event
   added or a withdrawal names as its cause a record that none can carry into
@@ -203,7 +203,11 @@ save is refused with an error, and never crashes the runtime, when:
   selects goes into the reopening record, and the series keeps none of it as
   a cause. What an effect evaluates (its guard, its values, what it cites or
   selects, and a call's arguments) flows into what it writes, skipped or
-  not; a procedure's steps run on what any call of it passes; a reopening
+  not; a procedure's steps run on what any call of it passes; a parameter
+  grounds a value on what its argument gives grounds, and in a program
+  without a window also on what the argument carries, its whole lineage, as
+  releases before rc.12 grounded it, since only such a program can have a
+  save that old; a reopening
   trigger reads its condition and the stream it watches, whose reading it
   names as the cause; and each declaration carries what it leaves. A read
   carries the parts the runtime reads for it, and no other part of what it
@@ -495,6 +499,25 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-13 (D061): restore applies the bound of D054 in every program,
+  not only in one with a window. A program without a window keeps no
+  departure marker, but its provenances and causes name records all the
+  same, and caveats and grounds follow those names. So in a program whose
+  only rule that sets `seen` reads `seen` alone, a save whose `seen`
+  lineage cited the observed evidence `e` restored, and later events kept
+  `e` there; an outcome or a basis could name evidence no rule of the
+  program gives it the same way. In a program without a window a
+  procedure's parameter grounds on what its argument carries as well as on
+  what it gives grounds, because releases before rc.12 grounded a parameter
+  on its argument's whole lineage, and only such a program can have a save
+  that old: windows came in rc.15. The rc.11 save in
+  `runtime/tests/fixtures/` restores and plays on as before. The bound is
+  computed once per loaded program, when restore first needs it, rather
+  than as each program with a window loads. The check still runs after
+  every other, so a save refused before is refused with the same message,
+  and saves the runtime writes restore as before. A host that restores a
+  state save, and `caveat check --save`, refuse what restore refuses.
 
 - 2026-11-13 (D054): in a program with a window, restore refuses a departure
   marker, or the name of a record, in a part of the session that no rule,

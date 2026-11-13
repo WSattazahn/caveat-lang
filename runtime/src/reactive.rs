@@ -2534,17 +2534,11 @@ pub struct ReactiveSession {
     last_agent: Option<String>,
     /// Which histories each part of what the session holds can carry
     /// records of, from the program as it loaded: what restore bounds a
-    /// saved marker, name or cause by (finding D054). Computed for a program
-    /// with a window, and in debug builds for every program, whose check
-    /// reads it after every event.
-    reach: Arc<reach::HistoryReach>,
-    /// Debug builds: whether every provenance and cause is within `reach`,
-    /// so that the check after every event applies. False only in a session
-    /// restored from a save of a program without a window holding names no
-    /// event could have made: restore reads names only where a record can
-    /// depart.
-    #[cfg(debug_assertions)]
-    reach_exact: bool,
+    /// saved marker, name or cause by (findings D054 and D061). Computed
+    /// once per loaded program, the first time restore needs it, and shared
+    /// by every clone (`history_reach_bound`). Debug builds compute it as
+    /// the program loads, to check it after every event.
+    reach: Arc<OnceLock<reach::HistoryReach>>,
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -2800,8 +2794,6 @@ impl ReactiveSession {
             senders: Arc::default(),
             last_agent: None,
             reach: Arc::default(),
-            #[cfg(debug_assertions)]
-            reach_exact: true,
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -3348,12 +3340,14 @@ impl ReactiveSession {
             .evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         session.rebuild_departure_index();
-        // Restore reads it only where a record can depart (finding D054).
-        if session.windowed() || cfg!(debug_assertions) {
-            session.reach = Arc::new(session.history_reach());
-        }
+        // Restore computes the bound when it first needs it (findings D054
+        // and D061); debug builds compute it here and check it after every
+        // event.
         #[cfg(debug_assertions)]
-        session.check_history_reach_held(None);
+        {
+            session.history_reach_bound();
+            session.check_history_reach_held(None);
+        }
         Ok(session)
     }
 
