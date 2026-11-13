@@ -789,7 +789,9 @@ jobs:
           .github/ci/retry-download.sh rustup toolchain install
           test -x test-results/security-tools/bin/cargo-audit || cargo install cargo-audit --version 0.22.2 --locked --root test-results/security-tools
       - name: Fetch the current public RustSec advisory database
-        run: .github/ci/retry-download.sh git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
+        # A clone that fails after its fetch keeps the directory, so each
+        # attempt starts from none.
+        run: .github/ci/retry-download.sh bash -c 'rm -rf test-results/security-tools/advisory-db && git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db'
       - name: Exercise security gate refusal controls
         run: node --test scripts/audit-kit-security.test.mjs scripts/kit-capabilities.test.mjs
       - name: Audit the exact tested package and its build lockfile

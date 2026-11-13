@@ -23,6 +23,7 @@ on:
       - 'web/break*'
       - 'rust-toolchain.toml'
       - '.github/workflows/carmack.yml'
+      - '.github/ci/retry-download.sh'
   workflow_dispatch:
 
 concurrency:

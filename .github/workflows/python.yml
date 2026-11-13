@@ -14,6 +14,7 @@ on:
       - 'scripts/third-party-notices.mjs'
       - '.github/workflows/python.yml'
       - '.github/actions/upload-artifact/**'
+      - '.github/ci/retry-download.sh'
   workflow_dispatch:
 
 concurrency:
