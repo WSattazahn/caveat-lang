@@ -1670,17 +1670,21 @@ impl ReactiveSession {
     ///   event. Of a revision on hold it is a withdrawal breaking through:
     ///   the program withdraws, and the entry cites every deferred cause;
     /// - no revision is committed while the one before it is on hold;
+    /// - a revision the graph shows reopened has its entries end with its
+    ///   reopening, since every reopening journals one and none follows it;
     /// - a series' `on_hold` and `deferred` are what its current revision's
     ///   entries leave, and a reopened revision has neither;
     /// - a revision's reopening record has an entry of the revision that
-    ///   joined it.
+    ///   joined it, and each of these entries has the record, holding every
+    ///   cause the entry cites: the entry pins them, so none has departed.
     ///
     /// The journal departs oldest first. While it holds a revision's
     /// `committed` entry it holds every later entry of the revision, and they
     /// say all of its hold; so do the entries from a `released` or a
     /// `reopened` one on. With a series revision's earlier entries departed,
     /// the held ones say only what its hold holds at least. A commitment that
-    /// is no series' revision is never on hold.
+    /// is no series' revision is never on hold, and neither is a revision of
+    /// a series no rule or procedure holds.
     fn check_hold_entries(&self, save: &ReactiveSave) -> Result<(), String> {
         /// What the entries read so far leave of one decision's hold.
         struct Hold<'a> {
@@ -1703,6 +1707,32 @@ impl ReactiveSession {
             list.iter().map(String::as_str).collect()
         }
         let partial = save.journal_departed > 0;
+        // Only a hold the program can make may have entries that departed.
+        let holdable = if partial {
+            self.holdable_series()
+        } else {
+            HashSet::default()
+        };
+        let open = |revision: &str| {
+            self.symbols.get(revision).is_some_and(|id| {
+                matches!(
+                    self.graph.nodes.get(id),
+                    Some(NodeKind::Commitment { open: true, .. })
+                )
+            })
+        };
+        // Every reopening journals a `reopened` entry, and no entry of its
+        // revision follows it, so the journal's entries of a revision the
+        // graph shows reopened end with it.
+        let settled = |hold: &Hold| {
+            if !hold.reopened && open(hold.revision) {
+                return Err(fail(format!(
+                    "{} is reopened, but its entries leave it in force",
+                    hold.revision
+                )));
+            }
+            Ok(())
+        };
         let mut holds: HashMap<&str, Hold> = HashMap::default();
         // The commitments with an entry that joins a reopening record, and
         // those whose `committed` entry the journal holds.
@@ -1735,10 +1765,11 @@ impl ReactiveSession {
                 if let Some(before) = holds.get(decision) {
                     if !before.reasons.is_empty() || !before.deferred.is_empty() {
                         return Err(fail(format!(
-                            "{revision} follows {}, which is on hold",
+                            "{revision} is committed while {} is on hold",
                             before.revision
                         )));
                     }
+                    settled(before)?;
                 }
                 committed.insert(revision);
                 holds.insert(decision, unheld(revision, true));
@@ -1751,18 +1782,19 @@ impl ReactiveSession {
                 continue;
             }
             joined.insert(revision);
-            let known = !partial || !save.decision_series.contains_key(decision);
+            let known = !partial || !holdable.contains(decision);
             let hold = holds
                 .entry(decision)
                 .or_insert_with(|| unheld(revision, known));
             if hold.revision != revision {
+                settled(hold)?;
                 *hold = unheld(revision, known);
             }
             if entry.change == "reopened" {
                 if !by_release {
                     // The entry before this one is not its release's, unless
                     // that one departed: a `reopen` made this one.
-                    let made = (index == 0 && partial)
+                    let made = (index == 0 && !known)
                         || *reopens.entry((&entry.event, decision)).or_insert_with(|| {
                             self.event_can_change_decision(&entry.event, decision, "deferred")
                         });
@@ -1897,6 +1929,41 @@ impl ReactiveSession {
                     "reopening of {name}: no journal entry reopens, holds, defers or releases it"
                 ));
             }
+        }
+        // And each of those entries joined the record with the lineage of
+        // every cause it cites, which it pins, so none of them has departed.
+        for entry in &save.decision_journal {
+            if !matches!(
+                entry.change.as_str(),
+                "reopened" | "held" | "deferred" | "released"
+            ) {
+                continue;
+            }
+            let revision = &entry.commitment;
+            let Some(record) = save.reopening_qualifications.get(revision) else {
+                return Err(format!(
+                    "reopening of {revision}: its {} entry has no record",
+                    entry.change
+                ));
+            };
+            if let Some(cause) = entry
+                .because
+                .iter()
+                .find(|cause| !record.0.evidence.contains(cause.as_str()))
+            {
+                return Err(format!(
+                    "reopening of {revision}: its record leaves out {cause}, which its {} \
+                     entry cites",
+                    entry.change
+                ));
+            }
+        }
+        // In name order, so that with more than one the refusal is the same
+        // each time.
+        let mut last = holds.into_values().collect::<Vec<_>>();
+        last.sort_unstable_by_key(|hold| hold.revision);
+        for hold in &last {
+            settled(hold)?;
         }
         Ok(())
     }

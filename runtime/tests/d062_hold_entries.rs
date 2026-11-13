@@ -619,7 +619,7 @@ fn no_revision_follows_one_on_hold() {
     refused(
         &source,
         &forged,
-        "decision journal: d@2 follows d@1, which is on hold",
+        "decision journal: d@2 is committed while d@1 is on hold",
     );
 }
 
@@ -654,6 +654,127 @@ fn a_reopening_record_has_a_journal_entry() {
         &forged,
         "reopening of d@2: no journal entry reopens, holds, defers or releases it",
     );
+}
+
+/// And each `held`, `deferred`, `released` or `reopened` entry joins its
+/// revision's reopening record with the lineage of every cause it cites,
+/// which it pins: the record holds each of them, whatever has departed.
+/// What reads the hold reads its grounds from that record.
+#[test]
+fn a_journal_entry_has_its_reopening_record() {
+    let save = deferring();
+    assert_eq!(
+        save["reopening_qualifications"],
+        json!({"d@1": {"evidence": ["e", "f"]}})
+    );
+    let mut forged = save.clone();
+    forged
+        .as_object_mut()
+        .unwrap()
+        .remove("reopening_qualifications");
+    refused(
+        HOLD,
+        &forged,
+        "reopening of d@1: its held entry has no record",
+    );
+    forged["reopening_qualifications"] = json!({"d@1": {}});
+    refused(
+        HOLD,
+        &forged,
+        "reopening of d@1: its record leaves out e, which its held entry cites",
+    );
+    forged["reopening_qualifications"] = json!({"d@1": {"evidence": ["e"]}});
+    refused(
+        HOLD,
+        &forged,
+        "reopening of d@1: its record leaves out f, which its deferred entry cites",
+    );
+    // Under a window that has let the revision's `committed` entry depart.
+    let source = windowed(2);
+    let save = plays_and_restores(&source, &["seee", "seeg", "dec", "pause", "rel", "idle"]);
+    assert_eq!(journal(&save), ["d@1 held e", "d@1 released g"]);
+    assert_eq!(
+        save["reopening_qualifications"],
+        json!({"d@1": {"evidence": ["e", "g"]}})
+    );
+    let mut forged = save.clone();
+    forged["reopening_qualifications"] = json!({"d@1": {"evidence": ["e"]}});
+    refused(
+        &source,
+        &forged,
+        "reopening of d@1: its record leaves out g, which its released entry cites",
+    );
+}
+
+/// A series no rule or procedure holds is never on hold. A window that has
+/// let its revision's `committed` entry depart leaves no part of a hold
+/// unsaid, as for a one-off commitment, and its first `reopened` entry is
+/// no release's.
+#[test]
+fn a_series_nothing_holds_has_no_hold_under_a_window() {
+    let unheld = HOLD
+        .replace("on pause hold d because e;\n", "")
+        .replace("on more hold d because g;\n", "");
+    assert!(!unheld.contains(" hold d "), "{unheld}");
+    let source = format!("{unheld}journal window 1;\n");
+    let save = plays_and_restores(&source, &["seee", "seef", "seeg", "dec", "go", "idle"]);
+    assert_eq!(journal(&save), ["d@1 reopened f"]);
+    let mut forged = save.clone();
+    forged["decision_journal"][0]["event"] = json!("rel");
+    refused(
+        &source,
+        &forged,
+        "decision journal: d@1 is reopened by rel, which only releases it, and not because of \
+         what its hold deferred",
+    );
+    // Where `pause` holds `d`, the same entry may be the reopening of a
+    // release whose entry departed.
+    let held = windowed(1);
+    let save = plays_and_restores(&held, &["seee", "seef", "seeg", "dec", "go", "idle"]);
+    let mut forged = save.clone();
+    forged["decision_journal"][0]["event"] = json!("rel");
+    assert!(ReactiveSession::restore_json(&held, &forged.to_string()).is_ok());
+    // A deferral or a release of d@1, in force, as the window's only entry.
+    let save = plays_and_restores(&source, &["seee", "seef", "seeg", "dec", "plan", "idle"]);
+    assert_eq!(journal(&save), ["act committed"]);
+    for (change, event, cause) in [("deferred", "go", "f"), ("released", "rel", "g")] {
+        let mut forged = save.clone();
+        let entry = &mut forged["decision_journal"][0];
+        entry["decision"] = json!("d");
+        entry["commitment"] = json!("d@1");
+        entry["change"] = json!(change);
+        entry["event"] = json!(event);
+        entry["because"] = json!([cause]);
+        refused(
+            &source,
+            &forged,
+            &format!("decision journal: d@1 has a {change} entry while not on hold"),
+        );
+    }
+}
+
+/// Every reopening journals a `reopened` entry, and no entry of its
+/// revision follows it. So the entries the journal holds of a revision the
+/// graph shows reopened end with that one.
+#[test]
+fn a_reopened_revision_has_its_entries_end_with_its_reopening() {
+    let source = windowed(1);
+    let events = ["seee", "seef", "seeg", "dec", "pause", "go", "rel"];
+    let save = plays_and_restores(&source, &[&events[..], &["idle"]].concat());
+    assert_eq!(journal(&save), ["d@1 reopened f"]);
+    let release = |save: &Value| {
+        let mut forged = save.clone();
+        forged["decision_journal"][0]["change"] = json!("released");
+        forged["decision_journal"][0]["because"] = json!(["g"]);
+        forged
+    };
+    const IN_FORCE: &str = "decision journal: d@1 is reopened, but its entries leave it in force";
+    refused(&source, &release(&save), IN_FORCE);
+    // And of the one before a revision committed in the window.
+    let source = windowed(2);
+    let save = plays_and_restores(&source, &[&events[..], &["dec"]].concat());
+    assert_eq!(journal(&save), ["d@1 reopened f", "d@2 committed"]);
+    refused(&source, &release(&save), IN_FORCE);
 }
 
 /// Two series that hold, defer, release and reopen, one of them by a

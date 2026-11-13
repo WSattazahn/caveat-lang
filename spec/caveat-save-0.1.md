@@ -413,7 +413,8 @@ validation and host trust mechanisms separately from this contract.
 
 - 2026-11-12 (D062): restore holds a revision's `held`, `deferred`,
   `released` and `reopened` journal entries, its series' `on_hold` and
-  `deferred`, and its reopening record to each other
+  `deferred`, its reopening record and its reopening in the graph to each
+  other
   ([Holds 0.1](caveat-holds-0.1.md), section 4). It held each to the program
   only, so it accepted a save whose journal left out the entry of a hold in
   force, of a deferred reopening or of a release. The check runs after every

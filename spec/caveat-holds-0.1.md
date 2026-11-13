@@ -155,11 +155,17 @@ each other (D062):
   through: the program has a `withdraw`, and the entry cites every deferred
   cause.
 - No revision is committed while the one before it is on hold.
+- Every reopening journals a `reopened` entry, and no entry of its revision
+  follows it. So the entries of a revision that the graph shows reopened end
+  with its `reopened` one.
 - A series' `on_hold` and `deferred` are what its current revision's entries
   leave: the reasons held and the causes deferred since the revision was
   committed or last released. A reopened revision has neither.
 - A revision's reopening record has a `held`, `deferred`, `released` or
-  `reopened` entry of that revision, since each of them joins it.
+  `reopened` entry of that revision, since each of them joins it. Each such
+  entry has the record, and the record holds every cause the entry cites:
+  the entry joins it with the causes' lineage and pins them, so none of them
+  has departed.
 
 A windowed journal departs oldest first
 ([Departure 0.1](caveat-departure-0.1.md)). While it holds a revision's
@@ -169,8 +175,11 @@ With a revision's earlier entries departed, the ones left say only part of
 its hold. Restore then requires what they do say: the series holds and defers
 at least what they name, a release is followed by the reopening of at least
 the causes they defer, and a `reopened` entry that is the journal's first may
-be its release's. The reopening record is held to the entries only while the
-journal holds the revision's `committed` entry.
+be its release's. That is so only of a series that a rule or procedure of the
+source holds: the entries of any other series, as of a commitment that is no
+series' revision, say all there is. A reopening record needs an entry of its
+revision only while the journal holds the revision's `committed` entry; each
+entry the journal holds needs the record whatever has departed.
 
 Restore still does not authenticate history. It reads what the entries say,
 and not what a selector could have selected. So once a hold has ended it
@@ -256,8 +265,9 @@ the 30 that do not load give the same error. No accepted program changes.
   the program, and not to each other, so it accepted a save whose journal
   left out the `held` entry of a hold in force, the `deferred` entry of a
   cause still deferred, or the `released` entry of a hold that had ended.
-  Section 4 now says what a revision's entries, its series and its reopening
-  record must agree on, and what a windowed journal leaves unsaid. The check
-  runs after every other, so a save refused before is refused with the same
-  message, and a save the runtime wrote restores as before. Tests:
-  `runtime/tests/d062_hold_entries.rs`.
+  Section 4 now says what a revision's entries, its series, its reopening
+  record and the graph's reopening of it must agree on, and what a windowed
+  journal leaves unsaid, which is nothing for a series no rule or procedure
+  holds. The check runs after every other, so a save refused before is
+  refused with the same message, and a save the runtime wrote restores as
+  before. Tests: `runtime/tests/d062_hold_entries.rs`.
