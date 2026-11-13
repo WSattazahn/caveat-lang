@@ -207,7 +207,8 @@ save is refused with an error, and never crashes the runtime, when:
   grounds a value on what its argument gives grounds, and in a program
   without a window also on what the argument carries, its whole lineage, as
   releases before rc.12 grounded it, since only such a program can have a
-  save that old; a reopening
+  save that old, and a step's grounds take an argument only through the
+  parameter the step reads; a reopening
   trigger reads its condition and the stream it watches, whose reading it
   names as the cause; and each declaration carries what it leaves. A read
   carries the parts the runtime reads for it, and no other part of what it
@@ -512,7 +513,12 @@ validation and host trust mechanisms separately from this contract.
   what it gives grounds, because releases before rc.12 grounded a parameter
   on its argument's whole lineage, and only such a program can have a save
   that old: windows came in rc.15. The rc.11 save in
-  `runtime/tests/fixtures/` restores and plays on as before. The bound is
+  `runtime/tests/fixtures/` restores and plays on as before. Each parameter
+  has its own bound, and a step's grounds take an argument only through the
+  parameter the step reads, with a window or without one: D054 gave each
+  step's grounds what all of a call's arguments give grounds, so grounds
+  naming what an argument reads restored on a step such as `set s = 5`,
+  though no release grounds that step on anything. The bound is
   computed once per loaded program, when restore first needs it, rather
   than as each program with a window loads. The check still runs after
   every other, so a save refused before is refused with the same message,

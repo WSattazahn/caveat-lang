@@ -32,10 +32,11 @@ is computed by `source_identity` in [reactive.rs](../runtime/src/reactive.rs).
 which the saved delta cannot reconstruct. `restore_records` likewise requires
 each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
-`check_last_event_spending`, run after every other check, requires the costs
-of the last event's `examine` effects, a caveat examined twice counting
-twice, added to what the declarations spent, to fit the budget's `spent`
-(D053).
+`check_last_event_spending`, run after every check older than it (only the
+retirement-date check of D060, the hold-entry check of D062 and the
+history-reach check of D054 follow it), requires the costs of the last
+event's `examine` effects, a caveat examined twice counting twice, added to
+what the declarations spent, to fit the budget's `spent` (D053).
 
 Since rc.11, a single added `["phantom", "qualifies", "sensor"]` relation is
 refused when no mechanism of the loaded source can add that pair, and accepted
@@ -241,9 +242,10 @@ sampled without reading `a` could keep a caveat of `a`'s departed readings
 and a record that an outcome, a hold, a deferral, a `reopens` relation an
 event added or a withdrawal names as its cause, when no rule, procedure,
 reopening trigger or declaration of the loaded source can carry that
-history's records into the part of the session that holds it. A relation a declaration makes is the program's: a
-save holds none, and restore makes it again from the source, so its cause,
-which can be a caveat, a claim or a commitment, is not read.
+history's records into the part of the session that holds it. A relation a
+declaration makes is the program's: a save holds none, and restore makes it
+again from the source, so its cause, which can be a caveat, a claim or a
+commitment, is not read.
 
 D054 applied this only to a program with a window, where a record can
 depart. A program without one keeps no marker, but its provenances and causes
@@ -255,7 +257,12 @@ a procedure's parameter there grounds on what its argument carries, its
 whole lineage, as well as on what the argument gives grounds, because
 releases before rc.12 grounded a parameter so (F268), and only such a program
 can have a save that old, since windows came in rc.15. The rc.11 save that
-`runtime/tests/parameter_grounds.rs` restores holds such grounds.
+`runtime/tests/parameter_grounds.rs` restores holds such grounds. Each
+parameter has its own bound, and a step's grounds take an argument only
+through the parameter the step reads, as the runtime grounds it: D054 gave
+each step's grounds what all of a call's arguments give grounds, so grounds
+naming what an argument reads restored on a step such as `set s = 5`, with
+a window or without one, though no release grounds that step on anything.
 
 `history_reach` in [reactive_reach.rs](../runtime/src/reactive_reach.rs)
 derives the bound once per loaded program, when restore first needs it, and
@@ -286,7 +293,8 @@ into the reopening record, and the series keeps none of it as a cause.
 
 What an effect evaluates (its guard, its values, what it cites or selects, a
 call's arguments) flows into what the effect writes, a procedure's steps run
-on what any call of it passes, a reopening trigger reads its condition and
+on what any call of it passes, though a step grounds on an argument only
+through the parameter it reads, a reopening trigger reads its condition and
 its stream, and the declarations carry what they leave. A read carries the
 parts the runtime reads for it, and no other part of what it names: a read
 of evidence or of a stream, the record's name and what its observation and

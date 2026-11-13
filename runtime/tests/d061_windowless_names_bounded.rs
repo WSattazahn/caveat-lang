@@ -243,3 +243,131 @@ fn a_parameter_grounds_on_its_arguments_lineage_only_without_a_window() {
         &no_rule_carries("state slot grounds", "x"),
     );
 }
+
+/// `PARAMETER`'s `gate` and `w` with procedures whose steps read some of
+/// their parameters or none: `store` sets `slot` from `v`, `other` to a
+/// constant and, under a guard on `v`, `gated`; `pair` sets `second` from
+/// `q` alone; `outer` passes its parameter on to `deep`, which sets
+/// `inner`; `make` commits `d` using a number. Every step's lineage takes
+/// what each call passes, so each of these states has lineage `[w, x]`, but
+/// only `slot` and `inner` ground on an argument.
+const STEPS: &str = "claim c;
+evidence x from \"x\";
+evidence w from \"w\";
+state gate = 0;
+state slot = 0;
+state other = 0;
+state gated = 0;
+state second = 0;
+state inner = 0;
+decisions d limit 4;
+event first;
+event see;
+event nest;
+event decide;
+on first reveal x supports c;
+on first set gate = qualified(1, x);
+on see when gate == 1 reveal w supports c;
+proc store(v) { set slot = v; set other = 5; when v > 0 set gated = 1; };
+proc pair(p, q) { set second = q; };
+proc deep(v) { set inner = v; };
+proc outer(v) { call deep(v + 0); };
+proc make(v) { commit d because enough using 1; };
+on see call store(qualified(7, w));
+on see call pair(qualified(7, w), 3);
+on nest call outer(qualified(7, w));
+on decide call make(qualified(1, w));
+";
+
+const STEPS_PLAYED: [(&str, &str); 4] = [
+    ("first", "{}"),
+    ("see", "{}"),
+    ("nest", "{}"),
+    ("decide", "{}"),
+];
+
+/// `save` with `state`'s grounds set to `evidence`.
+fn with_grounds(save: &Value, state: &str, evidence: &[&str]) -> Value {
+    let mut forged = save.clone();
+    forged["states"][state]["grounds"] = json!({ "evidence": evidence });
+    forged
+}
+
+/// `save` with `d@1`'s grounds, and its `committed` entry's `because`, set
+/// to `evidence`.
+fn with_commitment_grounds(save: &Value, evidence: &[&str]) -> Value {
+    let mut forged = save.clone();
+    forged["commitment_grounds"]["d@1"] = json!({ "evidence": evidence });
+    let entry = forged["decision_journal"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|entry| entry["change"] == "committed" && entry["commitment"] == "d@1")
+        .unwrap();
+    entry["because"] = json!(evidence);
+    forged
+}
+
+/// A step's grounds take a call's argument only through the parameter the
+/// step reads, as the runtime grounds it, with a window or without one:
+/// grounds no release could write for a step that reads no parameter, or
+/// another one, are refused. Without a window, a parameter read through a
+/// nested call still grounds on the outer argument's whole lineage.
+#[test]
+fn a_step_grounds_only_on_the_parameters_it_reads() {
+    for windowed in [false, true] {
+        let source = if windowed {
+            format!("journal window 8;\n{STEPS}")
+        } else {
+            STEPS.to_string()
+        };
+        let save = plays_and_restores(&source, &STEPS_PLAYED);
+        for state in ["slot", "other", "gated", "second", "inner"] {
+            assert_eq!(
+                save["states"][state]["lineage"]["evidence"],
+                json!(["w", "x"]),
+                "{state}: {save}"
+            );
+        }
+        for state in ["slot", "inner"] {
+            assert_eq!(
+                save["states"][state]["grounds"]["evidence"],
+                json!(["w"]),
+                "{state}: {save}"
+            );
+        }
+        for state in ["other", "gated", "second"] {
+            assert_eq!(
+                save["states"][state]["grounds"],
+                json!({}),
+                "{state}: {save}"
+            );
+            refused(
+                &source,
+                &with_grounds(&save, state, &["w"]),
+                &no_rule_carries(&format!("state {state} grounds"), "w"),
+            );
+        }
+        assert_eq!(save["commitment_grounds"]["d@1"], json!({}), "{save}");
+        refused(
+            &source,
+            &with_commitment_grounds(&save, &["w"]),
+            &no_rule_carries("commitment d@1 grounds", "w"),
+        );
+        // Grounds as a release before rc.12 wrote them: `slot`'s through
+        // `store`'s own parameter, and `inner`'s through `deep`'s, whose
+        // argument reads `outer`'s.
+        for state in ["slot", "inner"] {
+            let wide = with_grounds(&save, state, &["w", "x"]);
+            if windowed {
+                refused(
+                    &source,
+                    &wide,
+                    &no_rule_carries(&format!("state {state} grounds"), "x"),
+                );
+            } else {
+                plays_on(&source, &wide, &[("nest", "{}"), ("see", "{}")]);
+            }
+        }
+    }
+}
