@@ -1749,6 +1749,71 @@ impl Expr {
         (nodes, bytes)
     }
 
+    /// Whether this expression, as the program loaded it, holds a form that
+    /// no release before rc.12 reads (finding D083): `in_basis`,
+    /// `grounds_of`, `outcome`, `resolved`, `on_hold`, `is_set`, a
+    /// threshold's value, `carries_any`, `carries` asked of `latest(…)`,
+    /// `occurrence(…)`, `reading(…)` or `revision(…)`, and `only_if` when
+    /// `only_if` is true. Ask it only after `expand_with`, which turns a call
+    /// of a function the program names like one of these into that
+    /// function's body. The match is exhaustive, so a new kind of node must
+    /// say whether those releases read it.
+    pub(crate) fn has_form_after_rc11(&self, only_if: bool) -> bool {
+        let any = |children: &[Self]| {
+            children
+                .iter()
+                .any(|child| child.has_form_after_rc11(only_if))
+        };
+        match &self.node {
+            Node::Threshold(..)
+            | Node::AtOccurrence(..)
+            | Node::InBasis(..)
+            | Node::Outcome(..)
+            | Node::GroundsOf(_) => true,
+            Node::Predicate(kind, _) => {
+                kind == RESOLVED
+                    || kind == ON_HOLD
+                    || kind == IS_SET
+                    || kind.starts_with(AT_LATEST)
+                    || kind
+                        .strip_prefix("carries:")
+                        .is_some_and(|caveat| caveat.starts_with(ANY_CAVEAT))
+            }
+            Node::OnlyIf(condition, value) => {
+                only_if
+                    || condition.has_form_after_rc11(only_if)
+                    || value.has_form_after_rc11(only_if)
+            }
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => false,
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
+                child.has_form_after_rc11(only_if)
+            }
+            Node::Qualified(value, _, _) => value.has_form_after_rc11(only_if),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.has_form_after_rc11(only_if) || right.has_form_after_rc11(only_if)
+            }
+            Node::If(condition, yes, no) => {
+                condition.has_form_after_rc11(only_if)
+                    || yes.has_form_after_rc11(only_if)
+                    || no.has_form_after_rc11(only_if)
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => any(arguments),
+            Node::ExpandedCall(arguments, body) => {
+                any(arguments) || body.has_form_after_rc11(only_if)
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                initial.has_form_after_rc11(only_if) || body.has_form_after_rc11(only_if)
+            }
+        }
+    }
+
     /// Everything evaluating this expression can read: the numeric names it
     /// looks up, and whether it queries the graph or a history. Every branch
     /// is included, taken or not, so this over-approximates and never misses

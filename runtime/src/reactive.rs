@@ -2539,6 +2539,13 @@ pub struct ReactiveSession {
     /// by every clone (`history_reach_bound`). Debug builds compute it as
     /// the program loads, to check it after every event.
     reach: Arc<OnceLock<reach::HistoryReach>>,
+    /// Whether the program of a bundle declares a function `MODULE__only_if`
+    /// for one of its modules: a release before rc.12 read that module's
+    /// `only_if(…)` as a call of it where the module declares `only_if` as
+    /// something other than a function, and this runtime reads the form
+    /// there. So `only_if` in such a program does not show that no release
+    /// before rc.12 loaded it (`may_load_before_rc12`, finding D083).
+    flat_only_if: bool,
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -2646,6 +2653,35 @@ impl ReactiveSession {
             }
         }
         reactive_expr::validate_functions(&functions)?;
+        // A bundle module that declares `only_if` as something other than a
+        // function reads `only_if(…)` as the form, where releases before
+        // rc.12 flattened the name, calling `MODULE__only_if` (link.rs). Only
+        // the bundle's program can declare that function: a module's own
+        // names have no `__`, and a module's own `fn only_if` links as its
+        // `MODULE__only_if`, under the module's `origin` line. See
+        // `flat_only_if`.
+        let flat_only_if = {
+            let mut parts = BTreeSet::new();
+            let mut part = None;
+            let mut flattened = Vec::new();
+            for statement in &program.statements {
+                match statement {
+                    Statement::Origin { part: name } => {
+                        parts.insert(name.as_str());
+                        part = Some(name.as_str());
+                    }
+                    Statement::Reactive(Directive::Function(function)) => {
+                        if let Some(module) = function.name.strip_suffix("__only_if") {
+                            flattened.push((module, part));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            flattened
+                .into_iter()
+                .any(|(module, part)| parts.contains(module) && part != Some(module))
+        };
         let mut defines = BTreeMap::new();
         for directive in &directives {
             let (word, name, expression) = match directive {
@@ -2794,6 +2830,7 @@ impl ReactiveSession {
             senders: Arc::default(),
             last_agent: None,
             reach: Arc::default(),
+            flat_only_if,
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.

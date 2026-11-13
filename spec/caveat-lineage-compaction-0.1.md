@@ -36,7 +36,8 @@ what the archive entry must name.
 no marker ever appears, and its lineages, grounds, snapshots, saves, views and
 scenario outcomes are exactly as before. Restore bounds the names its saves
 hold as it bounds any program's, a procedure's parameter there grounding on
-its argument's whole lineage as well (D061; "Save and restore").
+its argument's whole lineage as well when a release before rc.12 may have
+loaded the program (D061, D083; "Save and restore").
 
 ## The finding
 
@@ -639,3 +640,8 @@ provenance read in its range.
   grounds take an argument only through the parameter the step reads.
   "Save and restore" lists the check; [Save 0.1](caveat-save-0.1.md) says
   how each part's bound is derived.
+- 2026-11-13 (D083): a procedure's parameter grounds on its argument's
+  whole lineage only in a program a release before rc.12 may have loaded,
+  not in every program without a window: one that uses something the
+  language gained after rc.11, such as `only_if`, has no save that old.
+  [Save 0.1](caveat-save-0.1.md) lists what the check reads.
