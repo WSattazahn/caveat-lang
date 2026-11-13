@@ -1264,11 +1264,15 @@ impl ReactiveSession {
     /// provenance is (D054): an outcome's by what the `because` of a
     /// resolve can select; a hold's reasons by what the `because` of a hold
     /// can; the reopenings it defers and the evidence that reopened a
-    /// commitment by what the `because` of a reopen can, what a trigger
-    /// reads or a declaration reopens with; and a withdrawal's reason by
-    /// what the `because` of a withdrawal can. A release keeps nothing it
-    /// selects. With `old`, only those of the kinds an event changed since
-    /// then.
+    /// commitment by what the `because` of a reopen can or what a trigger
+    /// reads; and a withdrawal's reason by what the `because` of a
+    /// withdrawal can. A release keeps nothing it selects. A relation a
+    /// declaration makes is the program's, not the session's: it stands
+    /// before every relation an event adds, which is all a save holds
+    /// (`save`), so restore makes it again from the source, and it is not
+    /// listed. Its cause can be a caveat, a claim or a commitment, which no
+    /// history holds. With `old`, only those of the kinds an event changed
+    /// since then.
     pub(crate) fn causes<'s>(&'s self, old: Option<&Self>) -> Vec<(Place<'s>, Owner, &'s str)> {
         let mut causes = Vec::new();
         if !old.is_some_and(|old| Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
@@ -1302,7 +1306,7 @@ impl ReactiveSession {
             for edge in self
                 .graph
                 .edges
-                .iter()
+                .iter_from(self.loaded.edges)
                 .filter(|edge| edge.relation == Relation::Reopens)
             {
                 let (Some(cause), Some(commitment)) = (

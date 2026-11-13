@@ -4149,6 +4149,70 @@ fn a_declared_reopening_reads_its_evidence() {
     assert!(carries(&save, "state s", "a"), "{save}");
 }
 
+/// A declaration reopens `p` because of `CAUSE`, which the tests make a
+/// caveat, a claim or a commitment, none of which a history holds. `go`
+/// renews `g`, whose window has restore read the names a session holds.
+const DECLARED_CAUSES: &str = "claim seen;
+caveat k consequence low;
+evidence g from \"g\";
+renewable g window 1;
+commit q because enough;
+commit p because enough retaining k;
+reopen p because CAUSE;
+event go;
+on go renew g;
+";
+
+/// The relation a declaration makes is the program's: restore makes it
+/// again from the source, and a save holds only the relations events add,
+/// so the bound leaves it to the program. Restore refused every save of
+/// such a program with a window, the first included, and debug builds
+/// stopped as it loaded, with a window or without one.
+#[test]
+fn a_declared_reopening_because_of_what_no_history_holds_restores() {
+    let windowless = |source: &str| source.replace("renewable g window 1;", "renewable g limit 4;");
+    for cause in ["k", "seen", "q"] {
+        let source = DECLARED_CAUSES.replace("CAUSE", cause);
+        assert_ne!(source, DECLARED_CAUSES);
+        for source in [source.clone(), windowless(&source)] {
+            let fresh = ReactiveSession::from_source(&source)
+                .unwrap()
+                .save_json()
+                .unwrap();
+            let restored = ReactiveSession::restore_json(&source, &fresh)
+                .unwrap_or_else(|error| panic!("{cause}: {error}"));
+            assert_eq!(restored.save_json().unwrap(), fresh, "{cause}");
+            plays_and_restores(&source, &[("go", "{}"), ("go", "{}"), ("go", "{}")]);
+        }
+    }
+}
+
+/// examples/canonical_001.cav reopens `treat_as_cat` because of the caveat
+/// `label_may_be_misplaced`; here with a stream that keeps a window.
+#[test]
+fn the_canonical_example_with_a_window_restores() {
+    let source = format!(
+        "{}\nevidence gauge from \"gauge\";\nreadings level from gauge window 1;\nevent measure v min 0 max 10;\non measure sample level = v;\n",
+        include_str!("../../examples/canonical_001.cav")
+    );
+    let fresh = ReactiveSession::from_source(&source)
+        .unwrap()
+        .save_json()
+        .unwrap();
+    ReactiveSession::restore_json(&source, &fresh).unwrap_or_else(|error| panic!("{error}"));
+    let save = plays_and_restores(
+        &source,
+        &[("measure", ONE), ("measure", TWO), ("measure", THREE)],
+    );
+    let declared = json!(["label_may_be_misplaced", "reopens", "treat_as_cat"]);
+    assert!(
+        !save["graph"]["relations"]
+            .as_array()
+            .is_some_and(|relations| relations.contains(&declared)),
+        "{save}"
+    );
+}
+
 /// `pull` withdraws every occurrence of `e` under a guard on `latest(a)`,
 /// and `q` qualifies `b`'s reading.
 const WITHDRAW_EVERY_EVIDENCE: &str = "claim seen;

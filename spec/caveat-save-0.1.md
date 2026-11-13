@@ -170,10 +170,14 @@ save is refused with an error, and never crashes the runtime, when:
 - in a program with a window, a provenance holds a departure marker of a
   history, or the name of a record of one, that no rule, procedure,
   reopening trigger or declaration of the loaded source can carry into it,
-  or an outcome, a hold, a deferral, a `reopens` relation or a withdrawal
-  names as its cause a record that none can carry into the part the cause
-  belongs to ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)).
-  Each part of what a session holds has its own bound, from what writes it:
+  or an outcome, a hold, a deferral, a `reopens` relation that an event
+  added or a withdrawal names as its cause a record that none can carry
+  into the part the cause belongs to
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)). A relation
+  a declaration makes is the program's: a save holds none, and restore
+  makes it again from the source, so its cause, which can be a caveat, a
+  claim or a commitment, is not read. Each part of what a session holds
+  has its own bound, from what writes it:
   a state's lineage, and its grounds, which take what its initializer's and
   its sets' values, or their citations, ground on as the runtime evaluates
   grounds, so never the guard of the rule that sets the state, though what a
@@ -491,8 +495,9 @@ validation and host trust mechanisms separately from this contract.
   marker, or the name of a record, in a part of the session that no rule,
   procedure, reopening trigger or declaration of the program can carry that
   history's records into, and a cause that an outcome, a hold, a deferral, a
-  `reopens` relation or a withdrawal names outside its part's bound. A
-  marker stands where a provenance named records that have since departed.
+  `reopens` relation an event added or a withdrawal names outside its
+  part's bound. A marker stands where a provenance named records that have
+  since departed.
   Since rc.16 restore has checked a marker's history, range, count and date
   against what departed, but not which provenance held it. So a save of a
   program whose `b` samples never read `a` could hold, in a commitment on

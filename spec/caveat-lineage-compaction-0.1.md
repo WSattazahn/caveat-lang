@@ -408,11 +408,11 @@ Restore refuses a save when:
   commitment's grounds marker is not within its basis's;
 - in a program with a window, a marker or a record's name is in a
   provenance, or a record is named as the cause of an outcome, a hold, a
-  deferral, a `reopens` relation or a withdrawal, in a part of the session
-  that no rule, procedure, reopening trigger or declaration of the program
-  can carry that history's records into, as [Save 0.1](caveat-save-0.1.md)'s
-  "Restore validation" bounds each part; no provenance can hold a marker of
-  the journal, whose entries none names;
+  deferral, a `reopens` relation an event added or a withdrawal, in a part
+  of the session that no rule, procedure, reopening trigger or declaration
+  of the program can carry that history's records into, as
+  [Save 0.1](caveat-save-0.1.md)'s "Restore validation" bounds each part;
+  no provenance can hold a marker of the journal, whose entries none names;
 - a name in `inherited` is not also in the same provenance's `evidence`;
 - `inherited` appears in a save of a program without a window. The 14
   holders above are every provenance the schema has, so a field anywhere

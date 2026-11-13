@@ -239,9 +239,12 @@ caveats the departed records carried came with it: a commitment on a stream
 sampled without reading `a` could keep a caveat of `a`'s departed readings
 (D054). In a program with a window, restore now refuses a marker or a
 record's name in a provenance, and a record that an outcome, a hold, a
-deferral, a `reopens` relation or a withdrawal names as its cause, when no
-rule, procedure, reopening trigger or declaration of the loaded source can
-carry that history's records into the part of the session that holds it.
+deferral, a `reopens` relation an event added or a withdrawal names as its
+cause, when no rule, procedure, reopening trigger or declaration of the
+loaded source can carry that history's records into the part of the
+session that holds it. A relation a declaration makes is the program's: a
+save holds none, and restore makes it again from the source, so its cause,
+which can be a caveat, a claim or a commitment, is not read.
 
 `history_reach` in [reactive_reach.rs](../runtime/src/reactive_reach.rs)
 derives the bound once, as the program loads. Each part of what a session
