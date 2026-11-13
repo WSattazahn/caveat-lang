@@ -180,6 +180,8 @@ pub use view_patch::{
 mod collector;
 #[path = "reactive_departure.rs"]
 mod departure;
+#[path = "reactive_reach.rs"]
+mod reach;
 #[path = "reactive_relations.rs"]
 mod relations;
 #[path = "reactive_write.rs"]
@@ -2530,6 +2532,19 @@ pub struct ReactiveSession {
     senders: Arc<BTreeMap<String, BTreeSet<String>>>,
     /// The agent the host said sent the last accepted event, if it named one.
     last_agent: Option<String>,
+    /// Which histories each part of what the session holds can carry
+    /// records of, from the program as it loaded: what restore bounds a
+    /// saved marker, name or cause by (finding D054). Computed for a program
+    /// with a window, and in debug builds for every program, whose check
+    /// reads it after every event.
+    reach: Arc<reach::HistoryReach>,
+    /// Debug builds: whether every provenance and cause is within `reach`,
+    /// so that the check after every event applies. False only in a session
+    /// restored from a save of a program without a window holding names no
+    /// event could have made: restore reads names only where a record can
+    /// depart.
+    #[cfg(debug_assertions)]
+    reach_exact: bool,
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -2784,6 +2799,9 @@ impl ReactiveSession {
             agents: Arc::default(),
             senders: Arc::default(),
             last_agent: None,
+            reach: Arc::default(),
+            #[cfg(debug_assertions)]
+            reach_exact: true,
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -3330,6 +3348,12 @@ impl ReactiveSession {
             .evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         session.rebuild_departure_index();
+        // Restore reads it only where a record can depart (finding D054).
+        if session.windowed() || cfg!(debug_assertions) {
+            session.reach = Arc::new(session.history_reach());
+        }
+        #[cfg(debug_assertions)]
+        session.check_history_reach_held(None);
         Ok(session)
     }
 
@@ -5835,6 +5859,8 @@ impl ReactiveSession {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::FinalSettlement);
         self.settle_archive_provenance(Some(old), true);
+        #[cfg(debug_assertions)]
+        self.check_history_reach_held(Some(old));
         Ok(())
     }
 
