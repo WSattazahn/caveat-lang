@@ -154,7 +154,9 @@ each other (D062):
   not by a `release`. Of a revision on hold it is a withdrawal breaking
   through: the program has a `withdraw`, and the entry cites every deferred
   cause.
-- No revision is committed while the one before it is on hold.
+- No revision is committed while the one before it is on hold, or in
+  force: only a reopening lets a series take its next revision, and its
+  `reopened` entry follows every other entry of the revision.
 - Every reopening journals a `reopened` entry, and no entry of its revision
   follows it. So the entries of a revision that the graph shows reopened end
   with its `reopened` one.
@@ -265,6 +267,9 @@ the 30 that do not load give the same error. No accepted program changes.
   the program, and not to each other, so it accepted a save whose journal
   left out the `held` entry of a hold in force, the `deferred` entry of a
   cause still deferred, or the `released` entry of a hold that had ended.
+  It also accepted a next revision after a hold released with nothing
+  deferred and never reopened, the hold's entries standing in for the
+  reopening.
   Section 4 now says what a revision's entries, its series, its reopening
   record and the graph's reopening of it must agree on, and what a windowed
   journal leaves unsaid, which is nothing for a series no rule or procedure

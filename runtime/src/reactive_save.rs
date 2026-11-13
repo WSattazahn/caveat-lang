@@ -1669,7 +1669,9 @@ impl ReactiveSession {
     /// - any other `reopened` entry is a `reopen`'s or a trigger's of its
     ///   event. Of a revision on hold it is a withdrawal breaking through:
     ///   the program withdraws, and the entry cites every deferred cause;
-    /// - no revision is committed while the one before it is on hold;
+    /// - no revision is committed while the one before it is on hold, or in
+    ///   force: a series takes its next revision once the current one is
+    ///   reopened;
     /// - a revision the graph shows reopened has its entries end with its
     ///   reopening, since every reopening journals one and none follows it;
     /// - a series' `on_hold` and `deferred` are what its current revision's
@@ -1770,6 +1772,16 @@ impl ReactiveSession {
                         )));
                     }
                     settled(before)?;
+                    // Nor in force: only a reopening lets a series take its
+                    // next revision, and its `reopened` entry follows every
+                    // other entry of the revision, so the journal holds it
+                    // when it holds any of them.
+                    if !before.reopened {
+                        return Err(fail(format!(
+                            "{revision} is committed while {} is in force",
+                            before.revision
+                        )));
+                    }
                 }
                 committed.insert(revision);
                 holds.insert(decision, unheld(revision, true));

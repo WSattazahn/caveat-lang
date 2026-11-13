@@ -623,6 +623,41 @@ fn no_revision_follows_one_on_hold() {
     );
 }
 
+/// Nor while it is in force. A release with nothing deferred leaves its
+/// revision in force, and only a reopening, which journals its entry after
+/// every other entry of the revision, lets the series take the next one.
+/// With that entry and the graph's reopening taken out, the hold's entries
+/// do not stand in for them.
+#[test]
+fn no_revision_follows_one_in_force() {
+    let save = plays_and_restores(
+        HOLD,
+        &["seee", "seef", "seeg", "dec", "pause", "rel", "go", "dec"],
+    );
+    assert_eq!(
+        journal(&save),
+        [
+            "d@1 committed",
+            "d@1 held e",
+            "d@1 released g",
+            "d@1 reopened f",
+            "d@2 committed"
+        ]
+    );
+    assert_eq!(save["graph"]["open"], json!(["d@1"]), "{save}");
+    let mut forged = without(&save, "reopened");
+    forged["graph"]["open"] = json!([]);
+    forged["graph"]["relations"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|relation| relation[1] != "reopens");
+    refused(
+        HOLD,
+        &forged,
+        "decision journal: d@2 is committed while d@1 is in force",
+    );
+}
+
 /// A hold and its release each join the revision's reopening record. With
 /// both entries gone the series and the journal agree, and the record is
 /// left with nothing that made it.
