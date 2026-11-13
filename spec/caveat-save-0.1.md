@@ -204,15 +204,37 @@ save is refused with an error, and never crashes the runtime, when:
   a cause. What an effect evaluates (its guard, its values, what it cites or
   selects, and a call's arguments) flows into what it writes, skipped or
   not; a procedure's steps run on what any call of it passes; a parameter
-  grounds a value on what its argument gives grounds, and in a program
-  without a window also on what the argument carries, its whole lineage, as
-  releases before rc.12 grounded it, since only such a program can have a
-  save that old, and a step's grounds take an argument only through the
-  parameter the step reads; a reopening
+  grounds a value on what its argument gives grounds, and in a program a
+  release before rc.12 may have loaded also on what the argument carries,
+  its whole lineage, as those releases grounded it, since only such a
+  program can have a save that old, and a step's grounds take an argument
+  only through the parameter the step reads; a reopening
   trigger reads its condition and the stream it watches, whose reading it
-  names as the cause; and each declaration carries what it leaves. A read
-  carries the parts the runtime reads for it, and no other part of what it
-  names. A read of evidence or of a stream carries the record's name and
+  names as the cause; and each declaration carries what it leaves. No
+  release before rc.12 loads a program that, as it loaded, declares a
+  window, a threshold, an agent, `work skips other routes`, an irreversible
+  series or one that forecloses, an integer clock, a state `unset` or a
+  `reopened by changed` trigger, or has, in a rule, a procedure, a template
+  a call specializes, a binding or a define: `unqualify`, `unset`,
+  `resolve`, `hold`, `release`, `withdraw every`, a withdrawal of, a
+  reopening because of or a qualification of `occurrence(...)` or
+  `reading(...)`, a qualification of `latest(...)`, a neutral sample or one
+  `noting` or `with`, a commit `citing` or `retaining ... because`, or the
+  expressions `in_basis`, `grounds_of`, `outcome`, `resolved`, `on_hold`,
+  `is_set`, a threshold's value, `carries_any`, `carries` asked of
+  `latest(...)`, `occurrence(...)`, `reading(...)` or `revision(...)`, and
+  `only_if` unless the program of a bundle declares a function
+  `MODULE__only_if` for one of its modules, which those releases call for it
+  in that module when the module declares `only_if` as something else
+  (finding D083). Each came after rc.11, as the release binaries from rc.1
+  to rc.11 confirm. The check reads only what the loaded program keeps, so a
+  program keeps the wider bound when its only later construct sits in a
+  state's initial value, in a function nothing the loaded program keeps
+  calls or in a template no call specializes, or is a nested `for` block or
+  an across-members form, which leave nothing once expanded (what they
+  expand to is read like the rest), or an expansion larger than rc.11
+  allowed. A read carries the parts the runtime reads for it, and no
+  other part of what it names. A read of evidence or of a stream carries the record's name and
   what its observation and `observed` records can hold, and a read of a
   stream also what its readings and its selection can; a value read of a
   stream, and `has_sample`, is bounded as any other read of it, though the
@@ -501,6 +523,20 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-13 (D083): a procedure's parameter grounds, for restore's bound,
+  on what its argument carries only in a program a release before rc.12 may
+  have loaded, not in every program without a window. D061 gave the
+  allowance to every program without a window, but one that uses something
+  the language gained after rc.11 has no save that old either: in a program
+  that sets `g` with `only_if`, which came in 1.4.0, and passes `g` to a
+  procedure that sets `sc`, a save whose `sc` grounds were its lineage
+  restored, and a commitment using `sc` then rested on what `g` carried, so
+  `rests_on_withdrawn` answered yes where the saved session answers no.
+  Restore now refuses those grounds there ("state sc grounds: no rule or
+  declaration of this program carries records of x into it"), and a
+  program rc.11 loads keeps them. "Restore validation" lists the
+  constructs the check reads, each checked against the release binaries
+  from rc.1 to rc.11.
 - 2026-11-13 (D061): restore applies the bound of D054 in every program,
   not only in one with a window. A program without a window keeps no
   departure marker, but its provenances and causes name records all the

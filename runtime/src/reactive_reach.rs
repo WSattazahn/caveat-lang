@@ -40,9 +40,11 @@
 //! as no cause.
 //!
 //! A procedure's parameter grounds on what its argument gives grounds. In a
-//! program without a window it also grounds on what the argument carries,
-//! its whole lineage, as releases before rc.12 grounded it (F268): a save of
-//! such a program can be that old, and windows came in rc.15 (D061). Each
+//! program a release before rc.12 may have loaded it also grounds on what
+//! the argument carries, its whole lineage, as those releases grounded it
+//! (F268): a save of such a program can be that old (D061). A window rules
+//! that out, and so does what else the language gained after rc.11 that the
+//! loaded program keeps, as `may_load_before_rc12` lists it (D083). Each
 //! parameter has its own bound, and a step's grounds take a call's argument
 //! only through the parameter the step reads, as `evaluate_grounds` reads a
 //! parameter by its name: a step that reads none, such as `set s = 5`, takes
@@ -155,8 +157,8 @@ pub(crate) enum Owner {
     /// call of it.
     Call(String),
     /// What a procedure's parameter grounds on: what the argument every call
-    /// passes for it gives grounds, and in a program without a window what
-    /// that argument carries too (D061).
+    /// passes for it gives grounds, and in a program a release before rc.12
+    /// may have loaded what that argument carries too (D061, D083).
     Parameter(String, String),
     /// What a withdrawal predicate's lineage takes: the reason of every
     /// withdrawal, read through its records.
@@ -227,11 +229,16 @@ struct Flows<'a> {
     /// steps reads that is no state is its parameter of that name, as
     /// `evaluate` and `evaluate_grounds` look names up.
     procedure: Option<&'a Procedure>,
+    /// Whether a parameter grounds on what its argument carries as well,
+    /// as releases before rc.12 grounded it (F268): only in a program such
+    /// a release may have loaded (`may_load_before_rc12`).
+    wide_parameters: bool,
 }
 
 impl<'a> Flows<'a> {
     fn new(session: &'a ReactiveSession) -> Self {
         let mut flows = Self {
+            wide_parameters: session.may_load_before_rc12(),
             session,
             histories: HashMap::default(),
             record_owners: Vec::new(),
@@ -655,10 +662,11 @@ impl<'a> Flows<'a> {
                 // A parameter grounds a value as its argument would inline:
                 // on what the argument gives grounds, never on the call's
                 // guard. Releases before rc.12 grounded it on the argument's
-                // whole lineage (F268), and only a program without a window
-                // can have a save that old, so there it takes what the
-                // argument carries too (D061). Each parameter has its own
-                // bound, which only a step that reads it takes (`grounds`).
+                // whole lineage (F268), and only a program such a release
+                // may have loaded can have a save that old, so there it takes
+                // what the argument carries too (D061, D083). Each parameter
+                // has its own bound, which only a step that reads it takes
+                // (`grounds`).
                 for argument in passed {
                     self.expression(argument, &mut sources);
                 }
@@ -669,7 +677,7 @@ impl<'a> Flows<'a> {
                 for (parameter, argument) in parameters.iter().zip(passed) {
                     let mut grounds = Sources::default();
                     self.grounds(argument, &mut grounds);
-                    if !session.windowed() {
+                    if self.wide_parameters {
                         self.expression(argument, &mut grounds);
                     }
                     self.connect(&grounds, Owner::Parameter(name.clone(), parameter.clone()));
@@ -1119,7 +1127,121 @@ impl std::fmt::Display for Place<'_> {
     }
 }
 
+/// Whether an effect, as the program loaded it, is a form or holds an
+/// expression that no release before rc.12 reads (D083): `unqualify`,
+/// `unset`, `resolve`, `hold` and `release`; a withdrawal of `every` stream
+/// or of an occurrence, a reopening because of one, and a qualification of
+/// one or of `latest(…)`; a neutral sample, one `noting` an identifier or
+/// `with` caveats; and a commit `citing` grounds or `retaining` a caveat
+/// `because` evidence. The match is exhaustive, so a new effect must say
+/// whether those releases read it.
+fn effect_after_rc11(effect: &Effect, only_if: bool) -> bool {
+    let after = |expression: &Expr| expression.has_form_after_rc11(only_if);
+    match effect {
+        Effect::Unqualify { .. } | Effect::Unset { .. } | Effect::Resolve(_) => true,
+        Effect::Withdraw { target, .. } => matches!(
+            target,
+            EvidenceSelector::Occurrence { .. } | EvidenceSelector::Every(_)
+        ),
+        Effect::Reopen { because, form, .. } => {
+            *form != DecisionChange::Reopen
+                || matches!(because, EvidenceSelector::Occurrence { .. })
+        }
+        Effect::Qualify {
+            after: delay,
+            index,
+            latest,
+            ..
+        } => index.is_some() || *latest || delay.as_ref().is_some_and(after),
+        Effect::Sample {
+            value,
+            stance,
+            note,
+            with,
+            ..
+        } => stance.is_none() || note.is_some() || with.is_some() || after(value),
+        Effect::Commit {
+            using,
+            citing,
+            permission,
+            reasons,
+            ..
+        } => {
+            !citing.is_empty()
+                || !reasons.is_empty()
+                || using.as_ref().is_some_and(after)
+                || permission
+                    .as_ref()
+                    .and_then(|permission| permission.scope.as_ref())
+                    .is_some_and(after)
+        }
+        Effect::Set { value, because, .. } => after(value) || because.iter().flatten().any(after),
+        Effect::Call { arguments, .. } => arguments.iter().any(after),
+        Effect::Emit { .. }
+        | Effect::Reject { .. }
+        | Effect::Renew { .. }
+        | Effect::Observe { .. }
+        | Effect::Reveal { .. }
+        | Effect::Examine { .. } => false,
+    }
+}
+
 impl ReactiveSession {
+    /// Whether a release before rc.12 may have loaded this program, so that
+    /// a save of it may be that old and ground a procedure's parameter as
+    /// those releases did (F268). Not when the program declares a window, a
+    /// threshold, an agent, `work skips other routes`, an irreversible
+    /// series, one that forecloses, an integer clock, a state `unset`, or a
+    /// reopening `changed` trigger, and not when a rule, a procedure as it
+    /// loaded, a binding or a define holds an effect or an expression that
+    /// no such release reads (`effect_after_rc11`,
+    /// `Expr::has_form_after_rc11`): each came in a later release, so no
+    /// release before rc.12 loads a program that has one (D083). `only_if`
+    /// counts unless the program of a bundle declares a function
+    /// `MODULE__only_if` for one of its modules (`flat_only_if`), which a
+    /// release before rc.12 calls for it in that module when the module
+    /// declares `only_if` as something other than a function. What the
+    /// loaded program does not keep is not looked at, so a program whose
+    /// only later construct is there still may: a state's initial value, a
+    /// function that nothing the loaded program keeps calls, a template no
+    /// call specializes, and an expansion larger than rc.11 allowed (D034).
+    /// Nor are a nested `for` block and an across-members form, which leave
+    /// nothing once expanded; what they expand to is looked at.
+    pub(crate) fn may_load_before_rc12(&self) -> bool {
+        let only_if = !self.flat_only_if;
+        let after = |expression: &Expr| expression.has_form_after_rc11(only_if);
+        let declares_later = self.windowed()
+            || self.has_thresholds
+            || self.routed_work
+            || !self.agents.is_empty()
+            || !self.irreversible.is_empty()
+            || !self.foreclosures.is_empty()
+            || self.integer_clock()
+            || self.ranges.values().any(|range| range.unset)
+            || self
+                .reopening_triggers
+                .iter()
+                .any(|(_, triggers, _)| triggers.iter().any(|trigger| trigger.changed));
+        let holds_later = || {
+            self.rules.iter().any(|rule| {
+                after(&rule.condition) || effect_after_rc11(&rule.effect, only_if)
+            }) || self.procedures.values().any(|procedure| {
+                procedure
+                    .body
+                    .iter()
+                    .any(|step| after(&step.condition) || effect_after_rc11(&step.effect, only_if))
+            }) || self.binding_rules.iter().any(|binding| {
+                after(&binding.condition)
+                    || matches!(&binding.value, BindingExpression::Expression(value) if after(value))
+                    || binding.because.iter().flatten().any(after)
+            }) || self
+                .define_rules
+                .iter()
+                .any(|(_, expression)| after(expression))
+        };
+        !(declares_later || holds_later())
+    }
+
     /// The bound of finding D054, from the program as it loaded.
     pub(crate) fn history_reach(&self) -> HistoryReach {
         let mut flows = Flows::new(self);
@@ -1575,5 +1697,181 @@ on go renew e;
         assert!(session
             .history_reach_bound()
             .carries(&Owner::StateGrounds("s".into()), "e"));
+    }
+
+    /// A program every release from rc.1 to rc.11 loads, to which each case
+    /// below adds lines.
+    const BASE: &str = "claim c;
+evidence e from \"e\";
+state s = 0;
+event go;
+on go set s = s + 1;
+";
+
+    /// Lines that make a program no release from rc.1 to rc.11 loads, each
+    /// checked against those releases' binaries (D083): a declaration, an
+    /// effect or an expression that came later, and such an expression in
+    /// each place the loaded program keeps one.
+    const LATER: [(&str, &str); 55] = [
+        ("journal window", "journal window 5;"),
+        ("readings window", "readings r from e window 3;"),
+        ("renewable window", "renewable e window 3;"),
+        ("threshold", "threshold t = 3;"),
+        ("routed work", "work skips other routes;"),
+        ("agent", "agent bot sends go;"),
+        ("irreversible", "decisions d limit 1 irreversible;"),
+        ("strict", "decisions d limit 1 irreversible strict;"),
+        ("forecloses", "decisions d2 limit 3;\ndecisions d limit 3 forecloses d2;"),
+        ("integer clock", "event advance dt min 0 max 1;\nclock advance every 1 integer;"),
+        ("unset state", "state u unset;"),
+        ("changed trigger", "readings r from e limit 3;\ndecisions d limit 3 reopened by changed r;"),
+        ("unqualify", "caveat k consequence low;\non go reveal e supports c;\non go unqualify e with k;"),
+        ("qualify occurrence", "renewable e limit 2;\ncaveat k consequence low;\non go qualify occurrence(e, 1) with k;"),
+        ("qualify latest", "readings r from e limit 2;\ncaveat k consequence low;\non go sample r = s supports c;\non go qualify latest(r) with k;"),
+        ("withdraw occurrence", "renewable e limit 2;\nevidence w from \"w\";\non go reveal w supports c;\non go withdraw occurrence(e, 1) because w;"),
+        ("withdraw every", "readings r from e limit 2;\nevidence w from \"w\";\non go reveal w supports c;\non go withdraw every r because w;"),
+        ("reopen because a reading", "readings r from e limit 2;\ndecisions d limit 3;\non go commit d because enough;\non go reopen d because reading(r, 1);"),
+        ("hold", "decisions d limit 3;\non go reveal e supports c;\non go commit d because enough;\non go hold d because e;"),
+        ("release", "decisions d limit 3;\non go reveal e supports c;\non go commit d because enough;\non go release d because e;"),
+        ("resolve", "decisions d limit 3;\non go reveal e supports c;\non go commit d because enough;\non go resolve d = 1 because e;"),
+        ("neutral sample", "readings r from e limit 2;\non go sample r = s;"),
+        ("sample noting", "readings r from e limit 2;\non go sample r = s supports c noting s;"),
+        ("sample with", "readings r from e limit 2;\ncaveat k consequence low;\non go sample r = s supports c with k;"),
+        ("commit citing", "decisions d limit 3;\non go commit d because enough citing s;"),
+        ("retaining because", "decisions d limit 3;\ncaveat k consequence low;\nk qualifies e;\non go reveal e supports c;\non go commit d because enough retaining k because e;"),
+        ("only_if", "on go set s = only_if(s > 0, 1);"),
+        ("in_basis", "decisions d limit 3;\non go when in_basis(d, e) set s = 1;"),
+        ("observed occurrence", "renewable e limit 3;\non go when observed(occurrence(e, 1)) set s = 1;"),
+        ("withdrawn reading", "readings r from e limit 3;\non go when withdrawn(reading(r, 1)) set s = 1;"),
+        ("carries latest", "readings r from e limit 3;\ncaveat k consequence low;\non go when carries(latest(r), k) set s = 1;"),
+        ("revision", "decisions d limit 3;\non go when rests_on_withdrawn(revision(d, 1)) set s = 1;"),
+        ("resolved revision", "decisions d limit 3;\non go when resolved(revision(d, 1)) set s = 1;"),
+        ("grounds_of", "decisions d limit 3;\non go when committed(d) set s = grounds_of(d);"),
+        ("resolved", "decisions d limit 3;\non go when resolved(d) set s = 1;"),
+        ("outcome", "decisions d limit 3;\non go when committed(d) set s = outcome(d);"),
+        ("on_hold", "decisions d limit 3;\non go when on_hold(d) set s = 1;"),
+        ("carries_any", "on go when carries_any(e) set s = 1;"),
+        ("carries_any reading", "readings r from e limit 3;\non go when carries_any(reading(r, 1), negligible) set s = 1;"),
+        ("only_if in a step", "proc p(v) { set s = only_if(v > 0, v); };\non go call p(1);"),
+        ("only_if in an uncalled procedure", "proc p(v) { set s = only_if(v > 0, v); };"),
+        ("only_if in a template", "proc t(x evidence) { set s = only_if(observed(x), 1); };\non go call t(e);"),
+        ("only_if in a guard", "on go when only_if(s > 0, 1) > 0 set s = 1;"),
+        ("only_if in a binding", "bind hud.score = only_if(s > 0, s);"),
+        ("only_if in a define", "define dd = only_if(s > 0, 1);"),
+        ("only_if in a for block", "place p kind room;\nentity a kind beast at p;\nfor beast as $x {\n    on go set s = only_if(s > 0, 1);\n};"),
+        ("only_if in a call's argument", "proc p(v) { set s = v; };\non go call p(only_if(s > 0, 1));"),
+        ("only_if in a step's guard", "proc p(v) { when only_if(v > 0, 1) > 0 set s = v; };\non go call p(1);"),
+        ("only_if in a commit's using", "decisions d limit 3;\non go commit d because enough using only_if(s > 0, 1);"),
+        ("only_if in a permission's scope", "readings r from e limit 2;\ndecisions d limit 3;\non go sample r = s supports c;\non go commit d because enough permitted by latest(r) for only_if(s > 0, s);"),
+        ("only_if in a qualify's delay", "event tick dt min 0 max 0.1;\ncaveat k consequence low;\non go reveal e supports c;\non go qualify e with k after only_if(s > 0, 5);"),
+        ("only_if in a sample's value", "readings r from e limit 2;\non go sample r = only_if(s > 0, 1) supports c;"),
+        ("only_if in a set's because", "on go reveal e supports c;\non go set s = 1 because only_if(s > 0, 1);"),
+        ("only_if in a binding's condition", "bind hud.score = s when only_if(s > 0, 1) > 0;"),
+        ("only_if in a binding's because", "bind hud.score = s because only_if(s > 0, 1);"),
+    ];
+
+    /// Lines that keep a program rc.11 loads, each checked against its
+    /// binary: names spelled like a later word, functions named like a
+    /// later form, and forms rc.11 reads.
+    const OLDER: [(&str, &str); 31] = [
+        ("base", ""),
+        ("procedure", "proc p(v) { set s = v; };\non go call p(1);"),
+        ("state named unset", "state unset = 0;"),
+        ("evidence named threshold", "evidence threshold from \"t\";\nthreshold supports c;"),
+        ("evidence named work", "evidence work from \"w\";\nwork supports c;"),
+        ("series named strict", "decisions strict limit 3;"),
+        ("stream named changed", "readings changed from e limit 2;\ndecisions d limit 3 reopened by changed;"),
+        ("evidence named every", "evidence every from \"x\";\non go reveal e supports c;\non go reveal every supports c;\non go withdraw every because e;"),
+        ("fn only_if", "fn only_if(a, b) = a + b;\non go set s = only_if(s, 1);"),
+        ("fn outcome", "fn outcome(a) = a * 2;\non go set s = outcome(s);"),
+        ("fn carries_any", "fn carries_any(a) = a;\non go set s = carries_any(s);"),
+        ("fn in_basis", "state t = 0;\nfn in_basis(a, b) = a + b;\non go set s = in_basis(s, t);"),
+        ("fn is_set", "fn is_set(a) = a > 0;\non go when is_set(s) set s = 0;"),
+        ("withdrawn latest", "readings r from e limit 3;\non go when withdrawn(latest(r)) set s = 1;"),
+        ("rests_on_withdrawn", "decisions d limit 3;\non go when rests_on_withdrawn(d) set s = 1;"),
+        ("history", "decisions d limit 3;\non go set s = history_count(d);"),
+        ("fold", "readings r from e limit 3;\nfn add(a, b) = a + b;\non go set s = fold_history(r, 0, add);"),
+        ("has_sample", "readings r from e limit 3;\non go when has_sample(r) set s = 1;"),
+        ("qualify after", "event tick dt min 0 max 0.1;\ncaveat k consequence low;\non go reveal e supports c;\non go qualify e with k after 5;"),
+        ("permitted", "decisions d limit 3;\nevidence g from \"g\";\non go reveal g supports c;\non go commit d because enough permitted by g;"),
+        ("retaining", "decisions d limit 3;\ncaveat k consequence low;\nk qualifies e;\non go commit d because enough retaining k;"),
+        ("reopen latest", "decisions d limit 3;\nreadings r from e limit 2;\non go sample r = s supports c;\non go commit d because enough;\non go reopen d because latest(r);"),
+        ("withdraw latest", "evidence w from \"w\";\nreadings r from e limit 2;\non go reveal w supports c;\non go sample r = s supports c;\non go withdraw latest(r) because w;"),
+        ("neutral reveal", "on go reveal e;"),
+        ("step guard", "proc p(v) { when v > 0 set s = v; };\non go call p(1);"),
+        ("commit using", "decisions d limit 3;\non go commit d because enough using s;"),
+        ("permission scope", "readings r from e limit 2;\ndecisions d limit 3;\non go sample r = s supports c;\non go commit d because enough permitted by latest(r) for s;"),
+        ("sample value", "readings r from e limit 2;\non go sample r = 1 supports c;"),
+        ("set because", "on go reveal e supports c;\non go set s = 1 because s;"),
+        ("binding condition", "bind hud.score = s when s > 0;"),
+        ("binding because", "bind hud.score = s because s;"),
+    ];
+
+    /// A parameter grounds on what its argument carries only in a program a
+    /// release before rc.12 may have loaded (D083): `LATER`'s lines each
+    /// rule that out, `OLDER`'s do not.
+    #[test]
+    fn only_a_program_an_old_release_may_load_keeps_old_parameter_grounds() {
+        for (lines, may) in [(&LATER[..], false), (&OLDER[..], true)] {
+            for (case, line) in lines {
+                let source = format!("{BASE}{line}\n");
+                let session = ReactiveSession::from_source(&source)
+                    .unwrap_or_else(|error| panic!("{case}: {error}"));
+                assert_eq!(session.may_load_before_rc12(), may, "{case}");
+            }
+        }
+    }
+
+    /// In a bundle module that declares `only_if` as a state, this runtime
+    /// reads `only_if(…)` as the form. Releases before rc.12 read it as a
+    /// call of the root's function `m__only_if`, and load the bundle when
+    /// the root declares one, so there the form is no sign of a later
+    /// program; without that function they refuse the bundle (D083). There
+    /// the call takes numbers, and here the form's condition is a truth
+    /// value: this runtime loads the module only because its linker leaves
+    /// `hold` bare two words before `because`, so that `hold` reads the
+    /// root's define, where those releases flattened it to the module's
+    /// numeric state (finding D088). A function named like that for no
+    /// module, or a module's own `fn only_if`, leaves `only_if` counted, and
+    /// so does a single file.
+    #[test]
+    fn only_if_beside_a_flattened_function_keeps_old_parameter_grounds() {
+        const MODULE: &str = "module m;
+state only_if = 0;
+state hold = 0;
+state u = 0;
+event tick;
+on tick set u = only_if( hold , because );
+";
+        let root = format!("use m;\n{BASE}state because = 1;\ndefine hold = s > 0;\n");
+        let bundle = |module: &str, root: &str| {
+            format!(
+                "#caveat-bundle 1\n#module m {}\n{module}#module main {}\n{root}",
+                module.len(),
+                root.len()
+            )
+        };
+        let may = |source: &str| {
+            ReactiveSession::from_source(source)
+                .unwrap_or_else(|error| panic!("{source}: {error}"))
+                .may_load_before_rc12()
+        };
+        assert!(may(&bundle(
+            MODULE,
+            &format!("{root}fn m__only_if(c, v) = v;\n")
+        )));
+        assert!(!may(&bundle(MODULE, &root)));
+        assert!(!may(&bundle(
+            MODULE,
+            &format!("{root}fn other__only_if(c, v) = v;\n")
+        )));
+        let form = format!("use m;\n{BASE}on go set s = only_if(s > 0, 1);\n");
+        assert!(!may(&bundle(
+            "module m;\nfn only_if(c, v) = c * v;\n",
+            &form
+        )));
+        assert!(!may(&format!(
+            "{BASE}fn m__only_if(c, v) = v;\non go set s = only_if(s > 0, 1);\n"
+        )));
     }
 }

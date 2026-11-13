@@ -13,7 +13,10 @@
 //! carries, its whole lineage, as releases before rc.12 grounded it (F268).
 //! Only a program without a window can have a save that old, since windows
 //! came in rc.15, and `parameter_grounds.rs` restores the rc.11 save that
-//! holds such grounds. See spec/caveat-save-0.1.md ("Changes").
+//! holds such grounds. Since D083 a program without a window keeps that
+//! allowance only when, as it loaded, it keeps none of the later constructs
+//! `may_load_before_rc12` lists (`d083_later_programs_parameter_grounds.rs`).
+//! See spec/caveat-save-0.1.md ("Changes").
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::{json, Value};
 

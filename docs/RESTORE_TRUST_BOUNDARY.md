@@ -247,22 +247,27 @@ declaration makes is the program's: a save holds none, and restore makes it
 again from the source, so its cause, which can be a caveat, a claim or a
 commitment, is not read.
 
-D054 applied this only to a program with a window, where a record can
-depart. A program without one keeps no marker, but its provenances and causes
-name records all the same, and the caveats and grounds that follow a name
-came with a forged one: a lineage citing evidence that no rule carries into
-its state restored, and later events kept it (D061). Restore applies the
-bound to every program now. One part is wider in a program without a window:
-a procedure's parameter there grounds on what its argument carries, its
-whole lineage, as well as on what the argument gives grounds, because
-releases before rc.12 grounded a parameter so (F268), and only such a program
-can have a save that old, since windows came in rc.15. The rc.11 save that
-`runtime/tests/parameter_grounds.rs` restores holds such grounds. Each
-parameter has its own bound, and a step's grounds take an argument only
-through the parameter the step reads, as the runtime grounds it: D054 gave
-each step's grounds what all of a call's arguments give grounds, so grounds
-naming what an argument reads restored on a step such as `set s = 5`, with
-a window or without one, though no release grounds that step on anything.
+D054 applied this only to a program with a window, where a record can depart.
+A program without one keeps no marker, but its provenances and causes name
+records all the same, and the caveats and grounds that follow a name came
+with a forged one: a lineage citing evidence that no rule carries into its
+state restored, and later events kept it (D061). Restore applies the bound to
+every program now. One part is wider in a program a release before rc.12 may
+have loaded: a procedure's parameter there grounds on what its argument
+carries, its whole lineage, as well as on what the argument gives grounds,
+because those releases grounded a parameter so (F268), and only such a
+program can have a save that old. D061 took every program without a window
+for one, since windows came in rc.15, but a program that uses something else
+the language gained after rc.11, such as `only_if`, has no such save either:
+where the program as it loaded keeps one of the constructs
+[Save 0.1](../spec/caveat-save-0.1.md) lists, restore keeps the narrower
+bound (D083). The rc.11 save that `runtime/tests/parameter_grounds.rs`
+restores holds such grounds. Each parameter has its own bound, and a step's
+grounds take an argument only through the parameter the step reads, as the
+runtime grounds it: D054 gave each step's grounds what all of a call's
+arguments give grounds, so grounds naming what an argument reads restored on
+a step such as `set s = 5`, with a window or without one, though no release
+grounds that step on anything.
 
 `history_reach` in [reactive_reach.rs](../runtime/src/reactive_reach.rs)
 derives the bound once per loaded program, when restore first needs it, and
@@ -364,8 +369,9 @@ name and cause a session holds is within the bound, so a flow the bound
 misses fails any test that plays it, rather than refusing a save the runtime
 wrote. Since restore reads the bound in every program (D061), every session
 it makes is within it, and the checks apply to each. The fixtures are in
-[d054_markers_no_rule_carries_refused.rs](../runtime/tests/d054_markers_no_rule_carries_refused.rs)
-and [d061_windowless_names_bounded.rs](../runtime/tests/d061_windowless_names_bounded.rs).
+[d054_markers_no_rule_carries_refused.rs](../runtime/tests/d054_markers_no_rule_carries_refused.rs),
+[d061_windowless_names_bounded.rs](../runtime/tests/d061_windowless_names_bounded.rs)
+and [d083_later_programs_parameter_grounds.rs](../runtime/tests/d083_later_programs_parameter_grounds.rs).
 
 ## Memberships and their records (rc.13)
 
