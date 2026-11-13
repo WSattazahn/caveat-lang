@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run a command that downloads something, such as `rustup toolchain install`,
+# up to five times, 20 seconds apart, while it fails. One dropped connection
+# to a download server should not fail a job: rustup gives up on the first
+# one, and a single connect timeout to static.rust-lang.org failed a job
+# while five other jobs of its run fetched the same toolchain. Each retry
+# leaves a warning on the run, and a command that fails five times fails the
+# step with its last exit status.
+#   .github/ci/retry-download.sh <command> [args...]
+set -uo pipefail
+attempts=5
+for ((attempt = 1; attempt <= attempts; attempt++)); do
+  "$@" && exit 0
+  status=$?
+  if [ "$attempt" -eq "$attempts" ]; then
+    echo "::error::'$*' failed $attempts times (exit $status)"
+    exit "$status"
+  fi
+  echo "::warning::'$*' failed (exit $status, attempt $attempt of $attempts); trying again in 20 s"
+  sleep 20
+done

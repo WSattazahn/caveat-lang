@@ -133,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
@@ -321,7 +321,7 @@ jobs:
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
         if: env.REUSED != 'true'
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - if: env.REUSED != 'true'
         run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - if: env.REUSED != 'true'
@@ -390,7 +390,7 @@ jobs:
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
         if: env.REUSED != 'true'
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - name: Lint the reactive-only runtime
         if: env.REUSED != 'true'
         run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
@@ -437,7 +437,7 @@ jobs:
         run: df -h / && free -m
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - name: Maximum supported call depth on the optimized default stack
         run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
       - name: Withdrawal collector at the real storage capacity
@@ -478,7 +478,7 @@ jobs:
         run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
         if: env.REUSED != 'true'
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - if: env.REUSED != 'true'
         uses: actions/cache@v5
         with:
@@ -583,7 +583,7 @@ jobs:
           node-version: 22
       - name: Install the pinned Rust toolchain
         if: env.REUSED != 'true'
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - name: Install the pinned Lean toolchain
         if: env.REUSED != 'true'
         uses: ./.github/actions/lean-toolchain
@@ -652,7 +652,7 @@ jobs:
           path: first-build
       - name: Install the toolchain rust-toolchain.toml pins
         if: env.REUSED != 'true'
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - if: env.REUSED != 'true'
         uses: actions/cache@v5
         with:
@@ -786,10 +786,10 @@ jobs:
           key: cargo-audit-0.22.2-${{ runner.os }}
       - name: Install pinned Rust advisory checker locally
         run: |
-          rustup toolchain install
+          .github/ci/retry-download.sh rustup toolchain install
           test -x test-results/security-tools/bin/cargo-audit || cargo install cargo-audit --version 0.22.2 --locked --root test-results/security-tools
       - name: Fetch the current public RustSec advisory database
-        run: git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
+        run: .github/ci/retry-download.sh git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
       - name: Exercise security gate refusal controls
         run: node --test scripts/audit-kit-security.test.mjs scripts/kit-capabilities.test.mjs
       - name: Audit the exact tested package and its build lockfile
