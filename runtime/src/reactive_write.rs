@@ -16,6 +16,7 @@
 use super::relations::{Departed, Link, List, Relations};
 use super::*;
 use crate::idmap::IdMap;
+use crate::namemap::NameMap;
 use crate::ordmap::OrdMap;
 use crate::Edge;
 use std::fmt;
@@ -308,7 +309,7 @@ pub(super) struct SealedGraph {
 impl SealedGraph {
     fn new(graph: EpistemicGraph) -> Self {
         Self {
-            relations: Arc::new(Relations::new(&graph.edges)),
+            relations: Arc::new(Relations::new(&graph.edges.iter().collect::<Vec<_>>())),
             graph: Arc::new(graph),
             written: Written::Any,
         }
@@ -324,13 +325,9 @@ impl SealedGraph {
     /// every edge.
     fn added(&mut self) {
         let held = self.relations.held();
-        if let Some(edges) = self
-            .graph
-            .edges
-            .get(held..)
-            .filter(|edges| !edges.is_empty())
-        {
-            Arc::make_mut(&mut self.relations).add(edges);
+        let edges = self.graph.edges.iter_from(held).collect::<Vec<_>>();
+        if !edges.is_empty() {
+            Arc::make_mut(&mut self.relations).add(&edges);
         }
     }
 
@@ -413,7 +410,8 @@ impl SealedGraph {
     /// The relation lists hold exactly this graph's edges.
     #[cfg(any(debug_assertions, test))]
     pub(super) fn check(&self) {
-        self.relations.check(&self.graph.edges);
+        self.relations
+            .check(&self.graph.edges.iter().collect::<Vec<_>>());
     }
 
     fn note(&mut self, id: NodeId) {
@@ -451,7 +449,10 @@ impl SealedGraph {
     /// What this event did to the graph, where `old` is the session it began
     /// from: the edges it added, and the nodes it added or changed. `None` if
     /// it removed a node or changed an edge `old` holds.
-    pub(super) fn added_since<'a>(&'a self, old: &Self) -> Option<(&'a [Edge], BTreeSet<NodeId>)> {
+    pub(super) fn added_since<'a>(
+        &'a self,
+        old: &Self,
+    ) -> Option<(Vec<&'a Edge>, BTreeSet<NodeId>)> {
         let found = added(&self.graph, &old.graph, self.written.only());
         #[cfg(debug_assertions)]
         if self.written.only().is_some() {
@@ -471,10 +472,14 @@ fn added<'a>(
     new: &'a EpistemicGraph,
     old: &EpistemicGraph,
     written: Option<&BTreeSet<NodeId>>,
-) -> Option<(&'a [Edge], BTreeSet<NodeId>)> {
+) -> Option<(Vec<&'a Edge>, BTreeSet<NodeId>)> {
     let edges = match written {
-        Some(_) => new.edges.get(old.edges.len()..)?,
-        None => new.edges.strip_prefix(old.edges.as_slice())?,
+        Some(_) if new.edges.len() >= old.edges.len() => {
+            new.edges.iter_from(old.edges.len()).collect()
+        }
+        Some(_) => return None,
+        None if new.edges.starts_with(&old.edges) => new.edges.iter_from(old.edges.len()).collect(),
+        None => return None,
     };
     let mut nodes = BTreeSet::new();
     let mut check = |id: NodeId| -> Option<()> {
@@ -538,37 +543,71 @@ impl fmt::Debug for SealedGraph {
 /// write both together, so a copy of the table carries both.
 #[derive(Clone)]
 pub(super) struct NameTable {
-    by_name: Arc<HashMap<String, NodeId>>,
+    by_name: NameMap,
     by_node: Arc<NodeNames>,
 }
 
-impl Deref for NameTable {
-    type Target = Arc<HashMap<String, NodeId>>;
-
-    fn deref(&self) -> &Arc<HashMap<String, NodeId>> {
-        &self.by_name
+/// Two tables are equal when they name the same nodes by the same names; the
+/// names by node follow from those.
+impl PartialEq for NameTable {
+    fn eq(&self, other: &Self) -> bool {
+        self.by_name == other.by_name
     }
 }
 
-/// Prints what the names map's `Arc` printed, so a session's debug output is
-/// unchanged.
+/// Prints the names in name order.
 impl fmt::Debug for NameTable {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.by_name.fmt(formatter)
     }
 }
 
+impl std::ops::Index<&str> for NameTable {
+    type Output = NodeId;
+
+    fn index(&self, name: &str) -> &NodeId {
+        &self.by_name[name]
+    }
+}
+
 impl NameTable {
     fn new(by_name: HashMap<String, NodeId>) -> Self {
+        let mut names = NameMap::new();
         let mut by_node = NodeNames::default();
-        for (name, &id) in &by_name {
+        for (name, id) in by_name {
             debug_assert!(by_node.get(id).is_none(), "a node has one name");
-            by_node.set(id, Some(Arc::from(name.as_str())));
+            let shared = Arc::<str>::from(name);
+            by_node.set(id, Some(Arc::clone(&shared)));
+            names.insert(shared, id);
         }
         Self {
-            by_name: Arc::new(by_name),
+            by_name: names,
             by_node: Arc::new(by_node),
         }
+    }
+
+    /// The node named `name`.
+    pub(super) fn get(&self, name: &str) -> Option<&NodeId> {
+        self.by_name.get(name)
+    }
+
+    pub(super) fn contains_key(&self, name: &str) -> bool {
+        self.by_name.contains_key(name)
+    }
+
+    /// Each name and the node it names, in no order to rely on.
+    pub(super) fn iter(&self) -> impl Iterator<Item = (&str, &NodeId)> + '_ {
+        self.by_name.iter()
+    }
+
+    pub(super) fn keys(&self) -> impl Iterator<Item = &str> + '_ {
+        self.by_name.keys()
+    }
+
+    /// Whether the two tables share all they hold, so are the same table
+    /// without either being read.
+    pub(super) fn shares_all(&self, other: &Self) -> bool {
+        self.by_name.shares_all(&other.by_name) && Arc::ptr_eq(&self.by_node, &other.by_node)
     }
 
     /// The name of `id`'s record, if it has one.
@@ -589,8 +628,8 @@ impl NameTable {
             by_node.get(id).is_none_or(|held| held == name),
             "a node has one name"
         );
-        let shared = Arc::<str>::from(name.as_str());
-        if let Some(previous) = Arc::make_mut(&mut self.by_name).insert(name, id) {
+        let shared = Arc::<str>::from(name);
+        if let Some(previous) = self.by_name.insert(Arc::clone(&shared), id) {
             by_node.set(previous, None);
         }
         by_node.set(id, Some(shared));
@@ -598,7 +637,7 @@ impl NameTable {
 
     /// Removes `name`, and the name of the node it named.
     fn remove(&mut self, name: &str) {
-        if let Some(id) = Arc::make_mut(&mut self.by_name).remove(name) {
+        if let Some(id) = self.by_name.remove(name) {
             Arc::make_mut(&mut self.by_node).set(id, None);
         }
     }
@@ -607,11 +646,7 @@ impl NameTable {
     #[cfg(any(debug_assertions, test))]
     pub(super) fn check(&self) {
         for (name, &id) in self.by_name.iter() {
-            debug_assert_eq!(
-                self.by_node.get(id),
-                Some(name.as_str()),
-                "the name of node {id}"
-            );
+            debug_assert_eq!(self.by_node.get(id), Some(name), "the name of node {id}");
         }
         debug_assert_eq!(self.by_node.len(), self.by_name.len(), "names by node");
     }
@@ -1659,7 +1694,7 @@ mod tests {
         assert!(session.graph.unchanged_since(&before.graph));
         assert_eq!(
             session.graph.added_since(&before.graph),
-            Some((&[][..], BTreeSet::new()))
+            Some((Vec::new(), BTreeSet::new()))
         );
         session.set_node_attention(c, Attention::Examined);
         session.relate(e, Relation::Supports, ok);
@@ -1673,10 +1708,10 @@ mod tests {
         };
         assert_eq!(
             session.graph.added_since(&before.graph),
-            Some((std::slice::from_ref(&supports), BTreeSet::from([c])))
+            Some((vec![&supports], BTreeSet::from([c])))
         );
         // The copy taken before the event is untouched.
-        assert!(!before.graph.edges.contains(&supports));
+        assert!(!before.graph.edges.iter().any(|edge| *edge == supports));
         // A record departing removes its node and edges: the log no longer
         // says what changed, and the graph was not only added to.
         session.depart_records(&HashMap::from_iter([(e, String::from("e"))]), |_, _, _| {});
@@ -2025,11 +2060,7 @@ bind h.few = latest(few) when has_sample(few);
                 found.unwrap_or(usize::MAX)
             };
             let ranks = session.observation_ranks();
-            let mut names = session
-                .symbols
-                .keys()
-                .map(String::as_str)
-                .collect::<Vec<_>>();
+            let mut names = session.symbols.keys().collect::<Vec<_>>();
             names.push("nowhere");
             names.sort_unstable();
             for one in &names {

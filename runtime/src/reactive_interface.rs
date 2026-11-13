@@ -221,7 +221,7 @@ impl ReactiveSession {
                 Some(NodeKind::Claim { .. }) => "claim",
                 _ => continue,
             };
-            symbols.entry(kind).or_default().push(name.clone());
+            symbols.entry(kind).or_default().push(name.to_owned());
         }
         let mut names = |kind| {
             let mut names = symbols.remove(kind).unwrap_or_default();

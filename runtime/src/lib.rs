@@ -9,6 +9,7 @@ pub mod idmap;
 pub mod link;
 mod load_diagnostics;
 pub mod map;
+pub mod namemap;
 pub mod ordmap;
 pub mod parser;
 pub mod presentation;
@@ -28,6 +29,7 @@ pub mod web_source_library;
 pub mod world3d;
 
 pub mod fast_hash;
+use crate::chunked::Chunked;
 use crate::fast_hash::HashSet;
 use crate::idmap::IdMap;
 use std::collections::VecDeque;
@@ -121,7 +123,7 @@ pub struct QualificationImpact {
 pub struct EpistemicGraph {
     next_id: NodeId,
     pub nodes: IdMap<NodeKind>,
-    pub edges: Vec<Edge>,
+    pub edges: Chunked<Edge>,
     /// The part whose declarations are being read right now.
     authoring: Option<String>,
     /// Which part declared each node. A program with no `origin` statement
