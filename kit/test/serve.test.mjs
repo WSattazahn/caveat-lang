@@ -360,6 +360,10 @@ test('the serve command checkpoints an explicit binding selection before any new
     const ambiguous = run();
     assert.equal(ambiguous.status, 2, ambiguous.stderr);
     assert.equal(ambiguous.lines[0].ready, false);
+    // It is a save of the program, which needs its history chosen.
+    assert.equal(ambiguous.lines[0].error.kind, 'state');
+    assert.match(ambiguous.lines[0].error.message, /bindings\.save needs --restore-module-bindings scoped or legacy-hold-capture: /);
+    assert.doesNotMatch(ambiguous.lines[0].error.message, /is not a save of/);
     assert.equal(await readFile(state, 'utf8'), unmarkedBindingSave);
     for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
       await writeFile(state, unmarkedBindingSave);

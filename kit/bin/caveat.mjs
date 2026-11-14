@@ -619,6 +619,9 @@ async function writeState(file, text) {
   await rename(partial, file);
 }
 
+// The runtime's refusal of an unmarked save that needs a binding choice.
+const AMBIGUOUS_BINDINGS = 'this source has ambiguous historical module bindings';
+
 async function serveProgram(options) {
   const [program] = options.files;
   const write = value => process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -658,7 +661,12 @@ async function serveProgram(options) {
       try {
         runtime.open(inputs.source).close();
         kind = 'state';
-        message = `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
+        // A save of this program that older releases of both kinds could
+        // have written is refused until its history is chosen: it is still
+        // a save of the program.
+        message = error.message.includes(AMBIGUOUS_BINDINGS)
+          ? `${options.state} needs --restore-module-bindings scoped or legacy-hold-capture: ${error.message}`
+          : `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
       } catch (loadError) { message = loadError.message; }
     }
     write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });

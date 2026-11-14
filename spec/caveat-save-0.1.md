@@ -127,10 +127,12 @@ reads that string intact, then restores it and uses its signed zero in a decisio
 
 ## Module binding interpretation
 
-The module linker scopes a module's own names, including references named
-`hold` or `release`. Some older runtimes instead captured a same-named root
-declaration when such a reference appeared near `because`. Fresh loads now
-use the corrected scoped interpretation.
+The module linker scopes a module's references named `hold` or `release` as
+its own. Releases from 1.2.0 to 1.4.1 instead captured a same-named root
+declaration when such a reference appeared two words before `because`. Fresh
+loads now use the corrected scoped interpretation, and otherwise read a bundle
+as the newest release that could load it linked it
+([Caveat 0.5](caveat-0.5-draft.md)).
 
 For affected source, state saves and both replay-save formats carry the
 optional field `"module_bindings":"scoped"` or
@@ -141,9 +143,10 @@ must be one of these two strings.
 
 Restore selects the interpretation before applying saved state or replaying
 events. This runtime marks every save of affected source, so an unmarked one
-was written by a release: one before 1.2.0, which read a module's names as
-its own (`scoped`), or one from 1.2.0 to 1.4.1, which read a `hold` or
-`release` two words before `because` as the root's (`legacy-hold-capture`).
+was written by a release: one before 1.2.0, which read a module's `hold`
+and `release` as its own (`scoped`), or one from 1.2.0 to 1.4.1, which read
+a `hold` or `release` two words before `because` as the root's
+(`legacy-hold-capture`).
 An unmarked save uses the interpretation of the releases that could have
 loaded its source ([Caveat 0.5](caveat-0.5-draft.md)), as they linked it,
 even where a fresh load reads the source otherwise or refuses it. Where
@@ -153,8 +156,8 @@ explicit choice: the same source and initial save can have been written by
 an unmarked save uses the interpretation that loads, and requires a choice if
 both do. Saved state is not used to guess which history occurred. A save of
 another program, or of an edited source, is refused as such, as releases
-refuse it, before a marker or a choice is used and before a choice is asked
-for, since no choice could restore it.
+refuse an unmarked one, before a marker or a choice is used and before a
+choice is asked for, since no choice could restore it.
 
 In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
 or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use
@@ -583,10 +586,12 @@ validation and host trust mechanisms separately from this contract.
 - 2026-11-14 (D091, D088): saves of a bundle whose module's `hold` or
   `release` reads otherwise with root capture carry `module_bindings`
   ([Module binding interpretation](#module-binding-interpretation)). A fresh
-  session reads a module's names as its own. An unmarked save restores as
-  the releases that could have written it read the bundle, and needs a
-  choice only where releases of both kinds could have and read it
-  differently. A save of another program is refused as such before a
+  session reads a module's `hold` and `release` as its own, and otherwise a
+  bundle as the newest release that could load it linked it. An unmarked
+  save restores as the releases that could have written it read the bundle,
+  and needs a choice where releases of both kinds could have written it and
+  read it differently, or, where no release could load the source, where
+  both readings load. A save of another program is refused as such before a
   marker or a choice is used, and `legacy-hold-capture` is refused where
   only releases before 1.2.0 could load the source and root capture would
   change how they read it. Tests: `runtime/tests/module_binding_restore.rs`,

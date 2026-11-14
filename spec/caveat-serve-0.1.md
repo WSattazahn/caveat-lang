@@ -127,7 +127,9 @@ it or pass it to `restore` elsewhere.
 
 For an unmarked historical file that requires a choice, start with
 `caveat serve --state FILE --restore-module-bindings scoped PROGRAM`,
-or select `legacy-hold-capture` when that is its known history. The flag
+or select `legacy-hold-capture` when that is its known history. Started
+without the flag, the server reports such a file with `"kind":"state"` and a
+message naming the flag, and exits with status 2 without serving. The flag
 requires `serve`, `--state` and an existing state file. A successful
 explicit restore atomically checkpoints the marked save before the ready
 line, even without a new event. A refused restore leaves the file unchanged.

@@ -614,6 +614,6 @@ fn asking_for_hold_capture_where_no_release_read_it_reads_as_the_releases_that_d
     assert_eq!(values(&restored)["m__uo"], json!(2.0));
     assert_eq!(
         ReactiveSession::restore_json_with_options(&hold, &unmarked, &legacy).unwrap_err(),
-        "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture"
+        "cannot restore save: legacy-hold-capture is no reading of this source; only releases before 1.2.0 could load it, and they read its modules' hold and release as their own"
     );
 }

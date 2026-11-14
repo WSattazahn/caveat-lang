@@ -285,8 +285,8 @@ pub(crate) struct Reading {
 }
 
 impl Reading {
-    /// This runtime, and 1.4.1 corrected: a module's names are its own,
-    /// `hold` and `release` too, and `only_if(…)` is the form.
+    /// This runtime, and 1.4.1 corrected: 1.4's linking, with a module's
+    /// `hold` and `release` its own.
     pub(crate) const NOW: Self = Self::V1_4.scoped();
     /// 1.4.0 and 1.4.1: a module's `hold` or `release` two words before a
     /// `because` is left bare, naming the program's where it declares one

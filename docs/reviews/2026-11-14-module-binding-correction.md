@@ -228,6 +228,19 @@ message said that every older save of the restore set restores, where 12
 1.0.3 saves (six of one program, which the set holds twice) are refused, as
 1.3.0 refuses them. Each is corrected.
 
+A fourth independent check, of those fixes, found both restore problems
+fixed, over 3,100 more generated bundles, the release saves of the restore set
+and 241,972 chains of restores and saves, and five things said wrongly:
+Save 0.1 said that a fresh session reads a module's names as its own, which
+holds only for its `hold` and `release`, and that a choice is needed only
+where releases of both kinds could have written a save, leaving out a source
+no release could load; `caveat serve` reported an unmarked save that needs a choice as a file
+that is not a save of the program; the new refusal named the host's
+`moduleBindings` where the choice came from the save's marker; and the last
+bullet below, like two counts before it, called bundle files programs, and
+gave capture as the reason for every bundle it refuses. Each is corrected,
+and the refusal now names neither the option nor the marker.
+
 ### Checks
 
 Release builds of every release from rc.1 to 1.4.1 were the reference, over
@@ -252,13 +265,13 @@ read as this runtime reads it either way.
 - Every save 1.0.3, 1.1.0, 1.2.0, 1.3.0 and 1.4.1 write of 8,746 of these
   bundles (2 runs of 10 events, 219,648 saves) was restored and continued with
   the writer's next events. Of 1.4.1's 96,888 saves, 96,206 restore and
-  continue byte for byte as 1.4.1 continued them, and 682 (31 programs) need a
+  continue byte for byte as 1.4.1 continued them, and 682 (of 31 bundles, 22 programs) need a
   choice. Of the older releases' 122,760 saves, 121,098 restore, and all
   continue as their writer did except those of 23 programs that a later
   release linked differently, 1.4.0 a module's `only_if(…)` or 1.1.0 `reopened
   by changed ,r`: 22 continue byte for byte as 1.4.1 continues them, and one
   that 1.4 refused as 1.3.0 does, which refuses the same six of its 1.0.3
-  saves. 1,650 saves (of 29, 32, 7 and 7 programs) need a choice. With the
+  saves. 1,650 saves (of 29, 32, 7 and 7 bundles; 20, 23, 7 and 7 programs) need a choice. With the
   choice that names the writer's reading, every save that needs one restores
   and continues as its writer did. #480 refused 84,206 of the older releases'
   saves, mostly of D088 programs it does not load.
@@ -283,14 +296,17 @@ read as this runtime reads it either way.
   restore set continues as before, with the D091 choice and without it.
   Asked for `legacy-hold-capture`, the 59,620 saves 1.0.3 and 1.1.0 write of
   that set continue as before wherever a release from 1.2.0 on loads the
-  bundle. Of the programs only earlier releases load, 93 for each writer now
-  continue every save as their writer did, where the previous version refused
-  or changed them, and 42 of 1.0.3's and 46 of 1.1.0's, whose module's `hold`
-  or `release` the program's would capture, are refused with the new message;
-  without a choice their saves continue as their writer did. The review's own
-  cases now continue as their writers did with the choice, and its saves of
-  another program or of an edited source are refused as such, with or without
-  a marker or a choice (78 restores).
+  bundle. Of the bundles only earlier releases load, 93 for each writer (82
+  and 90 programs: the set holds some programs more than once) now continue
+  every save as their writer did, where the previous version refused or
+  changed them, and 42 of 1.0.3's and 46 of 1.1.0's (36 and 40 programs) are
+  refused with the new message: releases from 1.2.0 to 1.4.1 would have read
+  their module's `hold` or `release` before `because` as the program's, which
+  in 5 and 9 of them the program does not declare, so that those releases
+  refused them. Without a choice their saves continue as their writer did.
+  The review's own cases now continue as their writers did with the choice,
+  and its saves of another program or of an edited source are refused as
+  such, with or without a marker or a choice (78 restores).
 
 The cases are in `runtime/tests/d088_module_names_older_releases_loaded.rs`,
 `runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`,

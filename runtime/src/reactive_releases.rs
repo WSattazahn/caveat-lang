@@ -124,7 +124,7 @@ impl<'a> Readings<'a> {
         let linked = match bindings {
             ModuleBindings::Scoped => self.scoped_reading(),
             ModuleBindings::LegacyHoldCapture => self.legacy_reading().ok_or_else(|| {
-                "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture".to_string()
+                "cannot restore save: legacy-hold-capture is no reading of this source; only releases before 1.2.0 could load it, and they read its modules' hold and release as their own".to_string()
             })?,
         };
         let mut session = self.program(linked)?;
@@ -132,11 +132,12 @@ impl<'a> Readings<'a> {
         Ok(session)
     }
 
-    /// With a module's names its own: as 1.4 read it, corrected, where 1.4
-    /// could load it and it loads so; else as 1.3.x read it, corrected,
-    /// likewise; else 1.2.0, whose reading corrected is 1.1.0's for a bundle
-    /// 1.2.0 could load; else as 1.1.0 or the releases before it read it,
-    /// where they could load it; else as this runtime reads it.
+    /// With a module's `hold` and `release` its own: as 1.4 read it,
+    /// corrected, where 1.4 could load it and it loads so; else as 1.3.x
+    /// read it, corrected, likewise; else 1.2.0, whose reading corrected is
+    /// 1.1.0's for a bundle 1.2.0 could load; else as 1.1.0 or the releases
+    /// before it read it, where they could load it; else as this runtime
+    /// reads it.
     pub(super) fn scoped_reading(&self) -> &Result<String, String> {
         if self.by_1_4() && self.program(&self.now).is_ok() {
             &self.now
@@ -509,7 +510,7 @@ mod tests {
         };
         assert_eq!(
             ReactiveSession::restore_with_options(&source, &saved, &legacy).unwrap_err(),
-            "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture"
+            "cannot restore save: legacy-hold-capture is no reading of this source; only releases before 1.2.0 could load it, and they read its modules' hold and release as their own"
         );
     }
 }
