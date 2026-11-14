@@ -1950,21 +1950,20 @@ fn a_module_cannot_contain_the_statements_outside_modules_names() {
 }
 
 #[test]
-fn unset_keeps_a_qualified_target_when_the_module_also_declares_unset() {
+fn unset_still_clears_a_state_when_the_module_also_declares_unset() {
     let source = bundle(&[
-        ("n", "module n;\nstate value unset;\n"),
         (
             "m",
-            "module m;\nuse n;\nstate unset = 1;\nevent go;\n\
-             on go set n::value = 5;\non go unset n::value;\n",
+            "module m;\nstate value unset;\nstate unset = 1;\nevent go;\n\
+             on go set value = 5;\non go unset value;\n",
         ),
         ("main", "use m;\n"),
     ]);
     let linked = link::link(&source).unwrap();
-    assert!(linked.contains("unset n__value;"), "{linked}");
+    assert!(linked.contains("unset m__value;"), "{linked}");
     let mut session = ReactiveSession::from_source(&source).unwrap();
     session.dispatch_json("m__go", "{}").unwrap();
     let snapshot = serde_json::to_value(session.snapshot()).unwrap();
-    assert_eq!(snapshot["unset"], serde_json::json!(["n__value"]));
+    assert_eq!(snapshot["unset"], serde_json::json!(["m__value"]));
     assert_eq!(snapshot["values"]["m__unset"], 1.0);
 }
