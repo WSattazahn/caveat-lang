@@ -600,6 +600,27 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D057): restore accepts a state's or a commitment's grounds
+  marker that its lineage or basis does not hold, where a `because` citation
+  of the program can bring that history there. `set S = V because C` takes
+  C's grounds as the state's, and the live check compares the names C holds
+  with the lineage. Once the records C rests on have departed, C holds only
+  their history's marker, so the citation is accepted although the value
+  never read them, and the state's grounds hold a marker that its lineage
+  lacks. A state whose value reads those grounds, a commitment whose `using`
+  or `citing` reads them, a procedure's parameter given them, and a state
+  whose value reads such a commitment through `committed`, `reopened` or
+  `in_basis`, or such a parameter, take the marker into grounds whose lineage
+  or basis lacks it the same way. Restore required each grounds marker to lie
+  within the lineage's or the basis's, so it refused the save the runtime
+  wrote, and every later save until the state was set again, with "state S
+  grounds hold departed H records outside its lineage", breaking the promise
+  that a 1.x save restores. Every release since rc.16, when records began to
+  depart, did this; 1.0.0 and 1.4.1 refuse the finding's saves alike. A
+  marker beyond the lineage or the basis that no citation of the program can
+  bring there is refused with the same message as before. The live check is
+  unchanged ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md),
+  "Meaning"). Tests: `runtime/tests/d057_citations_carry_departed_markers.rs`.
 - 2026-11-14 (D095): the releases that could have written an unmarked save
   of affected source are those that could load the source and wrote the
   save's format: Replay Save 0.1 came in 1.1.0 and 0.2 in 1.2.0, and every

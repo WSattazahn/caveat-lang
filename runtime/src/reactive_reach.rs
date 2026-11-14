@@ -85,6 +85,17 @@
 //! one, and a reading also holds its own name. So content moves only into
 //! parts whose bound contains its own: a session that starts within the
 //! bound stays within it, and a debug failure is a flow the bound misses.
+//!
+//! Grounds have a second bound (D057): what a state's grounds can hold
+//! beyond its lineage, and a series' grounds beyond its bases, as departed
+//! records no marker there contains. Only a `because` citation starts it,
+//! since the live check compares the names a citation gives with the lineage
+//! and a departed record leaves no name; what reads such grounds takes it
+//! along where its grounds and its lineage read different parts: a state,
+//! `committed`, `reopened` and `in_basis` of a commitment, and a procedure's
+//! parameter (spec/caveat-explanations-0.2.md). Restore accepts a grounds
+//! marker beyond the lineage or the basis only of a history this bound
+//! carries there, and debug builds check that every one a session holds is.
 use super::*;
 use crate::reactive_expr::{Carried, Grounded, Read};
 use std::collections::VecDeque;
@@ -100,6 +111,11 @@ pub(crate) enum Owner {
     /// guard of the rule that sets it stays out, though a read can bring in
     /// what other rules' guards left in what it reads.
     StateGrounds(String),
+    /// What a state's grounds can hold beyond its lineage (D057): what a
+    /// `because` of a set of it cites gives grounds, whose departed records
+    /// the value may never have read, and what a set's value grounds on
+    /// beyond what it carries. It holds no provenance itself.
+    StateExcess(String),
     /// What a `caveated` selector reads besides the state's lineage: each
     /// evidence the state's grounds name, through its records. It holds no
     /// provenance itself.
@@ -134,6 +150,10 @@ pub(crate) enum Owner {
     /// `evaluate_grounds` reads them. The commit's own guard, a permission
     /// and a predecessor's basis stay out.
     SeriesGrounds(String),
+    /// What its grounds can hold beyond its bases (D057): what its commits
+    /// use, cite and give as reasons ground on beyond what they carry. It
+    /// holds no provenance itself.
+    SeriesExcess(String),
     /// A series' outcomes.
     Outcome(String),
     /// The evidence a series' outcomes name: what its resolves select.
@@ -160,6 +180,9 @@ pub(crate) enum Owner {
     /// passes for it gives grounds, and in a program a release before rc.12
     /// may have loaded what that argument carries too (D061, D083).
     Parameter(String, String),
+    /// What a procedure's parameter grounds on beyond what its argument
+    /// carries (D057). It holds no provenance itself.
+    ParameterExcess(String, String),
     /// What a withdrawal predicate's lineage takes: the reason of every
     /// withdrawal, read through its records.
     Withdrawals,
@@ -569,22 +592,57 @@ impl<'a> Flows<'a> {
         }
     }
 
+    /// What an expression gives a value's grounds beyond what the value
+    /// carries (D057). Of a state the value carries the lineage and the
+    /// grounds take the grounds, which can hold departed records the lineage
+    /// never named; of a commitment `committed`, `reopened` and `in_basis`
+    /// carry the bases and give grounds the grounds, which can hold those
+    /// beyond the bases; and of a parameter the same. Every other read gives
+    /// grounds what it gives the lineage, or less (`grounds`).
+    fn excess(&mut self, expression: &Expr, sources: &mut Sources) {
+        let mut grounded = Grounded::default();
+        expression.collect_grounded(&mut grounded);
+        sources.everything |= grounded.anything;
+        let session = self.session;
+        for state in &grounded.states {
+            let owner = if session.states.contains_key(state) {
+                Owner::StateExcess(state.clone())
+            } else if let Some(procedure) = self.parameter_of(state) {
+                Owner::ParameterExcess(procedure, state.clone())
+            } else {
+                continue;
+            };
+            sources.owners.insert(self.owner(owner));
+        }
+        for decision in &grounded.decisions {
+            let series = session.series_of(decision).to_string();
+            sources
+                .owners
+                .insert(self.owner(Owner::SeriesExcess(series)));
+        }
+    }
+
     /// A name that is no state, read by a step of the procedure being
     /// walked: what the procedure's parameter of that name grounds on. A
     /// name that is not one of its parameters is a constant, which carries
     /// nothing, and outside a procedure a payload field is plain too.
     fn parameter(&mut self, name: &str, sources: &mut Sources) {
-        let Some(procedure) = self.procedure else {
-            return;
-        };
-        if procedure
-            .parameters
-            .iter()
-            .any(|parameter| parameter == name)
-        {
-            let owner = self.owner(Owner::Parameter(procedure.name.clone(), name.to_string()));
+        if let Some(procedure) = self.parameter_of(name) {
+            let owner = self.owner(Owner::Parameter(procedure, name.to_string()));
             sources.owners.insert(owner);
         }
+    }
+
+    /// The procedure being walked, when `name` is one of its parameters.
+    fn parameter_of(&self, name: &str) -> Option<String> {
+        self.procedure
+            .filter(|procedure| {
+                procedure
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter == name)
+            })
+            .map(|procedure| procedure.name.clone())
     }
 
     /// The evidence a `because` or a grant selects, with what reading it
@@ -674,6 +732,8 @@ impl<'a> Flows<'a> {
                     .procedures
                     .get(name)
                     .map_or(&[][..], |procedure| &procedure.parameters[..]);
+                // What it grounds on beyond what the argument carries, which
+                // every step's lineage takes, is the argument's (D057).
                 for (parameter, argument) in parameters.iter().zip(passed) {
                     let mut grounds = Sources::default();
                     self.grounds(argument, &mut grounds);
@@ -681,6 +741,12 @@ impl<'a> Flows<'a> {
                         self.expression(argument, &mut grounds);
                     }
                     self.connect(&grounds, Owner::Parameter(name.clone(), parameter.clone()));
+                    let mut excess = Sources::default();
+                    self.excess(argument, &mut excess);
+                    self.connect(
+                        &excess,
+                        Owner::ParameterExcess(name.clone(), parameter.clone()),
+                    );
                 }
                 vec![Owner::Call(name.clone())]
             }
@@ -786,15 +852,26 @@ impl<'a> Flows<'a> {
                 // (D061).
                 self.expression(value, &mut sources);
                 let mut grounds = Sources::default();
+                // What the grounds can hold beyond the lineage (D057): with
+                // `because`, all the citations give grounds, since the live
+                // check compares the names they give with what the value
+                // read, and a departed record leaves no name; without, what
+                // the value gives grounds beyond what it carries.
+                let mut excess = Sources::default();
                 match because {
-                    None => self.grounds(value, &mut grounds),
+                    None => {
+                        self.grounds(value, &mut grounds);
+                        self.excess(value, &mut excess);
+                    }
                     Some(citations) => {
                         for citation in citations {
                             self.grounds(citation, &mut grounds);
                         }
+                        excess = grounds.clone();
                     }
                 }
                 self.connect(&grounds, Owner::StateGrounds(name.clone()));
+                self.connect(&excess, Owner::StateExcess(name.clone()));
                 vec![Owner::State(name.clone())]
             }
             Effect::Examine { caveat, .. } => vec![Owner::Caveat(caveat.clone())],
@@ -812,7 +889,10 @@ impl<'a> Flows<'a> {
                 // The grounds are what the commit uses, cites and gives as
                 // reasons give grounds; its guard, its permission and a
                 // predecessor's basis stay in the basis (D054).
+                // The basis carries all of each, so the grounds hold beyond it
+                // only what each gives grounds beyond what it carries (D057).
                 let mut grounds = Sources::default();
+                let mut excess = Sources::default();
                 for expression in using
                     .iter()
                     .chain(citing)
@@ -820,6 +900,7 @@ impl<'a> Flows<'a> {
                 {
                     self.expression(expression, &mut sources);
                     self.grounds(expression, &mut grounds);
+                    self.excess(expression, &mut excess);
                 }
                 if let Some(clause) = permission {
                     self.selector(&clause.grant, &mut sources);
@@ -828,6 +909,7 @@ impl<'a> Flows<'a> {
                     }
                 }
                 self.connect(&grounds, Owner::SeriesGrounds(action.clone()));
+                self.connect(&excess, Owner::SeriesExcess(action.clone()));
                 // A skipped commit leaves its guard alone in the series'
                 // selection, or in the commitment's `committed` record.
                 if session.decision_series.contains_key(action) {
@@ -1537,6 +1619,25 @@ impl ReactiveSession {
             && self.history_reach_bound().carries(owner, history)
     }
 
+    /// Whether state `name`'s grounds can hold a marker of departed records
+    /// of `history` that no marker its lineage holds contains: one a
+    /// `because` citation carried, of records the value never read, or one
+    /// a read of grounds that hold such a marker took along (D057).
+    pub(crate) fn state_grounds_exceed(&self, name: &str, history: &str) -> bool {
+        self.reaches(&Owner::StateExcess(name.to_string()), history)
+    }
+
+    /// Whether commitment `name`'s grounds can hold a marker of departed
+    /// records of `history` that no marker its basis holds contains: one
+    /// that what it uses, cites or gives as reasons took from grounds that
+    /// hold such a marker (D057).
+    pub(crate) fn commitment_grounds_exceed(&self, name: &str, history: &str) -> bool {
+        self.reaches(
+            &Owner::SeriesExcess(self.series_of(name).to_string()),
+            history,
+        )
+    }
+
     /// The history of `record`, a name `owner` holds at `place`, when
     /// `owner` cannot carry its records. A reading lists its own name, which
     /// no flow carries: it holds it while it is held, and departs with it.
@@ -1617,7 +1718,56 @@ impl ReactiveSession {
                 );
             }
         }
+        // A marker grounds hold beyond their lineage or basis is one the
+        // program can carry there (D057), which restore accepts; a failure is
+        // a flow the bound misses, as above.
+        if !old.is_some_and(|old| Arc::ptr_eq(&old.states.cells, &self.states.cells)) {
+            for name in self.states.names() {
+                let cell = self.states.get(name).expect("a declared state");
+                for history in departed_beyond(&cell.grounds, &cell.value.provenance) {
+                    assert!(
+                        self.state_grounds_exceed(name, history),
+                        "D057: state {name} grounds hold departed records of {history} beyond its lineage, which the program's bound does not carry there"
+                    );
+                }
+            }
+        }
+        if !old.is_some_and(|old| {
+            Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)
+                && Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)
+        }) {
+            for (name, grounds) in self.commitment_grounds.iter() {
+                let Some(basis) = self.commitment_bases.get(name) else {
+                    continue;
+                };
+                for history in departed_beyond(grounds, &basis.provenance) {
+                    assert!(
+                        self.commitment_grounds_exceed(name, history),
+                        "D057: commitment {name} grounds hold departed records of {history} beyond its basis, which the program's bound does not carry there"
+                    );
+                }
+            }
+        }
     }
+}
+
+/// The histories of the markers `grounds` holds that no marker `lineage`
+/// holds contains: departed records the grounds name beyond what the lineage
+/// or the basis names (D057).
+pub(crate) fn departed_beyond<'p>(
+    grounds: &'p Provenance,
+    lineage: &'p Provenance,
+) -> impl Iterator<Item = &'p str> + 'p {
+    grounds
+        .departed
+        .iter()
+        .filter(|(history, marker)| {
+            !lineage
+                .departed
+                .get(*history)
+                .is_some_and(|outer| outer.contains(marker))
+        })
+        .map(|(history, _)| history.as_str())
 }
 
 #[cfg(test)]
@@ -1640,15 +1790,17 @@ on st set t = latest(b) because latest(d);
 ";
 
     /// The citation carries `b` into `t`'s grounds, so the marker is within
-    /// the bound after every event. Restore refuses the save from `st` on in
-    /// its earlier check that grounds lie within the lineage, a separate
-    /// finding that this check leaves as it was.
+    /// the bound after every event. From `st` on the lineage, set from a
+    /// later reading, holds no marker that contains it: the citation can
+    /// carry it there, so restore accepts it (D057), and the restored session
+    /// saves the same bytes.
     #[test]
     fn a_citation_carries_a_departed_marker_into_grounds_within_the_bound() {
         let mut session = ReactiveSession::from_source(CITED).unwrap();
         // The bound is the loaded program's, in release builds too, where
         // loading does not compute it.
         session.history_reach_bound();
+        assert!(session.state_grounds_exceed("t", "b"));
         for (step, (event, payload)) in [
             ("sb", r#"{"v":5}"#),
             ("cd", r#"{"v":1}"#),
@@ -1665,13 +1817,80 @@ on st set t = latest(b) because latest(d);
             assert_eq!(outcome["outcome"], "accepted", "{step}: {event}");
             assert_eq!(session.check_history_reach(), Ok(()), "{step}: {event}");
             let save = session.save_json().unwrap();
-            let restored = ReactiveSession::restore_json(CITED, &save).err();
-            assert_eq!(
-                restored.as_deref(),
-                (step >= 3).then_some(
-                    "cannot restore save: state t grounds hold departed b records outside its lineage"
-                ),
-                "{step}: {event}"
+            let restored = ReactiveSession::restore_json(CITED, &save)
+                .unwrap_or_else(|error| panic!("{step}: {event}: {error}"));
+            assert_eq!(restored.save_json().unwrap(), save, "{step}: {event}");
+        }
+    }
+
+    /// Only a `because` citation lets a state's grounds hold a marker beyond
+    /// the lineage, and what reads those grounds takes that along: a state
+    /// through its value, a commitment through `using` or `citing`, a
+    /// procedure's parameter through its argument, and a state through
+    /// `committed` of such a commitment. The guard of the set, which the
+    /// lineage takes and the grounds never do, gives nothing (D057).
+    #[test]
+    fn only_a_citation_lets_grounds_hold_a_marker_beyond_their_lineage() {
+        let program = |set: &str| {
+            format!(
+                "evidence gb from \"gb\";
+evidence gc from \"gc\";
+readings b from gb window 1;
+readings c from gc window 1;
+decisions d limit 4;
+decisions r limit 4;
+decisions q limit 4;
+state t = 0;
+state u = 0;
+state w = 0;
+state z = 0;
+proc p(x) {{ set z = x; }};
+event sb v min 0 max 10;
+event sc v min 0 max 10;
+event cd v min 0 max 10;
+event st v min 0 max 10;
+event cu v min 0 max 10;
+event cr v min 0 max 10;
+event cq v min 0 max 10;
+event cp v min 0 max 10;
+event cw v min 0 max 10;
+on sb sample b = v;
+on sc sample c = v;
+on cd when latest(b) > 0 commit d because enough using 1;
+on st when latest(c) > 0 {set};
+on cu set u = t;
+on cr commit r because enough citing t;
+on cq commit q because enough using t;
+on cp call p(t);
+on cw set w = if(committed(r), 1, 0);
+"
+            )
+        };
+        let cited =
+            ReactiveSession::from_source(&program("set t = latest(b) because latest(d)")).unwrap();
+        for state in ["t", "u", "w", "z"] {
+            assert!(cited.state_grounds_exceed(state, "b"), "{state}");
+            assert!(!cited.state_grounds_exceed(state, "c"), "{state}");
+        }
+        for commitment in ["r@1", "q@1"] {
+            assert!(
+                cited.commitment_grounds_exceed(commitment, "b"),
+                "{commitment}"
+            );
+            assert!(
+                !cited.commitment_grounds_exceed(commitment, "c"),
+                "{commitment}"
+            );
+        }
+        assert!(!cited.commitment_grounds_exceed("d@1", "b"));
+        let plain = ReactiveSession::from_source(&program("set t = latest(b)")).unwrap();
+        for state in ["t", "u", "w", "z"] {
+            assert!(!plain.state_grounds_exceed(state, "b"), "{state}");
+        }
+        for commitment in ["r@1", "q@1", "d@1"] {
+            assert!(
+                !plain.commitment_grounds_exceed(commitment, "b"),
+                "{commitment}"
             );
         }
     }
