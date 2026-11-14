@@ -10320,8 +10320,9 @@ pub(crate) fn parse_directive_at(
             _ => Err("clock expects EVENT every STEP [integer]".into()),
         },
         // `state NAME unset [min LOW max HIGH];`, which did not load before
-        // spec/caveat-unset-states-0.1.md.
-        "state" if words.get(2) == Some(&"unset") => {
+        // spec/caveat-unset-states-0.1.md. An assignment such as
+        // `state n= unset` still initializes from an ordinary name.
+        "state" if words.get(2) == Some(&"unset") && !line.contains('=') => {
             let (min, max) = match &words[3..] {
                 [] => (
                     Number::parse("-1000000000000")?,

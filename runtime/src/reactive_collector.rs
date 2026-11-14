@@ -430,9 +430,9 @@ impl WithdrawalCollector {
         );
     }
 
-    /// Debug builds: a copy that shares no index with this collector, so
-    /// the transaction still writes its own indexes in place.
-    #[cfg(debug_assertions)]
+    /// Debug builds and tests: a copy that shares no index with this
+    /// collector, so the transaction still writes its own indexes in place.
+    #[cfg(any(debug_assertions, test))]
     fn deep_copy(&self) -> Self {
         Self {
             owners: Arc::new((*self.owners).clone()),

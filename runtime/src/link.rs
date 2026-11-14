@@ -1053,13 +1053,27 @@ fn tag_offsets(source: &str) -> Vec<usize> {
         // `state NAME unset` and the `unset NAME` effect
         // (spec/caveat-unset-states-0.1.md) came after modules, so a module
         // may still declare `unset`. The declaration word is the third word
-        // of a state statement; the effect word is the second-to-last word
-        // of a rule, the only place the parser reads it.
+        // of a state statement without an assignment; the effect word is
+        // the second-to-last word of a rule, followed by a bare state name.
+        // In `state n= unset` and `f( unset )` it is an ordinary reference.
         let bare = |word: &str| word.trim_end_matches(';') == "unset";
-        if shape.first() == Some(&"state") && shape.get(2).is_some_and(|word| bare(word)) {
+        if shape.first() == Some(&"state")
+            && shape.get(2).is_some_and(|word| bare(word))
+            && !code[start..end].contains('=')
+        {
             offsets.push(words[2].0);
         }
-        if shape.first() == Some(&"on") && shape.len() >= 4 && bare(shape[shape.len() - 2]) {
+        if shape.first() == Some(&"on")
+            && shape.len() >= 4
+            && bare(shape[shape.len() - 2])
+            && shape[shape.len() - 1]
+                .trim_end_matches(';')
+                .split("::")
+                .all(|part| {
+                    let mut name = part.chars();
+                    name.next().is_some_and(is_identifier_start) && name.all(is_identifier_char)
+                })
+        {
             offsets.push(words[shape.len() - 2].0);
         }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
