@@ -9,6 +9,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { MCP_PROTOCOL_VERSION, MCP_STATELESS_PROTOCOL_VERSION, MCP_SUPPORTED_VERSIONS, MCP_TOOLS, serveMcp } from '../lib/mcp.mjs';
+import { validateAuthoringArguments } from '../lib/authoring.mjs';
+import { loadRuntimeFromDirectory } from '../lib/node.mjs';
 
 // The package gate creates/removes kit/runtime while packing. Repository tests
 // must hold the durable build path, not capture that transient staging folder.
@@ -265,6 +267,50 @@ test('all seven tools execute fresh real workers and retain completed CLI-style 
     assert.equal(invalid.structuredContent.exitCode, 2);
     client.send(call(10, 'caveat_explain', { source: 'event refuse; on refuse reject "no";', events: [{ event: 'refuse' }] }));
     assert.equal((await client.wait(10)).result.structuredContent.report.events[0].outcome.outcome, 'rejected');
+  } finally { assert.equal(await client.close(), 0); }
+});
+
+// Every advertised argument is one the bridge takes, and the bridge refuses
+// one no tool advertises; caveat_dispatch advertises the module binding
+// reading a release's save can need, which clients that check arguments
+// against the schema would otherwise refuse (D094).
+test('each tool advertises the arguments the bridge takes, caveat_dispatch its module binding reading', () => {
+  for (const tool of MCP_TOOLS) {
+    for (const key of Object.keys(tool.inputSchema.properties)) {
+      try { validateAuthoringArguments(tool.name, { source: SOURCE, [key]: null }); } catch (error) {
+        assert.doesNotMatch(error.message, /has no field/, `${tool.name} ${key}`);
+      }
+    }
+    assert.throws(() => validateAuthoringArguments(tool.name, { source: SOURCE, moduleBinding: 'scoped' }), /has no field moduleBinding/);
+  }
+  const dispatch = MCP_TOOLS.find(tool => tool.name === 'caveat_dispatch').inputSchema;
+  assert.deepEqual(Object.keys(dispatch.properties), ['source', 'save', 'moduleBindings', 'events']);
+  assert.deepEqual(dispatch.properties.moduleBindings.enum, ['scoped', 'legacy-hold-capture']);
+  assert.deepEqual(dispatch.required, ['source']);
+});
+
+test('caveat_dispatch takes a module binding reading over MCP and returns a save that names it (D094)', async () => {
+  const fixture = name => readFileSync(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const collision = fixture('collision.bundle');
+  // 1.0.0 and 1.4.1 both write this initial save; the next event computes 10
+  // under 1.0.0's reading and 14 under 1.4.1's.
+  const initial = fixture('collision-v1.4.1-initial.json');
+  const client = connection();
+  try {
+    await client.initialize();
+    client.send(call(1, 'caveat_dispatch', { source: collision, save: initial, events: [{ event: 'm__go' }] }));
+    const unchosen = (await client.wait(1)).result;
+    assert.equal(unchosen.isError, false);
+    assert.equal(unchosen.structuredContent.exitCode, 2);
+    assert.match(unchosen.structuredContent.report.error, /supply moduleBindings/);
+    client.send(call(2, 'caveat_dispatch', { source: collision, save: initial, moduleBindings: 'legacy-hold-capture', events: [{ event: 'm__go' }] }));
+    const chosen = (await client.wait(2)).result;
+    assert.equal(chosen.isError, false, JSON.stringify(chosen));
+    assert.equal(chosen.structuredContent.exitCode, 0);
+    assert.deepEqual(chosen.structuredContent.report.events.map(item => item.outcome.outcome), ['accepted']);
+    assert.equal(JSON.parse(chosen.structuredContent.report.save).module_bindings, 'legacy-hold-capture');
+    const session = (await loadRuntimeFromDirectory(RUNTIME)).restore(collision, chosen.structuredContent.report.save);
+    try { assert.equal(session.snapshot().values.m__v, 14); } finally { session.close(); }
   } finally { assert.equal(await client.close(), 0); }
 });
 

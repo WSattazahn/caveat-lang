@@ -58,10 +58,12 @@ function fromPositional(events, ordered) {
  * The events a replay save holds, in order, each with a payload that names
  * its members, read with the source that wrote the save. Throws
  * `CaveatError("restore")` when the save does not restore with that source,
- * and when it is a state save, which holds no events.
+ * and when it is a state save, which holds no events. `options` are
+ * `runtime.restore`'s: how to read a save that names no module binding
+ * reading where releases could have written it under either.
  */
-export function savedEvents(runtime, source, saved) {
-  const session = runtime.restore(source, saved);
+export function savedEvents(runtime, source, saved, options) {
+  const session = runtime.restore(source, saved, options);
   try {
     const { schema, events } = JSON.parse(saved);
     if (schema !== REPLAY_V1 && schema !== REPLAY_V2) {
@@ -79,9 +81,10 @@ export function savedEvents(runtime, source, saved) {
  * A session of `newSource` made by sending it the events of a save written
  * with `oldSource`. Each event the new program refuses is a conflict and
  * changes nothing; the rest are still sent. The save is not changed.
+ * `options` are `runtime.restore`'s, for reading the save with `oldSource`.
  */
-export function carrySave(runtime, oldSource, saved, newSource) {
-  const events = savedEvents(runtime, oldSource, saved);
+export function carrySave(runtime, oldSource, saved, newSource, options) {
+  const events = savedEvents(runtime, oldSource, saved, options);
   const session = runtime.open(newSource);
   try {
     const { accepted, conflicts } = replayOnto(session, events);

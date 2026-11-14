@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
 import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
@@ -244,6 +244,40 @@ test('caveat_dispatch preserves a marked legacy save error when scoped loading f
   });
 });
 
+// Only releases from 1.2.0 to 1.4.1 loaded this bundle, so an unmarked save
+// of it is read as they read it, with no choice; a fresh load reads the
+// module's hold as its own and refuses it. A fresh load that fails otherwise
+// than the restore did says nothing about that reading (D096).
+test('an unmarked save that fails to restore keeps its error where a fresh load refuses its bundle otherwise (D096)', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const legacy = await fixture('legacy-only.bundle');
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  assert.throws(() => runtime.open(legacy), error => error.kind === 'load');
+  const broken = JSON.parse(await fixture('legacy-only-v1.4.1-state.json'));
+  broken.states.m__v.value = 'not a number';
+  for (const saved of [JSON.stringify(broken), await fixture('collision-v1.4.1-state.json')]) {
+    let restoreMessage;
+    assert.throws(() => runtime.restore(legacy, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const refused = await bridge('dispatch', { source: legacy, save: saved });
+    assert.equal(refused.exitCode, 2);
+    assert.deepEqual(refused.report, {
+      schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+      restored: false, error: restoreMessage,
+    });
+  }
+  // A bundle that loads under no reading fails its restore as its fresh load
+  // does, and still says it does not load.
+  const body = 'state v = ;\n';
+  const unloadable = `#caveat-bundle 1\n#module main ${Buffer.byteLength(body)}\n${body}`;
+  const saved = JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'unused', sequence: 0, states: {}, graph: {} });
+  const refused = await bridge('dispatch', { source: unloadable, save: saved });
+  assert.deepEqual([refused.exitCode, refused.report.loads, refused.report.restored], [2, false, false]);
+  assert.match(refused.report.error, /expected expression/);
+});
+
 test('a marked restore failure does not claim its source loaded', async () => {
   const invalidSource = 'state invalid = ;';
   const fresh = await bridge('dispatch', { source: invalidSource });
@@ -267,6 +301,84 @@ test('a marked restore failure does not claim its source loaded', async () => {
     });
     assert.equal(Object.hasOwn(refused.report, 'loads'), false);
   }
+});
+
+// A runtime directory whose build predates restore options: the real wasm
+// beside a module whose session class has no restore_options.
+async function olderRuntimeDirectory() {
+  const real = defaultRuntimeDirectory();
+  const directory = path.join(root, 'test-results', 'older-runtime', `${process.pid}-${Date.now()}-${next++}`);
+  await mkdir(directory, { recursive: true });
+  await copyFile(path.join(real, 'caveat_runtime_bg.wasm'), path.join(directory, 'caveat_runtime_bg.wasm'));
+  const realModule = pathToFileURL(path.join(real, 'caveat_runtime.js')).href;
+  await writeFile(path.join(directory, 'caveat_runtime.js'), `// Written by kit/test/authoring.test.mjs: the real runtime without restore_options.
+const real = await import(${JSON.stringify(realModule)} + '?older=' + encodeURIComponent(import.meta.url));
+export class WebReactiveSession extends real.WebReactiveSession {}
+WebReactiveSession.restore_options = undefined;
+export default function init(args) { return real.default(args); }
+`);
+  return directory;
+}
+
+test('caveat_dispatch takes the module binding reading a release\'s save can need (D094)', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const collision = await fixture('collision.bundle');
+  // 1.0.0 and 1.4.1 both write this initial save; the next event computes
+  // 10 under 1.0.0's reading and 14 under 1.4.1's.
+  const initial = await fixture('collision-v1.4.1-initial.json');
+  const go = [{ event: 'm__go' }];
+  const unchosen = await bridge('dispatch', { source: collision, save: initial, events: go });
+  assert.deepEqual([unchosen.exitCode, unchosen.report.loads, unchosen.report.restored], [2, true, false]);
+  assert.match(unchosen.report.error, /supply moduleBindings as scoped or legacy-hold-capture/);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+    const step = await bridge('dispatch', { source: collision, save: initial, moduleBindings, events: go });
+    assert.deepEqual([step.exitCode, step.report.restored], [0, true]);
+    assert.deepEqual(step.report.events.map(item => item.outcome.outcome), ['accepted']);
+    // The save it returns names the reading, so the next call needs no choice.
+    assert.equal(JSON.parse(step.report.save).module_bindings, moduleBindings);
+    const next = await bridge('dispatch', { source: collision, save: step.report.save, events: go });
+    assert.deepEqual([next.exitCode, next.report.restored], [0, true]);
+    const session = runtime.restore(collision, next.report.save);
+    try { assert.equal(session.snapshot().values.m__v, expected); } finally { session.close(); }
+    // Naming the save's own reading again is no conflict; naming the other
+    // is refused, with no claim about whether the source loads.
+    assert.equal((await bridge('dispatch', { source: collision, save: step.report.save, moduleBindings })).exitCode, 0);
+    const other = moduleBindings === 'scoped' ? 'legacy-hold-capture' : 'scoped';
+    const conflict = await bridge('dispatch', { source: collision, save: step.report.save, moduleBindings: other });
+    assert.deepEqual([conflict.exitCode, conflict.report.restored, Object.hasOwn(conflict.report, 'loads')], [2, false, false]);
+    assert.match(conflict.report.error, /moduleBindings conflicts with saved module_bindings/);
+  }
+  // A save of another program is refused as one, whatever reading is named,
+  // with no claim about whether the source loads.
+  const elsewhere = await bridge('dispatch', { source, save: initial, moduleBindings: 'legacy-hold-capture' });
+  assert.deepEqual([elsewhere.exitCode, elsewhere.report.restored, Object.hasOwn(elsewhere.report, 'loads')], [2, false, false]);
+  assert.match(elsewhere.report.error, /different program|source digest is not this source's/);
+  // A chosen restore that fails keeps the restore's own error: a fresh load
+  // reads the bundle as a fresh session does, which here refuses it, while
+  // the chosen reading loads it.
+  const legacyOnly = await fixture('legacy-only.bundle');
+  const broken = JSON.parse(await fixture('legacy-only-v1.4.1-state.json'));
+  broken.states.m__v.value = 'not a number';
+  const brokenSave = JSON.stringify(broken);
+  let chosenMessage;
+  assert.throws(() => runtime.restore(legacyOnly, brokenSave, { moduleBindings: 'legacy-hold-capture' }), error => {
+    chosenMessage = error.message;
+    return error.kind === 'restore';
+  });
+  const chosen = await bridge('dispatch', { source: legacyOnly, save: brokenSave, moduleBindings: 'legacy-hold-capture' });
+  assert.equal(chosen.exitCode, 2);
+  assert.deepEqual(chosen.report, { schema: 'caveat-dispatch-step/0.1', program: 'inline.cav', restored: false, error: chosenMessage });
+  // A runtime build that predates the choice cannot take it.
+  await assert.rejects(runAuthoringOperation('caveat_dispatch', { source: collision, save: initial, moduleBindings: 'scoped' },
+    { runtimeDirectory: await olderRuntimeDirectory() }),
+  error => error instanceof AuthoringError && error.kind === 'runtime' && /restore_options/.test(error.message));
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, moduleBindings: 'scoped' }),
+    error => error.kind === 'input' && /moduleBindings requires save/.test(error.message));
+  for (const moduleBindings of ['root', null, 1]) {
+    assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: initial, moduleBindings }), error => error.kind === 'input');
+  }
+  assert.throws(() => validateAuthoringArguments('caveat_explain', { source, moduleBindings: 'scoped' }), error => error.kind === 'input');
 });
 
 test('the bridge accepts inline source only and refuses virtual source escapes before loading', async t => {

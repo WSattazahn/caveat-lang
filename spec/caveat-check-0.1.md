@@ -492,7 +492,9 @@ the same list for any session.
 A save that does not restore exits 2, with the restore's error. With
 `--json` that is `{"schema": "caveat-check/0.1", "program": …, "loads": true,
 "save": …, "error": …}`. From a script, `runtime.check` throws a
-`CaveatError` of kind `restore`, as `runtime.restore` does.
+`CaveatError` of kind `restore`, as `runtime.restore` does. A bundle is
+refused before its save is read, from a script as by the command, with the
+bundle's `load` error.
 
 Of the 195 tracked `.cav` files, the 165 that load report exactly what they
 did before without `--records`. With it, C008 reports 610 statements in 62
@@ -682,6 +684,15 @@ adds C010 and C011.
 
 ## Changes
 
+- 2026-11-14 (D097): `runtime.check` and the Python package's `check` refuse
+  a bundle before they restore a save given with it, as the command and the
+  runtime's own check do. They restored the save first, so an unmarked save of
+  a bundle whose history needs its module binding reading named
+  ([Save 0.1](caveat-save-0.1.md#module-binding-interpretation)) asked for
+  `moduleBindings`, which check does not take, and a bundle that only 1.2.0 to
+  1.4.1 loaded got the fresh load's error. A bundle given with a save now gets
+  the bundle refusal whatever the save holds. Tests:
+  `kit/test/check.test.mjs`, `python/tests/test_session.py`.
 - 2026-10-26 (1.5, draft): C012 `near-miss-commitment` with `--names` or
   `{ names: true }`. A newcomer's `commit umbrela`, beside `decisions umbrella`,
   loaded, ran, passed `check --unused --strict` and left the advice at "No

@@ -160,7 +160,13 @@ refuse an unmarked one, before a marker or a choice is used and before a
 choice is asked for, since no choice could restore it.
 
 In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
-or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use
+or `{ moduleBindings: 'legacy-hold-capture' }`. The kit's other restore paths
+take the same choice: `caveat serve --restore-module-bindings` and its
+`restore` request ([Serve 0.1](caveat-serve-0.1.md)), the MCP tool
+`caveat_dispatch` as `moduleBindings` beside `save`, `savedEvents` and
+`carrySave` as their last argument, and the starter's `openHost` as
+`moduleBindings`, for its checkpoint. The Python package's
+`caveat_lang.restore` takes it as `module_bindings`. Native callers use
 `restore_with_options` or `restore_json_with_options` with
 `RestoreOptions.module_bindings`; the raw WASM method is
 `restore_options(source, saved, options_json)`. With `scoped` the source is
@@ -583,6 +589,13 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D094): the MCP tool `caveat_dispatch`, the kit's `savedEvents`
+  and `carrySave`, the starter's `openHost` and the Python package's
+  `restore` take the module binding choice
+  ([Module binding interpretation](#module-binding-interpretation)).
+  Tests: `kit/test/authoring.test.mjs`, `kit/test/mcp.test.mjs`,
+  `kit/test/module-bindings.test.mjs`, `kit/test/starter.test.mjs`,
+  `python/tests/test_session.py`.
 - 2026-11-14 (D091, D088): saves of a bundle whose module's `hold` or
   `release` reads otherwise with root capture carry `module_bindings`
   ([Module binding interpretation](#module-binding-interpretation)). A fresh

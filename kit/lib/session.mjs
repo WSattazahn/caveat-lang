@@ -22,6 +22,8 @@ const messageOf = error => (typeof error === 'string' ? error : String(error?.me
 // A WebAssembly trap leaves the whole instance in an unknown state, not just
 // one session. The runtime refuses further use and must be loaded again.
 const isTrap = error => typeof WebAssembly !== 'undefined' && error instanceof WebAssembly.RuntimeError;
+// The first line of a module bundle (spec/caveat-0.5-draft.md).
+const BUNDLE_MARKER = '#caveat-bundle 1';
 
 function fatalFrom(error) {
   const text = messageOf(error);
@@ -746,7 +748,11 @@ export function createRuntime(SessionClass, identity = {}) {
       if (names && typeof SessionClass.check_options !== 'function') {
         throw new CaveatError('load', 'this runtime build has no near-miss-commitment check; it predates caveat check --names');
       }
-      if (save !== undefined) {
+      // Check reads no bundle, and the runtime refuses one before it reads a
+      // save, so a bundle's save is not restored first: a save of a bundle
+      // that needs its module binding reading named would ask for a choice
+      // check does not take (D097).
+      if (save !== undefined && !source.startsWith(BUNDLE_MARKER)) {
         // The program must load first, so its error is reported as load.
         try { new SessionClass(source).free(); } catch (error) { throw failure(error, 'load'); }
         try { SessionClass.restore(source, save).free(); } catch (error) { throw failure(error, 'restore', save, 'checking'); }

@@ -49,7 +49,10 @@ This builds the native module once (a few minutes). Python 3.9 or later.
 `caveat.restore(source, save)` resumes one from `Session.save()` text, with
 the exact source it came from. A session is a context manager. Restore takes a
 state save of any size, and a save is not signed: bound the size of a save you
-did not write, and keep saves where only your application writes them.
+did not write, and keep saves where only your application writes them. A save
+that a release up to 1.4.1 wrote of a bundle whose modules use `hold` or
+`release` can need its reading named: pass `module_bindings="scoped"` or
+`"legacy-hold-capture"` ([Save 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-save-0.1.md#module-binding-interpretation)).
 
 `session.dispatch(event, payload)` sends one event. The payload holds exactly
 the parameters the program declares for that event (`event observe

@@ -23,7 +23,7 @@ export class AuthoringError extends Error {
 const fields = {
   caveat_validate: ['source'], caveat_check: ['source', 'strict'], caveat_test: ['source', 'scenarios'],
   caveat_explain: ['source', 'events'], caveat_dependents: ['source', 'subject', 'events'],
-  caveat_dispatch: ['source', 'save', 'events'],
+  caveat_dispatch: ['source', 'save', 'moduleBindings', 'events'],
   caveat_find: ['source', 'records', 'query'],
 };
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -61,6 +61,10 @@ export function validateAuthoringArguments(toolName, args) {
   if ('save' in args) {
     if (typeof args.save !== 'string') fail('save must be the save text an earlier caveat_dispatch call returned');
     limit(Buffer.byteLength(args.save, 'utf8') <= AUTHORING_LIMITS.saveBytes, 'save exceeds 2 MiB UTF-8');
+  }
+  if ('moduleBindings' in args) {
+    if (args.moduleBindings !== 'scoped' && args.moduleBindings !== 'legacy-hold-capture') fail('moduleBindings must be "scoped" or "legacy-hold-capture"');
+    if (!('save' in args)) fail('moduleBindings requires save, the save whose history it names');
   }
   if (toolName === 'caveat_dependents' && (typeof args.subject !== 'string' || !args.subject.trim())) fail('subject must name evidence, a reading stream or a caveat');
   const checkEvents = events => {
@@ -280,27 +284,43 @@ export function hasBindingMarker(saved) {
 
 // One step of a ledger kept by the host. Without save, a fresh session; with
 // it, that save restored against this exact source (a save binds its source,
-// and restore never repairs one). The events are sent in order, and the
-// result carries the save to pass to the next call. A fatal event stops the
-// step: the save then holds the state before it, rebuilt from the accepted
-// events, since the session that met the fatal event cannot save.
+// and restore never repairs one), reading its modules as moduleBindings names
+// when the save names no reading itself (spec/caveat-save-0.1.md). The events
+// are sent in order, and the result carries the save to pass to the next
+// call, which names its reading. A fatal event stops the step: the save then
+// holds the state before it, rebuilt from the accepted events, since the
+// session that met the fatal event cannot save.
 function dispatchStep(runtime, args, wrap) {
   const program = 'inline.cav';
   const restored = Object.hasOwn(args, 'save');
-  const open = () => (restored ? runtime.restore(args.source, args.save) : runtime.open(args.source));
+  const options = Object.hasOwn(args, 'moduleBindings') ? { moduleBindings: args.moduleBindings } : undefined;
+  const open = () => (restored ? runtime.restore(args.source, args.save, options) : runtime.open(args.source));
   let replayed;
   try { replayed = replay(runtime, args.source, args.events ?? [], open); }
   catch (error) {
     let failure = error;
-    // A marked restore can fail before its selected program loads. Fresh
-    // scoped loading cannot establish whether that historical program
+    // A runtime build that predates binding choices refuses the choice
+    // before reading the save or the source.
+    if (options !== undefined && error.kind === 'load') throw new AuthoringError('runtime', error.message);
+    // A marked or chosen restore can fail before its selected program loads.
+    // Fresh scoped loading cannot establish whether that historical program
     // loads, so retain the restore error without claiming either answer.
-    if (error.kind === 'restore' && hasBindingMarker(args.save)) {
+    if (error.kind === 'restore' && (options !== undefined || hasBindingMarker(args.save))) {
       return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, restored: false, error: error.message });
     }
-    // A restore error may hide a program that does not load at all.
+    // A restore error may hide a program that does not load at all. An
+    // unmarked save of a bundle can be read, though, as the releases that
+    // could have written it read the bundle, which a fresh load does not: a
+    // fresh load that fails otherwise than the restore did cannot say whether
+    // that reading loads, so the restore error stands without either answer
+    // (D096).
     if (error.kind === 'restore') {
-      try { runtime.open(args.source).close(); } catch (loadError) { failure = loadError; }
+      try { runtime.open(args.source).close(); } catch (loadError) {
+        if (loadError.kind === 'load' && args.source.startsWith('#caveat-bundle') && loadError.message !== error.message) {
+          return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, restored: false, error: error.message });
+        }
+        failure = loadError;
+      }
     }
     if (failure.kind === 'load') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: false, restored: false, error: failure.message });
     if (failure.kind === 'restore') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: true, restored: false, error: failure.message });
