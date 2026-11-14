@@ -256,22 +256,114 @@ pub fn split_bundle(bundle: &str) -> Result<Vec<BundlePart>, String> {
 
 /// Link a bundle into one program source.
 pub fn link(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Effects)
+    link_reading(bundle, Reading::NOW)
 }
 
-/// The historical positional interpretation, only for restoring a save with
-/// that binding choice. New programs use ordinary module scope through `link`.
-pub(crate) fn link_legacy_hold_capture(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Legacy)
+/// How a line of releases linked a bundle, as far as the lines differ
+/// (finding D088). The reactive loader reads a bundle as the newest release
+/// that could load it linked it (`Readings` in reactive.rs), and restores a
+/// save as the releases that could have written it read it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Reading {
+    hold_words: HoldWords,
+    only_if: OnlyIf,
+    triggers: Triggers,
+    /// Whether `irreversible` and `forecloses` are reserved, as from 1.2.0,
+    /// which made them clause words. Before 1.2.0 a module could declare
+    /// them, and its references to them were its own.
+    reserves_series_words: bool,
 }
 
-#[derive(Clone, Copy)]
+impl Reading {
+    /// This runtime, and 1.4.1 corrected: a module's names are its own,
+    /// `hold` and `release` too, and `only_if(…)` is the form.
+    pub(crate) const NOW: Self = Self {
+        hold_words: HoldWords::Effects,
+        only_if: OnlyIf::Form,
+        triggers: Triggers::Released,
+        reserves_series_words: true,
+    };
+    /// 1.4.0 and 1.4.1: as now, but a module's `hold` or `release` two words
+    /// before a `because` is left bare, naming the program's where it
+    /// declares one (finding D091).
+    pub(crate) const V1_4: Self = Self {
+        hold_words: HoldWords::Legacy,
+        ..Self::NOW
+    };
+    /// 1.2.0 and 1.3.x: as 1.4, but in a module that declares `only_if` as
+    /// something other than a function, `only_if(…)` calls its flattened
+    /// name, `MODULE__only_if(…)`, which the bundle's program may declare.
+    pub(crate) const V1_2: Self = Self {
+        only_if: OnlyIf::Call,
+        ..Self::V1_4
+    };
+    /// 1.1.0, before `hold` and `release` were effects, and 1.2.0 to 1.3.x
+    /// corrected as now: as 1.2 with a module's names its own, and a module
+    /// may declare `irreversible` and `forecloses`.
+    pub(crate) const V1_1: Self = Self {
+        hold_words: HoldWords::Effects,
+        reserves_series_words: false,
+        ..Self::V1_2
+    };
+    /// rc.1 to 1.0.3: as 1.1.0, but `changed` is not yet a clause word, so a
+    /// module's own `changed` is its own wherever it stands.
+    pub(crate) const V1_0: Self = Self {
+        triggers: Triggers::NoClause,
+        ..Self::V1_1
+    };
+
+    /// This reading with `irreversible` and `forecloses` free: whether
+    /// `hold` binds as before is compared so, apart from the names 1.2.0
+    /// reserved.
+    pub(crate) const fn without_reserved_series_words(self) -> Self {
+        Self {
+            reserves_series_words: false,
+            ..self
+        }
+    }
+
+    /// Whether the grammar has given `word` a meaning, as this reading reads
+    /// a bundle.
+    fn reserves(self, word: &str) -> bool {
+        is_reserved(word)
+            && (self.reserves_series_words || !matches!(word, "irreversible" | "forecloses"))
+    }
+}
+
+/// The bundle as `reading` links it.
+pub(crate) fn link_reading(bundle: &str, reading: Reading) -> Result<String, String> {
+    link_with(bundle, reading)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HoldWords {
     Legacy,
     Effects,
 }
 
-fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, String> {
+/// How a module that declares `only_if` as something other than a function
+/// reads `only_if(…)`: as the form (from 1.4.0), or as a call of its own
+/// flattened name (before 1.4.0).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OnlyIf {
+    Form,
+    Call,
+}
+
+/// Where a `changed` that a module declares stays bare in `reopened by`.
+/// The parser splits the triggers at every comma, and `changed` leads one
+/// only before a stream (spec/caveat-changed-triggers-0.1.md).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Triggers {
+    /// As 1.1.0 to 1.4.1 linked it: a trigger ends only at a word that ends
+    /// in `,` or `;`, so `changed ,r` and `changed ;` keep `changed` bare,
+    /// naming the program's stream `changed` where it declares one.
+    Released,
+    /// As rc.1 to 1.0.3 linked it, before `changed` triggers: never.
+    NoClause,
+}
+
+fn link_with(bundle: &str, reading: Reading) -> Result<String, String> {
     let mut parts = split_bundle(bundle)?;
     // Repetition 0.1 expands first, so everything downstream — the declared
     // names, the single-writer check, the rewriter — sees the statements the
@@ -295,7 +387,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
         .ok_or_else(|| "bundle contains no program".to_string())?;
     let mut declarations: Vec<(String, Vec<String>)> = Vec::new();
     for part in modules {
-        let declared = module_declarations(part)?;
+        let declared = module_declarations(part, reading)?;
         declarations.push((part.name.clone(), declared));
     }
     if declared_module(&root.source).is_some() {
@@ -346,7 +438,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
             "origin {name};
 "
         ));
-        let rewritten = rewrite(part, Some(name), declared, &declarations, hold_words)?;
+        let rewritten = rewrite(part, Some(name), declared, &declarations, reading)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
         linked.push_str(&terminated(&rewritten));
@@ -361,7 +453,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
             root.name
         ));
     }
-    let rewritten = rewrite(root, None, &[], &declarations, hold_words)?;
+    let rewritten = rewrite(root, None, &[], &declarations, reading)?;
     let label = describe(root, false);
     let written = part_writes(&rewritten).map_err(|error| format!("{label}: {error}"))?;
     writes.push((label, written));
@@ -397,7 +489,7 @@ fn describe(part: &BundlePart, module: bool) -> String {
 }
 
 /// The names a module declares, after checking that it only declares.
-fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
+fn module_declarations(part: &BundlePart, reading: Reading) -> Result<Vec<String>, String> {
     let header = declared_module(&part.source).ok_or_else(|| {
         format!(
             "bundle part {} must begin with `module {};`",
@@ -518,7 +610,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     part.name
                 ));
             }
-            if is_reserved(&name) {
+            if reading.reserves(&name) {
                 return Err(format!(
                     "module {} declares {name}, which the grammar already uses",
                     part.name
@@ -946,7 +1038,7 @@ fn check_module_name(name: &str) -> Result<(), String> {
 /// only thing that distinguishes `reef` in `kind reef` from a reference is
 /// where it sits. spec/caveat-0.5-draft.md section 1 says a kind is a type tag
 /// and is not namespaced, and this is what makes that true.
-fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
+fn tag_offsets(source: &str, hold_words: HoldWords, triggers: Triggers) -> Vec<usize> {
     let code = blank_noncode(source);
     let mut offsets = Vec::new();
     for (start, end) in statements_of(&code) {
@@ -975,8 +1067,14 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
         // `reopened by changed STREAM` (spec/caveat-changed-triggers-0.1.md):
         // `changed` leads a trigger only when a stream follows it, so a module
         // may still name a stream `changed`. This mirrors the parser's split
-        // of the trigger list at commas.
-        if let ["decisions", _, "limit", _, "reopened", "by", ..] = shape.as_slice() {
+        // of the trigger list at commas, as 1.1.0 to 1.4.1 linked it: a
+        // trigger ends at a word that ends in `,` or `;`. The parser also
+        // splits at a comma that starts a word, so `changed ,r` keeps
+        // `changed` bare, naming the program's stream `changed`. Before
+        // 1.1.0, `changed` was not a clause word (`Triggers::NoClause`).
+        if let (Triggers::Released, ["decisions", _, "limit", _, "reopened", "by", ..]) =
+            (triggers, shape.as_slice())
+        {
             let mut trigger: Vec<(usize, &str)> = Vec::new();
             for &(offset, word) in &words[6..] {
                 trigger.push((offset, word));
@@ -1284,11 +1382,11 @@ fn rewrite(
     module: Option<&str>,
     declared: &[String],
     declarations: &[(String, Vec<String>)],
-    hold_words: HoldWords,
+    reading: Reading,
 ) -> Result<String, String> {
     let imported = used_modules(&part.source)?;
     let stripped = strip_headers(&part.source);
-    let tags = tag_offsets(&stripped, hold_words);
+    let tags = tag_offsets(&stripped, reading.hold_words, reading.triggers);
     // Like other intrinsics, a module's own function may shadow elapsed().
     // Other declarations named elapsed coexist with the clock instead. Only
     // inspect declaration kinds for the modules where that distinction matters.
@@ -1298,7 +1396,8 @@ fn rewrite(
             matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "elapsed")
         });
     // `only_if(…)` reads the form beside a state or define named only_if,
-    // unless the module defines that function (spec/caveat-only-if-0.1.md).
+    // unless the module defines that function (spec/caveat-only-if-0.1.md),
+    // or the bundle is read as before 1.4.0 (`OnlyIf::Call`).
     let only_if_is_function = module.is_some()
         && declared.iter().any(|name| name == "only_if")
         && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
@@ -1415,6 +1514,7 @@ fn rewrite(
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
         let only_if_form = word == "only_if"
+            && matches!(reading.only_if, OnlyIf::Form)
             && !only_if_is_function
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
@@ -1423,7 +1523,7 @@ fn rewrite(
                 if !member
                     && !clock_read
                     && !only_if_form
-                    && !is_reserved(word)
+                    && !reading.reserves(word)
                     && declared.iter().any(|name| name == word) =>
             {
                 out.push_str(&flat(module, word));

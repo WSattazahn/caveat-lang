@@ -243,3 +243,56 @@ fn an_explicit_choice_does_not_bypass_source_or_saved_value_validation() {
     send(&mut fresh);
     assert_eq!(value(&fresh), 10.0);
 }
+
+/// Whose save it is does not depend on which program the source is read as,
+/// so a save of another program, or of an edited source, is refused as such,
+/// as 1.4.1 refuses it, before restore asks for a choice it could not use.
+#[test]
+fn a_save_of_another_source_is_refused_as_one_before_a_choice_is_asked_for() {
+    let edit = |save: &str, field: &str, to: &str| {
+        let mut save: Value = serde_json::from_str(save).unwrap();
+        save[field] = json!(to);
+        save.to_string()
+    };
+    let other = "fnv1a64:0000000000000000:195";
+    let digest = "0".repeat(64);
+    for (save, error) in [
+        (
+            edit(OLD_STATE, "schema", "caveat-reactive-save/0.9"),
+            "schema caveat-reactive-save/0.9 is not caveat-reactive-save/0.1",
+        ),
+        (
+            edit(OLD_STATE, "source_id", other),
+            "it belongs to a different program",
+        ),
+        (
+            edit(OLD_STATE, "source_sha256", &digest),
+            "its source digest is not this source's",
+        ),
+        (
+            edit(OLD_NAMED, "source_id", other),
+            "it belongs to a different program",
+        ),
+        (
+            edit(OLD_NAMED, "source_sha256", &digest),
+            "its source digest is not this source's",
+        ),
+        (
+            edit(OLD_POSITIONAL, "sha256", &"A".repeat(43)),
+            "its source digest is not this source's",
+        ),
+    ] {
+        let expected = format!("cannot restore save: {error}");
+        assert_eq!(
+            ReactiveSession::restore_json(SOURCE, &save).unwrap_err(),
+            expected
+        );
+        for bindings in [ModuleBindings::Scoped, ModuleBindings::LegacyHoldCapture] {
+            assert_eq!(
+                ReactiveSession::restore_json_with_options(SOURCE, &save, &options(bindings))
+                    .unwrap_err(),
+                expected
+            );
+        }
+    }
+}

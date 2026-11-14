@@ -382,12 +382,37 @@ impl ReactiveSession {
             .as_ref()
             .and_then(|save| save.module_bindings)
             .or_else(|| named.as_ref().and_then(|save| save.module_bindings));
-        let mut session = Self::load_for_restore(source, saved_bindings, options)?;
+        // Whose save this is: what does not depend on the program the source
+        // is read as, so it is checked before a historical reading is asked
+        // for too.
+        let identity = |source_id: &str, source_sha256: &str| -> Result<(), String> {
+            if let Some(saved) = &positional {
+                if base64url(source_sha256).as_deref() != Some(saved.sha256.as_str()) {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            if let Some(saved) = &named {
+                if saved.schema != REPLAY_SAVE_SCHEMA {
+                    return Err(refuse(format!(
+                        "schema {} is not {REPLAY_SAVE_SCHEMA}",
+                        saved.schema
+                    )));
+                }
+                if saved.source_id != source_id {
+                    return Err(refuse("it belongs to a different program".into()));
+                }
+                if saved.source_sha256 != source_sha256 {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            Ok(())
+        };
+        let mut session = Self::load_for_restore(source, saved_bindings, options, || {
+            identity(&source_identity(source), &source_digest(source))
+        })?;
+        identity(&session.source_id, &session.source_sha256)?;
         let mut entries = Vec::new();
         if let Some(saved) = positional {
-            if base64url(&session.source_sha256).as_deref() != Some(saved.sha256.as_str()) {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             let values = match saved.events {
                 Value::Array(values) => values,
                 Value::String(digits) => digits
@@ -415,18 +440,6 @@ impl ReactiveSession {
             }
         }
         if let Some(saved) = named {
-            if saved.schema != REPLAY_SAVE_SCHEMA {
-                return Err(refuse(format!(
-                    "schema {} is not {REPLAY_SAVE_SCHEMA}",
-                    saved.schema
-                )));
-            }
-            if saved.source_id != session.source_id {
-                return Err(refuse("it belongs to a different program".into()));
-            }
-            if saved.source_sha256 != session.source_sha256 {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             for value in &saved.events {
                 entries.push(ReplayEntry::from_value(value).map_err(refuse)?);
             }

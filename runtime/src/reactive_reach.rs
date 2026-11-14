@@ -1830,9 +1830,11 @@ on go set s = s + 1;
     /// the call takes numbers, and here the form's condition is a truth
     /// value: the historical linker left `hold` bare two words before
     /// `because`, reading the root's define where older releases read the
-    /// module's numeric state (D088). Corrected fresh loading now refuses
-    /// that numeric condition. Explicit legacy restoration must still keep
-    /// the D083 classification and its old parameter-grounds allowance.
+    /// module's numeric state (D088). Corrected fresh loading refuses that
+    /// numeric condition in the form, and reads the call instead where the
+    /// root declares the function, as those releases did, which is no sign
+    /// of a later program either. Explicit legacy restoration must still
+    /// keep the D083 classification and its old parameter-grounds allowance.
     /// A function named like that for no module, or a module's own
     /// `fn only_if`, leaves `only_if` counted, and so does a single file.
     #[test]
@@ -1866,11 +1868,13 @@ on tick set u = only_if( hold , because );
             (format!("{root}fn other__only_if(c, v) = v;\n"), false),
         ] {
             let source = bundle(MODULE, &root);
-            let error = ReactiveSession::from_source(&source).unwrap_err();
-            assert!(
-                error.contains("expression requires boolean, found number"),
-                "{error}"
-            );
+            match ReactiveSession::from_source(&source) {
+                Ok(session) => assert!(expected && session.may_load_before_rc12(), "{source}"),
+                Err(error) => assert!(
+                    !expected && error.contains("expression requires boolean, found number"),
+                    "{error}"
+                ),
+            }
             let legacy = ReactiveSession::from_source_with_bindings(
                 &source,
                 ModuleBindings::LegacyHoldCapture,

@@ -6,6 +6,7 @@
 use crate::fast_hash::{HashMap, HashSet};
 use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
+pub(crate) use crate::release_line::Release;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -195,6 +196,15 @@ pub const CARRIES_ANY: &str = "carries_any";
 /// `carries:*` for any caveat, `carries:*material` for one of consequence
 /// `material` or above. No declared caveat is spelled with `*`.
 pub const ANY_CAVEAT: &str = "*";
+
+/// Whether a predicate kind is one `carries_any(…)` asks, of evidence, of
+/// `latest(…)` or of an occurrence or reading.
+fn asks_carries_any(kind: &str) -> bool {
+    let kind = kind.strip_prefix(AT_OCCURRENCE).unwrap_or(kind);
+    let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+    kind.strip_prefix("carries:")
+        .is_some_and(|caveat| caveat.starts_with(ANY_CAVEAT))
+}
 
 const CONSEQUENCE_WORDS: [&str; 5] = ["negligible", "low", "material", "high", "catastrophic"];
 
@@ -1810,6 +1820,123 @@ impl Expr {
             }
             Node::ExpandedFold(_, initial, body) => {
                 initial.has_form_after_rc11(only_if) || body.has_form_after_rc11(only_if)
+            }
+        }
+    }
+
+    /// The first release that reads every form this expression, as the
+    /// program loaded it, holds (finding D088): `occurrence(…)`,
+    /// `reading(…)`, `revision(…)` and `latest(…)` as targets and
+    /// `in_basis` from 1.1.0, `on_hold` from 1.2.0, `resolved` and `outcome`
+    /// from 1.3.0, `only_if` and `carries_any` from 1.4.0, and a threshold's
+    /// value, `grounds_of` and `is_set` only after 1.4.1. Ask it only after
+    /// `expand_with`, which turns a call of a function the program names like
+    /// one of these into that function's body. The match is exhaustive, so a
+    /// new kind of node must say which release first read it.
+    pub(crate) fn first_release(&self) -> Release {
+        let all = |children: &[Self]| {
+            children
+                .iter()
+                .map(Self::first_release)
+                .max()
+                .unwrap_or(Release::Before1_1)
+        };
+        match &self.node {
+            Node::Threshold(..) | Node::GroundsOf(_) => Release::Later,
+            Node::AtOccurrence(kind, _, index) => {
+                let form = if kind == AT_REVISION_RESOLVED {
+                    Release::V1_3
+                } else if asks_carries_any(kind) {
+                    Release::V1_4
+                } else {
+                    Release::V1_1
+                };
+                form.max(index.first_release())
+            }
+            Node::InBasis(_, children) => Release::V1_1.max(all(children)),
+            Node::Outcome(_, index) => index.as_deref().map_or(Release::V1_3, |index| {
+                Release::V1_3.max(index.first_release())
+            }),
+            Node::Predicate(kind, _) => {
+                if kind == IS_SET {
+                    Release::Later
+                } else if asks_carries_any(kind) {
+                    Release::V1_4
+                } else if kind == RESOLVED {
+                    Release::V1_3
+                } else if kind == ON_HOLD {
+                    Release::V1_2
+                } else if kind.starts_with(AT_LATEST) {
+                    Release::V1_1
+                } else {
+                    Release::Before1_1
+                }
+            }
+            Node::OnlyIf(condition, value) => Release::V1_4
+                .max(condition.first_release())
+                .max(value.first_release()),
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => Release::Before1_1,
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
+                child.first_release()
+            }
+            Node::Qualified(value, _, _) => value.first_release(),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.first_release().max(right.first_release())
+            }
+            Node::If(condition, yes, no) => condition
+                .first_release()
+                .max(yes.first_release())
+                .max(no.first_release()),
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => all(arguments),
+            Node::ExpandedCall(arguments, body) => all(arguments).max(body.first_release()),
+            Node::ExpandedFold(_, initial, body) => {
+                initial.first_release().max(body.first_release())
+            }
+        }
+    }
+
+    /// Whether this expression holds `only_if(…)` as it was written, before
+    /// any function of that name is called for it.
+    fn writes_only_if(&self) -> bool {
+        let any = |children: &[Self]| children.iter().any(Self::writes_only_if);
+        match &self.node {
+            Node::OnlyIf(..) => true,
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::GroundsOf(_)
+            | Node::HistoryCount(_) => false,
+            Node::Unary(_, child)
+            | Node::Qualified(child, _, _)
+            | Node::HistoryAt(_, child)
+            | Node::Fold(_, child, _)
+            | Node::AtOccurrence(_, _, child) => child.writes_only_if(),
+            Node::Outcome(_, index) => index.as_deref().is_some_and(Self::writes_only_if),
+            Node::InBasis(_, children)
+            | Node::Function(_, children)
+            | Node::UserCall(_, children) => any(children),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.writes_only_if() || right.writes_only_if()
+            }
+            Node::If(condition, yes, no) => {
+                condition.writes_only_if() || yes.writes_only_if() || no.writes_only_if()
+            }
+            Node::ExpandedCall(arguments, body) => any(arguments) || body.writes_only_if(),
+            Node::ExpandedFold(_, initial, body) => {
+                initial.writes_only_if() || body.writes_only_if()
             }
         }
     }
@@ -4685,6 +4812,31 @@ fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> 
 /// no state or graph data and may not recurse. Constants are literals; callers
 /// pass named coordinates explicitly as arguments.
 pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(), String> {
+    validate_functions_reading(functions).map(|_| ())
+}
+
+/// Which releases read every function body as this runtime does (finding
+/// D088): the first that reads every form the bodies use, and the last
+/// before one that refused a body this runtime reads again.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct FunctionsReading {
+    /// `only_if(…)` read as the form, where no release before 1.4.0 could
+    /// read it: the program declares no `fn only_if`, or the call of it
+    /// would not type-check (`infer_function`).
+    pub(crate) first: Release,
+    /// A body that calls the program's own function named like a form a
+    /// later release added, which that release refused in a body (finding
+    /// D084): `in_basis` (1.1.0), `on_hold` (1.2.0), `outcome` and
+    /// `resolved` (1.3.0), and `only_if` where it loads only as that call
+    /// (1.4.0, finding D093).
+    pub(crate) last: Release,
+}
+
+/// Validate every definition as `validate_functions` does, and say which
+/// releases read every body as this runtime does (`FunctionsReading`).
+pub(crate) fn validate_functions_reading(
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<FunctionsReading, String> {
     if functions.len() > MAX_REGISTRY_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
@@ -4727,8 +4879,18 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
     }
     let mut result_types = BTreeMap::new();
     let mut active = HashSet::default();
+    let mut reading = FunctionsReading {
+        first: Release::Before1_1,
+        last: Release::Later,
+    };
     for name in functions.keys() {
-        infer_function(name, functions, &mut result_types, &mut active)?;
+        infer_function(
+            name,
+            functions,
+            &mut result_types,
+            &mut active,
+            &mut reading,
+        )?;
     }
     // Check expansion limits for unused definitions as well. Each body is
     // checked separately, so a large unused macro cannot escape validation.
@@ -4736,72 +4898,93 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         expand(&definition.body, functions)
             .map_err(|error| format!("source function {name}: {error}"))?;
     }
-    Ok(())
+    Ok(reading)
+}
+
+/// The last release that read a function body's call of the program's own
+/// function named like this form (finding D084): from the release that added
+/// the form, a body was read with the form, which a function may not ask.
+/// `grounds_of` and `is_set` came after 1.4.1, so every release called the
+/// function.
+fn last_calling(node: &Node) -> Release {
+    match node {
+        Node::InBasis(..) => Release::Before1_1,
+        Node::Predicate(name, _) if name == ON_HOLD => Release::V1_1,
+        Node::Outcome(..) => Release::V1_2,
+        Node::Predicate(name, _) if name == RESOLVED => Release::V1_2,
+        Node::AtOccurrence(kind, _, _) if kind == AT_REVISION_RESOLVED => Release::V1_2,
+        _ => Release::Later,
+    }
 }
 
 fn collect_calls(
     expression: &Expr,
     functions: &BTreeMap<String, FunctionDef>,
     calls: &mut Vec<String>,
+    last: &mut Release,
 ) -> Result<(), String> {
     if let Some(call) = source_function_call(&expression.node, functions)? {
-        return collect_calls(&Expr::new(call)?, functions, calls);
+        *last = (*last).min(last_calling(&expression.node));
+        return collect_calls(&Expr::new(call)?, functions, calls, last);
     }
     match &expression.node {
         Node::Unary(_, child)
         | Node::Qualified(child, _, _)
         | Node::HistoryAt(_, child)
-        | Node::AtOccurrence(_, _, child) => collect_calls(child, functions, calls)?,
+        | Node::AtOccurrence(_, _, child) => collect_calls(child, functions, calls, last)?,
         Node::InBasis(_, children) => {
             for child in children {
-                collect_calls(child, functions, calls)?;
+                collect_calls(child, functions, calls, last)?;
             }
         }
         Node::Fold(_, initial, reducer) => {
             calls.push(reducer.clone());
-            collect_calls(initial, functions, calls)?;
+            collect_calls(initial, functions, calls, last)?;
         }
         Node::ExpandedFold(_, initial, body) => {
-            collect_calls(initial, functions, calls)?;
-            collect_calls(body, functions, calls)?;
+            collect_calls(initial, functions, calls, last)?;
+            collect_calls(body, functions, calls, last)?;
         }
         Node::Binary(_, left, right) => {
-            collect_calls(left, functions, calls)?;
-            collect_calls(right, functions, calls)?;
+            collect_calls(left, functions, calls, last)?;
+            collect_calls(right, functions, calls, last)?;
         }
         Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
-            collect_calls(condition, functions, calls)?;
-            collect_calls(value, functions, calls)?;
+            collect_calls(condition, functions, calls, last)?;
+            collect_calls(value, functions, calls, last)?;
         }
         Node::If(condition, yes, no) => {
-            collect_calls(condition, functions, calls)?;
-            collect_calls(yes, functions, calls)?;
-            collect_calls(no, functions, calls)?;
+            collect_calls(condition, functions, calls, last)?;
+            collect_calls(yes, functions, calls, last)?;
+            collect_calls(no, functions, calls, last)?;
         }
         Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
             if let Node::UserCall(name, _) = &expression.node {
                 calls.push(name.clone());
             }
             for argument in arguments {
-                collect_calls(argument, functions, calls)?;
+                collect_calls(argument, functions, calls, last)?;
             }
         }
         Node::ExpandedCall(arguments, body) => {
             for argument in arguments {
-                collect_calls(argument, functions, calls)?;
+                collect_calls(argument, functions, calls, last)?;
             }
-            collect_calls(body, functions, calls)?;
+            collect_calls(body, functions, calls, last)?;
         }
         _ => {}
     }
     Ok(())
 }
 
+/// `reading` gains what the body says about the releases that read it as
+/// this runtime does (`FunctionsReading`).
 fn infer_function(
     name: &str,
     functions: &BTreeMap<String, FunctionDef>,
     result_types: &mut BTreeMap<String, ValueType>,
     active: &mut HashSet<String>,
+    reading: &mut FunctionsReading,
 ) -> Result<ValueType, String> {
     if active.contains(name) {
         return Err(format!("recursive source function cycle involving {name}"));
@@ -4814,12 +4997,12 @@ fn infer_function(
         .ok_or_else(|| format!("unknown source function {name}"))?;
     active.insert(name.into());
     let mut calls = Vec::new();
-    collect_calls(&definition.body, functions, &mut calls)?;
+    collect_calls(&definition.body, functions, &mut calls, &mut reading.last)?;
     for callee in calls {
         if callee == CARRIES_ANY && !functions.contains_key(CARRIES_ANY) {
             return Err("pure source functions cannot query graph predicates".into());
         }
-        infer_function(&callee, functions, result_types, active)?;
+        infer_function(&callee, functions, result_types, active, reading)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
     let no_capture = |kind: &str, _: &str| {
@@ -4847,6 +5030,19 @@ fn infer_function(
             },
             Some(functions),
         )
+        .inspect(|_| {
+            // Read as the form, `only_if(…)` came in 1.4.0. A release before
+            // it read it as a call of the program's own `fn only_if`, so it
+            // loaded the body only where that call type-checks too.
+            if definition.body.writes_only_if()
+                && (!functions.contains_key(ONLY_IF)
+                    || expand(&definition.body, functions)
+                        .and_then(|expanded| expanded.validate(&parameters, &no_capture))
+                        .is_err())
+            {
+                reading.first = reading.first.max(Release::V1_4);
+            }
+        })
         .or_else(|original| {
             if !functions.contains_key(ONLY_IF) {
                 return Err(original);
@@ -4859,9 +5055,12 @@ fn infer_function(
             // Successful legacy inference must keep accepting that body.
             // Expansion still checks cycles, arity, captures and limits;
             // validation checks every argument and branch, even unused ones.
-            expand(&definition.body, functions)
+            // 1.4.0 and 1.4.1 refused such a body (finding D093).
+            let kind = expand(&definition.body, functions)
                 .and_then(|expanded| expanded.validate(&parameters, &no_capture))
-                .map_err(|_| original)
+                .map_err(|_| original)?;
+            reading.last = reading.last.min(Release::V1_3);
+            Ok(kind)
         })
         .map_err(|error| format!("source function {name}: {error}"))?;
     active.remove(name);

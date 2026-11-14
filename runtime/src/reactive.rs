@@ -14,6 +14,7 @@ use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
 pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
+use crate::release_line::Release;
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -184,6 +185,9 @@ mod departure;
 mod reach;
 #[path = "reactive_relations.rs"]
 mod relations;
+#[path = "reactive_releases.rs"]
+mod releases;
+use releases::Readings;
 #[path = "reactive_write.rs"]
 mod write;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
@@ -2585,6 +2589,13 @@ pub struct ReactiveSession {
     /// there. So `only_if` in such a program does not show that no release
     /// before rc.12 loaded it (`may_load_before_rc12`, finding D083).
     flat_only_if: bool,
+    /// The releases that could have loaded this program as it loaded here,
+    /// as far as what the session does not keep shows it: the first release
+    /// that reads every form its function bodies and state initial values
+    /// use, and the last before one that refused a function body this
+    /// runtime reads again (`reactive_expr::validate_functions_reading`).
+    /// `release_bounds` adds what the session keeps (finding D088).
+    loaded_releases: (Release, Release),
 }
 
 /// How many loaded programs `from_source_cached` keeps.
@@ -2650,33 +2661,26 @@ impl ReactiveSession {
     }
 
     fn load_source(source: &str, bindings: ModuleBindings) -> Result<Self, String> {
-        let scoped = crate::link::link(source);
-        // Compare link text, not current values: two interpretations can
-        // have identical initial state and diverge only on a later event.
-        // Even when the other interpretation does not load today, record
-        // this one so a later compiler cannot make its save ambiguous.
         if source.starts_with(crate::link::BUNDLE_MARKER) {
-            let legacy = crate::link::link_legacy_hold_capture(source);
-            let affected = scoped.as_ref().ok() != legacy.as_ref().ok();
-            let linked = match bindings {
-                ModuleBindings::Scoped => scoped,
-                ModuleBindings::LegacyHoldCapture => legacy,
-            }?;
-            return Self::load_program(
-                source,
-                crate::parser::parse(&linked)?,
-                affected.then_some(bindings),
-            );
+            return Readings::new(source).load(bindings);
         }
-        Self::load_program(source, crate::parser::parse(&scoped?)?, None)
+        Self::load_program(
+            source,
+            crate::parser::parse(&crate::link::link(source)?)?,
+            None,
+        )
     }
 
     /// Choose a program before applying state or replaying events. A save
     /// cannot reveal which of two valid historical programs produced it.
+    /// `identity` checks what does not depend on the program, that this is a
+    /// save of `source`: a save of another program, or of an edited source,
+    /// is refused as such before the choice is asked for.
     fn load_for_restore(
         source: &str,
         saved_bindings: Option<ModuleBindings>,
         options: &RestoreOptions,
+        identity: impl FnOnce() -> Result<(), String>,
     ) -> Result<Self, String> {
         if let (Some(saved), Some(requested)) = (saved_bindings, options.module_bindings) {
             if saved != requested {
@@ -2697,16 +2701,37 @@ impl ReactiveSession {
         {
             return scoped;
         }
-        let legacy =
-            Self::from_source_cached_with_bindings(source, ModuleBindings::LegacyHoldCapture);
-        match (scoped, legacy) {
-            (Ok(_), Ok(_)) => Err(
-                "cannot restore save: this source has ambiguous historical module bindings; supply moduleBindings as scoped or legacy-hold-capture"
-                    .into(),
-            ),
-            (Ok(session), Err(_)) | (Err(_), Ok(session)) => Ok(session),
-            (Err(error), Err(_)) => Err(error),
+        let readings = Readings::new(source);
+        if !readings.affected {
+            return scoped;
         }
+        // This runtime marks every save of such a bundle, so an unmarked one
+        // was written by a release that loaded it: before 1.2.0 with the
+        // module's own `hold`, or from 1.2.0 to 1.4.1 with the program's
+        // (finding D091). Where releases of both kinds could load it, and
+        // read it differently, the save cannot say which wrote it.
+        let legacy =
+            || Self::from_source_cached_with_bindings(source, ModuleBindings::LegacyHoldCapture);
+        let (scoped_writer, legacy_writer) = readings.writers();
+        let ambiguous = match (scoped_writer, legacy_writer) {
+            (true, false) => return scoped,
+            (false, true) => return legacy(),
+            (true, true) => readings.scoped_reading() != readings.legacy_reading(),
+            // No release loaded it, so no release wrote the save.
+            (false, false) => match (scoped, legacy()) {
+                (Ok(_), Ok(_)) => true,
+                (Ok(session), Err(_)) | (Err(_), Ok(session)) => return Ok(session),
+                (Err(error), Err(_)) => return Err(error),
+            },
+        };
+        if !ambiguous {
+            return Self::from_source_cached(source);
+        }
+        identity()?;
+        Err(
+            "cannot restore save: this source has ambiguous historical module bindings; supply moduleBindings as scoped or legacy-hold-capture"
+                .into(),
+        )
     }
 
     fn load_program(
@@ -2770,7 +2795,7 @@ impl ReactiveSession {
                 }
             }
         }
-        reactive_expr::validate_functions(&functions)?;
+        let functions_reading = reactive_expr::validate_functions_reading(&functions)?;
         // A bundle module that declares `only_if` as something other than a
         // function reads `only_if(…)` as the form, where releases before
         // rc.12 flattened the name, calling `MODULE__only_if` (link.rs). Only
@@ -2950,6 +2975,7 @@ impl ReactiveSession {
             last_agent: None,
             reach: Arc::default(),
             flat_only_if,
+            loaded_releases: (functions_reading.first, functions_reading.last),
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -3273,6 +3299,8 @@ impl ReactiveSession {
                         unreachable!("validated number initializer")
                     };
                     check_range(name, number, min.value(), max.value())?;
+                    session.loaded_releases.0 =
+                        session.loaded_releases.0.max(initial.first_release());
                     let grounds = session
                         .evaluate_grounds(initial, &Parameters::default())?
                         .provenance;

@@ -134,16 +134,26 @@ use the corrected scoped interpretation.
 
 For affected source, state saves and both replay-save formats carry the
 optional field `"module_bindings":"scoped"` or
-`"module_bindings":"legacy-hold-capture"`. It is omitted when both linkers
-produce identical source. The original source bytes, `source_id` and source
-digest do not change. A present marker must be one of these two strings.
+`"module_bindings":"legacy-hold-capture"`. It is omitted when reading a
+module's `hold` and `release` either way links the same source. The original
+source bytes, `source_id` and source digest do not change. A present marker
+must be one of these two strings.
 
 Restore selects the interpretation before applying saved state or replaying
-events. An unmarked save whose source loads under only one interpretation
-uses that interpretation. If both distinct interpretations load, restore
-requires an explicit choice: the same source and initial save can have been
-written by 1.0 with scoped behavior or by 1.4 with root capture. Saved state
-is not used to guess which history occurred.
+events. This runtime marks every save of affected source, so an unmarked one
+was written by a release: one before 1.2.0, which read a module's names as
+its own (`scoped`), or one from 1.2.0 to 1.4.1, which read a `hold` or
+`release` two words before `because` as the root's (`legacy-hold-capture`).
+An unmarked save uses the interpretation of the releases that could have
+loaded its source ([Caveat 0.5](caveat-0.5-draft.md)), as they linked it,
+even where a fresh load reads the source otherwise or refuses it. Where
+releases of both kinds could, and their readings differ, restore requires an
+explicit choice: the same source and initial save can have been written by
+1.0 with scoped behavior or by 1.4 with root capture. Where no release could,
+an unmarked save uses the interpretation that loads, and requires a choice if
+both do. Saved state is not used to guess which history occurred. A save of
+another program, or of an edited source, is refused as such first, as
+releases refuse it, since no choice could restore it.
 
 In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
 or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use

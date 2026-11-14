@@ -33,15 +33,21 @@ histories correctly.
 
 - Affected state, named replay and positional replay saves record
   `module_bindings`: `scoped` or `legacy-hold-capture`.
-- Unmarked affected saves require an explicit choice when both distinct
-  linked programs fully load. If only one loads, restore uses that one.
-  Saved state validation is never used to pick a convenient interpretation.
+- This runtime marks every affected save, so an unmarked one was written by
+  a release: before 1.2.0 with module scope, or from 1.2.0 to 1.4.1 with
+  root capture. Restore uses the interpretation of the releases that could
+  have loaded the source as they linked it (below), and requires an explicit
+  choice only when releases of both kinds could and their readings differ.
+  Where no release could, it uses the interpretation that loads, and
+  requires a choice when both do. Saved state validation is never used to
+  pick a convenient interpretation.
 - A saved marker selects the interpretation. An explicit conflicting option
   is refused. The selected program supplies the initial state, bounds and
   capabilities before saved state is applied or events replayed. Cache keys
   include the interpretation.
-- Source identity still covers the original raw bytes. When both linkers
-  produce identical source, saves omit the marker and preserve their bytes.
+- Source identity still covers the original raw bytes. When reading a
+  module's `hold` and `release` either way links the same source, saves omit
+  the marker and preserve their bytes.
 - Selection continues historical state; it does not rewrite frozen decisions
   or migrate past state to corrected semantics. It authenticates nothing.
 
@@ -80,11 +86,146 @@ options, signed-zero forwarding, session closure, serve state checkpointing
   and retention of the actual restore error when a fresh source load refuses.
 Final command results and remote checks are recorded on the pull request.
 
+## D088: each bundle read as the releases that loaded it
+
+The original D084–D088 reproducers were then run on this branch with release
+builds of every release from rc.1 to 1.4.1. D084, D085 and D087 were fixed by
+#477 to #479, and D086 by #481. D088's remaining programs loaded on older
+minors and stopped at 1.1.0, 1.2.0 or 1.4.0, because those releases linked a
+module's names another way
+([Caveat 0.5](../../spec/caveat-0.5-draft.md)):
+
+- A module that declares `irreversible` (rc.1 to 1.1.0 load it), and, found
+  by the same check over every reserved word, one that declares
+  `forecloses`. From 1.2.0 the linker reserves both.
+- A module that declares `only_if` as a state or define and gives
+  `only_if(…)` a number for its condition (four programs; rc.1 to 1.3.0
+  load them). Before 1.4.0 the name was the module's, so the call reached
+  the bundle program's `fn MODULE__only_if`; from 1.4.0 it is the form.
+- `reopened by changed ,r` beside a module's stream `changed` (rc.3 to 1.0.3
+  load it). From 1.1.0 the linker ended a trigger only at a word that ends
+  in `,` or `;`, so `changed` stayed bare there and named the program's
+  stream `changed`.
+
+Each line of releases' linking is now a `link::Reading`: `NOW` (this
+runtime: 1.4.1's linking, corrected), `V1_4` (1.4.0 and 1.4.1), `V1_2`
+(1.2.0 to 1.3.x), `V1_1` (1.1.0, and 1.2.0 to 1.3.x corrected) and `V1_0`
+(rc.1 to 1.0.3). Which releases could load what a reading links is found
+from the program as it loads (`release_bounds` in
+`runtime/src/reactive_releases.rs`): from the first release that reads every
+form it keeps, to the last release before one that refused one of its
+function bodies, a body that calls the program's own function named like a
+form that release added and read as the form there (D084, and D093 for
+`only_if`). A bundle is read
+as the newest release that could load it linked it, with a module's `hold`
+and `release` its own; where that release loaded it only through root
+capture, as the newest older one whose reading loads with module scope; and
+a bundle that no release could load so is read as this runtime links it,
+which refuses a bundle that loaded only through capture, as #480 does.
+`link::link` keeps 1.4's linking, corrected, and so still refuses a module
+that declares `irreversible` or `forecloses`, as 1.4.1 does. D088's eight
+programs all load, and each one's saves equal those of the newest release
+that loaded it.
+
+The same check over the review's 20,328 generated `only_if` bundles found
+one more case, a finding of its own (D093). Seven bundles declare `only_if`
+in a module, `fn only_if` and `fn MODULE__only_if` in the program, and give
+`only_if(…)` a number for its condition in a function's body. rc.1 to 1.3.0
+load them, the module's call reaching `fn MODULE__only_if`; 1.4.0 and 1.4.1
+refuse them. Main, since #478 let a function's body call the program's own
+`fn only_if`, read the module's call as that function's, which no release
+did, and so did #480. Such a body is one 1.4 refused, so the newest release
+that could load these bundles is 1.3.0, and the seven compute its saves.
+
+An unmarked save of an affected bundle restores as the releases that could
+have written it read it, as the [Restore contract](#restore-contract) above
+says. A bundle that only releases from 1.2.0 to 1.4.1 loaded, through root
+capture, is refused fresh, but its saves restore with root capture and no
+choice. Where releases before 1.2.0 could also have written the save, and
+read the bundle differently, the save needs a choice. So
+`only_if( hold , because )` in a module that declares `only_if` and `hold`,
+beside the program's `define hold` and `fn MODULE__only_if`, loads fresh as
+1.1.0 read it, the call of `fn MODULE__only_if` with the module's number,
+where 1.4 read the form with the program's define as its condition; an
+unmarked 1.4.1 save of it needs `legacy-hold-capture`, and of 1.1.0
+`scoped`.
+
+### Reviews
+
+An adversarial review of a first version of these changes found three
+problems, which the second version fixed. It split the triggers at every
+comma in both readings, so it read
+`changed` in other places than 1.1.0 to 1.4.1 did: among 7,968 generated
+bundles it refused 34 that those releases load and changed the saves of 26,
+and it continued some 1.1.0 saves under a reading no release had. It read
+the new clause words' offsets with the older rules, whose offsets move after
+text that is not ASCII earlier in a module, so a module could read a
+program's name in place of its own. And it told a save of another program,
+or of an edited source, to choose a reading, where 1.4.1 refuses it as such;
+restore now checks whose save it is first. The older rules' offsets still
+move so, as in every release since each rule came; correcting them would
+change programs 1.4.1 loads, so that is a finding of its own (D092). The
+reading by release line above adds no positional rule, so the second
+problem has no place in it.
+
+A second independent review, of a version that read a bundle that did not
+load as linked now with the first older reading that loaded, latest first,
+found fifteen problems with that rule. It gave bundles only 1.4.0 and 1.4.1
+load the pre-1.4 call, a computation no release had, and made their 1.4.1
+saves need a choice; gave bundles only rc.3 to 1.0.3 load the 1.1.0 trigger
+reading and refused their saves; loaded a module that declares
+`irreversible` or `forecloses` with 1.4's `only_if` reading, which none of
+the releases that load it used, and asked a choice for the older saves of
+one beside a hold capture, offering a reading no release had; loaded
+bundles no release loads by mixing an older linking with later forms; and
+kept D093's misreading where 1.4 refused a bundle for another reason. Its
+split of the triggers at every comma was not the reading before 1.1.0
+either, a D088 test used a bundle no release loads, and this record, the
+spec and the code said that nothing 1.4 loads is read another way, which was
+not so. The reading by release line above replaces that rule.
+
+### Checks
+
+Release builds of every release from rc.1 to 1.4.1 were the reference, over
+43,146 bundles: the earlier probes, mutations and older-release programs
+(751), the second review's probes (296) and 42,196 generated bundles. Which
+of 1.0.0, 1.0.3, 1.1.0, 1.2.0, 1.3.0, 1.4.0 and 1.4.1 load each bundle is
+predicted from its readings exactly, apart from one probe, an agent declared
+in a module with a relation, that 1.4 refused while parsing (D083); it is
+read as this runtime reads it either way.
+
+- Of the 9,192 bundles a 1.x release loads, 9,130 compute the saves of the
+  newest release that loads them (4 runs of 30 seeded events, the marker
+  aside). The other 62 are where a module's `hold` or `release` before
+  `because` named a declaration of the program: 34 loaded only through that
+  capture and are refused, 27 compute 1.1.0's saves, and one, which uses an
+  irreversible series, computes the corrected value no release had (10 where
+  1.4.1 gives 14, as in the collision fixture above).
+- Of the 33,954 bundles no 1.x release loads, 32 load, with #480's saves,
+  and 2,175 that the previous version of this branch loaded are refused, as
+  #480 and main refuse them.
+- Every save 1.0.3, 1.1.0, 1.2.0, 1.3.0 and 1.4.1 write of 8,746 of these
+  bundles (2 runs of 10 events, 219,648 saves) was restored and continued with
+  the writer's next events. Of 1.4.1's 96,888 saves, 96,206 restore and
+  continue byte for byte as 1.4.1 continued them, and 682 (31 programs) need a
+  choice. Of the older releases' 122,760 saves, 121,098 restore, and all
+  continue as their writer did except those of 23 programs that a later
+  release linked differently, 1.4.0 a module's `only_if(…)` or 1.1.0 `reopened
+  by changed ,r`: 22 continue byte for byte as 1.4.1 continues them, and one
+  that 1.4 refused as 1.3.0 does, which refuses the same six of its 1.0.3
+  saves. 1,650 saves (of 29, 32, 7 and 7 programs) need a choice. With the
+  choice that names the writer's reading, every save that needs one restores
+  and continues as its writer did. #480 refused 84,206 of the older releases'
+  saves, mostly of D088 programs it does not load.
+
+The cases are in `runtime/tests/d088_module_names_older_releases_loaded.rs`,
+`runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`,
+`runtime/tests/module_binding_restore.rs` and the tests of
+`runtime/src/reactive_releases.rs`.
+
 ## Scope limits
 
-The original eleven D084–D088 reproducer programs and unpushed Claude patch
-remain unavailable. These reconstructed fixes cannot establish that every
-item in that original inventory is closed. No release, publication, broad
-performance improvement or new full historical release sweep is claimed.
-The bug is corrected for fresh sessions; retaining legacy semantics is an
-explicit historical continuation, not the default behavior.
+No release, publication, broad performance improvement or new full
+historical release sweep is claimed. The bug is corrected for fresh
+sessions; retaining legacy semantics is an explicit historical continuation,
+not the default behavior.

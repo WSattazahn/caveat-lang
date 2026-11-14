@@ -945,7 +945,10 @@ impl ReactiveSession {
         save: &ReactiveSave,
         options: &RestoreOptions,
     ) -> Result<Self, String> {
-        let mut session = Self::load_for_restore(source, save.module_bindings, options)?;
+        let mut session = Self::load_for_restore(source, save.module_bindings, options, || {
+            Self::save_identity(save, &source_identity(source), &source_digest(source))
+                .map_err(|error| format!("cannot restore save: {error}"))
+        })?;
         // The bound restore checks the save by comes from the program as it
         // loaded, so it is computed before the save is applied (D061).
         session.history_reach_bound();
@@ -981,24 +984,40 @@ impl ReactiveSession {
         Self::restore_with_options(source, &save, options)
     }
 
-    fn apply_save(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    /// What a save is checked for before anything in it is read against the
+    /// program: its schema, and that it is a save of this source, whichever
+    /// historical program the source is read as.
+    fn save_identity(
+        save: &ReactiveSave,
+        source_id: &str,
+        source_sha256: &str,
+    ) -> Result<(), String> {
         if save.schema != REACTIVE_SAVE_SCHEMA {
             return Err(format!(
                 "schema {} is not {REACTIVE_SAVE_SCHEMA}",
                 save.schema
             ));
         }
-        if save.source_id != self.source_id {
+        if save.source_id != source_id {
             return Err("it belongs to a different program".into());
         }
+        if save
+            .source_sha256
+            .as_deref()
+            .is_some_and(|digest| digest != source_sha256)
+        {
+            return Err("its source digest is not this source's".into());
+        }
+        Ok(())
+    }
+
+    fn apply_save(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        Self::save_identity(save, &self.source_id, &self.source_sha256)?;
         // A save without a digest predates it: the decisions it holds were
         // made under this source (its `source_id` matched) but did not record
         // its digest, so they stay "not recorded". The digest is never
         // supplied for them here.
         self.source_unrecorded_through = match &save.source_sha256 {
-            Some(digest) if *digest != self.source_sha256 => {
-                return Err("its source digest is not this source's".into());
-            }
             Some(_) if save.source_unrecorded_through > save.sequence => {
                 return Err("source_unrecorded_through is past its sequence".into());
             }

@@ -169,12 +169,13 @@ name. This is a correction to the scope promise and can change previously
 accepted programs' results, or refuse a program that loaded only because it
 captured the wrong declaration. Historical saves remain restorable under
 their selected interpretation. There is a narrow qualification to automatic
-restore: an unmarked save whose source loads under both distinct
-interpretations needs an explicit `moduleBindings` choice. Published 1.0
-and 1.4 produced byte-identical initial saves with different continuations,
-so automatic preservation of both is impossible. New affected saves record
-the choice. Unaffected save bytes remain unchanged. Older runtimes refuse
-the new marker; removing it is not a safe downgrade. See
+restore: an unmarked save of a source that releases before 1.2.0 and from
+1.2.0 to 1.4.1 could both load, and read differently, needs an explicit
+`moduleBindings` choice. Published 1.0 and 1.4 produced byte-identical
+initial saves with different continuations, so automatic preservation of
+both is impossible. New affected saves record the choice. Unaffected save
+bytes remain unchanged. Older runtimes refuse the new marker; removing it is
+not a safe downgrade. See
 [the save contract](../spec/caveat-save-0.1.md#module-binding-interpretation)
 and [the evidence and limits](reviews/2026-11-14-module-binding-correction.md).
 
