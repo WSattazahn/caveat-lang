@@ -203,15 +203,37 @@ bare before a name and `=` or before `revision`, and 1.4.0's, which kept
 `once` bare after `because`. So it refused a module's `fn resolve (y)` and
 `event resolve revision`, which rc.1 to 1.2.0 load, and a module's `once`
 after a retained caveat's `because`, which releases up to 1.3.0 load, with
-their saves, or read the program's `once` there where those releases read the
-module's. Each reading now keeps only the rules of the minors up to its line,
-and `V1_3` is new for the rules of 1.3.x.
+their saves, or read them otherwise: the event as the program's `resolve`
+where 1.1.0 named it `m__resolve`, and the program's `once` where those
+releases read the module's. Each reading now keeps only the rules of the
+minors up to its line, and `V1_3` is new for the rules of 1.3.x.
+
+It also found two problems in restore. Asked for `legacy-hold-capture`, a
+bundle that only releases before 1.2.0 could load was read as 1.4 links it,
+which changed its `changed` triggers and a module's `only_if(…)` calls as
+well as `hold` and `release`; and where the module's `hold` and `release`
+read the same either way, the session's saves carried no marker, so without
+the choice this runtime refused them or continued them otherwise. No release
+read such a bundle with root capture: the choice now reads it as those
+releases did where the program's `hold` and `release` would change nothing,
+and is refused where they would. And a save of another program, or of an
+edited source, that carried a marker or was restored with a choice was
+refused for a conflict with its marker or for the chosen reading's load
+error, not as another program's save; restore now checks whose save it is
+before it uses a marker or a choice. The review's other findings were in
+wording: a D088 test gave D093 as the reason 1.4 refused a bundle, where it
+was the bundle's function body (D084); the Checks below labelled the bundle
+sets wrongly, so that the parts added to more than the total; and a commit
+message said that every older save of the restore set restores, where 12
+1.0.3 saves (six of one program, which the set holds twice) are refused, as
+1.3.0 refuses them. Each is corrected.
 
 ### Checks
 
 Release builds of every release from rc.1 to 1.4.1 were the reference, over
-43,146 bundles: the earlier probes, mutations and older-release programs
-(751), the second review's probes (296) and 42,196 generated bundles. Which
+43,146 bundles: the probes of this branch and its first two reviews (654, the
+second review's 622 among them), the D083 and D084 probes (296) and 42,196
+generated bundles. Which
 of 1.0.0, 1.0.3, 1.1.0, 1.2.0, 1.3.0, 1.4.0 and 1.4.1 load each bundle is
 predicted from its readings exactly, apart from one probe, an agent declared
 in a module with a relation, that 1.4 refused while parsing (D083); it is
@@ -256,6 +278,19 @@ read as this runtime reads it either way.
   older writer's 22 saves of it, 4 continue as 1.4.1 continues them and 18
   are refused, as main refuses them since D054 and 1.4.1 did not: they carry
   the module's `once` into a decision, which no rule does as 1.4 links it.
+- After the restore fixes, the 43,146 bundles and the review's 7,152 give the
+  same loads and saves, markers included, and every release's save of the
+  restore set continues as before, with the D091 choice and without it.
+  Asked for `legacy-hold-capture`, the 59,620 saves 1.0.3 and 1.1.0 write of
+  that set continue as before wherever a release from 1.2.0 on loads the
+  bundle. Of the programs only earlier releases load, 93 for each writer now
+  continue every save as their writer did, where the previous version refused
+  or changed them, and 42 of 1.0.3's and 46 of 1.1.0's, whose module's `hold`
+  or `release` the program's would capture, are refused with the new message;
+  without a choice their saves continue as their writer did. The review's own
+  cases now continue as their writers did with the choice, and its saves of
+  another program or of an edited source are refused as such, with or without
+  a marker or a choice (78 restores).
 
 The cases are in `runtime/tests/d088_module_names_older_releases_loaded.rs`,
 `runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`,

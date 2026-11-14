@@ -355,11 +355,11 @@ fn a_module_only_if_call_keeps_the_bare_changed_of_its_releases() {
 
 /// The releases that could load a bundle as it is linked decide how it is
 /// read. A function's body that calls a function named like a later
-/// built-in, which releases from that built-in on refused, ends them:
-/// `on_hold` from 1.2.0 and `outcome` from 1.3.0. 1.4 refused this bundle
-/// for D093, and the module's `only_if(2, 2)` calls `fn m__only_if`, as in
-/// the last release that loaded it, though the call of the program's
-/// `fn only_if` loads too.
+/// built-in, which releases from that built-in on refused (D084), ends
+/// them: `on_hold` from 1.2.0 and `outcome` from 1.3.0, so 1.4 could not
+/// load this bundle either. The module's `only_if(2, 2)` calls
+/// `fn m__only_if`, as in the last release that loaded it, though the call
+/// of the program's `fn only_if` loads too.
 #[test]
 fn a_function_body_later_releases_refused_keeps_the_reading_of_the_releases_before() {
     let module =
