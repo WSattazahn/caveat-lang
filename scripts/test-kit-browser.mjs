@@ -14,6 +14,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
+import { compilerCompatibility } from '../kit/test/fixtures/compiler-compatibility.mjs';
 
 const types = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -87,6 +88,22 @@ try {
   results.resumedAgrees = JSON.stringify(resumed.dispatch('read', { value: 25 })) === JSON.stringify(session.dispatch('read', { value: 25 }));
   session.close();
   resumed.close();
+
+  results.compilerCompatibility = true;
+  for (const fixture of ${JSON.stringify(compilerCompatibility)}) {
+    const opened = runtime.open(fixture.source);
+    let continued;
+    try {
+      const first = opened.dispatch(fixture.event);
+      continued = runtime.restore(fixture.source, fixture.saved ?? opened.save());
+      const next = opened.dispatch(fixture.event);
+      results.compilerCompatibility &&= first.outcome === 'accepted'
+        && first.snapshot.values[fixture.state] === fixture.first
+        && next.outcome === 'accepted' && next.snapshot.values[fixture.state] === fixture.next
+        && JSON.stringify(continued.dispatch(fixture.event)) === JSON.stringify(next)
+        && runtime.interface(fixture.source).schema === 'caveat-interface/0.1';
+    } finally { opened.close(); continued?.close(); }
+  }
 
   const clock = runtime.open(${JSON.stringify(clockSource)});
   clock.dispatch('advance', { dt: 2.5 });
@@ -278,7 +295,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'starterIndexedDb', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'compilerCompatibility', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'starterIndexedDb', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

@@ -1,0 +1,273 @@
+{
+  "initial": {
+    "values": {
+      "n": 4.0
+    },
+    "qualified_values": {
+      "n": {
+        "provenance": {
+          "caveats": [
+            "uncertainty"
+          ],
+          "evidence": [
+            "e"
+          ]
+        },
+        "value": 4.0
+      }
+    },
+    "value_grounds": {
+      "n": {
+        "caveats": [
+          "uncertainty"
+        ],
+        "evidence": [
+          "e"
+        ]
+      }
+    },
+    "bindings": {
+      "hud": {
+        "label": "4"
+      }
+    },
+    "binding_qualifications": {
+      "hud": {
+        "label": {
+          "caveats": [
+            "uncertainty"
+          ],
+          "evidence": [
+            "e"
+          ]
+        }
+      }
+    },
+    "commitment_bases": {
+      "d": {
+        "provenance": {
+          "caveats": [
+            "uncertainty"
+          ],
+          "evidence": [
+            "e"
+          ]
+        },
+        "value": 4.0
+      }
+    },
+    "commitment_grounds": {
+      "d": {
+        "caveats": [
+          "uncertainty"
+        ],
+        "evidence": [
+          "e"
+        ]
+      }
+    },
+    "decision_journal": [
+      {
+        "because": [
+          "e"
+        ],
+        "caveats": [
+          "uncertainty"
+        ],
+        "change": "committed",
+        "commitment": "d",
+        "decision": "d",
+        "elapsed": 0.0,
+        "event": "go",
+        "sequence": 1,
+        "value": 4.0
+      }
+    ]
+  },
+  "continuation": [
+    {
+      "event": "go",
+      "payload": {
+        "v": 1
+      },
+      "outcome": "accepted",
+      "snapshot": {
+        "values": {
+          "n": 5.0
+        },
+        "qualified_values": {
+          "n": {
+            "provenance": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            },
+            "value": 5.0
+          }
+        },
+        "value_grounds": {
+          "n": {
+            "caveats": [
+              "uncertainty"
+            ],
+            "evidence": [
+              "e"
+            ]
+          }
+        },
+        "bindings": {
+          "hud": {
+            "label": "5"
+          }
+        },
+        "binding_qualifications": {
+          "hud": {
+            "label": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            }
+          }
+        },
+        "commitment_bases": {
+          "d": {
+            "provenance": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            },
+            "value": 4.0
+          }
+        },
+        "commitment_grounds": {
+          "d": {
+            "caveats": [
+              "uncertainty"
+            ],
+            "evidence": [
+              "e"
+            ]
+          }
+        },
+        "decision_journal": [
+          {
+            "because": [
+              "e"
+            ],
+            "caveats": [
+              "uncertainty"
+            ],
+            "change": "committed",
+            "commitment": "d",
+            "decision": "d",
+            "elapsed": 0.0,
+            "event": "go",
+            "sequence": 1,
+            "value": 4.0
+          }
+        ]
+      }
+    },
+    {
+      "event": "go",
+      "payload": {
+        "v": 7
+      },
+      "outcome": "accepted",
+      "snapshot": {
+        "values": {
+          "n": 12.0
+        },
+        "qualified_values": {
+          "n": {
+            "provenance": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            },
+            "value": 12.0
+          }
+        },
+        "value_grounds": {
+          "n": {
+            "caveats": [
+              "uncertainty"
+            ],
+            "evidence": [
+              "e"
+            ]
+          }
+        },
+        "bindings": {
+          "hud": {
+            "label": "12"
+          }
+        },
+        "binding_qualifications": {
+          "hud": {
+            "label": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            }
+          }
+        },
+        "commitment_bases": {
+          "d": {
+            "provenance": {
+              "caveats": [
+                "uncertainty"
+              ],
+              "evidence": [
+                "e"
+              ]
+            },
+            "value": 4.0
+          }
+        },
+        "commitment_grounds": {
+          "d": {
+            "caveats": [
+              "uncertainty"
+            ],
+            "evidence": [
+              "e"
+            ]
+          }
+        },
+        "decision_journal": [
+          {
+            "because": [
+              "e"
+            ],
+            "caveats": [
+              "uncertainty"
+            ],
+            "change": "committed",
+            "commitment": "d",
+            "decision": "d",
+            "elapsed": 0.0,
+            "event": "go",
+            "sequence": 1,
+            "value": 4.0
+          }
+        ]
+      }
+    }
+  ]
+}
