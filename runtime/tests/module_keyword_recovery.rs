@@ -94,6 +94,88 @@ fn refused_bundles_load_and_genuine_100_saves_continue() {
     }
 }
 
+fn call_module(word: &str, procedure: bool) -> String {
+    let (declaration, effect) = if procedure {
+        (
+            format!("proc {word}(x) {{ set v = v + x + 1; }};"),
+            format!("call {word} ( because )"),
+        )
+    } else {
+        (
+            format!("fn {word}(x) = x + 1;"),
+            format!("set v = v + {word} ( because )"),
+        )
+    };
+    format!("module m;\n{declaration}\nstate v = 0;\nevent go;\non go {effect};\n")
+}
+
+// Written by v1.0.0 (e2a13500), built with Rust 1.98.1, after one m__go
+// on the exact bundles below. Live and restored continuations both gave 8.
+// v1.4.1 refuses all three: the spaced call name is two words before because.
+const FN_HOLD_SAVE_100: &str = r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:34eec34adb806d20:161","source_sha256":"bb51c7739f5d74aeb0d7b496b248dc26684acfdcdb3020d8e1ccc070b8260ef3","sequence":1,"last_event":"m__go","elapsed":0.0,"states":{"m__v":{"value":4.0}},"graph":{}}"#;
+const FN_RELEASE_SAVE_100: &str = r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:9042bf268640e867:167","source_sha256":"4c148c7f6f737020280e02ce1dd2a910842f418cdbff350b7d7658bd20f0942e","sequence":1,"last_event":"m__go","elapsed":0.0,"states":{"m__v":{"value":4.0}},"graph":{}}"#;
+const PROC_HOLD_SAVE_100: &str = r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:a4b240271664296d:171","source_sha256":"2092a3daba2f877842bc44a9d59d94f5626d1e13ca1d1dfed312269db8223dbb","sequence":1,"last_event":"m__go","elapsed":0.0,"states":{"m__v":{"value":4.0}},"graph":{}}"#;
+
+#[test]
+fn spaced_function_and_procedure_calls_restore_genuine_100_saves() {
+    for (word, procedure, saved) in [
+        ("hold", false, FN_HOLD_SAVE_100),
+        ("release", false, FN_RELEASE_SAVE_100),
+        ("hold", true, PROC_HOLD_SAVE_100),
+    ] {
+        let source = bundle(
+            &call_module(word, procedure),
+            "use m;\nstate because = 3;\n",
+        );
+        // The recovery needs the original module scope, just as for a
+        // numeric reference: the legacy flattened text still cannot load.
+        assert!(ReactiveSession::from_source(&link::link(&source).unwrap()).is_err());
+        let mut live = ReactiveSession::from_source(&source).unwrap();
+        send(&mut live, "m__go", "{}");
+        assert_eq!(snapshot(&live)["values"]["m__v"], 4.0);
+        assert_eq!(live.save_json().unwrap(), saved);
+
+        let mut restored = ReactiveSession::restore_json(&source, saved).unwrap();
+        assert_eq!(snapshot(&restored), snapshot(&live));
+        send(&mut live, "m__go", "{}");
+        send(&mut restored, "m__go", "{}");
+        assert_eq!(snapshot(&restored)["values"]["m__v"], 8.0);
+        assert_eq!(snapshot(&restored), snapshot(&live));
+    }
+}
+
+#[test]
+fn already_accepted_root_function_and_procedure_calls_keep_their_binding() {
+    for (word, procedure) in [("hold", false), ("release", false), ("hold", true)] {
+        let root = if procedure {
+            format!(
+                "use m;\nstate because = 3;\nstate v = 0;\n\
+                 proc {word}(x) {{ set v = v + x + 10; }};\n"
+            )
+        } else {
+            format!("use m;\nstate because = 3;\nfn {word}(x) = x + 10;\n")
+        };
+        let source = bundle(&call_module(word, procedure), &root);
+        let ordinary = link::link(&source).unwrap();
+        let mut legacy = ReactiveSession::from_source(&ordinary).unwrap();
+        let mut live = ReactiveSession::from_source(&source).unwrap();
+        let target = if procedure { "v" } else { "m__v" };
+        send(&mut legacy, "m__go", "{}");
+        send(&mut live, "m__go", "{}");
+        assert_eq!(snapshot(&live)["values"], snapshot(&legacy)["values"]);
+        assert_eq!(snapshot(&live)["values"][target], 13.0);
+        if procedure {
+            assert_eq!(snapshot(&live)["values"]["m__v"], 0.0);
+        }
+        let mut restored =
+            ReactiveSession::restore_json(&source, &live.save_json().unwrap()).unwrap();
+        send(&mut live, "m__go", "{}");
+        send(&mut restored, "m__go", "{}");
+        assert_eq!(snapshot(&restored)["values"][target], 26.0);
+        assert_eq!(snapshot(&restored), snapshot(&live));
+    }
+}
+
 #[test]
 fn a_guard_reference_is_not_a_hold_or_release_effect() {
     for word in ["hold", "release"] {

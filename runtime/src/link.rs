@@ -1071,32 +1071,6 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
                 offsets.push(*offset);
             }
         }
-        // `state NAME unset` and the `unset NAME` effect
-        // (spec/caveat-unset-states-0.1.md) came after modules, so a module
-        // may still declare `unset`. The declaration word is the third word
-        // of a state statement without an assignment; the effect word is
-        // the second-to-last word of a rule, followed by a bare state name.
-        // In `state n= unset` and `f( unset )` it is an ordinary reference.
-        let bare = |word: &str| word.trim_end_matches(';') == "unset";
-        if shape.first() == Some(&"state")
-            && shape.get(2).is_some_and(|word| bare(word))
-            && !code[start..end].contains('=')
-        {
-            offsets.push(words[2].0);
-        }
-        if shape.first() == Some(&"on")
-            && shape.len() >= 4
-            && bare(shape[shape.len() - 2])
-            && shape[shape.len() - 1]
-                .trim_end_matches(';')
-                .split("::")
-                .all(|part| {
-                    let mut name = part.chars();
-                    name.next().is_some_and(is_identifier_start) && name.all(is_identifier_char)
-                })
-        {
-            offsets.push(words[shape.len() - 2].0);
-        }
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the
@@ -1130,17 +1104,18 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
             }
         }
     }
-    if matches!(hold_words, HoldWords::Effects) {
-        offsets.extend(hold_effect_offsets(source));
+    if code.contains("unset") || matches!(hold_words, HoldWords::Effects) {
+        offsets.extend(parsed_keyword_offsets(source, hold_words));
     }
     offsets
 }
 
-/// Actual `hold`/`release` effect words, read with the rule parser's own
-/// effect selection. A word in a guard, function argument or other expression
-/// is a reference even when `because` happens to be two words after it.
-fn hold_effect_offsets(source: &str) -> Vec<usize> {
-    // Keep strings for the effect parser, and preserve every byte offset.
+/// `unset` in declarations and effects, and `hold`/`release` effects in the
+/// recovery linker, read with the parser. Ordinary references retain their
+/// module scope, including `state n= unset` and `f( unset )`.
+fn parsed_keyword_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
+    // Keep strings for the parser, and preserve every byte offset, including
+    // after non-ASCII text in comments and strings.
     let code = blank_comments(source);
     let mut offsets = Vec::new();
     for (start, end) in statements_of(&code) {
@@ -1149,8 +1124,18 @@ fn hold_effect_offsets(source: &str) -> Vec<usize> {
             .unwrap_or(&code[start..end]);
         let spans = crate::reactive::syntax_word_spans(statement);
         let first = spans.first().map(|(from, to)| &statement[*from..*to]);
-        if first == Some("on") {
-            if let Some(offset) = hold_effect_offset(statement, 2) {
+        if first == Some("state")
+            && spans
+                .get(2)
+                .is_some_and(|(from, to)| &statement[*from..*to] == "unset")
+            && matches!(
+                crate::reactive::parse_directive(statement),
+                Some(Ok(Directive::State { unset: true, .. }))
+            )
+        {
+            offsets.push(start + spans[2].0);
+        } else if first == Some("on") {
+            if let Some(offset) = effect_keyword_offset(statement, 2, hold_words) {
                 offsets.push(start + offset);
             }
         } else if first == Some("proc") {
@@ -1166,7 +1151,7 @@ fn hold_effect_offsets(source: &str) -> Vec<usize> {
                 let step = body[step_start..step_end]
                     .strip_suffix(';')
                     .unwrap_or(&body[step_start..step_end]);
-                if let Some(offset) = hold_effect_offset(step, 0) {
+                if let Some(offset) = effect_keyword_offset(step, 0, hold_words) {
                     offsets.push(start + open + 1 + step_start + offset);
                 }
             }
@@ -1175,7 +1160,7 @@ fn hold_effect_offsets(source: &str) -> Vec<usize> {
     offsets
 }
 
-fn hold_effect_offset(statement: &str, skip: usize) -> Option<usize> {
+fn effect_keyword_offset(statement: &str, skip: usize, hold_words: HoldWords) -> Option<usize> {
     let spans = crate::reactive::syntax_word_spans(statement);
     let words = spans
         .get(skip..)?
@@ -1183,7 +1168,9 @@ fn hold_effect_offset(statement: &str, skip: usize) -> Option<usize> {
         .map(|(start, end)| &statement[*start..*end])
         .collect::<Vec<_>>();
     let effect = crate::reactive::complete_effect_at(&words)?;
-    matches!(words[effect], "hold" | "release").then_some(spans[skip + effect].0)
+    (words[effect] == "unset"
+        || matches!(hold_words, HoldWords::Effects) && matches!(words[effect], "hold" | "release"))
+    .then_some(spans[skip + effect].0)
 }
 
 /// Words of a statement with their byte offsets.

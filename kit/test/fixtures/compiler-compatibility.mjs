@@ -9,9 +9,17 @@ export const moduleHold = {
   saved: '{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:720e76e5fd6168d0:182","source_sha256":"a0b7db01fa116cea31f6e08acd23f0a37cea46f2a7c33584c930bf4edd63134f","sequence":1,"last_event":"m__go","elapsed":0.0,"states":{"m__v":{"value":10.0}},"graph":{}}',
 };
 
+const unsetModule = 'module m;\n# é\nstate unset = 2;\nstate value unset;\nstate total = 0;\nproc clear() { unset value; };\nevent go;\non go set value = unset;\non go call clear();\non go when not is_set(value) set total = total + unset;\n';
+const unsetRoot = 'use m;\nstate unset = 99;\n';
+
 export const compilerCompatibility = [
   moduleHold,
   { name: 'existing module root capture', source: bundle(`${rootSource}state hold = 11;\n`), event: 'm__go', state: 'm__v', first: 14, next: 28 },
+  {
+    name: 'module unset procedure effect',
+    source: `#caveat-bundle 1\n#module m ${new TextEncoder().encode(unsetModule).length}\n${unsetModule}#module main ${unsetRoot.length}\n${unsetRoot}`,
+    event: 'm__go', state: 'm__total', first: 2, next: 4,
+  },
   {
     name: 'authored only_if wrapper',
     source: 'fn only_if(x,y) = x+y;\nfn wrapped(x) = only_if(x,1);\nstate n = 0;\nevent go;\non go set n = wrapped(n);\n',

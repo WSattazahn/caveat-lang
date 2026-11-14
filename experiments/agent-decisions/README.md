@@ -137,3 +137,31 @@ observations and subsequent corrective work, not findings from the published-run
 dogfooding round above or claims that all four affect published 1.4.1. The
 report retains the original failures and includes the 2026-10-29 follow-up
 after #393 and #389 merged; #382 remains unmerged at that review.
+
+## 2026-11-14 draft unset module finding
+
+D084–D088 remain the interrupted thread's reserved inventory; its original
+reproducers have not been recovered. D089 is a separate finding about the
+unpublished unset-state profile, not a claim about published 1.4.1.
+
+| Id | Sample | Class | What was needed | What happened | Spec line | What changes if fixed |
+| --- | --- | --- | --- | --- | --- | --- |
+| D089 | compatibility continuation, runtime code `21fd92ab` | runtime, draft profile | a module's ordinary name `unset` to coexist with unset declarations and procedure effects, including after UTF-8 text | `proc clear() { unset value; }` lost its effect word to module scoping; non-ASCII text before `state value unset` shifted the declaration tag's byte offset and could refuse loading or capture a root name instead | [Unset States 0.1](../../spec/caveat-unset-states-0.1.md), Syntax and Implementation; [Modules 0.1](../../spec/caveat-modules-0.1.md) | Candidate correction uses parser-selected, byte-preserving positions for these draft words. [Native regressions](../../runtime/tests/unset_name_compatibility.rs) cover scopes, guards, procedures, UTF-8, qualified targets, save/restore and refusals; the [shared kit fixture](../../kit/test/fixtures/compiler-compatibility.mjs) covers the public WASM/browser path |
+
+Both load failures were observed through public `runtime.open(bundle)` on
+the optimized local reactive WebAssembly build from `c71c5e7f`, before the
+correction: the ASCII procedure case reported that the rule required an
+effect, and adding `# é` before the declarations reported that a state
+declaration required an assignment. The artifact SHA-256 was
+`0997f0ffb6ccfdcc921d189c6b41fac7f2e6291dd3612867525bb57d1e97b84a`.
+This supports the ledger's `release_build_shows` event as an optimized-build
+reproduction, not as a finding in a published release or a passing fixed CI run.
+
+The correction intentionally changes one already accepted draft program:
+with an LF comment containing 19 `é` characters before module `local = 7`,
+`result = local` and `state value unset`, beside root `define local = 11`,
+the displaced tag previously left the reference bare and initialized the
+result to 11. The correct module binding gives 7. Stable 1.0.0 and 1.4.1
+cannot load that unset declaration. This draft correction does not choose
+between the incompatible stable hold/release histories described in the
+[compatibility follow-up](../../docs/reviews/2026-11-14-compatibility-follow-up.md).
