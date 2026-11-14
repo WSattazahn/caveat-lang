@@ -3,9 +3,9 @@
 These bounded checks found no additional refusal of an accepted historical
 program. They extend the [compiler compatibility review](2026-11-14-compiler-compatibility.md),
 not the unavailable original inventory or a release-readiness claim. The
-follow-up `unset` linker repair described below is not covered by these
-earlier results. Its native checks passed; public WASM and CI validation
-remain pending in this record.
+follow-up `unset` linker repair described below has its own local validation
+record at the end. Required remote checks are tracked on
+[PR #479](https://github.com/WSattazahn/caveat-lang/pull/479).
 
 ## Published-package function comparison
 
@@ -95,7 +95,7 @@ then continue to 10 and 14 respectively. The save contains no version
 discriminator. Recovery preserves the already accepted 1.4.1 interpretation;
 it cannot reproduce both conflicting continuations from those bytes alone.
 
-The separate pending repair concerns **unpublished draft 1.5 `unset`
+The separate repair concerns **unpublished draft 1.5 `unset`
 syntax**: parser-derived keyword positions must preserve actual declarations
 and effects, including procedure steps, and keep UTF-8 byte offsets after
 comments. It also corrects an already accepted draft input: a module with
@@ -108,8 +108,46 @@ stable 1.4.1 cannot load that `unset` declaration. On Windows with Rust
 1.98.1 and `RUST_MIN_STACK=16777216`, the follow-up passed 329 native library
 and affected integration tests, 137 reactive-only integration tests, formatting,
 and Clippy on all targets with both default and reactive-only features.
-Public WASM/browser, corpus, and required CI validation of this follow-up
-remain pending in this record. The earlier passing audits do not certify it.
+The earlier passing audits do not certify this repair; the following
+separate checks exercise its actual artifacts.
+
+## Local validation of the unset repair
+
+The clean full/reactive WebAssembly build at
+`dbbd2050cae523eab3fd4b10eacab7be3e1cd27d` passed `npm run build`, using
+Rust 1.98.1, wasm-bindgen 0.2.104 and Node 24.11.1 on Windows.
+Its runtime source fingerprint is
+`800ab0a0d7b281c2672372cffdabc564510e37688b1610800f289de63eb7a51f`.
+Full WASM SHA-256 is
+`98b7f215c8f0a98e374519423652715964230b3a7ee259251a62ce6adb887992`;
+reactive WASM is
+`89d1944c02315632438e65b23ce6fe6960f750a96bed1b8e8c003eef70441eae`.
+
+- `npm run test:kit`: 699 passed, including the new shared unset fixture in
+  both WASM builds, historical saves and continuation.
+- `npm run test:ledger`: seven unit tests, strict check, ten scenarios and
+  all 444 recorded events passed, including the D089 finding events.
+- `node scripts/test-interface.mjs`: 193 programs had identical interfaces
+  across native and both WASM builds; 30 refused alike.
+- `PLAYWRIGHT_CHANNEL=chrome node scripts/test-kit-browser.mjs`: passed in
+  Chrome 157.0.8103.51, including the same unset fixture with UTF-8 source.
+- The same 399-input published-package matrix was rerun against these new
+  artifacts: all 1,344 comparisons passed, including exact historical saves
+  and restored continuation. Candidate acceptance remained 363/399 in both
+  builds. Historical tarball and loaded artifact digests were rechecked.
+- The same two complete tracked corpora were rerun against an explicitly
+  rebuilt native CLI: all 435 source paths and bytes matched the earlier
+  audit. Both rows of the table above were unchanged, with no historical
+  acceptance regression, initial numeric difference or timeout.
+
+Independent source/test review found no blocking issue. Local receipt audits
+accepted all five native and four public-consumer checks against the current
+input and artifact hashes, with no problems. This establishes only the named
+local checks; it neither substitutes for required remote CI nor closes the
+unavailable original inventory. Repeated matrix summary SHA-256 is
+`0bb0b6921a9d1e65164e19edb0f30d13f50e3c407b93a60fcc9cc4ba31082cac`;
+its separate harness is
+`16027d5da2cad89d4c908e7541ab9bda13c476e36aa73552b60157159e12fd8d`.
 
 ## Reproduction outline and retained evidence
 
