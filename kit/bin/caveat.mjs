@@ -658,16 +658,26 @@ async function serveProgram(options) {
       kind = 'state';
       message = `cannot restore ${options.state}: ${error.message}`;
     } else if (restore !== null) {
+      // A save of this program that older releases of both kinds could have
+      // written is refused until its history is chosen: it is still a save of
+      // the program.
+      const needsChoice = () => `${options.state} needs --restore-module-bindings scoped or legacy-hold-capture: ${error.message}`;
       try {
         runtime.open(inputs.source).close();
         kind = 'state';
-        // A save of this program that older releases of both kinds could
-        // have written is refused until its history is chosen: it is still
-        // a save of the program.
         message = error.message.includes(AMBIGUOUS_BINDINGS)
-          ? `${options.state} needs --restore-module-bindings scoped or legacy-hold-capture: ${error.message}`
+          ? needsChoice()
           : `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
-      } catch (loadError) { message = loadError.message; }
+      } catch (loadError) {
+        // An unmarked save of a bundle can be read as the releases that could
+        // have written it read the bundle, which a fresh load does not: a
+        // fresh load that fails otherwise than the restore did cannot say
+        // whether that reading loads, so the restore's error stands (D096).
+        if (inputs.source.startsWith('#caveat-bundle') && loadError.message !== error.message) {
+          kind = 'state';
+          message = error.message.includes(AMBIGUOUS_BINDINGS) ? needsChoice() : `cannot restore ${options.state}: ${error.message}`;
+        } else message = loadError.message;
+      }
     }
     write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });
     return 2;

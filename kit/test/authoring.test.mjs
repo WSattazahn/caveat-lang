@@ -244,6 +244,40 @@ test('caveat_dispatch preserves a marked legacy save error when scoped loading f
   });
 });
 
+// Only releases from 1.2.0 to 1.4.1 loaded this bundle, so an unmarked save
+// of it is read as they read it, with no choice; a fresh load reads the
+// module's hold as its own and refuses it. A fresh load that fails otherwise
+// than the restore did says nothing about that reading (D096).
+test('an unmarked save that fails to restore keeps its error where a fresh load refuses its bundle otherwise (D096)', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const legacy = await fixture('legacy-only.bundle');
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  assert.throws(() => runtime.open(legacy), error => error.kind === 'load');
+  const broken = JSON.parse(await fixture('legacy-only-v1.4.1-state.json'));
+  broken.states.m__v.value = 'not a number';
+  for (const saved of [JSON.stringify(broken), await fixture('collision-v1.4.1-state.json')]) {
+    let restoreMessage;
+    assert.throws(() => runtime.restore(legacy, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const refused = await bridge('dispatch', { source: legacy, save: saved });
+    assert.equal(refused.exitCode, 2);
+    assert.deepEqual(refused.report, {
+      schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+      restored: false, error: restoreMessage,
+    });
+  }
+  // A bundle that loads under no reading fails its restore as its fresh load
+  // does, and still says it does not load.
+  const body = 'state v = ;\n';
+  const unloadable = `#caveat-bundle 1\n#module main ${Buffer.byteLength(body)}\n${body}`;
+  const saved = JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'unused', sequence: 0, states: {}, graph: {} });
+  const refused = await bridge('dispatch', { source: unloadable, save: saved });
+  assert.deepEqual([refused.exitCode, refused.report.loads, refused.report.restored], [2, false, false]);
+  assert.match(refused.report.error, /expected expression/);
+});
+
 test('a marked restore failure does not claim its source loaded', async () => {
   const invalidSource = 'state invalid = ;';
   const fresh = await bridge('dispatch', { source: invalidSource });

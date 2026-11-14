@@ -447,6 +447,46 @@ test('a malformed marked legacy state reports its restore error when fresh scope
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
+// Only releases from 1.2.0 to 1.4.1 loaded this bundle, so an unmarked file
+// of it is read as they read it; a fresh load refuses it otherwise than the
+// file's restore fails, and says nothing about that reading (D096).
+test('an unmarked legacy state that does not restore reports its restore error when fresh scoped loading fails', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-serve-unmarked-state-'));
+  try {
+    const source = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only.bundle', import.meta.url), 'utf8');
+    const broken = JSON.parse(await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only-v1.4.1-state.json', import.meta.url), 'utf8'));
+    assert.equal(Object.hasOwn(broken, 'module_bindings'), false);
+    broken.states.m__v.value = 'not a number';
+    const saved = JSON.stringify(broken);
+    assert.throws(() => real.open(source), error => error.kind === 'load');
+    let restoreMessage;
+    assert.throws(() => real.restore(source, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const program = path.join(directory, 'legacy.cav');
+    const state = path.join(directory, 'legacy.save');
+    await writeFile(program, source);
+    await writeFile(state, saved);
+    const result = spawnSync(process.execPath, [cli, 'serve', '--state', state, program], { input: '', encoding: 'utf8' });
+    assert.equal(result.status, 2, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      schema: SERVE_SCHEMA, ready: false,
+      error: { kind: 'state', message: `cannot restore ${state}: ${restoreMessage}` },
+    });
+    assert.equal(await readFile(state, 'utf8'), saved);
+    // A bundle that loads under no reading is still a program that does not load.
+    const body = 'state v = ;\n';
+    await writeFile(program, `#caveat-bundle 1\n#module main ${Buffer.byteLength(body)}\n${body}`);
+    await writeFile(state, JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'unused', sequence: 0, states: {}, graph: {} }));
+    const unloadable = spawnSync(process.execPath, [cli, 'serve', '--state', state, program], { input: '', encoding: 'utf8' });
+    assert.equal(unloadable.status, 2, unloadable.stderr);
+    const line = JSON.parse(unloadable.stdout);
+    assert.deepEqual([line.ready, line.error.kind], [false, 'load']);
+    assert.match(line.error.message, /expected expression/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 // A runtime directory for --runtime: the real runtime, except that restoring
 // a save runs out of memory, as a save too large for the runtime's memory
 // does: restore traps, and out_of_memory() then says so.

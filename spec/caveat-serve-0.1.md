@@ -24,10 +24,14 @@ Started with `--state FILE`, the line also carries
 `"state":{"path":"FILE","restored":true}`, where `restored` says whether the
 session came from the file (see "State file"). A file that is not a save of the
 program, or one that cannot be read or written, is reported the same way with
-`"kind":"state"`, and the server exits with status 2 without serving. When the
-runtime fails while restoring the file, as when the save is too large for its
-memory, the line has `"kind":"fatal"` and the runtime's error, and the server
-exits with status 2 without serving.
+`"kind":"state"`, and the server exits with status 2 without serving. An
+unmarked file of a bundle is read as the releases that could have written it
+read the bundle ([Save 0.1](caveat-save-0.1.md#module-binding-interpretation)),
+which a fresh session may not load: where the fresh load fails otherwise than
+the file's restore did, the restore's error is reported, with `"kind":"state"`.
+When the runtime fails while restoring the file, as when the save is too large
+for its memory, the line has `"kind":"fatal"` and the runtime's error, and the
+server exits with status 2 without serving.
 
 ## Requests
 
@@ -150,6 +154,14 @@ not a request error, and so is restoring the state file at start (see
 their size first.
 
 ## Changes
+
+- 2026-11-14 (D096): a state file that does not restore, of a bundle a fresh
+  session does not load, is reported with `"kind":"state"` and the restore's
+  error where the restore failed otherwise than the fresh load. An unmarked
+  file of a bundle that only releases from 1.2.0 to 1.4.1 loaded is read as
+  they read it, so the fresh load's refusal said nothing about the file; it
+  was reported with `"kind":"load"` and the fresh load's error. Tests:
+  `kit/test/serve.test.mjs`.
 
 - 2026-11-08 (D070): `restore` takes a state save of any size, as the runtime
   now does; a save longer than 16 MiB was a request error. A `restore` request

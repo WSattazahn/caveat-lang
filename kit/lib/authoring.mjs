@@ -308,9 +308,19 @@ function dispatchStep(runtime, args, wrap) {
     if (error.kind === 'restore' && (options !== undefined || hasBindingMarker(args.save))) {
       return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, restored: false, error: error.message });
     }
-    // A restore error may hide a program that does not load at all.
+    // A restore error may hide a program that does not load at all. An
+    // unmarked save of a bundle can be read, though, as the releases that
+    // could have written it read the bundle, which a fresh load does not: a
+    // fresh load that fails otherwise than the restore did cannot say whether
+    // that reading loads, so the restore error stands without either answer
+    // (D096).
     if (error.kind === 'restore') {
-      try { runtime.open(args.source).close(); } catch (loadError) { failure = loadError; }
+      try { runtime.open(args.source).close(); } catch (loadError) {
+        if (loadError.kind === 'load' && args.source.startsWith('#caveat-bundle') && loadError.message !== error.message) {
+          return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, restored: false, error: error.message });
+        }
+        failure = loadError;
+      }
     }
     if (failure.kind === 'load') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: false, restored: false, error: failure.message });
     if (failure.kind === 'restore') return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, loads: true, restored: false, error: failure.message });
