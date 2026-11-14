@@ -44,6 +44,7 @@ entity author_claude_code kind source at repo;  # author: Claude Code
 entity check_native_runtime_optimized_builds kind source at repo;  # check: native runtime, optimized builds
 entity check_native_runtime_reactive_only_and_d kind source at repo;  # check: native runtime, reactive-only and diagnostic features
 entity check_round_1_carry kind source at repo;  # check: round-1 carry
+entity author_wsattazahn kind source at repo;  # author: WSattazahn
 
 evidence merges_seen from "GitHub's record that a pull request merged";
 renewable merges_seen limit 64;
