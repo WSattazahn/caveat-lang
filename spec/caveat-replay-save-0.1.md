@@ -105,7 +105,7 @@ Restoring costs what dispatching the events costs, which grows with their
 number. The 4,096-byte bound keeps it to at most a few hundred events.
 
 A runtime that predates compact saves restores no replay save; it refuses one
-as a state save of an unknown schema. A host that may move a save back to such
+as a state save of an unknown schema. For unaffected source, a host that may move a save back to such
 a runtime keeps using `save()`.
 
 ## Checks
