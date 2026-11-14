@@ -30,6 +30,15 @@ pub struct ReactiveSave {
     /// spec/caveat-save-0.1.md "Source digest" have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_sha256: Option<String>,
+    /// The binding interpretation for a bundle whose corrected and
+    /// historical linked programs differ. Absent in historical saves and
+    /// in programs unaffected by the positional hold/release bug.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_module_bindings"
+    )]
+    pub module_bindings: Option<ModuleBindings>,
     /// The last sequence whose decisions have no recorded source digest.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub source_unrecorded_through: u64,
@@ -809,6 +818,7 @@ impl ReactiveSession {
             schema: REACTIVE_SAVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
             source_sha256: Some(self.source_sha256.clone()),
+            module_bindings: self.module_bindings,
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
@@ -925,7 +935,17 @@ impl ReactiveSession {
     /// A session of `source` resumed from `save`: the same state, and the
     /// same outcome for every later event, as the session that was saved.
     pub fn restore(source: &str, save: &ReactiveSave) -> Result<Self, String> {
-        let mut session = Self::from_source_cached(source)?;
+        Self::restore_with_options(source, save, &RestoreOptions::default())
+    }
+
+    /// Restore with an explicit historical module binding choice when an
+    /// older save has no discriminator. A conflicting saved choice refuses.
+    pub fn restore_with_options(
+        source: &str,
+        save: &ReactiveSave,
+        options: &RestoreOptions,
+    ) -> Result<Self, String> {
+        let mut session = Self::load_for_restore(source, save.module_bindings, options)?;
         // The bound restore checks the save by comes from the program as it
         // loaded, so it is computed before the save is applied (D061).
         session.history_reach_bound();
@@ -940,8 +960,17 @@ impl ReactiveSession {
 
     /// A state save, or a replay save (spec/caveat-replay-save-0.1.md).
     pub fn restore_json(source: &str, save: &str) -> Result<Self, String> {
+        Self::restore_json_with_options(source, save, &RestoreOptions::default())
+    }
+
+    /// Restore either state or replay JSON with a historical binding choice.
+    pub fn restore_json_with_options(
+        source: &str,
+        save: &str,
+        options: &RestoreOptions,
+    ) -> Result<Self, String> {
         if Self::is_replay_save(save) {
-            return Self::restore_replay_json(source, save);
+            return Self::restore_replay_json(source, save, options);
         }
         // A state save of any length is parsed (D070). Nothing bounds the save
         // a session writes, so a fixed limit here refused saves the runtime
@@ -949,7 +978,7 @@ impl ReactiveSession {
         // trust bounds their size itself, as the MCP server does at 2 MiB.
         let save: ReactiveSave =
             serde_json::from_str(save).map_err(|error| format!("cannot restore save: {error}"))?;
-        Self::restore(source, &save)
+        Self::restore_with_options(source, &save, options)
     }
 
     fn apply_save(&mut self, save: &ReactiveSave) -> Result<(), String> {

@@ -2,6 +2,11 @@
 
 **Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md).
 
+Unreleased amendment: affected module saves carry an optional
+[binding interpretation](caveat-save-0.1.md#module-binding-interpretation).
+The byte-equivalence statements below describe the replay-format addition;
+the later marker is omitted only for unaffected source.
+
 A [state save](caveat-save-0.1.md) holds everything an event can change, and
 for a small program that is more than its events. A program with three
 components, nine renewable evidences and three decision series saves 8,471
@@ -59,11 +64,14 @@ Schema `caveat-replay-save/0.1`, as JSON:
   one within 2^53 and otherwise as the runtime writes an `f64`, `-0.0`
   included.
 
-Every field is required, and none other is allowed.
+The fields above are required. The optional `module_bindings` field selects
+`"scoped"` or `"legacy-hold-capture"` for affected module source, as
+[Save 0.1](caveat-save-0.1.md#module-binding-interpretation) specifies.
+No other field is allowed.
 
 ## Restore
 
-Restoring loads the source and sends each event to it in order, through the
+Restoring selects the module interpretation, loads the source and sends each event to it in order, through the
 same path as `dispatch`. The restored session is the session those events
 make: its snapshot, view, state save and compact save are the ones the saved
 session gives, and so are the outcomes of later events. Its archive is empty,

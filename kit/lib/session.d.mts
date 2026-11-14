@@ -126,6 +126,16 @@ export declare function payloadText(payload: unknown): string;
 
 export type SessionState = 'open' | 'closed' | 'fatal';
 
+/** How an older, unmarked save resolved module references to hold/release. */
+export interface RestoreOptions {
+  /**
+   * Choose only when the save has no recorded interpretation. A choice that
+   * conflicts with a recorded marker is refused. Fresh sessions use scoped
+   * module bindings; legacy-hold-capture preserves older captured root names.
+   */
+  moduleBindings?: 'scoped' | 'legacy-hold-capture';
+}
+
 /** Options for `CaveatSession.save`. */
 export interface SaveOptions {
   /** The replay save when it is smaller. Default false: the state save. */
@@ -289,7 +299,7 @@ export interface CaveatRuntime {
   /** The program's interface (spec/caveat-interface-0.1.md); throws as `open` does when it does not load. */
   interface(source: string): ProgramInterface;
   /** Throws `CaveatError("restore")` when the save does not restore with this source. */
-  restore(source: string, saved: string): CaveatSession;
+  restore(source: string, saved: string, options?: RestoreOptions): CaveatSession;
 }
 
 /** A session object of the runtime: `WebReactiveSession`, or a stand-in with its methods. */
@@ -325,6 +335,8 @@ export interface RuntimeSessionHandle {
 export interface RuntimeSessionClass {
   new (source: string): RuntimeSessionHandle;
   restore(source: string, saved: string): RuntimeSessionHandle;
+  /** `options` is JSON: `{"moduleBindings"?: "scoped" | "legacy-hold-capture"}`. */
+  restore_options?(source: string, saved: string, options: string): RuntimeSessionHandle;
   check?(source: string): string;
   check_with?(source: string, unused: boolean): string;
   /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "withdrawals"?: boolean, "save"?: string}`. */

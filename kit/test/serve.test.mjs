@@ -16,6 +16,13 @@ import { faulty, real, thermostat } from './helpers.mjs';
 
 const cli = fileURLToPath(new URL('../bin/caveat.mjs', import.meta.url));
 
+const bindingModule = 'module m;\nstate hold = 7;\nstate v = 0;\nfn add(a,b) = a+b;\nevent go;\non go set v = add( hold , because );\n';
+const bindingRoot = 'use m;\nstate because = 3;\nstate hold = 11;\n';
+const bindingSource = `#caveat-bundle 1\n#module m ${bindingModule.length}\n${bindingModule}#module main ${bindingRoot.length}\n${bindingRoot}`;
+// Genuine identical initial save from v1.0.0 and v1.4.1: the next event
+// computes 10 and 14 respectively, so the caller must identify its history.
+const unmarkedBindingSave = '{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:8cb496ca5fa15ec4:195","source_sha256":"b8f3d86d72c1db1d3ca8ed50967eac9934a1fec07d855c87af7c02cd1890b138","sequence":0,"elapsed":0.0,"states":{},"graph":{}}';
+
 function serve(runtime = real) {
   const server = createServer({ runtime, source: thermostat, program: 'thermostat.cav' });
   const send = request => server.handle(typeof request === 'string' ? request : JSON.stringify(request));
@@ -108,6 +115,56 @@ test('restore replaces the session with the saved one and forgets the events sin
   assert.equal(send({ op: 'save' }).response.save, saved);
   assert.deepEqual(send({ op: 'explain' }).response.report.events, []);
   assert.equal(send({ op: 'dispatch', event: 'read', payload: { value: 25 } }).response.sequence, 2);
+});
+
+test('restore selects historical module bindings without replacing a live session on refusal', () => {
+  const server = createServer({ runtime: real, source: bindingSource });
+  const send = request => server.handle(JSON.stringify(request));
+  try {
+    send({ op: 'dispatch', event: 'm__go' });
+    const before = send({ op: 'save' }).response.save;
+    assert.equal(send({ op: 'snapshot' }).response.snapshot.values.m__v, 10);
+    for (const moduleBindings of [null, false, 'legacy', {}, []]) {
+      const refused = send({ op: 'restore', save: unmarkedBindingSave, moduleBindings });
+      assert.deepEqual([refused.response.ok, refused.response.error.kind, refused.exit, refused.changed], [false, 'request', null, false]);
+      assert.match(refused.response.error.message, /moduleBindings/);
+      assert.equal(send({ op: 'save' }).response.save, before);
+    }
+    const ambiguous = send({ op: 'restore', save: unmarkedBindingSave });
+    assert.deepEqual([ambiguous.response.ok, ambiguous.response.error.kind, ambiguous.exit, ambiguous.changed], [false, 'request', null, false]);
+    assert.equal(send({ op: 'save' }).response.save, before);
+
+    for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+      const restored = send({ op: 'restore', save: unmarkedBindingSave, moduleBindings });
+      assert.deepEqual(restored, { response: { id: null, ok: true, sequence: 0 }, exit: null, changed: true });
+      assert.deepEqual(send({ op: 'explain' }).response.report.events, []);
+      assert.equal(JSON.parse(send({ op: 'save' }).response.save).module_bindings, moduleBindings);
+      send({ op: 'dispatch', event: 'm__go' });
+      assert.equal(send({ op: 'snapshot' }).response.snapshot.values.m__v, expected);
+    }
+    const marked = send({ op: 'save' }).response.save;
+    const mismatch = send({ op: 'restore', save: marked, moduleBindings: 'scoped' });
+    assert.deepEqual([mismatch.response.ok, mismatch.response.error.kind, mismatch.exit, mismatch.changed], [false, 'request', null, false]);
+    assert.equal(send({ op: 'save' }).response.save, marked);
+    // The previous explicit choice is not silently reused for another
+    // unmarked request. Marked saves carry their own selection instead.
+    assert.equal(send({ op: 'restore', save: unmarkedBindingSave }).response.ok, false);
+    assert.equal(send({ op: 'restore', save: marked }).response.ok, true);
+    send({ op: 'dispatch', event: 'm__go' });
+    assert.equal(send({ op: 'snapshot' }).response.snapshot.values.m__v, 14);
+  } finally { server.close(); }
+});
+
+test('startup restore options select only the supplied save', () => {
+  assert.throws(() => createServer({ runtime: real, source: bindingSource, restoreOptions: { moduleBindings: 'scoped' } }), /requires a save/);
+  for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+    const server = createServer({ runtime: real, source: bindingSource, restore: unmarkedBindingSave, restoreOptions: { moduleBindings } });
+    try {
+      assert.equal(JSON.parse(server.save().text).module_bindings, moduleBindings);
+      const response = server.handle(JSON.stringify({ op: 'dispatch', event: 'm__go', snapshot: true })).response;
+      assert.equal(response.snapshot.values.m__v, expected);
+    } finally { server.close(); }
+  }
 });
 
 test('a fatal outcome is reported and ends the server with status 1', () => {
@@ -286,6 +343,103 @@ test('the serve command keeps a state file across runs when asked', async () => 
     const elsewhere = spawnSync(process.execPath, [cli, 'validate', '--state', state, program], { input: '', encoding: 'utf8' });
     assert.equal(elsewhere.status, 2);
     assert.match(elsewhere.stderr, /unknown option --state for validate/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('the serve command checkpoints an explicit binding selection before any new event', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-serve-bindings-'));
+  try {
+    const program = path.join(directory, 'bindings.cav');
+    const state = path.join(directory, 'bindings.save');
+    await writeFile(program, bindingSource);
+    const run = (extra = [], input = '') => {
+      const result = spawnSync(process.execPath, [cli, 'serve', '--state', state, ...extra, program], { input, encoding: 'utf8' });
+      return { ...result, lines: result.stdout.trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) };
+    };
+    await writeFile(state, unmarkedBindingSave);
+    const ambiguous = run();
+    assert.equal(ambiguous.status, 2, ambiguous.stderr);
+    assert.equal(ambiguous.lines[0].ready, false);
+    assert.equal(await readFile(state, 'utf8'), unmarkedBindingSave);
+    for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+      await writeFile(state, unmarkedBindingSave);
+      const selected = run(['--restore-module-bindings', moduleBindings]);
+      assert.equal(selected.status, 0, selected.stderr);
+      assert.equal(selected.lines.length, 1, 'no requests were sent');
+      assert.deepEqual(selected.lines[0].state, { path: state, restored: true });
+      const saved = JSON.parse(await readFile(state, 'utf8'));
+      assert.equal(saved.module_bindings, moduleBindings);
+      assert.ok(saved.sequence === undefined || saved.sequence === 0);
+      assert.equal(saved.source_id, JSON.parse(unmarkedBindingSave).source_id);
+
+      const resumed = run([], '{"op":"dispatch","event":"m__go","snapshot":true}\n');
+      assert.equal(resumed.status, 0, resumed.stderr);
+      assert.equal(resumed.lines[1].snapshot.values.m__v, expected);
+      const after = await readFile(state, 'utf8');
+      const other = moduleBindings === 'scoped' ? 'legacy-hold-capture' : 'scoped';
+      const mismatch = run(['--restore-module-bindings', other], '{"op":"dispatch","event":"m__go"}\n');
+      assert.equal(mismatch.status, 2);
+      assert.equal(mismatch.lines.length, 1);
+      assert.deepEqual([mismatch.lines[0].ready, mismatch.lines[0].error.kind], [false, 'state']);
+      assert.equal(await readFile(state, 'utf8'), after);
+      assert.deepEqual((await readdir(directory)).filter(name => name.endsWith('.partial')), []);
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('the restore-module-bindings flag requires serve, a valid selection, and an existing state file', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-serve-binding-options-'));
+  try {
+    const program = path.join(directory, 'bindings.cav');
+    const state = path.join(directory, 'missing.save');
+    await writeFile(program, bindingSource);
+    for (const [args, expected] of [
+      [['serve', '--restore-module-bindings', 'legacy-hold-capture', program], /requires --state/],
+      [['serve', '--state', state, program, '--restore-module-bindings'], /needs scoped or legacy-hold-capture/],
+      [['serve', '--state', state, '--restore-module-bindings', 'legacy', program], /needs scoped or legacy-hold-capture/],
+      [['validate', '--restore-module-bindings', 'scoped', program], /unknown option --restore-module-bindings for validate/],
+    ]) {
+      const result = spawnSync(process.execPath, [cli, ...args], { input: '', encoding: 'utf8' });
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, expected);
+      assert.equal(existsSync(state), false);
+    }
+    const missing = spawnSync(process.execPath, [cli, 'serve', '--state', state, '--restore-module-bindings', 'scoped', program], { input: '', encoding: 'utf8' });
+    assert.equal(missing.status, 2);
+    const response = JSON.parse(missing.stdout);
+    assert.deepEqual([response.ready, response.error.kind], [false, 'state']);
+    assert.match(response.error.message, /requires an existing --state save/);
+    assert.equal(existsSync(state), false);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('a malformed marked legacy state reports its restore error when fresh scoped loading fails', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-serve-marked-state-'));
+  try {
+    const source = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only.bundle', import.meta.url), 'utf8');
+    const historical = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only-v1.4.1-state.json', import.meta.url), 'utf8');
+    assert.throws(() => real.open(source), error => error.kind === 'load');
+    const session = real.restore(source, historical, { moduleBindings: 'legacy-hold-capture' });
+    let marked;
+    try { marked = JSON.parse(session.save()); } finally { session.close(); }
+    marked.states.m__v.value = 'not a number';
+    const saved = JSON.stringify(marked);
+    let restoreMessage;
+    assert.throws(() => real.restore(source, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const program = path.join(directory, 'legacy.cav');
+    const state = path.join(directory, 'legacy.save');
+    await writeFile(program, source);
+    await writeFile(state, saved);
+    const result = spawnSync(process.execPath, [cli, 'serve', '--state', state, program], { input: '', encoding: 'utf8' });
+    assert.equal(result.status, 2, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      schema: SERVE_SCHEMA, ready: false,
+      error: { kind: 'state', message: `cannot restore ${state}: ${restoreMessage}` },
+    });
+    assert.equal(await readFile(state, 'utf8'), saved);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

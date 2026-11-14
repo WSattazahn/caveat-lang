@@ -45,10 +45,17 @@ are skipped.
 | `explain` | optional `archive`: array of archive item objects | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
 | `dependents` | `of`: evidence, a reading stream or a caveat; optional `archive`: array of archive item objects | `report`: the `caveat-dependents/0.1` report of what rests on it |
 | `save` | optional `compact: true` | `save`: the text of the session's save; with `compact: true`, its compact save ([Replay Save 0.1](caveat-replay-save-0.1.md)) |
-| `restore` | `save`: text from `save` | `sequence`. The restored session replaces the current one. |
+| `restore` | `save`: text from `save`; optional `moduleBindings`: `"scoped"` or `"legacy-hold-capture"` | `sequence`. The restored session replaces the current one. |
 | `close` | | none. The server then exits with status 0. |
 
 ## Responses
+
+The optional restore selection is for
+[ambiguous historical module saves](caveat-save-0.1.md#module-binding-interpretation).
+It applies only to that request and cannot override a conflicting saved
+marker. Invalid options or a refused restore leave the current session
+unchanged. The library's `createServer({ restore, restoreOptions })` accepts
+the same `moduleBindings` choice inside `restoreOptions` for initial restore.
 
 Every response echoes the request's `id`, or `null` when the request could not
 be read.
@@ -117,6 +124,14 @@ that stops and starts again loses nothing and writes no save logic of its own.
 
 The file is the host's: nothing else reads or writes it, and the host may copy
 it or pass it to `restore` elsewhere.
+
+For an unmarked historical file that requires a choice, start with
+`caveat serve --state FILE --restore-module-bindings scoped PROGRAM`,
+or select `legacy-hold-capture` when that is its known history. The flag
+requires `serve`, `--state` and an existing state file. A successful
+explicit restore atomically checkpoints the marked save before the ready
+line, even without a new event. A refused restore leaves the file unchanged.
+Later starts use the saved marker without the flag.
 
 ## Limits
 

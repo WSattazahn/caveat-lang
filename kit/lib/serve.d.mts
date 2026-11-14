@@ -8,6 +8,7 @@ import type {
   JsonValue,
   Origin,
   RejectionCode,
+  RestoreOptions,
   RuntimeIdentity,
   Snapshot,
   View,
@@ -25,6 +26,8 @@ export interface ServeOptions {
    * fresh. A save the runtime cannot use throws CaveatError("restore").
    */
   restore?: string | null;
+  /** Explicit interpretation of an older save; requires `restore`. Newly saved text records the selection. */
+  restoreOptions?: RestoreOptions;
 }
 
 /** The first line to write. */

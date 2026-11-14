@@ -158,6 +158,15 @@ place of the snapshot, which it does not build: use it when the host reads only 
 
 ## Common mistakes
 
+When restoring an ambiguous historical module save, select its known
+interpretation once with
+`runtime.restore(source, saved, { moduleBindings: 'scoped' })` or
+`'legacy-hold-capture'`. Subsequent saves retain it. Fresh sessions always
+use corrected module scope. See
+[Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation)
+for the distinction between continuing old state and starting corrected
+state, and [Serve 0.1](../../spec/caveat-serve-0.1.md#state-file) for CLI use.
+
 Fresh agents writing programs from these documents, in the authoring trials,
 made the first four:
 

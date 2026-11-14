@@ -1,5 +1,12 @@
 # Compiler compatibility continuation
 
+**Later owner decision:** preserving the successful 1.4 root capture below
+has been superseded by the
+[module-binding correction](2026-11-14-module-binding-correction.md).
+Fresh sessions use corrected scope; ambiguous historical saves select their
+known interpretation explicitly. The observations below remain the record
+of the earlier repair.
+
 This continues the reconstructed name-compatibility work merged in
 [PR #477](https://github.com/WSattazahn/caveat-lang/pull/477), at
 `5c6338bde62b560e6abd4d87b9f7b172e61d0313`. It is not a release record or

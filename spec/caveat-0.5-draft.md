@@ -95,6 +95,13 @@ commit hold_course because enough retaining weather::fog_refraction;
 A file's own declarations stay bare. There is no wildcard import and no
 aliasing in this draft.
 
+References named `hold` or `release` follow this same scope rule, including
+in function arguments and procedure calls near `because`. Only actual
+effect keywords remain unqualified. A corrected linker applies this rule
+to fresh loads and public `link::link`. Historical saves that depended on
+root capture can explicitly retain that interpretation; see
+[Save 0.1](caveat-save-0.1.md#module-binding-interpretation).
+
 Both omissions are deliberate. If two modules could contribute a bare
 `low_visibility`, the linker would have to either merge them into one graph node
 or pick one. Merging invents a relation nobody authored: every edge attached to

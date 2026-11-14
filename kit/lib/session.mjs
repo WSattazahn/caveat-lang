@@ -101,6 +101,21 @@ function agentOption(options) {
   return agent;
 }
 
+// A historical interpretation is an explicit host choice. Empty options keep
+// the ordinary restore path, including on runtime builds without this feature.
+function restoreOptionsText(options) {
+  if (options === undefined) return null;
+  if (!isPlainObject(options)) throw new TypeError('restore options must be an object');
+  const unknown = Reflect.ownKeys(options).find(key => key !== 'moduleBindings');
+  if (unknown !== undefined) throw new TypeError(`unknown restore option ${String(unknown)}`);
+  const moduleBindings = Object.hasOwn(options, 'moduleBindings') ? options.moduleBindings : undefined;
+  if (moduleBindings === undefined) return null;
+  if (moduleBindings !== 'scoped' && moduleBindings !== 'legacy-hold-capture') {
+    throw new TypeError('moduleBindings must be "scoped" or "legacy-hold-capture"');
+  }
+  return JSON.stringify({ moduleBindings });
+}
+
 // A runtime build that predates agents throws CaveatError("load") for an
 // event sent with one, and the session is untouched.
 const predatesAgents = method => new CaveatError('load', `this runtime build has no ${method}; it predates agents`);
@@ -635,7 +650,8 @@ function lifecycleOf(SessionClass) {
 // snapshot_compact (a faster snapshot()), SessionClass.check(source),
 // optionally SessionClass.check_with(source, unused) and
 // SessionClass.check_options(source, optionsJson) (for check's options), and
-// SessionClass.interface(source).
+// SessionClass.interface(source) and SessionClass.restore_options(source,
+// saved, optionsJson) (for an explicit historical module interpretation).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
   const refuse = () => new CaveatError('fatal', 'this runtime instance trapped; load a fresh one');
@@ -758,10 +774,18 @@ export function createRuntime(SessionClass, identity = {}) {
         throw failure(error, 'load');
       }
     },
-    restore(source, saved) {
+    restore(source, saved, options) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string' || typeof saved !== 'string') throw new TypeError('source and save must be text');
-      try { return opened(SessionClass.restore(source, saved)); } catch (error) {
+      const optionsText = restoreOptionsText(options);
+      if (optionsText !== null && typeof SessionClass.restore_options !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no restore_options; it predates module binding choices');
+      }
+      try {
+        return opened(optionsText === null
+          ? SessionClass.restore(source, saved)
+          : SessionClass.restore_options(source, saved, optionsText));
+      } catch (error) {
         throw failure(error, 'restore', saved);
       }
     },

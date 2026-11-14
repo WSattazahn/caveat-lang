@@ -125,6 +125,45 @@ encoded again can lose a zero's sign. The
 [save-text host example](../kit/examples/agent-evidence/save-text.mjs) writes and
 reads that string intact, then restores it and uses its signed zero in a decision.
 
+## Module binding interpretation
+
+The module linker scopes a module's own names, including references named
+`hold` or `release`. Some older runtimes instead captured a same-named root
+declaration when such a reference appeared near `because`. Fresh loads now
+use the corrected scoped interpretation.
+
+For affected source, state saves and both replay-save formats carry the
+optional field `"module_bindings":"scoped"` or
+`"module_bindings":"legacy-hold-capture"`. It is omitted when both linkers
+produce identical source. The original source bytes, `source_id` and source
+digest do not change. A present marker must be one of these two strings.
+
+Restore selects the interpretation before applying saved state or replaying
+events. An unmarked save whose source loads under only one interpretation
+uses that interpretation. If both distinct interpretations load, restore
+requires an explicit choice: the same source and initial save can have been
+written by 1.0 with scoped behavior or by 1.4 with root capture. Saved state
+is not used to guess which history occurred.
+
+In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
+or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use
+`restore_with_options` or `restore_json_with_options` with
+`RestoreOptions.module_bindings`; the raw WASM method is
+`restore_options(source, saved, options_json)`. An option conflicting with
+a save's marker is refused. Subsequent saves retain the selected
+interpretation, so no option is needed next time.
+
+Older runtimes that do not recognize the marker refuse a marked save.
+Do not strip it to force an older runtime to accept the file: that can
+silently choose different behavior. Unaffected saves still omit it.
+
+Choose from the known history, not from the desired next result. This selects
+how to continue that history; it does not migrate previously stored state,
+frozen decisions or reasons to corrected semantics. A fresh session uses
+corrected semantics. A marker is ordinary editable data, not proof of origin
+or authority. All source identity, state, provenance and replay checks still
+apply. See the [correction record](../docs/reviews/2026-11-14-module-binding-correction.md).
+
 ## Restore validation
 
 A save is data a host stored and may hand back changed. Restoring loads the

@@ -1,5 +1,12 @@
 # Restore acceptance and host trust
 
+The unreleased [module-binding correction](../spec/caveat-save-0.1.md#module-binding-interpretation)
+adds an optional interpretation marker and restore choice. A source digest
+identifies bytes, not which historical linker interpreted them. The choice
+is made before state validation or event replay; it does not bypass those
+checks. Neither a marker nor an explicit host choice authenticates the save
+or establishes that its recorded history happened.
+
 Status: design review written for rc.10 and updated for rc.11, which
 implements the source-capability check it proposed, for rc.12, which
 applies the same check to a caveat's attention and to the keys of the

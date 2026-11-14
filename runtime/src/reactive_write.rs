@@ -2627,9 +2627,11 @@ bind h.few = latest(few) when has_sample(few);
             .unwrap();
         // A restore starts from the session this thread loaded last.
         LOADED.with_borrow_mut(|loaded| {
-            let (_, session) = loaded
+            let (_, _, session) = loaded
                 .iter_mut()
-                .find(|(source, _)| source == TWO_STANCES)
+                .find(|(source, bindings, _)| {
+                    source == TWO_STANCES && *bindings == ModuleBindings::Scoped
+                })
                 .expect("the program loaded");
             misnumber(session);
         });

@@ -29,7 +29,7 @@ import { declarations } from '../lib/types.mjs';
 import { doctor, formatDoctor } from '../lib/doctor.mjs';
 import { runAgentDemo, formatAgentDemo } from '../lib/demo.mjs';
 import { serveMcp } from '../lib/mcp.mjs';
-import { describeValidation } from '../lib/authoring.mjs';
+import { describeValidation, hasBindingMarker } from '../lib/authoring.mjs';
 
 const USAGE = `CAVEAT Language — Programs that remember why.
 
@@ -152,7 +152,10 @@ input, one JSON object per line, with one JSON object per line on standard
 output (spec/caveat-serve-0.1.md). With --state, it starts from the file when
 one exists and rewrites it after every accepted event and every restore, so a
 host that stops and starts again loses nothing and keeps no save logic of its
-own; the file holds the compact save where the runtime has one. Exit status:
+own; the file holds the compact save where the runtime has one.
+--restore-module-bindings chooses scoped or legacy-hold-capture for an older
+--state save and records the choice in that file before accepting requests.
+Exit status:
 0 closed, 1 a fatal outcome ended the session or the state file could not be
 written, 2 the program does not load, the state file is not a save of it, or
 the runtime failed restoring it.
@@ -175,6 +178,8 @@ into a directory (default: the current one). It refuses to overwrite a file.
 
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
   --state <file>   (serve) the session's save: read on start, rewritten on change
+  --restore-module-bindings <scoped|legacy-hold-capture>
+                   (serve) choose the interpretation of an existing --state save
   --json           print the machine report instead of text
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
@@ -214,12 +219,12 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--runtime', '--withdrawals', '--later-caveats', '--lineage-notes'];
+const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--restore-module-bindings', '--runtime', '--withdrawals', '--later-caveats', '--lineage-notes'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
     '--all': command === 'review', '--summary': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
-    '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
+    '--from': command === 'types', '--state': command === 'serve', '--restore-module-bindings': command === 'serve', '--runtime': command !== 'init',
     '--withdrawals': command === 'check', '--later-caveats': command === 'explain', '--lineage-notes': command === 'explain',
   })[option];
 }
@@ -246,7 +251,7 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, lineageNotes: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, lineageNotes: false, save: null, runtime: null, from: null, state: null, restoreModuleBindings: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
@@ -271,6 +276,12 @@ function parseArguments(argv) {
       options.state = rest[++index];
       if (!options.state) return { error: '--state needs a file' };
     }
+    else if (argument === '--restore-module-bindings' && command === 'serve') {
+      options.restoreModuleBindings = rest[++index];
+      if (!['scoped', 'legacy-hold-capture'].includes(options.restoreModuleBindings)) {
+        return { error: '--restore-module-bindings needs scoped or legacy-hold-capture' };
+      }
+    }
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
       if (!options.runtime) return { error: '--runtime needs a directory' };
@@ -281,6 +292,7 @@ function parseArguments(argv) {
   if (options.files.length < fewest || options.files.length > most) return { error: message };
   if (options.save && !options.records) return { error: '--save is read with --records' };
   if (options.summary && !options.all) return { error: '--summary is read with --all' };
+  if (options.restoreModuleBindings !== null && options.state === null) return { error: '--restore-module-bindings requires --state' };
   return options;
 }
 
@@ -622,8 +634,13 @@ async function serveProgram(options) {
       return 2;
     }
   }
+  if (options.restoreModuleBindings !== null && restore === null) {
+    write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: '--restore-module-bindings requires an existing --state save' } });
+    return 2;
+  }
+  const restoreOptions = options.restoreModuleBindings === null ? undefined : { moduleBindings: options.restoreModuleBindings };
   let server;
-  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore }); } catch (error) {
+  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore, restoreOptions }); } catch (error) {
     // The runtime reads the save before the program, so a program that does
     // not load is told apart by opening it fresh: that is a load error. A
     // runtime that trapped restoring the file, as when the save is too large
@@ -632,7 +649,12 @@ async function serveProgram(options) {
     let kind = 'load';
     let message = error.message;
     if (restore !== null && runtime.trapped) kind = 'fatal';
-    else if (restore !== null) {
+    else if (restore !== null && (restoreOptions !== undefined || hasBindingMarker(restore))) {
+      // A fresh scoped load cannot diagnose a failed historical restore.
+      // Preserve the selected profile's error and leave its file untouched.
+      kind = 'state';
+      message = `cannot restore ${options.state}: ${error.message}`;
+    } else if (restore !== null) {
       try {
         runtime.open(inputs.source).close();
         kind = 'state';
@@ -642,11 +664,13 @@ async function serveProgram(options) {
     write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });
     return 2;
   }
-  // A fresh session writes its state file on start, so the file exists before
-  // the first event; a restored one is unchanged until something changes it.
+  // A fresh session writes its state before the first event. Explicitly
+  // selecting an older save's bindings also checkpoints immediately, so the
+  // next process can restore the recorded selection without another flag.
   const checkpoint = options.state === null ? null : () => writeState(options.state, server.save().text);
-  if (checkpoint !== null && restore === null) {
+  if (checkpoint !== null && (restore === null || restoreOptions !== undefined)) {
     try { await checkpoint(); } catch (error) {
+      server.close();
       write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: `cannot write ${options.state}: ${error.message}` } });
       return 2;
     }
