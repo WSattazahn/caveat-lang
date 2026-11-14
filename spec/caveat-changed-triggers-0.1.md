@@ -132,3 +132,12 @@ The pilot 3 program is not in the repository. No accepted program changes.
 
 - 2026-10-17: specified for 1.1 (#223).
 - 2026-10-17: implemented.
+- 2026-11-14 (D088): the module linker ends a trigger only at a word that
+  ends in `,` or `;`, as it has since 1.1.0, though the parser also splits at
+  a comma that starts a word. So in `reopened by changed ,r` or
+  `reopened by changed ;` a module's `changed` stays bare and names the
+  program's stream `changed`, and a program that declares one loads as in
+  1.1.0 to 1.4.1. Before 1.1.0 `changed` led no trigger, so a module's own
+  stream `changed` was its own there. A bundle that only those releases could
+  load is read as they linked it ([Caveat 0.5](caveat-0.5-draft.md)). Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.

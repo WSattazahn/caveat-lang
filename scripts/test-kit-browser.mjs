@@ -9,12 +9,17 @@
 // checkKitInBrowser() is reused by test-kit-package.mjs against the packed kit.
 import assert from 'node:assert/strict';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { compilerCompatibility } from '../kit/test/fixtures/compiler-compatibility.mjs';
+
+// Exact source and save bytes from the verified published 1.4.1 package.
+// Embed them in the page so this check also runs against an extracted kit.
+const MODULE_BINDING_SOURCE = await readFile(new URL('../runtime/tests/fixtures/module-bindings/collision.bundle', import.meta.url), 'utf8');
+const MODULE_BINDING_SAVE = await readFile(new URL('../runtime/tests/fixtures/module-bindings/collision-v1.4.1-initial.json', import.meta.url), 'utf8');
 
 const types = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -104,6 +109,54 @@ try {
         && runtime.interface(fixture.source).schema === 'caveat-interface/0.1';
     } finally { opened.close(); continued?.close(); }
   }
+
+  const bindingSource = ${JSON.stringify(MODULE_BINDING_SOURCE)};
+  const historicalBindingSave = ${JSON.stringify(MODULE_BINDING_SAVE)};
+  const { WebReactiveSession: BrowserSession } = await import(moduleUrl);
+  results.restoreOptionsExport = typeof BrowserSession.restore_options === 'function';
+  results.moduleBindingsRefusals = false;
+  try {
+    const unexpected = runtime.restore(bindingSource, historicalBindingSave);
+    unexpected.close();
+  } catch (error) {
+    results.moduleBindingsRefusals = error.kind === 'restore' && error.message.includes('moduleBindings');
+  }
+  // A direct bridge call proves malformed options are refused by the browser
+  // WASM export too, rather than only by the JavaScript wrapper.
+  let rawOptionsRefused = false;
+  try { BrowserSession.restore_options('', 'not a save', '[]').free(); }
+  catch (error) { rawOptionsRefused = String(error).includes('invalid restore options:'); }
+  results.moduleBindingsRefusals &&= rawOptionsRefused;
+  results.moduleBindingsChoice = true;
+  results.moduleBindingsMarkers = true;
+  for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+    const selected = runtime.restore(bindingSource, historicalBindingSave, { moduleBindings });
+    try {
+      const before = selected.save();
+      const other = moduleBindings === 'scoped' ? 'legacy-hold-capture' : 'scoped';
+      let conflictRefused = false;
+      try {
+        const unexpected = runtime.restore(bindingSource, before, { moduleBindings: other });
+        unexpected.close();
+      } catch (error) { conflictRefused = error.kind === 'restore'; }
+      results.moduleBindingsRefusals &&= conflictRefused && selected.save() === before;
+      for (const options of [{}, { compact: true }, { compact: true, positional: true }]) {
+        const marked = selected.save(options);
+        results.moduleBindingsMarkers &&= JSON.parse(marked).module_bindings === moduleBindings;
+        const restored = runtime.restore(bindingSource, marked);
+        try {
+          results.moduleBindingsChoice &&= JSON.stringify(restored.snapshot()) === JSON.stringify(selected.snapshot());
+          const next = restored.dispatch('m__go');
+          results.moduleBindingsChoice &&= next.outcome === 'accepted' && next.snapshot.values.m__v === expected;
+          results.moduleBindingsMarkers &&= JSON.parse(restored.save(options)).module_bindings === moduleBindings;
+        } finally { restored.close(); }
+      }
+    } finally { selected.close(); }
+  }
+  // Restoring historical root capture must not change subsequent fresh loads.
+  const freshBindings = runtime.open(bindingSource);
+  try { results.moduleBindingsDefault = freshBindings.dispatch('m__go').snapshot.values.m__v === 10; }
+  finally { freshBindings.close(); }
 
   const clock = runtime.open(${JSON.stringify(clockSource)});
   clock.dispatch('advance', { dt: 2.5 });
@@ -295,7 +348,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'compilerCompatibility', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'starterIndexedDb', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'compilerCompatibility', 'restoreOptionsExport', 'moduleBindingsRefusals', 'moduleBindingsChoice', 'moduleBindingsMarkers', 'moduleBindingsDefault', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'starterIndexedDb', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

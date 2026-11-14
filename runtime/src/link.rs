@@ -9,6 +9,7 @@
 
 use crate::ast::Statement;
 use crate::reactive::Directive;
+use crate::release_line::Release;
 
 /// First line of a multi-module source. A source without it is a single
 /// program, so every existing `.cav` file and every existing save stays valid.
@@ -256,25 +257,119 @@ pub fn split_bundle(bundle: &str) -> Result<Vec<BundlePart>, String> {
 
 /// Link a bundle into one program source.
 pub fn link(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Legacy)
+    link_reading(bundle, Reading::NOW)
 }
 
-/// An alternative for a reactive bundle the ordinary loader refused (D088).
-/// This is not a replacement for `link`: some accepted programs read a root
-/// name where the old positional rule leaves a module's reference bare.
-/// The reactive loader must try the ordinary program first and keep it when
-/// it loads, including when restoring one of its saves.
-pub(crate) fn link_hold_references(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Effects)
+/// How a line of releases linked a bundle, as far as the lines differ
+/// (finding D088). The reactive loader reads a bundle as the newest release
+/// that could load it linked it (`Readings` in reactive.rs), and restores a
+/// save as the releases that could have written it read it.
+///
+/// Each minor that added a clause word kept it by position, so that a
+/// module could still declare it, from that minor on (`tag_offsets`):
+/// `changed` in `reopened by` from 1.1.0, `resolve` and `materialized` from
+/// 1.3.0, and `irreversible strict`, `withdraw every` and `because once`
+/// from 1.4.0. Before that minor a module's word was its own wherever it
+/// stood. 1.2.0 reserved `irreversible` and `forecloses` and kept a
+/// module's `hold` and `release` bare before a `because`; 1.4.0 read
+/// `only_if(…)` as the form.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Reading {
+    /// The line of releases whose linking this is.
+    line: Release,
+    hold_words: HoldWords,
+    /// Whether `irreversible` and `forecloses` are reserved, as from 1.2.0,
+    /// which made them clause words. Before 1.2.0 a module could declare
+    /// them, and its references to them were its own.
+    reserves_series_words: bool,
 }
 
-#[derive(Clone, Copy)]
+impl Reading {
+    /// This runtime, and 1.4.1 corrected: 1.4's linking, with a module's
+    /// `hold` and `release` its own.
+    pub(crate) const NOW: Self = Self::V1_4.scoped();
+    /// 1.4.0 and 1.4.1: a module's `hold` or `release` two words before a
+    /// `because` is left bare, naming the program's where it declares one
+    /// (finding D091).
+    pub(crate) const V1_4: Self = Self {
+        line: Release::V1_4,
+        hold_words: HoldWords::Legacy,
+        reserves_series_words: true,
+    };
+    /// 1.3.x: as 1.4, but before 1.4.0's clause words, and in a module that
+    /// declares `only_if` as something other than a function, `only_if(…)`
+    /// calls its flattened name, `MODULE__only_if(…)`, which the bundle's
+    /// program may declare.
+    pub(crate) const V1_3: Self = Self {
+        line: Release::V1_3,
+        ..Self::V1_4
+    };
+    /// 1.2.0: as 1.3, but before outcomes, so a module's `resolve` and
+    /// `materialized` are its own wherever they stand.
+    pub(crate) const V1_2: Self = Self {
+        line: Release::V1_2,
+        ..Self::V1_3
+    };
+    /// 1.1.0, before `hold` and `release` were effects, and a module may
+    /// declare `irreversible` and `forecloses`. It is also 1.2.0 corrected
+    /// as now, for a bundle 1.2.0 could load, which declares neither.
+    pub(crate) const V1_1: Self = Self {
+        line: Release::V1_1,
+        hold_words: HoldWords::Effects,
+        reserves_series_words: false,
+    };
+    /// rc.1 to 1.0.3: as 1.1.0, but `changed` is not yet a clause word, so a
+    /// module's own `changed` is its own wherever it stands.
+    pub(crate) const V1_0: Self = Self {
+        line: Release::Before1_1,
+        ..Self::V1_1
+    };
+
+    /// This reading with a module's `hold` and `release` its own, as this
+    /// runtime reads them: bare only where they are the effects.
+    pub(crate) const fn scoped(self) -> Self {
+        Self {
+            hold_words: HoldWords::Effects,
+            ..self
+        }
+    }
+
+    /// This reading with a module's `hold` or `release` two words before a
+    /// `because` left bare, naming the program's where it declares one, as
+    /// releases from 1.2.0 to 1.4.1 read them.
+    pub(crate) const fn captured(self) -> Self {
+        Self {
+            hold_words: HoldWords::Legacy,
+            ..self
+        }
+    }
+
+    /// Whether the grammar has given `word` a meaning, as this reading reads
+    /// a bundle.
+    fn reserves(self, word: &str) -> bool {
+        is_reserved(word)
+            && (self.reserves_series_words || !matches!(word, "irreversible" | "forecloses"))
+    }
+
+    /// Whether this reading keeps the clause words that `since` added by
+    /// their position.
+    fn keeps(self, since: Release) -> bool {
+        self.line >= since
+    }
+}
+
+/// The bundle as `reading` links it.
+pub(crate) fn link_reading(bundle: &str, reading: Reading) -> Result<String, String> {
+    link_with(bundle, reading)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HoldWords {
     Legacy,
     Effects,
 }
 
-fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, String> {
+fn link_with(bundle: &str, reading: Reading) -> Result<String, String> {
     let mut parts = split_bundle(bundle)?;
     // Repetition 0.1 expands first, so everything downstream — the declared
     // names, the single-writer check, the rewriter — sees the statements the
@@ -298,7 +393,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
         .ok_or_else(|| "bundle contains no program".to_string())?;
     let mut declarations: Vec<(String, Vec<String>)> = Vec::new();
     for part in modules {
-        let declared = module_declarations(part)?;
+        let declared = module_declarations(part, reading)?;
         declarations.push((part.name.clone(), declared));
     }
     if declared_module(&root.source).is_some() {
@@ -349,7 +444,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
             "origin {name};
 "
         ));
-        let rewritten = rewrite(part, Some(name), declared, &declarations, hold_words)?;
+        let rewritten = rewrite(part, Some(name), declared, &declarations, reading)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
         linked.push_str(&terminated(&rewritten));
@@ -364,7 +459,7 @@ fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, S
             root.name
         ));
     }
-    let rewritten = rewrite(root, None, &[], &declarations, hold_words)?;
+    let rewritten = rewrite(root, None, &[], &declarations, reading)?;
     let label = describe(root, false);
     let written = part_writes(&rewritten).map_err(|error| format!("{label}: {error}"))?;
     writes.push((label, written));
@@ -400,7 +495,7 @@ fn describe(part: &BundlePart, module: bool) -> String {
 }
 
 /// The names a module declares, after checking that it only declares.
-fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
+fn module_declarations(part: &BundlePart, reading: Reading) -> Result<Vec<String>, String> {
     let header = declared_module(&part.source).ok_or_else(|| {
         format!(
             "bundle part {} must begin with `module {};`",
@@ -521,7 +616,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     part.name
                 ));
             }
-            if is_reserved(&name) {
+            if reading.reserves(&name) {
                 return Err(format!(
                     "module {} declares {name}, which the grammar already uses",
                     part.name
@@ -949,7 +1044,7 @@ fn check_module_name(name: &str) -> Result<(), String> {
 /// only thing that distinguishes `reef` in `kind reef` from a reference is
 /// where it sits. spec/caveat-0.5-draft.md section 1 says a kind is a type tag
 /// and is not namespaced, and this is what makes that true.
-fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
+fn tag_offsets(source: &str, reading: Reading) -> Vec<usize> {
     let code = blank_noncode(source);
     let mut offsets = Vec::new();
     for (start, end) in statements_of(&code) {
@@ -978,8 +1073,17 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
         // `reopened by changed STREAM` (spec/caveat-changed-triggers-0.1.md):
         // `changed` leads a trigger only when a stream follows it, so a module
         // may still name a stream `changed`. This mirrors the parser's split
-        // of the trigger list at commas.
-        if let ["decisions", _, "limit", _, "reopened", "by", ..] = shape.as_slice() {
+        // of the trigger list at commas, as 1.1.0 to 1.4.1 linked it: a
+        // trigger ends at a word that ends in `,` or `;`. The parser also
+        // splits at a comma that starts a word, so `changed ,r` keeps
+        // `changed` bare, naming the program's stream `changed`. Before
+        // 1.1.0, `changed` was not a clause word.
+        if reading.keeps(Release::V1_1)
+            && matches!(
+                shape.as_slice(),
+                ["decisions", _, "limit", _, "reopened", "by", ..]
+            )
+        {
             let mut trigger: Vec<(usize, &str)> = Vec::new();
             for &(offset, word) in &words[6..] {
                 trigger.push((offset, word));
@@ -995,20 +1099,27 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
         // `threshold NAME = NUMBER` (spec/caveat-thresholds-0.1.md) came
         // after modules, so a module may still declare a state `threshold`.
         // The statement word leads a four-word statement whose third is `=`.
+        // It came after 1.4.1, but no release read a statement that starts
+        // so, so every reading keeps it.
         if let ["threshold", _, "=", _] = shape.as_slice() {
             offsets.push(words[0].0);
         }
         // `irreversible strict` (spec/caveat-strict-irreversible-0.1.md)
         // came after modules, so a module may still declare `strict`. The
         // clause word sits straight after `irreversible`.
-        if let ["decisions", _, "limit", _, "irreversible", "strict", ..] = shape.as_slice() {
+        if reading.keeps(Release::V1_4)
+            && matches!(
+                shape.as_slice(),
+                ["decisions", _, "limit", _, "irreversible", "strict", ..]
+            )
+        {
             offsets.push(words[5].0);
         }
         // `hold SERIES because …` and `release SERIES because …`
         // (spec/caveat-holds-0.1.md) came after modules, so a module may
         // still declare `hold` or `release`. The verb is two words before a
         // `because`; a name used there is the series, one word before.
-        if matches!(hold_words, HoldWords::Legacy) {
+        if matches!(reading.hold_words, HoldWords::Legacy) {
             for (index, (offset, word)) in words.iter().enumerate() {
                 if matches!(*word, "hold" | "release")
                     && words
@@ -1023,10 +1134,15 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
         // (spec/caveat-outcomes-0.1.md) came after modules, so a module may
         // still declare `resolve` or `materialized`. The verb comes before a
         // name and `=`, or before `revision(`; `materialized` is the clause
-        // word after its `because`.
+        // word after its `because`. Before 1.3.0 they were a module's own.
+        let outcomes = if reading.keeps(Release::V1_3) {
+            &words[..]
+        } else {
+            &[]
+        };
         let mut resolving = false;
         let mut after_because = false;
-        for (index, (offset, word)) in words.iter().enumerate() {
+        for (index, (offset, word)) in outcomes.iter().enumerate() {
             if *word == "resolve"
                 && (words.get(index + 2).is_some_and(|(_, next)| *next == "=")
                     || words.get(index + 1).is_some_and(|(_, next)| {
@@ -1047,9 +1163,14 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
         // module may still declare `every` or `once`. `every` is the word
         // after `withdraw` when a name and `because` follow it; `once` is the
         // word after a retained caveat's `because` when a name follows it and
-        // ends the item.
+        // ends the item. Before 1.4.0 they were a module's own.
+        let untrusted = if reading.keeps(Release::V1_4) {
+            &words[..]
+        } else {
+            &[]
+        };
         let mut retaining = false;
-        for (index, (offset, word)) in words.iter().enumerate() {
+        for (index, (offset, word)) in untrusted.iter().enumerate() {
             let next = |step: usize| words.get(index + step).map(|(_, word)| *word);
             if *word == "every"
                 && index > 0
@@ -1104,14 +1225,14 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
             }
         }
     }
-    if code.contains("unset") || matches!(hold_words, HoldWords::Effects) {
-        offsets.extend(parsed_keyword_offsets(source, hold_words));
+    if code.contains("unset") || matches!(reading.hold_words, HoldWords::Effects) {
+        offsets.extend(parsed_keyword_offsets(source, reading.hold_words));
     }
     offsets
 }
 
 /// `unset` in declarations and effects, and `hold`/`release` effects in the
-/// recovery linker, read with the parser. Ordinary references retain their
+/// corrected linker, read with the parser. Ordinary references retain their
 /// module scope, including `state n= unset` and `f( unset )`.
 fn parsed_keyword_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
     // Keep strings for the parser, and preserve every byte offset, including
@@ -1287,11 +1408,11 @@ fn rewrite(
     module: Option<&str>,
     declared: &[String],
     declarations: &[(String, Vec<String>)],
-    hold_words: HoldWords,
+    reading: Reading,
 ) -> Result<String, String> {
     let imported = used_modules(&part.source)?;
     let stripped = strip_headers(&part.source);
-    let tags = tag_offsets(&stripped, hold_words);
+    let tags = tag_offsets(&stripped, reading);
     // Like other intrinsics, a module's own function may shadow elapsed().
     // Other declarations named elapsed coexist with the clock instead. Only
     // inspect declaration kinds for the modules where that distinction matters.
@@ -1301,7 +1422,8 @@ fn rewrite(
             matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "elapsed")
         });
     // `only_if(…)` reads the form beside a state or define named only_if,
-    // unless the module defines that function (spec/caveat-only-if-0.1.md).
+    // unless the module defines that function (spec/caveat-only-if-0.1.md),
+    // or the bundle is read as before 1.4.0.
     let only_if_is_function = module.is_some()
         && declared.iter().any(|name| name == "only_if")
         && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
@@ -1418,6 +1540,7 @@ fn rewrite(
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
         let only_if_form = word == "only_if"
+            && reading.keeps(Release::V1_4)
             && !only_if_is_function
             && !matches!(previous_word, Some("proc" | "call"))
             && after_trivia(&source[end..]).starts_with('(');
@@ -1426,7 +1549,7 @@ fn rewrite(
                 if !member
                     && !clock_read
                     && !only_if_form
-                    && !is_reserved(word)
+                    && !reading.reserves(word)
                     && declared.iter().any(|name| name == word) =>
             {
                 out.push_str(&flat(module, word));

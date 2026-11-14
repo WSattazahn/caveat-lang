@@ -269,6 +269,15 @@ function compactSave(session) {
   catch (error) { if (error.kind === 'load') return session.save(); throw error; }
 }
 
+// Internal shared error classification for the CLI and authoring bridge. A
+// marked save selects its own bindings, even when its state is invalid: a
+// fresh load cannot diagnose a failure under that interpretation. This does
+// not validate or rewrite the save; the runtime owns its meaning and errors.
+export function hasBindingMarker(saved) {
+  try { return Object.hasOwn(JSON.parse(saved) ?? {}, 'module_bindings'); }
+  catch { return false; }
+}
+
 // One step of a ledger kept by the host. Without save, a fresh session; with
 // it, that save restored against this exact source (a save binds its source,
 // and restore never repairs one). The events are sent in order, and the
@@ -283,6 +292,12 @@ function dispatchStep(runtime, args, wrap) {
   try { replayed = replay(runtime, args.source, args.events ?? [], open); }
   catch (error) {
     let failure = error;
+    // A marked restore can fail before its selected program loads. Fresh
+    // scoped loading cannot establish whether that historical program
+    // loads, so retain the restore error without claiming either answer.
+    if (error.kind === 'restore' && hasBindingMarker(args.save)) {
+      return wrap(2, { schema: DISPATCH_STEP_SCHEMA, program, restored: false, error: error.message });
+    }
     // A restore error may hide a program that does not load at all.
     if (error.kind === 'restore') {
       try { runtime.open(args.source).close(); } catch (loadError) { failure = loadError; }

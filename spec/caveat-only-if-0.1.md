@@ -97,3 +97,18 @@ the files that use the 1.4 drafts.
 ## Changes
 
 - 0.1 (draft): first version.
+- 2026-11-14 (D088): in a bundle, a module that declares `only_if` as
+  something other than a function reads `only_if(…)` as the form, as from
+  1.4.0. Before 1.4.0 the name was the module's, so the call reached the
+  bundle program's `fn MODULE__only_if`, and a module that gave it a number
+  for its condition loaded. A bundle that only releases before 1.4.0 could
+  load is read as they linked it, so such a call reaches that function again
+  ([Caveat 0.5](caveat-0.5-draft.md)). Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.
+- 2026-11-14 (D093): 1.4.0 and 1.4.1 refused a function body that gives
+  `only_if(…)` a number for its condition, reading the form there, though the
+  program declares `fn only_if`. A bundle with such a body is read as the
+  releases before 1.4.0 linked it, where they could load it: a module's
+  `only_if(…)` reaches `fn MODULE__only_if`, in its rules and its functions
+  alike, as in 1.3.0. Where they could not, the body calls `fn only_if`.
+  Test: `runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`.

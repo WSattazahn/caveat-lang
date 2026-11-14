@@ -14,7 +14,7 @@ const unsetRoot = 'use m;\nstate unset = 99;\n';
 
 export const compilerCompatibility = [
   moduleHold,
-  { name: 'existing module root capture', source: bundle(`${rootSource}state hold = 11;\n`), event: 'm__go', state: 'm__v', first: 14, next: 28 },
+  { name: 'module value wins over a colliding root name', source: bundle(`${rootSource}state hold = 11;\n`), event: 'm__go', state: 'm__v', first: 10, next: 20 },
   {
     name: 'module unset procedure effect',
     source: `#caveat-bundle 1\n#module m ${new TextEncoder().encode(unsetModule).length}\n${unsetModule}#module main ${unsetRoot.length}\n${unsetRoot}`,

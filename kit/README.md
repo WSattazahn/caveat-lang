@@ -419,6 +419,17 @@ session.close();
 resumed.close();
 ```
 
+Fresh sessions use corrected module scope. A small class of historical
+module saves can be ambiguous because old runtimes captured a root
+`hold` or `release` declaration. If restore requests a choice, use the
+known history, for example
+`runtime.restore(source, saved, { moduleBindings: 'legacy-hold-capture' })`
+to continue that old behavior, or `'scoped'` for the corrected interpretation.
+The next save remembers the choice. This continues historical state; it
+does not convert old decisions to new semantics.
+[The save contract](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-save-0.1.md#module-binding-interpretation)
+explains the ambiguity and the corresponding `serve` option.
+
 To store a short session, call `session.save({ compact: true })` instead of
 keeping your own list of events. While the session's accepted events fit in
 4,096 bytes and are smaller than the state save, it returns them as a

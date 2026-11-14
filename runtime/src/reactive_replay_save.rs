@@ -227,12 +227,15 @@ impl ReactiveSession {
             schema: &'static str,
             source_id: &'a str,
             source_sha256: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            module_bindings: Option<ModuleBindings>,
             events: Vec<Value>,
         }
         let text = serde_json::to_string(&Written {
             schema: REPLAY_SAVE_SCHEMA,
             source_id: &self.source_id,
             source_sha256: &self.source_sha256,
+            module_bindings: self.module_bindings,
             events: log.entries.iter().map(ReplayEntry::to_value).collect(),
         })
         .ok()?;
@@ -258,6 +261,8 @@ impl ReactiveSession {
         struct Written {
             schema: &'static str,
             sha256: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            module_bindings: Option<ModuleBindings>,
             events: Value,
         }
         let values: Vec<Value> = log
@@ -280,6 +285,7 @@ impl ReactiveSession {
         let text = serde_json::to_string(&Written {
             schema: POSITIONAL_REPLAY_SAVE_SCHEMA,
             sha256: base64url(&self.source_sha256)?,
+            module_bindings: self.module_bindings,
             events: digits.map_or(Value::Array(values), Value::String),
         })
         .ok()?;
@@ -324,7 +330,11 @@ impl ReactiveSession {
 
     /// A session of `source` with the replay save's events dispatched again.
     /// An event the program does not accept refuses the save.
-    pub(super) fn restore_replay_json(source: &str, save: &str) -> Result<Self, String> {
+    pub(super) fn restore_replay_json(
+        source: &str,
+        save: &str,
+        options: &RestoreOptions,
+    ) -> Result<Self, String> {
         let refuse = |error: String| format!("cannot restore save: {error}");
         if save.len() > REPLAY_SAVE_MAX_BYTES {
             return Err(refuse(format!(
@@ -337,6 +347,8 @@ impl ReactiveSession {
             schema: String,
             source_id: String,
             source_sha256: String,
+            #[serde(default, deserialize_with = "deserialize_module_bindings")]
+            module_bindings: Option<ModuleBindings>,
             events: Vec<Value>,
         }
         #[derive(Deserialize)]
@@ -345,6 +357,8 @@ impl ReactiveSession {
             #[allow(dead_code)]
             schema: String,
             sha256: String,
+            #[serde(default, deserialize_with = "deserialize_module_bindings")]
+            module_bindings: Option<ModuleBindings>,
             events: Value,
         }
         #[derive(Deserialize)]
@@ -364,12 +378,41 @@ impl ReactiveSession {
                 serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
             (None, Some(saved))
         };
-        let mut session = Self::from_source_cached(source)?;
+        let saved_bindings = positional
+            .as_ref()
+            .and_then(|save| save.module_bindings)
+            .or_else(|| named.as_ref().and_then(|save| save.module_bindings));
+        // Whose save this is: what does not depend on the program the source
+        // is read as, so it is checked before a historical reading is asked
+        // for too.
+        let identity = |source_id: &str, source_sha256: &str| -> Result<(), String> {
+            if let Some(saved) = &positional {
+                if base64url(source_sha256).as_deref() != Some(saved.sha256.as_str()) {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            if let Some(saved) = &named {
+                if saved.schema != REPLAY_SAVE_SCHEMA {
+                    return Err(refuse(format!(
+                        "schema {} is not {REPLAY_SAVE_SCHEMA}",
+                        saved.schema
+                    )));
+                }
+                if saved.source_id != source_id {
+                    return Err(refuse("it belongs to a different program".into()));
+                }
+                if saved.source_sha256 != source_sha256 {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            Ok(())
+        };
+        let mut session = Self::load_for_restore(source, saved_bindings, options, || {
+            identity(&source_identity(source), &source_digest(source))
+        })?;
+        identity(&session.source_id, &session.source_sha256)?;
         let mut entries = Vec::new();
         if let Some(saved) = positional {
-            if base64url(&session.source_sha256).as_deref() != Some(saved.sha256.as_str()) {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             let values = match saved.events {
                 Value::Array(values) => values,
                 Value::String(digits) => digits
@@ -397,18 +440,6 @@ impl ReactiveSession {
             }
         }
         if let Some(saved) = named {
-            if saved.schema != REPLAY_SAVE_SCHEMA {
-                return Err(refuse(format!(
-                    "schema {} is not {REPLAY_SAVE_SCHEMA}",
-                    saved.schema
-                )));
-            }
-            if saved.source_id != session.source_id {
-                return Err(refuse("it belongs to a different program".into()));
-            }
-            if saved.source_sha256 != session.source_sha256 {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             for value in &saved.events {
                 entries.push(ReplayEntry::from_value(value).map_err(refuse)?);
             }

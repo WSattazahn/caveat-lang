@@ -1,5 +1,10 @@
 # Compatibility follow-up, 2026-11-14
 
+**Subsequent correction:** the owner requested fixing stable root capture
+as well. The [module-binding correction](2026-11-14-module-binding-correction.md)
+supersedes the earlier policy of preserving it for fresh sessions and records
+the explicit restore choice needed for ambiguous historical saves.
+
 These bounded checks found no additional refusal of an accepted historical
 program. They extend the [compiler compatibility review](2026-11-14-compiler-compatibility.md),
 not the unavailable original inventory or a release-readiness claim. The

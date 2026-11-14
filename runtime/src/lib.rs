@@ -16,6 +16,7 @@ pub mod presentation;
 pub mod reactive;
 mod reactive_archive;
 mod reactive_expr;
+mod release_line;
 pub mod repeat;
 pub mod session;
 pub mod source_library;
