@@ -172,9 +172,33 @@ fn across_at(code: &str) -> Option<(usize, &'static str, usize)> {
             continue;
         }
         let inside = after[paren + 1..].trim_start();
-        let opens_for = inside
-            .strip_prefix("for")
-            .is_some_and(|tail| tail.chars().next().is_some_and(char::is_whitespace));
+        let opens_for = inside.strip_prefix("for").is_some_and(|tail| {
+            if !tail.chars().next().is_some_and(char::is_whitespace) {
+                return false;
+            }
+            // An older program may pass a variable or a call named `for`
+            // to its own sum/any/all function. A kind follows `for` in the
+            // new form; an operator, delimiter or `(` continues that older
+            // expression instead. Do not parse the whole argument here: an
+            // ordinary outer call may contain an across form of its own.
+            let tail = tail.trim_start();
+            if !tail.chars().next().is_some_and(is_identifier_start) {
+                return false;
+            }
+            let end = tail
+                .find(|ch: char| !is_identifier_char(ch))
+                .unwrap_or(tail.len());
+            if matches!(&tail[..end], "and" | "or") {
+                // These are expression operators, but can also name an
+                // entity kind in a real `for and/or as $NAME:` header.
+                let rest = tail[end..].trim_start();
+                return rest.strip_prefix("as").is_some_and(|binding| {
+                    binding.chars().next().is_some_and(char::is_whitespace)
+                        && binding.trim_start().starts_with('$')
+                });
+            }
+            true
+        });
         if opens_for {
             return Some((at, operator, at + word.len() + paren));
         }

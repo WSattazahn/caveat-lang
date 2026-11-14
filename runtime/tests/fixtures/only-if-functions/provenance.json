@@ -1,0 +1,44 @@
+{
+  "runtimes": {
+    "v1.0.0": "e2a1350024352ca707e74491d9405507b166ca23",
+    "v1.4.1": "5e31e83beb097499212965a142207cc800ff46b5"
+  },
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01), Windows x86_64-pc-windows-msvc",
+  "method": "Native reactive runtime built from each historical checkout. go(v=4), exact serde_json serialization of ReactiveSession::save(), then go(v=1), go(v=7). Historical restore repeated both continuations and matched live snapshots/outcomes. Expected files retain listed snapshot fields; saves are unchanged bytes.",
+  "snapshot_fields": [
+    "values",
+    "qualified_values",
+    "value_grounds",
+    "bindings",
+    "binding_qualifications",
+    "commitment_bases",
+    "commitment_grounds",
+    "decision_journal"
+  ],
+  "fixtures": [
+    {
+      "name": "v1.0.0-boolean",
+      "source_sha256": "dc8788958861e59b30a401a7ee8cba572273bbc3d2eac904a793fe47de7dbf8b",
+      "save_sha256": "934df07a02348fa5e0412f7dfd8175e3dcb4fb663f3bb8e8256ca98e959442a2",
+      "expected_sha256": "27de60f072594cb8eed0b1f801c3bb3d1fcfa988976513995e58ccd743492676"
+    },
+    {
+      "name": "v1.0.0-numeric",
+      "source_sha256": "488b8d37c18db5593396f0f2a1ba39910287804bb74724b28f07a629e660121b",
+      "save_sha256": "d7ee0bd8d4b3ebd4d027b0449f7785b4dc3acddb1b049689a007433d3baafc05",
+      "expected_sha256": "77d8e3c5e622dd9a618de7df8029af2ba6404979959a337b2276c9547d6510c5"
+    },
+    {
+      "name": "v1.0.0-text",
+      "source_sha256": "32cb1623f68bcd7ec5e7636ba06a17943e9f04780f887d5e830d4bc906cd0dbd",
+      "save_sha256": "e0d377a2e761f8e38102c2b59d691029dce19463d20700629beacbb336a51c9e",
+      "expected_sha256": "156a893ad631e71ed7e21bda39cf62c17eeaa89d94adfb5eaa38c66b5f23d664"
+    },
+    {
+      "name": "v1.4.1-unused",
+      "source_sha256": "6d3ce1092d10d20139ba1d7a6dead163dc6daf8d7ff21fd3e578d30d1f0cd8b0",
+      "save_sha256": "846a47ef29621399f60d3506e2afe63275ea0beb47e73df2d0d5f3e0020b70dc",
+      "expected_sha256": "b41c8e381256516dda370ff7dd2e11d9d2ea9f38663b3c5f6737e2f2ad980045"
+    }
+  ]
+}

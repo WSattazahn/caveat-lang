@@ -1,6 +1,6 @@
 # CAVEAT Across Members 0.1 (draft) — a sum, or "any", over a kind's members
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5: specified on its branch, not yet in a release. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put `for` where an expression goes, which does not load in 1.4.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5: specified on its branch, not yet in a release. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put a `for KIND as $NAME:` header where an expression goes, which does not load in 1.4. An ordinary expression may already read an identifier named `for`.
 
 A [`for` block](caveat-repetition-0.1.md) writes a statement once per member
 of a kind. An expression that reads every member is still written by hand.
@@ -43,6 +43,11 @@ parentheses outside quoted text.
 The word must start a name of its own: `my_sum(for …` and `glow::any(for …`
 are not these forms. Whitespace may come between the word and `(`, and
 between `(` and `for`.
+
+An authored function still takes ordinary arguments: `sum(for + 1)`,
+`any(for , 2)` and `all(for (2))` are calls using an identifier or function
+named `for`, not across forms. An ordinary call may also contain an across
+form farther inside its argument.
 
 ## 2. Expansion
 

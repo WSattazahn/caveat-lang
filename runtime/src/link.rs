@@ -256,6 +256,25 @@ pub fn split_bundle(bundle: &str) -> Result<Vec<BundlePart>, String> {
 
 /// Link a bundle into one program source.
 pub fn link(bundle: &str) -> Result<String, String> {
+    link_with_hold_words(bundle, HoldWords::Legacy)
+}
+
+/// An alternative for a reactive bundle the ordinary loader refused (D088).
+/// This is not a replacement for `link`: some accepted programs read a root
+/// name where the old positional rule leaves a module's reference bare.
+/// The reactive loader must try the ordinary program first and keep it when
+/// it loads, including when restoring one of its saves.
+pub(crate) fn link_hold_references(bundle: &str) -> Result<String, String> {
+    link_with_hold_words(bundle, HoldWords::Effects)
+}
+
+#[derive(Clone, Copy)]
+enum HoldWords {
+    Legacy,
+    Effects,
+}
+
+fn link_with_hold_words(bundle: &str, hold_words: HoldWords) -> Result<String, String> {
     let mut parts = split_bundle(bundle)?;
     // Repetition 0.1 expands first, so everything downstream — the declared
     // names, the single-writer check, the rewriter — sees the statements the
@@ -330,7 +349,7 @@ pub fn link(bundle: &str) -> Result<String, String> {
             "origin {name};
 "
         ));
-        let rewritten = rewrite(part, Some(name), declared, &declarations)?;
+        let rewritten = rewrite(part, Some(name), declared, &declarations, hold_words)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
         linked.push_str(&terminated(&rewritten));
@@ -345,7 +364,7 @@ pub fn link(bundle: &str) -> Result<String, String> {
             root.name
         ));
     }
-    let rewritten = rewrite(root, None, &[], &declarations)?;
+    let rewritten = rewrite(root, None, &[], &declarations, hold_words)?;
     let label = describe(root, false);
     let written = part_writes(&rewritten).map_err(|error| format!("{label}: {error}"))?;
     writes.push((label, written));
@@ -930,7 +949,7 @@ fn check_module_name(name: &str) -> Result<(), String> {
 /// only thing that distinguishes `reef` in `kind reef` from a reference is
 /// where it sits. spec/caveat-0.5-draft.md section 1 says a kind is a type tag
 /// and is not namespaced, and this is what makes that true.
-fn tag_offsets(source: &str) -> Vec<usize> {
+fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
     let code = blank_noncode(source);
     let mut offsets = Vec::new();
     for (start, end) in statements_of(&code) {
@@ -989,13 +1008,15 @@ fn tag_offsets(source: &str) -> Vec<usize> {
         // (spec/caveat-holds-0.1.md) came after modules, so a module may
         // still declare `hold` or `release`. The verb is two words before a
         // `because`; a name used there is the series, one word before.
-        for (index, (offset, word)) in words.iter().enumerate() {
-            if matches!(*word, "hold" | "release")
-                && words
-                    .get(index + 2)
-                    .is_some_and(|(_, next)| *next == "because")
-            {
-                offsets.push(*offset);
+        if matches!(hold_words, HoldWords::Legacy) {
+            for (index, (offset, word)) in words.iter().enumerate() {
+                if matches!(*word, "hold" | "release")
+                    && words
+                        .get(index + 2)
+                        .is_some_and(|(_, next)| *next == "because")
+                {
+                    offsets.push(*offset);
+                }
             }
         }
         // `resolve SERIES = … because … [materialized C, …]`
@@ -1109,7 +1130,60 @@ fn tag_offsets(source: &str) -> Vec<usize> {
             }
         }
     }
+    if matches!(hold_words, HoldWords::Effects) {
+        offsets.extend(hold_effect_offsets(source));
+    }
     offsets
+}
+
+/// Actual `hold`/`release` effect words, read with the rule parser's own
+/// effect selection. A word in a guard, function argument or other expression
+/// is a reference even when `because` happens to be two words after it.
+fn hold_effect_offsets(source: &str) -> Vec<usize> {
+    // Keep strings for the effect parser, and preserve every byte offset.
+    let code = blank_comments(source);
+    let mut offsets = Vec::new();
+    for (start, end) in statements_of(&code) {
+        let statement = code[start..end]
+            .strip_suffix(';')
+            .unwrap_or(&code[start..end]);
+        let spans = crate::reactive::syntax_word_spans(statement);
+        let first = spans.first().map(|(from, to)| &statement[*from..*to]);
+        if first == Some("on") {
+            if let Some(offset) = hold_effect_offset(statement, 2) {
+                offsets.push(start + offset);
+            }
+        } else if first == Some("proc") {
+            // Match parse_procedure's body boundaries, then scan each step
+            // as a statement, including a last step without its semicolon.
+            let Some(open) = statement.find('{') else {
+                continue;
+            };
+            let Some(body) = statement[open + 1..].trim_end().strip_suffix('}') else {
+                continue;
+            };
+            for (step_start, step_end) in statements_of(body) {
+                let step = body[step_start..step_end]
+                    .strip_suffix(';')
+                    .unwrap_or(&body[step_start..step_end]);
+                if let Some(offset) = hold_effect_offset(step, 0) {
+                    offsets.push(start + open + 1 + step_start + offset);
+                }
+            }
+        }
+    }
+    offsets
+}
+
+fn hold_effect_offset(statement: &str, skip: usize) -> Option<usize> {
+    let spans = crate::reactive::syntax_word_spans(statement);
+    let words = spans
+        .get(skip..)?
+        .iter()
+        .map(|(start, end)| &statement[*start..*end])
+        .collect::<Vec<_>>();
+    let effect = crate::reactive::complete_effect_at(&words)?;
+    matches!(words[effect], "hold" | "release").then_some(spans[skip + effect].0)
 }
 
 /// Words of a statement with their byte offsets.
@@ -1226,10 +1300,11 @@ fn rewrite(
     module: Option<&str>,
     declared: &[String],
     declarations: &[(String, Vec<String>)],
+    hold_words: HoldWords,
 ) -> Result<String, String> {
     let imported = used_modules(&part.source)?;
     let stripped = strip_headers(&part.source);
-    let tags = tag_offsets(&stripped);
+    let tags = tag_offsets(&stripped, hold_words);
     // Like other intrinsics, a module's own function may shadow elapsed().
     // Other declarations named elapsed coexist with the clock instead. Only
     // inspect declaration kinds for the modules where that distinction matters.

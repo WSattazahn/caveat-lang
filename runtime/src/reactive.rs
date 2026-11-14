@@ -2595,11 +2595,40 @@ impl ReactiveSession {
     }
 
     fn load_source(source: &str) -> Result<Self, String> {
+        let linked = crate::link::link(source);
+        let ordinary = linked
+            .as_ref()
+            .map_err(Clone::clone)
+            .and_then(|text| crate::parser::parse(text))
+            .and_then(|program| Self::load_program(source, program));
+        let error = match ordinary {
+            Ok(session) => return Ok(session),
+            Err(error) => error,
+        };
+        // D088: the old linker can mistake a module's reference to `hold`
+        // or `release` for an effect word. Recover only a refused bundle:
+        // accepted bundles, including the D083 exception and their saves,
+        // keep the program they already loaded. Both variants use the raw
+        // bundle's identity, and a failed recovery keeps the original error.
+        if source.starts_with(crate::link::BUNDLE_MARKER) {
+            if let Ok(recovered) = crate::link::link_hold_references(source) {
+                if linked.as_ref().ok() != Some(&recovered) {
+                    if let Ok(session) = crate::parser::parse(&recovered)
+                        .and_then(|program| Self::load_program(source, program))
+                    {
+                        return Ok(session);
+                    }
+                }
+            }
+        }
+        Err(error)
+    }
+
+    fn load_program(source: &str, program: Program) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
         // itself, so single-file programs are unaffected.
-        let program = crate::parser::parse(&crate::link::link(source)?)?;
         let mut declarations = Vec::new();
         let mut directives = Vec::new();
         for statement in &program.statements {

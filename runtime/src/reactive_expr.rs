@@ -4822,18 +4822,19 @@ fn infer_function(
         infer_function(&callee, functions, result_types, active)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
+    let no_capture = |kind: &str, _: &str| {
+        Err(if kind == "runtime_clock" {
+            "pure source functions cannot capture the runtime clock"
+        } else {
+            "pure source functions cannot query graph predicates"
+        }
+        .into())
+    };
     let kind = definition
         .body
         .validate_calls(
             &parameters,
-            &|kind, _| {
-                Err(if kind == "runtime_clock" {
-                    "pure source functions cannot capture the runtime clock"
-                } else {
-                    "pure source functions cannot query graph predicates"
-                }
-                .into())
-            },
+            &no_capture,
             &|called, arity| {
                 let callee = functions
                     .get(called)
@@ -4846,6 +4847,22 @@ fn infer_function(
             },
             Some(functions),
         )
+        .or_else(|original| {
+            if !functions.contains_key(ONLY_IF) {
+                return Err(original);
+            }
+            // Before 1.4, `only_if` was an ordinary source function name.
+            // Its numeric calls can fail inference as the later intrinsic.
+            // Validate the actual expansion only after that failure: a 1.4
+            // program may have an unused body which infers as the intrinsic
+            // but would not type-check as a call of its own `fn only_if`.
+            // Successful legacy inference must keep accepting that body.
+            // Expansion still checks cycles, arity, captures and limits;
+            // validation checks every argument and branch, even unused ones.
+            expand(&definition.body, functions)
+                .and_then(|expanded| expanded.validate(&parameters, &no_capture))
+                .map_err(|_| original)
+        })
         .map_err(|error| format!("source function {name}: {error}"))?;
     active.remove(name);
     result_types.insert(name.into(), kind);
