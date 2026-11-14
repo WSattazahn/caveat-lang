@@ -24,7 +24,7 @@ Run each as `npx --no-install caveat …` in a project with the package installe
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, which event (with its payload) observed each of its grounds, and why is each displayed value what it is? `--later-caveats` (from 1.5) adds live caveat names on grounds absent from the revision's frozen grounds and retained caveats. It omits names already recorded elsewhere in the revision, taken-back qualifications, withdrawals and departed grounds; it is not a qualification history. `--lineage-notes` (from 1.5) marks lineage that came with the revision before. |
 | `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](../../spec/caveat-dependents-0.1.md). Draft for 1.4: `undo-list PROGRAM EVENTS` lists every revision, current or past, resting on withdrawn evidence, irreversible ones marked; it reopens nothing ([untrusted sources](../../spec/caveat-untrusted-sources-0.1.md)). |
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
-| `serve [--state FILE] PROGRAM` | Keeps a session open over standard input and output; with `--state`, in a file across runs ([serve](../../spec/caveat-serve-0.1.md)). |
+| `serve [--state FILE] PROGRAM` | Keeps a session open over standard input and output; with `--state`, in a file across runs ([serve](../../spec/caveat-serve-0.1.md)). Ambiguous historical module saves need a one-time [binding choice](../../spec/caveat-save-0.1.md#module-binding-interpretation). |
 | `init [DIRECTORY]` | Writes the getting-started program, its scenarios and an events file. |
 
 Each answers only its own question. A program that loads can still do the
@@ -157,8 +157,6 @@ place of the snapshot, which it does not build: use it when the host reads only 
 `"rejected": true` matches any `policy` refusal; name the code to tell the program's own `reject` from `not_permitted`.
 
 ## Common mistakes
-
-Ambiguous historical module saves need a one-time `moduleBindings` choice; fresh sessions use corrected scope. See [Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation) and [Serve 0.1](../../spec/caveat-serve-0.1.md#state-file).
 
 Fresh agents writing programs from these documents, in the authoring trials,
 made the first four:
