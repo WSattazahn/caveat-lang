@@ -18,4 +18,6 @@ export interface AuthoringResult {
 }
 export declare function validateAuthoringArguments(toolName: string, args: unknown): Record<string, unknown>;
 export declare function describeValidation(snapshot: Snapshot, program?: string): Record<string, unknown>;
+/** Internal restore-error classification shared with the CLI; does not validate the save. */
+export declare function hasBindingMarker(saved: string): boolean;
 export declare function runAuthoringOperation(toolName: string, args: unknown, options?: { runtimeDirectory?: string }): Promise<AuthoringResult>;

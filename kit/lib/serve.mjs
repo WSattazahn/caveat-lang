@@ -17,7 +17,7 @@ const FIELDS = {
   explain: ['archive'],
   dependents: ['of', 'archive'],
   save: ['compact'],
-  restore: ['save'],
+  restore: ['save', 'moduleBindings'],
   close: [],
 };
 
@@ -53,8 +53,9 @@ function parseRequest(line) {
  * file's text, compact where the runtime supports it, with `compact` saying
  * which it is.
  */
-export function createServer({ runtime, source, program = null, restore = null }) {
-  let session = restore === null ? runtime.open(source) : runtime.restore(source, restore);
+export function createServer({ runtime, source, program = null, restore = null, restoreOptions = undefined }) {
+  if (restoreOptions !== undefined && restore === null) throw new TypeError('restoreOptions requires a save to restore');
+  let session = restore === null ? runtime.open(source) : runtime.restore(source, restore, restoreOptions);
   // The events since the session opened or was restored, for explain.
   let events = [];
   // Whether the runtime has a compact save: unknown until the first save asks.
@@ -127,8 +128,12 @@ export function createServer({ runtime, source, program = null, restore = null }
     }
     if (op === 'restore') {
       if (typeof request.save !== 'string') throw new RequestError('restore needs "save", the text a save returned');
+      if (request.moduleBindings !== undefined && !['scoped', 'legacy-hold-capture'].includes(request.moduleBindings)) {
+        throw new RequestError('"moduleBindings" must be "scoped" or "legacy-hold-capture"');
+      }
+      const options = request.moduleBindings === undefined ? undefined : { moduleBindings: request.moduleBindings };
       let restored;
-      try { restored = runtime.restore(source, request.save); } catch (error) {
+      try { restored = runtime.restore(source, request.save, options); } catch (error) {
         if (error instanceof CaveatError && error.kind === 'restore') throw new RequestError(error.message);
         throw error;
       }

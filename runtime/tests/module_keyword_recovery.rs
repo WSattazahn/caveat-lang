@@ -1,8 +1,8 @@
 //! D088: a module's `hold`/`release` reference two whitespace words before
-//! `because` was mistaken for an effect verb. Recover refused reactive
-//! bundles without changing the binding of programs that already load.
+//! `because` was mistaken for an effect verb. Fresh loads use module scope;
+//! an ambiguous historical save needs an explicit interpretation.
 use caveat_runtime::link::{self, BundlePart};
-use caveat_runtime::reactive::{interface_source, ReactiveSession};
+use caveat_runtime::reactive::{interface_source, ModuleBindings, ReactiveSession, RestoreOptions};
 use caveat_runtime::web::WebReactiveSession;
 use serde_json::{json, Value};
 
@@ -29,6 +29,15 @@ fn send(session: &mut ReactiveSession, event: &str, payload: &str) {
         serde_json::to_value(outcome).unwrap()["outcome"],
         "accepted"
     );
+}
+
+fn assert_scoped_save(session: &ReactiveSession, historical: &str) {
+    let mut saved: Value = serde_json::from_str(&session.save_json().unwrap()).unwrap();
+    assert_eq!(
+        saved.as_object_mut().unwrap().remove("module_bindings"),
+        Some(json!("scoped"))
+    );
+    assert_eq!(saved, serde_json::from_str::<Value>(historical).unwrap());
 }
 
 fn numeric_module(word: &str, expression: &str) -> String {
@@ -71,13 +80,15 @@ fn refused_bundles_load_and_genuine_100_saves_continue() {
             &numeric_module(word, &format!("v + add( {word} , because )")),
             "use m;\nstate because = 3;\n",
         );
-        // The raw linker's contract remains unchanged. The reactive loader
-        // can recover only while it still has the original module scopes.
+        // The raw linker now fixes the same binding, so flattening retains
+        // the correct module meaning too.
         let ordinary = link::link(&source).unwrap();
-        assert!(ReactiveSession::from_source(&ordinary).is_err());
+        let mut flat = ReactiveSession::from_source(&ordinary).unwrap();
         let mut live = ReactiveSession::from_source(&source).unwrap();
+        send(&mut flat, "m__go", "{}");
         send(&mut live, "m__go", "{}");
-        assert_eq!(live.save_json().unwrap(), saved);
+        assert_eq!(snapshot(&flat)["values"], snapshot(&live)["values"]);
+        assert_scoped_save(&live, saved);
 
         let mut restored = ReactiveSession::restore_json(&source, saved).unwrap();
         assert_eq!(snapshot(&restored), snapshot(&live));
@@ -127,13 +138,11 @@ fn spaced_function_and_procedure_calls_restore_genuine_100_saves() {
             &call_module(word, procedure),
             "use m;\nstate because = 3;\n",
         );
-        // The recovery needs the original module scope, just as for a
-        // numeric reference: the legacy flattened text still cannot load.
-        assert!(ReactiveSession::from_source(&link::link(&source).unwrap()).is_err());
+        assert!(ReactiveSession::from_source(&link::link(&source).unwrap()).is_ok());
         let mut live = ReactiveSession::from_source(&source).unwrap();
         send(&mut live, "m__go", "{}");
         assert_eq!(snapshot(&live)["values"]["m__v"], 4.0);
-        assert_eq!(live.save_json().unwrap(), saved);
+        assert_scoped_save(&live, saved);
 
         let mut restored = ReactiveSession::restore_json(&source, saved).unwrap();
         assert_eq!(snapshot(&restored), snapshot(&live));
@@ -145,7 +154,7 @@ fn spaced_function_and_procedure_calls_restore_genuine_100_saves() {
 }
 
 #[test]
-fn already_accepted_root_function_and_procedure_calls_keep_their_binding() {
+fn module_function_and_procedure_calls_do_not_capture_root_names() {
     for (word, procedure) in [("hold", false), ("release", false), ("hold", true)] {
         let root = if procedure {
             format!(
@@ -157,21 +166,20 @@ fn already_accepted_root_function_and_procedure_calls_keep_their_binding() {
         };
         let source = bundle(&call_module(word, procedure), &root);
         let ordinary = link::link(&source).unwrap();
-        let mut legacy = ReactiveSession::from_source(&ordinary).unwrap();
+        let mut flat = ReactiveSession::from_source(&ordinary).unwrap();
         let mut live = ReactiveSession::from_source(&source).unwrap();
-        let target = if procedure { "v" } else { "m__v" };
-        send(&mut legacy, "m__go", "{}");
+        send(&mut flat, "m__go", "{}");
         send(&mut live, "m__go", "{}");
-        assert_eq!(snapshot(&live)["values"], snapshot(&legacy)["values"]);
-        assert_eq!(snapshot(&live)["values"][target], 13.0);
+        assert_eq!(snapshot(&live)["values"], snapshot(&flat)["values"]);
+        assert_eq!(snapshot(&live)["values"]["m__v"], 4.0);
         if procedure {
-            assert_eq!(snapshot(&live)["values"]["m__v"], 0.0);
+            assert_eq!(snapshot(&live)["values"]["v"], 0.0);
         }
         let mut restored =
             ReactiveSession::restore_json(&source, &live.save_json().unwrap()).unwrap();
         send(&mut live, "m__go", "{}");
         send(&mut restored, "m__go", "{}");
-        assert_eq!(snapshot(&restored)["values"][target], 26.0);
+        assert_eq!(snapshot(&restored)["values"]["m__v"], 8.0);
         assert_eq!(snapshot(&restored), snapshot(&live));
     }
 }
@@ -244,12 +252,11 @@ fn procedure_steps_comments_and_last_statements_use_the_rule_parser() {
 // Both v1.0.0 (e2a13500) and v1.4.1 (5e31e83b), built natively with Rust
 // 1.98.1, wrote these exact initial bytes. Continuing the same bytes gives
 // 10 in v1.0.0 and 14 in v1.4.1: no save field distinguishes those histories.
-// Recovery keeps the already accepted 1.4.1 binding; it does not claim to
-// resolve the older silent-capture ambiguity.
+// A caller must choose which history those bytes are meant to continue.
 const AMBIGUOUS_INITIAL: &str = r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:8cb496ca5fa15ec4:195","source_sha256":"b8f3d86d72c1db1d3ca8ed50967eac9934a1fec07d855c87af7c02cd1890b138","sequence":0,"elapsed":0.0,"states":{},"graph":{}}"#;
 
 #[test]
-fn already_accepted_root_bindings_and_their_saves_keep_141_behavior() {
+fn fresh_module_bindings_are_correct_and_old_ambiguous_saves_need_a_choice() {
     for word in ["hold", "release"] {
         let source = bundle(
             &numeric_module(word, &format!("add( {word} , because )")),
@@ -258,20 +265,52 @@ fn already_accepted_root_bindings_and_their_saves_keep_141_behavior() {
         let mut live = ReactiveSession::from_source(&source).unwrap();
         let saved = live.save_json().unwrap();
         if word == "hold" {
-            assert_eq!(saved, AMBIGUOUS_INITIAL);
+            assert_scoped_save(&live, AMBIGUOUS_INITIAL);
+            let error = ReactiveSession::restore_json(&source, AMBIGUOUS_INITIAL)
+                .err()
+                .unwrap();
+            assert!(error.contains("ambiguous"), "{error}");
+            for (binding, expected, label) in [
+                (ModuleBindings::Scoped, 10.0, "scoped"),
+                (
+                    ModuleBindings::LegacyHoldCapture,
+                    14.0,
+                    "legacy-hold-capture",
+                ),
+            ] {
+                let options = RestoreOptions {
+                    module_bindings: Some(binding),
+                };
+                let mut selected = ReactiveSession::restore_json_with_options(
+                    &source,
+                    AMBIGUOUS_INITIAL,
+                    &options,
+                )
+                .unwrap();
+                let marked = selected.save_json().unwrap();
+                assert_eq!(
+                    serde_json::from_str::<Value>(&marked).unwrap()["module_bindings"],
+                    label
+                );
+                let mut continued = ReactiveSession::restore_json(&source, &marked).unwrap();
+                send(&mut selected, "m__go", "{}");
+                send(&mut continued, "m__go", "{}");
+                assert_eq!(snapshot(&selected)["values"]["m__v"], expected);
+                assert_eq!(snapshot(&continued), snapshot(&selected));
+            }
         }
         let mut restored = ReactiveSession::restore_json(&source, &saved).unwrap();
         send(&mut live, "m__go", "{}");
         send(&mut restored, "m__go", "{}");
-        assert_eq!(snapshot(&live)["values"]["m__v"], 14.0);
+        assert_eq!(snapshot(&live)["values"]["m__v"], 10.0);
         assert_eq!(snapshot(&restored), snapshot(&live));
     }
 }
 
 #[test]
-fn an_already_accepted_event_parameter_binding_is_not_reinterpreted() {
+fn a_module_reference_does_not_capture_an_event_parameter() {
     // There is no root state named hold. A root-name existence check would
-    // still change this accepted program: the bare name is an event input.
+    // miss this collision: the accidentally bare name is an event input.
     let source = bundle(
         "module m;\nstate hold = 7;\nstate v = 0;\nfn add(a,b) = a+b;\n\
          on go set v = add( hold , because );\n",
@@ -279,23 +318,22 @@ fn an_already_accepted_event_parameter_binding_is_not_reinterpreted() {
     );
     let mut session = ReactiveSession::from_source(&source).unwrap();
     send(&mut session, "go", r#"{"hold":11}"#);
-    assert_eq!(snapshot(&session)["values"]["m__v"], 14.0);
+    assert_eq!(snapshot(&session)["values"]["m__v"], 10.0);
     let mut restored =
         ReactiveSession::restore_json(&source, &session.save_json().unwrap()).unwrap();
     send(&mut restored, "go", r#"{"hold":13}"#);
-    assert_eq!(snapshot(&restored)["values"]["m__v"], 16.0);
+    assert_eq!(snapshot(&restored)["values"]["m__v"], 10.0);
 }
 
 #[test]
-fn recovery_failure_keeps_the_original_error_and_no_partial_session() {
+fn scoped_load_failure_reports_the_actual_unresolved_name_and_no_partial_session() {
     let source = bundle(
         &numeric_module("hold", "add( hold , because ) + missing"),
         "use m;\nstate because = 3;\n",
     );
     for _ in 0..2 {
         let error = ReactiveSession::from_source_cached(&source).err().unwrap();
-        assert!(error.contains("unknown numeric identifier hold"), "{error}");
-        assert!(!error.contains("identifier missing"), "{error}");
+        assert!(error.contains("identifier missing"), "{error}");
     }
     let valid = bundle(
         &numeric_module("hold", "add( hold , because )"),

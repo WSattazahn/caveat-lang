@@ -163,17 +163,34 @@ something, that promise stands.
 
 ## Saves, archives and source
 
+**Module-binding correction (unreleased).** Fresh loads now honor module-local
+`hold` and `release` references instead of accidentally capturing a root
+name. This is a correction to the scope promise and can change previously
+accepted programs' results, or refuse a program that loaded only because it
+captured the wrong declaration. Historical saves remain restorable under
+their selected interpretation. There is a narrow qualification to automatic
+restore: an unmarked save whose source loads under both distinct
+interpretations needs an explicit `moduleBindings` choice. Published 1.0
+and 1.4 produced byte-identical initial saves with different continuations,
+so automatic preservation of both is impossible. New affected saves record
+the choice. Unaffected save bytes remain unchanged. Older runtimes refuse
+the new marker; removing it is not a safe downgrade. See
+[the save contract](../spec/caveat-save-0.1.md#module-binding-interpretation)
+and [the evidence and limits](reviews/2026-11-14-module-binding-correction.md).
+
 - A save binds the exact source it was made under. Restore refuses a save made
   under any other source text, including one that differs only in a comment
   ("it belongs to a different program"). This stays as it is in 1.x.
 - With that same source and any later 1.x runtime, a save written by an
   earlier 1.x runtime restores, and later events give the outcomes the earlier
-  runtime would have given.
+  runtime would have given, with the explicit historical interpretation
+  required for the ambiguous module-binding case above.
 - A compact save (`save({ compact: true })`, from 1.1.0) is a replay save
   while the session's accepted events fit in 4,096 bytes and that is smaller,
   and otherwise the same state save `save()` writes. Later 1.x runtimes
   restore it like any save. A runtime before 1.1.0 does not, so a host that
-  may move saves back to one keeps using `save()`, which is unchanged.
+  may move saves back to one keeps using `save()`, subject to the
+  module-marker restriction above.
 - A save is not a promise across edited source. A host that changes its
   program starts new sessions, or migrates its own data outside Caveat.
 - Archives drained from a 1.x session stay readable by `explain` and

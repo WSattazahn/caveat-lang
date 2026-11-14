@@ -1,5 +1,5 @@
 use crate::map::to_json_pretty;
-use crate::reactive::{ReactiveSession, ViewDeltaBase, ViewPatchBase};
+use crate::reactive::{ReactiveSession, RestoreOptions, ViewDeltaBase, ViewPatchBase};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -453,6 +453,30 @@ impl WebReactiveSession {
         })
     }
 
+    /// Restore with an explicit interpretation for an older, unmarked module
+    /// save. `options` is JSON: `{"moduleBindings":"scoped"}` or
+    /// `{"moduleBindings":"legacy-hold-capture"}`. Unknown options and a
+    /// choice conflicting with the save's recorded interpretation are errors.
+    pub fn restore_options(
+        source: &str,
+        saved: &str,
+        options: &str,
+    ) -> Result<WebReactiveSession, String> {
+        // Serde structs also accept positional arrays. This public JSON
+        // options interface takes an object; then decode the original text
+        // so duplicate fields are still refused rather than collapsed.
+        if !options.trim_start().starts_with('{') {
+            return Err("invalid restore options: expected an object".into());
+        }
+        let options: RestoreOptions = serde_json::from_str(options)
+            .map_err(|error| format!("invalid restore options: {error}"))?;
+        Ok(Self {
+            inner: ReactiveSession::restore_json_with_options(source, saved, &options)?,
+            delta_base: ViewDeltaBase::default(),
+            patch_base: ViewPatchBase::default(),
+        })
+    }
+
     /// `dispatch_view_outcome` with the View 0.1 patch of an accepted event
     /// in place of the view: what changed since the view as of `held`, the
     /// sequence of the view the host holds from the last call, or every
@@ -519,6 +543,45 @@ impl WebReactiveSession {
             Err(fatal) => {
                 Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod restore_options_tests {
+    use super::WebReactiveSession;
+
+    #[test]
+    fn malformed_options_are_refused_before_source_or_save_loading() {
+        for options in [
+            "not JSON",
+            "[]",
+            r#"["scoped"]"#,
+            "null",
+            r#"{"unknown":true}"#,
+            r#"{"moduleBindings":"guess"}"#,
+            r#"{"moduleBindings":null}"#,
+            r#"{"moduleBindings":"scoped","moduleBindings":"legacy-hold-capture"}"#,
+        ] {
+            let error = WebReactiveSession::restore_options("", "not a save", options)
+                .err()
+                .expect("invalid options must fail");
+            assert!(
+                error.starts_with("invalid restore options:"),
+                "{options}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn options_restore_keeps_an_unaffected_save_and_snapshot() {
+        let source = include_str!("../tests/fixtures/only-if-functions/v1.0.0-numeric.cav");
+        let session = WebReactiveSession::new(source).unwrap();
+        let saved = session.save().unwrap();
+        for options in ["{}", r#"{"moduleBindings":"scoped"}"#] {
+            let restored = WebReactiveSession::restore_options(source, &saved, options).unwrap();
+            assert_eq!(restored.snapshot(), session.snapshot());
+            assert_eq!(restored.save().unwrap(), saved);
         }
     }
 }

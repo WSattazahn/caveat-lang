@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
-import { defaultRuntimeDirectory } from '../lib/node.mjs';
+import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
 import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -217,6 +217,56 @@ test('caveat_dispatch saves the last good state after a fatal event and refuses 
   assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: {} }), error => error.kind === 'input');
   assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: 'x'.repeat(AUTHORING_LIMITS.saveBytes + 1) }), error => error.kind === 'limit');
   assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, subject: 'values' }), error => error.kind === 'input');
+});
+
+test('caveat_dispatch preserves a marked legacy save error when scoped loading fails', async () => {
+  const legacy = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only.bundle', import.meta.url), 'utf8');
+  const historical = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only-v1.4.1-state.json', import.meta.url), 'utf8');
+  const fresh = await bridge('dispatch', { source: legacy });
+  assert.deepEqual([fresh.exitCode, fresh.report.loads], [2, false]);
+  const restored = await bridge('dispatch', { source: legacy, save: historical });
+  assert.deepEqual([restored.exitCode, restored.report.restored], [0, true]);
+  const marked = JSON.parse(restored.report.save);
+  assert.equal(marked.module_bindings, 'legacy-hold-capture');
+  marked.states.m__v.value = 'not a number';
+  const saved = JSON.stringify(marked);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  let restoreMessage;
+  assert.throws(() => runtime.restore(legacy, saved), error => {
+    restoreMessage = error.message;
+    return error.kind === 'restore';
+  });
+  const refused = await bridge('dispatch', { source: legacy, save: saved });
+  assert.equal(refused.exitCode, 2);
+  assert.deepEqual(refused.report, {
+    schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+    restored: false, error: restoreMessage,
+  });
+});
+
+test('a marked restore failure does not claim its source loaded', async () => {
+  const invalidSource = 'state invalid = ;';
+  const fresh = await bridge('dispatch', { source: invalidSource });
+  assert.deepEqual([fresh.exitCode, fresh.report.loads], [2, false]);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  for (const module_bindings of ['legacy-hold-capture', 'unknown', null]) {
+    const saved = JSON.stringify({
+      schema: 'caveat-reactive-save/0.1', source_id: 'unused',
+      module_bindings, sequence: 0, states: {}, graph: {},
+    });
+    let restoreMessage;
+    assert.throws(() => runtime.restore(invalidSource, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const refused = await bridge('dispatch', { source: invalidSource, save: saved });
+    assert.equal(refused.exitCode, 2);
+    assert.deepEqual(refused.report, {
+      schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+      restored: false, error: restoreMessage,
+    });
+    assert.equal(Object.hasOwn(refused.report, 'loads'), false);
+  }
 });
 
 test('the bridge accepts inline source only and refuses virtual source escapes before loading', async t => {

@@ -256,16 +256,13 @@ pub fn split_bundle(bundle: &str) -> Result<Vec<BundlePart>, String> {
 
 /// Link a bundle into one program source.
 pub fn link(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Legacy)
+    link_with_hold_words(bundle, HoldWords::Effects)
 }
 
-/// An alternative for a reactive bundle the ordinary loader refused (D088).
-/// This is not a replacement for `link`: some accepted programs read a root
-/// name where the old positional rule leaves a module's reference bare.
-/// The reactive loader must try the ordinary program first and keep it when
-/// it loads, including when restoring one of its saves.
-pub(crate) fn link_hold_references(bundle: &str) -> Result<String, String> {
-    link_with_hold_words(bundle, HoldWords::Effects)
+/// The historical positional interpretation, only for restoring a save with
+/// that binding choice. New programs use ordinary module scope through `link`.
+pub(crate) fn link_legacy_hold_capture(bundle: &str) -> Result<String, String> {
+    link_with_hold_words(bundle, HoldWords::Legacy)
 }
 
 #[derive(Clone, Copy)]
@@ -1111,7 +1108,7 @@ fn tag_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
 }
 
 /// `unset` in declarations and effects, and `hold`/`release` effects in the
-/// recovery linker, read with the parser. Ordinary references retain their
+/// corrected linker, read with the parser. Ordinary references retain their
 /// module scope, including `state n= unset` and `f( unset )`.
 fn parsed_keyword_offsets(source: &str, hold_words: HoldWords) -> Vec<usize> {
     // Keep strings for the parser, and preserve every byte offset, including

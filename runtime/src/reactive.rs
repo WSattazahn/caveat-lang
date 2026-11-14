@@ -2373,11 +2373,50 @@ pub struct EventSignature {
     pub parameters: Vec<Parameter>,
 }
 
+/// How a module's `hold`/`release` references bind. The historical choice
+/// reproduces a positional linker bug for saves whose host identifies that
+/// interpretation; it is never the default for a new session.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ModuleBindings {
+    #[default]
+    Scoped,
+    LegacyHoldCapture,
+}
+
+/// An explicit interpretation for a historical save that does not record
+/// one. A saved discriminator takes precedence, and a conflicting option is
+/// refused rather than silently reinterpreting the saved session.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RestoreOptions {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_module_bindings"
+    )]
+    pub module_bindings: Option<ModuleBindings>,
+}
+
+/// Absence is the default; a present selector must name an interpretation,
+/// so `null` is not an alternative spelling of an absent choice.
+fn deserialize_module_bindings<'de, D>(deserializer: D) -> Result<Option<ModuleBindings>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    ModuleBindings::deserialize(serde::de::value::StrDeserializer::<D::Error>::new(&value))
+        .map(Some)
+}
+
 #[derive(Debug, Clone)]
 pub struct ReactiveSession {
     source_id: String,
     source_sha256: String,
     source_unrecorded_through: u64,
+    /// Written only when corrected and historical linking differ. The raw
+    /// source identity stays the same under either interpretation.
+    module_bindings: Option<ModuleBindings>,
     sequence: u64,
     last_event: Option<String>,
     states: States,
@@ -2552,8 +2591,10 @@ pub struct ReactiveSession {
 const LOADED_PROGRAMS: usize = 4;
 
 thread_local! {
-    /// Programs this thread loaded recently, by source text, least recent first.
-    static LOADED: std::cell::RefCell<Vec<(String, ReactiveSession)>> =
+    /// Programs this thread loaded recently, by source and interpretation,
+    /// least recent first. Historical restoration must not contaminate a
+    /// subsequent fresh load of the same source, or its restore bounds.
+    static LOADED: std::cell::RefCell<Vec<(String, ModuleBindings, ReactiveSession)>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
@@ -2565,22 +2606,31 @@ impl ReactiveSession {
     /// last few programs that loaded are kept; a source that does not load is
     /// not, and fails the same way each time.
     pub fn from_source_cached(source: &str) -> Result<Self, String> {
+        Self::from_source_cached_with_bindings(source, ModuleBindings::Scoped)
+    }
+
+    fn from_source_cached_with_bindings(
+        source: &str,
+        module_bindings: ModuleBindings,
+    ) -> Result<Self, String> {
         let kept = LOADED.with_borrow_mut(|loaded| {
-            let index = loaded.iter().position(|(text, _)| text == source)?;
+            let index = loaded
+                .iter()
+                .position(|(text, bindings, _)| text == source && *bindings == module_bindings)?;
             let entry = loaded.remove(index);
-            let session = entry.1.clone();
+            let session = entry.2.clone();
             loaded.push(entry);
             Some(session)
         });
         if let Some(session) = kept {
             return Ok(session);
         }
-        let session = Self::from_source(source)?;
+        let session = Self::from_source_with_bindings(source, module_bindings)?;
         LOADED.with_borrow_mut(|loaded| {
             if loaded.len() == LOADED_PROGRAMS {
                 loaded.remove(0);
             }
-            loaded.push((source.to_string(), session.clone()));
+            loaded.push((source.to_string(), module_bindings, session.clone()));
         });
         Ok(session)
     }
@@ -2591,40 +2641,79 @@ impl ReactiveSession {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
-        Self::load_source(source).map_err(|error| crate::load_diagnostics::locate(source, error))
+        Self::from_source_with_bindings(source, ModuleBindings::Scoped)
     }
 
-    fn load_source(source: &str) -> Result<Self, String> {
-        let linked = crate::link::link(source);
-        let ordinary = linked
-            .as_ref()
-            .map_err(Clone::clone)
-            .and_then(|text| crate::parser::parse(text))
-            .and_then(|program| Self::load_program(source, program));
-        let error = match ordinary {
-            Ok(session) => return Ok(session),
-            Err(error) => error,
-        };
-        // D088: the old linker can mistake a module's reference to `hold`
-        // or `release` for an effect word. Recover only a refused bundle:
-        // accepted bundles, including the D083 exception and their saves,
-        // keep the program they already loaded. Both variants use the raw
-        // bundle's identity, and a failed recovery keeps the original error.
+    fn from_source_with_bindings(source: &str, bindings: ModuleBindings) -> Result<Self, String> {
+        Self::load_source(source, bindings)
+            .map_err(|error| crate::load_diagnostics::locate(source, error))
+    }
+
+    fn load_source(source: &str, bindings: ModuleBindings) -> Result<Self, String> {
+        let scoped = crate::link::link(source);
+        // Compare link text, not current values: two interpretations can
+        // have identical initial state and diverge only on a later event.
+        // Even when the other interpretation does not load today, record
+        // this one so a later compiler cannot make its save ambiguous.
         if source.starts_with(crate::link::BUNDLE_MARKER) {
-            if let Ok(recovered) = crate::link::link_hold_references(source) {
-                if linked.as_ref().ok() != Some(&recovered) {
-                    if let Ok(session) = crate::parser::parse(&recovered)
-                        .and_then(|program| Self::load_program(source, program))
-                    {
-                        return Ok(session);
-                    }
-                }
+            let legacy = crate::link::link_legacy_hold_capture(source);
+            let affected = scoped.as_ref().ok() != legacy.as_ref().ok();
+            let linked = match bindings {
+                ModuleBindings::Scoped => scoped,
+                ModuleBindings::LegacyHoldCapture => legacy,
+            }?;
+            return Self::load_program(
+                source,
+                crate::parser::parse(&linked)?,
+                affected.then_some(bindings),
+            );
+        }
+        Self::load_program(source, crate::parser::parse(&scoped?)?, None)
+    }
+
+    /// Choose a program before applying state or replaying events. A save
+    /// cannot reveal which of two valid historical programs produced it.
+    fn load_for_restore(
+        source: &str,
+        saved_bindings: Option<ModuleBindings>,
+        options: &RestoreOptions,
+    ) -> Result<Self, String> {
+        if let (Some(saved), Some(requested)) = (saved_bindings, options.module_bindings) {
+            if saved != requested {
+                return Err(
+                    "cannot restore save: moduleBindings conflicts with saved module_bindings"
+                        .into(),
+                );
             }
         }
-        Err(error)
+        if let Some(bindings) = saved_bindings.or(options.module_bindings) {
+            return Self::from_source_cached_with_bindings(source, bindings);
+        }
+        let scoped = Self::from_source_cached(source);
+        if scoped
+            .as_ref()
+            .is_ok_and(|session| session.module_bindings.is_none())
+            || !source.starts_with(crate::link::BUNDLE_MARKER)
+        {
+            return scoped;
+        }
+        let legacy =
+            Self::from_source_cached_with_bindings(source, ModuleBindings::LegacyHoldCapture);
+        match (scoped, legacy) {
+            (Ok(_), Ok(_)) => Err(
+                "cannot restore save: this source has ambiguous historical module bindings; supply moduleBindings as scoped or legacy-hold-capture"
+                    .into(),
+            ),
+            (Ok(session), Err(_)) | (Err(_), Ok(session)) => Ok(session),
+            (Err(error), Err(_)) => Err(error),
+        }
     }
 
-    fn load_program(source: &str, program: Program) -> Result<Self, String> {
+    fn load_program(
+        source: &str,
+        program: Program,
+        module_bindings: Option<ModuleBindings>,
+    ) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
@@ -2782,6 +2871,7 @@ impl ReactiveSession {
             source_id: source_identity(source),
             source_sha256: source_digest(source),
             source_unrecorded_through: 0,
+            module_bindings,
             sequence: 0,
             last_event: None,
             states: States::default(),
