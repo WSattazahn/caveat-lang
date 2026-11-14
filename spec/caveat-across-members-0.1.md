@@ -49,6 +49,11 @@ An authored function still takes ordinary arguments: `sum(for + 1)`,
 named `for`, not across forms. An ordinary call may also contain an across
 form farther inside its argument.
 
+An evidence declaration's source, the words after `evidence NAME from`, is
+text, quoted or not, and holds no form: `evidence e2 from sum(for beast as
+$x: s);` keeps its source as written, as 1.4 did. In a `for` block, the
+block replaces the `$` words of a source as it replaces any other.
+
 ## 2. Expansion
 
 A form expands to EXPRESSION once per member of KIND, in declaration order,
@@ -135,3 +140,11 @@ reads the 208 tracked programs, comments and quoted text removed
 ## Changes
 
 - 2026-10-25: drafted from the [intel example](../kit/examples/intel-betrayal/README.md), whose sums named each informant.
+- 2026-11-14 (D086): an evidence declaration's source is left as written.
+  An unquoted source holding `sum(for …)` text was expanded, so a program
+  that 1.4 loads was refused when no entity of that kind is declared, or
+  when the declaration sits in a block that binds the same name. A
+  source in a block holding a `$` word the block does not bind is
+  refused again, as by every release; main had expanded the form there,
+  which bound the word.
+  Test: `runtime/tests/d086_across_text_in_evidence_source.rs`.
