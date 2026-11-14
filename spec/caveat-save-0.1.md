@@ -148,16 +148,27 @@ and `release` as its own (`scoped`), or one from 1.2.0 to 1.4.1, which read
 a `hold` or `release` two words before `because` as the root's
 (`legacy-hold-capture`).
 An unmarked save uses the interpretation of the releases that could have
-loaded its source ([Caveat 0.5](caveat-0.5-draft.md)), as they linked it,
-even where a fresh load reads the source otherwise or refuses it. Where
-releases of both kinds could, and their readings differ, restore requires an
-explicit choice: the same source and initial save can have been written by
-1.0 with scoped behavior or by 1.4 with root capture. Where no release could,
-an unmarked save uses the interpretation that loads, and requires a choice if
-both do. Saved state is not used to guess which history occurred. A save of
-another program, or of an edited source, is refused as such, as releases
-refuse an unmarked one, before a marker or a choice is used and before a
-choice is asked for, since no choice could restore it.
+written it, as they linked its source ([Caveat 0.5](caveat-0.5-draft.md)),
+even where a fresh load reads the source otherwise or refuses it. Those are
+the releases that could load the source and that wrote the save's format.
+Every release wrote state saves, those from rc.17 on with `source_sha256`,
+so only release candidates before rc.17 wrote one without it. Releases from
+1.1.0 on wrote [Replay Save 0.1](caveat-replay-save-0.1.md), and releases
+from 1.2.0 on wrote [Replay Save 0.2](caveat-replay-save-0.2.md), so no
+release before 1.2.0 wrote a positional replay save. Where releases of one
+kind linked the source differently, as later minors added forms, it is read
+as the newest of them that could load it linked it: a save an older one
+wrote continues as that release would have continued it, or is refused
+where it holds an event that release would not accept. Where releases of
+both kinds could,
+and their readings differ, restore requires an explicit choice: the same
+source and initial save can have been written by 1.0 with scoped behavior or
+by 1.4 with root capture. Where no release could, an unmarked save uses the
+interpretation that loads, and requires a choice if both load and read the
+source differently. Saved state is not used to guess which history
+occurred. A save of another program, or of an edited source, is refused as
+such, as releases refuse an unmarked one, before a marker or a choice is used
+and before a choice is asked for, since no choice could restore it.
 
 In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
 or `{ moduleBindings: 'legacy-hold-capture' }`. The kit's other restore paths
@@ -589,6 +600,19 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D095): the releases that could have written an unmarked save
+  of affected source are those that could load the source and wrote the
+  save's format: Replay Save 0.1 came in 1.1.0 and 0.2 in 1.2.0, and every
+  release from rc.17 on wrote `source_sha256` in a state save. Restore
+  asked for a choice for 1.4.1's positional replay save of a bundle every
+  release loads, though no release before 1.2.0 wrote that format, and for
+  a state save of it without `source_sha256`, which only release candidates
+  before rc.17 wrote; it now continues the first as 1.4.1 read the bundle
+  and the second as those candidates did, with no choice. Where no release
+  that wrote a save's format could load its source, a choice is needed only
+  where both readings load and read the source differently, as where releases
+  of both kinds could have written it. Tests:
+  `runtime/tests/module_binding_restore.rs`.
 - 2026-11-14 (D094): the MCP tool `caveat_dispatch`, the kit's `savedEvents`
   and `carrySave`, the starter's `openHost` and the Python package's
   `restore` take the module binding choice

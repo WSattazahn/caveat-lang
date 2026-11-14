@@ -20,6 +20,7 @@ use super::{
 use crate::link::{self, Reading};
 use crate::reactive_expr::Expr;
 use std::cell::RefCell;
+use std::ops::RangeInclusive;
 
 /// A bundle as each line of releases linked it, and the programs those
 /// readings load. With a module's `hold` and `release` its own, a bundle is
@@ -176,11 +177,16 @@ impl<'a> Readings<'a> {
     }
 
     /// Whether a release before 1.2.0 could have loaded the bundle and
-    /// written a save of it, and whether one from 1.2.0 to 1.4.1 could.
-    pub(super) fn writers(&self) -> (bool, bool) {
+    /// written a save of it in a format that only the releases in `format`
+    /// wrote, and whether one from 1.2.0 to 1.4.1 could (finding D095).
+    pub(super) fn writers(&self, format: &RangeInclusive<Release>) -> (bool, bool) {
+        let from =
+            |release: Release, loads: fn(&Self) -> bool| format.contains(&release) && loads(self);
         (
-            self.by_1_1() || self.by_1_0(),
-            self.by_1_4() || self.by_1_3() || self.by_1_2(),
+            from(Release::V1_1, Self::by_1_1) || from(Release::Before1_1, Self::by_1_0),
+            from(Release::V1_4, Self::by_1_4)
+                || from(Release::V1_3, Self::by_1_3)
+                || from(Release::V1_2, Self::by_1_2),
         )
     }
 

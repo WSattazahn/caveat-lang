@@ -169,9 +169,14 @@ name. This is a correction to the scope promise and can change previously
 accepted programs' results, or refuse a program that loaded only because it
 captured the wrong declaration. Historical saves remain restorable under
 their selected interpretation. There is a narrow qualification to automatic
-restore: an unmarked save of a source that releases before 1.2.0 and from
-1.2.0 to 1.4.1 could both load, and read differently, needs an explicit
-`moduleBindings` choice. Published 1.0 and 1.4 produced byte-identical
+restore: an unmarked save that releases before 1.2.0 and from 1.2.0 to
+1.4.1 could both have written, since both could load its source and wrote
+its format, and that they read differently, needs an explicit
+`moduleBindings` choice. A positional replay save never does where a release
+from 1.2.0 to 1.4.1 could load its source, since no earlier release wrote
+that format, nor a state save without `source_sha256` where a release before
+1.1.0 could, since only release candidates before rc.17 wrote one. Published
+1.0 and 1.4 produced byte-identical
 initial saves with different continuations, so automatic preservation of
 both is impossible. New affected saves record the choice. Unaffected save
 bytes remain unchanged. Older runtimes refuse the new marker; removing it is
