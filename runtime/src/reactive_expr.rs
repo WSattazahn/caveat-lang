@@ -3014,11 +3014,16 @@ impl Expr {
         numeric: &HashSet<String>,
         predicate: &impl Fn(&str, &str) -> Result<(), String>,
     ) -> Result<ValueType, String> {
-        self.validate_calls(numeric, predicate, &|name, _| {
-            Err(format!(
-                "source function {name} must be expanded before validation"
-            ))
-        })
+        self.validate_calls(
+            numeric,
+            predicate,
+            &|name, _| {
+                Err(format!(
+                    "source function {name} must be expanded before validation"
+                ))
+            },
+            None,
+        )
     }
 
     fn validate_calls(
@@ -3026,13 +3031,24 @@ impl Expr {
         numeric: &HashSet<String>,
         predicate: &dyn Fn(&str, &str) -> Result<(), String>,
         user_call: &dyn Fn(&str, usize) -> Result<ValueType, String>,
+        functions: Option<&BTreeMap<String, FunctionDef>>,
     ) -> Result<ValueType, String> {
+        if let Some(functions) = functions {
+            if let Some(call) = source_function_call(&self.node, functions)? {
+                return Expr::new(call)?.validate_calls(
+                    numeric,
+                    predicate,
+                    user_call,
+                    Some(functions),
+                );
+            }
+        }
         match &self.node {
             Node::Outcome(name, index) => {
                 predicate(OUTCOME, name)?;
                 if let Some(index) = index {
                     index
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 Ok(ValueType::Number)
@@ -3060,7 +3076,7 @@ impl Expr {
             Node::AtOccurrence(kind, evidence, index) => {
                 predicate(&selector_kind(kind), evidence)?;
                 index
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Bool)
             }
@@ -3077,7 +3093,7 @@ impl Expr {
                 )?;
                 for child in children {
                     child
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 Ok(ValueType::Bool)
@@ -3097,14 +3113,14 @@ impl Expr {
             Node::HistoryAt(name, index) => {
                 predicate("numeric_history", name)?;
                 index
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
             Node::Fold(name, initial, reducer) => {
                 predicate("numeric_history", name)?;
                 initial
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 user_call(reducer, 2)?.require(ValueType::Number)?;
                 Ok(ValueType::Number)
@@ -3112,7 +3128,7 @@ impl Expr {
             Node::ExpandedFold(name, initial, body) => {
                 predicate("numeric_history", name)?;
                 initial
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 body.validate_calls(
                     &[FOLD_ACC.into(), FOLD_VALUE.into()]
@@ -3120,13 +3136,14 @@ impl Expr {
                         .collect::<HashSet<String>>(),
                     &|_, _| Err("fold reducer must be pure".into()),
                     user_call,
+                    functions,
                 )?
                 .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
             Node::Qualified(value, evidence, caveats) => {
                 value
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 predicate("qualification_evidence", evidence)?;
                 for caveat in caveats {
@@ -3136,25 +3153,25 @@ impl Expr {
             }
             Node::If(condition, yes, no) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
-                let kind = yes.validate_calls(numeric, predicate, user_call)?;
-                no.validate_calls(numeric, predicate, user_call)?
+                let kind = yes.validate_calls(numeric, predicate, user_call, functions)?;
+                no.validate_calls(numeric, predicate, user_call, functions)?
                     .require(kind)?;
                 Ok(kind)
             }
             Node::Require(condition, value) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
-                value.validate_calls(numeric, predicate, user_call)
+                value.validate_calls(numeric, predicate, user_call, functions)
             }
             Node::OnlyIf(condition, value) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
                 value
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
@@ -3164,13 +3181,13 @@ impl Expr {
                     _ => ValueType::Number,
                 };
                 child
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(expected)?;
                 Ok(expected)
             }
             Node::Binary(operator, left, right) => {
-                let left_type = left.validate_calls(numeric, predicate, user_call)?;
-                let right_type = right.validate_calls(numeric, predicate, user_call)?;
+                let left_type = left.validate_calls(numeric, predicate, user_call, functions)?;
+                let right_type = right.validate_calls(numeric, predicate, user_call, functions)?;
                 match operator {
                     Binary::And | Binary::Or => {
                         left_type.require(ValueType::Bool)?;
@@ -3205,13 +3222,13 @@ impl Expr {
             | Node::ExpandedCall(arguments, _) => {
                 for argument in arguments {
                     argument
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 match &self.node {
                     Node::UserCall(name, _) => user_call(name, arguments.len()),
                     Node::ExpandedCall(_, body) => {
-                        body.validate_calls(numeric, predicate, user_call)
+                        body.validate_calls(numeric, predicate, user_call, functions)
                     }
                     Node::Function(Function::Text | Function::IdText, _) => Ok(ValueType::Text),
                     _ => Ok(ValueType::Number),
@@ -4603,6 +4620,40 @@ fn revision_call(series: &str, index: Option<&Expr>) -> Result<Expr, String> {
     }
 }
 
+/// Later forms share spellings with functions older programs may declare.
+/// Resolve them the same way during type inference and expansion: inference
+/// runs before expansion, so leaving a form there would reject a pure call
+/// or infer the intrinsic's result type instead of the authored function's.
+fn source_function_call(
+    node: &Node,
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<Option<Node>, String> {
+    let (name, arguments) = match node {
+        Node::Outcome(series, index) if functions.contains_key(OUTCOME) => {
+            (OUTCOME, vec![revision_call(series, index.as_deref())?])
+        }
+        Node::Predicate(name, target)
+            if matches!(name.as_str(), RESOLVED | ON_HOLD | IS_SET)
+                && functions.contains_key(name) =>
+        {
+            (name.as_str(), vec![revision_call(target, None)?])
+        }
+        Node::AtOccurrence(kind, series, index)
+            if kind == AT_REVISION_RESOLVED && functions.contains_key(RESOLVED) =>
+        {
+            (RESOLVED, vec![revision_call(series, Some(index))?])
+        }
+        Node::InBasis(basis, children) if functions.contains_key(IN_BASIS) => {
+            return basis.as_call(children).map(Some);
+        }
+        Node::GroundsOf(series) if functions.contains_key(GROUNDS_OF) => {
+            (GROUNDS_OF, vec![revision_call(series, None)?])
+        }
+        _ => return Ok(None),
+    };
+    Ok(Some(Node::UserCall(name.into(), arguments)))
+}
+
 fn predicate_name(name: &str) -> bool {
     matches!(
         name,
@@ -4688,54 +4739,62 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
     Ok(())
 }
 
-fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
+fn collect_calls(
+    expression: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+    calls: &mut Vec<String>,
+) -> Result<(), String> {
+    if let Some(call) = source_function_call(&expression.node, functions)? {
+        return collect_calls(&Expr::new(call)?, functions, calls);
+    }
     match &expression.node {
         Node::Unary(_, child)
         | Node::Qualified(child, _, _)
         | Node::HistoryAt(_, child)
-        | Node::AtOccurrence(_, _, child) => collect_calls(child, calls),
+        | Node::AtOccurrence(_, _, child) => collect_calls(child, functions, calls)?,
         Node::InBasis(_, children) => {
             for child in children {
-                collect_calls(child, calls);
+                collect_calls(child, functions, calls)?;
             }
         }
         Node::Fold(_, initial, reducer) => {
-            calls.push(reducer);
-            collect_calls(initial, calls);
+            calls.push(reducer.clone());
+            collect_calls(initial, functions, calls)?;
         }
         Node::ExpandedFold(_, initial, body) => {
-            collect_calls(initial, calls);
-            collect_calls(body, calls);
+            collect_calls(initial, functions, calls)?;
+            collect_calls(body, functions, calls)?;
         }
         Node::Binary(_, left, right) => {
-            collect_calls(left, calls);
-            collect_calls(right, calls);
+            collect_calls(left, functions, calls)?;
+            collect_calls(right, functions, calls)?;
         }
         Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
-            collect_calls(condition, calls);
-            collect_calls(value, calls);
+            collect_calls(condition, functions, calls)?;
+            collect_calls(value, functions, calls)?;
         }
         Node::If(condition, yes, no) => {
-            collect_calls(condition, calls);
-            collect_calls(yes, calls);
-            collect_calls(no, calls);
+            collect_calls(condition, functions, calls)?;
+            collect_calls(yes, functions, calls)?;
+            collect_calls(no, functions, calls)?;
         }
         Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
             if let Node::UserCall(name, _) = &expression.node {
-                calls.push(name);
+                calls.push(name.clone());
             }
             for argument in arguments {
-                collect_calls(argument, calls);
+                collect_calls(argument, functions, calls)?;
             }
         }
         Node::ExpandedCall(arguments, body) => {
             for argument in arguments {
-                collect_calls(argument, calls);
+                collect_calls(argument, functions, calls)?;
             }
-            collect_calls(body, calls);
+            collect_calls(body, functions, calls)?;
         }
         _ => {}
     }
+    Ok(())
 }
 
 fn infer_function(
@@ -4755,12 +4814,12 @@ fn infer_function(
         .ok_or_else(|| format!("unknown source function {name}"))?;
     active.insert(name.into());
     let mut calls = Vec::new();
-    collect_calls(&definition.body, &mut calls);
+    collect_calls(&definition.body, functions, &mut calls)?;
     for callee in calls {
         if callee == CARRIES_ANY && !functions.contains_key(CARRIES_ANY) {
             return Err("pure source functions cannot query graph predicates".into());
         }
-        infer_function(callee, functions, result_types, active)?;
+        infer_function(&callee, functions, result_types, active)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
     let kind = definition
@@ -4785,6 +4844,7 @@ fn infer_function(
                     .copied()
                     .ok_or_else(|| format!("source function {called} has no inferred result type"))
             },
+            Some(functions),
         )
         .map_err(|error| format!("source function {name}: {error}"))?;
     active.remove(name);
@@ -4817,16 +4877,10 @@ impl Expander<'_> {
         expression: &Expr,
         parameters: Option<&BTreeMap<String, usize>>,
     ) -> Result<Expr, String> {
+        if let Some(call) = source_function_call(&expression.node, self.functions)? {
+            return self.walk(&Expr::new(call)?, parameters);
+        }
         let node = match &expression.node {
-            // A program may define `fn outcome`; its calls keep their meaning
-            // (spec/caveat-outcomes-0.1.md).
-            Node::Outcome(series, index) if self.functions.contains_key(OUTCOME) => {
-                let call = Node::UserCall(
-                    OUTCOME.into(),
-                    vec![revision_call(series, index.as_deref())?],
-                );
-                return self.walk(&Expr::new(call)?, parameters);
-            }
             Node::Outcome(series, index) => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture numeric history".into());
@@ -4838,19 +4892,6 @@ impl Expander<'_> {
                         None => None,
                     },
                 )
-            }
-            Node::Predicate(name, target)
-                if name == RESOLVED && self.functions.contains_key(RESOLVED) =>
-            {
-                let call = Node::UserCall(RESOLVED.into(), vec![revision_call(target, None)?]);
-                return self.walk(&Expr::new(call)?, parameters);
-            }
-            Node::AtOccurrence(kind, series, index)
-                if kind == AT_REVISION_RESOLVED && self.functions.contains_key(RESOLVED) =>
-            {
-                let call =
-                    Node::UserCall(RESOLVED.into(), vec![revision_call(series, Some(index))?]);
-                return self.walk(&Expr::new(call)?, parameters);
             }
             Node::Number(number) => Node::Number(number.clone()),
             Node::Threshold(name, number) => Node::Threshold(name.clone(), number.clone()),
@@ -4884,17 +4925,6 @@ impl Expander<'_> {
                     Node::Variable(name.clone())
                 }
             }
-            // A 1.0 program may define `fn on_hold`; its calls keep their
-            // meaning (docs/COMPATIBILITY.md).
-            Node::Predicate(name, target)
-                if (name == ON_HOLD || name == IS_SET) && self.functions.contains_key(name) =>
-            {
-                let argument = Expr::new(Node::Variable(target.clone()))?;
-                return self.walk(
-                    &Expr::new(Node::UserCall(name.clone(), vec![argument]))?,
-                    parameters,
-                );
-            }
             Node::Predicate(name, target) => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot query graph predicates".into());
@@ -4922,11 +4952,6 @@ impl Expander<'_> {
                     evidence.clone(),
                     Box::new(self.walk(index, None)?),
                 )
-            }
-            // A 1.0 program may define `fn in_basis`; its calls keep their
-            // meaning (docs/COMPATIBILITY.md).
-            Node::InBasis(basis, children) if self.functions.contains_key(IN_BASIS) => {
-                return self.walk(&Expr::new(basis.as_call(children)?)?, parameters);
             }
             Node::InBasis(basis, children) => {
                 if parameters.is_some() {
@@ -4974,12 +4999,6 @@ impl Expander<'_> {
                 }
                 Node::Latest(name.clone())
             }
-            // A program may define `fn grounds_of`; its calls keep their
-            // meaning (spec/caveat-grounds-of-0.1.md).
-            Node::GroundsOf(series) if self.functions.contains_key(GROUNDS_OF) => {
-                let call = Node::UserCall(GROUNDS_OF.into(), vec![revision_call(series, None)?]);
-                return self.walk(&Expr::new(call)?, parameters);
-            }
             Node::GroundsOf(name) => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture numeric history".into());
@@ -5011,7 +5030,9 @@ impl Expander<'_> {
                 Box::new(self.walk(value, parameters)?),
             ),
             // A program may define `fn only_if`; its calls keep their meaning
-            // (spec/caveat-only-if-0.1.md).
+            // (spec/caveat-only-if-0.1.md). Keep this expansion-only: older
+            // releases validate unused bodies as the intrinsic, so resolving
+            // it during inference would refuse programs they loaded.
             Node::OnlyIf(condition, value) if self.functions.contains_key(ONLY_IF) => {
                 let call = Node::UserCall(
                     ONLY_IF.into(),
