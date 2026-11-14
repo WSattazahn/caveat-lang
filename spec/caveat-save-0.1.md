@@ -600,6 +600,26 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D098): restore accepts a state's or a commitment's grounds
+  that keep a take-back caveat its lineage or basis does not keep, or that
+  keep one the lineage or basis no longer carries, where the caveat can
+  qualify records of a history a `because` citation of the program can bring
+  there (D057's bound). A record keeps the take-back caveats it holds: a
+  commitment's frozen basis, a stored selection or reopening qualification,
+  a departed record ([Take-back 0.1](caveat-take-back-0.1.md), "Kept
+  caveats"). A citation of such a record gives the state's grounds the caveat
+  kept, while its lineage carries it live through the record its value read,
+  so restore refused the save the runtime wrote with "state S grounds keep a
+  caveat its lineage does not keep"; once an `unqualify` took it back, the
+  lineage no longer carried it and the grounds still kept it, refused as
+  "state S grounds include caveat C outside its lineage". A commitment citing
+  such a state took the caveat into grounds its basis lacks, and since a
+  commitment's grounds never change, every later save of the session was
+  refused, breaking the promise that a 1.x save restores. 1.4.1 refuses the
+  finding's saves alike. A kept caveat beyond the lineage or the basis that
+  no citation of the program can bring there is refused with the same
+  messages as before ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+  save"). Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
 - 2026-11-14 (D057): restore accepts a state's or a commitment's grounds
   marker that its lineage or basis does not hold, where a `because` citation
   of the program can bring that history there. `set S = V because C` takes
