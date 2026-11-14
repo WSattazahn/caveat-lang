@@ -140,13 +140,17 @@ after #393 and #389 merged; #382 remains unmerged at that review.
 
 ## 2026-11-14 draft unset module finding
 
-D084–D088 remain the interrupted thread's reserved inventory; its original
-reproducers have not been recovered. D089 is a separate finding about the
-unpublished unset-state profile, not a claim about published 1.4.1.
+D084–D088 remain the interrupted thread's reserved compatibility inventory;
+its original reproducers have not been recovered. [PR #476](https://github.com/WSattazahn/caveat-lang/pull/476)
+also assigned D089 to restore-classification blind spots. D090 is a separate
+finding about the unpublished unset-state profile, not a claim about published
+1.4.1. The initial unmerged #479 draft reused D089; review caught the collision
+and corrected its two proposed ledger additions to D090 before landing.
+The merged ledger prefix is unchanged; the earlier draft remains in Git history.
 
 | Id | Sample | Class | What was needed | What happened | Spec line | What changes if fixed |
 | --- | --- | --- | --- | --- | --- | --- |
-| D089 | compatibility continuation, runtime code `21fd92ab` | runtime, draft profile | a module's ordinary name `unset` to coexist with unset declarations and procedure effects, including after UTF-8 text | `proc clear() { unset value; }` lost its effect word to module scoping; non-ASCII text before `state value unset` shifted the declaration tag's byte offset and could refuse loading or capture a root name instead | [Unset States 0.1](../../spec/caveat-unset-states-0.1.md), Syntax and Implementation; [Caveat 0.5](../../spec/caveat-0.5-draft.md#1-modules-declare-programs-execute), module scoping | Candidate correction uses parser-selected, byte-preserving positions for these draft words. [Native regressions](../../runtime/tests/unset_name_compatibility.rs) cover scopes, guards, procedures, UTF-8, qualified targets, save/restore and refusals; the [shared kit fixture](../../kit/test/fixtures/compiler-compatibility.mjs) covers the public WASM/browser path |
+| D090 | compatibility continuation, runtime code `21fd92ab` | runtime, draft profile | a module's ordinary name `unset` to coexist with unset declarations and procedure effects, including after UTF-8 text | `proc clear() { unset value; }` lost its effect word to module scoping; non-ASCII text before `state value unset` shifted the declaration tag's byte offset and could refuse loading or capture a root name instead | [Unset States 0.1](../../spec/caveat-unset-states-0.1.md), Syntax and Implementation; [Caveat 0.5](../../spec/caveat-0.5-draft.md#1-modules-declare-programs-execute), module scoping | Candidate correction uses parser-selected, byte-preserving positions for these draft words. [Native regressions](../../runtime/tests/unset_name_compatibility.rs) cover scopes, guards, procedures, UTF-8, qualified targets, save/restore and refusals; the [shared kit fixture](../../kit/test/fixtures/compiler-compatibility.mjs) covers the public WASM/browser path |
 
 Both load failures were observed through public `runtime.open(bundle)` on
 the optimized local reactive WebAssembly build from `c71c5e7f`, before the

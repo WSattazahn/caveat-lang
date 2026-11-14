@@ -28,7 +28,7 @@ page; the numbers here are the record behind that summary.
 
 ## Draft module syntax
 
-[D089](../experiments/agent-decisions/README.md#2026-11-14-draft-unset-module-finding)
+[D090](../experiments/agent-decisions/README.md#2026-11-14-draft-unset-module-finding)
 records two unpublished `unset`-profile module bugs: a procedure's effect
 word could be renamed, and UTF-8 text could displace a declaration's keyword
 position. The latter could also silently capture a root name. The candidate

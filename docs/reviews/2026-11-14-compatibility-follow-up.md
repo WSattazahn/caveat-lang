@@ -64,8 +64,9 @@ refusals or evidence that the shipped packages reject those programs.
 The native load audit compared v1.4.1 with runtime code
 `21fd92ab3803e9968b04ad7a37f38473de2f8afd`, using every tracked `.cav` path
 from both the v1.4.1 checkout and the current checkout at
-`efe3d55c333de2432352df9538203e29395f6912`. The runtime diff from the reference
-was empty. Counts below were independently recomputed from the saved rows.
+`efe3d55c333de2432352df9538203e29395f6912`. Runtime source was identical between
+`21fd92ab` and `efe3d55c`. Counts below were independently recomputed from the
+saved rows.
 
 | Source bytes | Files | Both load | Both refuse | Older loads / candidate refuses | Older refuses / candidate loads |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -126,7 +127,7 @@ reactive WASM is
 - `npm run test:kit`: 699 passed, including the new shared unset fixture in
   both WASM builds, historical saves and continuation.
 - `npm run test:ledger`: seven unit tests, strict check, ten scenarios and
-  all 444 recorded events passed, including the D089 finding events.
+  all 444 recorded events passed, including the D090 finding events.
 - `node scripts/test-interface.mjs`: 193 programs had identical interfaces
   across native and both WASM builds; 30 refused alike.
 - `PLAYWRIGHT_CHANNEL=chrome node scripts/test-kit-browser.mjs`: passed in
