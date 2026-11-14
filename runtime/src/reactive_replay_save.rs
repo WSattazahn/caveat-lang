@@ -407,7 +407,13 @@ impl ReactiveSession {
             }
             Ok(())
         };
-        let mut session = Self::load_for_restore(source, saved_bindings, options, || {
+        // Releases wrote Replay Save 0.1 from 1.1.0 on and 0.2 from 1.2.0 on.
+        let format = if positional.is_some() {
+            Release::V1_2..=Release::Later
+        } else {
+            Release::V1_1..=Release::Later
+        };
+        let mut session = Self::load_for_restore(source, saved_bindings, options, format, || {
             identity(&source_identity(source), &source_digest(source))
         })?;
         identity(&session.source_id, &session.source_sha256)?;

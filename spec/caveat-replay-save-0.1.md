@@ -4,6 +4,8 @@
 
 Unreleased amendment: affected module saves carry an optional
 [binding interpretation](caveat-save-0.1.md#module-binding-interpretation).
+Releases wrote this format from 1.1.0 on, so only those count as the
+writers of an unmarked one.
 The byte-equivalence statements below describe the replay-format addition;
 the later marker is omitted only for unaffected source.
 

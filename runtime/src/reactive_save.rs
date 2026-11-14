@@ -945,10 +945,19 @@ impl ReactiveSession {
         save: &ReactiveSave,
         options: &RestoreOptions,
     ) -> Result<Self, String> {
-        let mut session = Self::load_for_restore(source, save.module_bindings, options, || {
-            Self::save_identity(save, &source_identity(source), &source_digest(source))
-                .map_err(|error| format!("cannot restore save: {error}"))
-        })?;
+        // Every release wrote state saves, and from rc.17 on each wrote its
+        // source's digest in them: only release candidates before rc.17,
+        // all before 1.2.0, wrote one without it (finding D095).
+        let format = if save.source_sha256.is_some() {
+            Release::Before1_1..=Release::Later
+        } else {
+            Release::Before1_1..=Release::Before1_1
+        };
+        let mut session =
+            Self::load_for_restore(source, save.module_bindings, options, format, || {
+                Self::save_identity(save, &source_identity(source), &source_digest(source))
+                    .map_err(|error| format!("cannot restore save: {error}"))
+            })?;
         // The bound restore checks the save by comes from the program as it
         // loaded, so it is computed before the save is applied (D061).
         session.history_reach_bound();

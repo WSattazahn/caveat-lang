@@ -18,6 +18,7 @@ use crate::release_line::Release;
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::RangeInclusive;
 use std::sync::{Arc, OnceLock};
 
 const LIMIT: f64 = 1_000_000_000_000.0;
@@ -2677,10 +2678,13 @@ impl ReactiveSession {
     /// save of `source`: a save of another program, or of an edited source,
     /// is refused as such before a saved or requested choice is used, and
     /// before the choice is asked for, since no choice could restore it.
+    /// `format` is the releases that wrote the save's format: no other
+    /// release can have written the save (finding D095).
     fn load_for_restore(
         source: &str,
         saved_bindings: Option<ModuleBindings>,
         options: &RestoreOptions,
+        format: RangeInclusive<Release>,
         identity: impl FnOnce() -> Result<(), String>,
     ) -> Result<Self, String> {
         if let Some(bindings) = saved_bindings.or(options.module_bindings) {
@@ -2708,20 +2712,22 @@ impl ReactiveSession {
             return scoped;
         }
         // This runtime marks every save of such a bundle, so an unmarked one
-        // was written by a release that loaded it: before 1.2.0 with the
-        // module's own `hold`, or from 1.2.0 to 1.4.1 with the program's
-        // (finding D091). Where releases of both kinds could load it, and
-        // read it differently, the save cannot say which wrote it.
+        // was written by a release that loaded it and wrote its format:
+        // before 1.2.0 with the module's own `hold`, or from 1.2.0 to 1.4.1
+        // with the program's (finding D091). Where releases of both kinds
+        // could have written it, and read it differently, the save cannot
+        // say which wrote it.
         let legacy =
             || Self::from_source_cached_with_bindings(source, ModuleBindings::LegacyHoldCapture);
-        let (scoped_writer, legacy_writer) = readings.writers();
+        let (scoped_writer, legacy_writer) = readings.writers(&format);
         let ambiguous = match (scoped_writer, legacy_writer) {
             (true, false) => return scoped,
             (false, true) => return legacy(),
             (true, true) => Some(readings.scoped_reading()) != readings.legacy_reading(),
-            // No release loaded it, so no release wrote the save.
+            // No release that wrote the save's format loaded it, so no
+            // release wrote the save.
             (false, false) => match (scoped, legacy()) {
-                (Ok(_), Ok(_)) => true,
+                (Ok(_), Ok(_)) => Some(readings.scoped_reading()) != readings.legacy_reading(),
                 (Ok(session), Err(_)) | (Err(_), Ok(session)) => return Ok(session),
                 (Err(error), Err(_)) => return Err(error),
             },

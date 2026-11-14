@@ -36,10 +36,14 @@ histories correctly.
 - This runtime marks every affected save, so an unmarked one was written by
   a release: before 1.2.0 with module scope, or from 1.2.0 to 1.4.1 with
   root capture. Restore uses the interpretation of the releases that could
-  have loaded the source as they linked it (below), and requires an explicit
-  choice only when releases of both kinds could and their readings differ.
-  Where no release could, it uses the interpretation that loads, and
-  requires a choice when both do. Saved state validation is never used to
+  have written the save, as they linked the source (below): those that could
+  load the source and wrote the save's format. Every release wrote state
+  saves, from rc.17 on with `source_sha256`; Replay Save 0.1 came in 1.1.0
+  and 0.2 in 1.2.0 ([D095](#d095-a-saves-writers-are-the-releases-that-wrote-its-format)).
+  Restore requires an explicit choice only when releases of both kinds could
+  have written the save and their readings differ. Where none could, it uses
+  the interpretation that loads, and requires a choice only when both load
+  and read the source differently. Saved state validation is never used to
   pick a convenient interpretation.
 - A saved marker selects the interpretation. An explicit conflicting option
   is refused. The selected program supplies the initial state, bounds and
@@ -160,8 +164,9 @@ read the bundle differently, the save needs a choice. So
 beside the program's `define hold` and `fn MODULE__only_if`, loads fresh as
 1.1.0 read it, the call of `fn MODULE__only_if` with the module's number,
 where 1.4 read the form with the program's define as its condition; an
-unmarked 1.4.1 save of it needs `legacy-hold-capture`, and of 1.1.0
-`scoped`.
+unmarked 1.4.1 state or named replay save of it needs `legacy-hold-capture`,
+and of 1.1.0 `scoped`, while a positional one, which only releases from
+1.2.0 wrote, restores with root capture and no choice (D095).
 
 ### Reviews
 
@@ -312,6 +317,43 @@ The cases are in `runtime/tests/d088_module_names_older_releases_loaded.rs`,
 `runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`,
 `runtime/tests/module_binding_restore.rs` and the tests of
 `runtime/src/reactive_releases.rs`.
+
+## D095: a save's writers are the releases that wrote its format
+
+Restore counted every release that could load an affected bundle as a
+possible writer of an unmarked save, whatever the save's format, and so
+asked for a choice where only one kind of release wrote that format. No
+release before 1.2.0 wrote Replay Save 0.2, so an unmarked positional save
+of a bundle every release loads is now read with root capture, as the
+releases from 1.2.0 to 1.4.1 that wrote it read the bundle, with no choice.
+A named replay save of it still needs one, since 1.1.0 wrote that format
+too. A state save without `source_sha256`, which only release candidates
+before rc.17 wrote (rc.16 writes the collision fixture's 1.0.0 saves without
+it), is read with module scope, as they read it. Where none of the releases
+that wrote a save's format could load its source, a choice is needed only
+where both readings load and read it differently.
+
+As everywhere above, a bundle is read as the newest release that could load
+it linked it. Where 1.3.0 or 1.4.0 linked a bundle differently from 1.2.0,
+a positional save that 1.2.0 or 1.3.0 wrote continues as the newest such
+release would have continued it, or is refused where it holds an event that
+release would not accept, as a state save of such a bundle that only
+releases from 1.2.0 could load already did; no choice reaches the older
+reading.
+
+1.1.0, 1.2.0, 1.3.0 and 1.4.1 each wrote replay saves of the 8,746 bundles
+above (2 runs of 10 seeded events), and main (`e00a2bc6`) and this change
+restored and continued every one with the writer's events. Main
+asked for a choice on 990 positional saves (154 from 1.2.0, 154 from 1.3.0,
+682 from 1.4.1); this change restores all 990 with no choice, and each
+continues byte for byte as its writer did. Every other replay save restores
+as before, including the 1,674 named ones that still need a choice.
+
+An independent review of this change found that it still asked a choice for
+a state save without `source_sha256`, that no test pinned 1.2.0 as the
+first release that wrote positional saves, and that this record, Replay
+Save 0.2 and two D088 test comments still gave the earlier rule. Each is
+corrected; the cases are in `runtime/tests/module_binding_restore.rs`.
 
 ## Scope limits
 

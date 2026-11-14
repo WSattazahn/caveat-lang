@@ -59,13 +59,15 @@ fn identical_genuine_initial_saves_cannot_select_a_historical_interpretation() {
     }
 }
 
+/// Every release wrote state saves, and 1.1.0 and later named replay saves,
+/// so these formats of a bundle every release loads can be from either
+/// history.
 #[test]
-fn all_genuine_historical_formats_require_a_choice_and_continue_that_history() {
+fn genuine_state_and_named_replay_saves_require_a_choice_and_continue_that_history() {
     for (saved, bindings, expected) in [
         (OLD_100_STATE, ModuleBindings::Scoped, 10.0),
         (OLD_STATE, ModuleBindings::LegacyHoldCapture, 14.0),
         (OLD_NAMED, ModuleBindings::LegacyHoldCapture, 14.0),
-        (OLD_POSITIONAL, ModuleBindings::LegacyHoldCapture, 14.0),
     ] {
         let error = ReactiveSession::restore_json(SOURCE, saved).unwrap_err();
         assert!(error.contains("ambiguous"), "{error}");
@@ -85,6 +87,98 @@ fn all_genuine_historical_formats_require_a_choice_and_continue_that_history() {
         send(&mut resumed);
         assert_eq!(value(&resumed), expected);
         assert_eq!(resumed.save_json().unwrap(), session.save_json().unwrap());
+    }
+}
+
+/// Releases wrote Replay Save 0.2 from 1.2.0 on, and those that wrote it
+/// unmarked, 1.2.0 to 1.4.1, all read a module's `hold` two words before
+/// `because` as the program's, so an unmarked positional save of a bundle
+/// that every release loads continues as 1.4.1 read it, with no choice
+/// asked for (finding D095). A named replay save of the same bundle still
+/// needs one: 1.1.0 wrote that format too, and read the module's `hold` as
+/// its own.
+#[test]
+fn d095_a_positional_save_continues_as_the_releases_that_could_write_it_read_the_bundle() {
+    let mut session = ReactiveSession::restore_json(SOURCE, OLD_POSITIONAL).unwrap();
+    assert_eq!(value(&session), 14.0);
+    let marked = session.save_json().unwrap();
+    assert_eq!(
+        serde_json::from_str::<Value>(&marked).unwrap()["module_bindings"],
+        "legacy-hold-capture"
+    );
+    send(&mut session);
+    assert_eq!(value(&session), 14.0);
+    let mut resumed = ReactiveSession::restore_json(SOURCE, &marked).unwrap();
+    send(&mut resumed);
+    assert_eq!(resumed.save_json().unwrap(), session.save_json().unwrap());
+    // A host can still name the reading.
+    for (bindings, expected) in [
+        (ModuleBindings::LegacyHoldCapture, 14.0),
+        (ModuleBindings::Scoped, 10.0),
+    ] {
+        let mut restored =
+            ReactiveSession::restore_json_with_options(SOURCE, OLD_POSITIONAL, &options(bindings))
+                .unwrap();
+        send(&mut restored);
+        assert_eq!(value(&restored), expected);
+    }
+    let error = ReactiveSession::restore_json(SOURCE, OLD_NAMED).unwrap_err();
+    assert!(error.contains("ambiguous"), "{error}");
+}
+
+/// Only 1.2.0 wrote Replay Save 0.2 of a bundle that releases up to 1.2.0
+/// loaded and 1.3.0 on refused, here for its module's `fn resolve`, a name
+/// 1.3.0 read as its own form (finding D088). An unmarked positional save
+/// of it continues as 1.2.0 read the bundle, with no choice asked for; a
+/// named one still needs one, since 1.1.0 wrote that format and loaded it
+/// too (finding D095).
+#[test]
+fn d095_a_positional_save_that_only_1_2_0_could_write_continues_as_it_read_the_bundle() {
+    let module = "module m;\nstate hold = 7;\nstate v = 0;\nfn add(a,b) = a+b;\nevent go;\non go set v = add( hold , because );\nstate t = 0;\nevent tick;\nfn resolve (y) = y + 1;\non tick set t = resolve(t);\n";
+    let root = "use m;\nstate because = 3;\nstate hold = 11;\n";
+    let source = format!(
+        "#caveat-bundle 1\n#module m {}\n{module}#module main {}\n{root}",
+        module.len(),
+        root.len()
+    );
+    // The saves a build of 1.2.0's tagged runtime writes after one `m__go`,
+    // which it accepts with v = 14; 1.3.0 and 1.4.1 do not load the bundle.
+    let positional = r#"{"schema":"caveat-replay-save/0.2","sha256":"AkfkR_ch1IiHQ0fIeA2Zt2SZnM6U4WH-J1exD5Al7T8","events":"0"}"#;
+    let named = r#"{"schema":"caveat-replay-save/0.1","source_id":"fnv1a64:ed7fe9970428d970:272","source_sha256":"0247e447f721d488874347c8780d99b764999cce94e161fe2757b10f9025ed3f","events":[["m__go"]]}"#;
+    let mut session = ReactiveSession::restore_json(&source, positional).unwrap();
+    assert_eq!(value(&session), 14.0);
+    let marked: Value = serde_json::from_str(&session.save_json().unwrap()).unwrap();
+    assert_eq!(marked["module_bindings"], "legacy-hold-capture");
+    send(&mut session);
+    assert_eq!(value(&session), 14.0);
+    let error = ReactiveSession::restore_json(&source, named).unwrap_err();
+    assert!(error.contains("ambiguous"), "{error}");
+}
+
+/// Every release from rc.17 on wrote its source's digest in a state save,
+/// so one without it was written by an earlier release candidate, and each
+/// of those read a module's `hold` as its own: the save continues so, with
+/// no choice asked for (finding D095).
+#[test]
+fn d095_a_state_save_without_its_source_digest_continues_as_the_release_candidates_read_it() {
+    // What a build of rc.16's tagged runtime writes of the bundle, before
+    // and after one `m__go`: 1.0.0's saves without `source_sha256`.
+    for (saved, before) in [
+        (
+            r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:8cb496ca5fa15ec4:195","sequence":0,"elapsed":0.0,"states":{},"graph":{}}"#,
+            0.0,
+        ),
+        (
+            r#"{"schema":"caveat-reactive-save/0.1","source_id":"fnv1a64:8cb496ca5fa15ec4:195","sequence":1,"last_event":"m__go","elapsed":0.0,"states":{"m__v":{"value":10.0}},"graph":{}}"#,
+            10.0,
+        ),
+    ] {
+        let mut session = ReactiveSession::restore_json(SOURCE, saved).unwrap();
+        assert_eq!(value(&session), before);
+        let marked: Value = serde_json::from_str(&session.save_json().unwrap()).unwrap();
+        assert_eq!(marked["module_bindings"], "scoped");
+        send(&mut session);
+        assert_eq!(value(&session), 10.0);
     }
 }
 

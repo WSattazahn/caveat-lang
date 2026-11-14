@@ -105,10 +105,12 @@ fn a_module_only_if_form_that_loads_is_kept() {
 /// program's define, so `only_if( hold , because )` was the form with a
 /// truth value for its condition. Read with module scope, `hold` is the
 /// module's number, so the form does not load: 1.4 loaded the bundle only
-/// through that capture, and it is read as 1.1.0 read it, the call. A save
-/// that does not say which reading made it needs a choice, since releases
-/// before 1.2.0 and from 1.2.0 both loaded it and read it differently; each
-/// choice continues as its releases did.
+/// through that capture, and it is read as 1.1.0 read it, the call. A state
+/// or named replay save that does not say which reading made it needs a
+/// choice, since releases before 1.2.0 and from 1.2.0 both loaded it, wrote
+/// that format and read it differently; each choice continues as its
+/// releases did. A positional one, which only releases from 1.2.0 wrote, is
+/// read as 1.4 read it (finding D095).
 #[test]
 fn a_module_only_if_beside_a_captured_hold_reads_as_before_1_2() {
     let source = bundle(
@@ -290,7 +292,8 @@ fn a_module_stream_changed_before_a_comma_is_its_own_as_before_1_1() {
 /// `changed ,r` as the program's stream `changed`. Where only releases
 /// before 1.2.0 could load the bundle, an unmarked save restores without a
 /// choice and continues as 1.1.0 did; where releases from 1.2.0, which read
-/// the program's `hold`, could load it too, the save needs one.
+/// the program's `hold`, could load it too, a state or named replay save
+/// needs one.
 #[test]
 fn an_older_save_beside_a_hold_and_a_bare_changed_continues_as_1_1_did() {
     let module = CHANGED.replace(
