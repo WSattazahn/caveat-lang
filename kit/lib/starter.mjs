@@ -261,13 +261,27 @@ class Host {
  * Opens the program from the store's checkpoint, or fresh when the store is
  * empty. A checkpoint made under other source text is refused: the runtime
  * restores a save only under the exact source it was made under.
+ * `moduleBindings` is `runtime.restore`'s option for the checkpoint's save:
+ * how to read one that names no module binding reading where releases could
+ * have written it under either. Where the save does not name it yet, the
+ * host writes its checkpoint again before it opens, naming that reading, so
+ * later opens need no choice; if that write fails, openHost throws
+ * StarterError('store') and the store keeps the checkpoint it had. An empty
+ * store holds no save to read that way, so openHost refuses the option there,
+ * as `caveat serve` refuses --restore-module-bindings without a state file.
  */
-export async function openHost({ runtime, source, store } = {}) {
+export async function openHost({ runtime, source, store, moduleBindings } = {}) {
   if (!runtime || typeof runtime.open !== 'function') throw new TypeError('runtime must be a loaded Caveat runtime');
   if (!store) throw new TypeError('store is required');
+  if (moduleBindings !== undefined && moduleBindings !== 'scoped' && moduleBindings !== 'legacy-hold-capture') {
+    throw new TypeError('moduleBindings must be "scoped" or "legacy-hold-capture"');
+  }
   const digest = sourceDigest(source);
   const text = await store.readCheckpoint();
   if (text === null || text === undefined) {
+    if (moduleBindings !== undefined) {
+      throw new StarterError('store', 'moduleBindings names how to read a checkpoint, and the store holds none');
+    }
     const session = runtime.open(source);
     const host = new Host({ runtime, store, session, digest, nextChunk: 0, pending: [], durableSequence: null });
     const first = await host.flush();
@@ -290,16 +304,30 @@ export async function openHost({ runtime, source, store } = {}) {
     const same = stored.find(item => item.number === chunk.number);
     if (same && same.sha256 !== chunk.sha256) throw new StarterError('store', `archive chunk ${chunk.number} differs from the checkpoint's`);
   }
-  const session = runtime.restore(source, checkpoint.save);
+  const session = runtime.restore(source, checkpoint.save, moduleBindings === undefined ? undefined : { moduleBindings });
+  // A chosen reading the save does not name yet is written into the
+  // checkpoint by the flush below. A save that names one restored only
+  // because it is the same reading.
+  const naming = moduleBindings !== undefined && !namesModuleBindings(checkpoint.save);
   const appended = new Set(stored.map(chunk => chunk.number));
   const host = new Host({
     runtime, store, session, digest,
     nextChunk: checkpoint.next_chunk,
     pending: checkpoint.pending.filter(chunk => !appended.has(chunk.number)),
-    durableSequence: checkpoint.sequence,
+    durableSequence: naming ? null : checkpoint.sequence,
   });
-  await host.flush();
+  const opened = await host.flush();
+  if (naming && !opened.durable) {
+    session.close();
+    throw new StarterError('store', `the checkpoint naming module bindings ${moduleBindings} was not written: ${opened.storeError}`);
+  }
   return host;
+}
+
+// Whether a save names its module binding reading (spec/caveat-save-0.1.md).
+function namesModuleBindings(save) {
+  try { return Object.hasOwn(JSON.parse(save) ?? {}, 'module_bindings'); }
+  catch { return false; }
 }
 
 /** A store in memory, for tests and demonstrations. Nothing survives the process. */

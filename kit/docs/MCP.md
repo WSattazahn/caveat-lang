@@ -61,7 +61,7 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
-| caveat_dispatch | source, optional save, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.5.0) |
+| caveat_dispatch | source, optional save, optional moduleBindings, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.5.0) |
 | caveat_find | source, records, query | Past decisions in the records whose names, evidence, sources, claims or caveats hold every word, with their standing (a 1.5 draft, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
@@ -151,6 +151,18 @@ error. Restoring never repairs a save or checks its history; to change the
 program, replay the events against the new source instead. A fatal event stops
 the step with `exitCode: 1` and returns the explanation and save of the last
 good state. A save is limited to 2 MiB in both directions.
+
+A save that a release wrote of a bundle whose modules use `hold` or
+`release` may need its history named: where releases before 1.2.0 and
+releases from 1.2.0 to 1.4.1 could both have written it and read it
+differently, the call returns `exitCode: 2` with `restored: false` and an
+error that asks for `moduleBindings`
+([Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation)).
+Pass it beside `save`: `scoped` reads the bundle as a fresh session does,
+each module's `hold` and `release` its own, and `legacy-hold-capture` as
+1.2.0 to 1.4.1 read it. The save the call returns names that reading, so
+later calls omit `moduleBindings`; a choice that differs from a save's own is
+refused.
 
 Every completed operation returns `caveat-authoring/0.1` with operation,
 sourceSha256, runtime identity, exitCode and the existing report. Both the JSON

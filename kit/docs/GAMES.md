@@ -103,7 +103,11 @@ const { session, conflicts } = carrySave(runtime, shippedSource, playerSave, pat
 The patched program decides each saved event afresh; an event it now refuses
 comes back in `conflicts` and changes nothing. The save itself is never
 changed. A state save holds no events to replay, so keep your own log of
-accepted events once a game outgrows the replay save.
+accepted events once a game outgrows the replay save. A save that a release
+up to 1.4.1 wrote of a bundle whose modules use `hold` or `release` can need
+its reading named ([Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation)):
+pass `{ moduleBindings: 'scoped' }` or `{ moduleBindings: 'legacy-hold-capture' }`
+as `carrySave`'s last argument.
 
 ## Explaining a choice to the player
 

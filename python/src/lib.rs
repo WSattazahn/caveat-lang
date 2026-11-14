@@ -77,6 +77,11 @@ impl NativeSession {
     }
 
     #[staticmethod]
+    fn restore_options(source: &str, saved: &str, options: &str) -> PyResult<Self> {
+        guarded(|| WebReactiveSession::restore_options(source, saved, options)).map(|inner| Self { inner: Some(inner) })
+    }
+
+    #[staticmethod]
     fn check(source: &str) -> PyResult<String> {
         guarded(|| WebReactiveSession::check(source))
     }

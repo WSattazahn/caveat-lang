@@ -234,6 +234,66 @@ test('a checkpoint made under other source text is refused, and the approval nam
   assert.throws(() => real.restore(edited, checkpoint.save), error => error.kind === 'restore');
 });
 
+// Starters from 1.1.0 on checkpoint the compact save: after one event, this
+// named replay save, which 1.1.0 and 1.4.1 both write. The event computed 10
+// under 1.1.0's reading of the module's hold and 14 under 1.4.1's.
+test('a checkpoint a release wrote is read as the host names, and then names its reading (D094)', async () => {
+  const bindings = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const collision = await bindings('collision.bundle');
+  const replay = await bindings('collision-v1.4.1-replay-1.json');
+  const released = JSON.stringify({ schema: CHECKPOINT_SCHEMA, source_sha256: sourceDigest(collision), sequence: 1, save: replay, next_chunk: 0, pending: [] });
+  const store = memoryStore();
+  await store.writeCheckpoint(released);
+  await assert.rejects(openHost({ runtime: real, source: collision, store }),
+    error => error.kind === 'restore' && /supply moduleBindings/.test(error.message));
+  await assert.rejects(openHost({ runtime: real, source: collision, store, moduleBindings: 'root' }), TypeError);
+  assert.equal(await store.readCheckpoint(), released);
+  for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+    const store = memoryStore();
+    await store.writeCheckpoint(released);
+    const host = await openHost({ runtime: real, source: collision, store, moduleBindings });
+    try {
+      assert.equal(host.durable, true);
+      assert.equal(host.snapshot().values.m__v, expected);
+    } finally { await host.close(); }
+    // Opening wrote the checkpoint again, naming the reading, with nothing sent.
+    const checkpoint = JSON.parse(await store.readCheckpoint());
+    assert.equal(checkpoint.sequence, 1);
+    assert.equal(JSON.parse(checkpoint.save).module_bindings, moduleBindings);
+    const reopened = await openHost({ runtime: real, source: collision, store });
+    try {
+      assert.equal((await reopened.send('m__go')).accepted, true);
+      assert.equal(reopened.snapshot().values.m__v, expected);
+    } finally { await reopened.close(); }
+    // Naming the reading the checkpoint already names writes nothing, so a
+    // store that cannot write opens it as it is.
+    const { store: unwritable, plan } = failing(store);
+    plan.writeCheckpoint.push('before');
+    const again = await openHost({ runtime: real, source: collision, store: unwritable, moduleBindings });
+    try { assert.equal(again.durable, true); } finally { await again.close(); }
+    assert.deepEqual(plan.writeCheckpoint, ['before']);
+  }
+  // Where the checkpoint naming the reading cannot be written, openHost
+  // refuses, closes the session it restored, and the store keeps its own.
+  const kept = memoryStore();
+  await kept.writeCheckpoint(released);
+  const { store: unwritable, plan } = failing(kept);
+  plan.writeCheckpoint.push('before');
+  const open = real.openSessions;
+  await assert.rejects(openHost({ runtime: real, source: collision, store: unwritable, moduleBindings: 'legacy-hold-capture' }),
+    error => error instanceof StarterError && error.kind === 'store' && /naming module bindings legacy-hold-capture was not written: writeCheckpoint failed/.test(error.message));
+  assert.equal(real.openSessions, open);
+  assert.equal(await kept.readCheckpoint(), released);
+  // An empty store holds no save to read that way: the choice is checked,
+  // then refused, and nothing is written.
+  const empty = memoryStore();
+  await assert.rejects(openHost({ runtime: real, source: collision, store: empty, moduleBindings: 'root' }), TypeError);
+  await assert.rejects(openHost({ runtime: real, source: collision, store: empty, moduleBindings: 'legacy-hold-capture' }),
+    error => error instanceof StarterError && error.kind === 'store' && /the store holds none/.test(error.message));
+  assert.equal(await empty.readCheckpoint(), null);
+  assert.equal(real.openSessions, open);
+});
+
 // A child process sends events as fast as it can and is killed at a random
 // moment. Whatever moment it died at, the store resumes at a checkpoint whose
 // archive is exactly what a host that never stopped would hold by then.

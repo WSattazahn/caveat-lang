@@ -67,6 +67,36 @@ for (const [name, runtime] of [['reactive', real], ['full', full]]) {
       assert.equal(runtime.openSessions, 0);
     }
   });
+
+  test(`${name}: save helpers take the reading a release's replay save can need (D094)`, async () => {
+    // 1.1.0, which reads a module's hold as its own, writes this format of
+    // this bundle too, so the save cannot say which reading wrote it.
+    const historical = await fixture('collision-v1.4.1-replay-1.json');
+    const needsChoice = error => error.kind === 'restore' && /supply moduleBindings/.test(error.message);
+    assert.throws(() => savedEvents(runtime, collision, historical), needsChoice);
+    assert.throws(() => carrySave(runtime, collision, historical, legacyOnly), needsChoice);
+    for (const moduleBindings of ['scoped', 'legacy-hold-capture']) {
+      assert.deepEqual(savedEvents(runtime, collision, historical, { moduleBindings }), [{ event: 'm__go', payload: {} }]);
+      const carried = carrySave(runtime, collision, historical, collision, { moduleBindings });
+      try {
+        assert.equal(carried.accepted.length, 1);
+        assert.deepEqual(carried.conflicts, []);
+        // The new session is the new source's, read as a fresh session reads it.
+        assert.equal(carried.session.snapshot().values.m__v, 10);
+      } finally { carried.session.close(); }
+      // The helpers pass the reading they are given: a save that names this
+      // one is read with it, and refused with the other.
+      const session = runtime.restore(collision, historical, { moduleBindings });
+      let marked;
+      try { marked = session.save({ compact: true }); } finally { session.close(); }
+      const other = moduleBindings === 'scoped' ? 'legacy-hold-capture' : 'scoped';
+      const conflicts = error => error.kind === 'restore' && /conflicts with saved module_bindings/.test(error.message);
+      assert.deepEqual(savedEvents(runtime, collision, marked, { moduleBindings }), [{ event: 'm__go', payload: {} }]);
+      assert.throws(() => savedEvents(runtime, collision, marked, { moduleBindings: other }), conflicts);
+      assert.throws(() => carrySave(runtime, collision, marked, collision, { moduleBindings: other }), conflicts);
+    }
+    assert.equal(runtime.openSessions, 0);
+  });
 }
 
 test('the raw WASM options bridge refuses malformed or unknown choices before restoring', () => {

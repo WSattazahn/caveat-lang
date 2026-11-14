@@ -1,6 +1,6 @@
 // Types for starter.mjs: one program's session behind a host that
 // checkpoints every accepted event and keeps the archive beside it.
-import type { ArchiveEntry, CaveatErrorKind, CaveatRuntime, DecisionHistoryEntry, Origin, RejectionCode, RuntimeIdentity, Snapshot, View } from './session.mjs';
+import type { ArchiveEntry, CaveatErrorKind, CaveatRuntime, DecisionHistoryEntry, Origin, RejectionCode, RestoreOptions, RuntimeIdentity, Snapshot, View } from './session.mjs';
 import type { PayloadArgument, ProgramTypes, TypedView } from './types.mjs';
 
 export declare const CHECKPOINT_SCHEMA: 'caveat-starter-checkpoint/0.1';
@@ -144,6 +144,16 @@ export interface OpenHostOptions {
   runtime: CaveatRuntime;
   source: string;
   store: StarterStore;
+  /**
+   * How to read a checkpoint whose save names no module binding reading,
+   * where releases could have written it under either: `runtime.restore`'s
+   * option. Where the save does not name it yet, the host writes its
+   * checkpoint again before it opens, naming that reading, so later opens
+   * need no choice; if that write fails, openHost throws StarterError
+   * `store` and the store keeps the checkpoint it had. An empty store holds
+   * no save to read that way, so openHost refuses the option there.
+   */
+  moduleBindings?: RestoreOptions['moduleBindings'];
 }
 
 export declare function openHost<T extends ProgramTypes = ProgramTypes>(options: OpenHostOptions): Promise<TypedHost<T>>;
