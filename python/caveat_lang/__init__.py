@@ -99,6 +99,8 @@ ViewSchema = Literal["0.1", "0.2"]
 # How restore reads a save that names no module binding reading
 # (spec/caveat-save-0.1.md, "Module binding interpretation").
 ModuleBindings = Literal["scoped", "legacy-hold-capture"]
+# The first line of a module bundle (spec/caveat-0.5-draft.md).
+_BUNDLE_MARKER = "#caveat-bundle 1"
 JsonObject = Dict[str, Any]
 Payload = Mapping[str, object]
 
@@ -697,7 +699,11 @@ def check(source: str, *, unused: bool = False, records: bool = False, save: Opt
         raise TypeError("save must be text (str)")
     if save is not None and not records:
         raise ValueError("a save is checked with records=True")
-    if save is not None:
+    # Check reads no bundle, and the runtime refuses one before it reads a
+    # save, so a bundle's save is not restored first: a save of a bundle that
+    # needs its module binding reading named would ask for a choice check does
+    # not take (D097).
+    if save is not None and not text.startswith(_BUNDLE_MARKER):
         # The program must load first, so its error is reported as a load error.
         open(text).close()
         restore(text, save).close()

@@ -2,7 +2,7 @@
 // runtime.check from the library.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -215,6 +215,29 @@ test('runtime.check returns the report and throws a load error as open does', ()
   // A runtime built before check says so rather than failing obscurely.
   class Older { constructor(source) { this.inner = new Real(source); } }
   assert.throws(() => createRuntime(Older).check(FROST), /this runtime build has no check/);
+});
+
+// Check reads no bundle, so runtime.check refuses one first, as the command
+// and the runtime do, without restoring its save: a save a release wrote of
+// a bundle whose module's hold the releases read two ways would otherwise
+// ask for a module binding reading check does not take (D097).
+test('runtime.check refuses a bundle before restoring its save', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const notBundle = error => error instanceof CaveatError && error.kind === 'load' && /single-file program, not a bundle/.test(error.message);
+  const collision = await fixture('collision.bundle');
+  const initial = await fixture('collision-v1.4.1-initial.json');
+  assert.throws(() => real.restore(collision, initial), /supply moduleBindings/);
+  for (const [bundle, saved] of [
+    ['collision.bundle', 'collision-v1.4.1-initial.json'],
+    // Only 1.2.0 to 1.4.1 loaded this one; a fresh session does not.
+    ['legacy-only.bundle', 'legacy-only-v1.4.1-state.json'],
+  ]) {
+    const source = await fixture(bundle);
+    const save = await fixture(saved);
+    assert.throws(() => real.check(source, { records: true, save }), notBundle, bundle);
+    assert.throws(() => real.check(source, { records: true, save: '{}' }), notBundle, bundle);
+    assert.throws(() => real.check(source), notBundle, bundle);
+  }
 });
 
 // Issue #219: a rewrite left `b` behind. C007 is reported only when asked

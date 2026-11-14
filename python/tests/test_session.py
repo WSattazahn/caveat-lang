@@ -192,6 +192,15 @@ class SaveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             caveat.restore(COLLISION, COLLISION_INITIAL, module_bindings="root")  # type: ignore[arg-type]
 
+    def test_check_refuses_a_bundle_before_restoring_its_save(self) -> None:
+        # Check reads no bundle, so it refuses one first, as the command and the
+        # runtime do: restoring this save first would ask for a module binding
+        # reading check does not take (D097).
+        for save in (COLLISION_INITIAL, "{}"):
+            with self.assertRaises(caveat.LoadError) as caught:
+                caveat.check(COLLISION, records=True, save=save)
+            self.assertIn("single-file program, not a bundle", str(caught.exception))
+
     def test_archive(self) -> None:
         with caveat.open(SOURCE) as session:
             self.assertEqual(session.drain_archive(), [])
