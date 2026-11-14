@@ -408,7 +408,7 @@ impl SealedGraph {
     }
 
     /// The relation lists hold exactly this graph's edges.
-    #[cfg(any(debug_assertions, test))]
+    #[cfg(debug_assertions)]
     pub(super) fn check(&self) {
         self.relations
             .check(&self.graph.edges.iter().collect::<Vec<_>>());
@@ -2507,7 +2507,6 @@ bind h.few = latest(few) when has_sample(few);
         assert_eq!(format!("{sealed:#?}"), format!("{arc:#?}"));
     }
 
-    #[cfg(debug_assertions)]
     const TWO_STANCES: &str = "claim x;\nclaim y;\nevidence a from \"tool\";\nevidence b from \"tool\";\na supports x;\nb supports y;\nevent idle;\n";
 
     /// Numbers `session`'s relation lists as if its graph's relations had
