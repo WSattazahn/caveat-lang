@@ -2675,22 +2675,24 @@ impl ReactiveSession {
     /// cannot reveal which of two valid historical programs produced it.
     /// `identity` checks what does not depend on the program, that this is a
     /// save of `source`: a save of another program, or of an edited source,
-    /// is refused as such before the choice is asked for.
+    /// is refused as such before a saved or requested choice is used, and
+    /// before the choice is asked for, since no choice could restore it.
     fn load_for_restore(
         source: &str,
         saved_bindings: Option<ModuleBindings>,
         options: &RestoreOptions,
         identity: impl FnOnce() -> Result<(), String>,
     ) -> Result<Self, String> {
-        if let (Some(saved), Some(requested)) = (saved_bindings, options.module_bindings) {
-            if saved != requested {
-                return Err(
-                    "cannot restore save: moduleBindings conflicts with saved module_bindings"
-                        .into(),
-                );
-            }
-        }
         if let Some(bindings) = saved_bindings.or(options.module_bindings) {
+            identity()?;
+            if let (Some(saved), Some(requested)) = (saved_bindings, options.module_bindings) {
+                if saved != requested {
+                    return Err(
+                        "cannot restore save: moduleBindings conflicts with saved module_bindings"
+                            .into(),
+                    );
+                }
+            }
             return Self::from_source_cached_with_bindings(source, bindings);
         }
         let scoped = Self::from_source_cached(source);

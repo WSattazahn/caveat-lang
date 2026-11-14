@@ -296,3 +296,44 @@ fn a_save_of_another_source_is_refused_as_one_before_a_choice_is_asked_for() {
         }
     }
 }
+
+/// A save's marker, or the host's choice, names a reading of the source the
+/// save is of; it cannot make a save of another program one of this source.
+/// Such a save is refused as such before the marker or the choice is used,
+/// not as a conflict between them or as that reading's load error: here the
+/// marked saves of the collision bundle, restored against the bundle that
+/// loads only with the program's `hold`.
+#[test]
+fn a_save_of_another_source_is_refused_as_one_whatever_reading_is_named() {
+    let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    send(&mut session);
+    for (write, schema) in WRITERS {
+        let saved = write(&session).unwrap();
+        assert!(saved.contains("\"module_bindings\":\"scoped\""), "{saved}");
+        let expected = if schema == "caveat-replay-save/0.2" {
+            "cannot restore save: its source digest is not this source's"
+        } else {
+            "cannot restore save: it belongs to a different program"
+        };
+        assert_eq!(
+            ReactiveSession::restore_json(LEGACY_ONLY, &saved).unwrap_err(),
+            expected
+        );
+        for bindings in [ModuleBindings::Scoped, ModuleBindings::LegacyHoldCapture] {
+            assert_eq!(
+                ReactiveSession::restore_json_with_options(LEGACY_ONLY, &saved, &options(bindings))
+                    .unwrap_err(),
+                expected
+            );
+        }
+    }
+    assert_eq!(
+        ReactiveSession::restore_json_with_options(
+            LEGACY_ONLY,
+            OLD_STATE,
+            &options(ModuleBindings::Scoped)
+        )
+        .unwrap_err(),
+        "cannot restore save: it belongs to a different program"
+    );
+}

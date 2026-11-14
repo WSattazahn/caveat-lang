@@ -152,8 +152,9 @@ explicit choice: the same source and initial save can have been written by
 1.0 with scoped behavior or by 1.4 with root capture. Where no release could,
 an unmarked save uses the interpretation that loads, and requires a choice if
 both do. Saved state is not used to guess which history occurred. A save of
-another program, or of an edited source, is refused as such first, as
-releases refuse it, since no choice could restore it.
+another program, or of an edited source, is refused as such, as releases
+refuse it, before a marker or a choice is used and before a choice is asked
+for, since no choice could restore it.
 
 In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
 or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use
