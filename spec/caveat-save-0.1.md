@@ -160,9 +160,16 @@ In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
 or `{ moduleBindings: 'legacy-hold-capture' }`. Native callers use
 `restore_with_options` or `restore_json_with_options` with
 `RestoreOptions.module_bindings`; the raw WASM method is
-`restore_options(source, saved, options_json)`. An option conflicting with
-a save's marker is refused. Subsequent saves retain the selected
-interpretation, so no option is needed next time.
+`restore_options(source, saved, options_json)`. With `scoped` the source is
+read as a fresh session reads it, and with `legacy-hold-capture` as the
+newest release from 1.2.0 to 1.4.1 that could load it read it, or, where no
+release could, as this runtime links it with the root's `hold` and
+`release`. Where only releases before 1.2.0 could load it, none read it with
+root capture: `legacy-hold-capture` then changes nothing where the root's
+`hold` and `release` would not change how they read it, and is refused where
+they would. An option conflicting with a save's marker is refused.
+Subsequent saves retain the selected interpretation, so no option is needed
+next time.
 
 Older runtimes that do not recognize the marker refuse a marked save.
 Do not strip it to force an older runtime to accept the file: that can
@@ -573,6 +580,17 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D091, D088): saves of a bundle whose module's `hold` or
+  `release` reads otherwise with root capture carry `module_bindings`
+  ([Module binding interpretation](#module-binding-interpretation)). A fresh
+  session reads a module's names as its own. An unmarked save restores as
+  the releases that could have written it read the bundle, and needs a
+  choice only where releases of both kinds could have and read it
+  differently. A save of another program is refused as such before a
+  marker or a choice is used, and `legacy-hold-capture` is refused where
+  only releases before 1.2.0 could load the source and root capture would
+  change how they read it. Tests: `runtime/tests/module_binding_restore.rs`,
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.
 - 2026-11-13 (D083): a procedure's parameter grounds, for restore's bound,
   on what its argument carries only in a program a release before rc.12 may
   have loaded, not in every program without a window. D061 gave the

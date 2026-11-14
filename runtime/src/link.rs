@@ -334,12 +334,12 @@ impl Reading {
         }
     }
 
-    /// This reading with `irreversible` and `forecloses` free: whether
-    /// `hold` binds as before is compared so, apart from the names 1.2.0
-    /// reserved.
-    pub(crate) const fn without_reserved_series_words(self) -> Self {
+    /// This reading with a module's `hold` or `release` two words before a
+    /// `because` left bare, naming the program's where it declares one, as
+    /// releases from 1.2.0 to 1.4.1 read them.
+    pub(crate) const fn captured(self) -> Self {
         Self {
-            reserves_series_words: false,
+            hold_words: HoldWords::Legacy,
             ..self
         }
     }

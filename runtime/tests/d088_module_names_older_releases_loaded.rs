@@ -553,3 +553,67 @@ fn a_bundle_1_3_0_was_the_newest_to_load_reads_as_1_3_0_linked_it() {
     let saved: Value = serde_json::from_str(&restored.save_json().unwrap()).unwrap();
     assert_eq!(saved["module_bindings"], json!("legacy-hold-capture"));
 }
+
+/// Where only releases before 1.2.0 could load a bundle, none read a
+/// module's `hold` or `release` as the program's. A host that asks for that
+/// reading gets the bundle as they read it where it would change nothing, as
+/// in the first bundle, which has neither word: its saves need no marker, and
+/// 1.4's reading, with its `changed ,r` naming the program's stream, is no
+/// reading of it. Where it would change the reading, as in the second
+/// bundle, asking for it is refused, and a save restores as 1.1.0 read it.
+#[test]
+fn asking_for_hold_capture_where_no_release_read_it_reads_as_the_releases_that_did() {
+    let legacy = RestoreOptions {
+        module_bindings: Some(ModuleBindings::LegacyHoldCapture),
+    };
+    // rc.3 to 1.0.3 load it: 1.1.0 refused a function body that calls
+    // `in_basis`.
+    let changed = bundle(
+        "module m;\nclaim mc;\nevidence me from \"m\";\nreadings changed from me limit 2;\nreadings r from me limit 2;\ndecisions d limit 3 reopened by changed ,r;\nstate n = 0;\nevent pick;\non pick when not committed(d) commit d because enough using n;\nevent obs x min 0 max 10;\non obs sample changed = x supports mc;\n",
+        &format!("{ROOT}readings changed from e limit 2;\nevent rootobs x min 0 max 10;\non rootobs sample changed = x supports c;\nfn in_basis(x, y) = x + y;\nfn g(x) = in_basis(x, x);\nstate w = 0;\non go set w = g(s);\n"),
+    );
+    let mut fresh = load(&changed);
+    send(&mut fresh, "m__pick");
+    let saved = fresh.save_json().unwrap();
+    assert!(!saved.contains("module_bindings"), "{saved}");
+    let mut chosen = ReactiveSession::restore_json_with_options(&changed, &saved, &legacy).unwrap();
+    for session in [&mut fresh, &mut chosen] {
+        session.dispatch_json("rootobs", "{\"x\":3}").unwrap();
+        session.dispatch_json("m__obs", "{\"x\":3}").unwrap();
+    }
+    let continued = chosen.save_json().unwrap();
+    assert_eq!(continued, fresh.save_json().unwrap());
+    assert_eq!(
+        ReactiveSession::restore_json(&changed, &continued)
+            .unwrap()
+            .save_json()
+            .unwrap(),
+        continued
+    );
+
+    // rc.1 to 1.1.0 load it: 1.2.0 refused a function body that calls
+    // `on_hold`.
+    let hold = bundle(
+        "module m;\nclaim only_if;\nstate uo = 0;\nstate hold = 7;\nstate hv = 0;\nfn add(a, b) = a + b;\nevent tk;\non tk set uo = only_if(0, 2);\non tk set hv = add( hold , because );\n",
+        &format!("{ROOT}fn m__only_if(c, v) = v;\nfn only_if(c, v) = v + 10;\nfn on_hold(x) = x + 1;\nfn b_call(x) = on_hold(x);\nstate q = 0;\non go set q = b_call(s);\nstate because = 3;\nstate hold = 11;\n"),
+    );
+    let mut fresh = load(&hold);
+    send(&mut fresh, "m__tk");
+    assert_eq!(values(&fresh)["m__uo"], json!(2.0));
+    assert_eq!(values(&fresh)["m__hv"], json!(10.0));
+    let mut unmarked: Value = serde_json::from_str(&fresh.save_json().unwrap()).unwrap();
+    assert_eq!(
+        unmarked.as_object_mut().unwrap().remove("module_bindings"),
+        Some(json!("scoped"))
+    );
+    let unmarked = unmarked.to_string();
+    // As 1.1.0 wrote it, a save without a marker restores with no choice.
+    let mut restored = ReactiveSession::restore_json(&hold, &unmarked).unwrap();
+    send(&mut restored, "m__tk");
+    assert_eq!(values(&restored)["m__hv"], json!(10.0));
+    assert_eq!(values(&restored)["m__uo"], json!(2.0));
+    assert_eq!(
+        ReactiveSession::restore_json_with_options(&hold, &unmarked, &legacy).unwrap_err(),
+        "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture"
+    );
+}

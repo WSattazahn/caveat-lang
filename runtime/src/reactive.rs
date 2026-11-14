@@ -2718,7 +2718,7 @@ impl ReactiveSession {
         let ambiguous = match (scoped_writer, legacy_writer) {
             (true, false) => return scoped,
             (false, true) => return legacy(),
-            (true, true) => readings.scoped_reading() != readings.legacy_reading(),
+            (true, true) => Some(readings.scoped_reading()) != readings.legacy_reading(),
             // No release loaded it, so no release wrote the save.
             (false, false) => match (scoped, legacy()) {
                 (Ok(_), Ok(_)) => true,

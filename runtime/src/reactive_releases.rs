@@ -37,6 +37,12 @@ pub(super) struct Readings<'a> {
     v1_2: Result<String, String>,
     v1_1: Result<String, String>,
     v1_0: Result<String, String>,
+    /// 1.1.0 and the releases before it, with the program's `hold` and
+    /// `release` as from 1.2.0: no release read a bundle so. Compared with
+    /// their readings, they say whether the program's `hold` and `release`
+    /// would change how those releases read it.
+    v1_1_captured: Result<String, String>,
+    v1_0_captured: Result<String, String>,
     /// Whether a module's `hold` or `release` reads differently where the
     /// program declares the name, so that a save says which reading wrote
     /// it.
@@ -67,14 +73,15 @@ impl<'a> Readings<'a> {
             .iter()
             .any(|word| text.contains(word))
         });
-        let (v1_3, v1_3_scoped, v1_2, v1_1, v1_0, unreserved) = if older {
+        let (v1_3, v1_3_scoped, v1_2, v1_1, v1_0, v1_1_captured, v1_0_captured) = if older {
             (
                 link::link_reading(source, Reading::V1_3),
                 link::link_reading(source, Reading::V1_3.scoped()),
                 link::link_reading(source, Reading::V1_2),
                 link::link_reading(source, Reading::V1_1),
                 link::link_reading(source, Reading::V1_0),
-                link::link_reading(source, Reading::V1_2.without_reserved_series_words()),
+                link::link_reading(source, Reading::V1_1.captured()),
+                link::link_reading(source, Reading::V1_0.captured()),
             )
         } else {
             (
@@ -84,6 +91,7 @@ impl<'a> Readings<'a> {
                 now.clone(),
                 now.clone(),
                 v1_4.clone(),
+                v1_4.clone(),
             )
         };
         // Compare link text, not current values: two readings can have
@@ -92,7 +100,8 @@ impl<'a> Readings<'a> {
         // so a later compiler cannot make a save ambiguous.
         let affected = now.as_ref().ok() != v1_4.as_ref().ok()
             || v1_3_scoped.as_ref().ok() != v1_3.as_ref().ok()
-            || v1_1.as_ref().ok() != unreserved.as_ref().ok();
+            || v1_1.as_ref().ok() != v1_1_captured.as_ref().ok()
+            || v1_0.as_ref().ok() != v1_0_captured.as_ref().ok();
         Self {
             source,
             now,
@@ -102,6 +111,8 @@ impl<'a> Readings<'a> {
             v1_2,
             v1_1,
             v1_0,
+            v1_1_captured,
+            v1_0_captured,
             affected,
             loaded: RefCell::default(),
         }
@@ -112,7 +123,9 @@ impl<'a> Readings<'a> {
     pub(super) fn load(&self, bindings: ModuleBindings) -> Result<ReactiveSession, String> {
         let linked = match bindings {
             ModuleBindings::Scoped => self.scoped_reading(),
-            ModuleBindings::LegacyHoldCapture => self.legacy_reading(),
+            ModuleBindings::LegacyHoldCapture => self.legacy_reading().ok_or_else(|| {
+                "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture".to_string()
+            })?,
         };
         let mut session = self.program(linked)?;
         session.module_bindings = self.affected.then_some(bindings);
@@ -140,17 +153,24 @@ impl<'a> Readings<'a> {
 
     /// With the program's `hold` and `release` where it declares the name:
     /// as 1.4 read it where it could load it, else as 1.3.x read it where
-    /// they could, else as 1.2.0 read it where it could, else as 1.4 links
-    /// it.
-    pub(super) fn legacy_reading(&self) -> &Result<String, String> {
+    /// they could, else as 1.2.0 read it where it could, else, where no
+    /// release could load it, as 1.4 links it. Where only releases before
+    /// 1.2.0 could load it, none read it so: it is read as they read it
+    /// where the program's `hold` and `release` would change nothing, and
+    /// is `None` where they would.
+    pub(super) fn legacy_reading(&self) -> Option<&Result<String, String>> {
         if self.by_1_4() {
-            &self.v1_4
+            Some(&self.v1_4)
         } else if self.by_1_3() {
-            &self.v1_3
+            Some(&self.v1_3)
         } else if self.by_1_2() {
-            &self.v1_2
+            Some(&self.v1_2)
+        } else if self.by_1_1() {
+            (self.v1_1.as_ref().ok() == self.v1_1_captured.as_ref().ok()).then_some(&self.v1_1)
+        } else if self.by_1_0() {
+            (self.v1_0.as_ref().ok() == self.v1_0_captured.as_ref().ok()).then_some(&self.v1_0)
         } else {
-            &self.v1_4
+            Some(&self.v1_4)
         }
     }
 
@@ -470,7 +490,8 @@ mod tests {
     /// From 1.2.0 to 1.4.1 a module could not declare `irreversible`, so
     /// only releases before 1.2.0, which bound a module's `hold` as its own,
     /// could load this bundle: an unmarked save restores so without a
-    /// choice, and the program's `hold` is no reading of it.
+    /// choice, and the program's `hold` is no reading of it, so asking for
+    /// that is refused.
     #[test]
     fn a_save_only_releases_before_1_2_could_write_restores_without_a_choice() {
         let source = bundle(
@@ -486,10 +507,9 @@ mod tests {
         let legacy = RestoreOptions {
             module_bindings: Some(ModuleBindings::LegacyHoldCapture),
         };
-        let error = ReactiveSession::restore_with_options(&source, &saved, &legacy).unwrap_err();
-        assert!(
-            error.contains("declares irreversible, which the grammar already uses"),
-            "{error}"
+        assert_eq!(
+            ReactiveSession::restore_with_options(&source, &saved, &legacy).unwrap_err(),
+            "cannot restore save: no release from 1.2.0 to 1.4.1 could load this source, so its moduleBindings cannot be legacy-hold-capture"
         );
     }
 }
