@@ -248,8 +248,24 @@ Restoring refuses a save when:
   last may have one. A record without its relation, or a pair with two live
   relations, is refused;
 - a provenance's `kept` names a caveat that is not a take-back caveat or that
-  the provenance does not carry, or a grounds keeps a caveat its lineage does
-  not keep.
+  the provenance does not carry, or a grounds keeps a caveat its lineage (a
+  commitment's grounds, its basis) does not keep that no `because` citation
+  of the program can bring there (below).
+
+A `because` citation can give grounds a kept caveat that their lineage does
+not keep (D098). `set S = V because C` takes C's grounds as the state's, so
+a citation of a record that keeps a take-back caveat gives the state's
+grounds the caveat kept, while its lineage carries it live, through the
+record its value read; after a take-back the lineage no longer carries it,
+and the grounds still keep it. Whatever reads those grounds takes the kept
+caveat along, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+("Meaning") traces a departed marker a citation carries: any read whose
+grounds take a state's grounds, a procedure parameter's, or a commitment's
+through `committed`, `reopened` or `in_basis`, such as a set whose value
+reads the state, a commit that uses or cites it, or a call given it. Restore
+accepts a caveat grounds keep beyond their lineage or basis, and its name
+where the lineage or basis no longer carries it, only where it can qualify
+records of a history those citations can bring there.
 
 The existing rules apply unchanged. A `qualifies` relation must still pair a
 caveat and evidence some `qualify` of the source can pair, and a take-back
@@ -364,6 +380,19 @@ the implementation.
 
 ## Changes
 
+- 2026-11-14: restore accepts grounds that keep a take-back caveat their
+  lineage or basis does not keep, or no longer carries, where a `because`
+  citation of the program can bring it there ("Snapshot and save", D098). A
+  citation of a frozen basis, a stored selection qualification or a departed
+  record that keeps the caveat gave the state's grounds the caveat kept,
+  while the lineage carried it live, and restore refused the save the
+  runtime wrote ("grounds keep a caveat its lineage does not keep"); after an
+  `unqualify` it refused it as "grounds include caveat ... outside its
+  lineage". A commitment citing such a state took the caveat into grounds
+  its basis lacks, and since a commitment's grounds never change, every
+  later save of the session was refused. 1.4.1 refuses the finding's saves
+  alike. A kept caveat no citation can bring there is refused as before.
+  Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
 - 2026-10-26: "Withdrawal, decisions and permission" says that `latest(SERIES)`
   carries a kept take-back caveat through the lineage, what that means for an
   irreversible commit, and that `grounds_of(SERIES)` reads the revision's own

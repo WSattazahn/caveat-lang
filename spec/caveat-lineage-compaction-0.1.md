@@ -183,7 +183,10 @@ restore refuses any other ("Save and restore").
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
-qualifications stay in every provenance that carried them.
+qualifications stay in every provenance that carried them. A take-back caveat
+a citation brings kept can stay in grounds whose lineage no longer carries it,
+within the same bound ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+save", D098).
 
 **Bounded marker representation; unresolved total-retention bound.** A
 compacting provenance holds at most one marker per windowed history, and a
@@ -662,6 +665,10 @@ provenance read in its range.
   not in every program without a window: one that uses something the
   language gained after rc.11, such as `only_if`, has no save that old.
   [Save 0.1](caveat-save-0.1.md) lists what the check reads.
+- 2026-11-14 (D098): "Caveats" says that a take-back caveat a citation
+  brings kept can stay in grounds whose lineage no longer carries it, within
+  the bound of D057 ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+  save"). Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
 - 2026-11-14 (D057): a state's or a commitment's grounds may hold a marker
   that its lineage or basis does not, where a `because` citation of the
   program can bring that history there, directly or through what reads the

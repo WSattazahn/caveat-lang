@@ -446,22 +446,30 @@ fn check_relations_within_bases(save: &ReactiveSave) -> Result<(), String> {
 /// that departed before it was read, which the value never read, and so can
 /// a read of grounds that hold one (D057). Such a marker is accepted where
 /// `exceeds` says the program's citations can carry its history there
-/// (`Owner::StateExcess`).
+/// (`Owner::StateExcess`). So is a take-back caveat the grounds keep, which
+/// a citation can carry from a record that holds it after a take-back has
+/// removed it from the lineage (D098), where `keeps` says the program's
+/// citations can bring it there.
 fn check_grounds_within_lineage(
     what: &str,
     grounds: &Provenance,
     lineage: &Provenance,
     exceeds: impl Fn(&str) -> bool,
+    keeps: impl Fn(&str) -> bool,
 ) -> Result<(), String> {
-    for (kind, names, allowed) in [
-        ("evidence", &grounds.evidence, &lineage.evidence),
-        ("caveat", &grounds.caveats, &lineage.caveats),
-    ] {
-        if let Some(name) = names.difference(allowed).next() {
-            return Err(format!(
-                "{what} grounds include {kind} {name} outside its lineage"
-            ));
-        }
+    if let Some(name) = grounds.evidence.difference(&lineage.evidence).next() {
+        return Err(format!(
+            "{what} grounds include evidence {name} outside its lineage"
+        ));
+    }
+    if let Some(name) = grounds
+        .caveats
+        .difference(&lineage.caveats)
+        .find(|caveat| !(grounds.kept.contains(caveat.as_str()) && keeps(caveat.as_str())))
+    {
+        return Err(format!(
+            "{what} grounds include caveat {name} outside its lineage"
+        ));
     }
     // A grounds marker lies within the lineage's for its history, or is of a
     // history a citation can carry there (spec/caveat-lineage-compaction-0.1.md,
@@ -1326,9 +1334,13 @@ impl ReactiveSession {
                 ));
             }
         }
+        // Grounds keep a caveat their lineage or basis does not keep only
+        // where a citation can bring it (D098).
         for (name, state) in &save.states {
             if let Some(grounds) = &state.grounds {
-                if !grounds.0.kept.is_subset(&state.lineage.0.kept) {
+                if reach::kept_beyond(&grounds.0, &state.lineage.0)
+                    .any(|caveat| !self.state_grounds_keep(name, caveat))
+                {
                     return Err(format!(
                         "state {name} grounds keep a caveat its lineage does not keep"
                     ));
@@ -1336,11 +1348,10 @@ impl ReactiveSession {
             }
         }
         for (name, grounds) in &save.commitment_grounds {
-            if save
-                .commitment_bases
-                .get(name)
-                .is_some_and(|basis| !grounds.0.kept.is_subset(&basis.provenance.kept))
-            {
+            if save.commitment_bases.get(name).is_some_and(|basis| {
+                reach::kept_beyond(&grounds.0, &basis.provenance)
+                    .any(|caveat| !self.commitment_grounds_keep(name, caveat))
+            }) {
                 return Err(format!(
                     "commitment {name} grounds keep a caveat its basis does not keep"
                 ));
@@ -2528,6 +2539,20 @@ impl ReactiveSession {
         sources
     }
 
+    /// For each take-back caveat, the histories whose records can carry it,
+    /// as `caveat_sources` finds them: what lets grounds keep it beyond their
+    /// lineage or basis (D098). A take-back caveat is never retained or
+    /// examined, so it always rests on such records. Empty in a program
+    /// that does not take back. Taken from the program as loaded.
+    pub(super) fn take_back_carriers(&self) -> HashMap<String, Vec<String>> {
+        if self.take_back_caveats.is_empty() {
+            return HashMap::default();
+        }
+        let mut carriers = self.caveat_sources().carriers;
+        carriers.retain(|caveat, _| self.take_back_caveats.contains(caveat.as_str()));
+        carriers
+    }
+
     /// Findings F330, F333, F335-F337: the caveats some mechanism of the
     /// loaded source can attach to a value. A value resting on evidence
     /// carries what qualifies that evidence (a pair `qualification_sources`
@@ -3388,11 +3413,17 @@ impl ReactiveSession {
             check_range(name, state.value, range.min, range.max)?;
             self.check_provenance(&format!("state {name}"), lineage, observed, Some(caveats))?;
             // Grounds' caveats lie within the lineage just checked, or are
-            // refused below as outside it.
+            // kept caveats a citation can bring, each able to qualify a
+            // history the citations reach (D098), or are refused below as
+            // outside it.
             self.check_provenance(&format!("state {name} grounds"), grounds, observed, None)?;
-            check_grounds_within_lineage(&format!("state {name}"), grounds, lineage, |history| {
-                self.state_grounds_exceed(name, history)
-            })?;
+            check_grounds_within_lineage(
+                &format!("state {name}"),
+                grounds,
+                lineage,
+                |history| self.state_grounds_exceed(name, history),
+                |caveat| self.state_grounds_keep(name, caveat),
+            )?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
                 slot,
@@ -4056,6 +4087,7 @@ impl ReactiveSession {
                 &grounds.0,
                 &basis.provenance,
                 |history| self.commitment_grounds_exceed(name, history),
+                |caveat| self.commitment_grounds_keep(name, caveat),
             )?;
         }
         // After the journal's own diagnostics: what each entry records. A

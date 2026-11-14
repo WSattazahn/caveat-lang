@@ -96,6 +96,14 @@
 //! parameter (spec/caveat-explanations-0.2.md). Restore accepts a grounds
 //! marker beyond the lineage or the basis only of a history this bound
 //! carries there, and debug builds check that every one a session holds is.
+//!
+//! The same bound covers a take-back caveat grounds keep beyond their
+//! lineage or basis (D098). A citation of a record that holds the caveat, a
+//! frozen basis, a stored qualification or a departed record, gives it kept,
+//! while the lineage carries it live, through the record its value read, or
+//! not at all once a take-back removes it. Restore accepts such a caveat
+//! only where it can qualify records of a history this bound carries there,
+//! and debug builds check that every one a session holds is.
 use super::*;
 use crate::reactive_expr::{Carried, Grounded, Read};
 use std::collections::VecDeque;
@@ -200,6 +208,10 @@ pub(crate) enum Owner {
 pub(crate) struct HistoryReach {
     histories: HashMap<String, usize>,
     reach: HashMap<Owner, Vec<u64>>,
+    /// For each take-back caveat, the histories whose records it can
+    /// qualify (D098): what lets grounds keep it beyond their lineage or
+    /// basis. Empty in a program that does not take back.
+    take_back_carriers: HashMap<String, Vec<String>>,
 }
 
 impl HistoryReach {
@@ -1155,6 +1167,7 @@ impl<'a> Flows<'a> {
         HistoryReach {
             histories: self.histories,
             reach: self.keys.into_iter().zip(bits).collect(),
+            take_back_carriers: HashMap::default(),
         }
     }
 }
@@ -1328,7 +1341,9 @@ impl ReactiveSession {
     pub(crate) fn history_reach(&self) -> HistoryReach {
         let mut flows = Flows::new(self);
         flows.program();
-        flows.close()
+        let mut reach = flows.close();
+        reach.take_back_carriers = self.take_back_carriers();
+        reach
     }
 
     /// The program's bound, computed the first time it is asked for. The
@@ -1638,6 +1653,34 @@ impl ReactiveSession {
         )
     }
 
+    /// Whether state `name`'s grounds can keep take-back caveat `caveat`
+    /// where its lineage does not: one a `because` citation carried from a
+    /// record that holds it, a frozen basis, a stored qualification or a
+    /// departed record, while the lineage carries the caveat live or not at
+    /// all, or one a read of grounds that keep it took along (D098). The
+    /// caveat must be one that can qualify records of a history the
+    /// citations can carry there.
+    pub(crate) fn state_grounds_keep(&self, name: &str, caveat: &str) -> bool {
+        self.grounds_keep(&Owner::StateExcess(name.to_string()), caveat)
+    }
+
+    /// Whether commitment `name`'s grounds can keep take-back caveat
+    /// `caveat` where its basis does not: one that what it uses, cites or
+    /// gives as reasons took from grounds that keep it (D098).
+    pub(crate) fn commitment_grounds_keep(&self, name: &str, caveat: &str) -> bool {
+        self.grounds_keep(
+            &Owner::SeriesExcess(self.series_of(name).to_string()),
+            caveat,
+        )
+    }
+
+    fn grounds_keep(&self, owner: &Owner, caveat: &str) -> bool {
+        self.history_reach_bound()
+            .take_back_carriers
+            .get(caveat)
+            .is_some_and(|histories| histories.iter().any(|history| self.reaches(owner, history)))
+    }
+
     /// The history of `record`, a name `owner` holds at `place`, when
     /// `owner` cannot carry its records. A reading lists its own name, which
     /// no flow carries: it holds it while it is held, and departs with it.
@@ -1730,6 +1773,12 @@ impl ReactiveSession {
                         "D057: state {name} grounds hold departed records of {history} beyond its lineage, which the program's bound does not carry there"
                     );
                 }
+                check_kept_beyond(
+                    &format!("state {name}"),
+                    &cell.grounds,
+                    &cell.value.provenance,
+                    |caveat| self.state_grounds_keep(name, caveat),
+                );
             }
         }
         if !old.is_some_and(|old| {
@@ -1746,8 +1795,39 @@ impl ReactiveSession {
                         "D057: commitment {name} grounds hold departed records of {history} beyond its basis, which the program's bound does not carry there"
                     );
                 }
+                check_kept_beyond(
+                    &format!("commitment {name}"),
+                    grounds,
+                    &basis.provenance,
+                    |caveat| self.commitment_grounds_keep(name, caveat),
+                );
             }
         }
+    }
+}
+
+/// A caveat grounds carry beyond their lineage or basis is one they keep,
+/// and each they keep beyond it is one `keeps` allows: what restore accepts
+/// (D098). A failure is a flow the bound misses, as in
+/// `check_history_reach_held`.
+#[cfg(debug_assertions)]
+fn check_kept_beyond(
+    what: &str,
+    grounds: &Provenance,
+    lineage: &Provenance,
+    keeps: impl Fn(&str) -> bool,
+) {
+    if let Some(caveat) = grounds
+        .caveats
+        .difference(&lineage.caveats)
+        .find(|caveat| !grounds.kept.contains(caveat.as_str()))
+    {
+        panic!("D098: {what} grounds carry {caveat} outside its lineage and do not keep it");
+    }
+    if let Some(caveat) = kept_beyond(grounds, lineage).find(|caveat| !keeps(caveat)) {
+        panic!(
+            "D098: {what} grounds keep {caveat} beyond its lineage, which the program's citations cannot bring there"
+        );
     }
 }
 
@@ -1768,6 +1848,19 @@ pub(crate) fn departed_beyond<'p>(
                 .is_some_and(|outer| outer.contains(marker))
         })
         .map(|(history, _)| history.as_str())
+}
+
+/// The take-back caveats `grounds` keep that `lineage` does not keep: kept
+/// where the lineage carries them live or not at all (D098).
+pub(crate) fn kept_beyond<'p>(
+    grounds: &'p Provenance,
+    lineage: &'p Provenance,
+) -> impl Iterator<Item = &'p str> + 'p {
+    grounds
+        .kept
+        .iter()
+        .map(|caveat| caveat.as_str())
+        .filter(|caveat| !lineage.kept.contains(*caveat))
 }
 
 #[cfg(test)]
@@ -1893,6 +1986,66 @@ on cw set w = if(committed(r), 1, 0);
                 "{commitment}"
             );
         }
+    }
+
+    /// Grounds keep a take-back caveat beyond their lineage only where it can
+    /// qualify records of a history a citation carries there (D098): `shaky`
+    /// qualifies only `b`'s readings, which the citation of `d`, whose guard
+    /// read `b`, carries into `t`'s grounds and what reads them; `firm`
+    /// qualifies only `c`'s, which the set's guard reads and no citation
+    /// carries. Without the citation nothing lets grounds keep either.
+    #[test]
+    fn grounds_keep_only_a_take_back_caveat_a_citation_can_bring() {
+        let program = |set: &str| {
+            format!(
+                "evidence gb from \"gb\";
+evidence gc from \"gc\";
+readings b from gb window 1;
+readings c from gc window 1;
+caveat shaky consequence low;
+caveat firm consequence low;
+decisions d limit 4;
+decisions r limit 4;
+state t = 0;
+state u = 0;
+event sb v min 0 max 10;
+event sc v min 0 max 10;
+event qb v min 0 max 10;
+event ub v min 0 max 10;
+event qc v min 0 max 10;
+event uc v min 0 max 10;
+event cd v min 0 max 10;
+event st v min 0 max 10;
+event cu v min 0 max 10;
+event cr v min 0 max 10;
+on sb sample b = v;
+on sc sample c = v;
+on qb qualify latest(b) with shaky;
+on ub unqualify latest(b) with shaky;
+on qc qualify latest(c) with firm;
+on uc unqualify latest(c) with firm;
+on cd when latest(b) > 0 commit d because enough using 1;
+on st when latest(c) > 0 {set};
+on cu set u = t;
+on cr commit r because enough citing t;
+"
+            )
+        };
+        let cited =
+            ReactiveSession::from_source(&program("set t = latest(b) because latest(d)")).unwrap();
+        for state in ["t", "u"] {
+            assert!(cited.state_grounds_keep(state, "shaky"), "{state}");
+            assert!(!cited.state_grounds_keep(state, "firm"), "{state}");
+        }
+        assert!(cited.commitment_grounds_keep("r@1", "shaky"));
+        assert!(!cited.commitment_grounds_keep("r@1", "firm"));
+        assert!(!cited.commitment_grounds_keep("d@1", "shaky"));
+        let plain = ReactiveSession::from_source(&program("set t = latest(b)")).unwrap();
+        for state in ["t", "u"] {
+            assert!(!plain.state_grounds_keep(state, "shaky"), "{state}");
+            assert!(!plain.state_grounds_keep(state, "firm"), "{state}");
+        }
+        assert!(!plain.commitment_grounds_keep("r@1", "shaky"));
     }
 
     /// A state's initializer grounds it as a set's value does: `qualified(1,
