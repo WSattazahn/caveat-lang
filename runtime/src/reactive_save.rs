@@ -442,10 +442,16 @@ fn check_relations_within_bases(save: &ReactiveSave) -> Result<(), String> {
 
 /// Grounds can narrow lineage, but cannot introduce another dependency. Use
 /// the saved state or frozen commitment basis, never today's qualifications.
+/// A marker is the exception: a `because` citation can carry one of records
+/// that departed before it was read, which the value never read, and so can
+/// a read of grounds that hold one (D057). Such a marker is accepted where
+/// `exceeds` says the program's citations can carry its history there
+/// (`Owner::StateExcess`).
 fn check_grounds_within_lineage(
     what: &str,
     grounds: &Provenance,
     lineage: &Provenance,
+    exceeds: impl Fn(&str) -> bool,
 ) -> Result<(), String> {
     for (kind, names, allowed) in [
         ("evidence", &grounds.evidence, &lineage.evidence),
@@ -457,18 +463,15 @@ fn check_grounds_within_lineage(
             ));
         }
     }
-    // A grounds marker lies within the lineage's for its history
-    // (spec/caveat-lineage-compaction-0.1.md, "Meaning").
-    for (history, marker) in &grounds.departed {
-        if !lineage
-            .departed
-            .get(history)
-            .is_some_and(|outer| outer.contains(marker))
-        {
-            return Err(format!(
-                "{what} grounds hold departed {history} records outside its lineage"
-            ));
-        }
+    // A grounds marker lies within the lineage's for its history, or is of a
+    // history a citation can carry there (spec/caveat-lineage-compaction-0.1.md,
+    // "Meaning").
+    if let Some(history) =
+        reach::departed_beyond(grounds, lineage).find(|history| !exceeds(history))
+    {
+        return Err(format!(
+            "{what} grounds hold departed {history} records outside its lineage"
+        ));
     }
     Ok(())
 }
@@ -3387,7 +3390,9 @@ impl ReactiveSession {
             // Grounds' caveats lie within the lineage just checked, or are
             // refused below as outside it.
             self.check_provenance(&format!("state {name} grounds"), grounds, observed, None)?;
-            check_grounds_within_lineage(&format!("state {name}"), grounds, lineage)?;
+            check_grounds_within_lineage(&format!("state {name}"), grounds, lineage, |history| {
+                self.state_grounds_exceed(name, history)
+            })?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
                 slot,
@@ -4050,6 +4055,7 @@ impl ReactiveSession {
                 &format!("commitment {name}"),
                 &grounds.0,
                 &basis.provenance,
+                |history| self.commitment_grounds_exceed(name, history),
             )?;
         }
         // After the journal's own diagnostics: what each entry records. A

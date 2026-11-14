@@ -86,7 +86,10 @@ not the value's own reads. They pin nothing and compact like lineage, so a
 grounds may hold a marker through such a qualification. It may also hold one
 through a read of an outcome: a value that reads one, through `outcome(…)` or
 a true `resolved(…)`, takes the outcome's lineage into its grounds, markers
-included, and those markers pin nothing either (see "Outcomes" below).
+included, and those markers pin nothing either (see "Outcomes" below). And it
+may hold one through a `because` citation: what the citation gives grounds can
+hold a marker, which pins nothing and which the state's lineage may lack (see
+"Meaning").
 
 These are the reasons the language promises to keep. The original argument
 expected them to be bounded by the source, not the run: a grounds replaces the
@@ -164,7 +167,19 @@ a history, as C3's journal slots do, has `read` equal to the range's departed
 count, and is exact. Grounds narrow lineage. A grounds marker is within the
 lineage's marker for the same history: its `from` is not lower, its `through`
 is not higher, and its `departed_at` is not later. So **grounds ⊆ lineage**
-still holds ([Explanations 0.2](caveat-explanations-0.2.md)).
+still holds ([Explanations 0.2](caveat-explanations-0.2.md)), with one
+exception, which only a `because` citation starts. The citation is checked by
+the names it holds, so it can cite what holds a marker of records that
+departed before the citing `set`, records the value never read, and the
+state's grounds then hold a marker that its lineage does not (D057). While
+those records are still held, the same citation names them and is refused as
+`ungrounded_citation`. What reads those grounds takes the marker along, into
+grounds whose lineage or basis lacks it too: a set whose value reads the
+state, a commit that uses or cites it, a procedure's parameter given it, and a
+set whose value reads such a commitment through `committed`, `reopened` or
+`in_basis`, or such a parameter. So a grounds marker beyond the lineage or the
+basis is of a history that the program's citations can bring there, this way;
+restore refuses any other ("Save and restore").
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
@@ -408,7 +423,9 @@ Restore refuses a save when:
 - a provenance holds two markers for one history, or names a departed record
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
-  commitment's grounds marker is not within its basis's;
+  commitment's grounds marker is not within its basis's, and no `because`
+  citation of the program can bring a marker of that history there, directly
+  or through what reads the grounds it gave (see "Meaning");
 - a marker or a record's name is in a provenance, or a record is named as
   the cause of an outcome, a hold, a
   deferral, a `reopens` relation an event added or a withdrawal, in a part
@@ -645,3 +662,12 @@ provenance read in its range.
   not in every program without a window: one that uses something the
   language gained after rc.11, such as `only_if`, has no save that old.
   [Save 0.1](caveat-save-0.1.md) lists what the check reads.
+- 2026-11-14 (D057): a state's or a commitment's grounds may hold a marker
+  that its lineage or basis does not, where a `because` citation of the
+  program can bring that history there, directly or through what reads the
+  grounds it gave. A `because` citation is checked by the names it holds, so
+  citing a basis that held only a marker of records the value never read was
+  accepted, and the state's grounds took the marker.
+  Every release since rc.16 then refused that save, and every later one until
+  the state was set again, as a grounds marker outside its lineage. "Meaning"
+  and "Save and restore" say so; the live check is unchanged.
