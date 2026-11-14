@@ -332,6 +332,13 @@ At this profile's revision:
 ## Changes
 
 - 2026-10-24: drafted and implemented for 1.3.
+- 2026-11-14 (D088): the module linker keeps `resolve` and `materialized`
+  bare by position, as from 1.3.0, which made a module's
+  `fn resolve (y) = …`, with a space before its parameters, or its
+  `event resolve revision`, stop loading. Before 1.3.0 the words were the
+  module's own there. A bundle that only those releases could load is read
+  as they linked it ([Caveat 0.5](caveat-0.5-draft.md)). Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.
 - 2026-11-12 (D058): restore accepts an outcome whose lineage carries a
   caveat that its `resolve` attached, in its value, its revision index or
   its occurrence index. Before, restore refused the save written after such

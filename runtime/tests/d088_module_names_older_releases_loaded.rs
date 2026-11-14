@@ -1,14 +1,17 @@
-//! D088: a module of a bundle that names something after a word the
-//! language took later, and loaded in the releases before it, loads again,
-//! read as the newest release that could load it read it. Each case loaded
-//! in releases up to 1.0.3, 1.1.0 or 1.3.0, and main refused it: a module's
+//! D088: a module of a bundle that names something after a word the language
+//! took later, and loaded in the releases before it, loads again, read as the
+//! newest release that could load it read it. Each case loaded in releases up
+//! to 1.0.3, 1.1.0, 1.2.0 or 1.3.0, and main refused it: a module's
 //! `only_if(…)` beside its own `state only_if`, which called the bundle
-//! program's `fn m__only_if` before 1.4.0 ("expression requires boolean,
-//! found number"); a module that declares `irreversible` or `forecloses`
-//! (refused from 1.2.0: "module lib declares irreversible, which the grammar
-//! already uses"); and `reopened by changed ,r` beside a module's stream
-//! `changed` (refused from 1.1.0: "decisions m__d reopened by: changed must
-//! name a declared reading stream").
+//! program's `fn m__only_if` before 1.4.0 ("expression requires boolean, found
+//! number"); a module that declares `irreversible` or `forecloses` (refused
+//! from 1.2.0: "module lib declares irreversible, which the grammar already
+//! uses"); `reopened by changed ,r` beside a module's stream `changed` (refused
+//! from 1.1.0: "decisions m__d reopened by: changed must name a declared
+//! reading stream"); a module's `fn resolve (y)` or `event resolve revision`
+//! (refused from 1.3.0: "unknown source function m__resolve"); and a module's
+//! `once` after a retained caveat's `because` (refused from 1.4.0: "retaining …
+//! because names evidence, not once").
 use caveat_runtime::link;
 use caveat_runtime::reactive::{ModuleBindings, ReactiveSession, RestoreOptions};
 use serde_json::{json, Value};
@@ -431,4 +434,122 @@ fn a_bundle_no_release_loaded_is_not_read_the_way_older_releases_linked() {
     for source in refused {
         assert!(ReactiveSession::from_source(&source).is_err(), "{source}");
     }
+}
+
+/// 1.3.0 began keeping a module's `resolve` bare before a name and `=`, or
+/// before `revision`, for outcomes; before it the word was the module's own
+/// wherever it stood. A module's `fn resolve (y)`, with a space before its
+/// parameters, or `event resolve revision`, loaded up to 1.2.0 and is read
+/// so again: the event is the module's `m__resolve`, also where only 1.1.0
+/// and the releases before it could load the bundle. `link::link` reads it
+/// as 1.4 did.
+#[test]
+fn a_module_resolve_before_a_name_and_equals_is_its_own_as_before_1_3() {
+    let source = bundle(
+        "module m;\nstate t = 0;\nevent tick;\nfn resolve (y) = y + 1;\non tick set t = resolve(t);\n",
+        ROOT,
+    );
+    assert!(link::link(&source)
+        .unwrap()
+        .contains("fn resolve (y) = y + 1;"));
+    let mut session = load(&source);
+    send(&mut session, "m__tick");
+    send(&mut session, "m__tick");
+    assert_eq!(values(&session)["m__t"], json!(2.0));
+
+    for stream in [
+        "",
+        "evidence me from \"m\";\nreadings irreversible from me limit 2;\ndecisions d limit 3 reopened by irreversible;\n",
+    ] {
+        let source = bundle(
+            &format!("module m;\n{stream}state t = 0;\nevent resolve revision min 0 max 9;\non resolve set t = t + revision;\n"),
+            ROOT,
+        );
+        let mut session = load(&source);
+        session
+            .dispatch_json("m__resolve", "{\"revision\":4}")
+            .unwrap();
+        assert_eq!(values(&session)["m__t"], json!(4.0));
+        assert!(session
+            .dispatch_json("resolve", "{\"revision\":4}")
+            .is_err());
+    }
+}
+
+/// The module's retained caveat `gap` because its own evidence `once`.
+const ONCE: &str = "module m;\nclaim k;\nevidence once from \"o\";\ncaveat gap consequence low;\ndecisions d limit 3;\nevent tick;\non tick reveal once supports k;\non tick commit d because enough retaining gap because once ;\n";
+
+/// Whether the commitment `m__d@1` relies on `evidence`.
+fn relies_on(session: &ReactiveSession, evidence: &str) -> bool {
+    let saved: Value = serde_json::from_str(&session.save_json().unwrap()).unwrap();
+    saved["graph"]["relations"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(["m__d@1", "relies_on", evidence]))
+}
+
+/// 1.4.0 began keeping a module's `once` bare after a `because` where the
+/// item ends, once `retaining` has come, for `because once`; before it the
+/// word was the module's own. A retention reason written with a space before
+/// its end, `because once ;`, loaded from 1.1.0 to 1.3.0, and a citation
+/// `because once , x` in a procedure whose earlier step retains a caveat
+/// from rc.1 to 1.3.0; both are read so again, and the commitment relies on
+/// the module's evidence `once`. Where the program declares an evidence
+/// `once` that it reveals, 1.4.0 and 1.4.1 loaded the bundle too, reading
+/// the program's, and so does this runtime.
+#[test]
+fn a_module_once_after_a_retained_caveat_is_its_own_as_before_1_4() {
+    for (root, evidence) in [
+        (ROOT.to_string(), "m__once"),
+        (format!("{ROOT}evidence once from \"r\";\n"), "m__once"),
+        (
+            format!("{ROOT}evidence once from \"r\";\non go reveal once supports c;\n"),
+            "once",
+        ),
+    ] {
+        let mut session = load(&bundle(ONCE, &root));
+        send(&mut session, "go");
+        send(&mut session, "m__tick");
+        assert!(relies_on(&session, evidence), "{root}");
+    }
+    let source = bundle(
+        "module m;\nclaim k;\nevidence ev from \"o\";\ncaveat gap consequence low;\ndecisions d limit 3;\nstate once = 1;\nstate x = 2;\nstate t = 0;\nevent tick;\nproc p() {\n  reveal ev supports k;\n  commit d because enough retaining gap;\n  set t = once + x because once , x;\n};\non tick call p();\n",
+        ROOT,
+    );
+    let mut session = load(&source);
+    send(&mut session, "m__tick");
+    assert_eq!(values(&session)["m__t"], json!(3.0));
+}
+
+/// Where 1.3.0 was the newest release that could load a bundle, it is read
+/// as 1.3.0 linked it, with a module's `hold` its own: here an outcome, which
+/// came in 1.3.0, beside the module's `because once ;`, which 1.4.0 refused.
+/// 1.3.0 read the module's `hold` before `because` as the program's, so a
+/// save it wrote restores so without a choice, since only releases from
+/// 1.2.0 could have written it.
+#[test]
+fn a_bundle_1_3_0_was_the_newest_to_load_reads_as_1_3_0_linked_it() {
+    let module = format!(
+        "{ONCE}state hold = 7;\nstate hv = 0;\nfn add(a, b) = a + b;\non tick set hv = add( hold , because );\n"
+    );
+    let root = format!(
+        "{ROOT}readings oc from e limit 4;\ndecisions fc limit 4;\nevent pr p min 0 max 1;\non pr commit fc because enough using p;\nevent rp q min 0 max 1;\non rp sample oc = q supports c;\non rp resolve fc = q because latest(oc);\nstate because = 3;\nstate hold = 11;\n"
+    );
+    let source = bundle(&module, &root);
+    let mut session = load(&source);
+    let mut unmarked: Value = serde_json::from_str(&session.save_json().unwrap()).unwrap();
+    assert_eq!(
+        unmarked.as_object_mut().unwrap().remove("module_bindings"),
+        Some(json!("scoped"))
+    );
+    send(&mut session, "m__tick");
+    assert_eq!(values(&session)["m__hv"], json!(10.0));
+    assert!(relies_on(&session, "m__once"));
+
+    let mut restored = ReactiveSession::restore_json(&source, &unmarked.to_string()).unwrap();
+    send(&mut restored, "m__tick");
+    assert_eq!(values(&restored)["m__hv"], json!(14.0));
+    assert!(relies_on(&restored, "m__once"));
+    let saved: Value = serde_json::from_str(&restored.save_json().unwrap()).unwrap();
+    assert_eq!(saved["module_bindings"], json!("legacy-hold-capture"));
 }

@@ -321,3 +321,11 @@ package and on this branch, with the same results.
 ## Changes
 
 - 2026-10-25: specified for 1.4 (prompt injection experiment, items 2 to 5).
+- 2026-11-14 (D088): the module linker keeps `every` after `withdraw` and
+  `once` after a retained caveat's `because` bare by position, as from
+  1.4.0. Before 1.4.0 the words were the module's own there, and a module's
+  `retaining gap because once ;`, with a space before its end, named its own
+  evidence `once`; from 1.4.0 it named the program's. A bundle that only
+  those releases could load is read as they linked it
+  ([Caveat 0.5](caveat-0.5-draft.md)). Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.

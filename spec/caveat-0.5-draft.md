@@ -199,7 +199,7 @@ define reads `only_if(…)` as the form ([Only If 0.1](caveat-only-if-0.1.md)).
 
 Releases did not all link a module's names so, and a bundle is read as the
 newest release that could load it linked it, with a module's `hold` and
-`release` its own (finding D088). The releases differ in four ways:
+`release` its own (finding D088). The releases differ in these ways:
 
 - From 1.2.0 to 1.4.1, a module's `hold` or `release` two words before
   `because` was left bare, naming the program's where it declares one. A
@@ -209,6 +209,20 @@ newest release that could load it linked it, with a module's `hold` and
 - Before 1.4.0, in a module that declares `only_if` as something other than a
   function, `only_if(…)` called the module's flattened name,
   `fn MODULE__only_if`, which the bundle's program may declare.
+- Before 1.4.0, a module's `once` after a `because` where the item ends, once
+  `retaining` has come in the statement, was its own, and so were its
+  `every` after `withdraw` and `strict` after `irreversible`. 1.4.0 kept
+  them bare there for `because once`, `withdraw every`
+  ([Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md)) and
+  `irreversible strict`
+  ([Strict Irreversible 0.1](caveat-strict-irreversible-0.1.md)), so from
+  1.4.0 a module's `retaining gap because once ;`, with a space before its
+  end, named the program's `once`.
+- Before 1.3.0, a module's `resolve` before a name and `=`, or before
+  `revision`, was its own, and so was `materialized` after its `because`.
+  1.3.0 kept them bare there for outcomes
+  ([Outcomes 0.1](caveat-outcomes-0.1.md)), so from 1.3.0 a module's
+  `fn resolve (y) = …`, with a space before its parameters, did not load.
 - Before 1.2.0, a module could declare `irreversible` and `forecloses`, which
   were then its own names
   ([Foreclosure 0.1](caveat-foreclosure-0.1.md)).

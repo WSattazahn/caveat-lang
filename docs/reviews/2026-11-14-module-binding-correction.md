@@ -107,25 +107,38 @@ module's names another way
   in `,` or `;`, so `changed` stayed bare there and named the program's
   stream `changed`.
 
+The third review below found two more rules of this kind, which main and
+#480 applied to every bundle too:
+
+- A module's `fn resolve (y) = …`, with a space before its parameters, or
+  its `event resolve revision` (rc.1 to 1.2.0 load them). From 1.3.0 the
+  linker kept `resolve` bare before a name and `=`, or before `revision`,
+  for outcomes.
+- A module's `retaining gap because once ;`, with a space before its end
+  (1.1.0 to 1.3.0 load it), or a later step's `because once , x` in a
+  procedure that retains a caveat (rc.1 to 1.3.0). From 1.4.0 the linker
+  kept `once` bare there, for `because once`, naming the program's `once`.
+
 Each line of releases' linking is now a `link::Reading`: `NOW` (this
-runtime: 1.4.1's linking, corrected), `V1_4` (1.4.0 and 1.4.1), `V1_2`
-(1.2.0 to 1.3.x), `V1_1` (1.1.0, and 1.2.0 to 1.3.x corrected) and `V1_0`
-(rc.1 to 1.0.3). Which releases could load what a reading links is found
-from the program as it loads (`release_bounds` in
+runtime: 1.4.1's linking, corrected), `V1_4` (1.4.0 and 1.4.1), `V1_3`
+(1.3.x), `V1_2` (1.2.0), `V1_1` (1.1.0, and 1.2.0 corrected) and `V1_0`
+(rc.1 to 1.0.3). Each keeps by position only the clause words that the
+minors up to its line added, and `Reading::scoped` reads a line with a
+module's `hold` and `release` its own. Which releases could load what a
+reading links is found from the program as it loads (`release_bounds` in
 `runtime/src/reactive_releases.rs`): from the first release that reads every
 form it keeps, to the last release before one that refused one of its
 function bodies, a body that calls the program's own function named like a
 form that release added and read as the form there (D084, and D093 for
-`only_if`). A bundle is read
-as the newest release that could load it linked it, with a module's `hold`
-and `release` its own; where that release loaded it only through root
-capture, as the newest older one whose reading loads with module scope; and
-a bundle that no release could load so is read as this runtime links it,
-which refuses a bundle that loaded only through capture, as #480 does.
-`link::link` keeps 1.4's linking, corrected, and so still refuses a module
-that declares `irreversible` or `forecloses`, as 1.4.1 does. D088's eight
-programs all load, and each one's saves equal those of the newest release
-that loaded it.
+`only_if`). A bundle is read as the newest release that could load it linked
+it, with a module's `hold` and `release` its own; where that release loaded
+it only through root capture, as the newest older one whose reading loads
+with module scope; and a bundle that no release could load so is read as
+this runtime links it, which refuses a bundle that loaded only through
+capture, as #480 does. `link::link` keeps 1.4's linking, corrected, and so
+still refuses a module that declares `irreversible` or `forecloses`, as
+1.4.1 does. D088's eight programs all load, and so do the third review's,
+and each one's saves equal those of the newest release that loaded it.
 
 The same check over the review's 20,328 generated `only_if` bundles found
 one more case, a finding of its own (D093). Seven bundles declare `only_if`
@@ -184,6 +197,16 @@ either, a D088 test used a bundle no release loads, and this record, the
 spec and the code said that nothing 1.4 loads is read another way, which was
 not so. The reading by release line above replaces that rule.
 
+A third independent review, of the version before this one, found that it
+kept two later minors' rules in every reading: 1.3.0's, which kept `resolve`
+bare before a name and `=` or before `revision`, and 1.4.0's, which kept
+`once` bare after `because`. So it refused a module's `fn resolve (y)` and
+`event resolve revision`, which rc.1 to 1.2.0 load, and a module's `once`
+after a retained caveat's `because`, which releases up to 1.3.0 load, with
+their saves, or read the program's `once` there where those releases read the
+module's. Each reading now keeps only the rules of the minors up to its line,
+and `V1_3` is new for the rules of 1.3.x.
+
 ### Checks
 
 Release builds of every release from rc.1 to 1.4.1 were the reference, over
@@ -217,6 +240,22 @@ read as this runtime reads it either way.
   choice that names the writer's reading, every save that needs one restores
   and continues as its writer did. #480 refused 84,206 of the older releases'
   saves, mostly of D088 programs it does not load.
+- After the third review's fix, these bundles give the same loads, saves and
+  restores as before it, and so do the review's own 7,152 (1,788 forms in four
+  module templates) loads and saves. Its 53 probes and 320 bundles generated
+  around the two rules were checked the same way. Which releases load each is
+  predicted exactly. The 261 that a release loads all load: 205 compute the
+  saves of the newest release that loads them, and 56 are where a module's
+  `hold` before `because` named the program's, of which 32 compute 1.1.0's
+  saves and 24, which only releases from 1.3.0 load, the corrected value. The
+  other 112 are refused, as #480 and main refuse them. Every save 1.0.3,
+  1.1.0, 1.2.0, 1.3.0 and 1.4.1 write of them (13,750) restores and continues
+  as its writer did, or needs a choice (2,706) and does with it, except those
+  of one probe that 1.4.0 linked differently, a module's
+  `retaining gap because once ;` beside the program's own `once`. Of each
+  older writer's 22 saves of it, 4 continue as 1.4.1 continues them and 18
+  are refused, as main refuses them since D054 and 1.4.1 did not: they carry
+  the module's `once` into a decision, which no rule does as 1.4 links it.
 
 The cases are in `runtime/tests/d088_module_names_older_releases_loaded.rs`,
 `runtime/tests/d093_module_only_if_beside_a_program_only_if.rs`,

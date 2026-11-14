@@ -30,6 +30,10 @@ pub(super) struct Readings<'a> {
     source: &'a str,
     now: Result<String, String>,
     v1_4: Result<String, String>,
+    v1_3: Result<String, String>,
+    /// 1.3.x corrected: as 1.3.x linked it, with a module's `hold` and
+    /// `release` its own.
+    v1_3_scoped: Result<String, String>,
     v1_2: Result<String, String>,
     v1_1: Result<String, String>,
     v1_0: Result<String, String>,
@@ -46,31 +50,55 @@ impl<'a> Readings<'a> {
         let now = link::link_reading(source, Reading::NOW);
         let v1_4 = link::link_reading(source, Reading::V1_4);
         // The older readings link a bundle as these do unless a module
-        // declares `only_if` or `changed`, whose names are then in the linked
-        // text, or `irreversible` or `forecloses`, which these refuse.
+        // declares `only_if`, or a word that a later minor's clause keeps by
+        // position (`changed`, `resolve`, `materialized`, `strict`, `every`,
+        // `once`), whose names are then in the linked text, or `irreversible`
+        // or `forecloses`, which these refuse.
         let older = now.as_ref().map_or(true, |text| {
-            text.contains("only_if") || text.contains("changed")
+            [
+                "only_if",
+                "changed",
+                "resolve",
+                "materialized",
+                "strict",
+                "every",
+                "once",
+            ]
+            .iter()
+            .any(|word| text.contains(word))
         });
-        let (v1_2, v1_1, v1_0, unreserved) = if older {
+        let (v1_3, v1_3_scoped, v1_2, v1_1, v1_0, unreserved) = if older {
             (
+                link::link_reading(source, Reading::V1_3),
+                link::link_reading(source, Reading::V1_3.scoped()),
                 link::link_reading(source, Reading::V1_2),
                 link::link_reading(source, Reading::V1_1),
                 link::link_reading(source, Reading::V1_0),
                 link::link_reading(source, Reading::V1_2.without_reserved_series_words()),
             )
         } else {
-            (v1_4.clone(), now.clone(), now.clone(), v1_4.clone())
+            (
+                v1_4.clone(),
+                now.clone(),
+                v1_4.clone(),
+                now.clone(),
+                now.clone(),
+                v1_4.clone(),
+            )
         };
         // Compare link text, not current values: two readings can have
         // identical initial state and diverge only on a later event. Even
         // when one of them does not load today, saves say which wrote them,
         // so a later compiler cannot make a save ambiguous.
         let affected = now.as_ref().ok() != v1_4.as_ref().ok()
+            || v1_3_scoped.as_ref().ok() != v1_3.as_ref().ok()
             || v1_1.as_ref().ok() != unreserved.as_ref().ok();
         Self {
             source,
             now,
             v1_4,
+            v1_3,
+            v1_3_scoped,
             v1_2,
             v1_1,
             v1_0,
@@ -92,12 +120,15 @@ impl<'a> Readings<'a> {
     }
 
     /// With a module's names its own: as 1.4 read it, corrected, where 1.4
-    /// could load it and it loads so; else as 1.2.0 to 1.3.x read it,
-    /// corrected, likewise; else as 1.1.0 or the releases before it read it,
+    /// could load it and it loads so; else as 1.3.x read it, corrected,
+    /// likewise; else 1.2.0, whose reading corrected is 1.1.0's for a bundle
+    /// 1.2.0 could load; else as 1.1.0 or the releases before it read it,
     /// where they could load it; else as this runtime reads it.
     pub(super) fn scoped_reading(&self) -> &Result<String, String> {
         if self.by_1_4() && self.program(&self.now).is_ok() {
             &self.now
+        } else if self.by_1_3() && self.program(&self.v1_3_scoped).is_ok() {
+            &self.v1_3_scoped
         } else if self.by_1_2() && self.program(&self.v1_1).is_ok() || self.by_1_1() {
             &self.v1_1
         } else if self.by_1_0() {
@@ -108,11 +139,14 @@ impl<'a> Readings<'a> {
     }
 
     /// With the program's `hold` and `release` where it declares the name:
-    /// as 1.4 read it where it could load it, else as 1.2.0 to 1.3.x read
-    /// it where they could, else as 1.4 links it.
+    /// as 1.4 read it where it could load it, else as 1.3.x read it where
+    /// they could, else as 1.2.0 read it where it could, else as 1.4 links
+    /// it.
     pub(super) fn legacy_reading(&self) -> &Result<String, String> {
         if self.by_1_4() {
             &self.v1_4
+        } else if self.by_1_3() {
+            &self.v1_3
         } else if self.by_1_2() {
             &self.v1_2
         } else {
@@ -125,7 +159,7 @@ impl<'a> Readings<'a> {
     pub(super) fn writers(&self) -> (bool, bool) {
         (
             self.by_1_1() || self.by_1_0(),
-            self.by_1_4() || self.by_1_2(),
+            self.by_1_4() || self.by_1_3() || self.by_1_2(),
         )
     }
 
@@ -133,8 +167,12 @@ impl<'a> Readings<'a> {
         self.could_load(&self.v1_4, Release::V1_4, Release::V1_4)
     }
 
+    fn by_1_3(&self) -> bool {
+        self.could_load(&self.v1_3, Release::V1_3, Release::V1_3)
+    }
+
     fn by_1_2(&self) -> bool {
-        self.could_load(&self.v1_2, Release::V1_2, Release::V1_3)
+        self.could_load(&self.v1_2, Release::V1_2, Release::V1_2)
     }
 
     fn by_1_1(&self) -> bool {
