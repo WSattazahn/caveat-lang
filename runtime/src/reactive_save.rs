@@ -1335,12 +1335,12 @@ impl ReactiveSession {
             }
         }
         // Grounds keep a caveat their lineage or basis does not keep only
-        // where a citation can bring it (D098).
+        // where a citation can bring it (D098, D099).
         for (name, state) in &save.states {
             if let Some(grounds) = &state.grounds {
-                if reach::kept_beyond(&grounds.0, &state.lineage.0)
-                    .any(|caveat| !self.state_grounds_keep(name, caveat))
-                {
+                if reach::kept_beyond(&grounds.0, &state.lineage.0).any(|caveat| {
+                    !self.state_grounds_keep(name, caveat, &grounds.0, &state.lineage.0)
+                }) {
                     return Err(format!(
                         "state {name} grounds keep a caveat its lineage does not keep"
                     ));
@@ -2553,6 +2553,48 @@ impl ReactiveSession {
         carriers
     }
 
+    /// For each take-back caveat, the reading streams some rule samples
+    /// whose template it can qualify (D099): a reading copies what
+    /// qualifies its template, or a renewable template's current
+    /// occurrence, when it is taken, and its stored provenance keeps the
+    /// take-back caveats among them without naming the template. Only
+    /// `qualify` applies a take-back caveat, and only to evidence, so a
+    /// `qualify` of the template is the one way a reading is born keeping
+    /// one from its template. One the reading takes from what its sample
+    /// reads is kept too, but its provenance then names that record, so
+    /// `take_back_carriers` covers it. A stream no rule samples has no
+    /// readings. Empty in a program that does not take back.
+    pub(super) fn born_take_backs(&self) -> HashMap<String, Vec<String>> {
+        if self.take_back_caveats.is_empty() {
+            return HashMap::default();
+        }
+        let sampled = self
+            .reached_effects(None)
+            .into_iter()
+            .filter_map(|effect| match effect {
+                Effect::Sample { stream, .. } => Some(stream.as_str()),
+                _ => None,
+            })
+            .collect::<HashSet<_>>();
+        let (possible, _) = self.qualification_sources();
+        let mut born: HashMap<String, Vec<String>> = HashMap::default();
+        for (caveat, evidence) in &possible {
+            if !self.take_back_caveats.contains(caveat.as_str()) {
+                continue;
+            }
+            for (stream, readings) in self.reading_streams.iter() {
+                if readings.template == *evidence && sampled.contains(stream.as_str()) {
+                    born.entry(caveat.clone()).or_default().push(stream.clone());
+                }
+            }
+        }
+        for streams in born.values_mut() {
+            streams.sort_unstable();
+            streams.dedup();
+        }
+        born
+    }
+
     /// Findings F330, F333, F335-F337: the caveats some mechanism of the
     /// loaded source can attach to a value. A value resting on evidence
     /// carries what qualifies that evidence (a pair `qualification_sources`
@@ -3422,7 +3464,7 @@ impl ReactiveSession {
                 grounds,
                 lineage,
                 |history| self.state_grounds_exceed(name, history),
-                |caveat| self.state_grounds_keep(name, caveat),
+                |caveat| self.state_grounds_keep(name, caveat, grounds, lineage),
             )?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(

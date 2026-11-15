@@ -600,6 +600,31 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-14 (D099): the bound of D057 and D098 starts with what the
+  provenances a `because` citation reads can hold: of a stream it reads,
+  what the readings and the selection hold, not what joins the observation
+  records after a reading is taken, though a reading is bounded as "Restore
+  validation" bounds it, so it takes in what its sample can read, the
+  observation records of another stream read there among them. A record it
+  reads itself or only names, and a reason or cause a withdrawal predicate,
+  `on_hold` or `reopened` names, adds nothing of its
+  own history: the grounds hold it by name, which pins it, so it never
+  departs while cited and leaves no marker, and a caveat a `qualify` puts on
+  it reaches the grounds live ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md),
+  "Meaning"). A reading keeps the take-back caveats its template gave it
+  when it was taken, so a citation of its stream still lets the grounds keep
+  those, where the lineage carries them live and the grounds name such a
+  reading, but never lets a commitment's grounds keep them beyond its basis
+  ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and save").
+  Restore accepted a forged marker, or a forged kept take-back caveat, of a
+  history that only such a record or name brought, or only what joins a
+  cited stream's observation records later, in the citing state's grounds
+  and in grounds that read them, which no session writes. It
+  refuses them again with the same messages as before D057. No release
+  accepted them. The D057
+  entry below now gives the readers in general and says how long its
+  refusals lasted. Tests: `runtime/tests/d099_citations_pin_what_they_read.rs`,
+  and `runtime/tests/d057_readers_carry_cited_markers.rs` for the readers.
 - 2026-11-14 (D098): restore accepts a state's or a commitment's grounds
   that keep a take-back caveat its lineage or basis does not keep, or that
   keep one the lineage or basis no longer carries, where the caveat can
@@ -627,15 +652,19 @@ validation and host trust mechanisms separately from this contract.
   with the lineage. Once the records C rests on have departed, C holds only
   their history's marker, so the citation is accepted although the value
   never read them, and the state's grounds hold a marker that its lineage
-  lacks. A state whose value reads those grounds, a commitment whose `using`
-  or `citing` reads them, a procedure's parameter given them, and a state
-  whose value reads such a commitment through `committed`, `reopened` or
-  `in_basis`, or such a parameter, take the marker into grounds whose lineage
-  or basis lacks it the same way. Restore required each grounds marker to lie
+  lacks. Any read whose grounds take those grounds, such as a set whose value
+  reads the state, a commit whose `using` or `citing` reads it, a procedure's
+  parameter given it, or a read of such a commitment through `committed`,
+  `reopened` or `in_basis`, takes the marker into grounds whose lineage or
+  basis lacks it the same way. Restore required each grounds marker to lie
   within the lineage's or the basis's, so it refused the save the runtime
-  wrote, and every later save until the state was set again, with "state S
-  grounds hold departed H records outside its lineage", breaking the promise
-  that a 1.x save restores. Every release since rc.16, when records began to
+  wrote, and every later save while some grounds held such a marker (a
+  state's until it was set from grounds without the marker: setting it
+  again by the same citation took the marker again, and a state set from it
+  kept the marker after that; a commitment's for as long as the commitment
+  was kept), with "state S grounds hold departed H records outside
+  its lineage" or the same for the commitment, breaking the promise that a
+  1.x save restores. Every release since rc.16, when records began to
   depart, did this; 1.0.0 and 1.4.1 refuse the finding's saves alike. A
   marker beyond the lineage or the basis that no citation of the program can
   bring there is refused with the same message as before. The live check is

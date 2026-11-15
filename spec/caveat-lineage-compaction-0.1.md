@@ -173,20 +173,43 @@ the names it holds, so it can cite what holds a marker of records that
 departed before the citing `set`, records the value never read, and the
 state's grounds then hold a marker that its lineage does not (D057). While
 those records are still held, the same citation names them and is refused as
-`ungrounded_citation`. What reads those grounds takes the marker along, into
-grounds whose lineage or basis lacks it too: a set whose value reads the
-state, a commit that uses or cites it, a procedure's parameter given it, and a
-set whose value reads such a commitment through `committed`, `reopened` or
-`in_basis`, or such a parameter. So a grounds marker beyond the lineage or the
-basis is of a history that the program's citations can bring there, this way;
-restore refuses any other ("Save and restore").
+`ungrounded_citation`. A record the citation reads itself, or only names,
+leaves no such marker: the grounds pin it ("What stays exact"), so it does not
+depart while they cite it. Nor do the reasons of the withdrawals a withdrawal
+predicate finds, or the causes `on_hold` and `reopened` name: the grounds hold
+those by name too. What a cited reading holds can, and so can its stream's
+selection, and a state's, a commitment's or a parameter's grounds and a
+commitment's basis, outcome and selection that the citation reads (D099).
+What reads those grounds takes the marker along,
+into grounds whose lineage or basis lacks it too: any read whose grounds take
+a state's grounds, a procedure parameter's, or a commitment's through
+`committed`, `reopened` or `in_basis`, such as a set whose value reads the
+state, a commit that uses or cites it, or a call given it. So a grounds marker
+beyond the lineage or the basis is of a history that the program's citations
+can bring there, this way; restore refuses any other ("Save and restore").
+Like the rest of restore's bounds, this one is of histories. Within a history
+it carries, restore does not bound the marker's range beyond the checks every
+marker meets, nor require the lineage or the basis to hold a marker of that
+history, and a citation of a state, a commitment or a parameter carries every
+history their grounds, and a commitment's basis, outcome and selection that
+it reads, can hold, those their own reads pin among them. What a cited
+reading holds is bounded as restore bounds the stream's readings ([Save
+0.1](caveat-save-0.1.md), "Restore validation"), so it takes in what the
+reading's sample can read: a value read there of another stream brings what
+that stream's records, its observation records among them, can hold.
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
 qualifications stay in every provenance that carried them. A take-back caveat
 a citation brings kept can stay in grounds whose lineage no longer carries it,
 within the same bound ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
-save", D098).
+save", D098). A reading keeps the take-back caveats its template gave it when
+it was taken, so a citation of the reading brings those kept even where the
+lineage carries them live. Restore accepts such a caveat beyond a lineage that
+carries it live where the grounds name a reading of a stream that a rule
+samples and a citation reads, and whose template the caveat can qualify; a
+lineage that does not carry it at all, or a commitment's basis, which keeps
+what the readings it holds were taken keeping, needs the bound above (D099).
 
 **Bounded marker representation; unresolved total-retention bound.** A
 compacting provenance holds at most one marker per windowed history, and a
@@ -427,8 +450,10 @@ Restore refuses a save when:
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's, and no `because`
-  citation of the program can bring a marker of that history there, directly
-  or through what reads the grounds it gave (see "Meaning");
+  citation of the program can bring a marker of that history there, through
+  what the provenances it reads hold (not a record it reads itself or only
+  names, which the grounds pin) or through what reads the grounds it gave
+  (see "Meaning");
 - a marker or a record's name is in a provenance, or a record is named as
   the cause of an outcome, a hold, a
   deferral, a `reopens` relation an event added or a withdrawal, in a part
@@ -665,6 +690,21 @@ provenance read in its range.
   not in every program without a window: one that uses something the
   language gained after rc.11, such as `only_if`, has no save that old.
   [Save 0.1](caveat-save-0.1.md) lists what the check reads.
+- 2026-11-14 (D099): a `because` citation brings a marker beyond the lineage
+  only through what the provenances it reads hold, never as a marker of a
+  record it reads itself or only names, which the grounds pin, nor of the
+  reasons and causes a withdrawal predicate, `on_hold` or `reopened` names. A
+  cited reading brings what it holds and its stream's selection, not what
+  joins its observation records after it is taken. Restore accepted a forged
+  marker of such a
+  history beyond the lineage or the basis, in the citing state's grounds and
+  in grounds that read them, which no session writes, and refuses it again
+  with the message it gave before D057. "Meaning" says so, gives the readers
+  in general, and says what the bound leaves unchecked; "Caveats" says which
+  kept caveats a cited reading brings, and where restore accepts them; the
+  D057 entry below now says how long
+  its refusals lasted. Tests: `runtime/tests/d099_citations_pin_what_they_read.rs`,
+  and `runtime/tests/d057_readers_carry_cited_markers.rs` for the readers.
 - 2026-11-14 (D098): "Caveats" says that a take-back caveat a citation
   brings kept can stay in grounds whose lineage no longer carries it, within
   the bound of D057 ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
@@ -675,6 +715,10 @@ provenance read in its range.
   grounds it gave. A `because` citation is checked by the names it holds, so
   citing a basis that held only a marker of records the value never read was
   accepted, and the state's grounds took the marker.
-  Every release since rc.16 then refused that save, and every later one until
-  the state was set again, as a grounds marker outside its lineage. "Meaning"
-  and "Save and restore" say so; the live check is unchanged.
+  Every release since rc.16 then refused that save, and every later one
+  while some grounds held such a marker, as a grounds marker outside its
+  lineage or basis: a state's grounds held it until the state was set from
+  grounds without it (setting it again by the same citation took the marker
+  again, and a state set from it kept the marker after that), and a
+  commitment's for as long as the commitment was kept. "Meaning" and "Save and restore" say
+  so; the live check is unchanged.
