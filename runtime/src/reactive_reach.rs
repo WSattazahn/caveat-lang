@@ -90,20 +90,36 @@
 //! beyond its lineage, and a series' grounds beyond its bases, as departed
 //! records no marker there contains. Only a `because` citation starts it,
 //! since the live check compares the names a citation gives with the lineage
-//! and a departed record leaves no name; what reads such grounds takes it
-//! along where its grounds and its lineage read different parts: a state,
-//! `committed`, `reopened` and `in_basis` of a commitment, and a procedure's
-//! parameter (spec/caveat-explanations-0.2.md). Restore accepts a grounds
-//! marker beyond the lineage or the basis only of a history this bound
-//! carries there, and debug builds check that every one a session holds is.
+//! and a departed record leaves no name. It starts with what the provenances
+//! the citation reads can hold: of a stream it reads, what the readings and
+//! the selection hold. The records the citation reads or names add nothing
+//! of their own history, nor do the reasons and causes a withdrawal
+//! predicate, `on_hold` and `reopened` name: the grounds hold their names,
+//! which pin them, so they never depart while cited (D099, `cited`). What
+//! reads such grounds takes it along where its grounds and its lineage read
+//! different parts: a state, `committed`, `reopened` and `in_basis` of a
+//! commitment, and a procedure's parameter (spec/caveat-explanations-0.2.md).
+//! Restore accepts a grounds marker beyond the lineage or the basis only of
+//! a history this bound carries there, and debug builds check that every one
+//! a session holds is. The bound is of histories: within one it does not
+//! bound a marker's range, and a citation of a state, a commitment or a
+//! parameter carries every history their grounds, and a commitment's basis,
+//! outcome and selection that it reads, can hold, those their own reads pin
+//! among them.
 //!
 //! The same bound covers a take-back caveat grounds keep beyond their
 //! lineage or basis (D098). A citation of a record that holds the caveat, a
 //! frozen basis, a stored qualification or a departed record, gives it kept,
 //! while the lineage carries it live, through the record its value read, or
-//! not at all once a take-back removes it. Restore accepts such a caveat
-//! only where it can qualify records of a history this bound carries there,
-//! and debug builds check that every one a session holds is.
+//! not at all once a take-back removes it. A reading the citation reads
+//! keeps one too: a reading is taken with what qualifies its template, and
+//! its provenance, frozen then, keeps the take-back caveats among it, so
+//! the bound has a bit, after the histories', for each stream whose
+//! template a take-back caveat can qualify, which only a citation of the
+//! stream starts (D099). Restore accepts such a caveat only where it can
+//! qualify records of a history this bound carries there, or where a
+//! reading of a stream whose bit it carries can be taken keeping it, and
+//! debug builds check that every one a session holds is.
 use super::*;
 use crate::reactive_expr::{Carried, Grounded, Read};
 use std::collections::VecDeque;
@@ -119,10 +135,12 @@ pub(crate) enum Owner {
     /// guard of the rule that sets it stays out, though a read can bring in
     /// what other rules' guards left in what it reads.
     StateGrounds(String),
-    /// What a state's grounds can hold beyond its lineage (D057): what a
-    /// `because` of a set of it cites gives grounds, whose departed records
-    /// the value may never have read, and what a set's value grounds on
-    /// beyond what it carries. It holds no provenance itself.
+    /// What a state's grounds can hold beyond its lineage (D057): what the
+    /// provenances a `because` of a set of it reads can hold, departed
+    /// records the value may never have read among it, though not the
+    /// records the citation reads or names itself, which its grounds pin
+    /// (D099); and what a set's value grounds on beyond what it carries. It
+    /// holds no provenance itself.
     StateExcess(String),
     /// What a `caveated` selector reads besides the state's lineage: each
     /// evidence the state's grounds name, through its records. It holds no
@@ -210,14 +228,33 @@ pub(crate) struct HistoryReach {
     reach: HashMap<Owner, Vec<u64>>,
     /// For each take-back caveat, the histories whose records it can
     /// qualify (D098): what lets grounds keep it beyond their lineage or
-    /// basis. Empty in a program that does not take back.
+    /// basis, and with `born`, beyond a lineage that carries it live. Empty
+    /// in a program that does not take back.
     take_back_carriers: HashMap<String, Vec<String>>,
+    /// The bit, after every history's, that stands for what a reading of
+    /// each of these streams is taken keeping: the take-back caveats its
+    /// template's qualifications give it (D099). Only a citation of the
+    /// stream's readings brings it, only a state's or a parameter's bound
+    /// beyond what it carries has it, and only a kept caveat reads it.
+    born: HashMap<String, usize>,
+    /// For each take-back caveat, the streams some rule samples whose
+    /// template it can qualify (`born_take_backs`).
+    born_take_backs: HashMap<String, Vec<String>>,
 }
 
 impl HistoryReach {
     /// Whether `owner` can hold records of `history`.
     pub(crate) fn carries(&self, owner: &Owner, history: &str) -> bool {
         let (Some(&bit), Some(bits)) = (self.histories.get(history), self.reach.get(owner)) else {
+            return false;
+        };
+        bits[bit / 64] & (1 << (bit % 64)) != 0
+    }
+
+    /// Whether `owner` can keep what a reading of `stream` is taken keeping
+    /// (D099).
+    fn keeps_born(&self, owner: &Owner, stream: &str) -> bool {
+        let (Some(&bit), Some(bits)) = (self.born.get(stream), self.reach.get(owner)) else {
             return false;
         };
         bits[bit / 64] & (1 << (bit % 64)) != 0
@@ -243,6 +280,13 @@ struct Sources {
 struct Flows<'a> {
     session: &'a ReactiveSession,
     histories: HashMap<String, usize>,
+    /// The bit after the histories' that stands for what a stream's
+    /// readings are taken keeping from its template, by the stream's bit,
+    /// for each stream some rule samples whose template a take-back caveat
+    /// can qualify (D099).
+    born: HashMap<usize, usize>,
+    /// The same bits by the stream's name.
+    born_streams: HashMap<String, usize>,
     /// The owner of each history's records, by the history's bit.
     record_owners: Vec<usize>,
     /// What joins each history's records later, by the history's bit.
@@ -271,11 +315,15 @@ struct Flows<'a> {
 }
 
 impl<'a> Flows<'a> {
-    fn new(session: &'a ReactiveSession) -> Self {
+    /// The flows of `session`'s program, with a bit for what the readings
+    /// of each stream in `born` are taken keeping.
+    fn new<'b>(session: &'a ReactiveSession, born: impl IntoIterator<Item = &'b String>) -> Self {
         let mut flows = Self {
             wide_parameters: session.may_load_before_rc12(),
             session,
             histories: HashMap::default(),
+            born: HashMap::default(),
+            born_streams: HashMap::default(),
             record_owners: Vec::new(),
             qualifications: Vec::new(),
             owners: HashMap::default(),
@@ -307,7 +355,24 @@ impl<'a> Flows<'a> {
             flows.record_owners.push(owner);
             flows.qualifications.push(qualifications);
         }
+        let mut born = born
+            .into_iter()
+            .filter(|stream| session.reading_streams.contains_key(stream.as_str()))
+            .collect::<Vec<_>>();
+        born.sort_unstable();
+        born.dedup();
+        for stream in born {
+            let bit = flows.histories.len() + flows.born.len();
+            flows.born.insert(flows.histories[stream.as_str()], bit);
+            flows.born_streams.insert(stream.clone(), bit);
+        }
         flows
+    }
+
+    /// How many bits a bound has: one for each history, then one for what
+    /// each stream in `born` is taken keeping.
+    fn width(&self) -> usize {
+        self.histories.len() + self.born.len()
     }
 
     /// The owner's index. A part made here flows into what takes it whole,
@@ -634,6 +699,54 @@ impl<'a> Flows<'a> {
         }
     }
 
+    /// What a `because` citation's grounds can hold that the citing state's
+    /// lineage may not (D057, D099): what the provenances it reads can hold.
+    /// A record it reads itself, or names alone, is an own read of the
+    /// state's grounds, which pins it: it does not depart while they name
+    /// it, so it leaves no marker there. A name alone, and the reasons and
+    /// causes a withdrawal predicate, `on_hold` and `reopened` give, carry
+    /// their caveats live and bring nothing else. A reading the citation
+    /// reads (`latest`, `history_at`, `history_count`, a fold, `has_sample`)
+    /// gives what it holds and its stream's selection, which can hold
+    /// markers and kept caveats: the stream's readings bring those. Besides
+    /// what it holds, the reading keeps the take-back caveats its template's
+    /// qualifications gave it when it was taken, which the bound has as a
+    /// bit of the stream's that only a kept caveat reads (`born`). A
+    /// state's, a commitment's or a parameter's grounds, and a commitment's
+    /// basis, outcome and selection, can hold markers and kept caveats, and
+    /// stay whole: a history-level bound cannot tell the histories their own
+    /// reads pin from those they hold as markers.
+    fn cited(&mut self, grounds: &Sources) -> Sources {
+        let mut excess = Sources {
+            everything: grounds.everything,
+            ..Sources::default()
+        };
+        excess
+            .owners
+            .extend(grounds.owners.iter().copied().filter(|&owner| {
+                !matches!(
+                    self.keys[owner],
+                    Owner::WithdrawalReasons | Owner::ReopeningCauses(_) | Owner::HoldCauses(_)
+                )
+            }));
+        for &bit in &grounds.histories {
+            let owner = match &self.keys[self.record_owners[bit]] {
+                Owner::StreamRecords(stream) => {
+                    let stream = stream.clone();
+                    self.owner(Owner::Stream(stream))
+                }
+                // No grounds read takes evidence through its records today;
+                // one that did would take what they hold.
+                _ => self.record_owners[bit],
+            };
+            excess.owners.insert(owner);
+            if let Some(&born) = self.born.get(&bit) {
+                excess.named.insert(born);
+            }
+        }
+        excess
+    }
+
     /// A name that is no state, read by a step of the procedure being
     /// walked: what the procedure's parameter of that name grounds on. A
     /// name that is not one of its parameters is a constant, which carries
@@ -865,23 +978,25 @@ impl<'a> Flows<'a> {
                 self.expression(value, &mut sources);
                 let mut grounds = Sources::default();
                 // What the grounds can hold beyond the lineage (D057): with
-                // `because`, all the citations give grounds, since the live
-                // check compares the names they give with what the value
-                // read, and a departed record leaves no name; without, what
-                // the value gives grounds beyond what it carries.
-                let mut excess = Sources::default();
-                match because {
+                // `because`, what the provenances the citations read can
+                // hold (`cited`), since the live check compares the names
+                // they give with what the value read, and a departed record
+                // leaves no name; without, what the value gives grounds
+                // beyond what it carries.
+                let excess = match because {
                     None => {
                         self.grounds(value, &mut grounds);
+                        let mut excess = Sources::default();
                         self.excess(value, &mut excess);
+                        excess
                     }
                     Some(citations) => {
                         for citation in citations {
                             self.grounds(citation, &mut grounds);
                         }
-                        excess = grounds.clone();
+                        self.cited(&grounds)
                     }
-                }
+                };
                 self.connect(&grounds, Owner::StateGrounds(name.clone()));
                 self.connect(&excess, Owner::StateExcess(name.clone()));
                 vec![Owner::State(name.clone())]
@@ -1082,7 +1197,28 @@ impl<'a> Flows<'a> {
     /// (`read_through`) takes what a history's records hold as soon as the
     /// part can name a record of the history.
     fn close(self) -> HistoryReach {
-        let words = self.histories.len().div_ceil(64).max(1);
+        let width = self.width();
+        let words = width.div_ceil(64).max(1);
+        // The histories among a bound's bits: what a stream's readings are
+        // taken keeping is no history, so nothing joins it or is read
+        // through it. Only a state's or a parameter's bound beyond what it
+        // carries keeps that (D099): a commit freezes its basis with its
+        // grounds, and the basis carries what a reading the grounds hold
+        // was taken keeping, so it keeps that too, and what reads the
+        // commitment's basis takes it.
+        let histories = self.histories.len();
+        let only_histories = (0..words)
+            .map(|word| match histories.saturating_sub(word * 64) {
+                0 => 0,
+                low @ 1..=63 => (1u64 << low) - 1,
+                _ => u64::MAX,
+            })
+            .collect::<Vec<_>>();
+        let keeps_born = self
+            .keys
+            .iter()
+            .map(|owner| matches!(owner, Owner::StateExcess(_) | Owner::ParameterExcess(..)))
+            .collect::<Vec<_>>();
         let mut bits = vec![vec![0u64; words]; self.keys.len()];
         for (owner, names) in self.names.iter().enumerate() {
             for &bit in names {
@@ -1090,8 +1226,15 @@ impl<'a> Flows<'a> {
             }
         }
         for (owner, _) in self.everything.iter().enumerate().filter(|(_, all)| **all) {
-            for bit in 0..self.histories.len() {
+            for bit in 0..width {
                 bits[owner][bit / 64] |= 1 << (bit % 64);
+            }
+        }
+        for (owner, held) in bits.iter_mut().enumerate() {
+            if !keeps_born[owner] {
+                for (word, only) in held.iter_mut().zip(&only_histories) {
+                    *word &= only;
+                }
             }
         }
         let mut into = self.into;
@@ -1108,6 +1251,7 @@ impl<'a> Flows<'a> {
                         .filter(move |&bit| value & (1u64 << bit) != 0)
                         .map(move |bit| word * 64 + bit)
                 })
+                .filter(|&bit| bit < histories)
                 .collect::<Vec<_>>()
         };
         for owner in (0..self.keys.len()).filter(|&owner| self.joined[owner]) {
@@ -1127,7 +1271,13 @@ impl<'a> Flows<'a> {
             let carried = bits[from].clone();
             for to in into[from].clone() {
                 let mut added = vec![0u64; words];
-                for ((word, add), new) in bits[to].iter_mut().zip(&carried).zip(&mut added) {
+                for (((word, &add), new), &only) in bits[to]
+                    .iter_mut()
+                    .zip(&carried)
+                    .zip(&mut added)
+                    .zip(&only_histories)
+                {
+                    let add = if keeps_born[to] { add } else { add & only };
                     *new = add & !*word;
                     *word |= add;
                 }
@@ -1168,6 +1318,8 @@ impl<'a> Flows<'a> {
             histories: self.histories,
             reach: self.keys.into_iter().zip(bits).collect(),
             take_back_carriers: HashMap::default(),
+            born: self.born_streams,
+            born_take_backs: HashMap::default(),
         }
     }
 }
@@ -1339,10 +1491,12 @@ impl ReactiveSession {
 
     /// The bound of finding D054, from the program as it loaded.
     pub(crate) fn history_reach(&self) -> HistoryReach {
-        let mut flows = Flows::new(self);
+        let born = self.born_take_backs();
+        let mut flows = Flows::new(self, born.values().flatten());
         flows.program();
         let mut reach = flows.close();
         reach.take_back_carriers = self.take_back_carriers();
+        reach.born_take_backs = born;
         reach
     }
 
@@ -1653,20 +1807,39 @@ impl ReactiveSession {
         )
     }
 
-    /// Whether state `name`'s grounds can keep take-back caveat `caveat`
-    /// where its lineage does not: one a `because` citation carried from a
+    /// Whether state `name`'s `grounds` can keep take-back caveat `caveat`
+    /// where its `lineage` does not: one a `because` citation carried from a
     /// record that holds it, a frozen basis, a stored qualification or a
     /// departed record, while the lineage carries the caveat live or not at
     /// all, or one a read of grounds that keep it took along (D098). The
     /// caveat must be one that can qualify records of a history the
-    /// citations can carry there.
-    pub(crate) fn state_grounds_keep(&self, name: &str, caveat: &str) -> bool {
-        self.grounds_keep(&Owner::StateExcess(name.to_string()), caveat)
+    /// citations can carry there. Where the lineage carries it live, it can
+    /// instead be one a reading the grounds name was taken keeping, of a
+    /// stream whose readings the citations read (D099). A citation names
+    /// such a reading in the lineage too, where the caveat stays live, since
+    /// no take-back reaches what a reading copies from its template, and if
+    /// the reading departs, every provenance that names it keeps the caveat;
+    /// so where the lineage does not carry the caveat at all, or the grounds
+    /// name no such reading, they keep it only from a history.
+    pub(crate) fn state_grounds_keep(
+        &self,
+        name: &str,
+        caveat: &str,
+        grounds: &Provenance,
+        lineage: &Provenance,
+    ) -> bool {
+        let owner = Owner::StateExcess(name.to_string());
+        self.grounds_keep(&owner, caveat)
+            || (lineage.caveats.contains(caveat) && self.born_keep(&owner, caveat, grounds))
     }
 
     /// Whether commitment `name`'s grounds can keep take-back caveat
     /// `caveat` where its basis does not: one that what it uses, cites or
-    /// gives as reasons took from grounds that keep it (D098).
+    /// gives as reasons took from grounds that keep it (D098). A commit
+    /// freezes the basis with the grounds, and the basis then keeps every
+    /// take-back caveat it carries, so this is one the basis does not carry:
+    /// never one a reading the grounds hold was taken keeping, which the
+    /// basis carries with the reading (D099).
     pub(crate) fn commitment_grounds_keep(&self, name: &str, caveat: &str) -> bool {
         self.grounds_keep(
             &Owner::SeriesExcess(self.series_of(name).to_string()),
@@ -1674,11 +1847,29 @@ impl ReactiveSession {
         )
     }
 
+    /// A caveat that can qualify records of a history `owner`'s bound
+    /// carries (D098).
     fn grounds_keep(&self, owner: &Owner, caveat: &str) -> bool {
         self.history_reach_bound()
             .take_back_carriers
             .get(caveat)
             .is_some_and(|histories| histories.iter().any(|history| self.reaches(owner, history)))
+    }
+
+    /// A caveat a reading of a stream whose readings `owner`'s citations
+    /// read can be taken keeping, where `grounds` name one of the stream's
+    /// readings (D099).
+    fn born_keep(&self, owner: &Owner, caveat: &str, grounds: &Provenance) -> bool {
+        let reach = self.history_reach_bound();
+        reach.born_take_backs.get(caveat).is_some_and(|streams| {
+            streams.iter().any(|stream| {
+                reach.keeps_born(owner, stream)
+                    && grounds
+                        .evidence
+                        .iter()
+                        .any(|record| self.record_history(record.as_str()) == stream)
+            })
+        })
     }
 
     /// The history of `record`, a name `owner` holds at `place`, when
@@ -1777,7 +1968,9 @@ impl ReactiveSession {
                     &format!("state {name}"),
                     &cell.grounds,
                     &cell.value.provenance,
-                    |caveat| self.state_grounds_keep(name, caveat),
+                    |caveat| {
+                        self.state_grounds_keep(name, caveat, &cell.grounds, &cell.value.provenance)
+                    },
                 );
             }
         }
@@ -1921,7 +2114,9 @@ on st set t = latest(b) because latest(d);
     /// through its value, a commitment through `using` or `citing`, a
     /// procedure's parameter through its argument, and a state through
     /// `committed` of such a commitment. The guard of the set, which the
-    /// lineage takes and the grounds never do, gives nothing (D057).
+    /// lineage takes and the grounds never do, gives nothing (D057), and a
+    /// reading the citation reads gives what its stream's readings and
+    /// selection hold, not a marker of its own record (D099).
     #[test]
     fn only_a_citation_lets_grounds_hold_a_marker_beyond_their_lineage() {
         let program = |set: &str| {
@@ -1976,15 +2171,20 @@ on cw set w = if(committed(r), 1, 0);
             );
         }
         assert!(!cited.commitment_grounds_exceed("d@1", "b"));
-        let plain = ReactiveSession::from_source(&program("set t = latest(b)")).unwrap();
-        for state in ["t", "u", "w", "z"] {
-            assert!(!plain.state_grounds_exceed(state, "b"), "{state}");
-        }
-        for commitment in ["r@1", "q@1", "d@1"] {
-            assert!(
-                !plain.commitment_grounds_exceed(commitment, "b"),
-                "{commitment}"
-            );
+        // A record the citation reads itself is pinned by the grounds, so it
+        // leaves no marker there, and the stream's samples read nothing
+        // (D099).
+        for set in ["set t = latest(b)", "set t = latest(b) because latest(b)"] {
+            let plain = ReactiveSession::from_source(&program(set)).unwrap();
+            for state in ["t", "u", "w", "z"] {
+                assert!(!plain.state_grounds_exceed(state, "b"), "{set}: {state}");
+            }
+            for commitment in ["r@1", "q@1", "d@1"] {
+                assert!(
+                    !plain.commitment_grounds_exceed(commitment, "b"),
+                    "{set}: {commitment}"
+                );
+            }
         }
     }
 
@@ -1993,7 +2193,8 @@ on cw set w = if(committed(r), 1, 0);
     /// qualifies only `b`'s readings, which the citation of `d`, whose guard
     /// read `b`, carries into `t`'s grounds and what reads them; `firm`
     /// qualifies only `c`'s, which the set's guard reads and no citation
-    /// carries. Without the citation nothing lets grounds keep either.
+    /// carries. Without the citation nothing lets grounds keep either, nor
+    /// with a citation of the reading itself (D099).
     #[test]
     fn grounds_keep_only_a_take_back_caveat_a_citation_can_bring() {
         let program = |set: &str| {
@@ -2031,21 +2232,148 @@ on cr commit r because enough citing t;
 "
             )
         };
+        // Grounds and a lineage that hold nothing: what keeps a caveat the
+        // lineage does not carry at all.
+        let none = Provenance::default();
         let cited =
             ReactiveSession::from_source(&program("set t = latest(b) because latest(d)")).unwrap();
         for state in ["t", "u"] {
-            assert!(cited.state_grounds_keep(state, "shaky"), "{state}");
-            assert!(!cited.state_grounds_keep(state, "firm"), "{state}");
+            assert!(
+                cited.state_grounds_keep(state, "shaky", &none, &none),
+                "{state}"
+            );
+            assert!(
+                !cited.state_grounds_keep(state, "firm", &none, &none),
+                "{state}"
+            );
         }
         assert!(cited.commitment_grounds_keep("r@1", "shaky"));
         assert!(!cited.commitment_grounds_keep("r@1", "firm"));
         assert!(!cited.commitment_grounds_keep("d@1", "shaky"));
-        let plain = ReactiveSession::from_source(&program("set t = latest(b)")).unwrap();
-        for state in ["t", "u"] {
-            assert!(!plain.state_grounds_keep(state, "shaky"), "{state}");
-            assert!(!plain.state_grounds_keep(state, "firm"), "{state}");
+        // `qb` puts `shaky` on a reading after it is taken, so the reading
+        // carries it live, and no reading is taken keeping it: a citation
+        // of the reading brings it to no grounds kept (D099).
+        for set in ["set t = latest(b)", "set t = latest(b) because latest(b)"] {
+            let plain = ReactiveSession::from_source(&program(set)).unwrap();
+            for state in ["t", "u"] {
+                for caveat in ["shaky", "firm"] {
+                    assert!(
+                        !plain.state_grounds_keep(state, caveat, &none, &none),
+                        "{set}: {state} {caveat}"
+                    );
+                }
+            }
+            assert!(!plain.commitment_grounds_keep("r@1", "shaky"), "{set}");
         }
-        assert!(!plain.commitment_grounds_keep("r@1", "shaky"));
+    }
+
+    /// A reading is taken keeping the take-back caveats its template's
+    /// qualifications give it: `q` puts `shaky` on `gc`, `c`'s template, so a
+    /// citation of `c`'s reading lets grounds that name one of `c`'s
+    /// readings keep `shaky` where the lineage carries it live, and what
+    /// reads them too (D099). Not where the lineage does not carry it, nor
+    /// grounds that name no reading of `c`, though they hold a marker of
+    /// one; not `firm`, which qualifies only `ge`; not through `b`, whose
+    /// template nothing qualifies, nor through `c` if no rule samples it.
+    /// A commitment's basis keeps what its grounds' readings were taken
+    /// keeping, so nothing lets `r`'s grounds keep `shaky`, nor `w`'s, which
+    /// read `r`. The citation carries no marker of `c`, whose records the
+    /// grounds pin.
+    #[test]
+    fn grounds_keep_what_a_cited_reading_is_taken_keeping() {
+        let program = |citation: &str, sample: &str| {
+            format!(
+                "evidence ge from \"ge\";
+evidence gb from \"gb\";
+evidence gc from \"gc\";
+readings b from gb window 1;
+readings c from gc window 1;
+caveat shaky consequence low;
+caveat firm consequence low;
+decisions r limit 4;
+state t = 0;
+state u = 0;
+state w = 0;
+event see;
+on see reveal gc;
+on see reveal ge;
+event q;
+on q qualify gc with shaky;
+event uq;
+on uq unqualify ge with shaky;
+event qf;
+on qf qualify ge with firm;
+event uf;
+on uf unqualify ge with firm;
+event sb v min 0 max 10;
+on sb sample b = v;
+event sc v min 0 max 10;
+{sample}
+event st;
+on st set t = latest(b) + latest(c) because {citation};
+event cu;
+on cu set u = t;
+event cr;
+on cr commit r because enough citing t;
+event cw;
+on cw set w = if(committed(r), 1, 0) + latest(c);
+"
+            )
+        };
+        let names = |evidence: &[&str], caveats: &[&str]| {
+            Provenance::from_names(
+                evidence.iter().map(|name| name.to_string()),
+                caveats.iter().map(|name| name.to_string()),
+            )
+            .unwrap()
+        };
+        let reading = names(&["c@1"], &["shaky"]);
+        let lineage = names(&["b@1", "c@1"], &["shaky"]);
+        let marker = {
+            let mut marker = reading.clone();
+            assert!(marker.depart("c@1", "c", 1, 2, "test"));
+            marker
+        };
+        let unread = names(&["b@1"], &["shaky"]);
+        let uncarried = names(&["b@1", "c@1"], &[]);
+        let cited =
+            ReactiveSession::from_source(&program("latest(c)", "on sc sample c = v;")).unwrap();
+        for state in ["t", "u"] {
+            assert!(
+                cited.state_grounds_keep(state, "shaky", &reading, &lineage),
+                "{state}"
+            );
+            assert!(
+                !cited.state_grounds_keep(state, "shaky", &marker, &lineage),
+                "{state}"
+            );
+            assert!(
+                !cited.state_grounds_keep(state, "shaky", &unread, &lineage),
+                "{state}"
+            );
+            assert!(
+                !cited.state_grounds_keep(state, "shaky", &reading, &uncarried),
+                "{state}"
+            );
+            assert!(
+                !cited.state_grounds_keep(state, "firm", &reading, &lineage),
+                "{state}"
+            );
+            assert!(!cited.state_grounds_exceed(state, "c"), "{state}");
+        }
+        assert!(!cited.commitment_grounds_keep("r@1", "shaky"));
+        assert!(!cited.state_grounds_keep("w", "shaky", &reading, &lineage));
+        for (citation, sample) in [("latest(b)", "on sc sample c = v;"), ("latest(c)", "")] {
+            let other = ReactiveSession::from_source(&program(citation, sample)).unwrap();
+            for state in ["t", "u"] {
+                for caveat in ["shaky", "firm"] {
+                    assert!(
+                        !other.state_grounds_keep(state, caveat, &reading, &lineage),
+                        "{citation} {sample}: {state} {caveat}"
+                    );
+                }
+            }
+        }
     }
 
     /// A state's initializer grounds it as a set's value does: `qualified(1,

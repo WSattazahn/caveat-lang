@@ -265,7 +265,15 @@ through `committed`, `reopened` or `in_basis`, such as a set whose value
 reads the state, a commit that uses or cites it, or a call given it. Restore
 accepts a caveat grounds keep beyond their lineage or basis, and its name
 where the lineage or basis no longer carries it, only where it can qualify
-records of a history those citations can bring there.
+records of a history those citations can bring there. A reading keeps the
+take-back caveats its template gave it when it was taken, so a citation of
+the reading gives the grounds those kept even while the lineage carries them
+live. Restore accepts such a caveat beyond a lineage that carries it live
+where the grounds name a reading of a stream that a rule samples and the
+citations read, and whose template the caveat can qualify. The lineage names
+that reading too, and no take-back reaches what a reading copies from its
+template, so the lineage does not lose the caveat; and a commitment's basis,
+frozen with the reading in it, keeps the caveat itself (D099).
 
 The existing rules apply unchanged. A `qualifies` relation must still pair a
 caveat and evidence some `qualify` of the source can pair, and a take-back
@@ -380,6 +388,20 @@ the implementation.
 
 ## Changes
 
+- 2026-11-14 (D099): a citation brings a kept caveat only through what the
+  provenances it reads hold, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+  ("Meaning") bounds a marker. A caveat a `qualify` puts on a record the
+  citation reads, or on one it or a withdrawal predicate, `on_hold` or
+  `reopened` only names, reaches the grounds live. A reading keeps what it
+  carried when it was taken, the take-back caveats its template gave it
+  among them, so a citation of the reading brings those kept ("Snapshot and
+  save"): restore accepts one only where the lineage carries it live and the
+  grounds name such a reading, and never in a commitment's grounds beyond
+  its basis. Restore refuses again a forged kept caveat that only a live
+  relation of such a record, or of a record only what joins the cited
+  stream's observation records later lists, could give, which it accepted
+  after D098, and refuses one a reading was taken keeping elsewhere. Tests:
+  `runtime/tests/d099_citations_pin_what_they_read.rs`.
 - 2026-11-14: restore accepts grounds that keep a take-back caveat their
   lineage or basis does not keep, or no longer carries, where a `because`
   citation of the program can bring it there ("Snapshot and save", D098). A
