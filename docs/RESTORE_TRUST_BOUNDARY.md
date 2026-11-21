@@ -311,9 +311,10 @@ its stream, and the declarations carry what they leave. A read carries the
 parts the runtime reads for it, and no other part of what it names: a read
 of evidence or of a stream, the record's name and what its observation and
 `observed` records can hold, and of a stream also its readings and its
-selection; a value read of a stream, and `has_sample`, the record's name and
-the readings and the selection alone, since the runtime reads the reading as
-it was taken and nothing joins a reading later (D100); of a series or a
+selection; a value read of a stream, `has_sample`, and the `latest(S)` a
+`because` or a `permitted by` selects, the record's name and the readings
+and the selection alone, since the runtime reads the reading as it was taken
+and nothing joins a reading later (D100); of a series or a
 commitment, a value read the bases, `grounds_of` the grounds, `outcome` and
 `resolved` the outcomes, `committed` and `in_basis` the bases, the reopening
 records and the `committed` records, and `reopened` and `on_hold` those and
@@ -347,11 +348,13 @@ is refused anywhere.
 
 The bound has to contain everything the runtime can write, and where the
 runtime reads less than a whole part it is knowingly wider than the read.
-Until D100 a value read of a stream, and `has_sample`, was such a read: it
-was given what the readings' observation and `observed` records can hold,
-though the runtime reads only the readings and the selection for it, so a
-forged marker that only a later join of the read stream's observation
-records could hold restored in the readings a sample took that way. What
+Until D100 a value read of a stream, `has_sample`, and a selected
+`latest(S)` were such reads: each was given what the readings' observation
+and `observed` records can hold, though the runtime reads only the readings
+and the selection for it, so a forged marker that only a later join of the
+read stream's observation records could hold restored in the readings a
+sample took that way, and in the outcome, the basis or the reopening record
+a `because latest(S)` or a `permitted by latest(S)` wrote. What
 `reopened` finds in the records of what reopened a commitment is bounded
 with the reopening records, so `committed` and `in_basis`, which carry
 those, are given it too.

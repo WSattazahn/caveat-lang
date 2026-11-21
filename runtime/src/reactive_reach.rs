@@ -54,9 +54,10 @@
 //! what it names (`Read`). A read of evidence or of a stream takes the
 //! record's name and what its observation and `observed` records hold, and
 //! of a stream what its readings and its selection hold too; a value read
-//! of a stream, and `has_sample`, takes only the record's name and what the
-//! readings and the selection hold, as the runtime reads them, and not what
-//! joins the observation records after a reading is taken (D100). Of a
+//! of a stream, `has_sample`, and the `latest(STREAM)` a `because` or a
+//! `permitted by` selects, take only the record's name and what the readings
+//! and the selection hold, as the runtime reads them, and not what joins the
+//! observation records after a reading is taken (D100). Of a
 //! series or a commitment, a value read takes the bases, `grounds_of` the
 //! grounds, `outcome` and `resolved` the outcomes, `committed` and
 //! `in_basis` the bases, the reopening records and the `committed` records,
@@ -786,12 +787,16 @@ impl<'a> Flows<'a> {
     }
 
     /// The evidence a `because` or a grant selects, with what reading it
-    /// carries: each is read through its records (`select_because`).
+    /// carries: named evidence and an occurrence are read through their
+    /// records (`select_because`, `check_permission`), and `latest(STREAM)`
+    /// by value, the reading as it was taken with the stream's selection, as
+    /// `latest` reads it there (D100).
     fn selector(&mut self, selector: &EvidenceSelector, sources: &mut Sources) {
         match selector {
-            EvidenceSelector::Named(name)
-            | EvidenceSelector::Latest(name)
-            | EvidenceSelector::Every(name) => self.name(name, sources),
+            EvidenceSelector::Named(name) | EvidenceSelector::Every(name) => {
+                self.name(name, sources)
+            }
+            EvidenceSelector::Latest(name) => self.read(Read::Value, name, sources),
             EvidenceSelector::Occurrence { evidence, index } => {
                 self.name(evidence, sources);
                 self.expression(index, sources);

@@ -388,11 +388,12 @@ the implementation.
 
 ## Changes
 
-- 2026-11-21 (D100): a value read in a cited reading's sample brings no
-  kept caveat that only what joins the read stream's observation records
-  later could give ([Save 0.1](caveat-save-0.1.md), "Restore validation"):
-  restore refuses such a forged kept caveat in the citing state's grounds,
-  as it refuses one no citation brings. Tests:
+- 2026-11-21 (D100): a value read in a cited reading's sample, and the
+  `latest(S)` a cited outcome's `because` or a cited basis's `permitted by`
+  selected, bring no kept caveat that only what joins the read stream's
+  observation records later could give ([Save 0.1](caveat-save-0.1.md),
+  "Restore validation"): restore refuses such a forged kept caveat in the
+  citing state's grounds, as it refuses one no citation brings. Tests:
   `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): a citation brings a kept caveat only through what the
   provenances it reads hold, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)

@@ -197,7 +197,9 @@ reading holds is bounded as restore bounds the stream's readings ([Save
 0.1](caveat-save-0.1.md), "Restore validation"), by what the reading's
 sample can read as it read it: a value read there of another stream takes
 that stream's readings and selection, and nothing that joins its
-observation records later (D100).
+observation records later (D100). So does the `latest(S)` that the
+`because` of a cited outcome, or the `permitted by` of a cited basis,
+selected.
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
@@ -695,9 +697,10 @@ provenance read in its range.
   reading's sample brings what the read stream's observation records can
   hold: such a read takes the stream's readings and selection, as the
   runtime reads them ([Save 0.1](caveat-save-0.1.md), "Restore
-  validation"), and restore refuses a forged marker beyond the lineage that
-  only what joins those records later could give. Tests:
-  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+  validation"), and so does the `latest(S)` a cited outcome's `because` or a
+  cited basis's `permitted by` selected. Restore refuses a forged marker
+  beyond the lineage that only what joins those records later could give.
+  Tests: `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): a `because` citation brings a marker beyond the lineage
   only through what the provenances it reads hold, never as a marker of a
   record it reads itself or only names, which the grounds pin, nor of the

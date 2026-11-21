@@ -314,12 +314,13 @@ save is refused with an error, and never crashes the runtime, when:
   other part of what it names. A read of evidence or of a stream carries the record's name and
   what its observation and `observed` records can hold, and a read of a
   stream also what its readings and its selection can. A value read of a
-  stream (`latest`, `history_at`, `history_count` or a fold), and
-  `has_sample`, carries only the record's name and what the readings and the
-  selection can hold: the runtime reads the reading as it was taken, which
-  keeps what its sample read then, and what a qualification or a withdrawal
-  joins to the observation records later never reaches the reading (finding
-  D100). Of a series or
+  stream (`latest`, `history_at`, `history_count` or a fold), `has_sample`,
+  and the `latest(STREAM)` a `because` or a `permitted by` selects, carry
+  only the record's name and what the readings and the selection can hold:
+  the runtime reads the reading as it was taken, which keeps what its sample
+  read then, and what a qualification or a withdrawal joins to the
+  observation records later never reaches the reading (finding D100). Of a
+  series or
   a commitment, a value read (`latest`, `history_at`, `history_count` or a
   fold) carries the bases, `grounds_of` the grounds, `outcome` and
   `resolved` the outcomes, `committed` and `in_basis` the bases, the
@@ -605,22 +606,29 @@ validation and host trust mechanisms separately from this contract.
 ## Changes
 
 - 2026-11-21 (D100): a value read of a stream (`latest`, `history_at`,
-  `history_count` or a fold), and `has_sample`, carries only the record's
-  name and what the stream's readings and selection can hold ("Restore
-  validation"). D054 bounded it as any other read of the stream, by what
-  the observation records can hold too, though the runtime reads only the
-  reading as it was taken, and what a qualification or a withdrawal later
-  joins to the observation records never reaches the reading. So where a
-  sample's guard read another stream by value, restore accepted a forged
-  marker of a history only such a join could hold: in the readings the
-  sample takes, in their stream's selection and in grounds that read them
-  by value, and in the grounds of a state that cites such a reading beyond
-  its lineage, with a forged kept take-back caveat there as well (D057,
-  D098). No session writes these saves, and restore now refuses them as it
-  refuses such a marker or caveat elsewhere. A state's lineage still takes
-  what joins a record it lists, and a read through the records
-  (`observed`, `carries`, `qualified`) what joins them. Tests:
-  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+  `history_count` or a fold), `has_sample`, and the `latest(STREAM)` a
+  `because` or a `permitted by` selects, carry only the record's name and
+  what the stream's readings and selection can hold ("Restore validation").
+  D054 bounded each as any other read of the stream, by what the
+  observation records can hold too, though the runtime reads only the
+  reading as it was taken (`select_because` and the permission check call
+  `latest`), and what a qualification or a withdrawal later joins to the
+  observation records never reaches the reading. So where a sample's guard
+  read another stream by value, restore accepted a forged marker of a
+  history only such a join could hold: in the readings the sample takes, in
+  their stream's selection and in grounds that read them by value; in the
+  outcome a `resolve ... because latest(S)` writes, the basis of a commit
+  `permitted by latest(S)` and the reopening record a `hold` or a `release`
+  `because latest(S)` joins; and in the grounds of a state that cites such
+  a reading, outcome or basis beyond its lineage, with a forged kept
+  take-back caveat there as well (D057, D098). No session writes these
+  saves, and restore now refuses them as it refuses such a marker or caveat
+  elsewhere. A state's lineage still takes what joins a record it lists, a
+  read through the records (`observed`, `carries`, `qualified`, and a
+  `because` that names evidence or an occurrence) what joins them, and the
+  reopening record of a `reopen ... because latest(S)` what `reopened`
+  reads through the records of what reopened it, with which it is bounded.
+  Tests: `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): the bound of D057 and D098 starts with what the
   provenances a `because` citation reads can hold: of a stream it reads,
   what the readings and the selection hold, not what joins the observation

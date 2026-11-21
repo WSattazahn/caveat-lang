@@ -11,12 +11,15 @@
 //! marker, or a forged kept take-back caveat, of such a history in those
 //! readings, in their stream's selection, and in grounds that read them,
 //! though no release accepts it in grounds a citation reads (D057, D099).
-//! The bound now gives a value read of a stream the reading's name and what
-//! the readings and the selection can hold, and restore refuses these. A
-//! state lineage that lists a record still takes what joins it later, and a
-//! read through the records (`observed`, `carries`, `qualified`) still
-//! takes the observation records. See spec/caveat-save-0.1.md ("Restore
-//! validation", "Changes").
+//! The same held for the `latest(S)` a `because` or a `permitted by`
+//! selects, which the runtime reads by value too: in the outcome, the basis
+//! and the reopening record of a hold or a release it writes, and in grounds
+//! that cite them. The bound now gives each of these reads the reading's
+//! name and what the readings and the selection can hold, and restore
+//! refuses these. A state lineage that lists a record still takes what
+//! joins it later, and a read through the records (`observed`, `carries`,
+//! `qualified`) still takes the observation records. See
+//! spec/caveat-save-0.1.md ("Restore validation", "Changes").
 use caveat_runtime::reactive::ReactiveSession;
 use serde_json::{json, Value};
 
@@ -289,6 +292,172 @@ fn a_lineage_still_takes_what_joins_the_records_it_lists() {
                 &format!(
                     "state {state} grounds: no rule or declaration of this program carries records of x into it"
                 ),
+            );
+        }
+    }
+}
+
+/// What `because latest(h)` and `permitted by latest(h)` select is `h`'s
+/// reading as it was taken, with `h`'s selection, as a value read takes it:
+/// `select_because` and `check_permission` call `latest`. So the outcome a
+/// resolve writes, a commitment's basis, and the reopening record a hold or
+/// a release joins never hold what joins `h@1`'s observation record later,
+/// and nor do the grounds of `t` and `w`, which cite that outcome and that
+/// basis, or of `s`, which cites `has_sample(h)`. A reopening's record is
+/// bounded with what `reopened` reads through the records of what reopened
+/// it (docs/RESTORE_TRUST_BOUNDARY.md), so a marker there still restores.
+fn selected() -> &'static str {
+    "evidence gh from \"gh\";
+evidence gy from \"gy\";
+evidence gx from \"gx\";
+evidence e from \"e\";
+readings h from gh window 1;
+readings y from gy window 1;
+readings x from gx window 1;
+caveat flag consequence low;
+caveat shaky consequence low;
+decisions d limit 4;
+decisions p limit 4;
+decisions g limit 4;
+decisions r limit 4;
+decisions k limit 4;
+state t = 0;
+state w = 0;
+state s = 0;
+event sx n min 0 max 10;
+on sx sample x = n;
+event sy n min 0 max 10;
+on sy sample y = n;
+event sh n min 0 max 10;
+on sh when latest(y) >= 0 sample h = n;
+event qx;
+on qx qualify latest(x) with shaky;
+event ux;
+on ux unqualify latest(x) with shaky;
+event qy;
+on qy when latest(x) >= 0 qualify latest(y) with flag;
+event go;
+on go reveal e;
+event cd;
+on cd commit d because enough using 1;
+event rd;
+on rd resolve d = 1 because latest(h);
+event cp;
+on cp commit p because enough using 1 permitted by latest(h);
+event cg;
+on cg commit g because enough using 1;
+event hg;
+on hg hold g because latest(h);
+event cr;
+on cr commit r because enough using 1;
+event hr;
+on hr hold r because e;
+event rr;
+on rr release r because latest(h);
+event ck;
+on ck commit k because enough using 1;
+event rk;
+on rk when committed(k) and not reopened(k) reopen k because latest(h);
+event st;
+on st set t = outcome(d) because outcome(d);
+event sw;
+on sw set w = latest(p) because latest(p);
+event ss;
+on ss set s = if(has_sample(h), 1, 0) because has_sample(h);
+"
+}
+
+#[test]
+fn a_selected_latest_takes_the_reading_as_taken() {
+    let source = selected();
+    // `qy` joins `x@1` to `h@1`'s observation record before the reads, or
+    // after them, when it joins the lineages of `t`, `w` and `s` too.
+    for early in [true, false] {
+        let mut play = vec![
+            ("sx", r#"{"n":1}"#),
+            ("sy", r#"{"n":1}"#),
+            ("sh", r#"{"n":1}"#),
+            ("go", "{}"),
+            ("qx", "{}"),
+        ];
+        let reads = [
+            "cd", "rd", "cp", "cg", "hg", "cr", "hr", "rr", "ck", "rk", "st", "sw", "ss",
+        ];
+        if early {
+            play.push(("qy", "{}"));
+        }
+        play.extend(reads.iter().map(|event| (*event, "{}")));
+        if !early {
+            play.push(("qy", "{}"));
+        }
+        play.extend([("ux", "{}"), ("sx", r#"{"n":2}"#), ("sy", r#"{"n":2}"#)]);
+        let save = plays_and_restores(source, &play);
+        assert!(
+            has_x_marker(&save["observation_qualifications"]["h@1"]),
+            "{early}: {}",
+            save["observation_qualifications"]
+        );
+        let marker = json!({"history": "x", "read": 1, "from": 1, "through": 1, "departed_at": 21});
+        for (pointer, place) in [
+            (
+                "/decision_series/d/revisions/0/outcome/lineage",
+                "outcome of d@1",
+            ),
+            ("/commitment_bases/p@1/provenance", "commitment p@1"),
+            ("/reopening_qualifications/g@1", "reopening of g@1"),
+            ("/reopening_qualifications/r@1", "reopening of r@1"),
+        ] {
+            assert!(
+                !has_x_marker(&save.pointer(pointer).unwrap()),
+                "{early}: {place}"
+            );
+            let mut forged = save.clone();
+            add_marker(forged.pointer_mut(pointer).unwrap(), marker.clone());
+            refused(
+                source,
+                &forged,
+                &format!(
+                    "{place}: no rule or declaration of this program carries records of x into it"
+                ),
+            );
+        }
+        let mut forged = save.clone();
+        add_marker(
+            forged.pointer_mut("/reopening_qualifications/k@1").unwrap(),
+            marker.clone(),
+        );
+        ReactiveSession::restore_json(source, &forged.to_string())
+            .unwrap_or_else(|error| panic!("{early}: k@1: {error}"));
+        for state in ["t", "w", "s"] {
+            assert_eq!(
+                has_x_marker(&save["states"][state]["lineage"]),
+                !early,
+                "{early}: {state}"
+            );
+            let mut held = save.clone();
+            assert!(
+                !has_x_marker(state_grounds(&mut held, state)),
+                "{early}: {state}"
+            );
+            let mut forged = save.clone();
+            add_marker(state_grounds(&mut forged, state), marker.clone());
+            refused(
+                source,
+                &forged,
+                &if early {
+                    format!("state {state} grounds hold departed x records outside its lineage")
+                } else {
+                    format!(
+                        "state {state} grounds: no rule or declaration of this program carries records of x into it"
+                    )
+                },
+            );
+            let mut forged = save.clone();
+            add_kept(state_grounds(&mut forged, state), "shaky");
+            refused(
+                source,
+                &forged,
+                &format!("state {state} grounds include caveat shaky outside its lineage"),
             );
         }
     }
