@@ -304,6 +304,157 @@ impl<V> IdMap<V> {
         walk(here, there, &mut kept)
     }
 
+    /// Visits each key whose entry differs between `self` and `other`, in key
+    /// order, passing `(key, old, new)`. Shared blocks and shared values are
+    /// skipped without reading them, so two maps that differ in a few keys are
+    /// compared in time proportional to what changed. Stops early when `visit`
+    /// returns `false`, returning `false`.
+    pub fn diff(
+        &self,
+        other: &Self,
+        mut visit: impl FnMut(u64, Option<&V>, Option<&V>) -> bool,
+    ) -> bool {
+        fn visit_one<V>(
+            block: &Block<V>,
+            level: u32,
+            prefix: u64,
+            is_left: bool,
+            visit: &mut impl FnMut(u64, Option<&V>, Option<&V>) -> bool,
+        ) -> bool {
+            match block {
+                Block::Branch(slots) => {
+                    for (i, slot) in slots.iter().enumerate() {
+                        if let Some(child) = slot {
+                            let key = prefix | ((i as u64) << (BITS * level));
+                            if !visit_one(child, level - 1, key, is_left, visit) {
+                                return false;
+                            }
+                        }
+                    }
+                    true
+                }
+                Block::Leaf(slots) => {
+                    for (i, slot) in slots.iter().enumerate() {
+                        if let Some(value) = slot {
+                            let key = prefix | (i as u64);
+                            let keep = if is_left {
+                                visit(key, Some(value), None)
+                            } else {
+                                visit(key, None, Some(value))
+                            };
+                            if !keep {
+                                return false;
+                            }
+                        }
+                    }
+                    true
+                }
+            }
+        }
+        fn walk<V>(
+            left: &Arc<Block<V>>,
+            right: &Arc<Block<V>>,
+            level: u32,
+            prefix: u64,
+            visit: &mut impl FnMut(u64, Option<&V>, Option<&V>) -> bool,
+        ) -> bool {
+            if Arc::ptr_eq(left, right) {
+                return true;
+            }
+            match (&**left, &**right) {
+                (Block::Branch(left), Block::Branch(right)) => {
+                    for (i, pair) in left.iter().zip(right).enumerate() {
+                        let key = prefix | ((i as u64) << (BITS * level));
+                        let keep = match pair {
+                            (Some(a), Some(b)) => walk(a, b, level - 1, key, visit),
+                            (Some(a), None) => visit_one(a, level - 1, key, true, visit),
+                            (None, Some(b)) => visit_one(b, level - 1, key, false, visit),
+                            (None, None) => true,
+                        };
+                        if !keep {
+                            return false;
+                        }
+                    }
+                    true
+                }
+                (Block::Leaf(left), Block::Leaf(right)) => {
+                    for (i, pair) in left.iter().zip(right).enumerate() {
+                        let key = prefix | (i as u64);
+                        let keep = match pair {
+                            (Some(a), Some(b)) if Arc::ptr_eq(a, b) => true,
+                            (Some(a), Some(b)) => visit(key, Some(a), Some(b)),
+                            (Some(a), None) => visit(key, Some(a), None),
+                            (None, Some(b)) => visit(key, None, Some(b)),
+                            (None, None) => true,
+                        };
+                        if !keep {
+                            return false;
+                        }
+                    }
+                    true
+                }
+                _ => unreachable!("same-level blocks match in kind"),
+            }
+        }
+        fn descend<V>(
+            shallow: &Arc<Block<V>>,
+            shallow_height: u32,
+            tall: &Arc<Block<V>>,
+            tall_level: u32,
+            tall_is_left: bool,
+            visit: &mut impl FnMut(u64, Option<&V>, Option<&V>) -> bool,
+        ) -> bool {
+            if tall_level == shallow_height {
+                return if tall_is_left {
+                    walk(tall, shallow, shallow_height, 0, visit)
+                } else {
+                    walk(shallow, tall, shallow_height, 0, visit)
+                };
+            }
+            let Block::Branch(slots) = &**tall else {
+                unreachable!("branch above leaf");
+            };
+            let first = match &slots[0] {
+                Some(child) => descend(
+                    shallow,
+                    shallow_height,
+                    child,
+                    tall_level - 1,
+                    tall_is_left,
+                    visit,
+                ),
+                None => visit_one(shallow, shallow_height, 0, !tall_is_left, visit),
+            };
+            if !first {
+                return false;
+            }
+            for (i, slot) in slots.iter().enumerate().skip(1) {
+                if let Some(child) = slot {
+                    let key = (i as u64) << (BITS * tall_level);
+                    if !visit_one(child, tall_level - 1, key, tall_is_left, visit) {
+                        return false;
+                    }
+                }
+            }
+            true
+        }
+        if self.shares_all(other) {
+            return true;
+        }
+        match (&self.root, &other.root) {
+            (None, None) => true,
+            (Some(left), None) => visit_one(left, self.height, 0, true, &mut visit),
+            (None, Some(right)) => visit_one(right, other.height, 0, false, &mut visit),
+            (Some(left), Some(right)) => {
+                if self.height <= other.height {
+                    descend(left, self.height, right, other.height, false, &mut visit)
+                } else {
+                    descend(right, other.height, left, self.height, true, &mut visit)
+                }
+            }
+        }
+    }
+
     /// Put `value` at `id`, and return the value that was there, as the map
     /// held it: a copy of the map may share it, and it is not copied to be
     /// handed back.
@@ -1187,5 +1338,55 @@ mod tests {
         let rebuilt: IdMap<Counted> = (0..40_050).map(|id| (id, Counted(id))).collect();
         assert!(earlier.begins(&rebuilt));
         assert_eq!(compared(), 40_010);
+    }
+
+    #[test]
+    fn diff_visits_only_changed_keys_in_order_across_heights() {
+        let base: IdMap<u64> = (0..1_200).map(|id| (id, id * 10)).collect();
+        let mut edited = base.clone();
+        // Same map shares everything: visits nothing.
+        let mut seen = Vec::new();
+        assert!(base.diff(&edited, |k, a, b| {
+            seen.push((k, a.copied(), b.copied()));
+            true
+        }));
+        assert!(seen.is_empty());
+
+        // Modify, remove, and insert across a height growth.
+        edited.insert(7, 999);
+        edited.remove(&500);
+        edited.insert(1_205, 12_050);
+        edited.insert(1 << 20, 42);
+        assert!(edited.height > base.height);
+
+        let expected = vec![
+            (7, Some(70), Some(999)),
+            (500, Some(5_000), None),
+            (1_205, None, Some(12_050)),
+            (1 << 20, None, Some(42)),
+        ];
+        seen.clear();
+        assert!(base.diff(&edited, |k, a, b| {
+            seen.push((k, a.copied(), b.copied()));
+            true
+        }));
+        assert_eq!(seen, expected);
+
+        // Reverse direction (taller on the left).
+        let reversed_expected: Vec<_> = expected.iter().map(|&(k, a, b)| (k, b, a)).collect();
+        seen.clear();
+        assert!(edited.diff(&base, |k, a, b| {
+            seen.push((k, a.copied(), b.copied()));
+            true
+        }));
+        assert_eq!(seen, reversed_expected);
+
+        // Early stop halts traversal and returns false.
+        seen.clear();
+        assert!(!base.diff(&edited, |k, a, b| {
+            seen.push((k, a.copied(), b.copied()));
+            seen.len() < 2
+        }));
+        assert_eq!(seen, expected[..2]);
     }
 }

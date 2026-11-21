@@ -187,8 +187,22 @@ function patchedMap(held, change, nested) {
 
 function patchedList(held, change) {
   if (!isPlainObject(change) || !Array.isArray(change.items)) throw new TypeError('malformed list change');
+  const { items } = change;
+  if (items.length > 0 && Array.isArray(items[0])) {
+    const [start, length] = items[0];
+    if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
+    let allNewAfter = true;
+    for (let i = 1; i < items.length; i += 1) {
+      if (Array.isArray(items[i])) { allNewAfter = false; break; }
+    }
+    if (allNewAfter) {
+      const result = held.slice(start, start + length);
+      for (let i = 1; i < items.length; i += 1) result.push(deepFreeze(items[i]));
+      return Object.freeze(result);
+    }
+  }
   const result = [];
-  for (const item of change.items) {
+  for (const item of items) {
     if (Array.isArray(item)) {
       const [start, length] = item;
       if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
