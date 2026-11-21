@@ -490,3 +490,9 @@
 {"event":"approve","payload":{"item":489}}
 {"event":"find","payload":{"number":63}}
 {"event":"release_build_shows","payload":{"number":63}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":490}}
+{"event":"find","payload":{"number":64}}
+{"event":"find","payload":{"number":65}}
+{"event":"release_build_shows","payload":{"number":64}}
+{"event":"release_build_shows","payload":{"number":65}}

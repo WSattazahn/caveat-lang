@@ -41,10 +41,10 @@ each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
 `check_last_event_spending`, run after every check older than it (only the
 retirement-date check of D060, the hold-entry check of D062, the
-history-reach check of D054 and the renewals check of D063 follow it),
-requires the costs of the last event's `examine` effects, a caveat examined
-twice counting twice, added to what the declarations spent, to fit the
-budget's `spent` (D053).
+history-reach check of D054, the renewals check of D063 and the
+declared-evidence check of D064 and D065 follow it), requires the costs of
+the last event's `examine` effects, a caveat examined twice counting twice,
+added to what the declarations spent, to fit the budget's `spent` (D053).
 
 Since rc.11, a single added `["phantom", "qualifies", "sensor"]` relation is
 refused when no mechanism of the loaded source can add that pair, and accepted
@@ -185,7 +185,9 @@ calls. It also refuses a renewals list that names an occurrence of renewable
 evidence no `renew` in a rule, or in a procedure a rule reaches, could make
 (D063). Evidence a declaration relates to a claim is observed as the program
 loads, and has no observation record until an event reveals it with a stance
-its declarations do not give it. A renewal leaves one on the occurrence it
+its declarations do not give it. That reveal adds the stance and leaves the
+record together, so restore refuses either one there without the other
+(D064, D065). A renewal leaves one on the occurrence it
 makes only when its guard rests on something, which needs a condition or call
 argument on its way that reads a state, the graph or a history.
 

@@ -449,7 +449,13 @@ save is refused with an error, and never crashes the runtime, when:
   commitment a `reopens` relation names without a reopening record.
   Evidence a declaration relates to a claim, and a caveat the declarations
   leave `examined`, are observed and examined as the program loads and need
-  none. A record removed together with its membership is still accepted;
+  none, but a stance no declaration gives that evidence is an event's, and
+  needs the evidence's observation record (finding D065). A record removed
+  together with its membership is still accepted;
+- an observation record on evidence a declaration relates to a claim sits
+  beside no stance of that evidence that no declaration gives it: only a
+  `reveal` that gives it such a stance leaves that record, and it adds the
+  stance in the same step (finding D064);
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -609,6 +615,28 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-21 (D064, D065): restore pairs the stances an event gives declared
+  evidence with that evidence's observation record. Evidence a declaration
+  relates to a claim is observed as the program loads, without a record, and
+  a `reveal` that gives it a stance no declaration gives it adds that
+  relation and leaves the record in the same step. Nothing later removes
+  either: a withdrawal, a qualification and its take-back keep both, and the
+  evidence's own name never departs, even once a renewal retires it. Restore
+  skipped such evidence when it paired stances with records (rc.13,
+  F317–F322), and held its record only to the reveals a rule reaches (D052).
+  So a save could keep the record without the stance (D064) or the stance
+  without the record (D065), and the restored session's later reads of the
+  evidence carried what no session of the program carries. Restore now
+  refuses a record on declared evidence that has no stance but those its
+  declarations give it, with "observation of E: E has no stance but those
+  its declarations give it", and a stance no declaration gives declared
+  evidence beside no record of it, with "evidence E has no observation
+  record, though it RELATION CLAIM, a stance no declaration gives it". The
+  stances the declarations give need no record, as before. The checks run
+  after every older check, so a save refused before keeps its message. Saves
+  the program writes restore as before. Tests:
+  `runtime/tests/d064_observation_record_needs_its_stance.rs` and
+  `runtime/tests/d065_event_stance_needs_its_record.rs`.
 - 2026-11-21 (D063): restore refuses a renewals list that names an
   occurrence of renewable evidence no rule renews. Only a `renew` makes an
   occurrence, and restore held the list to its first entry, its order, its
@@ -987,10 +1015,10 @@ validation and host trust mechanisms separately from this contract.
 - 2026-11-08 (D052): restore checks an observation record's key against the
   effects that leave records. Only an event's `reveal`, `sample` or `renew`
   leaves an observation record, and evidence a declaration relates to a
-  claim is observed as the program loads without one (D043). Restore
-  accepted a record keyed by any observed evidence, so a save could hold one
-  that no session of the program holds, and the restored session's later
-  reads of that evidence carried what it lists. Restore now refuses an
+  claim is observed as the program loads without one (rc.13, F317–F322).
+  Restore accepted a record keyed by any observed evidence, so a save could
+  hold one that no session of the program holds, and the restored session's
+  later reads of that evidence carried what it lists. Restore now refuses an
   observation record on a name that no `reveal`, `sample` or `renew` in a
   rule, or in a procedure a rule reaches, leaves a record on, with
   "observation of E: no rule or procedure of this program reveals E". A

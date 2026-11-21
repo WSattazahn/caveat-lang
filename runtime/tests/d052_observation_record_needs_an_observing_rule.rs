@@ -2,13 +2,13 @@
 //! program's declarations observe. Only an event's reveal, sample or
 //! renewal leaves an observation record, so evidence a declaration relates
 //! to a claim has none until a rule reveals it with a stance its
-//! declarations do not give it (D043). A save could hold one on evidence no
-//! rule or procedure reveals, since the record fit any evidence that is
-//! observed, and the restored session then held a record no session of the
-//! program holds, which later reads of that evidence carry. Restore now
-//! checks an observation record's key against the `reveal`, `sample` and
-//! `renew` effects a rule reaches, directly or through the procedures it
-//! calls. A reveal of declared evidence with its declared stance, or a
+//! declarations do not give it (rc.13, F317–F322). A save could hold one on
+//! evidence no rule or procedure reveals, since the record fit any evidence
+//! that is observed, and the restored session then held a record no session
+//! of the program holds, which later reads of that evidence carry. Restore
+//! now checks an observation record's key against the `reveal`, `sample`
+//! and `renew` effects a rule reaches, directly or through the procedures
+//! it calls. A reveal of declared evidence with its declared stance, or a
 //! neutral one, leaves no record on the evidence's own name. A renewal
 //! leaves one on the occurrence it makes only when its guard holds
 //! something, and only a condition or call argument on its way that reads a
