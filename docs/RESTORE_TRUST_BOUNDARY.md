@@ -311,13 +311,16 @@ its stream, and the declarations carry what they leave. A read carries the
 parts the runtime reads for it, and no other part of what it names: a read
 of evidence or of a stream, the record's name and what its observation and
 `observed` records can hold, and of a stream also its readings and its
-selection; of a series or a commitment, a value read the bases, `grounds_of`
-the grounds, `outcome` and `resolved` the outcomes, `committed` and
-`in_basis` the bases, the reopening records and the `committed` records, and
-`reopened` and `on_hold` those and the `reopened` records, each with the
-selection; and a withdrawal predicate, the `withdrawn` records of what it
-asks about and the reason of each withdrawal, read through its records, and
-nothing else of what it asks about. `in_basis` carries nothing of the
+selection; a value read of a stream, and `has_sample`, the record's name and
+the readings and the selection alone, since the runtime reads the reading as
+it was taken and nothing joins a reading later (D100); of a series or a
+commitment, a value read the bases, `grounds_of` the grounds, `outcome` and
+`resolved` the outcomes, `committed` and `in_basis` the bases, the reopening
+records and the `committed` records, and `reopened` and `on_hold` those and
+the `reopened` records, each with the selection; and a withdrawal predicate,
+the `withdrawn` records of what it asks about and the reason of each
+withdrawal, read through its records, and nothing else of what it asks
+about. `in_basis` carries nothing of the
 evidence it looks for, and `qualified` nothing of a caveat it attaches by
 name. In grounds, `qualified`, `observed` and `carries` give only the name
 of the evidence they ask about, and a cause an outcome, a series or a
@@ -343,12 +346,15 @@ journal entry's name never enters a provenance, so a marker of the journal
 is refused anywhere.
 
 The bound has to contain everything the runtime can write, and where the
-runtime reads less than a whole part it is knowingly wider than the read. A
-value read of a stream, and `has_sample`, is given what the readings'
-observation and `observed` records can hold, though the runtime reads only
-the readings and the selection for them. What `reopened` finds in the
-records of what reopened a commitment is bounded with the reopening records,
-so `committed` and `in_basis`, which carry those, are given it too.
+runtime reads less than a whole part it is knowingly wider than the read.
+Until D100 a value read of a stream, and `has_sample`, was such a read: it
+was given what the readings' observation and `observed` records can hold,
+though the runtime reads only the readings and the selection for it, so a
+forged marker that only a later join of the read stream's observation
+records could hold restored in the readings a sample took that way. What
+`reopened` finds in the records of what reopened a commitment is bounded
+with the reopening records, so `committed` and `in_basis`, which carry
+those, are given it too.
 `outcome`, `resolved` and `in_basis` are given the series' selection, which
 the runtime reads for `resolved` only while the series has no outcome, and
 for the other two never; a selection flows into the outcomes and the bases

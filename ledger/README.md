@@ -162,9 +162,10 @@ of the ledger is to find them on the project's own decisions.
 - **The record fills at its limits.** Each merged PR adds one `ci` run and
   one approval. `ci` holds at most 1024 runs and `approvals` at most 256
   readings, the runtime's largest limits for a renewable and a stream;
-  after #430 they hold 129 and 107. The event past a limit is refused
-  (`limit/renewal_limit` or `limit/history_limit`), so a fuller record then
-  needs a second renewable or stream.
+  after #430 they hold 129 and 107. `findings` holds at most 256 too,
+  raised from 64 when D100 was the 65th finding filed. The event past a
+  limit is refused (`limit/renewal_limit` or `limit/history_limit`), so a
+  fuller record then needs a second renewable or stream.
 - **A patch from main is a `ship_minor`.** 1.4.1 was cut from `main`, so it
   is recorded as `ship_minor` 141 on main's Runtime run, which supersedes
   1.4.0 in `minor_release`; `release` and `ship` stay the 1.0.x line's, cut

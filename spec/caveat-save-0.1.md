@@ -313,9 +313,13 @@ save is refused with an error, and never crashes the runtime, when:
   allowed. A read carries the parts the runtime reads for it, and no
   other part of what it names. A read of evidence or of a stream carries the record's name and
   what its observation and `observed` records can hold, and a read of a
-  stream also what its readings and its selection can; a value read of a
-  stream, and `has_sample`, is bounded as any other read of it, though the
-  runtime reads only the readings and the selection for them. Of a series or
+  stream also what its readings and its selection can. A value read of a
+  stream (`latest`, `history_at`, `history_count` or a fold), and
+  `has_sample`, carries only the record's name and what the readings and the
+  selection can hold: the runtime reads the reading as it was taken, which
+  keeps what its sample read then, and what a qualification or a withdrawal
+  joins to the observation records later never reaches the reading (finding
+  D100). Of a series or
   a commitment, a value read (`latest`, `history_at`, `history_count` or a
   fold) carries the bases, `grounds_of` the grounds, `outcome` and
   `resolved` the outcomes, `committed` and `in_basis` the bases, the
@@ -600,12 +604,30 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-21 (D100): a value read of a stream (`latest`, `history_at`,
+  `history_count` or a fold), and `has_sample`, carries only the record's
+  name and what the stream's readings and selection can hold ("Restore
+  validation"). D054 bounded it as any other read of the stream, by what
+  the observation records can hold too, though the runtime reads only the
+  reading as it was taken, and what a qualification or a withdrawal later
+  joins to the observation records never reaches the reading. So where a
+  sample's guard read another stream by value, restore accepted a forged
+  marker of a history only such a join could hold: in the readings the
+  sample takes, in their stream's selection and in grounds that read them
+  by value, and in the grounds of a state that cites such a reading beyond
+  its lineage, with a forged kept take-back caveat there as well (D057,
+  D098). No session writes these saves, and restore now refuses them as it
+  refuses such a marker or caveat elsewhere. A state's lineage still takes
+  what joins a record it lists, and a read through the records
+  (`observed`, `carries`, `qualified`) what joins them. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): the bound of D057 and D098 starts with what the
   provenances a `because` citation reads can hold: of a stream it reads,
   what the readings and the selection hold, not what joins the observation
   records after a reading is taken, though a reading is bounded as "Restore
   validation" bounds it, so it takes in what its sample can read, the
-  observation records of another stream read there among them. A record it
+  observation records of another stream read there among them until D100
+  (above). A record it
   reads itself or only names, and a reason or cause a withdrawal predicate,
   `on_hold` or `reopened` names, adds nothing of its
   own history: the grounds hold it by name, which pins it, so it never

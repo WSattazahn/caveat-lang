@@ -194,9 +194,10 @@ history, and a citation of a state, a commitment or a parameter carries every
 history their grounds, and a commitment's basis, outcome and selection that
 it reads, can hold, those their own reads pin among them. What a cited
 reading holds is bounded as restore bounds the stream's readings ([Save
-0.1](caveat-save-0.1.md), "Restore validation"), so it takes in what the
-reading's sample can read: a value read there of another stream brings what
-that stream's records, its observation records among them, can hold.
+0.1](caveat-save-0.1.md), "Restore validation"), by what the reading's
+sample can read as it read it: a value read there of another stream takes
+that stream's readings and selection, and nothing that joins its
+observation records later (D100).
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
@@ -690,6 +691,13 @@ provenance read in its range.
   not in every program without a window: one that uses something the
   language gained after rc.11, such as `only_if`, has no save that old.
   [Save 0.1](caveat-save-0.1.md) lists what the check reads.
+- 2026-11-21 (D100): "Meaning" no longer says that a value read in a cited
+  reading's sample brings what the read stream's observation records can
+  hold: such a read takes the stream's readings and selection, as the
+  runtime reads them ([Save 0.1](caveat-save-0.1.md), "Restore
+  validation"), and restore refuses a forged marker beyond the lineage that
+  only what joins those records later could give. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): a `because` citation brings a marker beyond the lineage
   only through what the provenances it reads hold, never as a marker of a
   record it reads itself or only names, which the grounds pin, nor of the
