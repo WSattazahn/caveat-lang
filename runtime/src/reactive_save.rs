@@ -1101,8 +1101,10 @@ impl ReactiveSession {
         // refused as it was (D054, D061). A session restored lies within the
         // bound, which debug builds check after every later event.
         self.check_history_reach()?;
-        // Last, for the same reason (D063).
+        // After it, for the same reason (D063).
         self.check_renewals_renewed(save)?;
+        // Last, for the same reason (D064, D065).
+        self.check_declared_observations(save, &declared)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1759,6 +1761,55 @@ impl ReactiveSession {
                      program renews {name}"
                 ));
             }
+        }
+        Ok(())
+    }
+
+    /// D064 and D065: evidence a declaration relates to a claim is observed
+    /// as the program loads, with the stances its declarations give it, and
+    /// without an observation record. A `reveal` that gives it a stance they
+    /// do not give it adds that relation and leaves the record in the same
+    /// step, and nothing removes either: a withdrawal, a qualification and
+    /// its take-back keep both, and the evidence's own name never departs,
+    /// even once a renewal retires it. So the save holds a record on that
+    /// name exactly when it holds such a stance of it. A save holds only the
+    /// relations events add, so a stance the declarations give is never
+    /// one of them, but one that repeats such a stance is not counted.
+    /// `restore_records` pairs the stances of other evidence with their
+    /// records and holds a record's name to the reveals a rule reaches
+    /// (D052); this pairs them on declared evidence.
+    fn check_declared_observations(
+        &self,
+        save: &ReactiveSave,
+        declared: &Declared,
+    ) -> Result<(), String> {
+        // Declared evidence with a stance no declaration gives it.
+        let mut revealed = HashSet::default();
+        for [evidence, relation, claim] in &save.graph.relations {
+            let stance = match relation.as_str() {
+                "supports" => Relation::Supports,
+                "opposes" => Relation::Opposes,
+                _ => continue,
+            };
+            if !declared.observes(evidence) || declared.gives(evidence, stance, claim) {
+                continue;
+            }
+            if !save.observation_qualifications.contains_key(evidence) {
+                return Err(format!(
+                    "evidence {evidence} has no observation record, though it {relation} \
+                     {claim}, a stance no declaration gives it"
+                ));
+            }
+            revealed.insert(evidence.as_str());
+        }
+        if let Some(name) = save
+            .observation_qualifications
+            .keys()
+            .find(|name| declared.observes(name) && !revealed.contains(name.as_str()))
+        {
+            return Err(format!(
+                "observation of {name}: {name} has no stance but those its declarations give it"
+            ));
         }
         Ok(())
     }
