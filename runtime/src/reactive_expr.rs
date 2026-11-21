@@ -1303,16 +1303,20 @@ pub struct Reads {
 }
 
 /// What a read takes of the thing it names, for the bound of finding D054.
-/// Evidence, a stream's readings and a caveat are read through their records
-/// whatever the read. A decision's parts have bounds of their own, so each
-/// read of one takes only the parts the runtime reads for it.
+/// Evidence and a caveat are read through their records by every read but
+/// a withdrawal predicate, and a stream's readings by every read but a
+/// value read and `has_sample`, which take the readings as they were taken
+/// (D100), and a withdrawal predicate. A decision's parts have bounds of
+/// their own, so each read of one takes only the parts the runtime reads
+/// for it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Read {
-    /// `observed`, `carries`, `has_sample`, `examined` and `qualified`: the
-    /// records of the evidence, of the stream's readings or of the caveat.
+    /// `observed`, `carries`, `examined` and `qualified`: the records of the
+    /// evidence, of the stream's readings or of the caveat.
     Records,
-    /// `latest`, `history_at`, `history_count` and a fold: a stream's
-    /// readings, or a series' bases with its selection.
+    /// `latest`, `history_at`, `history_count`, a fold and `has_sample`: a
+    /// stream's readings with its selection, or a series' bases with its
+    /// selection.
     Value,
     /// `grounds_of`: a revision's grounds, with the series' selection.
     Grounds,
@@ -1372,7 +1376,9 @@ impl Carried {
             | "permission_withdrawn"
             | "rests_on_withdrawn"
             | AT_REVISION => Read::Withdrawn,
-            // `observed`, `carries`, `has_sample`, `examined` and the rest.
+            // What `latest` reads, or the selection alone.
+            "has_sample" => Read::Value,
+            // `observed`, `carries`, `examined` and the rest.
             _ => Read::Records,
         };
         self.graph.insert((read, name.into()));
@@ -1446,7 +1452,11 @@ impl Grounded {
             RESOLVED | AT_REVISION_RESOLVED => {
                 self.graph.insert((Read::Outcome, name.into()));
             }
-            // `has_sample` and the rest: as the lineage reads.
+            // What `latest` reads, as the lineage reads it.
+            "has_sample" => {
+                self.graph.insert((Read::Value, name.into()));
+            }
+            // The rest: as the lineage reads.
             _ => {
                 self.graph.insert((Read::Records, name.into()));
             }

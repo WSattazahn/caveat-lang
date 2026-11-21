@@ -388,6 +388,23 @@ the implementation.
 
 ## Changes
 
+- 2026-11-21 (D100): a cited reading, outcome or basis brings no kept
+  caveat that only what joins a stream's observation records later could
+  give, where a value read of the stream wrote it, wherever the effect
+  evaluated the read (its guard, its values, what it cites or selects, or a
+  call's arguments; [Save 0.1](caveat-save-0.1.md), "Restore validation"):
+  restore refuses such a forged kept caveat in the citing state's grounds
+  and in grounds that read them, as it refuses one no citation brings. A
+  `reopen ... because latest(S)` is the exception: `reopened` and
+  `on_hold` of the commitment, and with them its next revision's basis,
+  read the reading that reopened it through its records as they stand
+  then, so what an effect writes from those reads can keep such a caveat,
+  even where the effect also reads S by value, and so can grounds that
+  cite it or read those. The commitment's reopening record is bounded with
+  what `reopened` reads, and `committed` and `in_basis` carry that bound,
+  so restore still accepts such a caveat in grounds that cite what an
+  effect that reads them writes. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): a citation brings a kept caveat only through what the
   provenances it reads hold, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
   ("Meaning") bounds a marker. A caveat a `qualify` puts on a record the

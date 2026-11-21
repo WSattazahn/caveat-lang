@@ -35,7 +35,7 @@ renewable release_tree limit 8;
 evidence main_tree from "main at a minor release's merge, with the Runtime run on its push";
 renewable main_tree limit 8;
 evidence finding_reports from "D-entries in experiments/agent-decisions/README.md";
-readings findings from finding_reports limit 64;   # value: the D-number; the count and order of findings
+readings findings from finding_reports limit 256;  # value: the D-number; the count and order of findings
 evidence d016 from "D016: a late qualify reaches a stored record and the collector is not told";
 evidence d018 from "D018: a departed record's live take-back caveat is not kept on stored records";
 evidence d019 from "D019: a take-back cannot clear a flag read through examined(...)";
