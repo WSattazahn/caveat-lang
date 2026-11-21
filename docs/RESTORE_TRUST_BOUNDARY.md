@@ -41,8 +41,9 @@ each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
 `check_last_event_spending`, run after every check older than it (only the
 retirement-date check of D060, the hold-entry check of D062, the
-history-reach check of D054, the renewals check of D063 and the
-declared-evidence check of D064 and D065 follow it), requires the costs of
+history-reach check of D054, the renewals check of D063, the
+declared-evidence check of D064 and D065 and the stance check of D101 follow
+it), requires the costs of
 the last event's `examine` effects, a caveat examined twice counting twice,
 added to what the declarations spent, to fit the budget's `spent` (D053).
 
@@ -189,7 +190,13 @@ its declarations do not give it. That reveal adds the stance and leaves the
 record together, so restore refuses either one there without the other
 (D064, D065). A renewal leaves one on the occurrence it
 makes only when its guard rests on something, which needs a condition or call
-argument on its way that reads a state, the graph or a history.
+argument on its way that reads a state, the graph or a history. A stance
+itself, a `supports` or `opposes` relation, is held to what adds one: a
+`reveal` in a rule, or in a procedure a rule reaches, that gives that
+evidence that stance (an occurrence a renewals list holds counting as that
+list's evidence), or, from a reading, the stance it was taken with.
+Restore refuses any other, a stance a declaration gives and a stance listed
+twice, since no event adds either (D101).
 
 The policy is the same as above. A predicate guard on a name of the right
 kind restores though no skipped effect kept it, an observation record
@@ -199,7 +206,7 @@ source, from what the conditions and call arguments on its way read, not
 from what they held), a withdrawal by an event that could withdraw that
 evidence restores whether or not its guard held, and an occurrence of
 renewable evidence a reached `renew` could make restores whether or not an
-event made it.
+event made it, as does a stance a reached `reveal` could add.
 Round 7's F263 found that removing a withdrawal record together with its
 `withdrawn qualifies` relation restores, so `withdrawn(...)` then reads
 false; that is still accepted. A save without a record the session made is

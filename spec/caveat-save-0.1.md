@@ -456,6 +456,17 @@ save is refused with an error, and never crashes the runtime, when:
   beside no stance of that evidence that no declaration gives it: only a
   `reveal` that gives it such a stance leaves that record, and it adds the
   stance in the same step (finding D064);
+- a `supports` or `opposes` relation is not one an event adds: one a
+  declaration gives, one listed twice, one from a reading other than the
+  stance the reading was taken with, or one from other evidence that no
+  `reveal` in a rule, or in a procedure a rule reaches, gives that
+  evidence. An occurrence a renewals list holds counts as that list's
+  evidence, and a name the program declares as itself, however it is
+  spelled. A `reveal` adds the stance it names when its evidence's current
+  occurrence lacks it, and a `sample` gives the reading it takes the stance
+  it is taken with; the declarations give theirs as the program loads, and
+  a save holds none of them. Conditions are not evaluated: the relation
+  could have been added, not shown to have been (finding D101);
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -615,6 +626,33 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-21 (D101): restore holds a `supports` or `opposes` relation to the
+  effects that add one. As the session runs, only a `reveal` gives evidence
+  a stance, the one it names, when its current occurrence lacks it, and only
+  a `sample` gives a reading one, the one it is taken with; the declarations
+  give theirs as the program loads, and a save holds none of them. Restore
+  held a saved stance to its ends' kinds and to the records beside it, such
+  as the evidence's observation record, never to what the program's reveals
+  give, so a save could give evidence a stance on a claim no rule gives it,
+  and a later read of that evidence carried the caveats that qualify that
+  claim, which no session of the program carries; beside a forged record on
+  declared evidence, such a stance also met the pairing of D064. A stance a
+  declaration gives, or one listed twice, restored as a second relation,
+  which every later outcome, view and save showed again. Restore now
+  refuses a stance no `reveal` in a rule, or in a procedure a rule reaches,
+  gives its evidence, with "relation F RELATION CLAIM: no rule of this
+  program, or procedure one calls, reveals E RELATION CLAIM", where E is F,
+  or, for an occurrence a renewals list holds, that list's evidence; a
+  reading's stance other than the one it was taken with, with "relation R
+  RELATION CLAIM: reading R was not taken with that stance"; a stance a
+  declaration gives, with "relation F RELATION CLAIM: a declaration gives
+  it, and no event adds it again"; and a stance listed twice, with
+  "relation F RELATION CLAIM is listed twice". A name the program declares
+  counts as itself, however it is spelled, so evidence declared as
+  `sensor@2` beside renewable `sensor` is no occurrence of it. Conditions
+  are not evaluated. The check runs after every older check, so a save
+  refused before keeps its message. Saves the program writes restore as
+  before. Tests: `runtime/tests/d101_stances_need_a_revealing_rule.rs`.
 - 2026-11-21 (D064, D065): restore pairs the stances an event gives declared
   evidence with that evidence's observation record. Evidence a declaration
   relates to a claim is observed as the program loads, without a record, and
