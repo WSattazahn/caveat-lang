@@ -634,8 +634,8 @@ validation and host trust mechanisms separately from this contract.
   what the readings and the selection hold, not what joins the observation
   records after a reading is taken, though a reading is bounded as "Restore
   validation" bounds it, so it takes in what its sample can read, the
-  observation records of another stream read there among them until D100
-  (above). A record it
+  observation records of another stream read there by value among them
+  until D100 (above). A record it
   reads itself or only names, and a reason or cause a withdrawal predicate,
   `on_hold` or `reopened` names, adds nothing of its
   own history: the grounds hold it by name, which pins it, so it never

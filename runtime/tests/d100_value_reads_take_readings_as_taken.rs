@@ -8,13 +8,14 @@
 //! sample's guard reads another stream by value, what such a qualification's
 //! guard read joins that stream's observation records and none of the
 //! readings taken, and no session holds it there. Restore accepted a forged
-//! marker, or a forged kept take-back caveat, of such a history in those
-//! readings, in their stream's selection, and in grounds that read them,
-//! though no release accepts it in grounds a citation reads (D057, D099).
-//! The same held for the `latest(S)` a `because` or a `permitted by`
-//! selects, which the runtime reads by value too: in the outcome, the basis
-//! and the reopening record of a hold or a release it writes, and in grounds
-//! that cite them. The bound now gives each of these reads the reading's
+//! marker of such a history in those readings and in their stream's
+//! selection, with a forged kept take-back caveat beside it that only the
+//! marker let qualify them, and a forged marker or kept take-back caveat in
+//! grounds that read them. The same held for the `latest(S)` a `because` or
+//! a `permitted by` selects, which the runtime reads by value too: in the
+//! outcome, the basis and the reopening record of a hold or a release it
+//! writes, and in grounds that cite them. The bound now gives each of these
+//! reads the reading's
 //! name and what the readings and the selection can hold, and restore
 //! refuses these. A state lineage that lists a record still takes what
 //! joins it later, and a read through the records (`observed`, `carries`,
@@ -65,16 +66,24 @@ fn refused(source: &str, save: &Value, expected: &str) {
     }
 }
 
-/// The marker `x@1` leaves where a provenance names it: it departs at
-/// sequence 7, the second `sx`.
-fn x_marker() -> Value {
-    json!({"history": "x", "read": 1, "from": 1, "through": 1, "departed_at": 7})
+/// The marker `x@1` leaves where a provenance names it, when it departs at
+/// sequence `departed_at`, the second `sx`.
+fn x_marker(departed_at: u64) -> Value {
+    json!({"history": "x", "read": 1, "from": 1, "through": 1, "departed_at": departed_at})
 }
 
 fn has_x_marker(provenance: &Value) -> bool {
     provenance["departed"]
         .as_array()
         .is_some_and(|markers| markers.iter().any(|marker| marker["history"] == "x"))
+}
+
+fn has_caveat(provenance: &Value, caveat: &str) -> bool {
+    ["caveats", "kept"].iter().any(|field| {
+        provenance[*field]
+            .as_array()
+            .is_some_and(|names| names.iter().any(|name| name == caveat))
+    })
 }
 
 /// A state's grounds in a save, written out from its lineage where the save
@@ -187,7 +196,9 @@ const PLAY: [(&str, &str); 9] = [
 /// holds `x@1`, and the read takes none of it: `b@1`, `t` and `u` never hold
 /// `x` or `shaky`. Restore refuses a marker of `x` in `b@1`, in `b`'s
 /// selection, or in the grounds of `t` and `u` beyond their lineage, and
-/// `shaky` kept there.
+/// `shaky` kept there. Nothing `b@1` or the selection lists can carry
+/// `shaky`, so a kept `shaky` alone was refused there already; beside a
+/// marker of `x`, which can, it restored with the marker.
 #[test]
 fn a_value_read_in_a_sample_takes_no_later_join_of_the_records() {
     for read in VALUE_READS {
@@ -200,10 +211,15 @@ fn a_value_read_in_a_sample_takes_no_later_join_of_the_records() {
         );
         let mut held = save.clone();
         assert!(!has_x_marker(reading(&mut held)), "{read}");
+        assert!(!has_caveat(reading(&mut held), "shaky"), "{read}");
         for state in ["t", "u"] {
             assert!(!has_x_marker(state_grounds(&mut held, state)), "{read}");
+            assert!(
+                !has_caveat(state_grounds(&mut held, state), "shaky"),
+                "{read}"
+            );
             let mut forged = save.clone();
-            add_marker(state_grounds(&mut forged, state), x_marker());
+            add_marker(state_grounds(&mut forged, state), x_marker(7));
             refused(
                 &source,
                 &forged,
@@ -217,23 +233,41 @@ fn a_value_read_in_a_sample_takes_no_later_join_of_the_records() {
                 &format!("state {state} grounds include caveat shaky outside its lineage"),
             );
         }
-        let mut forged = save.clone();
-        add_marker(reading(&mut forged), x_marker());
-        refused(
-            &source,
-            &forged,
-            "reading b@1: no rule or declaration of this program carries records of x into it",
-        );
-        let mut forged = save.clone();
-        add_marker(
-            &mut forged["reading_streams"]["b"]["selection_qualifications"],
-            x_marker(),
-        );
-        refused(
-            &source,
-            &forged,
-            "reading stream b: no rule or declaration of this program carries records of x into it",
-        );
+        for (selection, place) in [(false, "reading b@1"), (true, "reading stream b")] {
+            let mut forged = save.clone();
+            add_marker(in_place(&mut forged, selection), x_marker(7));
+            refused(
+                &source,
+                &forged,
+                &format!(
+                    "{place}: no rule or declaration of this program carries records of x into it"
+                ),
+            );
+            let mut forged = save.clone();
+            add_kept(in_place(&mut forged, selection), "shaky");
+            refused(
+                &source,
+                &forged,
+                &format!("{place}: shaky cannot qualify any of its evidence"),
+            );
+            add_marker(in_place(&mut forged, selection), x_marker(7));
+            refused(
+                &source,
+                &forged,
+                &format!(
+                    "{place}: no rule or declaration of this program carries records of x into it"
+                ),
+            );
+        }
+    }
+}
+
+/// `b@1`'s provenance in a save, or `b`'s selection.
+fn in_place(save: &mut Value, selection: bool) -> &mut Value {
+    if selection {
+        &mut save["reading_streams"]["b"]["selection_qualifications"]
+    } else {
+        reading(save)
     }
 }
 
@@ -283,9 +317,13 @@ fn a_lineage_still_takes_what_joins_the_records_it_lists() {
         for state in ["t", "u"] {
             let cell = &save["states"][state];
             assert!(has_x_marker(&cell["lineage"]), "{read}: {state}: {cell}");
-            assert!(!has_x_marker(&cell["grounds"]), "{read}: {state}: {cell}");
+            let mut held = save.clone();
+            assert!(
+                !has_x_marker(state_grounds(&mut held, state)),
+                "{read}: {state}: {cell}"
+            );
             let mut forged = save.clone();
-            add_marker(state_grounds(&mut forged, state), x_marker());
+            add_marker(state_grounds(&mut forged, state), x_marker(8));
             refused(
                 &source,
                 &forged,
@@ -397,7 +435,7 @@ fn a_selected_latest_takes_the_reading_as_taken() {
             "{early}: {}",
             save["observation_qualifications"]
         );
-        let marker = json!({"history": "x", "read": 1, "from": 1, "through": 1, "departed_at": 21});
+        let marker = x_marker(21);
         for (pointer, place) in [
             (
                 "/decision_series/d/revisions/0/outcome/lineage",
@@ -408,7 +446,7 @@ fn a_selected_latest_takes_the_reading_as_taken() {
             ("/reopening_qualifications/r@1", "reopening of r@1"),
         ] {
             assert!(
-                !has_x_marker(&save.pointer(pointer).unwrap()),
+                !has_x_marker(save.pointer(pointer).unwrap()),
                 "{early}: {place}"
             );
             let mut forged = save.clone();
