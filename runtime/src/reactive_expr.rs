@@ -1308,11 +1308,12 @@ pub struct Reads {
 /// read of one takes only the parts the runtime reads for it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Read {
-    /// `observed`, `carries`, `has_sample`, `examined` and `qualified`: the
-    /// records of the evidence, of the stream's readings or of the caveat.
+    /// `observed`, `carries`, `examined` and `qualified`: the records of the
+    /// evidence, of the stream's readings or of the caveat.
     Records,
-    /// `latest`, `history_at`, `history_count` and a fold: a stream's
-    /// readings, or a series' bases with its selection.
+    /// `latest`, `history_at`, `history_count`, a fold and `has_sample`: a
+    /// stream's readings with its selection (never its observation or
+    /// `observed` records, D100), or a series' bases with its selection.
     Value,
     /// `grounds_of`: a revision's grounds, with the series' selection.
     Grounds,
@@ -1372,7 +1373,8 @@ impl Carried {
             | "permission_withdrawn"
             | "rests_on_withdrawn"
             | AT_REVISION => Read::Withdrawn,
-            // `observed`, `carries`, `has_sample`, `examined` and the rest.
+            "has_sample" => Read::Value,
+            // `observed`, `carries`, `examined` and the rest.
             _ => Read::Records,
         };
         self.graph.insert((read, name.into()));
@@ -1446,7 +1448,11 @@ impl Grounded {
             RESOLVED | AT_REVISION_RESOLVED => {
                 self.graph.insert((Read::Outcome, name.into()));
             }
-            // `has_sample` and the rest: as the lineage reads.
+            // `has_sample`: the stream's readings and selection (D100).
+            "has_sample" => {
+                self.graph.insert((Read::Value, name.into()));
+            }
+            // The rest: as the lineage reads.
             _ => {
                 self.graph.insert((Read::Records, name.into()));
             }

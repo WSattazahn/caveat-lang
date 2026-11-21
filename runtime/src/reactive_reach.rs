@@ -51,11 +51,12 @@
 //! nothing of the arguments, though its lineage takes all of them.
 //!
 //! A read takes the parts the runtime reads for it, and no other part of
-//! what it names (`Read`). A read of evidence or of a stream takes the
-//! record's name and what its observation and `observed` records hold, and
-//! of a stream what its readings and its selection hold too; a value read
-//! of a stream is given all of that, though the runtime reads only the
-//! readings and the selection for it. Of a series or a commitment, a value
+//! what it names (`Read`). A read of evidence or a records read of a stream
+//! takes the record's name and what its observation and `observed` records
+//! hold, and of a stream what its readings and its selection hold too; a
+//! value read of a stream, and `has_sample`, takes only the reading's name
+//! and what the stream's readings and selection hold (D100). Of a series or
+//! a commitment, a value
 //! read takes the bases, `grounds_of` the grounds, `outcome` and `resolved`
 //! the outcomes, `committed` and `in_basis` the bases, the reopening records
 //! and the `committed` records, and `reopened` and `on_hold` those and the
@@ -514,9 +515,12 @@ impl<'a> Flows<'a> {
     }
 
     /// A graph or history read of `name`, with what the read takes of it
-    /// (D054). Evidence and a stream are read through their records: the
-    /// record's name, and what its observation and `observed` records hold.
-    /// A withdrawal predicate takes none of that: only the `withdrawn`
+    /// (D054). Evidence and a records read of a stream are read through their
+    /// records: the record's name, and what its observation and `observed`
+    /// records hold. A value read of a stream, and `has_sample`, takes only
+    /// the reading's name and what the stream's readings and selection hold,
+    /// not what later joins its observation records (D100). A withdrawal
+    /// predicate takes none of that: only the `withdrawn`
     /// records of what it asks about and the reason of each withdrawal,
     /// through its records. Of a commitment or a series a read takes the
     /// parts `history_read` and `predicate_tracked` read for it; a read
@@ -536,6 +540,13 @@ impl<'a> Flows<'a> {
             return;
         }
         if let Some(&bit) = self.histories.get(name) {
+            if read == Read::Value && self.session.reading_streams.contains_key(name) {
+                sources.named.insert(bit);
+                sources
+                    .owners
+                    .insert(self.owner(Owner::Stream(name.into())));
+                return;
+            }
             sources.histories.insert(bit);
             return;
         }
@@ -729,6 +740,13 @@ impl<'a> Flows<'a> {
                     Owner::WithdrawalReasons | Owner::ReopeningCauses(_) | Owner::HoldCauses(_)
                 )
             }));
+        for &owner in &grounds.owners {
+            if let Owner::Stream(stream) = &self.keys[owner] {
+                if let Some(&born) = self.born_streams.get(stream) {
+                    excess.named.insert(born);
+                }
+            }
+        }
         for &bit in &grounds.histories {
             let owner = match &self.keys[self.record_owners[bit]] {
                 Owner::StreamRecords(stream) => {
@@ -2373,6 +2391,78 @@ on cw set w = if(committed(r), 1, 0) + latest(c);
                     );
                 }
             }
+        }
+    }
+
+    /// A value read of a reading stream (`latest`, `history_at`,
+    /// `history_count`, fold) and `has_sample` carry only the stream's
+    /// readings and selection, not what later joins its observation records
+    /// (D100).
+    #[test]
+    fn stream_value_and_has_sample_reads_exclude_observation_records() {
+        for expr in [
+            "latest(b)",
+            "history_at(b, 0)",
+            "history_count(b)",
+            "fold_history(b, 0, add)",
+            "if(has_sample(b), 1, 0)",
+        ] {
+            let source = format!(
+                "claim seen;
+evidence ga from \"ga\";
+evidence gb from \"gb\";
+evidence gc from \"gc\";
+evidence gd from \"gd\";
+caveat k consequence low;
+readings a from ga window 1;
+readings b from gb window 4;
+readings c from gc window 4;
+readings d from gd window 4;
+decisions r limit 4;
+state s = 0;
+state t = 0;
+state obs = 0;
+fn add(acc, v) = acc + v;
+event la v min 0 max 10;
+event lb v min 0 max 10;
+event lc v min 0 max 10;
+event ld;
+event q;
+event use_s;
+event use_r;
+event cite_d;
+event check_obs;
+on la sample a = v supports seen;
+on lc sample c = v supports seen;
+on lb when latest(c) > 0 sample b = v supports seen;
+on q when latest(a) < 5 qualify latest(c) with k;
+on ld sample d = {expr} supports seen;
+on use_s set s = {expr};
+on use_r commit r because enough using {expr};
+on cite_d set t = latest(d) because latest(d);
+on check_obs when observed(reading(b, 1)) set obs = 1;
+"
+            );
+            let session = ReactiveSession::from_source(&source).unwrap();
+            let bound = session.history_reach_bound();
+            assert!(
+                bound.carries(&Owner::StreamRecords("b".into()), "a"),
+                "{expr}"
+            );
+            assert!(bound.carries(&Owner::State("obs".into()), "a"), "{expr}");
+            assert!(bound.carries(&Owner::State("s".into()), "a"), "{expr}");
+            assert!(!bound.carries(&Owner::Stream("b".into()), "a"), "{expr}");
+            assert!(!bound.carries(&Owner::Stream("d".into()), "a"), "{expr}");
+            assert!(!bound.carries(&Owner::Basis("r".into()), "a"), "{expr}");
+            assert!(
+                !bound.carries(&Owner::SeriesGrounds("r".into()), "a"),
+                "{expr}"
+            );
+            assert!(
+                !bound.carries(&Owner::StateGrounds("s".into()), "a"),
+                "{expr}"
+            );
+            assert!(!session.state_grounds_exceed("t", "a"), "{expr}");
         }
     }
 

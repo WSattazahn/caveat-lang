@@ -311,11 +311,14 @@ save is refused with an error, and never crashes the runtime, when:
   an across-members form, which leave nothing once expanded (what they
   expand to is read like the rest), or an expansion larger than rc.11
   allowed. A read carries the parts the runtime reads for it, and no
-  other part of what it names. A read of evidence or of a stream carries the record's name and
-  what its observation and `observed` records can hold, and a read of a
-  stream also what its readings and its selection can; a value read of a
-  stream, and `has_sample`, is bounded as any other read of it, though the
-  runtime reads only the readings and the selection for them. Of a series or
+  other part of what it names. A read of evidence or a records read of a
+  stream (`observed`, `carries`, `carries_any` or a `because` selector)
+  carries the record's name and what its observation and `observed` records
+  can hold, and of a stream also what its readings and its selection can; a
+  value read of a stream (`latest`, `history_at`, `history_count` or a fold),
+  and `has_sample`, carries only the reading's name and what the stream's
+  readings and its selection can hold, not what later joins its observation
+  records (finding D100). Of a series or
   a commitment, a value read (`latest`, `history_at`, `history_count` or a
   fold) carries the bases, `grounds_of` the grounds, `outcome` and
   `resolved` the outcomes, `committed` and `in_basis` the bases, the
@@ -600,6 +603,18 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-20 (D100): a value read of a reading stream (`latest`, `history_at`,
+  `history_count` or a fold), and `has_sample`, carries only the reading's
+  name and what the stream's readings and selection can hold, not what later
+  joins its observation and `observed` records. Those reads never read
+  observation records, and a reading's provenance is frozen when taken, so
+  restore previously accepted a forged name or marker of a history that only
+  joined a stream's observation records after the fact in a reading,
+  commitment basis, state grounds or cited grounds that read the stream
+  through one of those forms. Records reads (`observed`, `carries`,
+  `carries_any` and `because` selectors) still carry the stream's observation
+  records, and every save a session writes still restores. Tests:
+  `runtime/tests/d100_stream_value_reads_exclude_records.rs`.
 - 2026-11-14 (D099): the bound of D057 and D098 starts with what the
   provenances a `because` citation reads can hold: of a stream it reads,
   what the readings and the selection hold, not what joins the observation

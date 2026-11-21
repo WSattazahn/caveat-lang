@@ -344,9 +344,9 @@ is refused anywhere.
 
 The bound has to contain everything the runtime can write, and where the
 runtime reads less than a whole part it is knowingly wider than the read. A
-value read of a stream, and `has_sample`, is given what the readings'
-observation and `observed` records can hold, though the runtime reads only
-the readings and the selection for them. What `reopened` finds in the
+value read of a stream (`latest`, `history_at`, `history_count` or a fold),
+and `has_sample`, takes only the reading's name and what the stream's readings
+and selection can hold, not its observation and `observed` records (D100). What `reopened` finds in the
 records of what reopened a commitment is bounded with the reopening records,
 so `committed` and `in_basis`, which carry those, are given it too.
 `outcome`, `resolved` and `in_basis` are given the series' selection, which
