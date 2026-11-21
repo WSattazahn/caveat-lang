@@ -1303,11 +1303,12 @@ pub struct Reads {
 }
 
 /// What a read takes of the thing it names, for the bound of finding D054.
-/// Evidence and a caveat are read through their records whatever the read,
-/// and a stream's readings by every read but a value read and `has_sample`,
-/// which take the readings as they were taken (D100). A decision's parts
-/// have bounds of their own, so each read of one takes only the parts the
-/// runtime reads for it.
+/// Evidence and a caveat are read through their records by every read but
+/// a withdrawal predicate, and a stream's readings by every read but a
+/// value read and `has_sample`, which take the readings as they were taken
+/// (D100), and a withdrawal predicate. A decision's parts have bounds of
+/// their own, so each read of one takes only the parts the runtime reads
+/// for it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Read {
     /// `observed`, `carries`, `examined` and `qualified`: the records of the

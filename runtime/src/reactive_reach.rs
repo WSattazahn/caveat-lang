@@ -787,10 +787,12 @@ impl<'a> Flows<'a> {
     }
 
     /// The evidence a `because` or a grant selects, with what reading it
-    /// carries: named evidence and an occurrence are read through their
-    /// records (`select_because`, `check_permission`), and `latest(STREAM)`
-    /// by value, the reading as it was taken with the stream's selection, as
-    /// `latest` reads it there (D100).
+    /// carries: named evidence is read through its records
+    /// (`select_because`, `check_permission`), and so is an occurrence a
+    /// `because` selects, and `latest(STREAM)` by value, the reading as it
+    /// was taken with the stream's selection, as `latest` reads it there
+    /// (D100). `caveated(STATE, CAVEAT)` takes the state's lineage and each
+    /// evidence its grounds name, read through its records.
     fn selector(&mut self, selector: &EvidenceSelector, sources: &mut Sources) {
         match selector {
             EvidenceSelector::Named(name) | EvidenceSelector::Every(name) => {
@@ -1082,8 +1084,11 @@ impl<'a> Flows<'a> {
                 vec![Owner::Outcome(resolution.action.clone())]
             }
             // A reopening, a hold and a release: each joins what it
-            // selects, read through its records, and its guard to the
-            // reopening record.
+            // selects (`selector`: named evidence and an occurrence through
+            // their records, `latest(STREAM)` by value, and
+            // `caveated(STATE, CAVEAT)` the state's lineage and each
+            // evidence its grounds name, through its records) and its guard
+            // to the reopening record.
             Effect::Reopen {
                 action,
                 because,

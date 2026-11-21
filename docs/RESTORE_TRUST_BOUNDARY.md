@@ -351,13 +351,15 @@ runtime reads less than a whole part it is knowingly wider than the read.
 Until D100 a value read of a stream, `has_sample`, and a selected
 `latest(S)` were such reads: each was given what the readings' observation
 and `observed` records can hold, though the runtime reads only the readings
-and the selection for it, so a forged marker that only a later join of the
-read stream's observation records could hold restored in the readings a
-sample took that way, and in the outcome, the basis or the reopening record
-a `because latest(S)` or a `permitted by latest(S)` wrote. What
-`reopened` finds in the records of what reopened a commitment is bounded
-with the reopening records, so `committed` and `in_basis`, which carry
-those, are given it too.
+and the selection for it. So a forged marker that only what a later
+qualification or withdrawal joins to the read stream's observation records
+could hold restored wherever such a read wrote a part: in the readings a
+sample took, a stream's or a series' selection, a basis, an outcome, a
+reopening record, a scheduled guard and a cue, and in grounds that read or
+cite those. The reopening record of a `reopen ... because latest(S)` still
+restores one: what `reopened` finds in the records of what reopened a
+commitment is bounded with the reopening records, so `committed` and
+`in_basis`, which carry those, are given it too.
 `outcome`, `resolved` and `in_basis` are given the series' selection, which
 the runtime reads for `resolved` only while the series has no outcome, and
 for the other two never; a selection flows into the outcomes and the bases

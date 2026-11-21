@@ -193,13 +193,17 @@ marker meets, nor require the lineage or the basis to hold a marker of that
 history, and a citation of a state, a commitment or a parameter carries every
 history their grounds, and a commitment's basis, outcome and selection that
 it reads, can hold, those their own reads pin among them. What a cited
-reading holds is bounded as restore bounds the stream's readings ([Save
-0.1](caveat-save-0.1.md), "Restore validation"), by what the reading's
-sample can read as it read it: a value read there of another stream takes
-that stream's readings and selection, and nothing that joins its
-observation records later (D100). So does the `latest(S)` that the
-`because` of a cited outcome, or the `permitted by` of a cited basis,
-selected.
+reading, outcome or basis holds is bounded as restore bounds those parts
+([Save 0.1](caveat-save-0.1.md), "Restore validation"), by what the reads
+that wrote it can read as they read it. A value read of a stream there,
+wherever the effect evaluates it (its guard, its values, what it cites or
+selects, or a call's arguments), takes that stream's readings and
+selection, and nothing that joins its observation records later (D100).
+`reopened` and `on_hold`, and with them the next revision's basis, read
+what reopened a commitment through its records as they stand then, so
+what an effect writes from those reads, and a citation of it, can hold
+what joined those records after a reading that reopened it was taken,
+even where the effect also reads that reading's stream by value.
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
@@ -693,14 +697,27 @@ provenance read in its range.
   not in every program without a window: one that uses something the
   language gained after rc.11, such as `only_if`, has no save that old.
   [Save 0.1](caveat-save-0.1.md) lists what the check reads.
-- 2026-11-21 (D100): "Meaning" no longer says that a value read in a cited
-  reading's sample brings what the read stream's observation records can
-  hold: such a read takes the stream's readings and selection, as the
-  runtime reads them ([Save 0.1](caveat-save-0.1.md), "Restore
-  validation"), and so does the `latest(S)` a cited outcome's `because` or a
-  cited basis's `permitted by` selected. Restore refuses a forged marker
-  beyond the lineage that only what joins those records later could give.
-  Tests: `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+- 2026-11-21 (D100): "Meaning" no longer says that a cited reading takes in
+  the observation records of a stream its sample read by value. A value
+  read of a stream, wherever an effect evaluates it (its guard, its values,
+  what it cites or selects, or a call's arguments), the `latest(S)` a
+  `because` or a `permitted by` selects among them, takes the stream's
+  readings and selection, as the runtime reads them ([Save
+  0.1](caveat-save-0.1.md), "Restore validation"), so what it writes into a
+  reading, an outcome or a basis holds nothing that joins those observation
+  records later. Restore refuses a forged marker beyond the lineage that
+  only such a join could give, in the citing state's grounds and in grounds
+  that read them. A `reopen ... because latest(S)` is the exception:
+  `reopened` and `on_hold` of the commitment, and with them its next
+  revision's basis, read the reading that reopened it through its records
+  as they stand then, so what an effect writes from those reads, and
+  grounds that cite it or read those, can hold what joined them, even
+  where the effect also reads S by value. The commitment's reopening
+  record is bounded with what `reopened` reads, and `committed` and
+  `in_basis` carry that bound, so restore still accepts such a marker
+  there, in what an effect that reads them writes and in grounds that cite
+  that. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): a `because` citation brings a marker beyond the lineage
   only through what the provenances it reads hold, never as a marker of a
   record it reads itself or only names, which the grounds pin, nor of the

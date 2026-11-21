@@ -318,9 +318,8 @@ save is refused with an error, and never crashes the runtime, when:
   and the `latest(STREAM)` a `because` or a `permitted by` selects, carry
   only the record's name and what the readings and the selection can hold:
   the runtime reads the reading as it was taken, which keeps what its sample
-  read then, and what a qualification or a withdrawal joins to the
-  observation records later never reaches the reading (finding D100). Of a
-  series or
+  read then, and what a qualification or a withdrawal joins to the observation
+  records later never reaches the reading (finding D100). Of a series or
   a commitment, a value read (`latest`, `history_at`, `history_count` or a
   fold) carries the bases, `grounds_of` the grounds, `outcome` and
   `resolved` the outcomes, `committed` and `in_basis` the bases, the
@@ -613,21 +612,33 @@ validation and host trust mechanisms separately from this contract.
   observation records can hold too, though the runtime reads only the
   reading as it was taken (`select_because` and the permission check call
   `latest`), and what a qualification or a withdrawal later joins to the
-  observation records never reaches the reading. So where a sample's guard
-  read another stream by value, restore accepted a forged marker of a
-  history only such a join could hold: in the readings the sample takes, in
-  their stream's selection and in grounds that read them by value; in the
-  outcome a `resolve ... because latest(S)` writes, the basis of a commit
-  `permitted by latest(S)` and the reopening record a `hold` or a `release`
-  `because latest(S)` joins; and in the grounds of a state that cites such
-  a reading, outcome or basis beyond its lineage, with a forged kept
-  take-back caveat there as well (D057, D098). No session writes these
-  saves, and restore now refuses them as it refuses such a marker or caveat
-  elsewhere. A state's lineage still takes what joins a record it lists, a
-  read through the records (`observed`, `carries`, `qualified`, and a
-  `because` that names evidence or an occurrence) what joins them, and the
-  reopening record of a `reopen ... because latest(S)` what `reopened`
-  reads through the records of what reopened it, with which it is bounded.
+  observation records never reaches the reading. So wherever an effect
+  evaluated such a read (its guard, its values, what it cites or selects,
+  or a call's arguments) and wrote a part that keeps what it read, restore
+  accepted a forged marker of a history that only such a join could hold:
+  in the readings a sample takes, a stream's or a series' selection, a
+  commitment's basis, an outcome, a reopening record, a scheduled
+  qualification's guard and a cue, with a forged kept take-back caveat
+  beside the marker, and in grounds that read or cite such a part and in
+  grounds that read those. In grounds that cite such a part, and in grounds
+  that read those, it accepted a forged kept take-back caveat alone as well
+  (D057, D098). No session writes these saves, and restore now refuses them
+  as it refuses such a marker or caveat elsewhere. A state's lineage, and
+  an observation, examination or predicate record, still takes what joins
+  a record it lists, and a read through the records (`observed`,
+  `carries`, `qualified`, and a `because` that names evidence or an
+  occurrence) what joins them. So do `reopened` and `on_hold` of a
+  commitment that a `reopen ... because latest(S)` reopened, and with them
+  its next revision's basis: they read the reading that reopened it
+  through its records as they stand then, so what an effect writes from
+  those reads, and grounds that cite it or read those, can hold or keep
+  what joined S's observation records after the reading was taken, even
+  where the effect also reads S by value. That commitment's reopening
+  record is still bounded with what `reopened` reads, and `committed` and
+  `in_basis` carry that bound, so restore still accepts such a marker
+  there, in what an effect that reads `committed` or `in_basis` of the
+  commitment writes and in grounds that cite that, and such a caveat in
+  those grounds.
   Tests: `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
 - 2026-11-14 (D099): the bound of D057 and D098 starts with what the
   provenances a `because` citation reads can hold: of a stream it reads,
