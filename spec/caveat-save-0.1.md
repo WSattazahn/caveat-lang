@@ -403,6 +403,11 @@ save is refused with an error, and never crashes the runtime, when:
   `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
   renewals list an occurrence the graph does not hold, out of order, or more
   occurrences than the declared limit;
+- the renewals list an occurrence of evidence that no `renew` in a rule, or
+  in a procedure a rule reaches, names, guarded or not: only a renewal makes
+  an occurrence (finding D063). Conditions are not evaluated, so an
+  occurrence of evidence some rule renews restores whether or not an event
+  made it;
 - the graph and a reading stream disagree: the graph holds a reading
   `STREAM@N` that is not entry N of that stream's occurrences, or the
   occurrences list a reading the graph does not hold, or out of order;
@@ -604,6 +609,22 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-21 (D063): restore refuses a renewals list that names an
+  occurrence of renewable evidence no rule renews. Only a `renew` makes an
+  occurrence, and restore held the list to its first entry, its order, its
+  kind and the declared limit, and the graph to the list, but never the list
+  to the program's rules. So a save of a program with no `renew` could list
+  `sensor@2`, with the graph node to match, and the restored session read it
+  as the evidence's current occurrence: a later `qualified(1, sensor)` was
+  refused as `unobserved_evidence` where the live session accepted it.
+  Restore now refuses such a list, with "renewable E occurrence E@N: no rule
+  or procedure of this program renews E", unless a `renew` of E in a rule,
+  or in a procedure a rule reaches, guarded or not, could have made it.
+  Conditions are not evaluated, so a listed occurrence of evidence some rule
+  renews restores whether or not an event made it. The check runs after
+  every older check, so a save refused before keeps its message. Saves the
+  program writes restore as before.
+  Tests: `runtime/tests/d063_renewals_need_a_renewing_rule.rs`.
 - 2026-11-21 (D100): a value read of a stream (`latest`, `history_at`,
   `history_count` or a fold), `has_sample`, and the `latest(STREAM)` a
   `because` or a `permitted by` selects, carry only the record's name and

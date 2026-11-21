@@ -1908,10 +1908,10 @@ impl ReactiveSession {
         (!self.history_reach_bound().carries(owner, history)).then_some(history)
     }
 
-    /// Restore's check of findings D054 and D061, after every other: each
-    /// marker a provenance holds, each name it holds and each cause a series
-    /// or a withdrawal holds is of a history some rule or declaration of the
-    /// program can carry into it. A program without a window holds no
+    /// Restore's check of findings D054 and D061, after every older check:
+    /// each marker a provenance holds, each name it holds and each cause a
+    /// series or a withdrawal holds is of a history some rule or declaration
+    /// of the program can carry into it. A program without a window holds no
     /// marker, since restore refused one already, but its names and causes
     /// are read as in any other program (D061).
     pub(crate) fn check_history_reach(&self) -> Result<(), String> {

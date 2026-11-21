@@ -1097,10 +1097,12 @@ impl ReactiveSession {
         self.check_last_event_spending(save, declared_spent)?;
         self.check_retirement_dates(save)?;
         self.check_hold_entries(save)?;
-        // Last, so that a save refused before is refused as it was (D054,
-        // D061). A session restored lies within the bound, which debug
-        // builds check after every later event.
+        // After every check older than it, so that a save refused before is
+        // refused as it was (D054, D061). A session restored lies within the
+        // bound, which debug builds check after every later event.
         self.check_history_reach()?;
+        // Last, for the same reason (D063).
+        self.check_renewals_renewed(save)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1725,6 +1727,36 @@ impl ReactiveSession {
             if around.is_none_or(|(least, most)| *at < least || *at > most) {
                 return Err(format!(
                     "retired {record} is not dated at the event that added {history}@{successor}"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// D063: only a `renew` makes an occurrence of renewable evidence, so
+    /// renewals list one past the evidence itself only where a rule, or a
+    /// procedure a rule reaches, renews it, with a guard or without. The
+    /// renewals loop of `restore_records` holds the list to its order and
+    /// capacity and the graph to the list; this holds it to the program.
+    /// Conditions are not evaluated, so an occurrence of evidence some rule
+    /// renews restores whether or not an event made it.
+    fn check_renewals_renewed(&self, save: &ReactiveSave) -> Result<(), String> {
+        let renewed = self
+            .reached_effects(None)
+            .into_iter()
+            .filter_map(|effect| match effect {
+                Effect::Renew { evidence } => Some(evidence.as_str()),
+                _ => None,
+            })
+            .collect::<HashSet<_>>();
+        for (name, occurrences) in &save.renewals {
+            if let Some(occurrence) = occurrences
+                .get(1)
+                .filter(|_| !renewed.contains(name.as_str()))
+            {
+                return Err(format!(
+                    "renewable {name} occurrence {occurrence}: no rule or procedure of this \
+                     program renews {name}"
                 ));
             }
         }

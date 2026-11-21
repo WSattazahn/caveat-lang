@@ -40,10 +40,11 @@ which the saved delta cannot reconstruct. `restore_records` likewise requires
 each saved cue and effect to be one a rule effect of the saved last event
 could make, through `reached_effects`, without evaluating its conditions.
 `check_last_event_spending`, run after every check older than it (only the
-retirement-date check of D060, the hold-entry check of D062 and the
-history-reach check of D054 follow it), requires the costs of the last
-event's `examine` effects, a caveat examined twice counting twice, added to
-what the declarations spent, to fit the budget's `spent` (D053).
+retirement-date check of D060, the hold-entry check of D062, the
+history-reach check of D054 and the renewals check of D063 follow it),
+requires the costs of the last event's `examine` effects, a caveat examined
+twice counting twice, added to what the declarations spent, to fit the
+budget's `spent` (D053).
 
 Since rc.11, a single added `["phantom", "qualifies", "sensor"]` relation is
 refused when no mechanism of the loaded source can add that pair, and accepted
@@ -180,7 +181,9 @@ caveat the save leaves unexamined or that no rule or procedure examines
 (D046), a reopening of a commitment no `reopens` relation names, a predicate
 guard on a name of the wrong kind, and a withdrawal whose event reaches no
 `withdraw` of that evidence for that reason, in a rule or a procedure a rule
-calls. Evidence a declaration relates to a claim is observed as the program
+calls. It also refuses a renewals list that names an occurrence of renewable
+evidence no `renew` in a rule, or in a procedure a rule reaches, could make
+(D063). Evidence a declaration relates to a claim is observed as the program
 loads, and has no observation record until an event reveals it with a stance
 its declarations do not give it. A renewal leaves one on the occurrence it
 makes only when its guard rests on something, which needs a condition or call
@@ -191,8 +194,10 @@ kind restores though no skipped effect kept it, an observation record
 restores on a name a reached effect leaves records on though none left one
 there (whether a renewal's guard can rest on anything is read from the
 source, from what the conditions and call arguments on its way read, not
-from what they held), and a withdrawal by an event that could withdraw that
-evidence restores whether or not its guard held.
+from what they held), a withdrawal by an event that could withdraw that
+evidence restores whether or not its guard held, and an occurrence of
+renewable evidence a reached `renew` could make restores whether or not an
+event made it.
 Round 7's F263 found that removing a withdrawal record together with its
 `withdrawn qualifies` relation restores, so `withdrawn(...)` then reads
 false; that is still accepted. A save without a record the session made is
