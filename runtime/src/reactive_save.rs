@@ -1103,8 +1103,10 @@ impl ReactiveSession {
         self.check_history_reach()?;
         // After it, for the same reason (D063).
         self.check_renewals_renewed(save)?;
-        // Last, for the same reason (D064, D065).
+        // After it, for the same reason (D064, D065).
         self.check_declared_observations(save, &declared)?;
+        // Last, for the same reason (D101).
+        self.check_stances_revealed(save, &declared)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1810,6 +1812,98 @@ impl ReactiveSession {
             return Err(format!(
                 "observation of {name}: {name} has no stance but those its declarations give it"
             ));
+        }
+        Ok(())
+    }
+
+    /// D101: as the session runs, only a `reveal` and a `sample` give
+    /// evidence a stance. A `reveal` gives its evidence's current occurrence
+    /// the stance it names, unless that occurrence has it already, and a
+    /// `sample` gives the reading it takes the stance it is taken with. The
+    /// declarations give theirs as the program loads, and a save holds none
+    /// of them. So each `supports` or `opposes` relation a save holds is new
+    /// to the graph. From a reading the save holds, it is the stance the
+    /// reading was taken with, which `check_reading_stance` holds to a
+    /// `sample` of its event. From anything else, it is one a `reveal` in a
+    /// rule, or in a procedure a rule reaches, gives that evidence, or, from
+    /// a name a renewals list holds, that list's evidence. Conditions are not
+    /// evaluated, so the relation could have been added, not shown to have
+    /// been. `restore_graph` holds a `qualifies` relation to the mechanisms
+    /// that make it (F95, F260); this holds a stance to them.
+    fn check_stances_revealed(
+        &self,
+        save: &ReactiveSave,
+        declared: &Declared,
+    ) -> Result<(), String> {
+        let revealed = self
+            .reached_effects(None)
+            .into_iter()
+            .filter_map(|effect| match effect {
+                Effect::Reveal {
+                    evidence,
+                    relation,
+                    claim,
+                } => Some((evidence.as_str(), relation_name(*relation), claim.as_str())),
+                _ => None,
+            })
+            .collect::<HashSet<_>>();
+        // Each reading the save holds, with the stance it was taken with.
+        let taken = save
+            .reading_streams
+            .values()
+            .flat_map(|readings| &readings.occurrences)
+            .map(|reading| {
+                let stance = reading.relation.as_deref().zip(reading.claim.as_deref());
+                (reading.id.as_str(), stance)
+            })
+            .collect::<HashMap<_, _>>();
+        // Each name a renewals list holds, the evidence's own first, with that
+        // evidence: the names a `reveal` of it relates. A name the program
+        // declares is no occurrence, however it is spelled.
+        let renewed = self
+            .renewals
+            .iter()
+            .flat_map(|(evidence, renewal)| {
+                renewal
+                    .occurrences
+                    .iter()
+                    .map(move |name| (name.as_str(), evidence.as_str()))
+            })
+            .collect::<HashMap<_, _>>();
+        let mut held = HashSet::default();
+        for [from, relation, claim] in &save.graph.relations {
+            let stance = match relation.as_str() {
+                "supports" => Relation::Supports,
+                "opposes" => Relation::Opposes,
+                _ => continue,
+            };
+            if !held.insert((from, relation, claim)) {
+                return Err(format!(
+                    "relation {from} {relation} {claim} is listed twice"
+                ));
+            }
+            if declared.gives(from, stance, claim) {
+                return Err(format!(
+                    "relation {from} {relation} {claim}: a declaration gives it, and no event \
+                     adds it again"
+                ));
+            }
+            if let Some(taken) = taken.get(from.as_str()) {
+                if *taken != Some((relation.as_str(), claim.as_str())) {
+                    return Err(format!(
+                        "relation {from} {relation} {claim}: reading {from} was not taken \
+                         with that stance"
+                    ));
+                }
+                continue;
+            }
+            let source = renewed.get(from.as_str()).copied().unwrap_or(from.as_str());
+            if !revealed.contains(&(source, relation.as_str(), claim.as_str())) {
+                return Err(format!(
+                    "relation {from} {relation} {claim}: no rule of this program, or procedure \
+                     one calls, reveals {source} {relation} {claim}"
+                ));
+            }
         }
         Ok(())
     }
