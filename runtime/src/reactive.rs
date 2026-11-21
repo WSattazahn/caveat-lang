@@ -2520,6 +2520,9 @@ pub struct ReactiveSession {
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    /// The binding groups re-evaluated by the last accepted event, so the
+    /// View 0.1 patch inspects only what could have changed.
+    last_binding_groups: Vec<usize>,
     commitment_grounds: Records<Provenance>,
     /// Each commitment's grounds evidence in first-observed order, frozen when
     /// it was made; only where that differs from name order. View 0.2 shows
@@ -2952,6 +2955,7 @@ impl ReactiveSession {
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
+            last_binding_groups: Vec::new(),
             commitment_grounds: Records::default(),
             evidence_order: Arc::default(),
             journal: Chunked::default(),
@@ -4549,6 +4553,7 @@ impl ReactiveSession {
             })
             .collect::<Vec<_>>();
         if stale.is_empty() {
+            self.last_binding_groups.clear();
             return Ok(());
         }
         // Each stale group scoped to histories notes what it consults in a
@@ -4684,6 +4689,7 @@ impl ReactiveSession {
                 }
             });
         }
+        self.last_binding_groups = stale;
         Ok(())
     }
 
@@ -5816,6 +5822,7 @@ impl ReactiveSession {
             ));
         }
         let shown = self.take_shown();
+        let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
         // The archive stays out of the transaction's copy: the event appends
         // to an empty one, kept only if it succeeds.
         let archive = std::mem::take(&mut self.archive);
@@ -5868,6 +5875,7 @@ impl ReactiveSession {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
+                self.last_binding_groups = last_binding_groups;
                 if windowed {
                     std::mem::swap(&mut self.collector, &mut next.collector);
                     self.collector.rollback();
@@ -6092,11 +6100,6 @@ impl ReactiveSession {
     }
 
     pub fn view(&self) -> ReactiveView<'_> {
-        let names = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name))
-            .collect::<HashMap<_, _>>();
         ReactiveView {
             schema: REACTIVE_VIEW_SCHEMA,
             sequence: self.sequence,
@@ -6105,25 +6108,16 @@ impl ReactiveSession {
             binding_explanations: &self.binding_explanations,
             cues: &self.cues,
             effects: &self.effects,
-            commitments: self.commitment_records(|id| names.get(id).copied()),
+            commitments: self.commitment_records(|id| self.symbols.name_of(*id)),
             commitment_grounds: &self.commitment_grounds,
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
-            relations: self.relation_records(&names),
+            relations: self.relation_records(),
         }
     }
 
     /// The view with only the selected fields.
     pub fn view_fields(&self, fields: ViewFields) -> ReactiveViewSelection<'_> {
-        let needs_names = fields.has("commitments") || fields.has("relations");
-        let names = if needs_names {
-            self.symbols
-                .iter()
-                .map(|(name, id)| (*id, name))
-                .collect::<HashMap<_, _>>()
-        } else {
-            HashMap::default()
-        };
         let pick = |field: &str| fields.has(field);
         ReactiveViewSelection {
             schema: REACTIVE_VIEW_SCHEMA,
@@ -6135,12 +6129,51 @@ impl ReactiveSession {
             cues: pick("cues").then_some(self.cues.as_slice()),
             effects: pick("effects").then_some(self.effects.as_slice()),
             commitments: pick("commitments")
-                .then(|| self.commitment_records(|id| names.get(id).copied())),
+                .then(|| self.commitment_records(|id| self.symbols.name_of(*id))),
             commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
             decision_series: pick("decision_series").then_some(&self.decision_series),
             decision_journal: pick("decision_journal").then_some(&self.journal),
-            relations: pick("relations").then(|| self.relation_records(&names)),
+            relations: pick("relations").then(|| self.relation_records()),
         }
+    }
+
+    /// One commitment record by node id, reading its own relation lists in
+    /// graph order without scanning the whole graph.
+    fn commitment_record<'n>(
+        &self,
+        id: NodeId,
+        name_of: &impl Fn(&NodeId) -> Option<&'n str>,
+    ) -> Option<MapCommitment> {
+        let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(&id) else {
+            return None;
+        };
+        let action = name_of(&id)?.to_owned();
+        let retained = self
+            .graph
+            .basis(id)
+            .iter()
+            .filter(|link| link.relation == Relation::Retains)
+            .map(|link| link.other)
+            .collect::<Vec<_>>();
+        let named = |node: &NodeId| name_of(node).expect("a named node").to_string();
+        let reopened_by = self
+            .graph
+            .reopeners(id)
+            .iter()
+            .map(|link| named(&link.other))
+            .collect();
+        Some(MapCommitment {
+            action,
+            open: *open,
+            retained_authorship: crate::map::retained_authorship_of(
+                &self.graph,
+                id,
+                &retained,
+                |node| name_of(&node).map(str::to_string),
+            ),
+            retained: retained.iter().map(named).collect(),
+            reopened_by,
+        })
     }
 
     /// The commitments by name, each with what it retains and what reopened
@@ -6153,64 +6186,32 @@ impl ReactiveSession {
         let mut commitments = self
             .symbols
             .iter()
-            .filter_map(|(name, id)| match &self.graph.nodes[id] {
-                NodeKind::Commitment { open, .. } => Some((name, *id, *open)),
+            .filter_map(|(name, id)| match self.graph.nodes.get(id) {
+                Some(NodeKind::Commitment { .. }) => Some((name, *id)),
                 _ => None,
             })
             .collect::<Vec<_>>();
         if commitments.is_empty() {
             return Vec::new();
         }
-        commitments.sort_by_key(|(name, _, _)| *name);
-        // Each commitment's retained caveats and reopening causes, in one
-        // pass over the edges.
-        let mut links = commitments
-            .iter()
-            .map(|(_, id, _)| (*id, (Vec::new(), Vec::new())))
-            .collect::<HashMap<NodeId, (Vec<NodeId>, Vec<NodeId>)>>();
-        for edge in &self.graph.edges {
-            match edge.relation {
-                Relation::Retains => {
-                    if let Some((retained, _)) = links.get_mut(&edge.from) {
-                        retained.push(edge.to);
-                    }
-                }
-                Relation::Reopens => {
-                    if let Some((_, reopened_by)) = links.get_mut(&edge.to) {
-                        reopened_by.push(edge.from);
-                    }
-                }
-                _ => {}
-            }
-        }
-        let named = |id: &NodeId| name_of(id).expect("a named node").to_string();
+        commitments.sort_by_key(|(name, _)| *name);
         commitments
             .into_iter()
-            .map(|(name, id, open)| {
-                let (retained, reopened_by) = &links[&id];
-                MapCommitment {
-                    action: name.to_owned(),
-                    open,
-                    retained_authorship: crate::map::retained_authorship_of(
-                        &self.graph,
-                        id,
-                        retained,
-                        |node| name_of(&node).map(str::to_string),
-                    ),
-                    retained: retained.iter().map(named).collect(),
-                    reopened_by: reopened_by.iter().map(named).collect(),
-                }
-            })
+            .filter_map(|(_, id)| self.commitment_record(id, &name_of))
             .collect()
     }
 
-    fn relation_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapRelation> {
+    fn relation_records(&self) -> Vec<MapRelation> {
         self.graph
             .edges
             .iter()
             .map(|edge| MapRelation {
-                from: names[&edge.from].into(),
-                to: names[&edge.to].into(),
+                from: self
+                    .symbols
+                    .name_of(edge.from)
+                    .expect("a named node")
+                    .into(),
+                to: self.symbols.name_of(edge.to).expect("a named node").into(),
                 relation: relation_name(edge.relation).into(),
                 origin: "live".into(),
             })

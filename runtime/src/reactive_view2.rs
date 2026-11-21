@@ -221,7 +221,6 @@ pub struct ListChanges {
 impl ReactiveSession {
     /// The per-event view in schema 0.2. See spec/caveat-view-0.2.md.
     pub fn view_v2(&self) -> ReactiveViewV2<'_> {
-        let names = self.node_names();
         ReactiveViewV2 {
             schema: REACTIVE_VIEW_V2_SCHEMA,
             sequence: self.sequence,
@@ -231,7 +230,7 @@ impl ReactiveSession {
             cues: &self.cues,
             effects: &self.effects,
             commitments: self
-                .commitment_records(|id| names.get(id).copied())
+                .commitment_records(|id| self.symbols.name_of(*id))
                 .into_iter()
                 .map(ViewCommitment::from)
                 .collect(),
@@ -248,7 +247,7 @@ impl ReactiveSession {
                 .collect(),
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
-            relations: self.relation_records(&names),
+            relations: self.relation_records(),
             taken_back: (!self.take_back_caveats.is_empty()).then_some(self.taken_back.as_slice()),
         }
     }
@@ -279,15 +278,10 @@ impl ReactiveSession {
             .collect()
     }
 
-    fn node_names(&self) -> HashMap<NodeId, &str> {
-        names(&self.symbols)
-    }
-
     /// What a delta compares: the view's members as values, shared with the
     /// session where it shares them.
     fn view_parts(&self) -> ViewParts {
         let ranks = self.observation_ranks();
-        let names = self.node_names();
         ViewParts {
             bindings: self.bindings.clone(),
             binding_explanations: self
@@ -306,7 +300,7 @@ impl ReactiveSession {
                 })
                 .collect(),
             commitments: self
-                .commitment_records(|id| names.get(id).copied())
+                .commitment_records(|id| self.symbols.name_of(*id))
                 .into_iter()
                 .map(|commitment| (commitment.action.clone(), ViewCommitment::from(commitment)))
                 .collect(),
