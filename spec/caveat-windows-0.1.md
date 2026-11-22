@@ -91,7 +91,11 @@ before the effect that added the new record:
 A refused or failed event retires nothing: the retirement rolls back with the
 rest of the event ([Dispatch 0.1](caveat-dispatch-0.1.md)). A windowed history
 never refuses for being full, so `limit/history_limit` and
-`limit/renewal_limit` do not arise for it. Every other refusal, and the rc.11
+`limit/renewal_limit` do not arise for it for that reason. A `renew` that
+would make a name the program declares as evidence, a claim, a caveat or a
+commitment, such as `foo@2` beside `renewable foo window 1`, is refused as
+`limit/renewal_limit`, with a window as with a limit
+([Renewal 0.1](caveat-renewal-0.1.md)). Every other refusal, and the rc.11
 to rc.13 catalog, is unchanged.
 
 While records only retire, the session still holds them. A windowed history
@@ -210,6 +214,13 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-22 (D103): a `renew` of windowed renewable evidence that would make
+  a name the program declares as evidence, a claim, a caveat or a
+  commitment, such as `foo@2` beside `renewable foo window 1`, is refused as
+  `limit/renewal_limit` and retires nothing, below the 65,536-record ceiling
+  as at it. Before, the event was fatal `unclassified`, although the runtime
+  had already rolled back the event and any retirement it had made. See
+  [Renewal 0.1](caveat-renewal-0.1.md), "Changes".
 - 2026-11-12 (D060): restore holds a retirement's date to what else the save
   dates. It checked only that the date was not 0, not past the save's
   `sequence` and not before the retired record was added, so it accepted a
