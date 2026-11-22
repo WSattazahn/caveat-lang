@@ -959,7 +959,7 @@ impl ReactiveSession {
                 })
                 .collect(),
             decision_journal: self.journal.to_vec(),
-            retired: (*self.retired).clone(),
+            retired: self.listed_retired(),
             journal_departed: self.journal_departed as u64,
             resources: self.resources.as_ref().map(|ledger| SavedResources {
                 remaining: ledger.remaining,
@@ -1571,7 +1571,56 @@ impl ReactiveSession {
             }
             held.get(record).map_or(0, |&(_, sequence)| sequence)
         };
+        // Beside `journal window`, an older release took journal entry K's
+        // retirement for that of declared evidence spelled `journal@K` that a
+        // declaration's `reopen` names, so its sessions could cite that
+        // evidence, never observed, as retired (D051). A session restored
+        // from its save keeps the evidence retired, and lists it once the
+        // entry has departed too: a name of an entry the journal no longer
+        // holds is then that evidence's retirement alone (D105), dated as
+        // the entry's was, before the event that departed it. Entry K
+        // retired as the journal added entry K + N under a window of N, at
+        // that entry's sequence: while the journal holds that entry it gives
+        // the date, and once it has departed the date is no later than the
+        // oldest entry held. Any other such name is left to the checks
+        // below, which refuse it as before.
+        let causes = self.retired_journal_causes(save);
+        let window = self.journal_window.map_or(0, |window| window as u64);
+        let alone = |record: &str, at: u64| {
+            let Some(index) = record
+                .strip_prefix("journal@")
+                .filter(|_| causes.contains(record))
+                .and_then(|number| {
+                    number
+                        .parse::<u64>()
+                        .ok()
+                        .filter(|index| index.to_string() == number)
+                })
+            else {
+                return false;
+            };
+            if index == 0 || index > save.journal_departed || at == 0 || at >= save.sequence {
+                return false;
+            }
+            let position = index
+                .saturating_add(window)
+                .checked_sub(save.journal_departed)
+                .and_then(|successor| successor.checked_sub(1));
+            match position {
+                Some(position) => usize::try_from(position)
+                    .ok()
+                    .and_then(|position| save.decision_journal.get(position))
+                    .is_some_and(|entry| entry.sequence == at),
+                None => save
+                    .decision_journal
+                    .first()
+                    .is_some_and(|oldest| at <= oldest.sequence),
+            }
+        };
         for (record, at) in &save.retired {
+            if alone(record, *at) {
+                continue;
+            }
             if self
                 .history_of_record_in(save, Some(&held), record)
                 .is_none()
@@ -1697,8 +1746,54 @@ impl ReactiveSession {
                 }
             }
         }
-        self.retired = Arc::new(save.retired.clone());
+        self.retired = Arc::new(
+            save.retired
+                .iter()
+                .filter(|(record, at)| !alone(record, **at))
+                .map(|(record, at)| (record.clone(), *at))
+                .collect(),
+        );
+        self.retired_causes = Arc::new(
+            save.retired
+                .iter()
+                .filter(|(record, _)| causes.contains(record.as_str()))
+                .map(|(record, at)| (record.clone(), *at))
+                .collect(),
+        );
         Ok(())
+    }
+
+    /// The declared evidence spelled like a journal entry, beside `journal
+    /// window`, that a declaration's `reopen` names, that the save lists as
+    /// retired and that is not observed: see `retired_causes` (D105). Only a
+    /// declaration observes such a name, as the program loads, since no rule
+    /// can name it; so no later event observes evidence kept retired, and
+    /// no event's reopening names it as its cause.
+    fn retired_journal_causes(&self, save: &ReactiveSave) -> HashSet<String> {
+        if self.journal_window.is_none() || save.retired.is_empty() {
+            return HashSet::default();
+        }
+        let mut causes = self
+            .graph
+            .edges
+            .iter()
+            .take(self.loaded.edges)
+            .filter(|edge| edge.relation == Relation::Reopens)
+            .filter(|edge| {
+                self.symbols.name_of(edge.from).is_some_and(|name| {
+                    self.journal_entry_name(name) && save.retired.contains_key(name)
+                })
+            })
+            .map(|edge| edge.from)
+            .collect::<HashSet<_>>();
+        if !causes.is_empty() {
+            let observed = self.observed_evidence();
+            causes.retain(|id| !observed.contains(id));
+        }
+        causes
+            .into_iter()
+            .filter_map(|id| self.symbols.name_of(id).map(str::to_string))
+            .collect()
     }
 
     /// D060: a record retires as its history adds the record that takes its
@@ -1747,6 +1842,11 @@ impl ReactiveSession {
             let Some((history, number)) = occurrence_parts(record) else {
                 continue;
             };
+            // A declared cause kept retired once its entry departed is no
+            // entry, and `restore_retired` has dated it (D105).
+            if self.retired_causes.contains_key(record) && !self.retired.contains_key(record) {
+                continue;
+            }
             let number = number as u64;
             // The record that took this one's place, and the sequences of
             // the records held nearest to it: its own, twice, when the save

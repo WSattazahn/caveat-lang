@@ -120,6 +120,17 @@ Nothing pins a retired journal entry, because nothing cites a journal entry by
 name. A journal entry therefore departs in the event that retires it, and the
 journal's departed entries are always its oldest.
 
+An entry's name, `journal@K`, can also name something else beside `journal
+window`: a reading of a stream or an occurrence of renewable evidence named
+`journal`, either of which may have a limit there but not a window, or a
+revision of a decision series named `journal`; or a caveat, claim,
+commitment or evidence the program declares with that name. None of them is
+the entry. A pin on one does not keep the entry, a read of one never
+takes the entry's retirement for its own, and the entry's departure takes
+nothing of theirs: their graph nodes, relations, observations,
+qualifications, withdrawals and take-back records stay, and no provenance
+that cites them compacts. The entry's archive entry holds the entry alone.
+
 ## What departure does
 
 In the event in which a record departs:
@@ -253,18 +264,24 @@ Restore refuses a save when:
 - the save has a departed record (a marker, `journal_departed`, or a number
   below a history's oldest live record that is not held) and also holds a
   retired record that nothing in the save pins, other than a renewable
-  evidence's declared first occurrence. Departure would have taken it
-  at the end of the event the save follows;
+  evidence's declared first occurrence, or a journal entry whose name a
+  pinned record or declared name shares, which an older release kept
+  retired (D074, D105). Departure would have taken it at the end of the
+  event the save follows;
 - a relation, qualification, withdrawal, observation order entry or exact
   citation names a departed record;
 
 and in every case Lineage Compaction 0.1's restore list applies. A save from a
 session with no departure, such as rc.15's windowed saves, may hold unpinned
-retired records; they depart at the next accepted event. As with every
-restore check, a save that passes holds records the program could hold, not
-records events are shown to have produced ([Save 0.1](caveat-save-0.1.md)).
-Restore never authenticates history and cannot tell whether a host's drained
-archive matches the save.
+retired records; they depart at the next accepted event. So does a journal
+entry that an older release kept retired for a pin on a record or declared
+name of its spelling; where that name is declared evidence the older
+release read as retired with the entry, the restored session keeps the
+evidence retired ([Windows 0.1](caveat-windows-0.1.md), "Save and
+restore"). As with every restore check, a save that passes holds records
+the program could hold, not records events are shown to have produced
+([Save 0.1](caveat-save-0.1.md)). Restore never authenticates history and
+cannot tell whether a host's drained archive matches the save.
 
 A reopening qualification without a `reopens` relation is no longer refused
 in one case. Save 0.1 refuses a reopening qualification unless a `reopens`
@@ -338,6 +355,31 @@ and 60 cycles apart from the digits of growing numbers, with the raw bytes
 recorded beside them.
 
 ## Changes
+
+- 2026-11-22 (D074, D105): a journal entry is not the record or declared
+  name spelled like it. Under `journal window`, entry `journal@K` can share
+  its name with a record of a reading stream, renewable evidence or
+  decision series named `journal`, or with a name the program declares, and
+  the session kept the entry's retirement and departure by that name alone.
+  So a pin on that record or declared name kept the entry retired past its
+  window, its reads took the entry's retirement for its own, and the
+  entry's departure took its graph node, relations, observation and
+  withdrawal with it and compacted what cited it. The session then lost
+  records and declared nodes the program still held. A renewal that related
+  a departed declared caveat to its new occurrence panicked, in release
+  builds too; a later commit could be fatal ("journal entry journal@1
+  departed out of order"); and restore refused the session's own saves, or
+  restored a session that answered later events otherwise. An entry now
+  departs in the event that retires it, and its departure removes only
+  that entry from the journal. A program in which no record or declared
+  name is spelled like an entry plays as before, byte for byte. A program
+  in which one is plays as the same program with that name spelled
+  otherwise, so where the session read through the entry's retirement, its
+  outcomes change. A save an older release wrote can hold an entry that
+  such a pin kept retired: it restores, and the restored session departs
+  the entry at the end of its next accepted event. See
+  [Save 0.1](caveat-save-0.1.md), "Changes", for what such a save's
+  restored session reads.
 
 - 2026-11-07 (D041): an outcome's lineage is a holder: `kind` `series`,
   `name` its revision, `in` `outcome`

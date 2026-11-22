@@ -31,7 +31,11 @@ evidence; a history has a limit or a window, not both. `journal
 window N` is a new top-level declaration for the
 [decision journal](caveat-decision-journal-0.1.md), which has no limit; a
 program with it may not also give a stream or renewable evidence named
-`journal` a window, since retirement names the journal's history `journal`. `N` is
+`journal` a window, since retirement names the journal's history `journal`.
+Such a stream or renewable evidence with a limit, a decision series named
+`journal`, and a name the program declares spelled `journal@K` may stand
+beside it, and no record or name of theirs is the journal's entry spelled
+the same way ([Departure 0.1](caveat-departure-0.1.md)). `N` is
 an integer in `1..256`. A windowed stream's `N` counts toward the
 1,024 total of reading and decision capacities, as a limit does
 ([Reactive 0.5](caveat-reactive-0.5.md)).
@@ -134,7 +138,8 @@ windowed program anyway.
 Restore refuses a save when:
 
 - `retired` names a record of a history without a window, or a record the
-  session does not hold;
+  session does not hold, other than evidence an older release's save kept
+  retired with a journal entry (see below);
 - a retirement is dated 0, past the save's `sequence`, or before the record
   it retires was added;
 - a retirement dated at the save's `sequence` is not one of the last event's
@@ -188,6 +193,24 @@ commit's, or evidence the last event's effects report. As with every restore
 check, a save that passes holds records the program could hold, not records
 events are shown to have produced ([Save 0.1](caveat-save-0.1.md)).
 
+Beside `journal window`, an older release also took journal entry
+`journal@K`'s retirement for that of such evidence spelled `journal@K`
+(D105). Where no declaration observes that evidence, its sessions read
+`reopened(…)` of the commitment once the entry had retired, and what read
+it cites the evidence; their saves list `journal@K` in `retired` while
+that citation keeps the entry. A session restored from such a save keeps
+the evidence retired, from the sequence the save gives, so that read and
+what cites the evidence stay as they were, and lists `journal@K` in
+`retired` after the entry has departed too. Restore accepts a `retired`
+name `journal@K` the journal no longer holds only as such evidence's
+retirement, dated as the entry's was: before the save's last event, at
+the sequence of entry `journal@K+N` under `journal window N` while the
+journal holds that entry, and no later than the sequence of the oldest
+entry it holds once that entry has departed too. It refuses any other
+such name as before. No session that starts now retires such evidence:
+an entry's retirement is not the evidence's
+([Departure 0.1](caveat-departure-0.1.md)).
+
 ## Decision series: not in rc.15
 
 A series has no window in rc.15. Since [Reactive 0.5](caveat-reactive-0.5.md),
@@ -214,6 +237,16 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-22 (D074, D105): beside `journal window`, a reading stream,
+  renewable evidence or decision series named `journal`, and a name the
+  program declares spelled `journal@K`, are kept apart from the journal's
+  entries of the same names. Before, an entry's retirement and departure
+  reached a record or declared name of its spelling: its reads took it for
+  retired, a pin on it kept the entry, and the entry's departure took it
+  from the session. A session restored from an older release's save keeps
+  declared evidence that release read as retired with an entry retired
+  ("Save and restore"). See [Departure 0.1](caveat-departure-0.1.md) and
+  [Save 0.1](caveat-save-0.1.md), "Changes".
 - 2026-11-22 (D103): a `renew` of windowed renewable evidence that would make
   a name the program declares as evidence, a claim, a caveat or a
   commitment, such as `foo@2` beside `renewable foo window 1`, is refused as

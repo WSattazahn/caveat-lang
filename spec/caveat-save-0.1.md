@@ -665,6 +665,47 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-22 (D074, D105): under `journal window`, a reading stream or
+  evidence named `journal` is read as itself where restore asks which
+  take-back caveats grounds can keep. A take-back caveat on such a stream's
+  readings or such evidence's occurrences can reach a state's or a
+  commitment's grounds through a citation, beyond their lineage or basis
+  (D098), as it can for any other name. Restore took the history `journal`
+  there for the decision journal, whose entries no caveat qualifies, and
+  refused the saves the session wrote from then on, for example with
+  "state t grounds keep a caveat its lineage does not keep"; a debug build
+  stopped in the event instead. The session's saves change too, as
+  [Departure 0.1](caveat-departure-0.1.md) says: a journal entry departs
+  in the event that retires it, so a save no longer holds an entry that a
+  pin on a record or declared name of its spelling kept retired, and keeps
+  the records and declared nodes such an entry's departure used to take.
+  Restore refused many of the saves that departure left, for example with
+  "reveal effect has no matching graph relation" once a declared claim
+  `journal@1` had departed with its declared relation; such a save an
+  older release wrote is refused as before. A state save an older release
+  wrote that holds an entry such a pin kept retired restores to the same
+  save, and the restored session departs the entry at the end of its next
+  accepted event. Its reads of a record or declared name spelled like the
+  entry no longer take the entry's retirement for their own, so a view
+  over a stream named `journal` can differ from that release's from the
+  start. Only declared evidence a declaration's `reopen` names that no
+  declaration observes keeps that retirement, since the older release
+  read `reopened(…)` through it and what read it cites the evidence: the
+  restored session keeps the evidence retired, where the older release's
+  departure of the entry took the evidence and its later reads cited
+  nothing, and a save it writes lists it in `retired` still once the entry
+  has departed ([Windows 0.1](caveat-windows-0.1.md), "Save and
+  restore"). A compact save that is a replay save replays its events under
+  these rules, so it restores the session those events make now, and is
+  refused, naming the event, when that session refuses one of them: for
+  example a `renew` onto a declared claim `journal@2` the older release
+  accepted once the entry's departure had taken that claim, or a read of
+  `reopened(…)` through such evidence, which the older release took for
+  retired, where the state save of the same session restores. Tests:
+  `runtime/tests/d074_a_history_named_journal_beside_journal_window.rs`,
+  `runtime/tests/d105_a_declared_name_spelled_like_a_journal_entry.rs`,
+  and `a_journal_entry_keeps_its_name` in
+  `runtime/tests/d102_declared_names_are_no_occurrences.rs`.
 - 2026-11-22 (D104): restore holds a relation to the number of times events
   add it. A commitment an event makes is made once, and relates once to
   each caveat it retains and each piece of evidence it relies on, and no

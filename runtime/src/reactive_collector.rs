@@ -853,7 +853,7 @@ impl ReactiveSession {
         // ReliesOn sources and Reopens targets are commitments, which do not
         // depart. Graph owners therefore only supply external roots; candidate
         // dependency traversal needs Record owners alone.
-        debug_assert!(!self.retired.contains_key(action));
+        debug_assert!(!self.is_retired(action));
         if !self.windowed() {
             return;
         }
@@ -1031,7 +1031,7 @@ impl ReactiveSession {
             .collector
             .reasons
             .keys()
-            .filter(|name| self.retired.contains_key(name.as_str()))
+            .filter(|name| self.is_retired(name.as_str()))
             .cloned()
             .collect::<Vec<_>>();
         self.collector.queued.extend(seeds);
@@ -1040,9 +1040,7 @@ impl ReactiveSession {
     }
 
     fn collector_eligible(&self, name: &str, ordinary: &BTreeMap<String, (String, u64)>) -> bool {
-        self.retired.contains_key(name)
-            && !ordinary.contains_key(name)
-            && self.departable_name(name)
+        self.is_retired(name) && !ordinary.contains_key(name) && self.departable_name(name)
     }
 
     /// Whether `record` is eligible and nothing roots it directly: every pin

@@ -618,7 +618,7 @@ impl ReactiveSession {
         *count -= 1;
         if *count == 0 {
             counts.remove(name);
-            if self.retired.contains_key(name) {
+            if self.is_retired(name) {
                 Arc::make_mut(&mut self.departure_candidates).insert(name.to_string());
             }
         }
@@ -646,14 +646,10 @@ impl ReactiveSession {
     }
 
     /// The history and number of a retired record that may depart: not a
-    /// renewable evidence's declared first occurrence.
+    /// renewable evidence's declared first occurrence. A journal entry
+    /// leaves through `depart_unpinned`'s own set, never through here.
     pub(super) fn departable(&self, record: &str) -> Option<(String, u64)> {
-        if let Some(number) = record
-            .strip_prefix("journal@")
-            .filter(|_| self.journal_window.is_some())
-        {
-            return Some(("journal".into(), number.parse().ok()?));
-        }
+        debug_assert!(!self.journal_entry_name(record), "{record}");
         let (history, number) = save::occurrence_parts(record)?;
         Some((history.to_string(), number as u64))
     }
@@ -661,14 +657,7 @@ impl ReactiveSession {
     /// Whether `departable` names a place for `record`, without building it:
     /// the collector asks this of every record and holder it looks at.
     pub(super) fn departable_name(&self, record: &str) -> bool {
-        let departable = if let Some(number) = record
-            .strip_prefix("journal@")
-            .filter(|_| self.journal_window.is_some())
-        {
-            number.parse::<u64>().is_ok()
-        } else {
-            save::occurrence_parts(record).is_some()
-        };
+        let departable = save::occurrence_parts(record).is_some();
         debug_assert_eq!(departable, self.departable(record).is_some(), "{record}");
         departable
     }
@@ -685,6 +674,10 @@ impl ReactiveSession {
         #[cfg(debug_assertions)]
         self.check_departure_index();
         let mut departing = BTreeMap::new();
+        // A retired journal entry departs: nothing pins one. It leaves apart
+        // from everything a record's or a declared name keys, the maps of a
+        // record or declared name spelled like it included (D074, D105).
+        let mut journal = BTreeSet::new();
         // Only retirements and released pins queue candidates. Resolve the
         // complete withdrawal cascade before compaction so effects and archive
         // entries are globally ordered, not ordered by cascade depth. Each
@@ -694,7 +687,14 @@ impl ReactiveSession {
             let record = Arc::make_mut(&mut self.departure_candidates)
                 .pop_first()
                 .expect("not empty");
-            if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
+            if !self.retired.contains_key(&record) {
+                continue;
+            }
+            if self.journal_entry_name(&record) {
+                journal.insert(record);
+                continue;
+            }
+            if self.pin_counts.contains_key(&record) {
                 continue;
             }
             if let Some(place) = self.departable(&record) {
@@ -711,7 +711,7 @@ impl ReactiveSession {
         if self.windowed() {
             self.collect_withdrawals(&mut departing);
         }
-        if departing.is_empty() {
+        if departing.is_empty() && journal.is_empty() {
             #[cfg(debug_assertions)]
             self.check_withdrawal_collector();
             return Ok(());
@@ -1014,7 +1014,7 @@ impl ReactiveSession {
         }
         // Stage the final boxes so ordering retains handles rather than a
         // full inline record buffer alongside the published archive.
-        let mut entries = BTreeMap::new();
+        let mut entries = Vec::with_capacity(departing.len() + journal.len());
         for (record, (history, number)) in &departing {
             let mut qualifications = BTreeMap::new();
             for (kind, map) in [
@@ -1042,13 +1042,7 @@ impl ReactiveSession {
             }
             let withdrawal = withdrawals.next_if(|withdrawal| &withdrawal.evidence == record);
             let mut reading = None;
-            let mut journal_entry = None;
-            if history == "journal"
-                && self.journal_window.is_some()
-                && record.starts_with("journal@")
-            {
-                journal_entry = Some(());
-            } else if let Some(stream) = self.reading_streams.get(history) {
+            if let Some(stream) = self.reading_streams.get(history) {
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                 let mut profile = renewal_profile::Block::readings(stream.occurrences.len());
                 let index = stream.occurrences.iter().position(|r| &r.id == record);
@@ -1104,26 +1098,20 @@ impl ReactiveSession {
                 .expect("a departing record is retired");
             let mut entry_holders = holders.remove(record).unwrap_or_default();
             entry_holders.sort();
-            entries.insert(
-                record.clone(),
-                (
-                    journal_entry.is_some(),
-                    Box::new(ArchiveEntry {
-                        record: record.clone(),
-                        history: history.clone(),
-                        number: *number,
-                        retired_at,
-                        departed_at: sequence,
-                        relations: relations.remove(record).unwrap_or_default(),
-                        qualifications,
-                        reading,
-                        journal_entry: None,
-                        withdrawal,
-                        taken_back: taken_back.remove(record).unwrap_or_default(),
-                        holders: entry_holders,
-                    }),
-                ),
-            );
+            entries.push(Box::new(ArchiveEntry {
+                record: record.clone(),
+                history: history.clone(),
+                number: *number,
+                retired_at,
+                departed_at: sequence,
+                relations: relations.remove(record).unwrap_or_default(),
+                qualifications,
+                reading,
+                journal_entry: None,
+                withdrawal,
+                taken_back: taken_back.remove(record).unwrap_or_default(),
+                holders: entry_holders,
+            }));
         }
         debug_assert!(
             withdrawals.peek().is_none(),
@@ -1132,30 +1120,51 @@ impl ReactiveSession {
         // The exhausted IntoIter still owns its buffer. Free it before journal
         // transfer and archive publication allocate their own output buffers.
         drop(withdrawals);
-        // Departing journal entries are the oldest held: nothing pins one.
-        let journal_departing = entries.values().filter(|(journal, _)| *journal).count();
-        if journal_departing > 0 {
-            for (index, entry) in self
-                .journal
-                .drain_front(journal_departing)
-                .into_iter()
-                .enumerate()
-            {
-                let name = format!("journal@{}", self.journal_departed + index + 1);
-                if let Some((_, archived)) = entries.get_mut(&name) {
-                    archived.journal_entry = Some(entry);
-                } else {
+        // Departing journal entries are the oldest held: nothing pins one. An
+        // entry's archive entry holds the entry alone: no relation,
+        // qualification, withdrawal or holder is an entry's.
+        if !journal.is_empty() {
+            let drained = self.journal.drain_front(journal.len());
+            let count = drained.len();
+            for (index, entry) in drained.into_iter().enumerate() {
+                let number = self.journal_departed + index + 1;
+                let name = format!("journal@{number}");
+                if !journal.contains(&name) {
+                    return Err(format!("journal entry {name} departed out of order"));
+                }
+                let retired_at = Arc::make_mut(&mut self.retired)
+                    .remove(&name)
+                    .expect("a departing entry is retired");
+                entries.push(Box::new(ArchiveEntry {
+                    record: name,
+                    history: "journal".to_string(),
+                    number: number as u64,
+                    retired_at,
+                    departed_at: sequence,
+                    relations: Vec::new(),
+                    qualifications: BTreeMap::new(),
+                    reading: None,
+                    journal_entry: Some(entry),
+                    withdrawal: None,
+                    taken_back: Vec::new(),
+                    holders: Vec::new(),
+                }));
+            }
+            // An entry the journal no longer holds cannot depart: each one
+            // still retired after the drain was not among the oldest held.
+            if count < journal.len() {
+                if let Some(name) = journal
+                    .iter()
+                    .find(|name| self.retired.contains_key(name.as_str()))
+                {
                     return Err(format!("journal entry {name} departed out of order"));
                 }
             }
-            self.journal_departed += journal_departing;
+            self.journal_departed += count;
         }
 
         // 3. Reported after every other effect, by history and number.
-        let mut order = entries
-            .into_values()
-            .map(|(_, entry)| entry)
-            .collect::<Vec<_>>();
+        let mut order = entries;
         order.sort_by(|a, b| a.history.cmp(&b.history).then(a.number.cmp(&b.number)));
         for entry in order {
             self.effects.push(EffectReport::Depart {

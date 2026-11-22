@@ -593,7 +593,12 @@ on refresh renew foo;";
 
 /// The journal names its entries `journal@K` whatever the program declares:
 /// it has no node to take the name from. So restore reads a journal record by
-/// its spelling, beside evidence declared as `journal@1` too, and a
+/// its spelling, beside evidence declared as `journal@1` too. The outcome
+/// `sel` resolves cites that evidence, which pins it, and journal entry
+/// `journal@1` departs all the same when `sel` retires it: a pin on the
+/// evidence is no pin on the entry (D105). Before, the pin kept the entry
+/// retired, and a save an older release wrote holds it so. That save
+/// restores, its entry departs at the end of the next accepted event, and a
 /// retirement of entry `journal@1` dated where no entry was added is refused
 /// as before.
 #[test]
@@ -621,9 +626,47 @@ on cd commit d because enough using 1;
 on tt set t = 1;
 on sel resolve d = 1 because caveated(s, k);";
     let saves = plays_and_restores(source, &plain(&["sets", "cd", "tt", "sel", "tt"]));
-    assert_eq!(saves[4]["retired"], json!({"journal@1": 4}));
+    assert_eq!(saves[3].get("retired"), None, "{}", saves[3]);
+    assert_eq!(saves[3]["journal_departed"], json!(1), "{}", saves[3]);
+    assert_eq!(
+        saves[3]["effects"],
+        json!([
+            {"kind": "retire", "history": "journal", "record": "journal@1"},
+            {"kind": "depart", "history": "journal", "record": "journal@1"},
+        ]),
+        "{}",
+        saves[3]
+    );
+    // The save an older release wrote after the last `tt`.
+    let mut older = saves[4].clone();
+    older["decision_journal"] = json!([
+        saves[2]["decision_journal"][0],
+        saves[4]["decision_journal"][0],
+    ]);
+    older.as_object_mut().unwrap().remove("journal_departed");
+    older["retired"] = json!({"journal@1": 4});
+    let mut restored = ReactiveSession::restore_json(source, &older.to_string())
+        .unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(
+        serde_json::from_str::<Value>(&restored.save_json().unwrap()).unwrap(),
+        older
+    );
+    let outcome = answer(&mut restored, "tt", "{}");
+    assert_eq!(
+        outcome["snapshot"]["effects"],
+        json!([{"kind": "depart", "history": "journal", "record": "journal@1"}]),
+        "{outcome}"
+    );
+    let archive = serde_json::to_value(restored.drain_archive()).unwrap();
+    assert_eq!(archive[0]["record"], json!("journal@1"), "{archive}");
+    assert_eq!(archive[0]["retired_at"], json!(4), "{archive}");
+    assert_eq!(archive[0]["departed_at"], json!(6), "{archive}");
+    let save = restored.save_json().unwrap();
+    let again =
+        ReactiveSession::restore_json(source, &save).unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(again.save_json().unwrap(), save);
     for at in [2, 3] {
-        let mut dated = saves[4].clone();
+        let mut dated = older.clone();
         dated["retired"]["journal@1"] = json!(at);
         refused(
             source,
