@@ -539,6 +539,10 @@ struct Declared {
     attention: HashMap<String, Attention>,
     /// Each caveat a declaration has qualify a name, with those names.
     qualifications: HashMap<String, HashSet<String>>,
+    /// Each pair of nodes a declaration relates, with how many times the
+    /// declarations relate them by each relation: nothing refuses a
+    /// declaration repeated.
+    relations: HashMap<(NodeId, NodeId), Vec<(Relation, usize)>>,
 }
 
 impl Declared {
@@ -561,6 +565,18 @@ impl Declared {
         self.qualifications
             .get(caveat)
             .is_some_and(|names| names.contains(name))
+    }
+
+    /// How many times the declarations relate `from` to `to` by `relation`,
+    /// looked up rather than counted: a caveat may qualify thousands of
+    /// names, and a save list as many relations from it.
+    fn gives_times(&self, from: NodeId, relation: Relation, to: NodeId) -> usize {
+        self.relations.get(&(from, to)).map_or(0, |given| {
+            given
+                .iter()
+                .find(|(declared, _)| *declared == relation)
+                .map_or(0, |(_, times)| *times)
+        })
     }
 }
 
@@ -1133,9 +1149,11 @@ impl ReactiveSession {
         self.check_declared_observations(save, &declared)?;
         // After it, for the same reason (D101).
         self.check_stances_revealed(save, &declared)?;
-        // Last, for the same reason (D102).
+        // After them, for the same reason (D102).
         self.check_renewal_names_free(save)?;
         self.check_declared_qualifications(save, &declared)?;
+        // Last, for the same reason (D104).
+        self.check_relations_listed_once(save, &declared)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -2021,6 +2039,103 @@ impl ReactiveSession {
                      adds it again"
                 ));
             }
+        }
+        Ok(())
+    }
+
+    /// D104: a save lists each relation as often as events add it. A save
+    /// holds only the relations events add, never one a declaration gives,
+    /// and no event adds one of those again (D101 and D102 refuse a stance
+    /// and a qualification so given first, with the same message). Nor does
+    /// an event add one it has added: a `reveal` relates evidence to a claim
+    /// only when they are not related, a commitment an event makes is made
+    /// once, a decision series' revisions each under its own name, and
+    /// retains and relies on each name of its basis once, and a reopening,
+    /// whichever effect makes it, adds no `reopens` relation there already.
+    /// No event commits a commitment the program declares, since a commit of
+    /// a name that exists is refused, so no event relates one by `retains` or
+    /// `relies_on`. A qualification adds a relation only when none is live,
+    /// so its pair comes again after a take-back: `restore_taken_back` holds
+    /// a pair the save takes back to its records, one for each relation but
+    /// the last, which may have one too. And a renewal or a reading takes
+    /// each caveat its template is declared with as often as the
+    /// declarations give it. Restore relates every relation it lists, so a
+    /// repeat restored showed twice in every later snapshot and save, and a
+    /// commitment retained a caveat twice. Older checks refuse some of these
+    /// saves first, as a journal that holds every entry refuses a `reopens`
+    /// relation no journaled reopening makes, so this runs last and older
+    /// refusals keep their messages.
+    fn check_relations_listed_once(
+        &self,
+        save: &ReactiveSave,
+        declared: &Declared,
+    ) -> Result<(), String> {
+        let taken_back = save
+            .taken_back
+            .iter()
+            .map(|record| (record.caveat.as_str(), record.evidence.as_str()))
+            .collect::<HashSet<_>>();
+        // Every name a saved relation holds is a node by now.
+        let declared_times = |from: &str, relation: Relation, to: &str| match (
+            self.symbols.get(from),
+            self.symbols.get(to),
+        ) {
+            (Some(from), Some(to)) => declared.gives_times(*from, relation, *to),
+            _ => 0,
+        };
+        let mut listed = HashMap::<(&str, &str, &str), usize>::default();
+        for [from, name, to] in &save.graph.relations {
+            let relation = relation_from_name(name)?;
+            if declared_times(from, relation, to) > 0 {
+                return Err(format!(
+                    "relation {from} {name} {to}: a declaration gives it, and no event adds \
+                     it again"
+                ));
+            }
+            if matches!(relation, Relation::Retains | Relation::ReliesOn) && self.declares(from) {
+                return Err(format!(
+                    "relation {from} {name} {to}: the program declares {from}, so no event \
+                     commits it"
+                ));
+            }
+            if relation == Relation::Qualifies && taken_back.contains(&(from.as_str(), to.as_str()))
+            {
+                continue;
+            }
+            let times = listed
+                .entry((from.as_str(), name.as_str(), to.as_str()))
+                .or_insert(0);
+            *times += 1;
+            // How often the declarations give this caveat on the template
+            // that `to`, an occurrence a renewal made or a reading, takes its
+            // caveats from; a name the program declares is itself (D102).
+            let (template, given) = match self.record_parts(to) {
+                Some((base, _)) if relation == Relation::Qualifies => {
+                    let template = self
+                        .reading_streams
+                        .get(base)
+                        .map_or(base, |stream| stream.template.as_str());
+                    (template, declared_times(from, relation, template))
+                }
+                _ => (to.as_str(), 0),
+            };
+            if *times <= given.max(1) {
+                continue;
+            }
+            // Refused at the first copy past the limit, as D101 refuses a
+            // stance at its second.
+            return Err(if given > 1 {
+                format!(
+                    "relation {from} {name} {to} is listed more than the {given} times the \
+                     program declares {from} {name} {template}"
+                )
+            } else if relation == Relation::Qualifies && self.take_back_caveats.contains(from) {
+                format!(
+                    "relation {from} {name} {to} is listed twice, and no take-back of it is saved"
+                )
+            } else {
+                format!("relation {from} {name} {to} is listed twice")
+            });
         }
         Ok(())
     }
@@ -3104,7 +3219,16 @@ impl ReactiveSession {
             self.symbols.iter().map(|(name, id)| (*id, name)).collect();
         let mut stances = HashMap::<String, Vec<(Relation, String)>>::default();
         let mut qualifications = HashMap::<String, HashSet<String>>::default();
+        let mut relations = HashMap::<(NodeId, NodeId), Vec<(Relation, usize)>>::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            let given = relations.entry((edge.from, edge.to)).or_default();
+            match given
+                .iter_mut()
+                .find(|(relation, _)| *relation == edge.relation)
+            {
+                Some((_, times)) => *times += 1,
+                None => given.push((edge.relation, 1)),
+            }
             if edge.relation == Relation::Qualifies {
                 if let (Some(caveat), Some(name)) = (names.get(&edge.from), names.get(&edge.to)) {
                     qualifications
@@ -3138,6 +3262,7 @@ impl ReactiveSession {
             stances,
             attention,
             qualifications,
+            relations,
         }
     }
 
@@ -5761,7 +5886,7 @@ on cycle withdraw a because a;
     /// This thread's CPU time, which other processes and threads do not
     /// advance.
     #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-    fn cpu_time() -> Duration {
+    pub(super) fn cpu_time() -> Duration {
         #[repr(C)]
         struct Timespec {
             seconds: std::ffi::c_long,
@@ -5783,7 +5908,7 @@ on cycle withdraw a because a;
 
     /// Elsewhere, the time since the first call.
     #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
-    fn cpu_time() -> Duration {
+    pub(super) fn cpu_time() -> Duration {
         static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
         START.get_or_init(std::time::Instant::now).elapsed()
     }
@@ -5818,6 +5943,85 @@ on cycle withdraw a because a;
         assert!(
             ratio < BOUND,
             "restore_retired took {ratio:.1} times as long for {LARGE} records as for {SMALL}"
+        );
+    }
+}
+
+/// D104: `check_relations_listed_once` looks up how often the declarations
+/// give each relation a save lists, rather than counting through every
+/// relation the declarations give its first name. A caveat a program
+/// declares on thousands of names gives a long session as many relations
+/// from it, so a scan took time that grows with their product. This times
+/// the check alone, on saves that list the same relations, from a program
+/// that declares the caveat on 64 names and from one that declares it on
+/// 4,096.
+#[cfg(test)]
+mod d104_declared_lookup_tests {
+    use super::d071_retired_index_tests::cpu_time;
+    use super::*;
+
+    /// `renewables` pieces of renewable evidence `late` qualifies, which `r`
+    /// renews together, and `others` more that it qualifies.
+    fn source(renewables: usize, others: usize) -> String {
+        let mut source = String::from("caveat late consequence low;\nevent r;\n");
+        for index in 0..renewables {
+            source.push_str(&format!(
+                "evidence foo{index} from \"f\";\nlate qualifies foo{index};\n\
+                 renewable foo{index} limit 64;\non r renew foo{index};\n"
+            ));
+        }
+        for index in 0..others {
+            source.push_str(&format!(
+                "evidence e{index} from \"e\";\nlate qualifies e{index};\n"
+            ));
+        }
+        source
+    }
+
+    /// Seconds the check takes on the save after `rounds` renewals, the
+    /// least of `runs`, with how many relations that save lists.
+    fn time(source: &str, rounds: usize, runs: usize) -> (f64, usize) {
+        let mut live = ReactiveSession::from_source(source).unwrap();
+        for _ in 0..rounds {
+            live.dispatch("r", &BTreeMap::new()).unwrap();
+        }
+        let text = live.save_json().unwrap();
+        let save: ReactiveSave = serde_json::from_str(&text).unwrap();
+        let restored = ReactiveSession::restore_json(source, &text).unwrap();
+        let declared = restored.declared_memberships();
+        let seconds = (0..runs)
+            .map(|_| {
+                let start = cpu_time();
+                restored
+                    .check_relations_listed_once(&save, &declared)
+                    .unwrap();
+                (cpu_time() - start).as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min);
+        (seconds, save.graph.relations.len())
+    }
+
+    /// 64 times the declared relations from `late`, the same 1,024 saved
+    /// ones: about as long when each is looked up, up to 64 times as long
+    /// when each is counted through them.
+    #[test]
+    fn d104_declared_relations_are_looked_up_not_scanned() {
+        const RENEWABLES: usize = 64;
+        const ROUNDS: usize = 16;
+        const BOUND: f64 = 8.0;
+        let (few, listed) = time(&source(RENEWABLES, 0), ROUNDS, 5);
+        let (many, again) = time(&source(RENEWABLES, 4_096 - RENEWABLES), ROUNDS, 5);
+        assert_eq!((listed, again), (RENEWABLES * ROUNDS, RENEWABLES * ROUNDS));
+        let ratio = many / few;
+        eprintln!(
+            "check_relations_listed_once: {listed} saved relations, 64 declared {:.3} ms, \
+             4096 declared {:.3} ms, ratio {ratio:.1}, bound {BOUND}",
+            few * 1e3,
+            many * 1e3
+        );
+        assert!(
+            ratio < BOUND,
+            "the check took {ratio:.1} times as long with 4,096 declared relations as with 64"
         );
     }
 }

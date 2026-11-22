@@ -42,8 +42,9 @@ could make, through `reached_effects`, without evaluating its conditions.
 `check_last_event_spending`, run after every check older than it (only the
 retirement-date check of D060, the hold-entry check of D062, the
 history-reach check of D054, the renewals check of D063, the
-declared-evidence check of D064 and D065 and the stance check of D101 follow
-it), requires the costs of
+declared-evidence check of D064 and D065, the stance check of D101, the
+renewal-name and declared-qualification checks of D102 and the relation
+count check of D104 follow it), requires the costs of
 the last event's `examine` effects, a caveat examined twice counting twice,
 added to what the declarations spent, to fit the budget's `spent` (D053).
 
@@ -210,6 +211,22 @@ journal entry; a place or an entity is no node, and its name stops no
 renewal. The journal names its entries `journal@K` whatever the program
 declares, so restore reads a name among the journal's records by its
 spelling.
+
+Restore also holds each relation to the number of times events add it
+(D104). A commitment an event makes is made once, and relates once to each
+caveat it retains and each piece of evidence it relies on, no event commits
+a commitment the program declares, and a reopening an event makes adds only
+the `reopens` relations its commitment lacks. So restore refuses a
+`retains`, `relies_on` or `reopens` relation listed twice, or listed at all
+where a declaration gives it, and a `retains` or `relies_on` relation from
+a commitment the program declares. Declarations may repeat a relation, but
+a save holds none of theirs. A qualification adds a relation only when none
+is live, so restore refuses a `qualifies` relation listed twice with no
+take-back of it saved. A renewal carries its evidence's declared caveats,
+and a reading what qualifies its stream's template, each as often as it is
+there, so on an occurrence a renewal made or on a reading restore allows a
+caveat as often as the program declares it on that template, where that is
+more than once.
 
 The policy is the same as above. A predicate guard on a name of the right
 kind restores though no skipped effect kept it, an observation record
