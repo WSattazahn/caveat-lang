@@ -174,6 +174,7 @@ pub(super) struct TakeBacks {
 
 impl TakeBacks {
     fn new(list: Vec<TakeBack>) -> Self {
+        super::reads::wrote();
         let mut counts = Named::default();
         for record in &list {
             Self::count_in(&mut counts, record);
@@ -220,11 +221,13 @@ impl TakeBacks {
     }
 
     fn push(&mut self, record: TakeBack) {
+        super::reads::wrote();
         Self::count_in(&mut self.counts, &record);
         Arc::make_mut(&mut self.list).push(record);
     }
 
     fn retain(&mut self, mut keep: impl FnMut(&TakeBack) -> bool) {
+        super::reads::wrote();
         let counts = &mut self.counts;
         Arc::make_mut(&mut self.list).retain(|record| {
             let kept = keep(record);
@@ -308,6 +311,7 @@ pub(super) struct SealedGraph {
 
 impl SealedGraph {
     fn new(graph: EpistemicGraph) -> Self {
+        super::reads::wrote();
         Self {
             relations: Arc::new(Relations::new(&graph.edges.iter().collect::<Vec<_>>())),
             graph: Arc::new(graph),
@@ -318,12 +322,14 @@ impl SealedGraph {
     /// The graph, to add edges to or to write the nodes the caller notes.
     /// The caller keeps the edges it adds with `added`.
     fn write(&mut self) -> &mut EpistemicGraph {
+        super::reads::wrote();
         Arc::make_mut(&mut self.graph)
     }
 
     /// Keeps, in the relation lists, the edges added since they last held
     /// every edge.
     fn added(&mut self) {
+        super::reads::wrote();
         let held = self.relations.held();
         let edges = self.graph.edges.iter_from(held).collect::<Vec<_>>();
         if !edges.is_empty() {
@@ -335,6 +341,7 @@ impl SealedGraph {
     /// each removed edge to `removed` in graph order. The log no longer says
     /// what changed.
     fn depart(&mut self, ids: &HashMap<NodeId, String>, mut removed: impl FnMut(&Edge)) {
+        super::reads::wrote();
         self.written = Written::Any;
         let graph = Arc::make_mut(&mut self.graph);
         let departing = |id: NodeId| ids.contains_key(&id);
@@ -572,6 +579,7 @@ impl std::ops::Index<&str> for NameTable {
 
 impl NameTable {
     fn new(by_name: HashMap<String, NodeId>) -> Self {
+        super::reads::wrote();
         let mut names = NameMap::new();
         let mut by_node = NodeNames::default();
         for (name, id) in by_name {
@@ -632,6 +640,7 @@ impl NameTable {
 
     /// Names `id`. A name given again leaves the node it named without one.
     fn insert(&mut self, name: String, id: NodeId) {
+        super::reads::wrote();
         let by_node = &mut self.by_node;
         debug_assert!(
             by_node.get(id).is_none_or(|held| held == name),
@@ -646,6 +655,7 @@ impl NameTable {
 
     /// Removes `name`, and the name of the node it named.
     fn remove(&mut self, name: &str) {
+        super::reads::wrote();
         if let Some(id) = self.by_name.remove(name) {
             self.by_node.set(id, None);
         }

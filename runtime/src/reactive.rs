@@ -189,6 +189,8 @@ mod relations;
 #[path = "reactive_releases.rs"]
 mod releases;
 use releases::Readings;
+#[path = "reactive_reads.rs"]
+mod reads;
 #[path = "reactive_write.rs"]
 mod write;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
@@ -1484,8 +1486,7 @@ impl Consulted {
         }
     }
 
-    /// Debug builds: adds the notes of a read noted apart.
-    #[cfg(debug_assertions)]
+    /// Adds the notes of a read noted apart, or of a read made again.
     fn absorb(&mut self, other: &Consulted) {
         self.reached.extend_from_slice(&other.reached);
         self.listed.extend(other.listed.iter().cloned());
@@ -5937,6 +5938,8 @@ impl ReactiveSession {
     ) -> Result<(), DispatchFailure> {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
+        // What the event reads again before it writes is read once.
+        let _reads = reads::Scope::open(self);
         self.collector_begin();
         // Before anything the event writes: a clock event's due
         // qualifications below write observation and examination records.
@@ -6804,10 +6807,26 @@ impl ReactiveSession {
 
     /// `qualify_core` once `require_qualifiable` has passed.
     fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
+        // What qualifies evidence alone is read once until something is
+        // written.
+        let id = self.symbols[evidence];
+        if extras.is_empty() {
+            return reads::qualified(self, id, || self.qualify_checked_once(id, evidence, extras));
+        }
+        self.qualify_checked_once(id, evidence, extras)
+    }
+
+    /// `qualify_checked` of `evidence`, node `id`, read now.
+    fn qualify_checked_once(
+        &self,
+        id: NodeId,
+        evidence: &str,
+        extras: &[String],
+    ) -> Result<Provenance, EvalError> {
         // The evidence's name goes ahead of the caveats; the extras follow.
         // Each is the names index's own copy, found by node: the roots list
         // the evidence first, then each extra.
-        let roots = self.qualify_roots(evidence, extras);
+        let roots = self.qualify_roots(id, extras);
         let name = self.record_name(roots[0], evidence);
         let extras = extras
             .iter()
@@ -6836,8 +6855,7 @@ impl ReactiveSession {
 
     /// Where the caveats of `evidence` are found: the evidence itself, each
     /// extra caveat, and each claim the evidence supports or opposes.
-    fn qualify_roots(&self, evidence: &str, extras: &[String]) -> Vec<NodeId> {
-        let id = self.symbols[evidence];
+    fn qualify_roots(&self, id: NodeId, extras: &[String]) -> Vec<NodeId> {
         let mut roots = vec![id];
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
         roots.extend(
