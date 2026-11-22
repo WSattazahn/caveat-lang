@@ -537,6 +537,8 @@ struct Declared {
     /// Each caveat whose attention, once every declaration has run, is
     /// `examined`, `examining` or `deferred`, with that attention.
     attention: HashMap<String, Attention>,
+    /// Each caveat a declaration has qualify a name, with those names.
+    qualifications: HashMap<String, HashSet<String>>,
 }
 
 impl Declared {
@@ -552,6 +554,13 @@ impl Declared {
                 .iter()
                 .any(|(given, to)| *given == relation && to == claim)
         })
+    }
+
+    /// Whether a declaration has `caveat` qualify `name`.
+    fn qualifies(&self, caveat: &str, name: &str) -> bool {
+        self.qualifications
+            .get(caveat)
+            .is_some_and(|names| names.contains(name))
     }
 }
 
@@ -689,24 +698,6 @@ impl Held {
     }
 }
 
-/// The history of `record` if it is a departed record of a windowed history.
-fn departed_record(
-    save: &ReactiveSave,
-    windows: &BTreeSet<String>,
-    journal: bool,
-    record: &str,
-) -> Option<String> {
-    let (history, number) = match record.strip_prefix("journal@").filter(|_| journal) {
-        Some(number) => ("journal", number.parse::<u64>().ok()?),
-        None => {
-            let (history, number) = occurrence_parts(record)?;
-            (history, number as u64)
-        }
-    };
-    let held = Held::of(save, windows, journal, history)?;
-    held.departed(number).then(|| history.to_string())
-}
-
 /// A renewal occurrence's number: the declared name is 1, `NAME@N` is N.
 pub(super) fn occurrence_number(name: &str) -> Option<u64> {
     Some(occurrence_parts(name).map_or(1, |(_, number)| number as u64))
@@ -724,6 +715,41 @@ pub(super) fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
 }
 
 impl ReactiveSession {
+    /// Whether the program declares `name`: whether it names a node the
+    /// program loaded with.
+    pub(crate) fn declares(&self, name: &str) -> bool {
+        self.symbols
+            .get(name)
+            .is_some_and(|id| *id <= self.loaded.last_node)
+    }
+
+    /// `occurrence_parts` of a name restore reads as a record of a history:
+    /// none for a name the program declares, however it is spelled, since
+    /// a renewal, a sample or a commitment of a series makes only a name the
+    /// program does not declare. Load refuses a node's name spelled like a
+    /// record of a reading stream or a decision series, but not one declared
+    /// as `foo@2` beside renewable `foo` (D102). A journal entry is no node:
+    /// the journal names its entries `journal@K` whatever the program
+    /// declares, so restore reads a journal record by its spelling, never
+    /// through this.
+    pub(crate) fn record_parts<'n>(&self, name: &'n str) -> Option<(&'n str, usize)> {
+        occurrence_parts(name).filter(|_| !self.declares(name))
+    }
+
+    /// The history of `record` if it is a departed record of a windowed history.
+    fn departed_record(&self, save: &ReactiveSave, record: &str) -> Option<String> {
+        let journal = self.journal_window.is_some();
+        let (history, number) = match record.strip_prefix("journal@").filter(|_| journal) {
+            Some(number) => ("journal", number.parse::<u64>().ok()?),
+            None => {
+                let (history, number) = self.record_parts(record)?;
+                (history, number as u64)
+            }
+        };
+        let held = Held::of(save, &self.windows, journal, history)?;
+        held.departed(number).then(|| history.to_string())
+    }
+
     /// The frozen order of each commitment's grounds evidence: from the save
     /// where it records one, otherwise from the commitment's retained
     /// `committed` journal entry, otherwise name order. Never invented.
@@ -1105,8 +1131,11 @@ impl ReactiveSession {
         self.check_renewals_renewed(save)?;
         // After it, for the same reason (D064, D065).
         self.check_declared_observations(save, &declared)?;
-        // Last, for the same reason (D101).
+        // After it, for the same reason (D101).
         self.check_stances_revealed(save, &declared)?;
+        // Last, for the same reason (D102).
+        self.check_renewal_names_free(save)?;
+        self.check_declared_qualifications(save, &declared)?;
         self.settle_archive_provenance(None, false);
         Ok(())
     }
@@ -1453,7 +1482,7 @@ impl ReactiveSession {
                 && index - departed <= save.decision_journal.len() as u64)
                 .then(|| "journal".to_string());
         }
-        let base = occurrence_parts(record).map_or(record, |(base, _)| base);
+        let base = self.record_parts(record).map_or(record, |(base, _)| base);
         if !self.windows.contains(base) {
             return None;
         }
@@ -1495,7 +1524,7 @@ impl ReactiveSession {
         let mut held: HashMap<&str, (&str, u64)> = HashMap::default();
         for history in self.windows.iter() {
             let own = |record: &str| {
-                occurrence_parts(record).map_or(record, |(base, _)| base) == history.as_str()
+                self.record_parts(record).map_or(record, |(base, _)| base) == history.as_str()
             };
             if let Some(stream) = save.reading_streams.get(history) {
                 for occurrence in &stream.occurrences {
@@ -1693,6 +1722,10 @@ impl ReactiveSession {
                     "retired {record} is dated at the last event, which did not retire it"
                 ));
             }
+            // Only a journal entry and a windowed stream's reading are dated
+            // here. The journal names its entries `journal@K` whatever the
+            // program declares, and load refuses a declared name spelled like
+            // a reading, so the spelling alone says which record this is.
             let Some((history, number)) = occurrence_parts(record) else {
                 continue;
             };
@@ -1902,6 +1935,90 @@ impl ReactiveSession {
                 return Err(format!(
                     "relation {from} {relation} {claim}: no rule of this program, or procedure \
                      one calls, reveals {source} {relation} {claim}"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// D102: a renewal makes only a name the program leaves free. Renewals
+    /// of `E` make `E@2`, `E@3` and so on in order, and the one that would
+    /// make a name the program declares fails, since the name is taken, so
+    /// no renewal makes the least such name or one past it. Load accepts a
+    /// claim, evidence, caveat or commitment so named beside renewable `E`
+    /// (a place or an entity is no node, so its name stops no renewal). So
+    /// past its first entry, a renewals list holds neither; a windowed one
+    /// could otherwise skip the declared name, and the gap would read as a
+    /// departed record.
+    fn check_renewal_names_free(&self, save: &ReactiveSave) -> Result<(), String> {
+        if save
+            .renewals
+            .values()
+            .all(|occurrences| occurrences.len() < 2)
+        {
+            return Ok(());
+        }
+        // Of each renewable evidence, the least N from 2 of a name `E@N` the
+        // program declares. The scan reads each declared name once, never a
+        // number a save gives.
+        let mut taken: HashMap<&str, usize> = HashMap::default();
+        for (name, id) in self.symbols.iter() {
+            if *id > self.loaded.last_node {
+                continue;
+            }
+            let Some((evidence, number)) = occurrence_parts(name) else {
+                continue;
+            };
+            if number >= 2 && self.renewals.contains_key(evidence) {
+                let least = taken.entry(evidence).or_insert(number);
+                *least = (*least).min(number);
+            }
+        }
+        for (name, occurrences) in &save.renewals {
+            let Some(&least) = taken.get(name.as_str()) else {
+                continue;
+            };
+            for occurrence in occurrences.iter().skip(1) {
+                let Some((_, number)) = occurrence_parts(occurrence) else {
+                    continue;
+                };
+                if number == least {
+                    return Err(format!(
+                        "renewable {name} occurrence {occurrence}: no renewal makes \
+                         {occurrence}, which the program declares"
+                    ));
+                }
+                if number > least {
+                    return Err(format!(
+                        "renewable {name} occurrence {occurrence}: no renewal gets past \
+                         {name}@{least}, which the program declares"
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// D102: a `qualifies` relation a declaration gives is the program's,
+    /// never the save's, which holds only the relations events add. No event
+    /// adds it again: a qualification adds a relation only when none is
+    /// live, and load refuses a program that takes back a caveat a
+    /// declaration applies. Restore read evidence declared as `foo@2` beside
+    /// renewable `foo` as `foo`, and refused such a relation listed again
+    /// only by that misreading; a caveat's qualification of other evidence,
+    /// listed again, restored. This refuses it for every declared
+    /// qualification, as D101 does for a stance; one that does not run from
+    /// a caveat to evidence meets restore_graph's kind check first.
+    fn check_declared_qualifications(
+        &self,
+        save: &ReactiveSave,
+        declared: &Declared,
+    ) -> Result<(), String> {
+        for [from, relation, to] in &save.graph.relations {
+            if relation == "qualifies" && declared.qualifies(from, to) {
+                return Err(format!(
+                    "relation {from} {relation} {to}: a declaration gives it, and no event \
+                     adds it again"
                 ));
             }
         }
@@ -2986,7 +3103,17 @@ impl ReactiveSession {
         let names: HashMap<NodeId, &str> =
             self.symbols.iter().map(|(name, id)| (*id, name)).collect();
         let mut stances = HashMap::<String, Vec<(Relation, String)>>::default();
+        let mut qualifications = HashMap::<String, HashSet<String>>::default();
         for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            if edge.relation == Relation::Qualifies {
+                if let (Some(caveat), Some(name)) = (names.get(&edge.from), names.get(&edge.to)) {
+                    qualifications
+                        .entry(caveat.to_string())
+                        .or_default()
+                        .insert(name.to_string());
+                }
+                continue;
+            }
             if !matches!(edge.relation, Relation::Supports | Relation::Opposes) {
                 continue;
             }
@@ -3007,13 +3134,18 @@ impl ReactiveSession {
                 _ => None,
             })
             .collect();
-        Declared { stances, attention }
+        Declared {
+            stances,
+            attention,
+            qualifications,
+        }
     }
 
     /// The name the source gives `evidence`: its stream or renewable evidence
-    /// for an occurrence, and itself otherwise.
+    /// for an occurrence, and itself otherwise, as for evidence the program
+    /// declares, however it is spelled (D102).
     fn source_evidence<'a>(&self, evidence: &'a str) -> &'a str {
-        match occurrence_parts(evidence) {
+        match self.record_parts(evidence) {
             Some((base, _))
                 if self.reading_streams.contains_key(base) || self.renewals.contains_key(base) =>
             {
@@ -3254,7 +3386,7 @@ impl ReactiveSession {
         }
         let neutral_target = |name: &str| {
             targets.contains(name)
-                || occurrence_parts(name).is_some_and(|(base, _)| {
+                || self.record_parts(name).is_some_and(|(base, _)| {
                     (self.renewals.contains_key(base) || self.reading_streams.contains_key(base))
                         && targets.contains(base)
                 })
@@ -3985,7 +4117,8 @@ impl ReactiveSession {
                 let fits = match what {
                     "observation" => {
                         id.is_some_and(|id| observed.evidence.contains(id))
-                            || occurrence_parts(name)
+                            || self
+                                .record_parts(name)
                                 .is_some_and(|(base, _)| self.renewals.contains_key(base))
                                 && self.require_kind(name, "evidence").is_ok()
                     }
@@ -4218,7 +4351,8 @@ impl ReactiveSession {
                                 );
                             }
                             let targets = self.neutral_targets();
-                            let base = occurrence_parts(evidence)
+                            let base = self
+                                .record_parts(evidence)
                                 .map_or(evidence.as_str(), |(base, _)| base);
                             if !targets.contains(base) {
                                 return Err(format!(
@@ -4942,9 +5076,7 @@ impl ReactiveSession {
     /// when a departure report agrees with the save's actual history gap.
     /// A missing symbol or an arbitrary departure report alone is insufficient.
     fn departed_in_last_event(&self, save: &ReactiveSave, record: &str) -> bool {
-        let Some(history) =
-            departed_record(save, &self.windows, self.journal_window.is_some(), record)
-        else {
+        let Some(history) = self.departed_record(save, record) else {
             return false;
         };
         // These callers validate evidence fields. A departed journal entry
@@ -5092,7 +5224,7 @@ impl ReactiveSession {
                     if occurrence == evidence {
                         Some(1)
                     } else {
-                        occurrence_parts(occurrence)
+                        self.record_parts(occurrence)
                             .filter(|(base, _)| base == evidence)
                             .map(|(_, ordinal)| ordinal)
                     }
@@ -5156,10 +5288,7 @@ impl ReactiveSession {
                 }
             }
             EffectReport::Depart { history, record } => {
-                if departed_record(save, &self.windows, self.journal_window.is_some(), record)
-                    .as_deref()
-                    != Some(history.as_str())
-                {
+                if self.departed_record(save, record).as_deref() != Some(history.as_str()) {
                     return Err(fail("names no departed record of its history"));
                 }
             }
@@ -5230,7 +5359,10 @@ impl ReactiveSession {
         holdable: &HashSet<String>,
     ) -> bool {
         let named = |reported: &str, source: &str| {
-            reported == source || occurrence_parts(reported).is_some_and(|(base, _)| base == source)
+            reported == source
+                || self
+                    .record_parts(reported)
+                    .is_some_and(|(base, _)| base == source)
         };
         let selects = |reported: &str, selector: &EvidenceSelector| match selector {
             EvidenceSelector::Named(source)

@@ -196,6 +196,8 @@ fn reveals_count_through_the_procedures_rules_call() {
 /// A name the program declares is its own evidence, however it is spelled:
 /// `sensor@2` declared beside renewable `sensor` is no occurrence of it, as
 /// its renewals list shows, so the reveals of `sensor` give it no stance.
+/// Since D102, restore reads it as itself throughout, so the record beside
+/// the stance is refused first: no rule reveals `sensor@2`.
 #[test]
 fn a_declared_name_is_no_occurrence() {
     let source = program("renewable sensor limit 4;\nevidence sensor@2 from \"s2\";\n");
@@ -205,8 +207,7 @@ fn a_declared_name_is_no_occurrence() {
     refused(
         &source,
         &forged,
-        "relation sensor@2 opposes safe: no rule of this program, or procedure one calls, \
-         reveals sensor@2 opposes safe",
+        "observation of sensor@2: no rule or procedure of this program reveals sensor@2",
     );
 }
 

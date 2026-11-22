@@ -196,7 +196,20 @@ itself, a `supports` or `opposes` relation, is held to what adds one: a
 evidence that stance (an occurrence a renewals list holds counting as that
 list's evidence), or, from a reading, the stance it was taken with.
 Restore refuses any other, a stance a declaration gives and a stance listed
-twice, since no event adds either (D101).
+twice, since no event adds either (D101). Throughout, restore reads a name
+the program declares as itself, however it is spelled: a claim, evidence,
+caveat or commitment declared as `foo@2` beside renewable `foo` is no
+occurrence of `foo`, so it takes none of `foo`'s records, and a renewals
+list that names it, or a windowed one that lists an occurrence past it, is
+refused, since a `renew` that would make it fails and renewals are made in
+order. A `qualifies` relation a declaration gives is refused as a stance a
+declaration gives is, since no event adds it again (D102). Load refuses
+such a name spelled like a record of a reading stream or a decision series,
+but not one spelled like an occurrence of renewable evidence or like a
+journal entry; a place or an entity is no node, and its name stops no
+renewal. The journal names its entries `journal@K` whatever the program
+declares, so restore reads a name among the journal's records by its
+spelling.
 
 The policy is the same as above. A predicate guard on a name of the right
 kind restores though no skipped effect kept it, an observation record

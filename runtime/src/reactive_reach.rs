@@ -1543,9 +1543,10 @@ impl ReactiveSession {
     }
 
     /// The history a record belongs to: its reading stream or renewable
-    /// evidence, or the record itself.
+    /// evidence, or the record itself, as for a name the program declares,
+    /// however it is spelled (D102).
     pub(crate) fn record_history<'n>(&self, record: &'n str) -> &'n str {
-        match save::occurrence_parts(record) {
+        match self.record_parts(record) {
             Some((base, _))
                 if self.reading_streams.contains_key(base) || self.renewals.contains_key(base) =>
             {
