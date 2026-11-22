@@ -229,7 +229,9 @@ save is refused with an error, and never crashes the runtime, when:
   passed included; `withdraw`'s generated `withdrawn`; a reading inheriting
   whatever can qualify its stream's template; and a renewal carrying its
   evidence's declared caveats. An occurrence counts as its stream or
-  renewable evidence. Only `qualify ... after` schedules a qualification.
+  renewable evidence, and a name the program declares as itself, however it
+  is spelled (finding D102). Only `qualify ... after` schedules a
+  qualification.
   Conditions are not evaluated: the pair is one the program could make, not
   one an event is shown to have made;
 - a provenance carries a caveat that no mechanism of the loaded source can
@@ -403,6 +405,19 @@ save is refused with an error, and never crashes the runtime, when:
   `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
   renewals list an occurrence the graph does not hold, out of order, or more
   occurrences than the declared limit;
+- the renewals list, past the evidence itself, the least name `foo@N`, N
+  from 2, that the program declares as a claim, evidence, caveat or
+  commitment, or any entry past it. Renewals of `foo` make `foo@2`, `foo@3`
+  and so on in order, and a `renew` that would make such a name fails, since
+  the name is taken, so no renewal makes it or gets past it. Load accepts
+  such a name beside renewable `foo`, and refuses one spelled like a record
+  of a reading stream or a decision series; a place or an entity is no node,
+  so its name stops no renewal. Wherever restore reads a name as a record of
+  a history, as these checks read an occurrence, a reading or a revision, a
+  name the program declares counts as itself, however it is spelled. A
+  journal entry is no node: the journal names its entries `journal@K`
+  whatever the program declares, so restore reads a name among the journal's
+  records by its spelling (finding D102);
 - the renewals list an occurrence of evidence that no `renew` in a rule, or
   in a procedure a rule reaches, names, guarded or not: only a renewal makes
   an occurrence (finding D063). Conditions are not evaluated, so an
@@ -467,6 +482,11 @@ save is refused with an error, and never crashes the runtime, when:
   it is taken with; the declarations give theirs as the program loads, and
   a save holds none of them. Conditions are not evaluated: the relation
   could have been added, not shown to have been (finding D101);
+- a `qualifies` relation is one a declaration gives. The declarations give
+  theirs as the program loads, and a save holds none of them, since no event
+  adds one again: a qualification adds a relation only when none is live,
+  and load refuses a program that takes back a caveat a declaration applies
+  (finding D102);
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -626,6 +646,69 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-21 (D102): restore reads a name the program declares as itself,
+  however it is spelled. A program may declare `foo@2` beside
+  `renewable foo`, as evidence or as a claim, caveat or commitment (load
+  refuses such a name spelled like a record of a reading stream or a
+  decision series, but not this one), and no renewal makes that name or one
+  past it: a `renew` that would make it fails, since the name is taken, and
+  renewals are made in order. A place or an entity is no node, and its name
+  stops no renewal. Restore took the declared name for `foo`'s second
+  occurrence wherever it read a name as a record of a history. So it refused
+  saves the program writes once a caveat reaches `foo@2` through its own
+  declarations, such as one that qualifies a claim `foo@2` supports: it
+  looked for the caveat on `foo`, and refused with, for example, "state x:
+  kd cannot qualify any of its evidence". 1.4.1 refuses those saves too, as
+  has every release since 0.1.0-rc.13, which began holding a provenance's
+  caveats to its evidence. And it accepted edited saves that list `foo@2`
+  among `foo`'s renewals, after which a restored `renew` of `foo` made
+  `foo@3`, where every live one fails, and, with a window, retired the
+  declared evidence and removed it; that, with a window, list an occurrence
+  past `foo@2`, after which a restored `renew` made the next one, where
+  every live one fails; that give `foo@2` what only `foo`'s occurrences
+  take: an observation record, a `qualifies` relation, a take-back with the
+  qualification it takes back, a withdrawal or a scheduled qualification a
+  rule makes on `foo`, a caveat only `foo` can carry, a place among the
+  observed evidence or in the flows that carry `foo`'s records, a departure
+  of one of `foo`'s records, or the last event's reveal, qualification or
+  take-back of `foo`; or that give `foo` a place in the flows that carry
+  only `foo@2`'s records, such as a lineage that cites `foo` where only a
+  declaration's `reopen ... because foo@2` reaches. A program that declares
+  `foo@2` beside `foo` with no renewal was read the same way in those
+  reports. Restore now refuses a renewals list of `foo` that holds, past
+  `foo` itself, the least name M spelled `foo@K`, K from 2, that the program
+  declares as a claim, evidence, caveat or commitment, with "renewable E
+  occurrence M: no renewal makes M, which the program declares", or any
+  entry O past it, declared or not, with "renewable E occurrence O: no
+  renewal gets past M, which the program declares", where E is `foo`, after
+  every older check; and every other check reads a declared name as itself,
+  refusing it where it is no record the program can give it. The journal
+  names its entries `journal@K` whatever the program declares, so a name
+  among the journal's records is read by its spelling, as before. Restore
+  also read `foo@2` as `foo` in a saved `qualifies` relation, and so refused
+  one the declarations give, listed again, only by that misreading: a repeat
+  of a caveat's declared qualification of other evidence restored, and the
+  restored session showed the relation twice in later snapshots and listed
+  it in later saves, where no save of the program lists it. Restore now
+  refuses a `qualifies` relation a declaration gives, with "relation C
+  qualifies N: a declaration gives it, and no event adds it again", as D101
+  does for a stance; a repeat of a declared `qualifies` relation that does
+  not run from a caveat to evidence is refused by the kind check first, as
+  before. A save of a program that declares no claim, evidence, caveat or
+  commitment spelled `NAME@N` restores, or is refused, as before, unless it
+  repeats a caveat's declared qualification of evidence. For a program that
+  declares one, an edited save an older check refused may now get another
+  check's message, or the same check's message naming the declared name
+  where it named `foo`. For example, an observation record on such evidence
+  with a declared stance is now refused as one no rule of the program
+  reveals, where D064's or D101's check, or the reach check, refused it; one
+  on such evidence with no stance, as a record of evidence that is neither
+  observed nor a renewed occurrence; the qualification check and the reach
+  check name `foo@2` where they named `foo`; a take-back record, a report of
+  a take-back, a withdrawal or a windowed retirement that names `foo@2` gets
+  the message of a check that reads it as itself; and a caveat's declared
+  qualification of evidence listed again gets the message above. Tests:
+  `runtime/tests/d102_declared_names_are_no_occurrences.rs`.
 - 2026-11-21 (D101): restore holds a `supports` or `opposes` relation to the
   effects that add one. As the session runs, only a `reveal` gives evidence
   a stance, the one it names, when its current occurrence lacks it, and only
@@ -638,7 +721,7 @@ validation and host trust mechanisms separately from this contract.
   claim, which no session of the program carries; beside a forged record on
   declared evidence, such a stance also met the pairing of D064. A stance a
   declaration gives, or one listed twice, restored as a second relation,
-  which every later outcome, view and save showed again. Restore now
+  which snapshots and saves showed while its evidence stayed. Restore now
   refuses a stance no `reveal` in a rule, or in a procedure a rule reaches,
   gives its evidence, with "relation F RELATION CLAIM: no rule of this
   program, or procedure one calls, reveals E RELATION CLAIM", where E is F,
