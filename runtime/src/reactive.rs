@@ -7354,13 +7354,23 @@ impl ReactiveSession {
             }
             Effect::Renew { evidence } => {
                 self.history_room(evidence)?;
-                self.retire_oldest(evidence);
                 let ordinal = self.next_renewal_ordinal(evidence);
-                let renewal = &self.renewals[evidence];
                 let name = format!("{evidence}@{ordinal}");
+                // A program may declare `foo@2` beside `renewable foo` (load
+                // refuses such a name only beside a reading stream or a
+                // decision series). Renewals are made in order, so none gets
+                // past it: like a full limit, once `foo` holds the occurrence
+                // before it, this refuses every later `renew` too.
+                // spec/caveat-renewal-0.1.md (D103).
                 if self.symbols.contains_key(&name) {
-                    return Err(format!("generated occurrence {name} already exists").into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Limit,
+                        RejectionCode::RenewalLimit,
+                        format!("generated occurrence {name} already exists"),
+                    ));
                 }
+                self.retire_oldest(evidence);
+                let renewal = &self.renewals[evidence];
                 let template_caveats = renewal.template_caveats.clone();
                 let NodeKind::Evidence {
                     description,

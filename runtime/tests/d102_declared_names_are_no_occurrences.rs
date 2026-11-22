@@ -164,15 +164,14 @@ on rs sample r = if(reopened(hold), 1, 0) supports c;",
         saves[4]["states"]["x"]["lineage"],
         json!({"caveats": ["kd"], "evidence": ["foo@2"]})
     );
-    // No renewal makes `foo@2`: the name is taken.
+    // No renewal makes `foo@2`: the name is taken, and the event is refused
+    // (D103).
     let mut session = ReactiveSession::from_source(&source).unwrap();
-    let fatal = session.dispatch_outcome_json("refresh", "{}").unwrap_err();
-    assert!(
-        fatal
-            .message
-            .contains("generated occurrence foo@2 already exists"),
-        "{}",
-        fatal.message
+    let outcome = answer(&mut session, "refresh", "{}");
+    assert_eq!(outcome["code"], "renewal_limit", "{outcome}");
+    assert_eq!(
+        outcome["message"],
+        "event refresh, rule 2: generated occurrence foo@2 already exists"
     );
     // Declared as `foo@7`, the name leaves `foo` its renewals, and the
     // occurrences they make take `foo`'s records.

@@ -169,7 +169,7 @@ and no output changes.
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
 | `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
-| `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit ([Renewal 0.1](caveat-renewal-0.1.md)). |
+| `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit, or would make an occurrence whose name the program declares as evidence, a claim, a caveat or a commitment, such as `foo@2` beside `renewable foo` ([Renewal 0.1](caveat-renewal-0.1.md)). |
 | `limit` | `scheduled_limit` | A `qualify … after` would schedule a qualification while 4,096 are already waiting ([Late Qualification 0.1](caveat-late-qualification-0.1.md)). |
 | `limit` | `provenance_limit` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, would give a value a lineage of more than 1,024 identifiers or more than 65,536 bytes of their names (from 1.4.0). |
 | `limit` | `evaluation_limit` | One expression evaluated by the event would visit more than 65,536 nodes, as a `fold_history` over a long stream with a heavy step does (from 1.4.0). |
@@ -278,6 +278,17 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-11-22 (D103): a `renew` that would make an occurrence whose name the
+  program declares as evidence, a claim, a caveat or a commitment is
+  `limit/renewal_limit`, as one past the declared limit already was. A
+  program may declare such a name, for example `foo@2` beside
+  `renewable foo`, and no renewal makes that name or gets past it. Before, a
+  `renew` that would make it was fatal `unclassified`, so a host lost the
+  session, although the runtime had already rolled the event back. The
+  rollback and the diagnostic text are unchanged, no accepted event changes,
+  and no code is added or reassigned. A `renew` past the declared limit is
+  refused for the limit first, as before.
 
 - 2026-11-07 (D045): an event that reads `reopened(ACTION)`, or cites it
   with `because reopened(ACTION)`, while evidence a declaration reopened

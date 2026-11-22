@@ -504,3 +504,7 @@
 {"event":"approve","payload":{"item":492}}
 {"event":"find","payload":{"number":102}}
 {"event":"release_build_shows","payload":{"number":102}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":493}}
+{"event":"find","payload":{"number":103}}
+{"event":"release_build_shows","payload":{"number":103}}
