@@ -487,6 +487,25 @@ save is refused with an error, and never crashes the runtime, when:
   adds one again: a qualification adds a relation only when none is live,
   and load refuses a program that takes back a caveat a declaration applies
   (finding D102);
+- a relation is listed more often than events add it: a `retains`,
+  `relies_on` or `reopens` relation more than once, or at all where a
+  declaration gives it; a `retains` or `relies_on` relation from a
+  commitment the program declares at all; and a `qualifies` relation more
+  than once where no take-back of that caveat on that evidence is saved,
+  or, where it qualifies an occurrence a renewal made or a reading, more
+  often than the program declares the caveat on the renewable evidence or
+  on the stream's template, where it declares it there more than once. A
+  commitment an event makes is made once, and relates once to each caveat
+  it retains and each piece of evidence it relies on, and no event commits
+  a commitment the program declares; a reopening an event makes adds only
+  the `reopens` relations its commitment lacks; a qualification adds a
+  relation only when none is live, so again only after a take-back, whose
+  records [Take-back 0.1](caveat-take-back-0.1.md#snapshot-and-save) pairs
+  with the relations; and a renewal carries its evidence's declared
+  caveats, and a reading what qualifies its stream's template, each as
+  often as it is there, which is more than once only where the program
+  declares it more than once. Declarations may repeat a relation, but a
+  save holds none of theirs (finding D104);
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -646,6 +665,57 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-11-22 (D104): restore holds a relation to the number of times events
+  add it. A commitment an event makes is made once, and relates once to
+  each caveat it retains and each piece of evidence it relies on, and no
+  event commits a commitment the program declares; a reopening an event
+  makes adds only the `reopens` relations its commitment lacks; and a
+  qualification adds a `qualifies` relation only when none is live, so
+  again only after a take-back of it. Declarations may repeat a relation,
+  but a save holds none of theirs. Restore refused a stance listed twice or
+  one a declaration gives (D101), and a qualification a declaration gives
+  (D102); another relation listed again was refused only where an older
+  check caught it. A save that listed an event-made `qualifies`, `retains`
+  or `relies_on` relation twice restored: only a take-back caveat's
+  `qualifies` relation listed again was refused, and only beside a saved
+  take-back, since restore pairs such relations with the take-back records
+  once a save holds any. A `reopens` relation listed twice, or one a
+  declaration gives, restored too once the decision journal had let
+  entries depart, and one a declaration gives restored beside a journal
+  that holds every entry when the save also journaled a reopening that
+  would make it, with its reopening record; otherwise a journal that holds
+  every entry refuses it, as reopening history that differs from the
+  graph, or as a reopening that repeats an existing cause where the save
+  journals that cause again. The restored session related each copy, so it
+  showed the relation twice in every later snapshot and save, and a
+  commitment retained `["k", "k"]` where every live session retains
+  `["k"]`. A `retains` or `relies_on` relation from a commitment
+  the program declares restored as well beside a basis the save gave that
+  commitment, which then retained or relied on what it does in no live
+  session; without such a basis, restore refuses the relation as outside
+  the commitment's basis, as before. Restore now refuses a `retains`,
+  `relies_on` or `reopens` relation listed twice, with "relation F RELATION
+  T is listed twice"; one a declaration gives, with "relation F RELATION T:
+  a declaration gives it, and no event adds it again"; and any other
+  `retains` or `relies_on` relation from a commitment the program declares,
+  with "relation F RELATION T: the program declares F, so no event commits
+  it". It refuses a `qualifies` relation listed twice with no take-back of
+  it saved, with "relation C qualifies E is listed twice", adding ", and no
+  take-back of it is saved" for a caveat the program takes back. A renewal
+  carries its evidence's declared caveats, and a reading what qualifies its
+  stream's template, each as often as it is there, so a program that
+  declares `C qualifies E` twice writes it twice on every occurrence a
+  renewal of `E` makes and on every reading of a stream from `E`; restore
+  refuses one listed more often than that, with "relation C qualifies O is
+  listed more than the D times the program declares C qualifies E". Each
+  message names the first copy past what events add, as D101's does. The
+  check runs after every older check, so a save refused before keeps its
+  message, and it looks up how often the declarations give each relation,
+  so its time grows with the save and the program, not with their product.
+  Saves the program writes restore as before. Tests:
+  `runtime/tests/d104_relations_listed_once.rs`, and
+  `d104_declared_relations_are_looked_up_not_scanned` in
+  `runtime/src/reactive_save.rs`.
 - 2026-11-21 (D102): restore reads a name the program declares as itself,
   however it is spelled. A program may declare `foo@2` beside
   `renewable foo`, as evidence or as a claim, caveat or commitment (load

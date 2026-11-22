@@ -508,3 +508,7 @@
 {"event":"approve","payload":{"item":493}}
 {"event":"find","payload":{"number":103}}
 {"event":"release_build_shows","payload":{"number":103}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":494}}
+{"event":"find","payload":{"number":104}}
+{"event":"release_build_shows","payload":{"number":104}}
