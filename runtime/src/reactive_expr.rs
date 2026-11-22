@@ -445,6 +445,13 @@ impl From<&str> for Name {
     }
 }
 
+/// A name the names index already holds: the copy shares its text.
+impl From<Arc<str>> for Name {
+    fn from(name: Arc<str>) -> Self {
+        Self(name)
+    }
+}
+
 impl From<Name> for String {
     fn from(name: Name) -> Self {
         name.0.to_string()
@@ -1023,20 +1030,156 @@ pub(crate) mod departure_markers {
     }
 }
 
+/// Names gathered in the order they are given, held in place while there
+/// are one or two, as most lineages have.
+#[derive(Default)]
+enum Gathered {
+    #[default]
+    None,
+    One(Name),
+    Two(Name, Name),
+    More(Vec<Name>),
+}
+
+impl Gathered {
+    fn push(&mut self, name: Name) {
+        *self = match std::mem::take(self) {
+            Self::None => Self::One(name),
+            Self::One(first) => Self::Two(first, name),
+            Self::Two(first, second) => Self::More(vec![first, second, name]),
+            Self::More(mut names) => {
+                names.push(name);
+                Self::More(names)
+            }
+        };
+    }
+
+    /// Each name in the order it was given.
+    fn walk(&self) -> impl Iterator<Item = &Name> + '_ {
+        let (held, more): ([Option<&Name>; 2], &[Name]) = match self {
+            Self::None => ([None, None], &[]),
+            Self::One(name) => ([Some(name), None], &[]),
+            Self::Two(first, second) => ([Some(first), Some(second)], &[]),
+            Self::More(names) => ([None, None], names),
+        };
+        held.into_iter().flatten().chain(more)
+    }
+
+    /// The set of these names: in name order, each once.
+    fn into_set(self) -> NameSet {
+        match self {
+            Self::None => NameSet::default(),
+            Self::One(name) => NameSet(Some(Arc::new(Names {
+                bytes: name.len(),
+                store: Store::One([name]),
+            }))),
+            Self::Two(first, second) => match first.cmp(&second) {
+                std::cmp::Ordering::Equal => Self::One(first).into_set(),
+                std::cmp::Ordering::Less => NameSet::pair(first, second),
+                std::cmp::Ordering::Greater => NameSet::pair(second, first),
+            },
+            Self::More(mut names) => {
+                names.sort_unstable();
+                names.dedup();
+                NameSet::from_sorted(names)
+            }
+        }
+    }
+}
+
+impl NameSet {
+    /// Two names in name order.
+    fn pair(first: Name, second: Name) -> Self {
+        Self(Some(Arc::new(Names {
+            bytes: first.len() + second.len(),
+            store: Store::Two([first, second]),
+        })))
+    }
+}
+
 impl Provenance {
     /// Construct a sorted, deduplicated trace without truncating dependencies.
     pub fn from_names(
         evidence: impl IntoIterator<Item = String>,
         caveats: impl IntoIterator<Item = String>,
     ) -> Result<Self, EvalError> {
+        Self::from_shared(
+            evidence.into_iter().map(Name::from),
+            caveats.into_iter().map(Name::from),
+        )
+    }
+
+    /// `from_names` for names already made, such as the names index's own,
+    /// which the lineage then shares. When every name given fits within the
+    /// limits together, as good as every lineage does, the sets are built
+    /// directly; otherwise the names are added one by one, so a lineage past
+    /// a limit is refused at the same name, with the same message.
+    pub(crate) fn from_shared(
+        evidence: impl IntoIterator<Item = Name>,
+        caveats: impl IntoIterator<Item = Name>,
+    ) -> Result<Self, EvalError> {
+        let (mut count, mut bytes) = (0usize, 0usize);
+        let mut gather = |names: &mut Gathered, name: Name| {
+            count += 1;
+            bytes = bytes.saturating_add(name.len());
+            names.push(name);
+        };
+        let mut given_evidence = Gathered::None;
+        for name in evidence {
+            gather(&mut given_evidence, name);
+        }
+        let mut given_caveats = Gathered::None;
+        for name in caveats {
+            gather(&mut given_caveats, name);
+        }
+        if count <= MAX_PROVENANCE_IDENTIFIERS && bytes <= MAX_PROVENANCE_BYTES {
+            // Every name fits, since all of them together do.
+            return Ok(Self {
+                evidence: given_evidence.into_set(),
+                caveats: given_caveats.into_set(),
+                ..Self::default()
+            });
+        }
+        Self::added_one_by_one(
+            given_evidence
+                .walk()
+                .map(|name| (true, name.clone()))
+                .chain(given_caveats.walk().map(|name| (false, name.clone()))),
+        )
+    }
+
+    /// What `merge` makes of this lineage and the one `from_shared` makes of
+    /// the single name `name`, as evidence or as a caveat, without making
+    /// that lineage: the same checks in the same order, so the same refusal,
+    /// and the same lineage. Evidence read here is no longer inherited.
+    pub(crate) fn merge_name(&mut self, name: Name, is_evidence: bool) -> Result<(), EvalError> {
+        // What `from_shared` checks of the one name, then what `merge` checks.
+        check_provenance_size(1, 0, name.len())?;
+        let (count, bytes) = self.size()?;
+        let names = if is_evidence {
+            &mut self.evidence
+        } else {
+            &mut self.caveats
+        };
+        if names.find(&name).is_err() {
+            check_provenance_size(count + 1, bytes, name.len())?;
+        }
+        if is_evidence {
+            self.inherited.remove(&*name);
+            self.evidence.insert(name);
+        } else {
+            self.caveats.insert(name);
+        }
+        Ok(())
+    }
+
+    /// The names added in turn, each set's repeats skipped, refused at the
+    /// first name past a limit.
+    fn added_one_by_one(names: impl Iterator<Item = (bool, Name)>) -> Result<Self, EvalError> {
         let mut result = Self::default();
         let mut count = 0;
         let mut bytes = 0;
-        for (is_evidence, name) in evidence
-            .into_iter()
-            .map(|name| (true, name))
-            .chain(caveats.into_iter().map(|name| (false, name)))
-        {
+        for (is_evidence, name) in names {
             let names = if is_evidence {
                 &mut result.evidence
             } else {
@@ -6809,5 +6952,190 @@ mod tests {
         assert!(parse(&"a".repeat(MAX_SOURCE_BYTES + 1))
             .unwrap_err()
             .contains("source limit"));
+    }
+
+    /// A small seeded generator, so the cases below are the same each run.
+    struct Seeded(u64);
+
+    impl Seeded {
+        fn below(&mut self, bound: usize) -> usize {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((self.0 >> 33) as usize) % bound.max(1)
+        }
+    }
+
+    /// Names from a small pool, so lists repeat names; some are long, so a
+    /// list can pass the byte limit before the identifier limit, and some
+    /// lists are long enough to pass the identifier limit.
+    fn some_names(seeded: &mut Seeded, pool: &[Name]) -> Vec<Name> {
+        let length = match seeded.below(8) {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => MAX_PROVENANCE_IDENTIFIERS - 1 + seeded.below(4),
+            _ => seeded.below(12),
+        };
+        (0..length)
+            .map(|_| match seeded.below(4) {
+                // A copy of a pool name made apart, so text, not sharing,
+                // decides what is the same name.
+                0 => Name::from(pool[seeded.below(pool.len())].as_str()),
+                _ => pool[seeded.below(pool.len())].clone(),
+            })
+            .collect()
+    }
+
+    fn name_pool(size: usize) -> Vec<Name> {
+        (0..size)
+            .map(|index| match index % 97 {
+                0 => Name::from(format!("{index}{}", "x".repeat(MAX_PROVENANCE_BYTES / 3))),
+                _ => Name::from(format!("n{index}")),
+            })
+            .collect()
+    }
+
+    /// Built directly, a lineage is the one its names added one by one make,
+    /// and past a limit it is refused with the same message.
+    #[test]
+    fn a_lineage_built_directly_is_the_one_its_names_added_in_turn_make() {
+        let mut seeded = Seeded(5);
+        let pool = name_pool(1_500);
+        for _ in 0..400 {
+            let evidence = some_names(&mut seeded, &pool);
+            let caveats = some_names(&mut seeded, &pool);
+            let direct = Provenance::from_shared(evidence.clone(), caveats.clone());
+            let in_turn = Provenance::added_one_by_one(
+                evidence
+                    .iter()
+                    .map(|name| (true, name.clone()))
+                    .chain(caveats.iter().map(|name| (false, name.clone()))),
+            );
+            match (direct, in_turn) {
+                (Ok(direct), Ok(in_turn)) => assert_eq!(direct, in_turn),
+                (Err(direct), Err(in_turn)) => assert_eq!(direct.message, in_turn.message),
+                (direct, in_turn) => panic!("built directly {direct:?}, in turn {in_turn:?}"),
+            }
+        }
+        // Each limit, passed by the given names.
+        let many = |count: usize| (0..count).map(|index| Name::from(format!("e{index}")));
+        assert!(Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS), []).is_ok());
+        assert!(
+            Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS + 1), [])
+                .unwrap_err()
+                .message
+                .contains("identifiers")
+        );
+        let long = Name::from("a".repeat(MAX_PROVENANCE_BYTES));
+        assert!(Provenance::from_shared([long.clone()], [long.clone()])
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        // Repeats count once: these fit, though the names given do not.
+        assert!(
+            Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS).chain(many(2)), []).is_ok()
+        );
+        assert!(Provenance::from_shared([long.clone(), long], []).is_ok());
+    }
+
+    /// Merging one name in place is merging the lineage of that one name:
+    /// the same lineage, and past a limit the same refusal, with the
+    /// lineage left as it was.
+    #[test]
+    fn merging_one_name_in_place_is_merging_its_lineage() {
+        let mut seeded = Seeded(11);
+        let pool = name_pool(1_500);
+        for _ in 0..600 {
+            let mut base = Provenance::from_shared(
+                some_names(&mut seeded, &pool),
+                some_names(&mut seeded, &pool),
+            )
+            .unwrap_or_default();
+            // Some evidence inherited, some caveats kept, and sometimes a
+            // marker, as reads leave them.
+            let evidence = base.evidence.iter().cloned().collect::<Vec<_>>();
+            for name in evidence.iter().filter(|_| seeded.below(3) == 0) {
+                base.inherited.insert(name.clone());
+            }
+            let caveats = base.caveats.iter().cloned().collect::<Vec<_>>();
+            for name in caveats.iter().filter(|_| seeded.below(3) == 0) {
+                base.kept.insert(name.clone());
+            }
+            if seeded.below(4) == 0
+                && base
+                    .size()
+                    .is_ok_and(|(count, _)| count < MAX_PROVENANCE_IDENTIFIERS)
+            {
+                base.departed.insert(
+                    "s".to_string(),
+                    Marker {
+                        read: 1,
+                        from: 1,
+                        through: 2,
+                        departed_at: 3,
+                        archive_ref: None,
+                    },
+                );
+            }
+            let name = match seeded.below(3) {
+                0 if !evidence.is_empty() => evidence[seeded.below(evidence.len())].clone(),
+                1 if !caveats.is_empty() => caveats[seeded.below(caveats.len())].clone(),
+                _ => pool[seeded.below(pool.len())].clone(),
+            };
+            let is_evidence = seeded.below(2) == 0;
+            let (one, other): (Vec<Name>, Vec<Name>) = if is_evidence {
+                (vec![name.clone()], Vec::new())
+            } else {
+                (Vec::new(), vec![name.clone()])
+            };
+            let mut merged = base.clone();
+            let by_merge =
+                Provenance::from_shared(one, other).and_then(|lineage| merged.merge(&lineage));
+            let mut in_place = base.clone();
+            let by_name = in_place.merge_name(name, is_evidence);
+            match (by_merge, by_name) {
+                (Ok(()), Ok(())) => {}
+                (Err(by_merge), Err(by_name)) => {
+                    assert_eq!(by_merge.message, by_name.message);
+                    assert_eq!(in_place, base);
+                }
+                (by_merge, by_name) => panic!("merged {by_merge:?}, in place {by_name:?}"),
+            }
+            assert_eq!(in_place, merged);
+        }
+        // A full lineage: a new name is refused, a held one is not.
+        let full = Provenance::from_shared(
+            (0..MAX_PROVENANCE_IDENTIFIERS).map(|index| Name::from(format!("e{index}"))),
+            [],
+        )
+        .unwrap();
+        let mut lineage = full.clone();
+        assert!(lineage
+            .merge_name(Name::from("k"), false)
+            .unwrap_err()
+            .message
+            .contains("identifiers"));
+        assert_eq!(lineage, full);
+        lineage.merge_name(Name::from("e7"), true).unwrap();
+        assert_eq!(lineage, full);
+        let wide =
+            Provenance::from_shared([Name::from("a".repeat(MAX_PROVENANCE_BYTES))], []).unwrap();
+        let mut lineage = wide.clone();
+        assert!(lineage
+            .merge_name(Name::from("k"), false)
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        assert_eq!(lineage, wide);
+        // A name past the byte limit on its own, merged into nothing.
+        let mut empty = Provenance::default();
+        assert!(empty
+            .merge_name(Name::from("a".repeat(MAX_PROVENANCE_BYTES + 1)), true)
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        assert_eq!(empty, Provenance::default());
     }
 }

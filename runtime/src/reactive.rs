@@ -6383,10 +6383,14 @@ impl ReactiveSession {
         };
         let provenance = match kind {
             "observed" if value => self.qualify_core(name, &[])?,
-            "examined" => Provenance::from_names(
-                [],
-                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]], 1)),
-            )?,
+            "examined" => {
+                let id = self.symbols[name];
+                Provenance::from_shared(
+                    [],
+                    std::iter::once(self.record_name(id, name))
+                        .chain(self.incoming_caveats([id], 1)),
+                )?
+            }
             "committed" | "reopened" if value => {
                 let mut grounds = self
                     .commitment_grounds
@@ -6587,7 +6591,7 @@ impl ReactiveSession {
         &self,
         roots: impl IntoIterator<Item = NodeId>,
         before: usize,
-    ) -> Vec<String> {
+    ) -> Vec<Name> {
         self.caveats_reaching(roots, true, before)
     }
 
@@ -6601,7 +6605,7 @@ impl ReactiveSession {
         roots: impl IntoIterator<Item = NodeId>,
         honor_take_back: bool,
         before: usize,
-    ) -> Vec<String> {
+    ) -> Vec<Name> {
         // Only `qualifies` relations lead anywhere. What this answer rests
         // on: the relations into each node it visits.
         if !self.graph.qualifies_any() {
@@ -6651,21 +6655,18 @@ impl ReactiveSession {
         // the order a lineage keeps its names in, so the limit a refusal
         // names is the same in every process and after a restore; the symbol
         // table's own order is the hash seed's.
-        if before.saturating_add(caveats.len()) > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
-            let mut names = self
-                .symbols
-                .iter()
-                .filter_map(|(name, id)| caveats.contains(id).then_some(name.to_owned()))
-                .collect::<Vec<_>>();
-            names.sort_unstable();
-            return names;
-        }
+        // Each is the names index's own copy of the name, found by node.
+        let past = before.saturating_add(caveats.len()) > reactive_expr::MAX_PROVENANCE_IDENTIFIERS;
         let mut caveats = caveats.into_iter().collect::<Vec<_>>();
         caveats.sort_unstable();
-        caveats
+        let mut names = caveats
             .into_iter()
-            .filter_map(|id| self.symbols.name_of(id).map(str::to_string))
-            .collect()
+            .filter_map(|id| self.symbols.shared_name_of(id))
+            .collect::<Vec<_>>();
+        if past {
+            names.sort_unstable();
+        }
+        names
     }
 
     /// Start explicit ordering only when an edge cannot represent observation.
@@ -6804,11 +6805,33 @@ impl ReactiveSession {
     /// `qualify_core` once `require_qualifiable` has passed.
     fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         // The evidence's name goes ahead of the caveats; the extras follow.
+        // Each is the names index's own copy, found by node: the roots list
+        // the evidence first, then each extra.
+        let roots = self.qualify_roots(evidence, extras);
+        let name = self.record_name(roots[0], evidence);
+        let extras = extras
+            .iter()
+            .zip(&roots[1..])
+            .map(|(caveat, &id)| self.record_name(id, caveat))
+            .collect::<Vec<_>>();
         let caveats = self
-            .caveats_reaching(self.qualify_roots(evidence, extras), true, 1)
+            .caveats_reaching(roots, true, 1)
             .into_iter()
-            .chain(extras.iter().cloned());
-        Provenance::from_names([evidence.into()], caveats)
+            .chain(extras);
+        Provenance::from_shared([name], caveats)
+    }
+
+    /// The name of `id`'s record, `name`, as the names index holds it, so a
+    /// lineage shares that copy; a new copy only for a record the index
+    /// does not name so.
+    fn record_name(&self, id: NodeId, name: &str) -> Name {
+        match self.symbols.shared_name_of(id) {
+            Some(held) => {
+                debug_assert_eq!(held, name, "the names index names node {id}");
+                held
+            }
+            None => name.into(),
+        }
     }
 
     /// Where the caveats of `evidence` are found: the evidence itself, each
@@ -6895,9 +6918,10 @@ impl ReactiveSession {
             "observed" if value => self.qualify(name, &[])?,
             "examined" => {
                 let id = self.symbols[name];
-                let mut provenance = Provenance::from_names(
+                let mut provenance = Provenance::from_shared(
                     [],
-                    std::iter::once(name.into()).chain(self.incoming_caveats([id], 1)),
+                    std::iter::once(self.record_name(id, name))
+                        .chain(self.incoming_caveats([id], 1)),
                 )?;
                 if let Some(examination) = self.examination_qualifications.get(name) {
                     provenance.merge(examination)?;
@@ -6923,6 +6947,11 @@ impl ReactiveSession {
                         .name_of(id)
                         .expect("a commitment relates named records")
                 };
+                let shared_name_of = |id: NodeId| {
+                    self.symbols
+                        .shared_name_of(id)
+                        .expect("a commitment relates named records")
+                };
                 // What it retains and relies on, and what reopened it, in
                 // graph order.
                 let reopeners = if kind == "reopened" {
@@ -6932,17 +6961,11 @@ impl ReactiveSession {
                 };
                 for link in relations::in_graph_order(self.graph.basis(id), reopeners) {
                     if link.relation == Relation::Retains {
-                        provenance.merge(&Provenance::from_names(
-                            [],
-                            [name_of(link.other).to_string()],
-                        )?)?;
+                        provenance.merge_name(shared_name_of(link.other), false)?;
                     } else if link.relation == Relation::ReliesOn {
                         // Commitment basis is historical. Do not re-query its
                         // original value or replace its frozen qualifications.
-                        provenance.merge(&Provenance::from_names(
-                            [name_of(link.other).to_string()],
-                            [],
-                        )?)?;
+                        provenance.merge_name(shared_name_of(link.other), true)?;
                     } else {
                         let cause = name_of(link.other);
                         self.require_reopening_cause(cause)?;
@@ -8590,9 +8613,9 @@ impl ReactiveSession {
             self.relate(from, Relation::Qualifies, to);
         }
         // The caveat and whatever qualifies it, as `qualified` inherits.
-        let added = Provenance::from_names(
+        let added = Provenance::from_shared(
             [],
-            std::iter::once(caveat.to_string()).chain(self.incoming_caveats([from], 1)),
+            std::iter::once(self.record_name(from, caveat)).chain(self.incoming_caveats([from], 1)),
         )?;
         // Current values only. Commitment bases and grounds, reading
         // archives and the journal record what was known then.
@@ -9429,12 +9452,11 @@ impl ReactiveSession {
         // Their order matters only past the identifier limit, where it
         // decides which limit `from_names` reports: there they go in name
         // order, as `caveats_reaching` gives caveats past it.
+        // Each is the names index's own copy of the name.
         let mut names = if reached.len() > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
-            let mut names = self
-                .symbols
+            let mut names = reached
                 .iter()
-                .filter(|(_, id)| reached.contains(id))
-                .map(|(name, _)| name.to_owned())
+                .filter_map(|&id| self.symbols.shared_name_of(id))
                 .collect::<Vec<_>>();
             names.sort_unstable();
             names
@@ -9442,12 +9464,12 @@ impl ReactiveSession {
             self.late_caveat_nodes
                 .iter()
                 .filter(|(id, _)| reached.contains(id))
-                .map(|(_, name)| name.clone())
+                .map(|(id, name)| self.record_name(*id, name))
                 .collect::<Vec<_>>()
         };
         let before = names.len();
         names.extend(self.incoming_caveats(reached.iter().copied(), before));
-        provenance.merge(&Provenance::from_names([], names)?)
+        provenance.merge(&Provenance::from_shared([], names)?)
     }
 
     /// Each live `C qualifies E` relation for a late caveat C that

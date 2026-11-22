@@ -615,6 +615,15 @@ impl NameTable {
         self.by_node.get(id)
     }
 
+    /// The name of `id`'s record as the table holds it: a lineage that names
+    /// the record shares this one copy of its text rather than making its
+    /// own, and finds it again without comparing text.
+    pub(super) fn shared_name_of(&self, id: NodeId) -> Option<Name> {
+        self.by_node
+            .get_shared(id)
+            .map(|name| Name::from(Arc::clone(name)))
+    }
+
     /// Whether `other` holds every name this table holds, each for the same
     /// node. Chunks of names the two share are not read.
     pub(super) fn kept_in(&self, other: &Self) -> bool {
@@ -681,8 +690,12 @@ impl NodeNames {
     }
 
     fn get(&self, id: NodeId) -> Option<&str> {
+        self.get_shared(id).map(|name| &**name)
+    }
+
+    fn get_shared(&self, id: NodeId) -> Option<&Arc<str>> {
         let (chunk, slot) = Self::place(id);
-        self.chunks.get(&chunk)?[slot].as_deref()
+        self.chunks.get(&chunk)?[slot].as_ref()
     }
 
     fn set(&mut self, id: NodeId, name: Option<Arc<str>>) {
