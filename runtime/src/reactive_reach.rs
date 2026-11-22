@@ -1874,12 +1874,17 @@ impl ReactiveSession {
     }
 
     /// A caveat that can qualify records of a history `owner`'s bound
-    /// carries (D098).
+    /// carries (D098). A carrier is a stream or evidence, so one named
+    /// `journal` is no decision journal, whose entries no caveat qualifies
+    /// (D074).
     fn grounds_keep(&self, owner: &Owner, caveat: &str) -> bool {
-        self.history_reach_bound()
-            .take_back_carriers
-            .get(caveat)
-            .is_some_and(|histories| histories.iter().any(|history| self.reaches(owner, history)))
+        let reach = self.history_reach_bound();
+        let Some(histories) = reach.take_back_carriers.get(caveat) else {
+            return false;
+        };
+        histories
+            .iter()
+            .any(|history| reach.carries(owner, history))
     }
 
     /// A caveat a reading of a stream whose readings `owner`'s citations

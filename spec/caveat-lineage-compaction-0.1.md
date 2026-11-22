@@ -500,7 +500,10 @@ inherited chain as one range.
 **The journal.** Under `journal window N`, a retired journal entry departs by
 the same rule. An entry still in the window keeps its `because` exact. That
 pins what it cites, which is bounded by the window. Its basis compacts. Nothing
-else cites journal entries.
+else cites journal entries. A provenance that names a record or a declared
+name spelled like an entry, `journal@K`, names that record or declared name,
+not the entry, and the entry's departure leaves the provenance as it is
+([Departure 0.1](caveat-departure-0.1.md)).
 
 **Outcomes.** An outcome's lineage ([Outcomes 0.1](caveat-outcomes-0.1.md))
 is frozen when the revision is resolved, as a basis is, and compacts as a
@@ -613,6 +616,14 @@ provenance read in its range.
 
 ## Changes
 
+- 2026-11-22 (D074, D105): journal entry `journal@K`'s departure no longer
+  compacts a provenance that names a record or a declared name spelled
+  `journal@K` beside `journal window`. It gave that provenance a `journal`
+  marker, which no provenance can hold: a debug build stopped at the end of
+  that event on the history reach audit (D054), and restore refused the
+  session's save, first on what the same departure had removed, for
+  example "observations omits reading journal@1". See
+  [Departure 0.1](caveat-departure-0.1.md), "Changes".
 - 2026-10-05 (rc.16, specified): new profile. A value's own citations (state
   grounds, the revision in force's grounds, in-window journal entries'
   `because`) stay exact and pin their records. Lineage and inherited bases

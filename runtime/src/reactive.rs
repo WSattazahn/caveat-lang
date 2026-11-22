@@ -2533,6 +2533,14 @@ pub struct ReactiveSession {
     /// Each retired record, with the sequence of the event that retired it.
     /// A journal entry is named `journal@K`, K counting from 1.
     retired: Arc<BTreeMap<String, u64>>,
+    /// Unobserved declared evidence spelled like a journal entry, which a
+    /// declaration's `reopen` names and a save lists as retired, with the
+    /// sequence the save gives (D105). An older release took the entry's
+    /// retirement for the evidence's, so its sessions could cite the
+    /// evidence as retired. A session restored from such a save keeps the
+    /// evidence retired where a value may cite it, and lists it in `retired`
+    /// once the entry has departed too. Only restore fills it.
+    retired_causes: Arc<BTreeMap<String, u64>>,
     /// How many of the oldest journal entries have departed: entry `i` held
     /// is `journal@(journal_departed + i + 1)`. See spec/caveat-departure-0.1.md.
     journal_departed: usize,
@@ -2958,6 +2966,7 @@ impl ReactiveSession {
             windows: Arc::default(),
             journal_window: None,
             retired: Arc::default(),
+            retired_causes: Arc::default(),
             journal_departed: 0,
             archive: Vec::new(),
             pin_counts: Arc::default(),
@@ -6760,7 +6769,10 @@ impl ReactiveSession {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
-        if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
+        if !self.is_retired(evidence)
+            && !self.predicate("observed", evidence)?
+            && !self.retired_cause(evidence)
+        {
             return Err(
                 format!("cannot qualify a value with unobserved evidence {evidence}").into(),
             );
@@ -6777,7 +6789,10 @@ impl ReactiveSession {
     /// for its value or for its grounds, refuses the event as reading
     /// `qualified(…)` of the evidence would (D045).
     fn require_reopening_cause(&self, cause: &str) -> Result<(), EvalError> {
-        if !self.is_retired(cause) && !self.predicate("observed", cause)? {
+        if !self.is_retired(cause)
+            && !self.predicate("observed", cause)?
+            && !self.retired_cause(cause)
+        {
             return Err(EvalError::new(
                 EvalFailure::UnobservedEvidence,
                 format!("cannot qualify a value with unobserved evidence {cause}"),
@@ -7757,7 +7772,10 @@ impl ReactiveSession {
                     self.require_kind(evidence, "evidence")?;
                     // A retired record reaches a new basis only through one
                     // that already cites it, such as the predecessor's.
-                    if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
+                    if !self.is_retired(evidence)
+                        && !self.predicate("observed", evidence)?
+                        && !self.retired_cause(evidence)
+                    {
                         return Err(format!(
                             "commitment basis includes unobserved evidence {evidence}"
                         )
@@ -9199,9 +9217,40 @@ impl ReactiveSession {
             .find(|withdrawal| withdrawal.evidence == evidence)
     }
 
-    /// Whether a record of a windowed history has retired.
+    /// Whether a record of a windowed history other than the journal has
+    /// retired. Under `journal window` only the journal reads an entry's
+    /// retirement, from `retired` (see `journal_entry_name`).
     pub(crate) fn is_retired(&self, record: &str) -> bool {
-        self.retired.contains_key(record)
+        self.retired.contains_key(record) && !self.journal_entry_name(record)
+    }
+
+    /// Whether `name` is declared evidence `retired_causes` keeps retired: a
+    /// value may cite it, as it may cite a retired record (D105).
+    fn retired_cause(&self, name: &str) -> bool {
+        !self.retired_causes.is_empty() && self.retired_causes.contains_key(name)
+    }
+
+    /// The `retired` a snapshot and a save list: each retired record, and
+    /// each declared cause `retired_causes` keeps retired (D105).
+    pub(crate) fn listed_retired(&self) -> BTreeMap<String, u64> {
+        let mut retired = (*self.retired).clone();
+        for (name, at) in self.retired_causes.iter() {
+            retired.entry(name.clone()).or_insert(*at);
+        }
+        retired
+    }
+
+    /// Whether `retired` and the departure candidates take `name` for one of
+    /// the journal's entries, which are named `journal@K` under `journal
+    /// window`. A record of a history named `journal`, or a name the program
+    /// declares, may be spelled so too, but none of them retires beside a
+    /// journal window: a windowed history may not be named `journal` there,
+    /// and declared evidence retires only as the first occurrence of
+    /// windowed renewable evidence, whose name has no `@`. So only the
+    /// journal reads an entry's retirement by its name, and no record or
+    /// node is looked up by it (D074, D105).
+    pub(crate) fn journal_entry_name(&self, name: &str) -> bool {
+        self.journal_window.is_some() && name.starts_with("journal@")
     }
 
     /// The index of a history's oldest live record. Retirement always takes
@@ -9210,7 +9259,7 @@ impl ReactiveSession {
         if self.retired.is_empty() {
             return 0;
         }
-        records.partition_point(|record| self.retired.contains_key(id(record)))
+        records.partition_point(|record| self.is_retired(id(record)))
     }
 
     /// The record to retire before one more is added to a full window.
@@ -9302,27 +9351,36 @@ impl ReactiveSession {
         });
     }
 
-    /// Before a journal entry is added under `journal window N`.
+    /// Before a journal entry is added under `journal window N`. The retired
+    /// entries are the journal's oldest, and `retired` holds them by name.
     fn retire_journal_entry(&mut self) {
         let Some(window) = self.journal_window else {
             return;
         };
-        let names = (0..self.journal.len())
-            .map(|index| self.journal_name(index))
-            .collect::<Vec<_>>();
-        if let Some(oldest) = self.oldest_live_beyond_window(&names, String::as_str, window) {
-            let index = names.iter().position(|name| name == &oldest).unwrap();
-            let released = self.journal[index]
-                .because
-                .iter()
-                .chain(&self.journal[index].permitted_by)
-                .cloned()
-                .collect::<Vec<_>>();
-            for record in released {
-                self.release_pin(&record);
-            }
-            self.retire("journal", oldest);
+        let index = (0..self.journal.len())
+            .take_while(|index| self.retired.contains_key(&self.journal_name(*index)))
+            .count();
+        if self.journal.len() - index < window {
+            return;
         }
+        let released = self.journal[index]
+            .because
+            .iter()
+            .chain(&self.journal[index].permitted_by)
+            .cloned()
+            .collect::<Vec<_>>();
+        for record in released {
+            self.release_pin(&record);
+        }
+        // No withdrawal is of an entry (one naming a record spelled like it
+        // is the record's), so the collector is not told.
+        let entry = self.journal_name(index);
+        Arc::make_mut(&mut self.departure_candidates).insert(entry.clone());
+        Arc::make_mut(&mut self.retired).insert(entry.clone(), self.sequence);
+        self.effects.push(EffectReport::Retire {
+            history: "journal".to_string(),
+            record: entry,
+        });
     }
 
     /// A value newly read from history carries `withdrawn` if what it rests on
@@ -9728,7 +9786,7 @@ impl ReactiveSession {
             value_grounds: self.states.grounds(),
             commitment_grounds: (**self.commitment_grounds).clone(),
             decision_journal: self.journal.to_vec(),
-            retired: (*self.retired).clone(),
+            retired: self.listed_retired(),
             windows: self
                 .windows
                 .iter()

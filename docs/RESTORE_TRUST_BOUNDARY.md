@@ -210,7 +210,15 @@ but not one spelled like an occurrence of renewable evidence or like a
 journal entry; a place or an entity is no node, and its name stops no
 renewal. The journal names its entries `journal@K` whatever the program
 declares, so restore reads a name among the journal's records by its
-spelling.
+spelling. A record or a declared name spelled so is no entry (D074, D105):
+the session keeps the two apart, and restore reads a reading stream or
+evidence named `journal` as itself, not as the journal, where it asks which
+take-back caveats grounds can keep. An older release took an entry's
+retirement for that of declared evidence of its spelling, never observed,
+that a declaration's `reopen` names. Restore accepts that evidence as
+retired where the save lists it, and the restored session keeps it so: its
+saves list the name in `retired`, dated as the entry's retirement was, even
+once the journal no longer holds the entry (D105).
 
 Restore also holds each relation to the number of times events add it
 (D104). A commitment an event makes is made once, and relates once to each
