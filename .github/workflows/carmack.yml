@@ -23,6 +23,7 @@ on:
       - 'web/break*'
       - 'rust-toolchain.toml'
       - '.github/workflows/carmack.yml'
+      - '.github/actions/playwright-browsers/**'
       - '.github/ci/retry-download.sh'
   workflow_dispatch:
 
@@ -81,15 +82,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # --with-deps fetches over 150 system packages from the Ubuntu mirror.
-      # On 2026-10-27 that mirror slowed to 1-60 s a package and held this step
-      # for over 40 minutes (normally about 3); stop and fail instead of
-      # waiting for the 6-hour job limit. Retrying in the step would not help:
-      # stopping npx leaves apt-get running and holding the package lock.
-      - name: Install the browsers
+      # Use the shared browser action so Playwright browsers and their Ubuntu
+      # system packages are cached and time-bounded with retry, matching
+      # runtime.yml instead of re-fetching 150+ .deb packages uncached.
+      - uses: ./.github/actions/playwright-browsers
         if: runner.os == 'Linux'
-        timeout-minutes: 20
-        run: npx playwright install --with-deps chromium firefox webkit
+        with:
+          browsers: chromium firefox webkit
       - name: Replay seeded sequences with a save and restore
         shell: bash
         run: |

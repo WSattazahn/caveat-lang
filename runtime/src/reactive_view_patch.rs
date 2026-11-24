@@ -11,14 +11,14 @@
 //! order, so the same JSON text.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    relation_name, BindingValue, DecisionSeries, JournalEntry, NameTable, ReactiveSession,
+    relation_name, BindingGroup, BindingValue, DecisionSeries, JournalEntry, NameTable,
+    ReactiveSession,
 };
 use super::{DISPATCH_SCHEMA, REACTIVE_VIEW_SCHEMA};
 use crate::chunked::Chunked;
-use crate::fast_hash::HashMap;
 use crate::map::{MapCommitment, MapRelation};
 use crate::reactive_expr::Provenance;
-use crate::{Edge, EpistemicGraph, NodeId};
+use crate::{Edge, EpistemicGraph, NodeId, NodeKind, Relation};
 use serde::Serialize;
 use serde_json::value::RawValue;
 use std::collections::BTreeMap;
@@ -127,8 +127,6 @@ pub(super) struct PatchParts {
     decision_journal: Chunked<JournalEntry>,
     graph: Arc<EpistemicGraph>,
     symbols: NameTable,
-    /// Each node's name, as of `symbols`.
-    names: Arc<HashMap<NodeId, String>>,
 }
 
 type Nested<V> = BTreeMap<String, BTreeMap<String, V>>;
@@ -215,10 +213,29 @@ fn text<T: Serialize + ?Sized>(value: &T) -> String {
     serde_json::to_string(value).expect("finite reactive view")
 }
 
-/// The same JSON text. Sound for any value: equal text is what the view
-/// shows, and unequal text is only ever sent again.
-fn same<T: Serialize + ?Sized>(a: &T, b: &T) -> bool {
-    text(a) == text(b)
+fn same_opt_f64(a: Option<f64>, b: Option<f64>) -> bool {
+    a.map(f64::to_bits) == b.map(f64::to_bits)
+}
+
+/// Equal `DecisionSeries` values, comparing outcome numbers by bits so `-0`
+/// stays apart from `0` without serializing both sides to JSON.
+fn same_decision_series(a: &DecisionSeries, b: &DecisionSeries) -> bool {
+    a == b
+        && a.revisions.iter().zip(&b.revisions).all(|(x, y)| {
+            same_opt_f64(
+                x.outcome.as_ref().map(|o| o.value),
+                y.outcome.as_ref().map(|o| o.value),
+            )
+        })
+}
+
+/// Equal `JournalEntry` values, comparing numeric fields by bits so `-0` stays
+/// apart from `0` without serializing both sides to JSON.
+fn same_journal_entry(a: &JournalEntry, b: &JournalEntry) -> bool {
+    a == b
+        && same_opt_f64(a.elapsed, b.elapsed)
+        && same_opt_f64(a.value, b.value)
+        && same_opt_f64(a.outcome, b.outcome)
 }
 
 /// A number compares by its bits, so `-0` stays apart from `0`; every other
@@ -228,13 +245,6 @@ fn same_binding(a: &BindingValue, b: &BindingValue) -> bool {
         (BindingValue::Number(x), BindingValue::Number(y)) => x.to_bits() == y.to_bits(),
         _ => a == b,
     }
-}
-
-fn node_names(symbols: &NameTable) -> HashMap<NodeId, String> {
-    symbols
-        .iter()
-        .map(|(name, id)| (*id, name.to_owned()))
-        .collect()
 }
 
 impl PatchParts {
@@ -251,7 +261,6 @@ impl PatchParts {
             decision_journal: session.journal.clone(),
             graph: Arc::clone(&session.graph),
             symbols: session.symbols.clone(),
-            names: Arc::new(node_names(&session.symbols)),
         }
     }
 
@@ -268,50 +277,196 @@ impl PatchParts {
                 members.insert(name, change);
             }
         };
-        put(
-            "bindings",
-            sync_nested(&mut self.bindings, &session.bindings, full, &same_binding),
-        );
-        // Provenance holds only names and counts, so equal values are equal
-        // JSON.
-        put(
-            "binding_explanations",
-            sync_nested(
-                &mut self.binding_explanations,
-                &session.binding_explanations,
-                full,
-                &|old, new| old == new,
-            ),
-        );
-        put("cues", sync_whole(&mut self.cues, &session.cues, full));
+        if full {
+            put(
+                "bindings",
+                sync_nested(&mut self.bindings, &session.bindings, true, &same_binding),
+            );
+            put(
+                "binding_explanations",
+                sync_nested(
+                    &mut self.binding_explanations,
+                    &session.binding_explanations,
+                    true,
+                    &|old, new| old == new,
+                ),
+            );
+        } else if !session.last_binding_groups.is_empty() {
+            put(
+                "bindings",
+                sync_nested_touched(
+                    &mut self.bindings,
+                    &session.bindings,
+                    &session.binding_groups,
+                    &session.last_binding_groups,
+                    &same_binding,
+                ),
+            );
+            put(
+                "binding_explanations",
+                sync_nested_touched(
+                    &mut self.binding_explanations,
+                    &session.binding_explanations,
+                    &session.binding_groups,
+                    &session.last_binding_groups,
+                    &|old, new| old == new,
+                ),
+            );
+        }
+        put("cues", sync_whole_list(&mut self.cues, &session.cues, full));
         put(
             "effects",
-            sync_whole(&mut self.effects, &session.effects, full),
+            sync_whole_list(&mut self.effects, &session.effects, full),
         );
 
         let old_symbols = std::mem::replace(&mut self.symbols, session.symbols.clone());
-        let old_names = Arc::clone(&self.names);
         let symbols_changed = !old_symbols.shares_all(&self.symbols);
-        if symbols_changed {
-            self.names = Arc::new(node_names(&self.symbols));
-        }
         let old_graph = std::mem::replace(&mut self.graph, Arc::clone(&session.graph));
         let graph_changed = !Arc::ptr_eq(&old_graph, &self.graph);
 
-        // A commitment holds only names and flags.
         if full || graph_changed || symbols_changed {
-            let names = &self.names;
-            let live = session
-                .commitment_records(|id| names.get(id).map(String::as_str))
-                .into_iter()
-                .map(|commitment| (commitment.action.clone(), commitment))
-                .collect::<BTreeMap<_, _>>();
-            put(
-                "commitments",
+            let names_kept = !full && (!symbols_changed || old_symbols.kept_in(&self.symbols));
+            let edges_appended = !full && self.graph.edges.starts_with(&old_graph.edges);
+
+            // Commitments: in the common case (edges appended, existing names
+            // and origins preserved), diff only changed node blocks and new
+            // Retains/Reopens edges instead of rebuilding every commitment.
+            let commitments_change = if names_kept
+                && edges_appended
+                && old_graph.origins.shares_all(&self.graph.origins)
+            {
+                let mut changed = Vec::new();
+                let mut removed = false;
+                old_graph.nodes.diff(&self.graph.nodes, |id, old, new| {
+                    if matches!(old, Some(NodeKind::Commitment { .. }))
+                        && !matches!(new, Some(NodeKind::Commitment { .. }))
+                    {
+                        removed = true;
+                        return false;
+                    }
+                    if matches!(new, Some(NodeKind::Commitment { .. })) {
+                        changed.push(id);
+                    }
+                    true
+                });
+                if removed {
+                    let live = session
+                        .commitment_records(|id| self.symbols.name_of(*id))
+                        .into_iter()
+                        .map(|commitment| (commitment.action.clone(), commitment))
+                        .collect::<BTreeMap<_, _>>();
+                    sync_map(&mut self.commitments, &live, false, &|old, new| old == new)
+                        .map(MemberChange::Map)
+                } else {
+                    for edge in self.graph.edges.iter_from(old_graph.edges.len()) {
+                        match edge.relation {
+                            Relation::Retains => changed.push(edge.from),
+                            Relation::Reopens => changed.push(edge.to),
+                            _ => {}
+                        }
+                    }
+                    if changed.is_empty() {
+                        None
+                    } else {
+                        changed.sort_unstable();
+                        changed.dedup();
+                        let mut keys_changed = false;
+                        let mut set = BTreeMap::new();
+                        let name_of = |id: &NodeId| self.symbols.name_of(*id);
+                        for id in changed {
+                            let Some(record) = session.commitment_record(id, &name_of) else {
+                                continue;
+                            };
+                            let action = record.action.clone();
+                            match self.commitments.get_mut(&action) {
+                                Some(known) if *known == record => {}
+                                Some(known) => {
+                                    *known = record;
+                                    set.insert(action, Entry::Value(raw(known)));
+                                }
+                                None => {
+                                    keys_changed = true;
+                                    let rendered = raw(&record);
+                                    self.commitments.insert(action.clone(), record);
+                                    set.insert(action, Entry::Value(rendered));
+                                }
+                            }
+                        }
+                        (keys_changed || !set.is_empty()).then(|| {
+                            MemberChange::Map(MapChange {
+                                keys: keys_changed
+                                    .then(|| self.commitments.keys().cloned().collect()),
+                                set,
+                            })
+                        })
+                    }
+                }
+            } else {
+                let live = session
+                    .commitment_records(|id| self.symbols.name_of(*id))
+                    .into_iter()
+                    .map(|commitment| (commitment.action.clone(), commitment))
+                    .collect::<BTreeMap<_, _>>();
                 sync_map(&mut self.commitments, &live, full, &|old, new| old == new)
-                    .map(MemberChange::Map),
-            );
+                    .map(MemberChange::Map)
+            };
+            put("commitments", commitments_change);
+
+            // Relations: fast append-only path skips collecting or scanning
+            // shared edge chunks.
+            let relations_change = if full {
+                Some(MemberChange::List {
+                    items: self
+                        .graph
+                        .edges
+                        .iter()
+                        .map(|edge| Item::New(raw(&relation(&self.symbols, edge))))
+                        .collect(),
+                })
+            } else if edges_appended && names_kept {
+                let old_len = old_graph.edges.len();
+                let new_len = self.graph.edges.len();
+                if old_len == new_len {
+                    None
+                } else {
+                    let mut items =
+                        Vec::with_capacity((old_len > 0) as usize + (new_len - old_len));
+                    if old_len > 0 {
+                        items.push(Item::Run([0, old_len]));
+                    }
+                    items.extend(
+                        self.graph
+                            .edges
+                            .iter_from(old_len)
+                            .map(|edge| Item::New(raw(&relation(&self.symbols, edge)))),
+                    );
+                    Some(MemberChange::List { items })
+                }
+            } else {
+                let render = |edge: &&Edge| raw(&relation(&self.symbols, edge));
+                let edges = |old: &&Edge, new: &&Edge| {
+                    old.from == new.from && old.to == new.to && old.relation == new.relation
+                };
+                let old_edges = old_graph.edges.iter().collect::<Vec<_>>();
+                let new_edges = self.graph.edges.iter().collect::<Vec<_>>();
+                if !symbols_changed {
+                    list_changes(Some(&old_edges), &new_edges, edges, render)
+                } else {
+                    list_changes(
+                        Some(&old_edges),
+                        &new_edges,
+                        |old, new| {
+                            edges(old, new)
+                                && old_symbols.name_of(old.from) == self.symbols.name_of(new.from)
+                                && old_symbols.name_of(old.to) == self.symbols.name_of(new.to)
+                        },
+                        render,
+                    )
+                }
+            };
+            put("relations", relations_change);
         }
+
         let old_grounds = std::mem::replace(
             &mut self.commitment_grounds,
             Arc::clone(&session.commitment_grounds),
@@ -337,64 +492,91 @@ impl PatchParts {
                 map_changes(
                     (!full).then_some(old_series.as_ref()),
                     &self.decision_series,
-                    &|old, new| same(old, new),
+                    &same_decision_series,
                 )
                 .map(MemberChange::Map),
             );
         }
         let old_journal = std::mem::replace(&mut self.decision_journal, session.journal.clone());
-        put(
-            "decision_journal",
+        let journal_change = if full {
+            Some(MemberChange::List {
+                items: self
+                    .decision_journal
+                    .iter()
+                    .map(|entry| Item::New(raw(entry)))
+                    .collect(),
+            })
+        } else if self.decision_journal.shares_all(&old_journal) {
+            None
+        } else if self
+            .decision_journal
+            .starts_with_by(&old_journal, same_journal_entry)
+        {
+            let old_len = old_journal.len();
+            let new_len = self.decision_journal.len();
+            if old_len == new_len {
+                None
+            } else {
+                let mut items = Vec::with_capacity((old_len > 0) as usize + (new_len - old_len));
+                if old_len > 0 {
+                    items.push(Item::Run([0, old_len]));
+                }
+                items.extend(
+                    self.decision_journal
+                        .iter_from(old_len)
+                        .map(|entry| Item::New(raw(entry))),
+                );
+                Some(MemberChange::List { items })
+            }
+        } else {
             list_changes(
-                (!full)
-                    .then(|| old_journal.iter().collect::<Vec<_>>())
-                    .as_deref(),
+                Some(&old_journal.iter().collect::<Vec<_>>()),
                 &self.decision_journal.iter().collect::<Vec<_>>(),
-                |old, new| std::ptr::eq(*old, *new) || same(*old, *new),
+                |old, new| std::ptr::eq(*old, *new) || same_journal_entry(old, new),
                 |entry| raw(*entry),
-            ),
-        );
-        if full || graph_changed || symbols_changed {
-            let names = &self.names;
-            let render = |edge: &Edge| raw(&relation(names, edge));
-            let edges = |old: &Edge, new: &Edge| {
-                old.from == new.from && old.to == new.to && old.relation == new.relation
-            };
-            let old_edges = old_graph.edges.iter().collect::<Vec<_>>();
-            let new_edges = self.graph.edges.iter().collect::<Vec<_>>();
-            let render = |edge: &&Edge| render(edge);
-            let edges = |old: &&Edge, new: &&Edge| edges(old, new);
-            put(
-                "relations",
-                if full {
-                    list_changes(None, &new_edges, edges, render)
-                } else if !symbols_changed {
-                    list_changes(Some(&old_edges), &new_edges, edges, render)
-                } else {
-                    list_changes(
-                        Some(&old_edges),
-                        &new_edges,
-                        |old, new| {
-                            edges(old, new)
-                                && old_names.get(&old.from) == names.get(&new.from)
-                                && old_names.get(&old.to) == names.get(&new.to)
-                        },
-                        render,
-                    )
-                },
+            )
+        };
+        put("decision_journal", journal_change);
+        #[cfg(debug_assertions)]
+        if !full {
+            assert_eq!(
+                text(&self.bindings),
+                text(&session.bindings),
+                "incremental view patch bindings drifted from session"
+            );
+            assert_eq!(
+                self.binding_explanations, session.binding_explanations,
+                "incremental view patch binding_explanations drifted from session"
+            );
+            let live_commitments = session
+                .commitment_records(|id| self.symbols.name_of(*id))
+                .into_iter()
+                .map(|commitment| (commitment.action.clone(), commitment))
+                .collect::<BTreeMap<_, _>>();
+            assert_eq!(
+                self.commitments, live_commitments,
+                "incremental view patch commitments drifted from session"
             );
         }
         members
     }
 }
 
-/// A member a host replaces whole when its text changes.
-fn sync_whole<T: Serialize + ?Sized>(
+/// A list member a host replaces whole when its text changes, avoiding JSON
+/// serialization in the common empty-to-empty case.
+fn sync_whole_list<T: Serialize>(
     held: &mut String,
-    live: &T,
+    live: &[T],
     full: bool,
 ) -> Option<MemberChange> {
-    let now = text(live);
+    if !full && live.is_empty() && held == "[]" {
+        return None;
+    }
+    let now = if live.is_empty() {
+        "[]".to_owned()
+    } else {
+        text(live)
+    };
     if !full && *held == now {
         return None;
     }
@@ -470,6 +652,97 @@ fn sync_nested<V: Clone + Serialize>(
     })
 }
 
+/// Incremental update of a held nested map when only the `(target, property)`
+/// entries named by `touched` in `groups` could have changed.
+fn sync_nested_touched<V: Clone + Serialize>(
+    held: &mut Nested<V>,
+    live: &Nested<V>,
+    groups: &[BindingGroup],
+    touched: &[usize],
+    same: &dyn Fn(&V, &V) -> bool,
+) -> Option<MemberChange> {
+    let mut existed_before: BTreeMap<&str, bool> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        existed_before
+            .entry(target)
+            .or_insert_with(|| held.contains_key(target));
+    }
+    let mut per_target: BTreeMap<&str, (bool, BTreeMap<String, Entry>)> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        let property = &groups[group].property;
+        let live_value = live.get(target).and_then(|props| props.get(property));
+        let held_value = held.get(target).and_then(|props| props.get(property));
+        match (held_value, live_value) {
+            (Some(known), Some(value)) if same(known, value) => {}
+            (Some(_), Some(value)) => {
+                *held
+                    .get_mut(target)
+                    .expect("target held")
+                    .get_mut(property)
+                    .expect("property held") = value.clone();
+                per_target
+                    .entry(target)
+                    .or_default()
+                    .1
+                    .insert(property.clone(), Entry::Value(raw(value)));
+            }
+            (None, Some(value)) => {
+                held.entry(target.to_owned())
+                    .or_default()
+                    .insert(property.clone(), value.clone());
+                let entry = per_target.entry(target).or_default();
+                entry.0 = true;
+                entry.1.insert(property.clone(), Entry::Value(raw(value)));
+            }
+            (Some(_), None) => {
+                let empty = {
+                    let props = held.get_mut(target).expect("target held");
+                    props.remove(property);
+                    props.is_empty()
+                };
+                if empty {
+                    held.remove(target);
+                }
+                per_target.entry(target).or_default().0 = true;
+            }
+            (None, None) => {}
+        }
+    }
+    let mut outer_keys_changed = false;
+    for (&target, &had) in &existed_before {
+        if live.contains_key(target) != had {
+            outer_keys_changed = true;
+            break;
+        }
+    }
+    let mut set = BTreeMap::new();
+    for (target, (mut inner_keys_changed, prop_set)) in per_target {
+        let Some(live_props) = live.get(target) else {
+            continue;
+        };
+        if !existed_before[target] {
+            inner_keys_changed = true;
+        }
+        if inner_keys_changed || !prop_set.is_empty() {
+            set.insert(
+                target.to_owned(),
+                Entry::Map(MapChange {
+                    keys: inner_keys_changed.then(|| live_props.keys().cloned().collect()),
+                    set: prop_set,
+                }),
+            );
+        }
+    }
+    (outer_keys_changed || !set.is_empty()).then(|| {
+        MemberChange::Map(MapChange {
+            keys: outer_keys_changed.then(|| live.keys().cloned().collect()),
+            set,
+        })
+    })
+}
+
 /// A shared map against the one held before it: `keys` when they changed,
 /// and the entries that are new or changed; every key and entry when
 /// nothing was held. `None` when nothing changed.
@@ -532,11 +805,231 @@ fn list_changes<T>(
     Some(MemberChange::List { items })
 }
 
-fn relation(names: &HashMap<NodeId, String>, edge: &Edge) -> MapRelation {
+fn relation(symbols: &NameTable, edge: &Edge) -> MapRelation {
     MapRelation {
-        from: names[&edge.from].clone(),
-        to: names[&edge.to].clone(),
+        from: symbols.name_of(edge.from).expect("a named node").into(),
+        to: symbols.name_of(edge.to).expect("a named node").into(),
         relation: relation_name(edge.relation).into(),
         origin: "live".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn apply_map(held: Option<&Value>, change: &Value, nested: bool) -> Value {
+        let set = change["set"].as_object().expect("map set");
+        let keys: Vec<String> = match change.get("keys") {
+            Some(keys) => keys
+                .as_array()
+                .expect("keys array")
+                .iter()
+                .map(|k| k.as_str().expect("key str").to_owned())
+                .collect(),
+            None => held
+                .and_then(Value::as_object)
+                .map(|m| m.keys().cloned().collect())
+                .unwrap_or_default(),
+        };
+        let mut out = serde_json::Map::new();
+        for key in keys {
+            let value = if let Some(entry) = set.get(&key) {
+                if nested {
+                    apply_map(held.and_then(|h| h.get(&key)), entry, false)
+                } else {
+                    entry.clone()
+                }
+            } else {
+                held.and_then(|h| h.get(&key))
+                    .expect("held key present")
+                    .clone()
+            };
+            out.insert(key, value);
+        }
+        Value::Object(out)
+    }
+
+    fn apply_list(held: Option<&Value>, change: &Value) -> Value {
+        let held = held.and_then(Value::as_array);
+        let mut out = Vec::new();
+        for item in change["items"].as_array().expect("list items") {
+            if let Some(run) = item.as_array() {
+                let start = run[0].as_u64().unwrap() as usize;
+                let len = run[1].as_u64().unwrap() as usize;
+                let src = held.expect("held list");
+                out.extend_from_slice(&src[start..start + len]);
+            } else {
+                out.push(item.clone());
+            }
+        }
+        Value::Array(out)
+    }
+
+    fn apply_patch(held: Option<&Value>, patch: &Value) -> Value {
+        let base = if patch["since"].is_null() { None } else { held };
+        let members = patch["members"].as_object().expect("members");
+        let mut view = serde_json::Map::new();
+        view.insert("schema".into(), patch["view_schema"].clone());
+        view.insert("sequence".into(), patch["sequence"].clone());
+        view.insert("last_event".into(), patch["last_event"].clone());
+        for name in [
+            "bindings",
+            "binding_explanations",
+            "cues",
+            "effects",
+            "commitments",
+            "commitment_grounds",
+            "decision_series",
+            "decision_journal",
+            "relations",
+        ] {
+            let value = match members.get(name) {
+                None => base.expect("base view")[name].clone(),
+                Some(change) if matches!(name, "cues" | "effects") => change["value"].clone(),
+                Some(change) if matches!(name, "decision_journal" | "relations") => {
+                    apply_list(base.map(|b| &b[name]), change)
+                }
+                Some(change) if name == "commitments" => {
+                    let held_map = base.map(|b| {
+                        let mut m = serde_json::Map::new();
+                        for c in b["commitments"].as_array().unwrap() {
+                            m.insert(c["action"].as_str().unwrap().to_owned(), c.clone());
+                        }
+                        Value::Object(m)
+                    });
+                    let map = apply_map(held_map.as_ref(), change, false);
+                    let obj = map.as_object().unwrap();
+                    let order: Vec<String> = match change.get("keys") {
+                        Some(k) => k
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|s| s.as_str().unwrap().to_owned())
+                            .collect(),
+                        None => base
+                            .unwrap()
+                            .get("commitments")
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|c| c["action"].as_str().unwrap().to_owned())
+                            .collect(),
+                    };
+                    Value::Array(order.into_iter().map(|k| obj[&k].clone()).collect())
+                }
+                Some(change) if matches!(name, "bindings" | "binding_explanations") => {
+                    apply_map(base.map(|b| &b[name]), change, true)
+                }
+                Some(change) => apply_map(base.map(|b| &b[name]), change, false),
+            };
+            view.insert(name.into(), value);
+        }
+        Value::Object(view)
+    }
+
+    fn verify_sequence(source: &str, events: &[(&str, &str)]) {
+        let mut plain = ReactiveSession::from_source(source).unwrap();
+        let mut patched = ReactiveSession::from_source(source).unwrap();
+        let mut base = ViewPatchBase::default();
+        let mut held: Option<Value> = None;
+        for &(event, payload) in events {
+            let expected_raw =
+                serde_json::to_string(&plain.dispatch_view_outcome_json(event, payload).unwrap())
+                    .unwrap();
+            let expected_val: Value = serde_json::from_str(&expected_raw).unwrap();
+            let expected = serde_json::to_string(&expected_val).unwrap();
+            let seq = held.as_ref().and_then(|v| v["sequence"].as_u64());
+            let patch_raw = serde_json::to_string(
+                &patched
+                    .dispatch_view_patch_outcome_json_from(&mut base, seq, event, payload, None)
+                    .unwrap(),
+            )
+            .unwrap();
+            let patch_outcome: Value = serde_json::from_str(&patch_raw).unwrap();
+            if patch_outcome["outcome"] == "accepted" {
+                let view = apply_patch(held.as_ref(), &patch_outcome["patch"]);
+                let reconstructed = serde_json::to_string(&json!({
+                    "schema": DISPATCH_SCHEMA,
+                    "outcome": "accepted",
+                    "view": view,
+                }))
+                .unwrap();
+                assert_eq!(reconstructed, expected, "{event} {payload}");
+                held = Some(view);
+            } else {
+                assert_eq!(
+                    serde_json::to_string(&patch_outcome).unwrap(),
+                    expected,
+                    "{event} {payload}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn incremental_patch_handles_binding_targets_zero_signs_commitments_and_departures() {
+        let source = r#"
+claim ok;
+caveat k consequence material;
+evidence tool from "tool";
+evidence note from "note";
+readings r from tool window 2;
+decisions d limit 8 reopened by r;
+journal window 2;
+state x = 0 min -10 max 10;
+state show_extra = 0 min 0 max 1;
+event noop;
+event set_x v min -10 max 10;
+event toggle v min 0 max 1;
+event sample_r v min -10 max 10;
+event decide;
+event flag;
+event withdraw_latest;
+on set_x set x = v;
+on toggle set show_extra = v;
+on sample_r sample r = v supports ok;
+on decide commit d because enough using latest(r);
+on flag qualify latest(r) with k;
+on withdraw_latest reveal note;
+on withdraw_latest withdraw latest(r) because note;
+bind panel.x = x;
+bind panel.extra = 1 when show_extra == 1;
+bind ephemeral.only = x when show_extra == 1;
+bind hist.count = history_count(r);
+"#;
+        verify_sequence(
+            source,
+            &[
+                ("noop", "{}"),
+                // 0.0 -> -0.0 and back, plus untouched noop
+                ("set_x", r#"{"v":-0.0}"#),
+                ("noop", "{}"),
+                ("set_x", r#"{"v":0.0}"#),
+                // Add inner property & brand-new outer target
+                ("toggle", r#"{"v":1}"#),
+                // Update property while outer target exists
+                ("set_x", r#"{"v":2}"#),
+                // Remove inner property & remove last property of outer target
+                ("toggle", r#"{"v":0}"#),
+                // Sample, commit, qualify, reopen, commit past window=2 so
+                // commitments, relations, and journal entries depart
+                ("sample_r", r#"{"v":1}"#),
+                ("decide", "{}"),
+                ("flag", "{}"),
+                ("sample_r", r#"{"v":2}"#),
+                ("decide", "{}"),
+                ("sample_r", r#"{"v":3}"#),
+                ("decide", "{}"),
+                ("withdraw_latest", "{}"),
+                ("sample_r", r#"{"v":4}"#),
+                ("decide", "{}"),
+                // Refused event leaves base valid for next accepted event
+                ("set_x", r#"{"v":999}"#),
+                ("set_x", r#"{"v":5}"#),
+            ],
+        );
     }
 }

@@ -184,14 +184,28 @@ impl<T: Clone> Chunked<T> {
         Iter(self.arcs_from(index))
     }
 
+    /// Whether the two lists share every chunk at the same positions.
+    pub fn shares_all(&self, other: &Self) -> bool {
+        self.first == other.first && self.len == other.len && self.chunks.shares_all(&other.chunks)
+    }
+
     /// Whether this list's first values are `prefix`'s, in order. A chunk
     /// both lists share at the same place is not read.
     pub fn starts_with(&self, prefix: &Self) -> bool
     where
         T: PartialEq,
     {
+        self.starts_with_by(prefix, PartialEq::eq)
+    }
+
+    /// Whether this list's first values match `prefix`'s under `same`, in
+    /// order. A chunk or value both lists share at the same place is not read.
+    pub fn starts_with_by(&self, prefix: &Self, same: impl Fn(&T, &T) -> bool) -> bool {
         if prefix.len > self.len {
             return false;
+        }
+        if prefix.len == 0 {
+            return true;
         }
         let aligned = self.first == prefix.first
             && self.chunk(self.first).len() == prefix.chunk(prefix.first).len();
@@ -199,7 +213,7 @@ impl<T: Clone> Chunked<T> {
             return self
                 .iter()
                 .zip(prefix.iter())
-                .all(|(own, theirs)| own == theirs);
+                .all(|(own, theirs)| std::ptr::eq(own, theirs) || same(own, theirs));
         }
         // Each chunk of `prefix` but its last is full where `self`'s is, so
         // the two lists' chunks of one number hold the same places, and the
@@ -209,7 +223,7 @@ impl<T: Clone> Chunked<T> {
                 && own
                     .iter()
                     .zip(theirs)
-                    .all(|(own, theirs)| Arc::ptr_eq(own, theirs) || own == theirs)
+                    .all(|(own, theirs)| Arc::ptr_eq(own, theirs) || same(own, theirs))
         })
     }
 
@@ -786,5 +800,24 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn shares_all_and_starts_with_by_skip_shared_chunks() {
+        let base: Chunked<f64> = (0..40).map(|i| i as f64).collect();
+        let same_copy = base.clone();
+        assert!(base.shares_all(&same_copy));
+        assert!(same_copy.starts_with_by(&base, |a, b| a.to_bits() == b.to_bits()));
+
+        let mut appended = base.clone();
+        appended.push(-0.0);
+        assert!(!appended.shares_all(&base));
+        assert!(appended.starts_with_by(&base, |a, b| a.to_bits() == b.to_bits()));
+        assert!(!base.starts_with_by(&appended, |a, b| a.to_bits() == b.to_bits()));
+
+        let mut flipped_zero = base.clone();
+        flipped_zero.push(0.0);
+        assert!(flipped_zero.starts_with_by(&appended, |a, b| a == b));
+        assert!(!flipped_zero.starts_with_by(&appended, |a, b| a.to_bits() == b.to_bits()));
     }
 }
