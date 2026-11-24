@@ -249,15 +249,53 @@ impl ReactiveSession {
     /// Keep an event the session has just accepted with `parameters`, or stop
     /// keeping events once they no longer fit in a replay save.
     pub(super) fn record_replay(&mut self, event: &str, parameters: &BTreeMap<String, f64>) {
-        let Some(log) = self.replay.as_ref() else {
+        if self.replay.is_none() {
             return;
-        };
+        }
         let Some((event_index, (_, signature))) = self
             .events
             .iter()
             .enumerate()
             .find(|(_, (name, _))| name.as_str() == event)
         else {
+            return;
+        };
+        let mut inline = [0.0f64; 8];
+        let mut heap = Vec::new();
+        let values: &[f64] = if signature.len() <= inline.len() {
+            for (slot, parameter) in inline[..signature.len()].iter_mut().zip(signature) {
+                *slot = parameters[&parameter.name];
+            }
+            &inline[..signature.len()]
+        } else {
+            heap.extend(signature.iter().map(|p| parameters[&p.name]));
+            &heap
+        };
+        self.record_replay_indexed(event_index, event, values);
+    }
+
+    /// Fast positional variant of `record_replay` reading parameter values
+    /// directly from declared-order slots without `BTreeMap` lookups.
+    pub(super) fn record_replay_slots(&mut self, event: &str, values: &[f64]) {
+        if self.replay.is_none() {
+            return;
+        }
+        let Some((event_index, _)) = self
+            .events
+            .iter()
+            .enumerate()
+            .find(|(_, (name, _))| name.as_str() == event)
+        else {
+            return;
+        };
+        self.record_replay_indexed(event_index, event, values);
+    }
+
+    fn record_replay_indexed(&mut self, event_index: usize, event: &str, raw_values: &[f64]) {
+        let Some(log) = self.replay.as_ref() else {
+            return;
+        };
+        let Some((_, signature)) = self.events.iter().nth(event_index) else {
             return;
         };
         let track_named = log.bytes.is_some();
@@ -272,8 +310,7 @@ impl ReactiveSession {
         } else {
             0
         };
-        for parameter in signature {
-            let raw = parameters[&parameter.name];
+        for (parameter, &raw) in signature.iter().zip(raw_values) {
             let value = match parameter.domain {
                 ParameterDomain::Identifier { .. } => match self.identifiers.text(raw) {
                     Some(text) => ReplayValue::Text(text.to_string()),

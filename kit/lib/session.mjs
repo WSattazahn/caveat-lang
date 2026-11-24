@@ -152,9 +152,12 @@ function reuseOption(options) {
 // Every member the event left alone is the held one; every new part is
 // frozen, so the whole view is read-only.
 const VIEW_PATCH_SCHEMA = 'caveat-reactive-view-patch/0.1';
-const NESTED = new Set(['bindings', 'binding_explanations']);
-const LISTS = new Set(['decision_journal', 'relations']);
-const WHOLE = new Set(['cues', 'effects']);
+
+// Fast object check for JSON.parse'd patch trees (every non-null, non-array
+// object from JSON.parse is a plain object).
+function isJsonObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
 function deepFreeze(value) {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -173,17 +176,15 @@ function deepFreeze(value) {
 // Freeze a freshly JSON.parse'd tree: every node is an own-property object or
 // array and not yet frozen.
 function deepFreezeNew(value) {
-  if (value !== null && typeof value === 'object') {
-    if (Array.isArray(value)) {
-      for (let i = 0; i < value.length; i += 1) deepFreezeNew(value[i]);
-    } else {
-      for (const key in value) {
-        if (Object.hasOwn(value, key)) deepFreezeNew(value[key]);
-      }
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i += 1) deepFreezeNew(value[i]);
+  } else {
+    for (const key in value) {
+      if (Object.hasOwn(value, key)) deepFreezeNew(value[key]);
     }
-    Object.freeze(value);
   }
-  return value;
+  return Object.freeze(value);
 }
 
 // Set a member as JSON.parse would: an own property, even for __proto__.
@@ -197,7 +198,7 @@ function own(object, key) {
 }
 
 function patchedMap(held, change, nested) {
-  if (!isPlainObject(change) || !isPlainObject(change.set)) throw new TypeError('malformed map change');
+  if (!isJsonObject(change) || !isJsonObject(change.set)) throw new TypeError('malformed map change');
   if (change.keys === undefined && held !== undefined && held !== null && !Object.hasOwn(held, '__proto__')) {
     const result = { ...held };
     const { set } = change;
@@ -224,23 +225,30 @@ function patchedMap(held, change, nested) {
 }
 
 function patchedList(held, change) {
-  if (!isPlainObject(change) || !Array.isArray(change.items)) throw new TypeError('malformed list change');
+  if (!isJsonObject(change) || !Array.isArray(change.items)) throw new TypeError('malformed list change');
   const { items } = change;
-  if (items.length > 0 && Array.isArray(items[0])) {
+  const len = items.length;
+  if (len > 0 && Array.isArray(items[0])) {
     const [start, length] = items[0];
     if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
+    if (len === 2 && !Array.isArray(items[1])) {
+      const result = held.slice(start, start + length);
+      result.push(deepFreezeNew(items[1]));
+      return Object.freeze(result);
+    }
     let allNewAfter = true;
-    for (let i = 1; i < items.length; i += 1) {
+    for (let i = 1; i < len; i += 1) {
       if (Array.isArray(items[i])) { allNewAfter = false; break; }
     }
     if (allNewAfter) {
       const result = held.slice(start, start + length);
-      for (let i = 1; i < items.length; i += 1) result.push(deepFreezeNew(items[i]));
+      for (let i = 1; i < len; i += 1) result.push(deepFreezeNew(items[i]));
       return Object.freeze(result);
     }
   }
   const result = [];
-  for (const item of items) {
+  for (let i = 0; i < len; i += 1) {
+    const item = items[i];
     if (Array.isArray(item)) {
       const [start, length] = item;
       if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
@@ -254,7 +262,7 @@ function patchedList(held, change) {
 
 // Commitments are a list in the view and a map by action in the patch.
 function patchedCommitments(held, change) {
-  if (!isPlainObject(change) || !isPlainObject(change.set)) throw new TypeError('malformed map change');
+  if (!isJsonObject(change) || !isJsonObject(change.set)) throw new TypeError('malformed map change');
   if (change.keys === undefined && held) {
     const { set } = change;
     const result = new Array(held.length);
@@ -267,34 +275,64 @@ function patchedCommitments(held, change) {
   let byAction;
   if (held) {
     byAction = {};
-    for (const commitment of held) put(byAction, commitment.action, commitment);
+    for (let i = 0; i < held.length; i += 1) put(byAction, held[i].action, held[i]);
   }
   const map = patchedMap(byAction, change, false);
   return Object.freeze(Object.keys(map).length === 0 ? [] : (change.keys ?? held.map(c => c.action)).map(action => map[action]));
 }
 
+function patchedWhole(change) {
+  if (!isJsonObject(change) || !Object.hasOwn(change, 'value')) throw new TypeError('malformed whole change');
+  return deepFreezeNew(change.value);
+}
+
 function patchedView(held, patch) {
-  if (!isPlainObject(patch) || patch.schema !== VIEW_PATCH_SCHEMA || !isPlainObject(patch.members)) throw new TypeError('malformed view patch');
+  if (!isJsonObject(patch) || patch.schema !== VIEW_PATCH_SCHEMA || !isJsonObject(patch.members)) throw new TypeError('malformed view patch');
   const base = patch.since === null ? null : held;
   if (patch.since !== null && (!held || held.sequence !== patch.since)) throw new TypeError('view patch applies to a view not held');
-  const view = { schema: patch.view_schema, sequence: patch.sequence, last_event: patch.last_event };
-  for (const name of VIEW_FIELDS) {
-    const change = own(patch.members, name);
-    if (change === undefined) {
-      if (!base) throw new TypeError(`view patch leaves out ${name}`);
-      view[name] = base[name];
-    } else if (WHOLE.has(name)) {
-      if (!isPlainObject(change) || !Object.hasOwn(change, 'value')) throw new TypeError('malformed whole change');
-      view[name] = deepFreezeNew(change.value);
-    } else if (LISTS.has(name)) {
-      view[name] = patchedList(base?.[name], change);
-    } else if (name === 'commitments') {
-      view[name] = patchedCommitments(base?.[name], change);
-    } else {
-      view[name] = patchedMap(base?.[name], change, NESTED.has(name));
-    }
-  }
-  return Object.freeze(view);
+  const m = patch.members;
+  let bindings, binding_explanations, cues, effects, commitments, commitment_grounds, decision_series, decision_journal, relations;
+  if (Object.hasOwn(m, 'bindings')) bindings = patchedMap(base?.bindings, m.bindings, true);
+  else if (base) bindings = base.bindings;
+  else throw new TypeError('view patch leaves out bindings');
+  if (Object.hasOwn(m, 'binding_explanations')) binding_explanations = patchedMap(base?.binding_explanations, m.binding_explanations, true);
+  else if (base) binding_explanations = base.binding_explanations;
+  else throw new TypeError('view patch leaves out binding_explanations');
+  if (Object.hasOwn(m, 'cues')) cues = patchedWhole(m.cues);
+  else if (base) cues = base.cues;
+  else throw new TypeError('view patch leaves out cues');
+  if (Object.hasOwn(m, 'effects')) effects = patchedWhole(m.effects);
+  else if (base) effects = base.effects;
+  else throw new TypeError('view patch leaves out effects');
+  if (Object.hasOwn(m, 'commitments')) commitments = patchedCommitments(base?.commitments, m.commitments);
+  else if (base) commitments = base.commitments;
+  else throw new TypeError('view patch leaves out commitments');
+  if (Object.hasOwn(m, 'commitment_grounds')) commitment_grounds = patchedMap(base?.commitment_grounds, m.commitment_grounds, false);
+  else if (base) commitment_grounds = base.commitment_grounds;
+  else throw new TypeError('view patch leaves out commitment_grounds');
+  if (Object.hasOwn(m, 'decision_series')) decision_series = patchedMap(base?.decision_series, m.decision_series, false);
+  else if (base) decision_series = base.decision_series;
+  else throw new TypeError('view patch leaves out decision_series');
+  if (Object.hasOwn(m, 'decision_journal')) decision_journal = patchedList(base?.decision_journal, m.decision_journal);
+  else if (base) decision_journal = base.decision_journal;
+  else throw new TypeError('view patch leaves out decision_journal');
+  if (Object.hasOwn(m, 'relations')) relations = patchedList(base?.relations, m.relations);
+  else if (base) relations = base.relations;
+  else throw new TypeError('view patch leaves out relations');
+  return Object.freeze({
+    schema: patch.view_schema,
+    sequence: patch.sequence,
+    last_event: patch.last_event,
+    bindings,
+    binding_explanations,
+    cues,
+    effects,
+    commitments,
+    commitment_grounds,
+    decision_series,
+    decision_journal,
+    relations,
+  });
 }
 
 // An accepted dispatch outcome as the runtime writes it: these fields in this

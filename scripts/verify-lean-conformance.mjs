@@ -293,7 +293,7 @@ const commitmentMutationAnchor = '        // Current values only. Commitment bas
 // make_mut writes any record, and tells the event's write log so.
 const basisMutation = '        for basis in self.commitment_bases.make_mut().values_mut() {\n' +
   '            if basis.provenance.evidence.contains(evidence) {\n' +
-  '                basis.provenance.merge(&added)?;\n' +
+  '                Arc::make_mut(basis).provenance.merge(&added)?;\n' +
   '            }\n' +
   '        }\n';
 const commitmentMutations = {

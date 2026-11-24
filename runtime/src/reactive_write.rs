@@ -775,9 +775,31 @@ impl NodeNames {
 /// write it, and each says which record it writes, so after an event
 /// `Changes` compares only the records the event wrote, where it compared
 /// every record of the kind before.
+/// Single-key write summary kept beside `Written`, without allocating a
+/// `BTreeSet` or giving up below `LOG_MIN`, so the View 0.1 patch can check
+/// only the one key an event wrote to `commitment_grounds` or `decision_series`.
+#[derive(Debug)]
+enum TouchedKey {
+    None,
+    One(String),
+    Many,
+}
+
+impl TouchedKey {
+    #[inline]
+    fn note(&mut self, key: &str) {
+        match self {
+            Self::None => *self = Self::One(key.to_owned()),
+            Self::One(held) if held == key => {}
+            Self::One(_) | Self::Many => *self = Self::Many,
+        }
+    }
+}
+
 pub(super) struct Logged<M> {
     map: Arc<M>,
     written: Written<String>,
+    touched: TouchedKey,
 }
 
 /// Records in the standard ordered map, which the first write of an event
@@ -1112,18 +1134,35 @@ impl<M: RecordMap> Logged<M> {
         Self {
             map: Arc::new(map),
             written: Written::Any,
+            touched: TouchedKey::Many,
         }
     }
 
     /// Starts the log of an event's writes: none yet.
     fn begin(&mut self) {
         self.written = Written::Nothing;
+        self.touched = TouchedKey::None;
+    }
+
+    /// Starts only the single-key write summary without opening `written`.
+    pub(super) fn begin_touched(&mut self) {
+        self.touched = TouchedKey::None;
     }
 
     /// Ends the log: past the event's check of what it changed, any record
     /// may change without saying which.
     fn end(&mut self) {
         self.written = Written::Any;
+        self.touched = TouchedKey::Many;
+    }
+
+    /// Moves out the single key written since `begin`, if exactly one key was
+    /// touched; `None` if zero or multiple keys were touched.
+    pub(super) fn take_touched_one(&mut self) -> Option<String> {
+        match std::mem::replace(&mut self.touched, TouchedKey::Many) {
+            TouchedKey::One(key) => Some(key),
+            TouchedKey::None | TouchedKey::Many => None,
+        }
     }
 
     /// The names written since the event began, if the writes said which;
@@ -1133,6 +1172,7 @@ impl<M: RecordMap> Logged<M> {
     }
 
     fn note(&mut self, name: &str) {
+        self.touched.note(name);
         self.written.note(name, self.map.count());
     }
 
@@ -1147,6 +1187,7 @@ impl<M: RecordMap> Logged<M> {
     pub(super) fn get_mut(&mut self, name: &str) -> Option<&mut M::Value> {
         let records = self.map.count();
         let record = Arc::make_mut(&mut self.map).record_mut(name)?;
+        self.touched.note(name);
         self.written.note(name, records);
         Some(record)
     }
@@ -1167,6 +1208,7 @@ impl<V: Clone> NamedRecords<V> {
         let records = self.map.count();
         let replaced = Arc::make_mut(&mut self.map).0.replace(name, value);
         if replaced {
+            self.touched.note(name);
             self.written.note(name, records);
         }
         replaced
@@ -1178,6 +1220,7 @@ impl<V: Clone> Records<V> {
     /// records changed.
     pub(super) fn make_mut(&mut self) -> &mut BTreeMap<String, V> {
         self.written = Written::Any;
+        self.touched = TouchedKey::Many;
         Arc::make_mut(&mut self.map)
     }
 }
@@ -1227,6 +1270,7 @@ impl<M> Clone for Logged<M> {
         Self {
             map: Arc::clone(&self.map),
             written: Written::Any,
+            touched: TouchedKey::Many,
         }
     }
 }

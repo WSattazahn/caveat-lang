@@ -720,14 +720,29 @@ impl PatchParts {
             Arc::clone(&session.commitment_grounds),
         );
         if full || !Arc::ptr_eq(&old_grounds, &self.commitment_grounds) {
-            write_map_changes(
-                out,
-                &mut first,
-                "commitment_grounds",
-                (!full).then_some(old_grounds.as_ref()),
-                &self.commitment_grounds,
-                &|old, new| old == new,
-            );
+            if let Some(key) = (!full)
+                .then_some(session.last_grounds_written.as_deref())
+                .flatten()
+            {
+                write_map_change_one(
+                    out,
+                    &mut first,
+                    "commitment_grounds",
+                    &old_grounds,
+                    &self.commitment_grounds,
+                    key,
+                    &|old, new| old == new,
+                );
+            } else {
+                write_map_changes(
+                    out,
+                    &mut first,
+                    "commitment_grounds",
+                    (!full).then_some(old_grounds.as_ref()),
+                    &self.commitment_grounds,
+                    &|old, new| old == new,
+                );
+            }
         }
 
         // Prepare graph / symbol deltas once for commitments (4) and relations (9).
@@ -916,14 +931,29 @@ impl PatchParts {
             Arc::clone(&session.decision_series),
         );
         if full || !Arc::ptr_eq(&old_series, &self.decision_series) {
-            write_map_changes(
-                out,
-                &mut first,
-                "decision_series",
-                (!full).then_some(old_series.as_ref()),
-                &self.decision_series,
-                &same_decision_series,
-            );
+            if let Some(key) = (!full)
+                .then_some(session.last_series_written.as_deref())
+                .flatten()
+            {
+                write_map_change_one(
+                    out,
+                    &mut first,
+                    "decision_series",
+                    &old_series,
+                    &self.decision_series,
+                    key,
+                    &same_decision_series,
+                );
+            } else {
+                write_map_changes(
+                    out,
+                    &mut first,
+                    "decision_series",
+                    (!full).then_some(old_series.as_ref()),
+                    &self.decision_series,
+                    &same_decision_series,
+                );
+            }
         }
 
         // 8. effects
@@ -1596,6 +1626,81 @@ fn write_sync_map<V: Clone + Serialize>(
         serde_json::to_writer(&mut *out, value).expect("finite value");
     }
     out.extend_from_slice(b"}}");
+}
+
+fn write_map_change_one<V: Serialize>(
+    out: &mut Vec<u8>,
+    first: &mut bool,
+    member: &str,
+    before: &BTreeMap<String, V>,
+    after: &BTreeMap<String, V>,
+    key: &str,
+    same: &dyn Fn(&V, &V) -> bool,
+) {
+    #[cfg(debug_assertions)]
+    let start_len = out.len();
+    #[cfg(debug_assertions)]
+    let start_first = *first;
+    let old_val = before.get(key);
+    let new_val = after.get(key);
+    let keys_changed = old_val.is_some() != new_val.is_some();
+    let changed_val = match (old_val, new_val) {
+        (Some(old), Some(new)) if same(old, new) => None,
+        (_, Some(new)) => Some(new),
+        (_, None) => None,
+    };
+    if !keys_changed && changed_val.is_none() {
+        #[cfg(debug_assertions)]
+        {
+            let mut expected = Vec::new();
+            let mut expected_first = start_first;
+            write_map_changes(
+                &mut expected,
+                &mut expected_first,
+                member,
+                Some(before),
+                after,
+                same,
+            );
+            assert!(
+                expected.is_empty(),
+                "single-key patch diff missed change for {member} (key {key:?})"
+            );
+        }
+        return;
+    }
+    write_member_head(out, first, member);
+    out.push(b'{');
+    if keys_changed {
+        write_keys_field(out, after.keys().map(String::as_str));
+        out.push(b',');
+    }
+    out.extend_from_slice(br#""set":{"#);
+    if let Some(value) = changed_val {
+        serde_json::to_writer(&mut *out, key).expect("finite key");
+        out.push(b':');
+        serde_json::to_writer(&mut *out, value).expect("finite value");
+    }
+    out.extend_from_slice(b"}}");
+    #[cfg(debug_assertions)]
+    {
+        let mut expected = Vec::new();
+        let mut expected_first = start_first;
+        write_map_changes(
+            &mut expected,
+            &mut expected_first,
+            member,
+            Some(before),
+            after,
+            same,
+        );
+        assert_eq!(
+            &out[start_len..],
+            expected.as_slice(),
+            "single-key patch diff drifted for {member} (key {key:?})"
+        );
+        assert_eq!(*first, expected_first);
+    }
 }
 
 fn write_map_changes<V: Serialize>(
