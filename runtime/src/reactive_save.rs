@@ -869,8 +869,8 @@ impl ReactiveSession {
         open.sort();
         Ok(ReactiveSave {
             schema: REACTIVE_SAVE_SCHEMA.into(),
-            source_id: self.source_id.clone(),
-            source_sha256: Some(self.source_sha256.clone()),
+            source_id: self.source_id.to_string(),
+            source_sha256: Some(self.source_sha256.to_string()),
             module_bindings: self.module_bindings,
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
