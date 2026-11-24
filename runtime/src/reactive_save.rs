@@ -901,11 +901,7 @@ impl ReactiveSession {
                 attention,
                 open,
             },
-            commitment_bases: self
-                .commitment_bases
-                .iter()
-                .map(|(name, basis)| (name.clone(), (**basis).clone()))
-                .collect(),
+            commitment_bases: self.commitment_bases.to_map(),
             commitment_grounds: self
                 .commitment_grounds
                 .iter()
@@ -924,11 +920,7 @@ impl ReactiveSession {
                     .then(|| (name.clone(), names.into_iter().map(String::from).collect()))
                 })
                 .collect(),
-            reading_streams: self
-                .reading_streams
-                .iter()
-                .map(|(name, stream)| (name.clone(), (**stream).clone()))
-                .collect(),
+            reading_streams: self.reading_streams.to_map(),
             decision_series: (**self.decision_series).clone(),
             renewals: self
                 .renewals
@@ -2944,7 +2936,7 @@ impl ReactiveSession {
             let inherited = possible
                 .iter()
                 .filter(|(_, evidence)| *evidence == readings.template)
-                .map(|(caveat, _)| (caveat.clone(), stream.clone()))
+                .map(|(caveat, _)| (caveat.clone(), stream.to_owned()))
                 .collect::<Vec<_>>();
             possible.extend(inherited);
         }
@@ -3096,8 +3088,10 @@ impl ReactiveSession {
                 continue;
             }
             for (stream, readings) in self.reading_streams.iter() {
-                if readings.template == *evidence && sampled.contains(stream.as_str()) {
-                    born.entry(caveat.clone()).or_default().push(stream.clone());
+                if readings.template == *evidence && sampled.contains(stream) {
+                    born.entry(caveat.clone())
+                        .or_default()
+                        .push(stream.to_owned());
                 }
             }
         }
@@ -3262,7 +3256,7 @@ impl ReactiveSession {
         // on what its template does.
         for (stream, readings) in self.reading_streams.iter() {
             if let Some(claims) = bears.get(&readings.template).cloned() {
-                bears.entry(stream.clone()).or_default().extend(claims);
+                bears.entry(stream.to_owned()).or_default().extend(claims);
             }
         }
         let incoming = |roots: Vec<String>| {
@@ -3285,7 +3279,7 @@ impl ReactiveSession {
             .iter()
             .filter(|(_, id)| matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. })))
             .map(|(name, _)| name.to_owned())
-            .chain(self.reading_streams.keys().cloned())
+            .chain(self.reading_streams.keys().map(str::to_owned))
             .collect::<HashSet<_>>();
         let attachable: HashMap<String, HashSet<String>> = evidence
             .into_iter()
@@ -4077,11 +4071,16 @@ impl ReactiveSession {
                 None,
             )?;
         }
-        if save.reading_streams.keys().ne(self.reading_streams.keys()) {
+        if save
+            .reading_streams
+            .keys()
+            .map(String::as_str)
+            .ne(self.reading_streams.keys())
+        {
             return Err("its reading streams are not this program's".into());
         }
         for (name, stream) in &save.reading_streams {
-            let declared = &self.reading_streams[name];
+            let declared = &self.reading_streams[name.as_str()];
             let capacity = if self.windows.contains(name) {
                 MAX_WINDOWED_RECORDS
             } else {
@@ -4722,17 +4721,17 @@ impl ReactiveSession {
                 ));
             }
         }
-        self.commitment_bases = Records::new(
+        self.commitment_bases = NamedRecords::new(
             save.commitment_bases
                 .iter()
-                .map(|(name, basis)| (name.clone(), Arc::new(basis.clone())))
+                .map(|(name, basis)| (name.clone(), basis.clone()))
                 .collect(),
         );
         self.commitment_grounds = Records::new(full_map(&save.commitment_grounds));
-        self.reading_streams = Records::new(
+        self.reading_streams = NamedRecords::new(
             save.reading_streams
                 .iter()
-                .map(|(name, stream)| (name.clone(), Arc::new(stream.clone())))
+                .map(|(name, stream)| (name.clone(), stream.clone()))
                 .collect(),
         );
         self.decision_series = Records::new(save.decision_series.clone());

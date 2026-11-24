@@ -764,25 +764,23 @@ impl ReactiveSession {
                 &mut holders,
             );
         }
-        if self
+        let basis_names = self
             .commitment_bases
-            .values()
-            .any(|basis| names_any(&basis.provenance, &departing))
-        {
-            for (name, basis) in self.commitment_bases.make_mut().iter_mut() {
-                if !names_any(&basis.provenance, &departing) {
-                    continue;
-                }
-                compact(
-                    &mut Arc::make_mut(basis).provenance,
-                    &departing,
-                    &live_take_backs,
-                    sequence,
-                    &self.source_id,
-                    holder("commitment", name, "basis"),
-                    &mut holders,
-                );
-            }
+            .iter()
+            .filter(|(_, basis)| names_any(&basis.provenance, &departing))
+            .map(|(name, _)| name.to_owned())
+            .collect::<Vec<_>>();
+        for name in basis_names {
+            let basis = self.commitment_bases.get_mut(&name).expect("listed above");
+            compact(
+                &mut basis.provenance,
+                &departing,
+                &live_take_backs,
+                sequence,
+                &self.source_id,
+                holder("commitment", &name, "basis"),
+                &mut holders,
+            );
         }
         if self
             .commitment_grounds
@@ -801,53 +799,47 @@ impl ReactiveSession {
                 );
             }
         }
-        if self.reading_streams.values().any(|stream| {
-            names_any(&stream.selection_qualifications, &departing)
-                || stream
-                    .occurrences
-                    .iter()
-                    .any(|reading| names_any(&reading.provenance, &departing))
-        }) {
-            for (name, stream) in self.reading_streams.make_mut().iter_mut() {
-                // Compaction changes only what names a departing record, so
-                // a stream that names none stays shared.
-                if !names_any(&stream.selection_qualifications, &departing)
-                    && !stream
+        let stream_names = self
+            .reading_streams
+            .iter()
+            .filter(|(_, stream)| {
+                names_any(&stream.selection_qualifications, &departing)
+                    || stream
                         .occurrences
                         .iter()
                         .any(|reading| names_any(&reading.provenance, &departing))
+            })
+            .map(|(name, _)| name.to_owned())
+            .collect::<Vec<_>>();
+        for name in stream_names {
+            let stream = self.reading_streams.get_mut(&name).expect("listed above");
+            compact(
+                &mut stream.selection_qualifications,
+                &departing,
+                &live_take_backs,
+                sequence,
+                &self.source_id,
+                holder("stream", &name, "selection_qualifications"),
+                &mut holders,
+            );
+            for reading in &mut stream.occurrences {
+                // A reading that names no departing record is not
+                // compacted, so it stays shared.
+                if departing.contains_key(&reading.id)
+                    || !names_any(&reading.provenance, &departing)
                 {
                     continue;
                 }
-                let stream = Arc::make_mut(stream);
+                let reading = Arc::make_mut(reading);
                 compact(
-                    &mut stream.selection_qualifications,
+                    &mut reading.provenance,
                     &departing,
                     &live_take_backs,
                     sequence,
                     &self.source_id,
-                    holder("stream", name, "selection_qualifications"),
+                    holder("stream", &reading.id, "provenance"),
                     &mut holders,
                 );
-                for reading in &mut stream.occurrences {
-                    // A reading that names no departing record is not
-                    // compacted, so it stays shared.
-                    if departing.contains_key(&reading.id)
-                        || !names_any(&reading.provenance, &departing)
-                    {
-                        continue;
-                    }
-                    let reading = Arc::make_mut(reading);
-                    compact(
-                        &mut reading.provenance,
-                        &departing,
-                        &live_take_backs,
-                        sequence,
-                        &self.source_id,
-                        holder("stream", &reading.id, "provenance"),
-                        &mut holders,
-                    );
-                }
             }
         }
         if self.decision_series.values().any(|series| {
@@ -1055,9 +1047,9 @@ impl ReactiveSession {
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.start_stream_cow(
                         Arc::strong_count(&self.reading_streams) > 1,
-                        Arc::strong_count(stream) > 1,
+                        Arc::strong_count(&self.reading_streams) > 1,
                     );
-                    let stream = Arc::make_mut(self.reading_streams.get_mut(history).unwrap());
+                    let stream = self.reading_streams.get_mut(history).unwrap();
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.finish_cow();
                     // The session this event began from still holds the
@@ -1256,11 +1248,15 @@ impl ReactiveSession {
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
-            for basis in self.commitment_bases.make_mut().values_mut() {
-                if settled(&basis.provenance) {
-                    continue;
-                }
-                settle_provenance(&mut Arc::make_mut(basis).provenance, &mut nodes, &mut seen);
+            let unsettled = self
+                .commitment_bases
+                .iter()
+                .filter(|(_, basis)| !settled(&basis.provenance))
+                .map(|(name, _)| name.to_owned())
+                .collect::<Vec<_>>();
+            for name in unsettled {
+                let basis = self.commitment_bases.get_mut(&name).expect("listed above");
+                settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
@@ -1269,18 +1265,20 @@ impl ReactiveSession {
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
-            for stream in self.reading_streams.make_mut().values_mut() {
-                // Settling a settled root publishes nothing, so a stream
-                // holding only settled roots stays shared, as a cell does.
-                if settled(&stream.selection_qualifications)
-                    && stream
-                        .occurrences
-                        .iter()
-                        .all(|reading| settled(&reading.provenance))
-                {
-                    continue;
-                }
-                let stream = Arc::make_mut(stream);
+            let unsettled = self
+                .reading_streams
+                .iter()
+                .filter(|(_, stream)| {
+                    !settled(&stream.selection_qualifications)
+                        || stream
+                            .occurrences
+                            .iter()
+                            .any(|reading| !settled(&reading.provenance))
+                })
+                .map(|(name, _)| name.to_owned())
+                .collect::<Vec<_>>();
+            for name in unsettled {
+                let stream = self.reading_streams.get_mut(&name).expect("listed above");
                 settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
                 // A reading with only settled roots stays shared too.
                 for reading in &mut stream.occurrences {

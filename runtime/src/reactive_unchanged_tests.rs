@@ -257,11 +257,11 @@ on report_audit sample audit = 1 supports c;
         &["report_tests", "report_audit"],
     );
     let before = around(&mut session, "report_tests");
-    assert!(Arc::ptr_eq(
+    assert!(std::ptr::eq(
         &before.reading_streams["audit"],
         &session.reading_streams["audit"]
     ));
-    assert!(!Arc::ptr_eq(
+    assert!(!std::ptr::eq(
         &before.reading_streams["tests"],
         &session.reading_streams["tests"]
     ));

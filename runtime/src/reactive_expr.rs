@@ -704,6 +704,14 @@ impl NameSet {
         })
     }
 
+    pub fn from_single(name: Name) -> Self {
+        let bytes = name.len();
+        Self(Some(Arc::new(Names {
+            bytes,
+            store: Store::One([name]),
+        })))
+    }
+
     pub fn len(&self) -> usize {
         self.names().len()
     }
@@ -1203,6 +1211,27 @@ impl Provenance {
         Ok(result)
     }
 
+    /// Fast constructor for one evidence name with no caveats.
+    pub fn from_single_evidence(evidence: Name) -> Result<Self, EvalError> {
+        check_provenance_size(1, 0, evidence.len())?;
+        Ok(Self {
+            evidence: NameSet::from_single(evidence),
+            ..Self::default()
+        })
+    }
+
+    /// Fast constructor for one evidence name and one caveat name.
+    pub fn from_evidence_and_caveat(evidence: Name, caveat: Name) -> Result<Self, EvalError> {
+        let ev_len = evidence.len();
+        check_provenance_size(1, 0, ev_len)?;
+        check_provenance_size(2, ev_len, caveat.len())?;
+        Ok(Self {
+            evidence: NameSet::from_single(evidence),
+            caveats: NameSet::from_single(caveat),
+            ..Self::default()
+        })
+    }
+
     pub fn is_empty(&self) -> bool {
         self.evidence.is_empty() && self.caveats.is_empty() && self.departed.is_empty()
     }
@@ -1310,12 +1339,20 @@ impl Provenance {
     /// A name either side read itself is read here, so `inherited` keeps only
     /// names neither side read; markers for one history join.
     pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
-        let (mut count, mut bytes) = self.size()?;
-        other.validate()?;
-        if other.is_empty() && other.inherited.is_empty() && other.kept.is_empty() {
-            // Nothing to add, and every inherited name here stays inherited.
+        if self.holds_nothing() {
+            if other.holds_nothing() {
+                return Ok(());
+            }
+            other.validate()?;
+            *self = other.clone();
             return Ok(());
         }
+        if other.holds_nothing() {
+            self.validate()?;
+            return Ok(());
+        }
+        let (mut count, mut bytes) = self.size()?;
+        other.validate()?;
         let mut check = |name: &str| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
@@ -4236,6 +4273,451 @@ impl Expr {
             }
         }
     }
+
+    /// Evaluate an expression once to produce its value, its lineage, and its
+    /// grounds (`only_if` conditions excluded from grounds).
+    pub fn evaluate_both_with_host<H: DualEvalHost>(
+        &self,
+        host: &H,
+    ) -> Result<(Value, Provenance, Provenance), EvalError> {
+        let mut lineage = Provenance::default();
+        let mut grounds = Provenance::default();
+        let budget = Budget {
+            nodes: Cell::new(MAX_EVALUATED_NODES),
+            quiet_conditions: true,
+            quiet: Cell::new(false),
+            frames: RefCell::new(Vec::new()),
+            fold_vars: Cell::new(None),
+        };
+        let value = self.evaluate_both_values(host, &mut lineage, &mut grounds, &budget)?;
+        Ok((value, lineage, grounds))
+    }
+
+    fn evaluate_both_values<H: DualEvalHost>(
+        &self,
+        host: &H,
+        lineage: &mut Provenance,
+        grounds: &mut Provenance,
+        remaining: &Budget,
+    ) -> Result<Value, EvalError> {
+        let budget = remaining.get();
+        if budget == 0 {
+            return Err(EvalError::new(
+                EvalFailure::EvaluationLimit,
+                format!("expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes"),
+            ));
+        }
+        remaining.set(budget - 1);
+        let quiet_grounds = remaining.quiet.get();
+        match &self.node {
+            Node::Outcome(name, index) => {
+                let index = match index {
+                    None => None,
+                    Some(index) => {
+                        let k = index
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?;
+                        if k < 1.0 || k.fract() != 0.0 || k > MAX_FOLD_RECORDS as f64 {
+                            return Err(EvalError::new(
+                                EvalFailure::HistoryIndex,
+                                format!("outcome(revision({name}, {k})): {k} names no revision"),
+                            ));
+                        }
+                        Some(k as usize)
+                    }
+                };
+                let (val, lin, gnd) =
+                    host.history(name, HistoryRead::Outcome(index), quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
+            Node::Elapsed => {
+                let (val, lin, gnd) = if remaining.fold_vars.get().is_some() {
+                    None
+                } else {
+                    host.number(ELAPSED_READ, quiet_grounds)?
+                }
+                .ok_or("elapsed() requires a reactive session")?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Bool(value) => Ok(Value::Bool(*value)),
+            Node::Text(value) => {
+                check_text_size(value.len())?;
+                Ok(Value::Text(value.clone()))
+            }
+            Node::Variable(name) => {
+                if let Some((acc, val)) = remaining.fold_vars.get() {
+                    let value = match name.as_str() {
+                        FOLD_ACC => acc,
+                        FOLD_VALUE => val,
+                        _ => return Err(format!("unknown numeric identifier {name}").into()),
+                    };
+                    return Ok(Value::Number(finite(value)?));
+                }
+                let (val, lin, gnd) = host
+                    .number(name, quiet_grounds)?
+                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Predicate(name, target) => {
+                let (val, lin, gnd) = host.predicate(name, target, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::AtOccurrence(kind, evidence, index) => {
+                let index = index
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (val, lin, gnd) = host.at_occurrence(kind, evidence, index, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::InBasis(basis, children) => {
+                let mut iter = children.iter();
+                let revision = if basis.revision {
+                    match iter.next() {
+                        Some(child) => Some(
+                            child
+                                .evaluate_both_values(host, lineage, grounds, remaining)?
+                                .number()?,
+                        ),
+                        None => None,
+                    }
+                } else {
+                    None
+                };
+                let at = match iter.next() {
+                    Some(child) => Some(
+                        child
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?,
+                    ),
+                    None => None,
+                };
+                let (val, lin, gnd) = host.in_basis(
+                    &basis.series,
+                    revision,
+                    basis.kind.name(),
+                    &basis.name,
+                    at,
+                    quiet_grounds,
+                )?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::Latest(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Latest, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::GroundsOf(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Grounds, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::HistoryCount(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Count, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::HistoryAt(name, index) => {
+                let index = index
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        "history index must be an integer in 0..256",
+                    ));
+                }
+                let (val, lin, gnd) =
+                    host.history(name, HistoryRead::At(index as usize), quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
+            Node::ExpandedFold(name, initial, body) => {
+                let mut accumulator = initial
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (count_val, lin, gnd) =
+                    host.history(name, HistoryRead::Count, quiet_grounds)?;
+                let count = finite(count_val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
+                    return Err("history fold count exceeds bounded history capacity".into());
+                }
+                let saved_fold = remaining.fold_vars.get();
+                for index in 0..count as usize {
+                    let (val, lin, gnd) =
+                        host.history(name, HistoryRead::At(index), quiet_grounds)?;
+                    let value = finite(val)?;
+                    keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                    remaining.fold_vars.set(Some((accumulator, value)));
+                    let step = body.evaluate_both_values(host, lineage, grounds, remaining);
+                    remaining.fold_vars.set(saved_fold);
+                    accumulator = step?.number()?;
+                }
+                Ok(Value::Number(accumulator))
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                let value = value
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (lin, gnd) = host.qualify(evidence, caveats, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::If(condition, yes, no) => {
+                if condition
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .boolean()?
+                {
+                    yes.evaluate_both_values(host, lineage, grounds, remaining)
+                } else {
+                    no.evaluate_both_values(host, lineage, grounds, remaining)
+                }
+            }
+            Node::Require(condition, value) => {
+                if !condition
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .boolean()?
+                {
+                    return Err(EvalError::new(
+                        EvalFailure::Requirement,
+                        "source expression requirement failed",
+                    ));
+                }
+                value.evaluate_both_values(host, lineage, grounds, remaining)
+            }
+            Node::OnlyIf(condition, value) => {
+                let prev = remaining.quiet.get();
+                remaining.quiet.set(true);
+                let holds = condition.evaluate_both_values(host, lineage, grounds, remaining);
+                remaining.quiet.set(prev);
+                if holds?.boolean()? {
+                    value.evaluate_both_values(host, lineage, grounds, remaining)
+                } else {
+                    Ok(Value::Number(0.0))
+                }
+            }
+            Node::UserCall(name, _) => {
+                Err(format!("source function {name} must be expanded before evaluation").into())
+            }
+            Node::ExpandedCall(arguments, body) => {
+                let mut values = Vec::with_capacity(arguments.len());
+                for argument in arguments {
+                    values.push(
+                        argument
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?,
+                    );
+                }
+                remaining.frames.borrow_mut().push(values);
+                let value = body.evaluate_both_values(host, lineage, grounds, remaining);
+                remaining.frames.borrow_mut().pop();
+                value
+            }
+            Node::Argument(index) => remaining
+                .frames
+                .borrow()
+                .last()
+                .and_then(|frame| frame.get(*index))
+                .map(|value| Value::Number(*value))
+                .ok_or_else(|| EvalError::from(format!("argument {index} read outside its call"))),
+            Node::Unary(operator, child) => {
+                let value = child.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Unary::Positive => Ok(Value::Number(value.number()?)),
+                    Unary::Negative => Ok(Value::Number(-value.number()?)),
+                    Unary::Not => Ok(Value::Bool(!value.boolean()?)),
+                }
+            }
+            Node::Binary(operator, left, right) => {
+                let left = left.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
+                    Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
+                    _ => {}
+                }
+                let right = right.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
+                    Binary::Equal | Binary::NotEqual => {
+                        let equal = match (left, right) {
+                            (Value::Number(left), Value::Number(right)) => left == right,
+                            (Value::Bool(left), Value::Bool(right)) => left == right,
+                            (Value::Text(left), Value::Text(right)) => left == right,
+                            _ => return Err("equality requires operands of the same type".into()),
+                        };
+                        Ok(Value::Bool(if *operator == Binary::Equal {
+                            equal
+                        } else {
+                            !equal
+                        }))
+                    }
+                    Binary::Add => match (left, right) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(finite(left + right)?))
+                        }
+                        (Value::Text(mut left), Value::Text(right)) => {
+                            check_text_size(
+                                left.len()
+                                    .checked_add(right.len())
+                                    .ok_or("expression text size overflow")?,
+                            )?;
+                            left.push_str(&right);
+                            Ok(Value::Text(left))
+                        }
+                        _ => Err("addition requires two numbers or two texts".into()),
+                    },
+                    _ => {
+                        let left = left.number()?;
+                        let right = right.number()?;
+                        let result = match operator {
+                            Binary::Subtract => left - right,
+                            Binary::Multiply => left * right,
+                            Binary::Divide => {
+                                if right == 0.0 {
+                                    return Err(EvalError::new(
+                                        EvalFailure::DivisionByZero,
+                                        "division by zero in expression",
+                                    ));
+                                }
+                                left / right
+                            }
+                            Binary::Less => return Ok(Value::Bool(left < right)),
+                            Binary::LessEqual => return Ok(Value::Bool(left <= right)),
+                            Binary::Greater => return Ok(Value::Bool(left > right)),
+                            Binary::GreaterEqual => return Ok(Value::Bool(left >= right)),
+                            _ => unreachable!("boolean and equality operators handled above"),
+                        };
+                        Ok(Value::Number(finite(result)?))
+                    }
+                }
+            }
+            Node::Function(function, arguments) => {
+                let mut args = [0.0f64; 2];
+                for (slot, argument) in args.iter_mut().zip(arguments.iter()) {
+                    *slot = argument
+                        .evaluate_both_values(host, lineage, grounds, remaining)?
+                        .number()?;
+                }
+                let result = match function {
+                    Function::Sin => args[0].sin(),
+                    Function::Cos => args[0].cos(),
+                    Function::Sqrt => {
+                        if args[0] < 0.0 {
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                "sqrt requires a nonnegative number",
+                            ));
+                        }
+                        args[0].sqrt()
+                    }
+                    Function::Atan2 => args[0].atan2(args[1]),
+                    Function::Floor => args[0].floor(),
+                    Function::Ceil => args[0].ceil(),
+                    Function::Round => args[0].round(),
+                    Function::Text => {
+                        return Ok(Value::Text(if args[0] == 0.0 {
+                            "0".into()
+                        } else {
+                            args[0].to_string()
+                        }))
+                    }
+                    Function::IdText if args[0] == 0.0 => return Ok(Value::Text(String::new())),
+                    Function::IdText => {
+                        return Ok(Value::Text(host.identifier(args[0]).map_err(
+                            |message| EvalError::new(EvalFailure::Domain, message),
+                        )?))
+                    }
+                };
+                Ok(Value::Number(finite(result)?))
+            }
+        }
+    }
+}
+
+/// Statically dispatched expression host that returns both lineage and grounds
+/// for each leaf in a single AST traversal.
+pub trait DualEvalHost {
+    fn number(
+        &self,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<Option<(f64, Provenance, Provenance)>, EvalError>;
+    fn predicate(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn qualify(
+        &self,
+        evidence: &str,
+        caveats: &[String],
+        quiet_grounds: bool,
+    ) -> Result<(Provenance, Provenance), EvalError>;
+    fn history(
+        &self,
+        name: &str,
+        query: HistoryRead,
+        quiet_grounds: bool,
+    ) -> Result<(f64, Provenance, Provenance), EvalError>;
+    fn identifier(&self, handle: f64) -> Result<String, String>;
+}
+
+fn keep_both(
+    lineage: &mut Provenance,
+    grounds: &mut Provenance,
+    quiet_grounds: bool,
+    lin: Provenance,
+    gnd: Provenance,
+) -> Result<(), EvalError> {
+    if !lin.holds_nothing() {
+        if lineage.holds_nothing() {
+            lin.validate()?;
+            *lineage = lin;
+        } else {
+            lineage.merge(&lin)?;
+        }
+    }
+    if !quiet_grounds && !gnd.holds_nothing() {
+        if grounds.holds_nothing() {
+            gnd.validate()?;
+            *grounds = gnd;
+        } else {
+            grounds.merge(&gnd)?;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

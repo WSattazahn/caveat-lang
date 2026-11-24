@@ -874,7 +874,7 @@ impl<V> Default for Named<V> {
 }
 
 impl<V> Named<V> {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "renewal-removal-profile"))]
     pub(super) fn len(&self) -> usize {
         self.0.len()
     }
@@ -882,6 +882,10 @@ impl<V> Named<V> {
     #[cfg(test)]
     pub(super) fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub(super) fn contains_key(&self, name: &str) -> bool {
+        self.0.get(name).is_some()
     }
 
     pub(super) fn get(&self, name: &str) -> Option<&V> {
@@ -927,6 +931,14 @@ impl<V> std::ops::Index<&str> for Named<V> {
 
     fn index(&self, name: &str) -> &V {
         self.get(name).expect("no record of this name")
+    }
+}
+
+impl<V> std::ops::Index<&String> for Named<V> {
+    type Output = V;
+
+    fn index(&self, name: &String) -> &V {
+        self.get(name.as_str()).expect("no record of this name")
     }
 }
 
@@ -1028,7 +1040,7 @@ macro_rules! same_by_value {
         }
     )*};
 }
-same_by_value!(Provenance, CommitmentBasis, DecisionSeries);
+same_by_value!(Provenance, CommitmentBasis, DecisionSeries, ReadingStream);
 #[cfg(test)]
 same_by_value!(u32);
 
@@ -1156,6 +1168,14 @@ impl<M: RecordMap> Logged<M> {
         self.touched = TouchedKey::Many;
     }
 
+    /// The single key written since `begin`, if exactly one key was touched.
+    pub(super) fn touched_one(&self) -> Option<&str> {
+        match &self.touched {
+            TouchedKey::One(key) => Some(key.as_str()),
+            TouchedKey::None | TouchedKey::Many => None,
+        }
+    }
+
     /// Moves out the single key written since `begin`, if exactly one key was
     /// touched; `None` if zero or multiple keys were touched.
     pub(super) fn take_touched_one(&mut self) -> Option<String> {
@@ -1244,7 +1264,11 @@ where
             Some(names) => names
                 .iter()
                 .all(|name| same_record(self.map.record(name), old.map.record(name))),
-            None => same_records(&*self.map, &*old.map),
+            None => match &self.touched {
+                TouchedKey::None => true,
+                TouchedKey::One(name) => same_record(self.map.record(name), old.map.record(name)),
+                TouchedKey::Many => same_records(&*self.map, &*old.map),
+            },
         };
         debug_assert_eq!(
             unchanged,

@@ -203,7 +203,7 @@ impl ReactiveSession {
             .reading_streams
             .iter()
             .map(|(name, stream)| InterfaceReadings {
-                name: name.clone(),
+                name: name.to_owned(),
                 evidence: stream.template.clone(),
                 limit: stream.limit,
             })

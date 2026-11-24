@@ -2007,11 +2007,15 @@ impl Changes {
                     }
                 }
                 None => {
-                    if old.records().any(|(name, _)| new.record(name).is_none()) {
-                        return None;
-                    }
-                    for (name, value) in new.records() {
-                        check(name, Some(value))?;
+                    if let Some(name) = new.touched_one() {
+                        check(name, new.record(name))?;
+                    } else {
+                        if old.records().any(|(name, _)| new.record(name).is_none()) {
+                            return None;
+                        }
+                        for (name, value) in new.records() {
+                            check(name, Some(value))?;
+                        }
                     }
                 }
             }
@@ -2601,15 +2605,15 @@ pub struct ReactiveSession {
     // Copy-on-write: a transaction's copy shares these until an effect
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
-    commitment_bases: Records<Arc<CommitmentBasis>>,
+    commitment_bases: NamedRecords<CommitmentBasis>,
     /// Whether the source declares a threshold, and the thresholds each
     /// enclosing guard of the effect running now names: what a commit lists
     /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
     has_thresholds: bool,
     guard_thresholds: Vec<BTreeMap<String, f64>>,
-    /// Each stream behind its own pointer: a sample copies the stream it
-    /// adds to, and the map of pointers, rather than every stream.
-    reading_streams: Records<Arc<ReadingStream>>,
+    /// Persistent ordered map: a sample copies only the leaf holding the
+    /// stream it adds to, and no other stream or key text.
+    reading_streams: NamedRecords<ReadingStream>,
     decision_series: Records<DecisionSeries>,
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
@@ -2646,6 +2650,10 @@ pub struct ReactiveSession {
     /// Declared reopening triggers, by series in name order, each with the
     /// condition its reopening step runs under. Fixed at load.
     reopening_triggers: Arc<Vec<(String, Vec<ReopeningTrigger>, Expr)>>,
+    /// Pre-indexed reopening triggers by stream name, in series name order,
+    /// each paired with its pre-built `Effect::Reopen` so `sample` allocates
+    /// nothing when checking or firing triggers.
+    reopening_triggers_by_stream: Arc<HashMap<String, Vec<(usize, Effect)>>>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -3105,10 +3113,10 @@ impl ReactiveSession {
             sequence: 0,
             last_event: None,
             states: States::default(),
-            commitment_bases: Records::default(),
+            commitment_bases: NamedRecords::default(),
             has_thresholds: false,
             guard_thresholds: Vec::new(),
-            reading_streams: Records::default(),
+            reading_streams: NamedRecords::default(),
             decision_series: Records::default(),
             irreversible: Arc::default(),
             foreclosures: Arc::default(),
@@ -3124,6 +3132,7 @@ impl ReactiveSession {
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
+            reopening_triggers_by_stream: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
@@ -3267,13 +3276,13 @@ impl ReactiveSession {
                     session.require_kind(template, "evidence")?;
                     session.reading_streams.insert(
                         name.clone(),
-                        Arc::new(ReadingStream {
+                        ReadingStream {
                             template: template.clone(),
                             limit,
                             current: None,
                             occurrences: Vec::new(),
                             selection_qualifications: Provenance::default(),
-                        }),
+                        },
                     );
                 }
                 Directive::Decisions {
@@ -3707,7 +3716,27 @@ impl ReactiveSession {
                 }
             }
         }
+        let mut triggers_by_stream = HashMap::<String, Vec<(usize, Effect)>>::default();
+        for (index, (series, triggers, _)) in declared_triggers.iter().enumerate() {
+            let mut seen_streams = HashSet::default();
+            for trigger in triggers {
+                if seen_streams.insert(trigger.stream.as_str()) {
+                    triggers_by_stream
+                        .entry(trigger.stream.clone())
+                        .or_default()
+                        .push((
+                            index,
+                            Effect::Reopen {
+                                action: series.clone(),
+                                because: EvidenceSelector::Latest(trigger.stream.clone()),
+                                form: DecisionChange::Reopen,
+                            },
+                        ));
+                }
+            }
+        }
         session.reopening_triggers = Arc::new(declared_triggers);
+        session.reopening_triggers_by_stream = Arc::new(triggers_by_stream);
         session.check_foreclosures()?;
         let (binding_types, revision_series) = session.validate_rules()?;
         session.revision_series = Arc::new(revision_series);
@@ -3828,7 +3857,7 @@ impl ReactiveSession {
             let symbol = arguments[parameter.position]
                 .as_name()
                 .filter(|symbol| match parameter.kind.as_str() {
-                    "readings" => self.reading_streams.contains_key(*symbol),
+                    "readings" => self.reading_streams.contains_key(symbol),
                     "decisions" => self.decision_series.contains_key(*symbol),
                     kind => self.require_kind(symbol, kind).is_ok(),
                 })
@@ -4012,10 +4041,10 @@ impl ReactiveSession {
         for name in self
             .reading_streams
             .keys()
-            .chain(self.decision_series.keys())
+            .chain(self.decision_series.keys().map(String::as_str))
         {
             let slot = history_slots.len();
-            history_slots.insert(name.clone(), slot);
+            history_slots.insert(name.to_owned(), slot);
         }
         let mut groups = Vec::<BindingGroup>::new();
         let mut reads_per_group = Vec::<Reads>::new();
@@ -5837,13 +5866,13 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// The stream `name`, to write: copies the map of streams' pointers and
-    /// the stream itself if another session shares them, and no other stream.
+    /// The stream `name`, to write: copies only the path to this stream in
+    /// the persistent map and the stream itself if another session shares it.
     fn stream_mut<'a>(
-        streams: &'a mut Records<Arc<ReadingStream>>,
+        streams: &'a mut NamedRecords<ReadingStream>,
         name: &str,
     ) -> &'a mut ReadingStream {
-        Arc::make_mut(streams.get_mut(name).expect("validated stream"))
+        streams.get_mut(name).expect("validated stream")
     }
 
     /// Writes each of `merged` over its record in `records`, copying a
@@ -6641,16 +6670,18 @@ impl ReactiveSession {
         // Binding failures roll back the same numeric/graph/cue transaction.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::BindingEvaluation);
-        self.last_grounds_written = self.commitment_grounds.take_touched_one();
-        self.last_series_written = self.decision_series.take_touched_one();
         if has_bindings {
             let changes = Changes::between(old, self);
+            self.last_grounds_written = self.commitment_grounds.take_touched_one();
+            self.last_series_written = self.decision_series.take_touched_one();
             self.end_write_log();
             let result = self.evaluate_bindings(Some(&changes));
             #[cfg(debug_assertions)]
             self.check_incremental_bindings(&result);
             result?;
         } else {
+            self.last_grounds_written = self.commitment_grounds.take_touched_one();
+            self.last_series_written = self.decision_series.take_touched_one();
             #[cfg(debug_assertions)]
             {
                 old.symbols.check();
@@ -6929,6 +6960,50 @@ impl ReactiveSession {
         expression.evaluate_with_host(&host, true, 0)
     }
 
+    /// Evaluate an expression once to get its value, its lineage, and its
+    /// grounds together. Debug builds cross-check against separate `evaluate`
+    /// and `evaluate_grounds` passes.
+    fn evaluate_both(
+        &self,
+        expression: &Expr,
+        parameters: &Parameters<'_>,
+    ) -> Result<(Value, Provenance, Provenance), EvalError> {
+        let host = SessionEvalDual {
+            session: self,
+            parameters,
+        };
+        let dual = expression.evaluate_both_with_host(&host);
+        #[cfg(debug_assertions)]
+        {
+            let lin = self.evaluate(expression, parameters);
+            let gnd = lin
+                .as_ref()
+                .ok()
+                .map(|_| self.evaluate_grounds(expression, parameters));
+            match (&dual, &lin, &gnd) {
+                (Ok((val, l, g)), Ok(el), Some(Ok(eg))) => {
+                    assert_eq!(val, &el.value, "dual value differs from evaluate");
+                    assert_eq!(val, &eg.value, "dual value differs from evaluate_grounds");
+                    assert_eq!(l, &el.provenance, "dual lineage differs from evaluate");
+                    assert_eq!(
+                        g, &eg.provenance,
+                        "dual grounds differs from evaluate_grounds"
+                    );
+                }
+                (Err(e1), Err(e2), _) => {
+                    assert_eq!(e1, e2, "dual error differs from evaluate");
+                }
+                (Err(e1), Ok(_), Some(Err(e2))) => {
+                    assert_eq!(e1, e2, "dual error differs from evaluate_grounds");
+                }
+                _ => panic!(
+                    "dual evaluation disagreed on Ok/Err: dual={dual:?}, lin={lin:?}, gnd={gnd:?}"
+                ),
+            }
+        }
+        dual
+    }
+
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
         if kind == reactive_expr::IS_SET {
             let cell = self.states.get(name).expect("validated unset state");
@@ -7116,11 +7191,16 @@ impl ReactiveSession {
     ) -> Result<Tracked<bool>, EvalError> {
         // As `predicate` reads the value: an unknown name is refused, and a
         // search past the provenance limit is refused as one (D037).
-        let observed = self.predicate("observed", name)?;
+        let Some(&id) = self.symbols.get(name) else {
+            return Err(format!("unknown graph symbol {name}").into());
+        };
+        let observed = matches!(self.graph.nodes.get(&id), Some(NodeKind::Evidence { .. }))
+            && !self.is_retired(name)
+            && (self.observations.holds(id) || !self.graph.stance(id).is_empty());
         let core = if observed {
             // Observed evidence is declared evidence that is not retired, so
             // the search needs none of `qualify_core`'s checks.
-            Some(self.qualify_checked(name, &[])?)
+            Some(self.qualify_checked_id(id, name, &[])?)
         } else {
             None
         };
@@ -7133,7 +7213,8 @@ impl ReactiveSession {
         }
         // The lineage `observed(name)` gives: what qualifies the evidence,
         // what its observation was recorded with, and its dependency, which
-        // `qualify` and the predicate each add. Then the dependency of this
+        // `qualify` and the predicate each add (joining departed archive
+        // traces identically to `carries_twice`). Then the dependency of this
         // predicate.
         if observed {
             if let Some(observation) = self.observation_qualifications.get(name) {
@@ -7146,7 +7227,6 @@ impl ReactiveSession {
         if let Some(dependency) = self.predicate_dependency("observed", name) {
             provenance.merge(dependency)?;
         }
-        provenance.validate()?;
         if let Some(dependency) = self.predicate_dependency(kind, name) {
             provenance.merge(dependency)?;
         }
@@ -7410,9 +7490,18 @@ impl ReactiveSession {
 
     /// `qualify_core` once `require_qualifiable` has passed.
     fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
+        let id = self.symbols[evidence];
+        self.qualify_checked_id(id, evidence, extras)
+    }
+
+    fn qualify_checked_id(
+        &self,
+        id: NodeId,
+        evidence: &str,
+        extras: &[String],
+    ) -> Result<Provenance, EvalError> {
         // What qualifies evidence alone is read once until something is
         // written.
-        let id = self.symbols[evidence];
         if extras.is_empty() {
             return reads::qualified(self, id, || self.qualify_checked_once(id, evidence, extras));
         }
@@ -7426,31 +7515,145 @@ impl ReactiveSession {
         evidence: &str,
         extras: &[String],
     ) -> Result<Provenance, EvalError> {
-        // Common fast path: when the evidence and every claim it bears on have
-        // no incoming `qualifies` edge (or the graph has none at all), skip
-        // building the roots vector and traversal sets.
-        if extras.is_empty()
-            && (!self.graph.qualifies_any()
-                || (self.graph.qualifiers(id).is_empty()
-                    && self.graph.stance(id).iter().all(|link| {
-                        !matches!(
+        // Common fast path: no explicit extras and no caveats on any claims
+        // the evidence bears on. Handles both 0 live caveats and 1 direct live
+        // caveat (with no meta-caveats) with zero Vec/HashSet/String allocations.
+        if extras.is_empty() {
+            let ev_name = || self.record_name(id, evidence);
+            if !self.graph.qualifies_any() {
+                consult(|record| {
+                    record.reached.push(id);
+                    for link in self.graph.stance(id) {
+                        if matches!(
                             self.graph.nodes.get(&link.other),
                             Some(NodeKind::Claim { .. })
-                        ) || self.graph.qualifiers(link.other).is_empty()
-                    })))
-        {
-            consult(|record| {
-                record.reached.push(id);
-                for link in self.graph.stance(id) {
-                    if matches!(
-                        self.graph.nodes.get(&link.other),
-                        Some(NodeKind::Claim { .. })
-                    ) {
-                        record.reached.push(link.other);
+                        ) {
+                            record.reached.push(link.other);
+                        }
                     }
-                }
+                });
+                return Provenance::from_single_evidence(ev_name());
+            }
+            let claims_clean = self.graph.stance(id).iter().all(|link| {
+                !matches!(
+                    self.graph.nodes.get(&link.other),
+                    Some(NodeKind::Claim { .. })
+                ) || self.graph.qualifiers(link.other).is_empty()
             });
-            return Provenance::from_shared([self.record_name(id, evidence)], std::iter::empty());
+            if claims_clean {
+                let qualifiers = self.graph.qualifiers(id);
+                if qualifiers.is_empty() {
+                    consult(|record| {
+                        record.reached.push(id);
+                        for link in self.graph.stance(id) {
+                            if matches!(
+                                self.graph.nodes.get(&link.other),
+                                Some(NodeKind::Claim { .. })
+                            ) {
+                                record.reached.push(link.other);
+                            }
+                        }
+                    });
+                    return Provenance::from_single_evidence(ev_name());
+                }
+                // Check if all qualifiers resolve to 0 or 1 unique live leaf caveat.
+                let marks = !self.taken_back.is_empty();
+                let mut single_caveat: Option<NodeId> = None;
+                let mut fast_ok = true;
+                if !marks {
+                    for link in qualifiers {
+                        if matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Caveat { .. })
+                        ) {
+                            if !self.graph.qualifiers(link.other).is_empty() {
+                                fast_ok = false;
+                                break;
+                            }
+                            match single_caveat {
+                                None => single_caveat = Some(link.other),
+                                Some(prev) if prev == link.other => {}
+                                Some(_) => {
+                                    fast_ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if qualifiers.len() <= 4 {
+                    // Small-list check honoring take-backs without allocating a HashMap.
+                    let mut counts: [(NodeId, usize); 4] = [(0, 0); 4];
+                    let mut seen_len = 0usize;
+                    for link in qualifiers {
+                        let tb = self.take_backs_naming(link.other, id);
+                        if tb > 0 {
+                            let pos = counts[..seen_len]
+                                .iter()
+                                .position(|&(k, _)| k == link.other);
+                            let used = match pos {
+                                Some(p) => {
+                                    let u = counts[p].1;
+                                    counts[p].1 += 1;
+                                    u
+                                }
+                                None => {
+                                    counts[seen_len] = (link.other, 1);
+                                    seen_len += 1;
+                                    0
+                                }
+                            };
+                            if used < tb {
+                                continue;
+                            }
+                        }
+                        if matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Caveat { .. })
+                        ) {
+                            if !self.graph.qualifiers(link.other).is_empty() {
+                                fast_ok = false;
+                                break;
+                            }
+                            match single_caveat {
+                                None => single_caveat = Some(link.other),
+                                Some(prev) if prev == link.other => {}
+                                Some(_) => {
+                                    fast_ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    fast_ok = false;
+                }
+                if fast_ok {
+                    consult(|record| {
+                        record.reached.push(id);
+                        for link in self.graph.stance(id) {
+                            if matches!(
+                                self.graph.nodes.get(&link.other),
+                                Some(NodeKind::Claim { .. })
+                            ) {
+                                record.reached.push(link.other);
+                            }
+                        }
+                        if let Some(c_id) = single_caveat {
+                            record.reached.push(c_id);
+                        }
+                    });
+                    return match single_caveat {
+                        None => Provenance::from_single_evidence(ev_name()),
+                        Some(c_id) => {
+                            let cav_name = self
+                                .symbols
+                                .shared_name_of(c_id)
+                                .expect("a caveat node is named");
+                            Provenance::from_evidence_and_caveat(ev_name(), cav_name)
+                        }
+                    };
+                }
+            }
         }
         // The evidence's name goes ahead of the caveats; the extras follow.
         // Each is the names index's own copy, found by node: the roots list
@@ -7644,6 +7847,9 @@ impl ReactiveSession {
     /// consulted whether there is one or not.
     fn predicate_dependency(&self, kind: &str, name: &str) -> Option<&Provenance> {
         consult(|record| record.predicates.push(consulted_key(kind, name)));
+        if self.predicate_qualifications.is_empty() {
+            return None;
+        }
         self.predicate_qualifications
             .get(kind)
             .and_then(|targets| targets.get(name))
@@ -7772,12 +7978,15 @@ impl ReactiveSession {
                     }
                     None => None,
                 };
-                let NodeKind::Evidence {
-                    description,
-                    source,
-                } = self.graph.nodes[&template].clone()
-                else {
-                    unreachable!("validated evidence template")
+                let (reading_description, source) = match &self.graph.nodes[&template] {
+                    NodeKind::Evidence {
+                        description,
+                        source,
+                    } => (
+                        format!("{description} ({stream} reading {ordinal})"),
+                        source.clone(),
+                    ),
+                    _ => unreachable!("validated evidence template"),
                 };
                 // A withdrawn template's `withdrawn` is about its own
                 // observation. A reading is a new one, which only a withdrawal
@@ -7825,7 +8034,7 @@ impl ReactiveSession {
                 let id = self.add_named(
                     name.clone(),
                     NodeKind::Evidence {
-                        description: format!("{description} ({stream} reading {ordinal})"),
+                        description: reading_description,
                         source,
                     },
                 );
@@ -7841,9 +8050,15 @@ impl ReactiveSession {
                     observation = observation.union(condition)?;
                 }
                 self.freeze_observation(&mut observation);
+                let mut provenance = self.qualify_checked_id(id, &name, &[])?;
+                if !observation.holds_nothing() {
+                    provenance.merge(&observation)?;
+                }
+                if let Some(dependency) = self.predicate_dependency("observed", &name) {
+                    provenance.merge(dependency)?;
+                }
                 self.observation_qualifications
                     .insert(name.clone(), observation);
-                let mut provenance = self.qualify(&name, &[])?;
                 self.freeze(&mut provenance);
                 let readings = Self::stream_mut(&mut self.reading_streams, stream);
                 readings.current = Some(name.clone());
@@ -8111,9 +8326,18 @@ impl ReactiveSession {
                 value: expression,
                 because,
             } => {
-                let value = self.evaluate(expression, parameters)?;
-                let Value::Number(number) = value.value else {
-                    return Err("numeric state expression returned a boolean".into());
+                let (number, value_lineage, evaluated_grounds) = if because.is_none() {
+                    let (val, lin, gnd) = self.evaluate_both(expression, parameters)?;
+                    let Value::Number(number) = val else {
+                        return Err("numeric state expression returned a boolean".into());
+                    };
+                    (number, lin, Some(gnd))
+                } else {
+                    let value = self.evaluate(expression, parameters)?;
+                    let Value::Number(number) = value.value else {
+                        return Err("numeric state expression returned a boolean".into());
+                    };
+                    (number, value.provenance, None)
                 };
                 let range = &self.ranges[name];
                 check_range(name, number, range.min, range.max).map_err(|message| {
@@ -8123,12 +8347,13 @@ impl ReactiveSession {
                         message,
                     )
                 })?;
-                let lineage = value.provenance.union(guard)?;
+                let lineage = value_lineage.union(guard)?;
                 // Grounds are read against the state before this write, like
                 // the value itself, and never take the rule's guard.
-                let grounds = match because {
-                    None => self.evaluate_grounds(expression, parameters)?.provenance,
-                    Some(citations) => self.grounded_citation(
+                let grounds = match (because, evaluated_grounds) {
+                    (None, Some(grounds)) => grounds,
+                    (None, None) => unreachable!(),
+                    (Some(citations), _) => self.grounded_citation(
                         &format!("state {name}"),
                         citations,
                         &lineage,
@@ -8323,12 +8548,12 @@ impl ReactiveSession {
                 // basis stay in the lineage recorded below.
                 let mut grounds = Provenance::from_names([], retaining.iter().cloned())?;
                 let used_value = if let Some(expression) = using {
-                    let value = self.evaluate(expression, parameters)?;
-                    let Value::Number(number) = value.value else {
+                    let (val, lin, gnd) = self.evaluate_both(expression, parameters)?;
+                    let Value::Number(number) = val else {
                         return Err("commit using requires a numeric value".into());
                     };
-                    provenance.merge(&value.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(expression, parameters)?.provenance)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                     Some(number)
                 } else {
                     None
@@ -8336,15 +8561,17 @@ impl ReactiveSession {
                 // `citing`: grounds and lineage as for `using`, with no value.
                 // See spec/caveat-citing-0.1.md.
                 for citation in citing {
-                    provenance.merge(&self.evaluate(citation, parameters)?.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(citation, parameters)?.provenance)?;
+                    let (_, lin, gnd) = self.evaluate_both(citation, parameters)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                 }
                 // A retained caveat's reason is read as `qualified(1, E)` and
                 // joins the grounds. See spec/caveat-retention-reasons-0.1.md.
                 let mut retention = BTreeMap::new();
                 for (caveat, evidence, reading, _) in reasons {
-                    provenance.merge(&self.evaluate(reading, parameters)?.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
+                    let (_, lin, gnd) = self.evaluate_both(reading, parameters)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                     retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
                 }
                 // A `once` reason backs one commitment: none the session holds
@@ -8471,11 +8698,11 @@ impl ReactiveSession {
                 }
                 self.commitment_bases.insert(
                     name.clone(),
-                    Arc::new(CommitmentBasis {
+                    CommitmentBasis {
                         value: used_value,
                         provenance,
                         thresholds,
-                    }),
+                    },
                 );
                 if let Some(record) = &permission {
                     self.add_pin(&record.grant);
@@ -9731,7 +9958,7 @@ impl ReactiveSession {
             self.reading_streams
                 .iter()
                 .filter(|(_, stream)| stream.template == name)
-                .map(|(stream, _)| stream.as_str())
+                .map(|(stream, _)| stream)
                 .collect()
         };
         for stream in streams {
@@ -9775,20 +10002,23 @@ impl ReactiveSession {
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        if self.reopening_triggers_by_stream.is_empty() {
+            return Ok(());
+        }
+        let by_stream = Arc::clone(&self.reopening_triggers_by_stream);
+        let Some(entries) = by_stream.get(stream) else {
+            return Ok(());
+        };
         let triggers = Arc::clone(&self.reopening_triggers);
-        for (series, watching, condition) in triggers.iter() {
+        for (index, reopen) in entries {
+            let (_, watching, condition) = &triggers[*index];
             if !watching
                 .iter()
                 .any(|trigger| trigger.matches(stream, stance) && (changed || !trigger.changed))
             {
                 continue;
             }
-            let reopen = Effect::Reopen {
-                action: series.clone(),
-                because: EvidenceSelector::Latest(stream.to_string()),
-                form: DecisionChange::Reopen,
-            };
-            self.execute_guarded_effect(condition, &reopen, parameters, guard, budget)?;
+            self.execute_guarded_effect(condition, reopen, parameters, guard, budget)?;
         }
         Ok(())
     }
@@ -9950,30 +10180,27 @@ impl ReactiveSession {
     #[inline(never)]
     fn history_room(&self, history: &str) -> Result<(), DispatchFailure> {
         let windowed = self.windows.contains(history);
-        let (held, limit, code, refusal) = if let Some(stream) = self.reading_streams.get(history) {
-            let limit = stream.limit;
+        let (held, limit, code, kind) = if let Some(stream) = self.reading_streams.get(history) {
             (
                 stream.occurrences.len(),
-                limit,
+                stream.limit,
                 RejectionCode::HistoryLimit,
-                format!("reading stream {history} reached its history limit {limit}"),
+                0u8,
             )
         } else if let Some(series) = self.decision_series.get(history) {
-            let limit = series.limit;
             (
                 series.revisions.len(),
-                limit,
+                series.limit,
                 RejectionCode::HistoryLimit,
-                format!("decision series {history} reached its history limit {limit}"),
+                1u8,
             )
         } else {
             let renewal = &self.renewals[history];
-            let limit = renewal.limit;
             (
                 renewal.occurrences.len(),
-                limit,
+                renewal.limit,
                 RejectionCode::RenewalLimit,
-                format!("renewable {history} reached its limit {limit}"),
+                2u8,
             )
         };
         if windowed && held >= MAX_WINDOWED_RECORDS {
@@ -9984,6 +10211,11 @@ impl ReactiveSession {
             ));
         }
         if !windowed && held >= limit {
+            let refusal = match kind {
+                0 => format!("reading stream {history} reached its history limit {limit}"),
+                1 => format!("decision series {history} reached its history limit {limit}"),
+                _ => format!("renewable {history} reached its limit {limit}"),
+            };
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Limit,
                 code,
@@ -10086,7 +10318,10 @@ impl ReactiveSession {
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
     fn read_live(&self, provenance: &mut Provenance) -> Result<(), EvalError> {
-        if self.late_caveat_nodes.is_empty() || provenance.evidence.is_empty() {
+        if self.late_caveat_nodes.is_empty()
+            || !self.graph.qualifies_any()
+            || provenance.evidence.is_empty()
+        {
             return Ok(());
         }
         // Fast check before allocating any sets: most readings carry no
@@ -10209,51 +10444,64 @@ impl ReactiveSession {
         name: &str,
         grounds: bool,
     ) -> Result<Option<Tracked<bool>>, EvalError> {
-        let withdrawn: Vec<&Withdrawal> = match kind {
-            WITHDRAWN => self.withdrawal_of(name).into_iter().collect(),
-            "withdrawn_latest" => self
-                .reading_streams
-                .get(name)
-                .and_then(|stream| stream.current.as_deref())
-                .and_then(|current| self.withdrawal_of(current))
-                .into_iter()
-                .collect(),
+        let single = match kind {
+            WITHDRAWN => Some(self.withdrawal_of(name)),
+            "withdrawn_latest" => Some(
+                self.reading_streams
+                    .get(name)
+                    .and_then(|stream| stream.current.as_deref())
+                    .and_then(|current| self.withdrawal_of(current)),
+            ),
             "permission_withdrawn" => {
                 let current = match self.decision_series.get(name) {
                     Some(series) => series.current.as_deref(),
                     None => Some(name),
                 };
-                current
-                    .and_then(|current| self.commitment_permissions.get(current))
-                    .and_then(|record| self.withdrawal_of(&record.grant))
-                    .into_iter()
-                    .collect()
+                Some(
+                    current
+                        .and_then(|current| self.commitment_permissions.get(current))
+                        .and_then(|record| self.withdrawal_of(&record.grant)),
+                )
             }
-            "rests_on_withdrawn" => {
-                let current = match self.decision_series.get(name) {
-                    Some(series) => series.current.as_deref(),
-                    None => Some(name),
-                };
-                let evidence = current
-                    .and_then(|current| self.commitment_grounds.get(current))
-                    .map(|grounds| grounds.evidence.clone())
-                    .unwrap_or_default();
-                evidence
-                    .iter()
-                    .filter_map(|evidence| self.withdrawal_of(evidence))
-                    .collect()
-            }
-            _ => return Ok(None),
+            _ => None,
         };
-        let mut provenance = Provenance::default();
-        for withdrawal in &withdrawn {
-            provenance.merge(&if grounds {
-                self.qualify_core(&withdrawal.because, &[])?
-            } else {
-                self.qualify(&withdrawal.because, &[])?
-            })?;
+        if let Some(found) = single {
+            return match found {
+                None => Ok(Some(Tracked::plain(false))),
+                Some(withdrawal) => {
+                    let provenance = if grounds {
+                        self.qualify_core(&withdrawal.because, &[])?
+                    } else {
+                        self.qualify(&withdrawal.because, &[])?
+                    };
+                    Tracked::new(true, provenance).map(Some)
+                }
+            };
         }
-        Tracked::new(!withdrawn.is_empty(), provenance).map(Some)
+        if kind != "rests_on_withdrawn" {
+            return Ok(None);
+        }
+        let current = match self.decision_series.get(name) {
+            Some(series) => series.current.as_deref(),
+            None => Some(name),
+        };
+        let evidence = current
+            .and_then(|current| self.commitment_grounds.get(current))
+            .map(|grounds| grounds.evidence.clone())
+            .unwrap_or_default();
+        let mut found_any = false;
+        let mut provenance = Provenance::default();
+        for ev in &evidence {
+            if let Some(withdrawal) = self.withdrawal_of(ev) {
+                found_any = true;
+                provenance.merge(&if grounds {
+                    self.qualify_core(&withdrawal.because, &[])?
+                } else {
+                    self.qualify(&withdrawal.because, &[])?
+                })?;
+            }
+        }
+        Tracked::new(found_any, provenance).map(Some)
     }
 
     /// A predicate asked of `occurrence(EVIDENCE, INDEX)` arrives as kind
@@ -10477,16 +10725,8 @@ impl ReactiveSession {
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
             unset: self.states.unset_names(),
-            commitment_bases: self
-                .commitment_bases
-                .iter()
-                .map(|(name, basis)| (name.clone(), (**basis).clone()))
-                .collect(),
-            reading_streams: self
-                .reading_streams
-                .iter()
-                .map(|(name, stream)| (name.clone(), (**stream).clone()))
-                .collect(),
+            commitment_bases: self.commitment_bases.to_map(),
+            reading_streams: self.reading_streams.to_map(),
             decision_series: (**self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),
@@ -12456,6 +12696,339 @@ impl reactive_expr::EvalHost for SessionEval<'_> {
 
     fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
         self.session.history_read(name, query)
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        self.session.identifier_text(handle)
+    }
+}
+
+/// Statically dispatched expression evaluator host that computes value,
+/// lineage, and grounds in a single AST pass (`Effect::Commit` / `Effect::Set`).
+struct SessionEvalDual<'a> {
+    session: &'a ReactiveSession,
+    parameters: &'a Parameters<'a>,
+}
+
+impl SessionEvalDual<'_> {
+    fn predicate_dual(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        if quiet_grounds {
+            let tracked = self.session.predicate_tracked(kind, name)?;
+            return Ok((tracked.value, tracked.provenance, Provenance::default()));
+        }
+        if kind == "has_sample" {
+            let tracked = self.session.predicate_tracked("has_sample", name)?;
+            let grounds = tracked.provenance.clone();
+            return Ok((tracked.value, tracked.provenance, grounds));
+        }
+        if kind == reactive_expr::IS_SET {
+            let cell = self
+                .session
+                .states
+                .get(name)
+                .expect("validated unset state");
+            return Ok((
+                !cell.unset,
+                cell.value.provenance.clone(),
+                cell.grounds.clone(),
+            ));
+        }
+        if kind == reactive_expr::RESOLVED {
+            let tracked = self.session.resolved_predicate(name)?;
+            let grounds = tracked.provenance.clone();
+            return Ok((tracked.value, tracked.provenance, grounds));
+        }
+        if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
+            let state = self.session.state_with_caveat(name, caveat)?;
+            return Ok((
+                state.grounds.caveats.contains(caveat),
+                state.value.provenance.clone(),
+                state.grounds.clone(),
+            ));
+        }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            let Some(&id) = self.session.symbols.get(name) else {
+                return Err(format!("unknown graph symbol {name}").into());
+            };
+            let observed = matches!(
+                self.session.graph.nodes.get(&id),
+                Some(NodeKind::Evidence { .. })
+            ) && !self.session.is_retired(name)
+                && (self.session.observations.holds(id)
+                    || !self.session.graph.stance(id).is_empty());
+            let core = if observed {
+                Some(self.session.qualify_checked_id(id, name, &[])?)
+            } else {
+                None
+            };
+            let value = core
+                .as_ref()
+                .is_some_and(|core| self.session.carried(&core.caveats, caveat));
+            let grounds = core.unwrap_or_default();
+            let mut lineage = grounds.clone();
+            if observed {
+                if let Some(observation) = self.session.observation_qualifications.get(name) {
+                    lineage.merge(observation)?;
+                }
+                if let Some(dependency) = self.session.predicate_dependency("observed", name) {
+                    lineage.merge(dependency)?;
+                }
+            }
+            if let Some(dependency) = self.session.predicate_dependency("observed", name) {
+                lineage.merge(dependency)?;
+            }
+            if let Some(dependency) = self.session.predicate_dependency(kind, name) {
+                lineage.merge(dependency)?;
+            }
+            return Ok((value, lineage, grounds));
+        }
+        let withdrawn_lookup = match kind {
+            WITHDRAWN => Some(self.session.withdrawal_of(name)),
+            "withdrawn_latest" => Some(
+                self.session
+                    .reading_streams
+                    .get(name)
+                    .and_then(|stream| stream.current.as_deref())
+                    .and_then(|current| self.session.withdrawal_of(current)),
+            ),
+            "permission_withdrawn" => {
+                let current = match self.session.decision_series.get(name) {
+                    Some(series) => series.current.as_deref(),
+                    None => Some(name),
+                };
+                Some(
+                    current
+                        .and_then(|current| self.session.commitment_permissions.get(current))
+                        .and_then(|record| self.session.withdrawal_of(&record.grant)),
+                )
+            }
+            _ => None,
+        };
+        if let Some(found) = withdrawn_lookup {
+            let (value, grounds, mut lineage) = match found {
+                None => (false, Provenance::default(), Provenance::default()),
+                Some(withdrawal) => {
+                    let core = self.session.qualify_core(&withdrawal.because, &[])?;
+                    let mut lin = core.clone();
+                    if let Some(obs) = self
+                        .session
+                        .observation_qualifications
+                        .get(&withdrawal.because)
+                    {
+                        lin.merge(obs)?;
+                    }
+                    if let Some(dep) = self
+                        .session
+                        .predicate_dependency("observed", &withdrawal.because)
+                    {
+                        lin.merge(dep)?;
+                    }
+                    (true, core, lin)
+                }
+            };
+            if let Some(dep) = self.session.predicate_dependency(WITHDRAWN, name) {
+                lineage.merge(dep)?;
+            }
+            return Ok((value, lineage, grounds));
+        }
+        let lin = self.session.predicate_tracked(kind, name)?;
+        let gnd = self.session.predicate_grounds(kind, name)?;
+        Ok((lin.value, lin.provenance, gnd.provenance))
+    }
+}
+
+impl reactive_expr::DualEvalHost for SessionEvalDual<'_> {
+    fn number(
+        &self,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<Option<(f64, Provenance, Provenance)>, EvalError> {
+        if name == reactive_expr::ELAPSED_READ {
+            return Ok(Some((
+                self.session.elapsed,
+                Provenance::default(),
+                Provenance::default(),
+            )));
+        }
+        if let Some(cell) = self.session.states.get(name) {
+            if cell.unset {
+                return Err(unset_read(name));
+            }
+            let gnd = if quiet_grounds {
+                Provenance::default()
+            } else {
+                cell.grounds.clone()
+            };
+            return Ok(Some((cell.value.value, cell.value.provenance.clone(), gnd)));
+        }
+        match self.parameters {
+            Parameters::Slots { signature, values } => {
+                if let Some(index) = signature.iter().position(|p| p.name == name) {
+                    return Ok(Some((
+                        values[index],
+                        Provenance::default(),
+                        Provenance::default(),
+                    )));
+                }
+            }
+            Parameters::Payload(values) => {
+                if let Some(&value) = values.get(name) {
+                    return Ok(Some((value, Provenance::default(), Provenance::default())));
+                }
+            }
+            Parameters::Arguments { lineage, grounds } => {
+                if let Some(lin) = lineage.get(name) {
+                    let gnd = if quiet_grounds {
+                        Provenance::default()
+                    } else {
+                        grounds
+                            .get(name)
+                            .map(|t| t.provenance.clone())
+                            .unwrap_or_default()
+                    };
+                    return Ok(Some((lin.value, lin.provenance.clone(), gnd)));
+                }
+            }
+        }
+        Ok(self
+            .session
+            .constants
+            .get(name)
+            .copied()
+            .map(|v| (v, Provenance::default(), Provenance::default())))
+    }
+
+    fn predicate(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return match self.session.latest_target(name) {
+                Some(occurrence) => self.predicate_dual(kind, &occurrence, quiet_grounds),
+                None => Ok((false, Provenance::default(), Provenance::default())),
+            };
+        }
+        let target = self.session.predicate_target(kind, name);
+        self.predicate_dual(kind, target, quiet_grounds)
+    }
+
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        let (resolved_kind, target) = if kind == reactive_expr::AT_REVISION {
+            (
+                "rests_on_withdrawn",
+                self.session.held_revision(evidence, index),
+            )
+        } else if kind == reactive_expr::AT_REVISION_RESOLVED {
+            (
+                reactive_expr::RESOLVED,
+                self.session.held_revision(evidence, index),
+            )
+        } else {
+            (kind, self.session.held_occurrence(evidence, index))
+        };
+        let Some(target) = target else {
+            return Ok((false, Provenance::default(), Provenance::default()));
+        };
+        self.predicate_dual(resolved_kind, &target, quiet_grounds)
+    }
+
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        let rev = match revision {
+            None => match self.session.decision_series.get(series) {
+                Some(series) => series.current.clone(),
+                None => self
+                    .session
+                    .predicate("committed", series)?
+                    .then(|| series.to_string()),
+            },
+            Some(k) => self.session.held_revision(series, k),
+        };
+        let evidence = match kind {
+            "named" => Some(self.session.occurrence(name).to_string()),
+            "latest" => self.session.latest_target(name),
+            "at" => at.and_then(|n| self.session.held_occurrence(name, n)),
+            _ => {
+                return Err(EvalError::from(format!(
+                    "in_basis received unknown kind {kind}"
+                )))
+            }
+        };
+        let (Some(rev), Some(evidence)) = (rev, evidence) else {
+            return Ok((false, Provenance::default(), Provenance::default()));
+        };
+        let held = self
+            .session
+            .commitment_grounds
+            .get(&rev)
+            .is_some_and(|grounds| grounds.evidence.contains(&evidence));
+        let (_, lin, gnd) = self.predicate_dual("committed", &rev, quiet_grounds)?;
+        Ok((held, lin, gnd))
+    }
+
+    fn qualify(
+        &self,
+        evidence: &str,
+        caveats: &[String],
+        quiet_grounds: bool,
+    ) -> Result<(Provenance, Provenance), EvalError> {
+        let target = self.session.occurrence(evidence);
+        self.session.require_kind(target, "evidence")?;
+        if !self.session.predicate("observed", target)? {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {target}"),
+            ));
+        }
+        let core = self.session.qualify_checked(target, caveats)?;
+        let gnd = if quiet_grounds {
+            Provenance::default()
+        } else {
+            core.clone()
+        };
+        let mut lin = core;
+        if let Some(obs) = self.session.observation_qualifications.get(target) {
+            lin.merge(obs)?;
+        }
+        if let Some(dep) = self.session.predicate_dependency("observed", target) {
+            lin.merge(dep)?;
+        }
+        Ok((lin, gnd))
+    }
+
+    fn history(
+        &self,
+        name: &str,
+        query: HistoryRead,
+        quiet_grounds: bool,
+    ) -> Result<(f64, Provenance, Provenance), EvalError> {
+        let tracked = self.session.history_read(name, query)?;
+        let gnd = if quiet_grounds {
+            Provenance::default()
+        } else {
+            tracked.provenance.clone()
+        };
+        Ok((tracked.value, tracked.provenance, gnd))
     }
 
     fn identifier(&self, handle: f64) -> Result<String, String> {
