@@ -720,6 +720,19 @@ struct ExecutionBudget {
     depth: usize,
 }
 
+/// What remains of a rule's guard once its leading compiled route terms have
+/// matched the event payload.
+#[derive(Debug, Clone, Default)]
+enum RouteBody {
+    /// Every term of the guard was covered by `terms` (or the guard was `true`),
+    /// so a matching payload makes the guard `true` with empty provenance.
+    #[default]
+    AlwaysTrue,
+    /// The remainder after stripping `stripped_nodes` AST nodes of leading
+    /// route terms from the front of the guard.
+    Expr { expr: Expr, stripped_nodes: usize },
+}
+
 /// A rule's route, compiled at load (`compile_route`), and the work the rule
 /// counts when an event's payload routes it elsewhere.
 #[derive(Debug, Clone, Default)]
@@ -731,6 +744,8 @@ struct Route {
     /// false and rests on nothing: one, and through a call one for each step
     /// of its procedure, nested calls included.
     steps: usize,
+    /// What still needs evaluating when `terms` match the payload.
+    body: RouteBody,
 }
 
 impl ExecutionBudget {
@@ -1231,6 +1246,25 @@ impl SlotBits {
                     .zip(&other.rest)
                     .any(|(left, right)| (left & right) != 0))
     }
+
+    #[inline]
+    fn for_each_bit(&self, mut visit: impl FnMut(usize)) {
+        let mut bits = self.first;
+        while bits != 0 {
+            let tz = bits.trailing_zeros() as usize;
+            visit(tz);
+            bits &= bits - 1;
+        }
+        for (word_index, &word) in self.rest.iter().enumerate() {
+            let mut bits = word;
+            let base = (word_index + 1) << 6;
+            while bits != 0 {
+                let tz = bits.trailing_zeros() as usize;
+                visit(base + tz);
+                bits &= bits - 1;
+            }
+        }
+    }
 }
 
 /// Every declared state, in a slot fixed at load. A transaction's copy shares
@@ -1502,6 +1536,18 @@ struct BindingGroup {
     order_rank: usize,
     /// `number`, `boolean` or `text`: one type for every declaration.
     value_type: &'static str,
+}
+
+/// Inverted index over `binding_groups` built once at load so an event with
+/// scoped history/state changes finds its stale binding groups directly by
+/// integer slot without scanning every binding group in the program.
+#[derive(Debug, Default)]
+struct BindingIndex {
+    by_history: Vec<Vec<usize>>,
+    by_state: Vec<Vec<usize>>,
+    clock_groups: Vec<usize>,
+    unscoped_graph_groups: Vec<usize>,
+    anything_groups: Vec<usize>,
 }
 
 /// Each bound property's value type, by target and property.
@@ -2627,6 +2673,7 @@ pub struct ReactiveSession {
     /// Every index of `binding_groups`, in the order of their targets and
     /// properties: the order an evaluation shows them in.
     binding_order: Arc<Vec<usize>>,
+    binding_index: Arc<BindingIndex>,
     /// For each of `binding_groups` scoped to histories, what its last
     /// evaluation consulted of the qualification state. Derived: every
     /// evaluation writes it, nothing saves or shows it, and only the debug
@@ -3078,6 +3125,7 @@ impl ReactiveSession {
             bindings_scoped_to_histories: false,
             binding_group_of: Arc::new(Vec::new()),
             binding_order: Arc::new(Vec::new()),
+            binding_index: Arc::default(),
             binding_consults: Vec::new(),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
@@ -3980,7 +4028,14 @@ impl ReactiveSession {
         }
         let mut bindings_read_graph = false;
         let mut bindings_scoped_to_histories = false;
-        for (group, reads) in groups.iter_mut().zip(reads_per_group) {
+        let mut index = BindingIndex {
+            by_history: vec![Vec::new(); history_slots.len()],
+            by_state: vec![Vec::new(); self.states.len()],
+            clock_groups: Vec::new(),
+            unscoped_graph_groups: Vec::new(),
+            anything_groups: Vec::new(),
+        };
+        for (group_id, (group, reads)) in groups.iter_mut().zip(reads_per_group).enumerate() {
             for name in &reads.names {
                 if let Some(slot) = self.states.slot(name) {
                     group.states.insert(slot);
@@ -4007,6 +4062,23 @@ impl ReactiveSession {
                 group.histories = Some(histories);
                 bindings_scoped_to_histories = true;
             }
+            if reads.anything {
+                index.anything_groups.push(group_id);
+            } else {
+                if reads.clock {
+                    index.clock_groups.push(group_id);
+                }
+                if reads.graph {
+                    if let Some(histories) = &group.histories {
+                        histories.for_each_bit(|slot| index.by_history[slot].push(group_id));
+                    } else {
+                        index.unscoped_graph_groups.push(group_id);
+                    }
+                }
+                group
+                    .states
+                    .for_each_bit(|slot| index.by_state[slot].push(group_id));
+            }
         }
         let mut order = (0..groups.len()).collect::<Vec<_>>();
         order.sort_by(|&a, &b| {
@@ -4022,6 +4094,7 @@ impl ReactiveSession {
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
         self.binding_order = Arc::new(order);
+        self.binding_index = Arc::new(index);
     }
 
     fn validate_procedures(&self) -> Result<(), String> {
@@ -4712,14 +4785,51 @@ impl ReactiveSession {
         // touches none of them.
         let mut stale = Vec::new();
         let mut stale_rules = 0usize;
-        for (group, read) in groups.iter().enumerate() {
-            let touched = changes.is_none_or(|changes| {
-                let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
-                changes.touch(read, consulted)
-            });
-            if touched {
-                stale.push(group);
-                stale_rules += read.rules.len();
+        match changes {
+            None => {
+                stale.extend(0..groups.len());
+                stale_rules = self.binding_rules.len();
+            }
+            Some(changes)
+                if !changes.graph
+                    || (changes.histories.is_some() && changes.requalified.is_empty()) =>
+            {
+                let index = &self.binding_index;
+                stale.extend_from_slice(&index.anything_groups);
+                if changes.clock {
+                    stale.extend_from_slice(&index.clock_groups);
+                }
+                if changes.graph {
+                    stale.extend_from_slice(&index.unscoped_graph_groups);
+                    if let Some(changed) = &changes.histories {
+                        changed.for_each_bit(|slot| {
+                            if let Some(list) = index.by_history.get(slot) {
+                                stale.extend_from_slice(list);
+                            }
+                        });
+                    }
+                }
+                changes.states.for_each_bit(|slot| {
+                    if let Some(list) = index.by_state.get(slot) {
+                        stale.extend_from_slice(list);
+                    }
+                });
+                if stale.len() > 1 {
+                    stale.sort_unstable();
+                    stale.dedup();
+                }
+                for &group in &stale {
+                    stale_rules += groups[group].rules.len();
+                }
+            }
+            Some(changes) => {
+                for (group, read) in groups.iter().enumerate() {
+                    let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
+                    if changes.touch(read, consulted) {
+                        stale.push(group);
+                        stale_rules += read.rules.len();
+                    }
+                }
             }
         }
         if stale.is_empty() {
@@ -5393,6 +5503,10 @@ impl ReactiveSession {
             return Route {
                 terms: Vec::new(),
                 steps,
+                body: RouteBody::Expr {
+                    expr: rule.condition.clone(),
+                    stripped_nodes: 0,
+                },
             };
         };
         let place_of = |name: &str| {
@@ -5400,28 +5514,31 @@ impl ReactiveSession {
                 .iter()
                 .position(|parameter| parameter.name == name)
         };
-        let terms = rule
-            .condition
-            .route_terms()
-            .into_iter()
-            .map_while(|(name, value)| {
-                if self.states.contains_key(&name) {
-                    return None;
-                }
-                let place = place_of(&name)?;
-                let value = match value {
-                    reactive_expr::RouteValue::Number(value) => value,
-                    reactive_expr::RouteValue::Name(constant) => {
-                        if self.states.contains_key(&constant) || place_of(&constant).is_some() {
-                            return None;
-                        }
-                        *self.constants.get(&constant)?
+        let accept = |name: &str, value: &reactive_expr::RouteValue| {
+            if self.states.contains_key(name) {
+                return None;
+            }
+            let place = place_of(name)?;
+            let value = match value {
+                reactive_expr::RouteValue::Number(value) => *value,
+                reactive_expr::RouteValue::Name(constant) => {
+                    if self.states.contains_key(constant) || place_of(constant).is_some() {
+                        return None;
                     }
-                };
-                Some((place, value))
-            })
-            .collect();
-        Route { terms, steps }
+                    *self.constants.get(constant)?
+                }
+            };
+            Some((place, value))
+        };
+        let (terms, remainder, stripped_nodes) = rule.condition.compile_route_expr(&accept);
+        let body = match remainder {
+            None => RouteBody::AlwaysTrue,
+            Some(expr) => RouteBody::Expr {
+                expr,
+                stripped_nodes,
+            },
+        };
+        Route { terms, steps, body }
     }
 
     /// The steps `retain_skipped_effect` spends below a skipped effect: none,
@@ -6206,62 +6323,101 @@ impl ReactiveSession {
         let routes = Arc::clone(&self.rule_routes);
         let windowed = self.windowed();
         // The payload's value for each of the event's declared parameters, by
-        // its place, read once for every route.
-        let mut declared = None;
+        // its place, read once for every route without allocating for small
+        // parameter lists.
+        let mut declared_inline = [None; 8];
+        let mut declared_len = 0usize;
+        let mut declared_heap: Option<Vec<Option<f64>>> = None;
+        let mut declared_ready = false;
         // A rule inherits no lineage.
         let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
             let route = &routes[index];
-            if !route.terms.is_empty()
-                && routed_elsewhere(
-                    &route.terms,
-                    declared.get_or_insert_with(|| self.declared_values(event, payload)),
-                )
-            {
-                #[cfg(debug_assertions)]
-                {
-                    let guard = self.evaluate(&rule.condition, &parameters);
-                    assert!(
-                        matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
-                        "routed-elsewhere rule {index} evaluated to {guard:?}"
-                    );
-                }
-                // Outside a windowed program, the skip below only counts
-                // work, so the rule's steps are counted at once when the
-                // budget holds them all. Otherwise the rule is skipped step by
-                // step, and the work limit refuses it where it always did.
-                if !windowed {
-                    let steps = if self.routed_work { 0 } else { route.steps };
-                    if let Some(remaining) = budget.remaining.checked_sub(steps) {
-                        #[cfg(debug_assertions)]
-                        self.check_counted_skip(&rule.effect, &budget, remaining);
-                        budget.remaining = remaining;
-                        continue;
+            if !route.terms.is_empty() {
+                if !declared_ready {
+                    declared_ready = true;
+                    if let Some(signature) = self.events.get(event) {
+                        if signature.len() <= declared_inline.len() {
+                            declared_len = signature.len();
+                            for (slot, parameter) in
+                                declared_inline[..declared_len].iter_mut().zip(signature)
+                            {
+                                *slot = payload.get(&parameter.name).copied();
+                            }
+                        } else {
+                            declared_heap = Some(self.declared_values(event, payload));
+                        }
                     }
                 }
-                // What `execute_guarded_effect` does with a guard that is
-                // false and rests on nothing: the parameters are plain. With
-                // `work skips other routes;` it counts no work
-                // (spec/caveat-routed-work-0.1.md).
-                let result = if self.routed_work {
-                    self.retain_routed_elsewhere(&rule.effect, &mut budget)
-                } else {
-                    budget.spend().and_then(|()| {
-                        self.retain_skipped_effect(&rule.effect, &nothing, &mut budget)
-                    })
-                };
-                result
-                    .map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
-                continue;
+                let declared_slice = declared_heap
+                    .as_deref()
+                    .unwrap_or(&declared_inline[..declared_len]);
+                if routed_elsewhere(&route.terms, declared_slice) {
+                    #[cfg(debug_assertions)]
+                    {
+                        let guard = self.evaluate(&rule.condition, &parameters);
+                        assert!(
+                            matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
+                            "routed-elsewhere rule {index} evaluated to {guard:?}"
+                        );
+                    }
+                    // Outside a windowed program, the skip below only counts
+                    // work, so the rule's steps are counted at once when the
+                    // budget holds them all. Otherwise the rule is skipped step by
+                    // step, and the work limit refuses it where it always did.
+                    if !windowed {
+                        let steps = if self.routed_work { 0 } else { route.steps };
+                        if let Some(remaining) = budget.remaining.checked_sub(steps) {
+                            #[cfg(debug_assertions)]
+                            self.check_counted_skip(&rule.effect, &budget, remaining);
+                            budget.remaining = remaining;
+                            continue;
+                        }
+                    }
+                    // What `execute_guarded_effect` does with a guard that is
+                    // false and rests on nothing: the parameters are plain. With
+                    // `work skips other routes;` it counts no work
+                    // (spec/caveat-routed-work-0.1.md).
+                    let result = if self.routed_work {
+                        self.retain_routed_elsewhere(&rule.effect, &mut budget)
+                    } else {
+                        budget.spend().and_then(|()| {
+                            self.retain_skipped_effect(&rule.effect, &nothing, &mut budget)
+                        })
+                    };
+                    result.map_err(|error| {
+                        error.context(format!("event {event}, rule {}", index + 1))
+                    })?;
+                    continue;
+                }
             }
-            let result = self.execute_guarded_effect(
-                &rule.condition,
-                &rule.effect,
-                &parameters,
-                &nothing,
-                &mut budget,
-            );
+            let result = match &route.body {
+                RouteBody::AlwaysTrue => {
+                    #[cfg(debug_assertions)]
+                    {
+                        let guard = self.evaluate(&rule.condition, &parameters);
+                        assert!(
+                            matches!(&guard, Ok(guard) if guard.value == Value::Bool(true) && guard.provenance.is_empty()),
+                            "routed-true rule {index} evaluated to {guard:?}"
+                        );
+                    }
+                    budget.spend().and_then(|()| {
+                        self.apply_effect(&rule.effect, &parameters, &nothing, &mut budget)
+                    })
+                }
+                RouteBody::Expr {
+                    expr,
+                    stripped_nodes,
+                } => self.execute_guarded_effect_charged(
+                    expr,
+                    *stripped_nodes,
+                    &rule.effect,
+                    &parameters,
+                    &nothing,
+                    &mut budget,
+                ),
+            };
             result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
         }
         // Retired records nothing pins any more leave, before the bindings
@@ -6465,13 +6621,26 @@ impl ReactiveSession {
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        self.execute_guarded_effect_charged(condition, 0, effect, parameters, inherited, budget)
+    }
+
+    fn execute_guarded_effect_charged(
+        &mut self,
+        condition: &Expr,
+        stripped_nodes: usize,
+        effect: &Effect,
+        parameters: &Parameters<'_>,
+        inherited: &Provenance,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
         budget.spend()?;
         let named = self.has_thresholds.then(|| {
             let mut named = BTreeMap::new();
             condition.collect_thresholds(&mut named);
             named
         });
-        let Tracked { value, provenance } = self.evaluate(condition, parameters)?;
+        let Tracked { value, provenance } =
+            self.evaluate_charged(condition, parameters, stripped_nodes)?;
         let guard = if inherited.holds_nothing() {
             union_with_nothing(provenance)?
         } else {
@@ -6495,7 +6664,16 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers(
+        self.evaluate_charged(expression, parameters, 0)
+    }
+
+    fn evaluate_charged(
+        &self,
+        expression: &Expr,
+        parameters: &Parameters<'_>,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
+        expression.evaluate_tracked_with_identifiers_charged(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
@@ -6519,6 +6697,7 @@ impl ReactiveSession {
             &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
+            stripped_nodes,
         )
     }
 
@@ -6842,15 +7021,31 @@ impl ReactiveSession {
             return Vec::new();
         }
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
+        // Common case: none of the roots has any incoming `qualifies` edge, so
+        // skip allocating visited/caveats sets altogether.
+        if frontier
+            .iter()
+            .all(|&id| self.graph.qualifiers(id).is_empty())
+        {
+            consult(|record| record.reached.extend(frontier.iter().copied()));
+            return Vec::new();
+        }
         let mut visited = HashSet::default();
         let mut caveats = HashSet::default();
         let marks = honor_take_back && !self.taken_back.is_empty();
+        let mut passed = HashMap::default();
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
-            let mut passed = HashMap::default();
-            for link in self.graph.qualifiers(id) {
+            let qualifiers = self.graph.qualifiers(id);
+            if qualifiers.is_empty() {
+                continue;
+            }
+            if marks {
+                passed.clear();
+            }
+            for link in qualifiers {
                 // A taken-back relation no longer qualifies what it names.
                 let count = if marks {
                     self.take_backs_naming(link.other, id)
@@ -7049,6 +7244,32 @@ impl ReactiveSession {
         evidence: &str,
         extras: &[String],
     ) -> Result<Provenance, EvalError> {
+        // Common fast path: when the evidence and every claim it bears on have
+        // no incoming `qualifies` edge (or the graph has none at all), skip
+        // building the roots vector and traversal sets.
+        if extras.is_empty()
+            && (!self.graph.qualifies_any()
+                || (self.graph.qualifiers(id).is_empty()
+                    && self.graph.stance(id).iter().all(|link| {
+                        !matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Claim { .. })
+                        ) || self.graph.qualifiers(link.other).is_empty()
+                    })))
+        {
+            consult(|record| {
+                record.reached.push(id);
+                for link in self.graph.stance(id) {
+                    if matches!(
+                        self.graph.nodes.get(&link.other),
+                        Some(NodeKind::Claim { .. })
+                    ) {
+                        record.reached.push(link.other);
+                    }
+                }
+            });
+            return Provenance::from_shared([self.record_name(id, evidence)], std::iter::empty());
+        }
         // The evidence's name goes ahead of the caveats; the extras follow.
         // Each is the names index's own copy, found by node: the roots list
         // the evidence first, then each extra.
@@ -9683,6 +9904,27 @@ impl ReactiveSession {
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
     fn read_live(&self, provenance: &mut Provenance) -> Result<(), EvalError> {
+        if self.late_caveat_nodes.is_empty() || provenance.evidence.is_empty() {
+            return Ok(());
+        }
+        // Fast check before allocating any sets: most readings carry no
+        // missing late caveats.
+        let late_name = |caveat: NodeId| {
+            self.late_caveat_nodes
+                .binary_search_by_key(&caveat, |&(id, _)| id)
+                .ok()
+                .map(|at| self.late_caveat_nodes[at].1.as_str())
+        };
+        let has_candidate = provenance.evidence.iter().any(|name| {
+            self.symbols.get(name.as_str()).is_some_and(|&evidence| {
+                self.graph.qualifiers(evidence).iter().any(|link| {
+                    late_name(link.other).is_some_and(|caveat| !provenance.caveats.contains(caveat))
+                })
+            })
+        });
+        if !has_candidate {
+            return Ok(());
+        }
         let reached = self
             .live_late_relations(provenance)
             .into_iter()
@@ -9931,13 +10173,16 @@ impl ReactiveSession {
         // A stream's `k`th reading is `STREAM@k`, while the stream holds it:
         // spec/caveat-reading-index-0.1.md.
         if let Some(stream) = self.reading_streams.get(evidence) {
-            let name = format!("{evidence}@{index}");
+            if index > u64::MAX as f64 {
+                return None;
+            }
+            let target = index as u64;
             return stream
                 .occurrences
                 .iter()
-                .any(|occurrence| occurrence.id == name)
-                .then_some(name)
-                .filter(|name| !self.is_retired(name));
+                .find(|occurrence| occurrence.ordinal == target)
+                .filter(|occurrence| !self.is_retired(&occurrence.id))
+                .map(|occurrence| occurrence.id.clone());
         }
         let renewal = self.renewals.get(evidence)?;
         consult(|record| record.renewals.push(consulted_key("", evidence)));

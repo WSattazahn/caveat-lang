@@ -2778,6 +2778,97 @@ impl Expr {
     /// it can read at load; a term whose name reads a plain number unequal to
     /// its value makes the guard false with no dependency, exactly as
     /// evaluating it would find (spec/caveat-routed-work-0.1.md).
+    /// Leading `PARAM == CONST` conjunctions accepted by `accept`, together
+    /// with the remaining condition (`None` when the entire expression was
+    /// consumed by the route or is trivially `true`) and the exact number of
+    /// AST nodes stripped from the front.
+    ///
+    /// Preserves `route_terms()` matching (including thresholds and signed
+    /// literals for `spec/caveat-routed-work-0.1.md`). If any matched term
+    /// contains a `Node::Threshold`, or if stripping would exceed
+    /// `MAX_EVALUATED_NODES`, the compiled `terms` are still returned for
+    /// routed-elsewhere skipping while the full expression is kept for
+    /// matching-route evaluation so threshold collection and node budgets stay
+    /// exact.
+    pub fn compile_route_expr(
+        &self,
+        accept: &impl Fn(&str, &RouteValue) -> Option<(usize, f64)>,
+    ) -> (Vec<(usize, f64)>, Option<Expr>, usize) {
+        fn route_literal(expr: &Expr) -> Option<(f64, usize, bool)> {
+            match &expr.node {
+                Node::Number(number) => Some((number.value(), 1, false)),
+                Node::Threshold(_, number) => Some((number.value(), 1, true)),
+                Node::Unary(Unary::Positive, inner) => {
+                    let (v, n, thr) = route_literal(inner)?;
+                    Some((v, n + 1, thr))
+                }
+                Node::Unary(Unary::Negative, inner) => {
+                    let (v, n, thr) = route_literal(inner)?;
+                    Some((-v, n + 1, thr))
+                }
+                _ => None,
+            }
+        }
+        fn walk(
+            expr: &Expr,
+            accept: &impl Fn(&str, &RouteValue) -> Option<(usize, f64)>,
+        ) -> (Vec<(usize, f64)>, Option<Expr>, usize, bool) {
+            match &expr.node {
+                Node::Bool(true) => (Vec::new(), None, 1, false),
+                Node::Binary(Binary::Equal, left, right) => {
+                    let Node::Variable(name) = &left.node else {
+                        return (Vec::new(), Some(expr.clone()), 0, false);
+                    };
+                    let (value, right_nodes, saw_threshold) =
+                        match (route_literal(right), &right.node) {
+                            (Some((number, n, thr)), _) => (RouteValue::Number(number), n, thr),
+                            (None, Node::Variable(value)) => {
+                                (RouteValue::Name(value.clone()), 1, false)
+                            }
+                            _ => return (Vec::new(), Some(expr.clone()), 0, false),
+                        };
+                    match accept(name, &value) {
+                        Some(term) => (vec![term], None, 2 + right_nodes, saw_threshold),
+                        None => (Vec::new(), Some(expr.clone()), 0, false),
+                    }
+                }
+                Node::Binary(Binary::And, left, right) => {
+                    let (mut terms, left_rem, left_nodes, left_thr) = walk(left, accept);
+                    if let Some(left_rem) = left_rem {
+                        if terms.is_empty() && left_nodes == 0 {
+                            return (Vec::new(), Some(expr.clone()), 0, false);
+                        }
+                        let depth = 1 + left_rem.depth.max(right.depth);
+                        return (
+                            terms,
+                            Some(Expr {
+                                node: Node::Binary(Binary::And, Box::new(left_rem), right.clone()),
+                                depth,
+                            }),
+                            left_nodes,
+                            left_thr,
+                        );
+                    }
+                    let (right_terms, right_rem, right_nodes, right_thr) = walk(right, accept);
+                    terms.extend(right_terms);
+                    (
+                        terms,
+                        right_rem,
+                        left_nodes + 1 + right_nodes,
+                        left_thr || right_thr,
+                    )
+                }
+                _ => (Vec::new(), Some(expr.clone()), 0, false),
+            }
+        }
+        let (terms, remainder, stripped_nodes, saw_threshold) = walk(self, accept);
+        if saw_threshold || stripped_nodes > MAX_EVALUATED_NODES {
+            (terms, Some(self.clone()), 0)
+        } else {
+            (terms, remainder, stripped_nodes)
+        }
+    }
+
     pub fn route_terms(&self) -> Vec<(String, RouteValue)> {
         fn walk(expr: &Expr, out: &mut Vec<(String, RouteValue)>) -> bool {
             match &expr.node {
@@ -3617,7 +3708,38 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
-        self.tracked(numbers, predicate, qualify, history, identifiers, false)
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            false,
+            MAX_EVALUATED_NODES,
+        )
+    }
+
+    /// As `evaluate_tracked_with_identifiers`, with `stripped_nodes` already
+    /// charged against the node evaluation budget (for a compiled route
+    /// prefix whose terms were already checked).
+    pub fn evaluate_tracked_with_identifiers_charged(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+        identifiers: &impl Fn(f64) -> Result<String, String>,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            false,
+            MAX_EVALUATED_NODES.saturating_sub(stripped_nodes),
+        )
     }
 
     /// As `evaluate_tracked_with_identifiers`, for a value's grounds: the
@@ -3632,9 +3754,18 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
-        self.tracked(numbers, predicate, qualify, history, identifiers, true)
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            true,
+            MAX_EVALUATED_NODES,
+        )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tracked(
         &self,
         numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
@@ -3643,13 +3774,14 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
         quiet_conditions: bool,
+        node_budget: usize,
     ) -> Result<Tracked<Value>, EvalError> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
         let provenance = RefCell::new(Provenance::default());
         let budget = Budget {
-            nodes: Cell::new(MAX_EVALUATED_NODES),
+            nodes: Cell::new(node_budget),
             quiet_conditions,
             quiet: Cell::new(false),
             frames: RefCell::new(Vec::new()),

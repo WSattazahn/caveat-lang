@@ -41,27 +41,33 @@ function isPlainObject(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
+function checkPayload(value, at) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new CaveatError('payload', `payload ${at || 'value'} is not a finite number`);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      if (!Object.hasOwn(value, index)) throw new CaveatError('payload', `payload ${at}/${index} is a hole; JSON would send null`);
+      checkPayload(value[index], `${at}/${index}`);
+    }
+    return;
+  }
+  if (isPlainObject(value)) {
+    for (const key in value) {
+      if (Object.hasOwn(value, key)) checkPayload(value[key], `${at}/${key}`);
+    }
+    return;
+  }
+  throw new CaveatError('payload', `payload ${at || 'value'} cannot be sent as JSON`);
+}
+
 // Payloads must survive standard JSON unchanged apart from negative zero, which
 // JSON writes as 0. Anything else (NaN, Infinity, undefined, functions, class
 // instances, holes in arrays) is refused before the session is touched.
 export function payloadText(payload) {
-  const check = (value, at) => {
-    if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
-    if (typeof value === 'number') {
-      if (!Number.isFinite(value)) throw new CaveatError('payload', `payload ${at || 'value'} is not a finite number`);
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index++) {
-        if (!Object.hasOwn(value, index)) throw new CaveatError('payload', `payload ${at}/${index} is a hole; JSON would send null`);
-        check(value[index], `${at}/${index}`);
-      }
-      return;
-    }
-    if (isPlainObject(value)) { for (const [key, item] of Object.entries(value)) check(item, `${at}/${key}`); return; }
-    throw new CaveatError('payload', `payload ${at || 'value'} cannot be sent as JSON`);
-  };
-  check(payload, '');
+  checkPayload(payload, '');
   return JSON.stringify(payload);
 }
 
@@ -152,7 +158,29 @@ const WHOLE = new Set(['cues', 'effects']);
 
 function deepFreeze(value) {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
-    for (const key of Object.keys(value)) deepFreeze(value[key]);
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i += 1) deepFreeze(value[i]);
+    } else {
+      for (const key in value) {
+        if (Object.hasOwn(value, key)) deepFreeze(value[key]);
+      }
+    }
+    Object.freeze(value);
+  }
+  return value;
+}
+
+// Freeze a freshly JSON.parse'd tree: every node is an own-property object or
+// array and not yet frozen.
+function deepFreezeNew(value) {
+  if (value !== null && typeof value === 'object') {
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i += 1) deepFreezeNew(value[i]);
+    } else {
+      for (const key in value) {
+        if (Object.hasOwn(value, key)) deepFreezeNew(value[key]);
+      }
+    }
     Object.freeze(value);
   }
   return value;
@@ -170,13 +198,23 @@ function own(object, key) {
 
 function patchedMap(held, change, nested) {
   if (!isPlainObject(change) || !isPlainObject(change.set)) throw new TypeError('malformed map change');
+  if (change.keys === undefined && held !== undefined && held !== null && !Object.hasOwn(held, '__proto__')) {
+    const result = { ...held };
+    const { set } = change;
+    for (const key in set) {
+      if (!Object.hasOwn(set, key) || !Object.hasOwn(held, key)) continue;
+      const entry = set[key];
+      result[key] = nested ? patchedMap(held[key], entry, false) : deepFreezeNew(entry);
+    }
+    return Object.freeze(result);
+  }
   const keys = change.keys ?? Object.keys(held ?? {});
   if (!Array.isArray(keys)) throw new TypeError('malformed map keys');
   const result = {};
   for (const key of keys) {
     if (Object.hasOwn(change.set, key)) {
       const entry = change.set[key];
-      put(result, key, nested ? patchedMap(own(held, key), entry, false) : deepFreeze(entry));
+      put(result, key, nested ? patchedMap(own(held, key), entry, false) : deepFreezeNew(entry));
     } else {
       if (held === undefined || held === null || !Object.hasOwn(held, key)) throw new TypeError(`map key ${JSON.stringify(key)} is neither held nor set`);
       put(result, key, held[key]);
@@ -197,7 +235,7 @@ function patchedList(held, change) {
     }
     if (allNewAfter) {
       const result = held.slice(start, start + length);
-      for (let i = 1; i < items.length; i += 1) result.push(deepFreeze(items[i]));
+      for (let i = 1; i < items.length; i += 1) result.push(deepFreezeNew(items[i]));
       return Object.freeze(result);
     }
   }
@@ -208,7 +246,7 @@ function patchedList(held, change) {
       if (!held || !Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length < 1 || start + length > held.length) throw new TypeError('malformed list run');
       for (let index = start; index < start + length; index += 1) result.push(held[index]);
     } else {
-      result.push(deepFreeze(item));
+      result.push(deepFreezeNew(item));
     }
   }
   return Object.freeze(result);
@@ -216,6 +254,16 @@ function patchedList(held, change) {
 
 // Commitments are a list in the view and a map by action in the patch.
 function patchedCommitments(held, change) {
+  if (!isPlainObject(change) || !isPlainObject(change.set)) throw new TypeError('malformed map change');
+  if (change.keys === undefined && held) {
+    const { set } = change;
+    const result = new Array(held.length);
+    for (let i = 0; i < held.length; i += 1) {
+      const commitment = held[i];
+      result[i] = Object.hasOwn(set, commitment.action) ? deepFreezeNew(set[commitment.action]) : commitment;
+    }
+    return Object.freeze(result);
+  }
   let byAction;
   if (held) {
     byAction = {};
@@ -237,7 +285,7 @@ function patchedView(held, patch) {
       view[name] = base[name];
     } else if (WHOLE.has(name)) {
       if (!isPlainObject(change) || !Object.hasOwn(change, 'value')) throw new TypeError('malformed whole change');
-      view[name] = deepFreeze(change.value);
+      view[name] = deepFreezeNew(change.value);
     } else if (LISTS.has(name)) {
       view[name] = patchedList(base?.[name], change);
     } else if (name === 'commitments') {

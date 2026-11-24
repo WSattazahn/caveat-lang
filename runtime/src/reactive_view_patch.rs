@@ -11,8 +11,8 @@
 //! order, so the same JSON text.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    relation_name, BindingGroup, BindingValue, DecisionSeries, JournalEntry, NameTable,
-    ReactiveSession,
+    relation_name, BindingGroup, BindingValue, DecisionSeries, EffectReport, JournalEntry,
+    NameTable, ReactiveSession,
 };
 use super::{DISPATCH_SCHEMA, REACTIVE_VIEW_SCHEMA};
 use crate::chunked::Chunked;
@@ -21,7 +21,8 @@ use crate::reactive_expr::Provenance;
 use crate::{Edge, EpistemicGraph, NodeId, NodeKind, Relation};
 use serde::Serialize;
 use serde_json::value::RawValue;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::io::Write;
 use std::sync::Arc;
 
 pub const REACTIVE_VIEW_PATCH_SCHEMA: &str = "caveat-reactive-view-patch/0.1";
@@ -120,7 +121,7 @@ pub(super) struct PatchParts {
     bindings: Nested<BindingValue>,
     binding_explanations: Nested<Provenance>,
     cues: String,
-    effects: String,
+    effects: Vec<EffectReport>,
     commitments: BTreeMap<String, MapCommitment>,
     commitment_grounds: Arc<BTreeMap<String, Provenance>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
@@ -190,6 +191,76 @@ impl ReactiveSession {
             }
         }
     }
+
+    /// `dispatch_view_patch_outcome_json_from` serialized straight to JSON,
+    /// avoiding intermediate `RawValue` strings and JSON re-validation on the
+    /// hot WebAssembly path. Byte-for-byte identical to serializing
+    /// `dispatch_view_patch_outcome_json_from`.
+    pub fn dispatch_view_patch_outcome_text_from(
+        &mut self,
+        base: &mut ViewPatchBase,
+        held: Option<u64>,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<String, DispatchFatal> {
+        let since = self.sequence;
+        let before = match (base.0.take(), held) {
+            (Some((sequence, parts)), Some(held)) if sequence == since && held == since => {
+                Some(parts)
+            }
+            _ => None,
+        };
+        match self.dispatch_classified(event, payload_json, agent) {
+            Ok(()) => {
+                let given = before.is_some().then_some(since);
+                let mut out = Vec::with_capacity(2048);
+                out.extend_from_slice(br#"{"schema":""#);
+                out.extend_from_slice(DISPATCH_SCHEMA.as_bytes());
+                out.extend_from_slice(br#"","outcome":"accepted","patch":{"schema":""#);
+                out.extend_from_slice(REACTIVE_VIEW_PATCH_SCHEMA.as_bytes());
+                out.extend_from_slice(br#"","since":"#);
+                match given {
+                    Some(seq) => {
+                        let _ = write!(out, "{seq}");
+                    }
+                    None => out.extend_from_slice(b"null"),
+                }
+                out.extend_from_slice(br#","view_schema":""#);
+                out.extend_from_slice(REACTIVE_VIEW_SCHEMA.as_bytes());
+                out.extend_from_slice(br#"","sequence":"#);
+                let _ = write!(out, "{}", self.sequence);
+                out.extend_from_slice(br#","last_event":"#);
+                serde_json::to_writer(&mut out, &self.last_event).expect("finite last_event");
+                out.extend_from_slice(br#","members":{"#);
+                let parts = match before {
+                    Some(mut parts) => {
+                        parts.sync_json(self, false, &mut out);
+                        parts
+                    }
+                    None => {
+                        let mut parts = PatchParts::new(self);
+                        parts.sync_json(self, true, &mut out);
+                        parts
+                    }
+                };
+                out.extend_from_slice(b"}}}");
+                base.0 = Some((self.sequence, parts));
+                Ok(String::from_utf8(out).expect("serde_json produces valid UTF-8"))
+            }
+            Err(failure) => {
+                let outcome = patch_outcome(failure);
+                if outcome.is_ok() {
+                    if let Some(parts) = before {
+                        base.0 = Some((since, parts));
+                    }
+                }
+                outcome.map(|outcome| {
+                    serde_json::to_string(&outcome).expect("serializable rejected outcome")
+                })
+            }
+        }
+    }
 }
 
 fn patch_outcome(failure: DispatchFailure) -> Result<DispatchViewPatchOutcome, DispatchFatal> {
@@ -247,6 +318,38 @@ fn same_binding(a: &BindingValue, b: &BindingValue) -> bool {
     }
 }
 
+/// Equal `EffectReport` values, comparing sample numbers by bits so `-0`
+/// stays apart from `0` without serializing both sides to JSON.
+fn same_effect(a: &EffectReport, b: &EffectReport) -> bool {
+    match (a, b) {
+        (
+            EffectReport::Sample {
+                stream: s1,
+                id: i1,
+                value: v1,
+                relation: r1,
+                target: t1,
+                note: n1,
+            },
+            EffectReport::Sample {
+                stream: s2,
+                id: i2,
+                value: v2,
+                relation: r2,
+                target: t2,
+                note: n2,
+            },
+        ) => {
+            v1.to_bits() == v2.to_bits() && s1 == s2 && i1 == i2 && r1 == r2 && t1 == t2 && n1 == n2
+        }
+        _ => a == b,
+    }
+}
+
+fn same_effects(a: &[EffectReport], b: &[EffectReport]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same_effect(x, y))
+}
+
 impl PatchParts {
     /// Parts that hold nothing yet: the first `sync`, with `full`, fills them.
     fn new(session: &ReactiveSession) -> Self {
@@ -254,7 +357,7 @@ impl PatchParts {
             bindings: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
             cues: String::new(),
-            effects: String::new(),
+            effects: Vec::new(),
             commitments: BTreeMap::new(),
             commitment_grounds: Arc::clone(&session.commitment_grounds),
             decision_series: Arc::clone(&session.decision_series),
@@ -314,10 +417,15 @@ impl PatchParts {
             );
         }
         put("cues", sync_whole_list(&mut self.cues, &session.cues, full));
-        put(
-            "effects",
-            sync_whole_list(&mut self.effects, &session.effects, full),
-        );
+        if full || !same_effects(&self.effects, &session.effects) {
+            self.effects.clone_from(&session.effects);
+            put(
+                "effects",
+                Some(MemberChange::Whole {
+                    value: raw(&session.effects),
+                }),
+            );
+        }
 
         let old_symbols = std::mem::replace(&mut self.symbols, session.symbols.clone());
         let symbols_changed = !old_symbols.shares_all(&self.symbols);
@@ -559,6 +667,361 @@ impl PatchParts {
             );
         }
         members
+    }
+
+    /// Bring the parts up to date with `session` and stream the `members`
+    /// object body straight to `out` in strict `BTreeMap` member order:
+    /// `binding_explanations`, `bindings`, `commitment_grounds`, `commitments`,
+    /// `cues`, `decision_journal`, `decision_series`, `effects`, `relations`.
+    fn sync_json(&mut self, session: &ReactiveSession, full: bool, out: &mut Vec<u8>) {
+        let mut first = true;
+
+        // 1. binding_explanations
+        if full {
+            write_member_head(out, &mut first, "binding_explanations");
+            write_nested_full(
+                out,
+                &mut self.binding_explanations,
+                &session.binding_explanations,
+            );
+        } else if !session.last_binding_groups.is_empty() {
+            write_nested_touched(
+                out,
+                &mut first,
+                "binding_explanations",
+                &mut self.binding_explanations,
+                &session.binding_explanations,
+                &session.binding_groups,
+                &session.last_binding_groups,
+                &|old, new| old == new,
+            );
+        }
+
+        // 2. bindings
+        if full {
+            write_member_head(out, &mut first, "bindings");
+            write_nested_full(out, &mut self.bindings, &session.bindings);
+        } else if !session.last_binding_groups.is_empty() {
+            write_nested_touched(
+                out,
+                &mut first,
+                "bindings",
+                &mut self.bindings,
+                &session.bindings,
+                &session.binding_groups,
+                &session.last_binding_groups,
+                &same_binding,
+            );
+        }
+
+        // 3. commitment_grounds
+        let old_grounds = std::mem::replace(
+            &mut self.commitment_grounds,
+            Arc::clone(&session.commitment_grounds),
+        );
+        if full || !Arc::ptr_eq(&old_grounds, &self.commitment_grounds) {
+            write_map_changes(
+                out,
+                &mut first,
+                "commitment_grounds",
+                (!full).then_some(old_grounds.as_ref()),
+                &self.commitment_grounds,
+                &|old, new| old == new,
+            );
+        }
+
+        // Prepare graph / symbol deltas once for commitments (4) and relations (9).
+        let old_symbols = std::mem::replace(&mut self.symbols, session.symbols.clone());
+        let symbols_changed = !old_symbols.shares_all(&self.symbols);
+        let old_graph = std::mem::replace(&mut self.graph, Arc::clone(&session.graph));
+        let graph_changed = !Arc::ptr_eq(&old_graph, &self.graph);
+        let names_kept = !full && (!symbols_changed || old_symbols.kept_in(&self.symbols));
+        let edges_appended = !full && self.graph.edges.starts_with(&old_graph.edges);
+
+        // 4. commitments
+        if full || graph_changed || symbols_changed {
+            if names_kept && edges_appended && old_graph.origins.shares_all(&self.graph.origins) {
+                let mut changed = Vec::new();
+                let mut removed = false;
+                old_graph.nodes.diff(&self.graph.nodes, |id, old, new| {
+                    if matches!(old, Some(NodeKind::Commitment { .. }))
+                        && !matches!(new, Some(NodeKind::Commitment { .. }))
+                    {
+                        removed = true;
+                        return false;
+                    }
+                    if matches!(new, Some(NodeKind::Commitment { .. })) {
+                        changed.push(id);
+                    }
+                    true
+                });
+                if removed {
+                    let live = session
+                        .commitment_records(|id| self.symbols.name_of(*id))
+                        .into_iter()
+                        .map(|commitment| (commitment.action.clone(), commitment))
+                        .collect::<BTreeMap<_, _>>();
+                    write_sync_map(
+                        out,
+                        &mut first,
+                        "commitments",
+                        &mut self.commitments,
+                        &live,
+                        false,
+                        &|old, new| old == new,
+                    );
+                } else {
+                    for edge in self.graph.edges.iter_from(old_graph.edges.len()) {
+                        match edge.relation {
+                            Relation::Retains => changed.push(edge.from),
+                            Relation::Reopens => changed.push(edge.to),
+                            _ => {}
+                        }
+                    }
+                    if !changed.is_empty() {
+                        changed.sort_unstable();
+                        changed.dedup();
+                        let mut keys_changed = false;
+                        let mut set_actions = BTreeSet::new();
+                        let name_of = |id: &NodeId| self.symbols.name_of(*id);
+                        for id in changed {
+                            let Some(record) = session.commitment_record(id, &name_of) else {
+                                continue;
+                            };
+                            let action = record.action.clone();
+                            match self.commitments.get_mut(&action) {
+                                Some(known) if *known == record => {}
+                                Some(known) => {
+                                    *known = record;
+                                    set_actions.insert(action);
+                                }
+                                None => {
+                                    keys_changed = true;
+                                    self.commitments.insert(action.clone(), record);
+                                    set_actions.insert(action);
+                                }
+                            }
+                        }
+                        if keys_changed || !set_actions.is_empty() {
+                            write_member_head(out, &mut first, "commitments");
+                            out.push(b'{');
+                            if keys_changed {
+                                write_keys_field(out, self.commitments.keys().map(String::as_str));
+                                out.push(b',');
+                            }
+                            out.extend_from_slice(br#""set":{"#);
+                            for (idx, action) in set_actions.iter().enumerate() {
+                                if idx > 0 {
+                                    out.push(b',');
+                                }
+                                serde_json::to_writer(&mut *out, action).expect("finite string");
+                                out.push(b':');
+                                serde_json::to_writer(&mut *out, &self.commitments[action])
+                                    .expect("finite commitment");
+                            }
+                            out.extend_from_slice(b"}}");
+                        }
+                    }
+                }
+            } else {
+                let live = session
+                    .commitment_records(|id| self.symbols.name_of(*id))
+                    .into_iter()
+                    .map(|commitment| (commitment.action.clone(), commitment))
+                    .collect::<BTreeMap<_, _>>();
+                write_sync_map(
+                    out,
+                    &mut first,
+                    "commitments",
+                    &mut self.commitments,
+                    &live,
+                    full,
+                    &|old, new| old == new,
+                );
+            }
+        }
+
+        // 5. cues
+        if full || !(session.cues.is_empty() && self.cues == "[]") {
+            let now = if session.cues.is_empty() {
+                "[]".to_owned()
+            } else {
+                text(&session.cues)
+            };
+            if full || self.cues != now {
+                write_member_head(out, &mut first, "cues");
+                out.extend_from_slice(br#"{"value":"#);
+                out.extend_from_slice(now.as_bytes());
+                out.push(b'}');
+                self.cues = now;
+            }
+        }
+
+        // 6. decision_journal
+        let old_journal = std::mem::replace(&mut self.decision_journal, session.journal.clone());
+        if full {
+            write_member_head(out, &mut first, "decision_journal");
+            out.extend_from_slice(br#"{"items":["#);
+            for (idx, entry) in self.decision_journal.iter().enumerate() {
+                if idx > 0 {
+                    out.push(b',');
+                }
+                serde_json::to_writer(&mut *out, entry).expect("finite journal entry");
+            }
+            out.extend_from_slice(b"]}");
+        } else if !self.decision_journal.shares_all(&old_journal) {
+            if self
+                .decision_journal
+                .starts_with_by(&old_journal, same_journal_entry)
+            {
+                let old_len = old_journal.len();
+                let new_len = self.decision_journal.len();
+                if old_len != new_len {
+                    write_member_head(out, &mut first, "decision_journal");
+                    out.extend_from_slice(br#"{"items":["#);
+                    let mut first_item = true;
+                    if old_len > 0 {
+                        let _ = write!(out, "[0,{old_len}]");
+                        first_item = false;
+                    }
+                    for entry in self.decision_journal.iter_from(old_len) {
+                        if !first_item {
+                            out.push(b',');
+                        }
+                        first_item = false;
+                        serde_json::to_writer(&mut *out, entry).expect("finite journal entry");
+                    }
+                    out.extend_from_slice(b"]}");
+                }
+            } else {
+                let old_entries = old_journal.iter().collect::<Vec<_>>();
+                let new_entries = self.decision_journal.iter().collect::<Vec<_>>();
+                write_list_changes(
+                    out,
+                    &mut first,
+                    "decision_journal",
+                    Some(&old_entries),
+                    &new_entries,
+                    |old, new| std::ptr::eq(*old, *new) || same_journal_entry(old, new),
+                    |out, entry| {
+                        serde_json::to_writer(&mut *out, *entry).expect("finite journal entry");
+                    },
+                );
+            }
+        }
+
+        // 7. decision_series
+        let old_series = std::mem::replace(
+            &mut self.decision_series,
+            Arc::clone(&session.decision_series),
+        );
+        if full || !Arc::ptr_eq(&old_series, &self.decision_series) {
+            write_map_changes(
+                out,
+                &mut first,
+                "decision_series",
+                (!full).then_some(old_series.as_ref()),
+                &self.decision_series,
+                &same_decision_series,
+            );
+        }
+
+        // 8. effects
+        if full || !same_effects(&self.effects, &session.effects) {
+            self.effects.clone_from(&session.effects);
+            write_member_head(out, &mut first, "effects");
+            out.extend_from_slice(br#"{"value":"#);
+            serde_json::to_writer(&mut *out, &session.effects).expect("finite effects");
+            out.push(b'}');
+        }
+
+        // 9. relations
+        if full || graph_changed || symbols_changed {
+            if full {
+                write_member_head(out, &mut first, "relations");
+                out.extend_from_slice(br#"{"items":["#);
+                for (idx, edge) in self.graph.edges.iter().enumerate() {
+                    if idx > 0 {
+                        out.push(b',');
+                    }
+                    write_relation(out, &self.symbols, edge);
+                }
+                out.extend_from_slice(b"]}");
+            } else if edges_appended && names_kept {
+                let old_len = old_graph.edges.len();
+                let new_len = self.graph.edges.len();
+                if old_len != new_len {
+                    write_member_head(out, &mut first, "relations");
+                    out.extend_from_slice(br#"{"items":["#);
+                    let mut first_item = true;
+                    if old_len > 0 {
+                        let _ = write!(out, "[0,{old_len}]");
+                        first_item = false;
+                    }
+                    for edge in self.graph.edges.iter_from(old_len) {
+                        if !first_item {
+                            out.push(b',');
+                        }
+                        first_item = false;
+                        write_relation(out, &self.symbols, edge);
+                    }
+                    out.extend_from_slice(b"]}");
+                }
+            } else {
+                let edges = |old: &&Edge, new: &&Edge| {
+                    old.from == new.from && old.to == new.to && old.relation == new.relation
+                };
+                let old_edges = old_graph.edges.iter().collect::<Vec<_>>();
+                let new_edges = self.graph.edges.iter().collect::<Vec<_>>();
+                if !symbols_changed {
+                    write_list_changes(
+                        out,
+                        &mut first,
+                        "relations",
+                        Some(&old_edges),
+                        &new_edges,
+                        edges,
+                        |out, edge| write_relation(out, &self.symbols, edge),
+                    );
+                } else {
+                    write_list_changes(
+                        out,
+                        &mut first,
+                        "relations",
+                        Some(&old_edges),
+                        &new_edges,
+                        |old, new| {
+                            edges(old, new)
+                                && old_symbols.name_of(old.from) == self.symbols.name_of(new.from)
+                                && old_symbols.name_of(old.to) == self.symbols.name_of(new.to)
+                        },
+                        |out, edge| write_relation(out, &self.symbols, edge),
+                    );
+                }
+            }
+        }
+
+        #[cfg(debug_assertions)]
+        if !full {
+            debug_assert_eq!(
+                text(&self.bindings),
+                text(&session.bindings),
+                "PatchParts::sync_json bindings drifted from session"
+            );
+            debug_assert_eq!(
+                self.binding_explanations, session.binding_explanations,
+                "PatchParts::sync_json binding_explanations drifted from session"
+            );
+            let live_commitments = session
+                .commitment_records(|id| self.symbols.name_of(*id))
+                .into_iter()
+                .map(|c| (c.action.clone(), c))
+                .collect::<BTreeMap<_, _>>();
+            debug_assert_eq!(
+                self.commitments, live_commitments,
+                "PatchParts::sync_json commitments drifted from session"
+            );
+        }
     }
 }
 
@@ -814,6 +1277,418 @@ fn relation(symbols: &NameTable, edge: &Edge) -> MapRelation {
     }
 }
 
+#[derive(Serialize)]
+struct BorrowedRelation<'a> {
+    from: &'a str,
+    relation: &'static str,
+    to: &'a str,
+    origin: &'static str,
+}
+
+fn write_relation(out: &mut Vec<u8>, symbols: &NameTable, edge: &Edge) {
+    let rel = BorrowedRelation {
+        from: symbols.name_of(edge.from).expect("a named node"),
+        to: symbols.name_of(edge.to).expect("a named node"),
+        relation: relation_name(edge.relation),
+        origin: "live",
+    };
+    serde_json::to_writer(&mut *out, &rel).expect("finite relation");
+}
+
+fn write_member_head(out: &mut Vec<u8>, first: &mut bool, name: &str) {
+    if !*first {
+        out.push(b',');
+    }
+    *first = false;
+    out.push(b'"');
+    out.extend_from_slice(name.as_bytes());
+    out.extend_from_slice(br#"":"#);
+}
+
+fn write_keys_field<'a>(out: &mut Vec<u8>, keys: impl Iterator<Item = &'a str>) {
+    out.extend_from_slice(br#""keys":["#);
+    for (idx, key) in keys.enumerate() {
+        if idx > 0 {
+            out.push(b',');
+        }
+        serde_json::to_writer(&mut *out, key).expect("finite key");
+    }
+    out.push(b']');
+}
+
+fn write_nested_full<V: Clone + Serialize>(
+    out: &mut Vec<u8>,
+    held: &mut Nested<V>,
+    live: &Nested<V>,
+) {
+    held.clone_from(live);
+    out.push(b'{');
+    write_keys_field(out, live.keys().map(String::as_str));
+    out.extend_from_slice(br#","set":{"#);
+    for (i, (target, props)) in live.iter().enumerate() {
+        if i > 0 {
+            out.push(b',');
+        }
+        serde_json::to_writer(&mut *out, target).expect("finite key");
+        out.extend_from_slice(b":{");
+        write_keys_field(out, props.keys().map(String::as_str));
+        out.extend_from_slice(br#","set":{"#);
+        for (j, (prop, val)) in props.iter().enumerate() {
+            if j > 0 {
+                out.push(b',');
+            }
+            serde_json::to_writer(&mut *out, prop).expect("finite key");
+            out.push(b':');
+            serde_json::to_writer(&mut *out, val).expect("finite value");
+        }
+        out.extend_from_slice(b"}}");
+    }
+    out.extend_from_slice(b"}}");
+}
+
+#[allow(clippy::too_many_arguments)]
+fn write_nested_touched<V: Clone + Serialize>(
+    out: &mut Vec<u8>,
+    first: &mut bool,
+    member: &str,
+    held: &mut Nested<V>,
+    live: &Nested<V>,
+    groups: &[BindingGroup],
+    touched: &[usize],
+    same: &dyn Fn(&V, &V) -> bool,
+) {
+    // Fast path: all touched binding groups belong to one target (the common
+    // case on routed events), avoiding intermediate BTreeMap allocations.
+    if let Some((&first_group, rest)) = touched.split_first() {
+        let target = groups[first_group].target.as_str();
+        if rest.iter().all(|&g| groups[g].target == target) {
+            let existed = held.contains_key(target);
+            let mut inner_keys_changed = false;
+            let mut prop_set: Vec<(&str, &V)> = Vec::with_capacity(touched.len());
+            for &group in touched {
+                let property = groups[group].property.as_str();
+                let live_value = live.get(target).and_then(|props| props.get(property));
+                let held_value = held.get(target).and_then(|props| props.get(property));
+                match (held_value, live_value) {
+                    (Some(known), Some(value)) if same(known, value) => {}
+                    (Some(_), Some(value)) => {
+                        *held
+                            .get_mut(target)
+                            .expect("target held")
+                            .get_mut(property)
+                            .expect("property held") = value.clone();
+                        prop_set.push((property, value));
+                    }
+                    (None, Some(value)) => {
+                        held.entry(target.to_owned())
+                            .or_default()
+                            .insert(property.to_owned(), value.clone());
+                        inner_keys_changed = true;
+                        prop_set.push((property, value));
+                    }
+                    (Some(_), None) => {
+                        let empty = {
+                            let props = held.get_mut(target).expect("target held");
+                            props.remove(property);
+                            props.is_empty()
+                        };
+                        if empty {
+                            held.remove(target);
+                        }
+                        inner_keys_changed = true;
+                    }
+                    (None, None) => {}
+                }
+            }
+            let live_props = live.get(target);
+            let outer_keys_changed = live_props.is_some() != existed;
+            if let Some(live_props) = live_props {
+                if !existed {
+                    inner_keys_changed = true;
+                }
+                if !outer_keys_changed && !inner_keys_changed && prop_set.is_empty() {
+                    return;
+                }
+                if prop_set.len() > 1 {
+                    prop_set.sort_unstable_by_key(|(k, _)| *k);
+                    prop_set.dedup_by_key(|(k, _)| *k);
+                }
+                write_member_head(out, first, member);
+                out.push(b'{');
+                if outer_keys_changed {
+                    write_keys_field(out, live.keys().map(String::as_str));
+                    out.push(b',');
+                }
+                out.extend_from_slice(br#""set":{"#);
+                if inner_keys_changed || !prop_set.is_empty() {
+                    serde_json::to_writer(&mut *out, target).expect("finite key");
+                    out.extend_from_slice(b":{");
+                    if inner_keys_changed {
+                        write_keys_field(out, live_props.keys().map(String::as_str));
+                        out.push(b',');
+                    }
+                    out.extend_from_slice(br#""set":{"#);
+                    for (j, (prop, val)) in prop_set.into_iter().enumerate() {
+                        if j > 0 {
+                            out.push(b',');
+                        }
+                        serde_json::to_writer(&mut *out, prop).expect("finite key");
+                        out.push(b':');
+                        serde_json::to_writer(&mut *out, val).expect("finite value");
+                    }
+                    out.extend_from_slice(b"}}");
+                }
+                out.extend_from_slice(b"}}");
+            } else if outer_keys_changed {
+                write_member_head(out, first, member);
+                out.push(b'{');
+                write_keys_field(out, live.keys().map(String::as_str));
+                out.extend_from_slice(br#","set":{}}"#);
+            }
+            return;
+        }
+    }
+    let mut existed_before: BTreeMap<&str, bool> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        existed_before
+            .entry(target)
+            .or_insert_with(|| held.contains_key(target));
+    }
+    let mut per_target: BTreeMap<&str, (bool, BTreeMap<&str, &V>)> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        let property = groups[group].property.as_str();
+        let live_value = live.get(target).and_then(|props| props.get(property));
+        let held_value = held.get(target).and_then(|props| props.get(property));
+        match (held_value, live_value) {
+            (Some(known), Some(value)) if same(known, value) => {}
+            (Some(_), Some(value)) => {
+                *held
+                    .get_mut(target)
+                    .expect("target held")
+                    .get_mut(property)
+                    .expect("property held") = value.clone();
+                per_target
+                    .entry(target)
+                    .or_default()
+                    .1
+                    .insert(property, value);
+            }
+            (None, Some(value)) => {
+                held.entry(target.to_owned())
+                    .or_default()
+                    .insert(property.to_owned(), value.clone());
+                let entry = per_target.entry(target).or_default();
+                entry.0 = true;
+                entry.1.insert(property, value);
+            }
+            (Some(_), None) => {
+                let empty = {
+                    let props = held.get_mut(target).expect("target held");
+                    props.remove(property);
+                    props.is_empty()
+                };
+                if empty {
+                    held.remove(target);
+                }
+                per_target.entry(target).or_default().0 = true;
+            }
+            (None, None) => {}
+        }
+    }
+    let mut outer_keys_changed = false;
+    for (&target, &had) in &existed_before {
+        if live.contains_key(target) != had {
+            outer_keys_changed = true;
+            break;
+        }
+    }
+    let mut active = Vec::new();
+    for (target, (mut inner_keys_changed, prop_set)) in per_target {
+        let Some(live_props) = live.get(target) else {
+            continue;
+        };
+        if !existed_before[target] {
+            inner_keys_changed = true;
+        }
+        if inner_keys_changed || !prop_set.is_empty() {
+            active.push((target, inner_keys_changed, live_props, prop_set));
+        }
+    }
+    if !outer_keys_changed && active.is_empty() {
+        return;
+    }
+    write_member_head(out, first, member);
+    out.push(b'{');
+    if outer_keys_changed {
+        write_keys_field(out, live.keys().map(String::as_str));
+        out.push(b',');
+    }
+    out.extend_from_slice(br#""set":{"#);
+    for (i, (target, inner_keys_changed, live_props, prop_set)) in active.into_iter().enumerate() {
+        if i > 0 {
+            out.push(b',');
+        }
+        serde_json::to_writer(&mut *out, target).expect("finite key");
+        out.extend_from_slice(b":{");
+        if inner_keys_changed {
+            write_keys_field(out, live_props.keys().map(String::as_str));
+            out.push(b',');
+        }
+        out.extend_from_slice(br#""set":{"#);
+        for (j, (prop, val)) in prop_set.into_iter().enumerate() {
+            if j > 0 {
+                out.push(b',');
+            }
+            serde_json::to_writer(&mut *out, prop).expect("finite key");
+            out.push(b':');
+            serde_json::to_writer(&mut *out, val).expect("finite value");
+        }
+        out.extend_from_slice(b"}}");
+    }
+    out.extend_from_slice(b"}}");
+}
+
+fn write_sync_map<V: Clone + Serialize>(
+    out: &mut Vec<u8>,
+    first: &mut bool,
+    member: &str,
+    held: &mut BTreeMap<String, V>,
+    live: &BTreeMap<String, V>,
+    full: bool,
+    same: &dyn Fn(&V, &V) -> bool,
+) {
+    let keys_changed = full || !held.keys().eq(live.keys());
+    if keys_changed {
+        held.retain(|key, _| live.contains_key(key));
+    }
+    let mut changed: Vec<(&str, &V)> = Vec::new();
+    for (key, value) in live {
+        match held.get_mut(key) {
+            Some(known) if same(known, value) => {}
+            Some(known) => {
+                *known = value.clone();
+                changed.push((key.as_str(), value));
+            }
+            None => {
+                held.insert(key.clone(), value.clone());
+                changed.push((key.as_str(), value));
+            }
+        }
+    }
+    if !keys_changed && changed.is_empty() {
+        return;
+    }
+    write_member_head(out, first, member);
+    out.push(b'{');
+    if keys_changed {
+        write_keys_field(out, live.keys().map(String::as_str));
+        out.push(b',');
+    }
+    out.extend_from_slice(br#""set":{"#);
+    for (idx, (key, value)) in changed.into_iter().enumerate() {
+        if idx > 0 {
+            out.push(b',');
+        }
+        serde_json::to_writer(&mut *out, key).expect("finite key");
+        out.push(b':');
+        serde_json::to_writer(&mut *out, value).expect("finite value");
+    }
+    out.extend_from_slice(b"}}");
+}
+
+fn write_map_changes<V: Serialize>(
+    out: &mut Vec<u8>,
+    first: &mut bool,
+    member: &str,
+    before: Option<&BTreeMap<String, V>>,
+    after: &BTreeMap<String, V>,
+    same: &dyn Fn(&V, &V) -> bool,
+) {
+    let keys_changed = before.is_none_or(|old| !old.keys().eq(after.keys()));
+    let mut changed: Vec<(&str, &V)> = Vec::new();
+    for (key, new) in after {
+        if !before
+            .and_then(|old| old.get(key))
+            .is_some_and(|known| same(known, new))
+        {
+            changed.push((key.as_str(), new));
+        }
+    }
+    if !keys_changed && changed.is_empty() {
+        return;
+    }
+    write_member_head(out, first, member);
+    out.push(b'{');
+    if keys_changed {
+        write_keys_field(out, after.keys().map(String::as_str));
+        out.push(b',');
+    }
+    out.extend_from_slice(br#""set":{"#);
+    for (idx, (key, value)) in changed.into_iter().enumerate() {
+        if idx > 0 {
+            out.push(b',');
+        }
+        serde_json::to_writer(&mut *out, key).expect("finite key");
+        out.push(b':');
+        serde_json::to_writer(&mut *out, value).expect("finite value");
+    }
+    out.extend_from_slice(b"}}");
+}
+
+fn write_list_changes<T>(
+    out: &mut Vec<u8>,
+    first: &mut bool,
+    member: &str,
+    before: Option<&[T]>,
+    after: &[T],
+    same: impl Fn(&T, &T) -> bool,
+    render: impl Fn(&mut Vec<u8>, &T),
+) {
+    let old = before.unwrap_or_default();
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut run: Option<(usize, usize)> = None;
+    let mut kept = 0;
+    for (position, entry) in old.iter().enumerate() {
+        if kept < after.len() && same(entry, &after[kept]) {
+            kept += 1;
+            run = match run {
+                Some((start, length)) if start + length == position => Some((start, length + 1)),
+                Some(done) => {
+                    runs.push(done);
+                    Some((position, 1))
+                }
+                None => Some((position, 1)),
+            };
+        }
+    }
+    if before.is_some() && kept == old.len() && kept == after.len() {
+        return;
+    }
+    if let Some(done) = run {
+        runs.push(done);
+    }
+    write_member_head(out, first, member);
+    out.extend_from_slice(br#"{"items":["#);
+    let mut first_item = true;
+    for (start, length) in runs {
+        if !first_item {
+            out.push(b',');
+        }
+        first_item = false;
+        let _ = write!(out, "[{start},{length}]");
+    }
+    for entry in &after[kept..] {
+        if !first_item {
+            out.push(b',');
+        }
+        first_item = false;
+        render(out, entry);
+    }
+    out.extend_from_slice(b"]}");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -933,7 +1808,9 @@ mod tests {
     fn verify_sequence(source: &str, events: &[(&str, &str)]) {
         let mut plain = ReactiveSession::from_source(source).unwrap();
         let mut patched = ReactiveSession::from_source(source).unwrap();
+        let mut streamed = ReactiveSession::from_source(source).unwrap();
         let mut base = ViewPatchBase::default();
+        let mut base_text = ViewPatchBase::default();
         let mut held: Option<Value> = None;
         for &(event, payload) in events {
             let expected_raw =
@@ -948,6 +1825,10 @@ mod tests {
                     .unwrap(),
             )
             .unwrap();
+            let streamed_raw = streamed
+                .dispatch_view_patch_outcome_text_from(&mut base_text, seq, event, payload, None)
+                .unwrap();
+            assert_eq!(streamed_raw, patch_raw, "streamed != structured on {event} {payload}");
             let patch_outcome: Value = serde_json::from_str(&patch_raw).unwrap();
             if patch_outcome["outcome"] == "accepted" {
                 let view = apply_patch(held.as_ref(), &patch_outcome["patch"]);
@@ -1031,5 +1912,62 @@ bind hist.count = history_count(r);
                 ("set_x", r#"{"v":5}"#),
             ],
         );
+    }
+
+    #[test]
+    fn streaming_view_patch_matches_structured_patch_byte_for_byte() {
+        let source = r#"
+claim ok;
+place p kind site;
+entity a kind item at p;
+caveat c consequence material;
+evidence e from "sensor";
+readings r from e limit 4;
+decisions d limit 4 reopened by r;
+event sample v min -1 max 1;
+event flag;
+event unflag;
+event decide;
+on sample sample r = v supports ok;
+on flag qualify latest(r) with c;
+on unflag unqualify latest(r) with c;
+on decide commit d because enough using latest(r);
+bind a.count = history_count(r);
+bind a.val = latest(r) when has_sample(r);
+"#;
+        let mut s_struct = ReactiveSession::from_source(source).unwrap();
+        let mut s_text = ReactiveSession::from_source(source).unwrap();
+        let mut base_struct = ViewPatchBase::default();
+        let mut base_text = ViewPatchBase::default();
+        let mut held = None;
+        let events = [
+            ("sample", r#"{"v":0}"#),
+            ("sample", r#"{"v":-0.0}"#),
+            ("decide", r#"{}"#),
+            ("flag", r#"{}"#),
+            ("unflag", r#"{}"#),
+            ("decide", r#"{}"#), // rejected: not reopened
+            ("sample", r#"{"v":1}"#),
+            ("decide", r#"{}"#),
+        ];
+        for (event, payload) in events {
+            let structured = serde_json::to_string(
+                &s_struct
+                    .dispatch_view_patch_outcome_json_from(
+                        &mut base_struct,
+                        held,
+                        event,
+                        payload,
+                        None,
+                    )
+                    .unwrap(),
+            )
+            .unwrap();
+            let streamed = s_text
+                .dispatch_view_patch_outcome_text_from(&mut base_text, held, event, payload, None)
+                .unwrap();
+            assert_eq!(streamed, structured, "mismatch on event {event} {payload}");
+            held = Some(s_text.sequence);
+        }
     }
 }
