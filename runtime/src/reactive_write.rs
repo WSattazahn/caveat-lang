@@ -454,12 +454,9 @@ impl SealedGraph {
     }
 
     /// What this event did to the graph, where `old` is the session it began
-    /// from: the edges it added, and the nodes it added or changed. `None` if
-    /// it removed a node or changed an edge `old` holds.
-    pub(super) fn added_since<'a>(
-        &'a self,
-        old: &Self,
-    ) -> Option<(Vec<&'a Edge>, BTreeSet<NodeId>)> {
+    /// from: the edges it added, and the nodes it added or changed (in node
+    /// order). `None` if it removed a node or changed an edge `old` holds.
+    pub(super) fn added_since<'a>(&'a self, old: &Self) -> Option<(Vec<&'a Edge>, Vec<NodeId>)> {
         let found = added(&self.graph, &old.graph, self.written.only());
         #[cfg(debug_assertions)]
         if self.written.only().is_some() {
@@ -479,7 +476,7 @@ fn added<'a>(
     new: &'a EpistemicGraph,
     old: &EpistemicGraph,
     written: Option<&BTreeSet<NodeId>>,
-) -> Option<(Vec<&'a Edge>, BTreeSet<NodeId>)> {
+) -> Option<(Vec<&'a Edge>, Vec<NodeId>)> {
     let edges = match written {
         Some(_) if new.edges.len() >= old.edges.len() => {
             new.edges.iter_from(old.edges.len()).collect()
@@ -488,12 +485,12 @@ fn added<'a>(
         None if new.edges.starts_with(&old.edges) => new.edges.iter_from(old.edges.len()).collect(),
         None => return None,
     };
-    let mut nodes = BTreeSet::new();
+    let mut nodes = Vec::new();
     let mut check = |id: NodeId| -> Option<()> {
         match (old.nodes.get(&id), new.nodes.get(&id)) {
             (Some(_), None) => return None,
             (previous, Some(node)) if previous != Some(node) => {
-                nodes.insert(id);
+                nodes.push(id);
             }
             _ => {}
         }
@@ -1728,7 +1725,7 @@ mod tests {
         assert!(session.graph.unchanged_since(&before.graph));
         assert_eq!(
             session.graph.added_since(&before.graph),
-            Some((Vec::new(), BTreeSet::new()))
+            Some((Vec::new(), Vec::new()))
         );
         session.set_node_attention(c, Attention::Examined);
         session.relate(e, Relation::Supports, ok);
@@ -1742,7 +1739,7 @@ mod tests {
         };
         assert_eq!(
             session.graph.added_since(&before.graph),
-            Some((vec![&supports], BTreeSet::from([c])))
+            Some((vec![&supports], vec![c]))
         );
         // The copy taken before the event is untouched.
         assert!(!before.graph.edges.iter().any(|edge| *edge == supports));
@@ -1933,12 +1930,14 @@ bind h.few = latest(few) when has_sample(few);
             session.graph.written.only(),
             Some(&BTreeSet::from([c, claim, caveat, commitment]))
         );
+        let mut expected = vec![c, claim, caveat, commitment];
+        expected.sort_unstable();
         assert_eq!(
             session
                 .graph
                 .added_since(&before.graph)
                 .map(|(_, nodes)| nodes),
-            Some(BTreeSet::from([c, claim, caveat, commitment]))
+            Some(expected)
         );
         // Past 32 nodes the log gives up, and the check reads every node.
         for n in 0..28 {
@@ -2155,7 +2154,8 @@ bind h.few = latest(few) when has_sample(few);
     fn an_event_logs_every_container_from_before_its_first_rule() {
         let mut session = ReactiveSession::from_source(
             "claim ok;\nevidence e from \"tool\";\nstate a = 0;\nevent see v min 0 max 1;\n\
-             on see reveal e supports ok;\non see set a = 1 / v;\n",
+             on see reveal e supports ok;\non see set a = 1 / v;\n\
+             bind x.seen = 1 when observed(e);\n",
         )
         .unwrap();
         let old = session.clone();
@@ -2180,6 +2180,29 @@ bind h.few = latest(few) when has_sample(few);
         assert_eq!(session.commitment_grounds.written(), Some(&nothing));
         assert_eq!(session.examination_qualifications.written(), Some(&nothing));
         assert_eq!(session.reopening_qualifications.written(), Some(&nothing));
+    }
+
+    #[test]
+    fn a_program_with_no_bindings_leaves_write_logs_closed() {
+        let mut session = ReactiveSession::from_source(
+            "claim ok;\nevidence e from \"tool\";\nstate a = 0;\nevent see v min 0 max 1;\n\
+             on see reveal e supports ok;\non see set a = 1 / v;\n",
+        )
+        .unwrap();
+        let old = session.clone();
+        // Stopping mid-event before `end_write_log` proves the logs were never
+        // opened when the program has no bindings.
+        assert!(session
+            .run_event(&old, "see", &BTreeMap::from([(String::from("v"), 0.0)]))
+            .is_err());
+        assert_eq!(session.graph.written.only(), None);
+        assert_eq!(session.observation_qualifications.written(), None);
+        assert_eq!(session.reading_streams.written(), None);
+        assert_eq!(session.decision_series.written(), None);
+        assert_eq!(session.commitment_bases.written(), None);
+        assert_eq!(session.commitment_grounds.written(), None);
+        assert_eq!(session.examination_qualifications.written(), None);
+        assert_eq!(session.reopening_qualifications.written(), None);
     }
 
     #[test]
