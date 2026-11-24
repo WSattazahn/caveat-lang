@@ -1828,7 +1828,10 @@ mod tests {
             let streamed_raw = streamed
                 .dispatch_view_patch_outcome_text_from(&mut base_text, seq, event, payload, None)
                 .unwrap();
-            assert_eq!(streamed_raw, patch_raw, "streamed != structured on {event} {payload}");
+            assert_eq!(
+                streamed_raw, patch_raw,
+                "streamed != structured on {event} {payload}"
+            );
             let patch_outcome: Value = serde_json::from_str(&patch_raw).unwrap();
             if patch_outcome["outcome"] == "accepted" {
                 let view = apply_patch(held.as_ref(), &patch_outcome["patch"]);
