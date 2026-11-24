@@ -730,6 +730,12 @@ impl NameSet {
         self.position(name.as_ref()).is_ok()
     }
 
+    /// Whether the set holds `name`. A copy of a held name is found without
+    /// comparing its text.
+    pub fn contains_name(&self, name: &Name) -> bool {
+        self.find(name).is_ok()
+    }
+
     /// Whether every name here is also in `other`.
     pub fn is_subset(&self, other: &Self) -> bool {
         self.shares(other)
@@ -1622,6 +1628,23 @@ pub struct Expr {
     node: Node,
     depth: usize,
 }
+
+// Keep `Node` and `Expr` compact on both 32-bit WebAssembly (32 / 36 bytes)
+// and 64-bit native targets (64 / 72 bytes). Storing parsed numbers must not
+// bump `Node`'s alignment to 8 bytes on wasm32 (which would grow `Expr` to 48).
+const _: () = {
+    assert!(std::mem::align_of::<Number>() <= 4);
+    #[cfg(target_pointer_width = "32")]
+    {
+        assert!(std::mem::size_of::<Node>() == 32);
+        assert!(std::mem::size_of::<Expr>() == 36);
+    }
+    #[cfg(target_pointer_width = "64")]
+    {
+        assert!(std::mem::size_of::<Node>() == 64);
+        assert!(std::mem::size_of::<Expr>() == 72);
+    }
+};
 
 /// A pure source function with numeric parameters. Definitions may refer to other functions
 /// in any declaration order, but cannot capture state or graph predicates.
@@ -4027,51 +4050,49 @@ impl Expr {
                 }
             }
             Node::Function(function, arguments) => {
-                let arguments = arguments
-                    .iter()
-                    .map(|argument| {
-                        argument
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
-                            .number()
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
+                let mut evaluated = [0.0_f64; 2];
+                for (slot, argument) in evaluated.iter_mut().zip(arguments.iter()) {
+                    *slot = argument
+                        .evaluate_values(
+                            numbers,
+                            predicate,
+                            qualify,
+                            history,
+                            identifiers,
+                            remaining,
+                        )?
+                        .number()?;
+                }
                 let result = match function {
-                    Function::Sin => arguments[0].sin(),
-                    Function::Cos => arguments[0].cos(),
+                    Function::Sin => evaluated[0].sin(),
+                    Function::Cos => evaluated[0].cos(),
                     Function::Sqrt => {
-                        if arguments[0] < 0.0 {
+                        if evaluated[0] < 0.0 {
                             return Err(EvalError::new(
                                 EvalFailure::Domain,
                                 "sqrt requires a nonnegative number",
                             ));
                         }
-                        arguments[0].sqrt()
+                        evaluated[0].sqrt()
                     }
-                    Function::Atan2 => arguments[0].atan2(arguments[1]),
-                    Function::Floor => arguments[0].floor(),
-                    Function::Ceil => arguments[0].ceil(),
-                    Function::Round => arguments[0].round(),
+                    Function::Atan2 => evaluated[0].atan2(evaluated[1]),
+                    Function::Floor => evaluated[0].floor(),
+                    Function::Ceil => evaluated[0].ceil(),
+                    Function::Round => evaluated[0].round(),
                     Function::Text => {
-                        return Ok(Value::Text(if arguments[0] == 0.0 {
+                        return Ok(Value::Text(if evaluated[0] == 0.0 {
                             "0".into()
                         } else {
-                            arguments[0].to_string()
+                            evaluated[0].to_string()
                         }))
                     }
                     // Handle 0 is "no identifier"; any other number that is
                     // not a handle the host holds is outside the domain.
-                    Function::IdText if arguments[0] == 0.0 => {
+                    Function::IdText if evaluated[0] == 0.0 => {
                         return Ok(Value::Text(String::new()))
                     }
                     Function::IdText => {
-                        return Ok(Value::Text(identifiers(arguments[0]).map_err(
+                        return Ok(Value::Text(identifiers(evaluated[0]).map_err(
                             |message| EvalError::new(EvalFailure::Domain, message),
                         )?))
                     }
@@ -5262,8 +5283,8 @@ impl Expander<'_> {
                     },
                 )
             }
-            Node::Number(number) => Node::Number(number.clone()),
-            Node::Threshold(name, number) => Node::Threshold(name.clone(), number.clone()),
+            Node::Number(number) => Node::Number(*number),
+            Node::Threshold(name, number) => Node::Threshold(name.clone(), *number),
             Node::Elapsed => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture the runtime clock".into());
@@ -7137,5 +7158,23 @@ mod tests {
             .message
             .contains("name bytes"));
         assert_eq!(empty, Provenance::default());
+    }
+
+    #[test]
+    fn expr_and_node_sizes_stay_compact_with_stored_numbers() {
+        // Keeping a parsed number directly in `Number` must not bump `Node`'s
+        // alignment to 8 bytes on 32-bit targets (wasm32), which would grow
+        // `Expr` from 36 to 48 bytes.
+        assert!(std::mem::align_of::<Number>() <= 4);
+        #[cfg(target_pointer_width = "32")]
+        {
+            assert_eq!(std::mem::size_of::<Node>(), 32);
+            assert_eq!(std::mem::size_of::<Expr>(), 36);
+        }
+        #[cfg(target_pointer_width = "64")]
+        {
+            assert_eq!(std::mem::size_of::<Node>(), 64);
+            assert_eq!(std::mem::size_of::<Expr>(), 72);
+        }
     }
 }

@@ -1178,6 +1178,61 @@ impl StateCell {
     }
 }
 
+/// A compact set of small dense load-time indices (state slots or history ids).
+/// Holds indices 0..64 inline with no heap allocation, spilling to `rest` only
+/// for programs with more than 64 states or histories.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SlotBits {
+    first: u64,
+    rest: Vec<u64>,
+}
+
+impl SlotBits {
+    #[inline]
+    fn insert(&mut self, slot: usize) {
+        if slot < 64 {
+            self.first |= 1_u64 << slot;
+        } else {
+            let word = (slot >> 6) - 1;
+            if self.rest.len() <= word {
+                self.rest.resize(word + 1, 0);
+            }
+            self.rest[word] |= 1_u64 << (slot & 63);
+        }
+    }
+
+    #[inline]
+    #[cfg(test)]
+    fn is_empty(&self) -> bool {
+        self.first == 0 && self.rest.is_empty()
+    }
+
+    #[inline]
+    #[cfg(test)]
+    fn contains(&self, slot: usize) -> bool {
+        if slot < 64 {
+            (self.first & (1_u64 << slot)) != 0
+        } else {
+            let word = (slot >> 6) - 1;
+            self.rest
+                .get(word)
+                .is_some_and(|bits| (bits & (1_u64 << (slot & 63))) != 0)
+        }
+    }
+
+    #[inline]
+    fn intersects(&self, other: &Self) -> bool {
+        (self.first & other.first) != 0
+            || (!self.rest.is_empty()
+                && !other.rest.is_empty()
+                && self
+                    .rest
+                    .iter()
+                    .zip(&other.rest)
+                    .any(|(left, right)| (left & right) != 0))
+    }
+}
+
 /// Every declared state, in a slot fixed at load. A transaction's copy shares
 /// every cell until an effect writes one, so an event copies only the states
 /// it changes, and comparing before with after checks pointers first.
@@ -1229,18 +1284,18 @@ impl States {
         Arc::make_mut(&mut Arc::make_mut(&mut self.cells)[slot])
     }
 
-    /// The states whose value, lineage or grounds differ from `old`'s.
-    fn changed_since(&self, old: &Self) -> HashSet<String> {
+    /// The slots of states whose value, lineage or grounds differ from `old`'s.
+    fn changed_since(&self, old: &Self) -> SlotBits {
+        let mut changed = SlotBits::default();
         if Arc::ptr_eq(&self.cells, &old.cells) {
-            return HashSet::default();
+            return changed;
         }
-        self.cells
-            .iter()
-            .zip(old.cells.iter())
-            .enumerate()
-            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && !new.same(old))
-            .map(|(slot, _)| self.names[slot].clone())
-            .collect()
+        for (slot, (new, old)) in self.cells.iter().zip(old.cells.iter()).enumerate() {
+            if !Arc::ptr_eq(new, old) && !new.same(old) {
+                changed.insert(slot);
+            }
+        }
+        changed
     }
 
     fn values(&self) -> BTreeMap<String, QualifiedValue> {
@@ -1428,12 +1483,23 @@ type Shown = (
 struct BindingGroup {
     target: String,
     property: String,
-    reads: Reads,
+    /// Declared state slots this group can read (constants never change).
+    states: SlotBits,
+    /// Queries the epistemic graph, a reading stream or a decision series.
+    graph: bool,
+    /// Reads the session clock independently of numeric state and the graph.
+    clock: bool,
+    /// Could read anything; never skip it.
+    anything: bool,
     /// When every graph read names a reading stream or decision series:
-    /// those histories. A graph change that touches none of them, and none
-    /// of the records every value's caveats are read from, leaves the group
-    /// as it was. `None` for any other graph read.
-    histories: Option<BTreeSet<String>>,
+    /// their load-time history ids. A graph change that touches none of them,
+    /// and none of the records every value's caveats are read from, leaves
+    /// the group as it was. `None` for any other graph read.
+    histories: Option<SlotBits>,
+    /// Indices into `binding_rules` belonging to this group, in source order.
+    rules: Vec<usize>,
+    /// Position of this group in `(target, property)` name order.
+    order_rank: usize,
     /// `number`, `boolean` or `text`: one type for every declaration.
     value_type: &'static str,
 }
@@ -1504,57 +1570,76 @@ fn consulted_key(kind: &str, name: &str) -> u64 {
     crate::fast_hash::FastState::default().hash_one((kind, name))
 }
 
+#[inline]
+fn push_unique<T: PartialEq>(items: &mut Vec<T>, value: T) {
+    if !items.contains(&value) {
+        items.push(value);
+    }
+}
+
 /// What one event changed of the qualification state a read of any history
-/// can reach, when every change was an addition this can name.
+/// can reach, when every change was an addition this can name. Stored by node
+/// id, pre-hashed consulted key and shared record name so checking every
+/// history-scoped binding group avoids copying or re-hashing text.
 #[derive(Debug, Default)]
 struct Requalified {
     /// The node each new `qualifies` relation names, the evidence of each new
     /// take-back, and the evidence of each new `supports` or `opposes`
     /// relation, whose claims it now bears on.
-    nodes: BTreeSet<NodeId>,
-    /// The names of the nodes new `qualifies` relations and take-backs name.
-    relations: BTreeSet<String>,
-    /// The evidence of each new withdrawal.
-    withdrawn: BTreeSet<String>,
-    /// Each predicate dependency added, changed or cleared.
-    predicates: BTreeSet<(String, String)>,
-    /// Each renewable evidence whose occurrences changed.
-    renewed: BTreeSet<String>,
+    nodes: Vec<NodeId>,
+    /// The names of the nodes new `qualifies` relations, take-backs and
+    /// withdrawals name, sharing the names index's copy when live.
+    listed: Vec<Name>,
+    /// `consulted_key("", evidence)` for each new withdrawal.
+    withdrawals: Vec<u64>,
+    /// `consulted_key(kind, name)` for each predicate dependency added,
+    /// changed or cleared.
+    predicates: Vec<u64>,
+    /// `consulted_key("", evidence)` for each renewable evidence whose
+    /// occurrences changed.
+    renewals: Vec<u64>,
 }
 
 impl Requalified {
     fn is_empty(&self) -> bool {
         self.nodes.is_empty()
-            && self.relations.is_empty()
-            && self.withdrawn.is_empty()
+            && self.listed.is_empty()
+            && self.withdrawals.is_empty()
             && self.predicates.is_empty()
-            && self.renewed.is_empty()
+            && self.renewals.is_empty()
     }
 
     /// Whether this changed anything `consulted` holds.
     fn reaches(&self, consulted: &Consulted) -> bool {
+        if self.is_empty() {
+            return false;
+        }
         let noted = |keys: &[u64], key: u64| keys.binary_search(&key).is_ok();
-        self.nodes
-            .iter()
-            .any(|&node| noted(&consulted.reached, node))
-            || consulted.listed.iter().any(|listed| {
-                self.relations
+        (!self.nodes.is_empty()
+            && self
+                .nodes
+                .iter()
+                .any(|&node| noted(&consulted.reached, node)))
+            || (!self.listed.is_empty()
+                && consulted
+                    .listed
                     .iter()
-                    .chain(&self.withdrawn)
-                    .any(|name| listed.contains(name))
-            })
-            || self
-                .withdrawn
-                .iter()
-                .any(|name| noted(&consulted.withdrawals, consulted_key("", name)))
-            || self
-                .predicates
-                .iter()
-                .any(|(kind, name)| noted(&consulted.predicates, consulted_key(kind, name)))
-            || self
-                .renewed
-                .iter()
-                .any(|evidence| noted(&consulted.renewals, consulted_key("", evidence)))
+                    .any(|listed| self.listed.iter().any(|name| listed.contains_name(name))))
+            || (!self.withdrawals.is_empty()
+                && self
+                    .withdrawals
+                    .iter()
+                    .any(|&key| noted(&consulted.withdrawals, key)))
+            || (!self.predicates.is_empty()
+                && self
+                    .predicates
+                    .iter()
+                    .any(|&key| noted(&consulted.predicates, key)))
+            || (!self.renewals.is_empty()
+                && self
+                    .renewals
+                    .iter()
+                    .any(|&key| noted(&consulted.renewals, key)))
     }
 }
 
@@ -1619,17 +1704,18 @@ fn consulting<T>(slot: Option<usize>, evaluate: impl FnOnce() -> T) -> T {
     evaluate()
 }
 
-/// What one event changed that an expression can read: states whose value,
-/// lineage or grounds differ, and whether anything the graph queries read
-/// (graph, observation and predicate records, commitments, histories) did.
+/// What one event changed that an expression can read: state slots whose
+/// value, lineage or grounds differ, and whether anything the graph queries
+/// read (graph, observation and predicate records, commitments, histories) did.
 struct Changes {
-    names: HashSet<String>,
+    states: SlotBits,
     graph: bool,
     clock: bool,
-    /// When the graph changed: the reading streams and decision series whose
-    /// records changed, if every change belongs to one of them or to nothing
-    /// a history read reaches. `None` when a change could reach any of them.
-    histories: Option<BTreeSet<String>>,
+    /// When the graph changed: the load-time ids of the reading streams and
+    /// decision series whose records changed, if every change belongs to one
+    /// of them or to nothing a history read reaches. `None` when a change
+    /// could reach any of them.
+    histories: Option<SlotBits>,
     /// With `histories`: what changed of the qualification state any history
     /// read can reach. It reaches a group only if the group consulted it.
     requalified: Requalified,
@@ -1646,44 +1732,47 @@ impl Changes {
             old.check_observations();
             new.check_observations();
         }
-        let names = new.states.changed_since(&old.states);
+        let states = new.states.changed_since(&old.states);
         // Copy-on-write fields an event never wrote still share their pointer.
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
-        let graph = !new.graph.unchanged_since(&old.graph)
-            || !(old.symbols.shares_all(&new.symbols) || old.symbols == new.symbols)
-            || old.observations != new.observations
-            || !new
-                .observation_qualifications
-                .unchanged_since(&old.observation_qualifications)
-            || !new
-                .examination_qualifications
-                .unchanged_since(&old.examination_qualifications)
-            || !new
-                .reopening_qualifications
-                .unchanged_since(&old.reopening_qualifications)
-            || !same(&old.predicate_qualifications, &new.predicate_qualifications)
-            || !new.commitment_bases.unchanged_since(&old.commitment_bases)
-            || !new
-                .commitment_grounds
-                .unchanged_since(&old.commitment_grounds)
-            || !new.reading_streams.unchanged_since(&old.reading_streams)
-            || !new.decision_series.unchanged_since(&old.decision_series)
-            || !same(&old.renewals, &new.renewals)
-            || !same(&old.retired, &new.retired)
-            || !same(&old.taken_back, &new.taken_back)
-            || !same(&old.withdrawals, &new.withdrawals);
-        let (histories, requalified) = if graph {
+        let graph = new.bindings_read_graph
+            && (!new.graph.unchanged_since(&old.graph)
+                || !(old.symbols.shares_all(&new.symbols) || old.symbols == new.symbols)
+                || old.observations != new.observations
+                || !new
+                    .observation_qualifications
+                    .unchanged_since(&old.observation_qualifications)
+                || !new
+                    .examination_qualifications
+                    .unchanged_since(&old.examination_qualifications)
+                || !new
+                    .reopening_qualifications
+                    .unchanged_since(&old.reopening_qualifications)
+                || !same(&old.predicate_qualifications, &new.predicate_qualifications)
+                || !new.commitment_bases.unchanged_since(&old.commitment_bases)
+                || !new
+                    .commitment_grounds
+                    .unchanged_since(&old.commitment_grounds)
+                || !new.reading_streams.unchanged_since(&old.reading_streams)
+                || !new.decision_series.unchanged_since(&old.decision_series)
+                || !same(&old.renewals, &new.renewals)
+                || !same(&old.retired, &new.retired)
+                || !same(&old.taken_back, &new.taken_back)
+                || !same(&old.withdrawals, &new.withdrawals));
+        let (histories, requalified) = if graph && new.bindings_scoped_to_histories {
             match Self::histories_between(old, new) {
                 Some((histories, requalified)) => (Some(histories), requalified),
                 None => (None, Requalified::default()),
             }
+        } else if !graph {
+            (Some(SlotBits::default()), Requalified::default())
         } else {
-            (Some(BTreeSet::new()), Requalified::default())
+            (None, Requalified::default())
         };
         Self {
-            names,
+            states,
             graph,
             // Signed zero is observable, for example through atan2.
             clock: old.elapsed.to_bits() != new.elapsed.to_bits(),
@@ -1706,7 +1795,7 @@ impl Changes {
     fn histories_between(
         old: &ReactiveSession,
         new: &ReactiveSession,
-    ) -> Option<(BTreeSet<String>, Requalified)> {
+    ) -> Option<(SlotBits, Requalified)> {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
@@ -1731,7 +1820,7 @@ impl Changes {
                 match old.renewals.get(evidence) {
                     Some(previous) if previous == renewal => {}
                     Some(_) => {
-                        requalified.renewed.insert(evidence.clone());
+                        push_unique(&mut requalified.renewals, consulted_key("", evidence));
                     }
                     None => return None,
                 }
@@ -1740,13 +1829,30 @@ impl Changes {
         // Take-backs and withdrawals are only added to here.
         if !Arc::ptr_eq(&old.taken_back, &new.taken_back) {
             for record in new.taken_back.strip_prefix(old.taken_back.as_slice())? {
-                requalified.nodes.extend(new.symbols.get(&record.evidence));
-                requalified.relations.insert(record.evidence.clone());
+                let name = match new.symbols.get(&record.evidence) {
+                    Some(&id) => {
+                        push_unique(&mut requalified.nodes, id);
+                        new.symbols
+                            .shared_name_of(id)
+                            .unwrap_or_else(|| Name::from(record.evidence.as_str()))
+                    }
+                    None => Name::from(record.evidence.as_str()),
+                };
+                push_unique(&mut requalified.listed, name);
             }
         }
         if !Arc::ptr_eq(&old.withdrawals, &new.withdrawals) {
             for withdrawal in new.withdrawals.strip_prefix(old.withdrawals.as_slice())? {
-                requalified.withdrawn.insert(withdrawal.evidence.clone());
+                let name = new
+                    .symbols
+                    .get(&withdrawal.evidence)
+                    .and_then(|&id| new.symbols.shared_name_of(id))
+                    .unwrap_or_else(|| Name::from(withdrawal.evidence.as_str()));
+                push_unique(&mut requalified.listed, name);
+                push_unique(
+                    &mut requalified.withdrawals,
+                    consulted_key("", &withdrawal.evidence),
+                );
             }
         }
         if !Arc::ptr_eq(&old.predicate_qualifications, &new.predicate_qualifications) {
@@ -1754,7 +1860,7 @@ impl Changes {
             for (kind, targets) in new.iter() {
                 for (name, dependency) in targets {
                     if old.get(kind).and_then(|targets| targets.get(name)) != Some(dependency) {
-                        requalified.predicates.insert((kind.clone(), name.clone()));
+                        push_unique(&mut requalified.predicates, consulted_key(kind, name));
                     }
                 }
             }
@@ -1764,39 +1870,39 @@ impl Changes {
                         .get(kind)
                         .is_none_or(|targets| !targets.contains_key(name))
                     {
-                        requalified.predicates.insert((kind.clone(), name.clone()));
+                        push_unique(&mut requalified.predicates, consulted_key(kind, name));
                     }
                 }
             }
         }
-        // The history a record belongs to: a history itself, or `NAME@N`.
-        let history_of = |name: &str| -> Option<String> {
-            let is_history = |name: &str| {
-                new.reading_streams.contains_key(name) || new.decision_series.contains_key(name)
-            };
-            if is_history(name) {
-                return Some(name.to_string());
+        // The history id a record belongs to: a history itself, or `NAME@N`.
+        let history_of = |name: &str| -> Option<usize> {
+            if let Some(&slot) = new.history_slots.get(name) {
+                return Some(slot);
             }
             let (history, ordinal) = name.rsplit_once('@')?;
-            (is_history(history) && ordinal.bytes().all(|byte| byte.is_ascii_digit()))
-                .then(|| history.to_string())
+            let &slot = new.history_slots.get(history)?;
+            ordinal
+                .bytes()
+                .all(|byte| byte.is_ascii_digit())
+                .then_some(slot)
         };
-        let mut changed = BTreeSet::new();
+        let mut changed = SlotBits::default();
         // Keyed records: every changed key must place in a history. Only the
         // records the event wrote can differ, when its log says which.
         fn keyed<M: RecordMap>(
             old: &Logged<M>,
             new: &Logged<M>,
             added_only: bool,
-            place: &dyn Fn(&str) -> Option<String>,
-            changed: &mut BTreeSet<String>,
+            place: &dyn Fn(&str) -> Option<Option<usize>>,
+            changed: &mut SlotBits,
         ) -> Option<()>
         where
             M::Value: Same,
         {
             #[cfg(debug_assertions)]
             if new.written().is_some() {
-                let (mut logged, mut every) = (BTreeSet::new(), BTreeSet::new());
+                let (mut logged, mut every) = (SlotBits::default(), SlotBits::default());
                 assert_eq!(
                     places(old, new, new.written(), added_only, place, &mut logged)
                         .map(|()| logged),
@@ -1814,8 +1920,8 @@ impl Changes {
             new: &Logged<M>,
             written: Option<&BTreeSet<String>>,
             added_only: bool,
-            place: &dyn Fn(&str) -> Option<String>,
-            changed: &mut BTreeSet<String>,
+            place: &dyn Fn(&str) -> Option<Option<usize>>,
+            changed: &mut SlotBits,
         ) -> Option<()>
         where
             M::Value: Same,
@@ -1827,7 +1933,9 @@ impl Changes {
                     (Some(_), None) => return None,
                     (Some(_), Some(_)) if added_only => return None,
                     (_, Some(_)) => {
-                        changed.insert(place(name)?);
+                        if let Some(slot) = place(name)? {
+                            changed.insert(slot);
+                        }
                     }
                 }
                 Some(())
@@ -1849,12 +1957,13 @@ impl Changes {
             }
             Some(())
         }
+        let placed = |name: &str| history_of(name).map(Some);
         if !Arc::ptr_eq(&old.reading_streams, &new.reading_streams) {
             keyed(
                 &old.reading_streams,
                 &new.reading_streams,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1863,7 +1972,7 @@ impl Changes {
                 &old.decision_series,
                 &new.decision_series,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1872,7 +1981,7 @@ impl Changes {
                 &old.commitment_bases,
                 &new.commitment_bases,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1881,7 +1990,7 @@ impl Changes {
                 &old.commitment_grounds,
                 &new.commitment_grounds,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1890,7 +1999,7 @@ impl Changes {
                 &old.reopening_qualifications,
                 &new.reopening_qualifications,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1900,7 +2009,7 @@ impl Changes {
             &old.observation_qualifications,
             &new.observation_qualifications,
         ) {
-            let anywhere = |name: &str| Some(history_of(name).unwrap_or_default());
+            let anywhere = |name: &str| Some(history_of(name));
             keyed(
                 &old.observation_qualifications,
                 &new.observation_qualifications,
@@ -1922,59 +2031,58 @@ impl Changes {
             // `opposes` edge makes its evidence bear on a claim, whose
             // caveats the evidence then carries.
             let (added, nodes) = new.graph.added_since(&old.graph)?;
-            let mut touched = HashSet::default();
-            let mut qualified = HashSet::default();
+            let mut mark_touched = |id: NodeId| {
+                if let Some(name) = new.symbols.name_of(id) {
+                    if let Some(slot) = history_of(name) {
+                        changed.insert(slot);
+                    }
+                }
+            };
             for edge in added {
                 match edge.relation {
                     Relation::Qualifies => {
-                        qualified.insert(edge.to);
+                        push_unique(&mut requalified.nodes, edge.to);
+                        if let Some(name) = new.symbols.shared_name_of(edge.to) {
+                            push_unique(&mut requalified.listed, name);
+                        }
                     }
                     Relation::Supports | Relation::Opposes => {
-                        requalified.nodes.insert(edge.from);
-                        touched.extend([edge.from, edge.to]);
+                        push_unique(&mut requalified.nodes, edge.from);
+                        mark_touched(edge.from);
+                        mark_touched(edge.to);
                     }
-                    _ => touched.extend([edge.from, edge.to]),
+                    _ => {
+                        mark_touched(edge.from);
+                        mark_touched(edge.to);
+                    }
                 }
             }
-            touched.extend(nodes);
-            for name in touched.iter().filter_map(|&id| new.symbols.name_of(id)) {
-                if let Some(history) = history_of(name) {
-                    changed.insert(history);
-                }
+            for id in nodes {
+                mark_touched(id);
             }
-            for name in qualified.iter().filter_map(|&id| new.symbols.name_of(id)) {
-                requalified.relations.insert(name.to_string());
-            }
-            requalified.nodes.extend(qualified);
         }
-        changed.remove("");
         Some((changed, requalified))
     }
 
-    /// Whether a group that reads `reads` must be evaluated again. One scoped
-    /// to `histories` is when one of them changed, or when the qualification
-    /// state changed in something its last evaluation `consulted`; without
-    /// that record, when the qualification state changed at all.
-    fn touch(
-        &self,
-        reads: &Reads,
-        histories: Option<&BTreeSet<String>>,
-        consulted: Option<&Consulted>,
-    ) -> bool {
-        reads.anything
-            || (reads.graph
+    /// Whether `group` must be evaluated again. One scoped to `histories` is
+    /// when one of them changed, or when the qualification state changed in
+    /// something its last evaluation `consulted`; without that record, when
+    /// the qualification state changed at all.
+    fn touch(&self, group: &BindingGroup, consulted: Option<&Consulted>) -> bool {
+        group.anything
+            || (group.graph
                 && self.graph
-                && match (histories, &self.histories) {
+                && match (&group.histories, &self.histories) {
                     (Some(read), Some(changed)) => {
-                        read.iter().any(|name| changed.contains(name))
+                        changed.intersects(read)
                             || consulted.map_or(!self.requalified.is_empty(), |consulted| {
                                 self.requalified.reaches(consulted)
                             })
                     }
                     _ => true,
                 })
-            || (reads.clock && self.clock)
-            || reads.names.iter().any(|name| self.names.contains(name))
+            || (group.clock && self.clock)
+            || self.states.intersects(&group.states)
     }
 }
 
@@ -2506,6 +2614,14 @@ pub struct ReactiveSession {
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
+    /// Load-time numeric id for each declared reading stream and decision
+    /// series, used by `Changes` to track history changes by number instead of
+    /// allocating history name sets.
+    history_slots: Arc<HashMap<String, usize>>,
+    /// Whether any binding group reads the graph or a history.
+    bindings_read_graph: bool,
+    /// Whether any binding group is scoped to specific histories.
+    bindings_scoped_to_histories: bool,
     /// For each of `binding_rules`, its index in `binding_groups`.
     binding_group_of: Arc<Vec<usize>>,
     /// Every index of `binding_groups`, in the order of their targets and
@@ -2847,7 +2963,7 @@ impl ReactiveSession {
             let (word, name, expression) = match directive {
                 Directive::Define { name, expression } => ("define", name, expression.clone()),
                 Directive::Threshold { name, value } => {
-                    ("threshold", name, Expr::threshold(name, value.clone())?)
+                    ("threshold", name, Expr::threshold(name, *value)?)
                 }
                 _ => continue,
             };
@@ -2954,6 +3070,9 @@ impl ReactiveSession {
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
+            history_slots: Arc::default(),
+            bindings_read_graph: false,
+            bindings_scoped_to_histories: false,
             binding_group_of: Arc::new(Vec::new()),
             binding_order: Arc::new(Vec::new()),
             binding_consults: Vec::new(),
@@ -3119,7 +3238,7 @@ impl ReactiveSession {
                 Directive::Threshold { name, value } => {
                     session.has_thresholds = true;
                     Arc::make_mut(&mut session.define_rules)
-                        .push((name.clone(), Expr::threshold(name, value.clone())?))
+                        .push((name.clone(), Expr::threshold(name, *value)?))
                 }
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
@@ -3813,22 +3932,39 @@ impl ReactiveSession {
     }
 
     fn group_bindings(&mut self, types: &BindingTypes) {
+        let mut history_slots = HashMap::default();
+        for name in self
+            .reading_streams
+            .keys()
+            .chain(self.decision_series.keys())
+        {
+            let slot = history_slots.len();
+            history_slots.insert(name.clone(), slot);
+        }
         let mut groups = Vec::<BindingGroup>::new();
+        let mut reads_per_group = Vec::<Reads>::new();
         let mut index_of = HashMap::<(String, String), usize>::default();
         let mut group_of = Vec::with_capacity(self.binding_rules.len());
-        for binding in self.binding_rules.iter() {
+        for (rule_index, binding) in self.binding_rules.iter().enumerate() {
             let key = (binding.target.clone(), binding.property.clone());
             let group = *index_of.entry(key).or_insert_with(|| {
                 groups.push(BindingGroup {
                     target: binding.target.clone(),
                     property: binding.property.clone(),
-                    reads: Reads::default(),
+                    states: SlotBits::default(),
+                    graph: false,
+                    clock: false,
+                    anything: false,
                     histories: None,
+                    rules: Vec::new(),
+                    order_rank: 0,
                     value_type: types[&(binding.target.clone(), binding.property.clone())],
                 });
+                reads_per_group.push(Reads::default());
                 groups.len() - 1
             });
-            let reads = &mut groups[group].reads;
+            groups[group].rules.push(rule_index);
+            let reads = &mut reads_per_group[group];
             binding.condition.collect_reads(reads);
             if let BindingExpression::Expression(value) = &binding.value {
                 value.collect_reads(reads);
@@ -3838,21 +3974,46 @@ impl ReactiveSession {
             }
             group_of.push(group);
         }
-        for group in &mut groups {
-            let reads = &group.reads;
+        let mut bindings_read_graph = false;
+        let mut bindings_scoped_to_histories = false;
+        for (group, reads) in groups.iter_mut().zip(reads_per_group) {
+            for name in &reads.names {
+                if let Some(slot) = self.states.slot(name) {
+                    group.states.insert(slot);
+                }
+            }
+            group.graph = reads.graph;
+            group.clock = reads.clock;
+            group.anything = reads.anything;
+            if reads.graph || reads.anything {
+                bindings_read_graph = true;
+            }
             let scoped = reads.graph
                 && !reads.anything
                 && !reads.graph_unnamed
-                && reads.graph_names.iter().all(|name| {
-                    self.reading_streams.contains_key(name)
-                        || self.decision_series.contains_key(name)
-                });
-            group.histories = scoped.then(|| reads.graph_names.clone());
+                && reads
+                    .graph_names
+                    .iter()
+                    .all(|name| history_slots.contains_key(name));
+            if scoped {
+                let mut histories = SlotBits::default();
+                for name in &reads.graph_names {
+                    histories.insert(history_slots[name]);
+                }
+                group.histories = Some(histories);
+                bindings_scoped_to_histories = true;
+            }
         }
         let mut order = (0..groups.len()).collect::<Vec<_>>();
         order.sort_by(|&a, &b| {
             (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
         });
+        for (rank, &group) in order.iter().enumerate() {
+            groups[group].order_rank = rank;
+        }
+        self.history_slots = Arc::new(history_slots);
+        self.bindings_read_graph = bindings_read_graph;
+        self.bindings_scoped_to_histories = bindings_scoped_to_histories;
         self.binding_consults = vec![None; groups.len()];
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
@@ -4539,28 +4700,28 @@ impl ReactiveSession {
     /// evaluated in declaration order and explained in name order, so an error
     /// is the same one a full evaluation reports.
     fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
+        if self.binding_groups.is_empty() {
+            return Ok(());
+        }
         let groups = Arc::clone(&self.binding_groups);
-        let rules = Arc::clone(&self.binding_rules);
-        // The stale groups in group order, and each group's place among them
-        // when it is stale: the work below is sized to them alone.
+        // The stale groups in group order: nothing is allocated when an event
+        // touches none of them.
         let mut stale = Vec::new();
-        let place = groups
-            .iter()
-            .enumerate()
-            .map(|(group, read)| {
-                let touched = changes.is_none_or(|changes| {
-                    let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
-                    changes.touch(&read.reads, read.histories.as_ref(), consulted)
-                });
-                touched.then(|| {
-                    stale.push(group);
-                    stale.len() - 1
-                })
-            })
-            .collect::<Vec<_>>();
+        let mut stale_rules = 0usize;
+        for (group, read) in groups.iter().enumerate() {
+            let touched = changes.is_none_or(|changes| {
+                let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
+                changes.touch(read, consulted)
+            });
+            if touched {
+                stale.push(group);
+                stale_rules += read.rules.len();
+            }
+        }
         if stale.is_empty() {
             return Ok(());
         }
+        let rules = Arc::clone(&self.binding_rules);
         // Each stale group scoped to histories notes what it consults in a
         // record of its own, kept so that a later change to anything else
         // leaves the group as it is.
@@ -4587,10 +4748,8 @@ impl ReactiveSession {
         let mut guards = vec![None::<Provenance>; stale.len()];
         // The declaration that supplied each shown value: the last one to match.
         let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; stale.len()];
-        for (index, binding) in rules.iter().enumerate() {
-            let Some(at) = place[self.binding_group_of[index]] else {
-                continue;
-            };
+        let mut eval_rule = |index: usize, at: usize| -> Result<(), DispatchFailure> {
+            let binding = &rules[index];
             let context = || format!("binding {}.{}", binding.target, binding.property);
             let condition =
                 consulting(slots[at], || self.evaluate(&binding.condition, &parameters))
@@ -4601,7 +4760,7 @@ impl ReactiveSession {
                 _ => *slot = Some(union_with_nothing(condition.provenance)?),
             }
             if condition.value != Value::Bool(true) {
-                continue;
+                return Ok(());
             }
             let value = match &binding.value {
                 BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
@@ -4617,18 +4776,42 @@ impl ReactiveSession {
                 }
             };
             winners[at] = Some((index, value));
+            Ok(())
+        };
+        if stale.len() == 1 {
+            for &index in &groups[stale[0]].rules {
+                eval_rule(index, 0)?;
+            }
+        } else if stale_rules <= rules.len() / 2 {
+            let mut work = Vec::with_capacity(stale_rules);
+            for (at, &group) in stale.iter().enumerate() {
+                for &index in &groups[group].rules {
+                    work.push((index, at));
+                }
+            }
+            work.sort_unstable_by_key(|&(index, _)| index);
+            for (index, at) in work {
+                eval_rule(index, at)?;
+            }
+        } else {
+            let mut place = vec![None; groups.len()];
+            for (at, &group) in stale.iter().enumerate() {
+                place[group] = Some(at);
+            }
+            for index in 0..rules.len() {
+                let Some(at) = place[self.binding_group_of[index]] else {
+                    continue;
+                };
+                eval_rule(index, at)?;
+            }
         }
-        let order = Arc::clone(&self.binding_order);
         let mut shown = Vec::with_capacity(stale.len());
-        for &group in order.iter() {
-            let Some(at) = place[group] else {
-                continue;
-            };
+        let mut finish_group = |group: usize, at: usize| -> Result<(), DispatchFailure> {
             let (target, property) = (&groups[group].target, &groups[group].property);
             let guard = guards[at].take().unwrap_or_default();
             let Some((index, value)) = winners[at].take() else {
                 shown.push((group, None, guard));
-                continue;
+                return Ok(());
             };
             let lineage = if value.provenance.holds_nothing() {
                 union_with_nothing(guard)?
@@ -4649,6 +4832,32 @@ impl ReactiveSession {
                 })?,
             };
             shown.push((group, Some((value.value, explanation)), lineage));
+            Ok(())
+        };
+        if stale.len() == 1 {
+            finish_group(stale[0], 0)?;
+        } else if stale.len() <= groups.len() / 2 {
+            let mut ordered = stale
+                .iter()
+                .enumerate()
+                .map(|(at, &group)| (groups[group].order_rank, group, at))
+                .collect::<Vec<_>>();
+            ordered.sort_unstable_by_key(|&(rank, _, _)| rank);
+            for (_, group, at) in ordered {
+                finish_group(group, at)?;
+            }
+        } else {
+            let mut place = vec![None; groups.len()];
+            for (at, &group) in stale.iter().enumerate() {
+                place[group] = Some(at);
+            }
+            let order = Arc::clone(&self.binding_order);
+            for &group in order.iter() {
+                let Some(at) = place[group] else {
+                    continue;
+                };
+                finish_group(group, at)?;
+            }
         }
         for (group, value, lineage) in shown {
             let (target, property) = (&groups[group].target, &groups[group].property);
@@ -5941,9 +6150,14 @@ impl ReactiveSession {
         // What the event reads again before it writes is read once.
         let _reads = reads::Scope::open(self);
         self.collector_begin();
+        let has_bindings = !self.binding_groups.is_empty();
         // Before anything the event writes: a clock event's due
         // qualifications below write observation and examination records.
-        self.begin_write_log();
+        // Only `Changes`'s graph check reads the write logs, so a program with
+        // no bindings (or none that read the graph) skips opening them.
+        if self.bindings_read_graph {
+            self.begin_write_log();
+        }
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -6048,12 +6262,25 @@ impl ReactiveSession {
         // Binding failures roll back the same numeric/graph/cue transaction.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::BindingEvaluation);
-        let changes = Changes::between(old, self);
-        self.end_write_log();
-        let result = self.evaluate_bindings(Some(&changes));
-        #[cfg(debug_assertions)]
-        self.check_incremental_bindings(&result);
-        result?;
+        if has_bindings {
+            let changes = Changes::between(old, self);
+            self.end_write_log();
+            let result = self.evaluate_bindings(Some(&changes));
+            #[cfg(debug_assertions)]
+            self.check_incremental_bindings(&result);
+            result?;
+        } else {
+            #[cfg(debug_assertions)]
+            {
+                old.symbols.check();
+                self.symbols.check();
+                old.graph.check();
+                self.graph.check();
+                old.check_observations();
+                self.check_observations();
+                self.check_incremental_bindings(&Ok(()));
+            }
+        }
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::FinalSettlement);
         self.settle_archive_provenance(Some(old), true);
@@ -6278,11 +6505,9 @@ impl ReactiveSession {
                     }
                     return Ok(Some(cell.value.clone()));
                 }
-                Ok(self.states.value(name).cloned().or_else(|| {
-                    parameters
-                        .lineage(name)
-                        .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
-                }))
+                Ok(parameters
+                    .lineage(name)
+                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| match self.at_occurrence(kind, name) {
                 _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
@@ -11838,7 +12063,7 @@ mod consulted_tests {
             .enumerate()
             .filter(|(group, read)| {
                 let consulted = before.binding_consults[*group].as_deref();
-                changes.touch(&read.reads, read.histories.as_ref(), consulted)
+                changes.touch(read, consulted)
             })
             .map(|(_, read)| format!("{}.{}", read.target, read.property))
             .collect()
@@ -11934,12 +12159,98 @@ bind x.v = latest(d) when committed(d);
         consulted.renewals.push(consulted_key("", "ci"));
         consulted.settle();
         let renewed = |evidence: &str| Requalified {
-            renewed: BTreeSet::from([evidence.to_string()]),
+            renewals: vec![consulted_key("", evidence)],
             ..Requalified::default()
         };
         assert!(renewed("ci").reaches(&consulted));
         assert!(!renewed("tree").reaches(&consulted));
         assert!(!renewed("ci").reaches(&Consulted::default()));
+    }
+
+    #[test]
+    fn slot_bits_handles_inline_and_overflow_slots() {
+        let mut a = SlotBits::default();
+        let mut b = SlotBits::default();
+        assert!(a.is_empty());
+        assert!(!a.intersects(&b));
+        for slot in [0, 63, 64, 127, 128, 200] {
+            let mut single = SlotBits::default();
+            single.insert(slot);
+            assert!(!single.is_empty());
+            assert!(single.contains(slot));
+            assert!(!single.contains(slot + 1));
+            assert!(!a.intersects(&single));
+            a.insert(slot);
+            assert!(a.contains(slot));
+            assert!(a.intersects(&single));
+        }
+        b.insert(199);
+        assert!(!a.intersects(&b));
+        b.insert(200);
+        assert!(a.intersects(&b));
+    }
+
+    #[test]
+    fn changes_by_number_tracks_states_and_histories_past_64_slots() {
+        let mut source = String::from("evidence tool from \"tool\";\n");
+        for i in 0..70 {
+            source.push_str(&format!(
+                "state s{i} = 0 min 0 max 10;\n\
+                 readings r{i} from tool limit 4;\n\
+                 bind st.v{i} = s{i};\n\
+                 bind hi.c{i} = history_count(r{i});\n"
+            ));
+        }
+        for i in [0, 63, 64, 69] {
+            source.push_str(&format!(
+                "event set_{i};\non set_{i} set s{i} = 1;\n\
+                 event rec_{i};\non rec_{i} sample r{i} = 1;\n"
+            ));
+        }
+        let mut session = ReactiveSession::from_source(&source).unwrap();
+        for i in [0, 63, 64, 69] {
+            assert_eq!(
+                stale_after(&mut session, &format!("set_{i}"), "{}"),
+                vec![format!("st.v{i}")]
+            );
+            assert_eq!(
+                stale_after(&mut session, &format!("rec_{i}"), "{}"),
+                vec![format!("hi.c{i}")]
+            );
+        }
+    }
+
+    #[test]
+    fn no_bindings_program_skips_write_log_and_preserves_state() {
+        let source = r#"
+claim ok;
+caveat k consequence low;
+evidence e from "tool";
+readings r from e limit 4;
+state n = 0 min 0 max 10;
+event step;
+on step set n = n + 1;
+on step sample r = n supports ok;
+on step qualify latest(r) with k;
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        assert!(session.binding_groups.is_empty());
+        assert!(!session.bindings_read_graph);
+        assert!(!session.bindings_scoped_to_histories);
+        for _ in 0..3 {
+            let outcome = session.dispatch_outcome_json("step", "{}").unwrap();
+            assert_eq!(
+                serde_json::to_value(outcome).unwrap()["outcome"],
+                "accepted"
+            );
+        }
+        assert_eq!(session.reading_streams.written(), None);
+        assert_eq!(session.observation_qualifications.written(), None);
+        assert!(session.bindings.is_empty());
+        assert_eq!(session.states.value("n").unwrap().value, 3.0);
+        let saved = session.save_json().unwrap();
+        let restored = ReactiveSession::restore_json(source, &saved).unwrap();
+        assert_eq!(restored.save_json().unwrap(), saved);
     }
 
     #[test]

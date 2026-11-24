@@ -9,10 +9,13 @@ use serde::{Serialize, Serializer};
 
 /// A canonical finite JSON number with reflexive equality.
 ///
-/// The private representation avoids introducing NaN into the Eq-based AST
-/// and transaction snapshots. Serialization still emits JSON numbers.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Number(String);
+/// Stored as the native-endian bytes of its canonical `f64` (`-0.0` normalized
+/// to `0.0`, NaN and infinities rejected at parse) so `Number` implements `Eq`
+/// and `Copy`, reads without re-parsing text, and keeps alignment 1 so
+/// `reactive_expr::Expr` stays 36 bytes on wasm32 (and 72 bytes natively).
+/// Serialization still emits JSON numbers.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Number([u8; 8]);
 
 impl Number {
     pub fn parse(token: &str) -> Result<Self, String> {
@@ -24,16 +27,23 @@ impl Number {
                 "presentation coordinate must be a finite number: {token}"
             ));
         }
-        Ok(Self(if value == 0.0 {
-            "0".into()
-        } else {
-            value.to_string()
-        }))
+        let canonical = if value == 0.0 { 0.0 } else { value };
+        Ok(Self(canonical.to_ne_bytes()))
     }
 
+    #[inline]
     pub fn value(&self) -> f64 {
-        // Only Number::parse can construct the private, canonical string.
-        self.0.parse().expect("validated presentation number")
+        // Only Number::parse can construct the private, canonical finite bytes.
+        f64::from_ne_bytes(self.0)
+    }
+}
+
+impl std::fmt::Debug for Number {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_tuple("Number")
+            .field(&self.value())
+            .finish()
     }
 }
 
@@ -270,4 +280,38 @@ fn validate_view(position: &Point, target: &Point) -> Result<(), String> {
         return Err("camera position and target must differ".into());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn number_keeps_value_canonical_and_low_alignment() {
+        assert_eq!(std::mem::size_of::<Number>(), 8);
+        assert_eq!(std::mem::align_of::<Number>(), 1);
+        let pos_zero = Number::parse("0").unwrap();
+        let neg_zero = Number::parse("-0.0").unwrap();
+        assert_eq!(pos_zero, neg_zero);
+        assert_eq!(pos_zero.value().to_bits(), 0.0_f64.to_bits());
+        assert_eq!(neg_zero.value().to_bits(), 0.0_f64.to_bits());
+        for token in [
+            "1",
+            "-42.5",
+            "1e-308",
+            "1.7976931348623157e308",
+            "0.10000000000000002",
+        ] {
+            let expected: f64 = token.parse().unwrap();
+            let parsed = Number::parse(token).unwrap();
+            assert_eq!(parsed.value().to_bits(), expected.to_bits());
+            assert_eq!(
+                serde_json::to_string(&parsed).unwrap(),
+                serde_json::to_string(&expected).unwrap()
+            );
+        }
+        for invalid in ["NaN", "inf", "-inf", "infinity", "abc"] {
+            assert!(Number::parse(invalid).is_err(), "{invalid}");
+        }
+    }
 }
