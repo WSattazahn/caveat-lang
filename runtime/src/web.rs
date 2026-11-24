@@ -532,14 +532,14 @@ impl WebReactiveSession {
         let held = held
             .filter(|held| held.fract() == 0.0 && *held >= 0.0)
             .map(|held| held as u64);
-        match self.inner.dispatch_view_patch_outcome_json_from(
+        match self.inner.dispatch_view_patch_outcome_text_from(
             &mut self.patch_base,
             held,
             event,
             payload_json,
             agent,
         ) {
-            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Ok(text) => Ok(text),
             Err(fatal) => {
                 Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
             }
