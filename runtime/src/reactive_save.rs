@@ -901,7 +901,11 @@ impl ReactiveSession {
                 attention,
                 open,
             },
-            commitment_bases: (**self.commitment_bases).clone(),
+            commitment_bases: self
+                .commitment_bases
+                .iter()
+                .map(|(name, basis)| (name.clone(), (**basis).clone()))
+                .collect(),
             commitment_grounds: self
                 .commitment_grounds
                 .iter()
@@ -4718,7 +4722,12 @@ impl ReactiveSession {
                 ));
             }
         }
-        self.commitment_bases = Records::new(save.commitment_bases.clone());
+        self.commitment_bases = Records::new(
+            save.commitment_bases
+                .iter()
+                .map(|(name, basis)| (name.clone(), Arc::new(basis.clone())))
+                .collect(),
+        );
         self.commitment_grounds = Records::new(full_map(&save.commitment_grounds));
         self.reading_streams = Records::new(
             save.reading_streams

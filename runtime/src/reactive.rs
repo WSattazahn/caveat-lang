@@ -677,6 +677,12 @@ fn expand_effect(
 /// each argument's lineage and `evaluate_grounds` its grounds, so a parameter
 /// grounds a value as its argument would inline (F268).
 enum Parameters<'a> {
+    /// An event's payload in declared parameter order: zero `BTreeMap` or key
+    /// `String` allocation on the hot JSON dispatch path.
+    Slots {
+        signature: &'a [Parameter],
+        values: &'a [f64],
+    },
     /// An event's payload, read where it is: a plain value has the same
     /// lineage and grounds, so nothing is copied for either.
     Payload(&'a BTreeMap<String, f64>),
@@ -701,6 +707,10 @@ impl Parameters<'_> {
     /// The parameter `name`, with what its value rests on.
     fn lineage(&self, name: &str) -> Option<Tracked<f64>> {
         match self {
+            Self::Slots { signature, values } => signature
+                .iter()
+                .position(|parameter| parameter.name == name)
+                .map(|index| Tracked::plain(values[index])),
             Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
             Self::Arguments { lineage, .. } => lineage.get(name).cloned(),
         }
@@ -709,6 +719,10 @@ impl Parameters<'_> {
     /// The parameter `name`, with what its grounds rest on.
     fn grounds(&self, name: &str) -> Option<Tracked<f64>> {
         match self {
+            Self::Slots { signature, values } => signature
+                .iter()
+                .position(|parameter| parameter.name == name)
+                .map(|index| Tracked::plain(values[index])),
             Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
             Self::Arguments { grounds, .. } => grounds.get(name).cloned(),
         }
@@ -2587,7 +2601,7 @@ pub struct ReactiveSession {
     // Copy-on-write: a transaction's copy shares these until an effect
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
-    commitment_bases: Records<CommitmentBasis>,
+    commitment_bases: Records<Arc<CommitmentBasis>>,
     /// Whether the source declares a threshold, and the thresholds each
     /// enclosing guard of the effect running now names: what a commit lists
     /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
@@ -2691,6 +2705,10 @@ pub struct ReactiveSession {
     /// The binding groups re-evaluated by the last accepted event, so the
     /// View 0.1 patch inspects only what could have changed.
     last_binding_groups: Vec<usize>,
+    /// Single key touched in `commitment_grounds` or `decision_series` by the
+    /// last accepted event, so the View 0.1 patch can check only that key.
+    last_grounds_written: Option<String>,
+    last_series_written: Option<String>,
     commitment_grounds: Records<Provenance>,
     /// Each commitment's grounds evidence in first-observed order, frozen when
     /// it was made; only where that differs from name order. View 0.2 shows
@@ -3136,6 +3154,8 @@ impl ReactiveSession {
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
             last_binding_groups: Vec::new(),
+            last_grounds_written: None,
+            last_series_written: None,
             commitment_grounds: Records::default(),
             evidence_order: Arc::default(),
             journal: Chunked::default(),
@@ -5932,8 +5952,170 @@ impl ReactiveSession {
         payload_json: &str,
         agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
+        if let Some((values, len)) = self.try_resolve_payload_slots(event, payload_json) {
+            return self.apply_classified_slots(event, &values[..len], agent);
+        }
         let (payload, new_identifiers) = self.resolve_payload(event, payload_json)?;
         self.apply_classified(event, &payload, new_identifiers, agent)
+    }
+
+    /// Fast single-pass payload parser for declared events with at most 8
+    /// non-identifier parameters: writes values straight into declared-order
+    /// slots with zero `BTreeMap` or parameter-name allocations. Returns `None`
+    /// on any error, unknown/missing/duplicate parameter, or identifier
+    /// parameter so the general path reports the exact canonical diagnostic.
+    fn try_resolve_payload_slots(
+        &self,
+        event: &str,
+        payload_json: &str,
+    ) -> Option<([f64; 8], usize)> {
+        let signature = self.events.get(event)?;
+        if signature.len() > 8
+            || signature
+                .iter()
+                .any(|p| matches!(p.domain, ParameterDomain::Identifier { .. }))
+        {
+            return None;
+        }
+        let mut slots = [0.0f64; 8];
+        let mut present = 0u8;
+        let mut deserializer = serde_json::Deserializer::from_str(payload_json);
+        let seed = SlotPayloadSeed {
+            signature,
+            slots: &mut slots,
+            present: &mut present,
+        };
+        use serde::de::DeserializeSeed;
+        seed.deserialize(&mut deserializer).ok()?;
+        deserializer.end().ok()?;
+        let expected_mask = if signature.len() == 8 {
+            u8::MAX
+        } else {
+            (1u8 << signature.len()) - 1
+        };
+        (present == expected_mask).then_some((slots, signature.len()))
+    }
+
+    /// Positional-slot variant of `apply_classified`, skipping `BTreeMap`
+    /// lookups and key validation already proven by `try_resolve_payload_slots`.
+    fn apply_classified_slots(
+        &mut self,
+        event: &str,
+        values: &[f64],
+        agent: Option<&str>,
+    ) -> Result<(), DispatchFailure> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::TransactionPreparation);
+        self.check_agent(event, agent)?;
+        let events = Arc::clone(&self.events);
+        let signature = &events[event];
+        for (parameter, &value) in signature.iter().zip(values) {
+            check_range(
+                &parameter.name,
+                value,
+                parameter.min.value(),
+                parameter.max.value(),
+            )
+            .map_err(|message| {
+                DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::BoundExceeded,
+                    message,
+                )
+            })?;
+            if !parameter.domain.is_numeric() && value.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter {} takes a whole number from 1 to {} or a member's name, not {value}",
+                        parameter.name,
+                        parameter.max.value()
+                    ),
+                ));
+            }
+        }
+        if self.integer_clock() && self.time_event.as_deref() == Some(event) {
+            let dt = signature
+                .iter()
+                .position(|p| p.name == "dt")
+                .map_or(0.0, |i| values[i]);
+            if dt.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter dt takes a whole number of clock units, not {dt}"
+                    ),
+                ));
+            }
+        }
+        let shown = self.take_shown();
+        let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
+        let last_grounds_written = self.last_grounds_written.take();
+        let last_series_written = self.last_series_written.take();
+        let prev_effects = std::mem::take(&mut self.effects);
+        let prev_cues = std::mem::take(&mut self.cues);
+        let prev_cue_qualifications = std::mem::take(&mut self.cue_qualifications);
+        let prev_last_event = self.last_event.take();
+        let prev_last_agent = self.last_agent.take();
+        let archive = std::mem::take(&mut self.archive);
+        let windowed = self.windowed();
+        let mut next = if windowed {
+            let mut collector = std::mem::take(&mut self.collector);
+            collector.begin();
+            let mut next = self.clone();
+            next.collector = collector;
+            next
+        } else {
+            self.clone()
+        };
+        self.archive = archive;
+        next.put_shown(shown);
+        next.last_agent = agent.map(str::to_string);
+        match next.run_event_with(
+            self,
+            event,
+            Parameters::Slots { signature, values },
+            Some(values),
+            None,
+        ) {
+            Ok(()) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::CommitCleanup);
+                if windowed {
+                    next.collector.commit();
+                }
+                let mut archive = std::mem::take(&mut self.archive);
+                archive.append(&mut next.archive);
+                *self = next;
+                self.archive = archive;
+                if agent.is_some() {
+                    self.replay = None;
+                } else {
+                    self.record_replay_slots(event, values);
+                }
+                Ok(())
+            }
+            Err(error) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::RollbackCleanup);
+                self.put_shown(next.take_shown());
+                self.last_binding_groups = last_binding_groups;
+                self.last_grounds_written = last_grounds_written;
+                self.last_series_written = last_series_written;
+                self.effects = prev_effects;
+                self.cues = prev_cues;
+                self.cue_qualifications = prev_cue_qualifications;
+                self.last_event = prev_last_event;
+                self.last_agent = prev_last_agent;
+                if windowed {
+                    std::mem::swap(&mut self.collector, &mut next.collector);
+                    self.collector.rollback();
+                }
+                Err(error)
+            }
+        }
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its
@@ -6132,6 +6314,8 @@ impl ReactiveSession {
         }
         let shown = self.take_shown();
         let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
+        let last_grounds_written = self.last_grounds_written.take();
+        let last_series_written = self.last_series_written.take();
         // Transient per-event outputs are replaced by `run_event` on every
         // accepted event; moving them out avoids cloning and immediately
         // dropping them inside the transaction, while rollback restores them.
@@ -6169,7 +6353,13 @@ impl ReactiveSession {
             }
         }
         next.last_agent = agent.map(str::to_string);
-        match next.run_event(self, event, parameters) {
+        match next.run_event_with(
+            self,
+            event,
+            Parameters::Payload(parameters),
+            None,
+            Some(parameters),
+        ) {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::CommitCleanup);
@@ -6193,6 +6383,8 @@ impl ReactiveSession {
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
                 self.last_binding_groups = last_binding_groups;
+                self.last_grounds_written = last_grounds_written;
+                self.last_series_written = last_series_written;
                 self.effects = prev_effects;
                 self.cues = prev_cues;
                 self.cue_qualifications = prev_cue_qualifications;
@@ -6250,11 +6442,29 @@ impl ReactiveSession {
 
     /// The body of `apply`, run on the transaction's copy: `old` is the
     /// session as it was before the event.
+    #[cfg(test)]
     fn run_event(
         &mut self,
         old: &Self,
         event: &str,
-        parameters: &BTreeMap<String, f64>,
+        payload: &BTreeMap<String, f64>,
+    ) -> Result<(), DispatchFailure> {
+        self.run_event_with(
+            old,
+            event,
+            Parameters::Payload(payload),
+            None,
+            Some(payload),
+        )
+    }
+
+    fn run_event_with(
+        &mut self,
+        old: &Self,
+        event: &str,
+        parameters: Parameters<'_>,
+        declared_slots: Option<&[f64]>,
+        payload_map: Option<&BTreeMap<String, f64>>,
     ) -> Result<(), DispatchFailure> {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
@@ -6268,6 +6478,9 @@ impl ReactiveSession {
         // no bindings (or none that read the graph) skips opening them.
         if self.bindings_read_graph {
             self.begin_write_log();
+        } else {
+            self.commitment_grounds.begin_touched();
+            self.decision_series.begin_touched();
         }
         self.effects.clear();
         self.cues.clear();
@@ -6278,7 +6491,15 @@ impl ReactiveSession {
             .ok_or("reactive event sequence exhausted")?;
         self.last_event = Some(event.into());
         if self.time_event.as_deref() == Some(event) {
-            self.elapsed += parameters.get("dt").copied().unwrap_or(0.0);
+            let dt = match (&parameters, payload_map) {
+                (Parameters::Slots { signature, values }, _) => signature
+                    .iter()
+                    .position(|p| p.name == "dt")
+                    .map_or(0.0, |i| values[i]),
+                (_, Some(payload)) => payload.get("dt").copied().unwrap_or(0.0),
+                _ => 0.0,
+            };
+            self.elapsed += dt;
             // Unreachable through declared bounds and restore; refused anyway.
             if !self.elapsed.is_finite() {
                 return Err(DispatchFailure::rejected(
@@ -6298,8 +6519,6 @@ impl ReactiveSession {
             }
             self.apply_due_qualifications()?;
         }
-        let payload = parameters;
-        let parameters = Parameters::Payload(payload);
         let mut budget = ExecutionBudget {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
@@ -6309,8 +6528,8 @@ impl ReactiveSession {
         let routes = Arc::clone(&self.rule_routes);
         let windowed = self.windowed();
         // The payload's value for each of the event's declared parameters, by
-        // its place, read once for every route without allocating for small
-        // parameter lists.
+        // its place, read once for every route when not already supplied as
+        // positional slots.
         let mut declared_inline = [None; 8];
         let mut declared_len = 0usize;
         let mut declared_heap: Option<Vec<Option<f64>>> = None;
@@ -6321,25 +6540,35 @@ impl ReactiveSession {
             let rule = &rules[index];
             let route = &routes[index];
             if !route.terms.is_empty() {
-                if !declared_ready {
-                    declared_ready = true;
-                    if let Some(signature) = self.events.get(event) {
-                        if signature.len() <= declared_inline.len() {
-                            declared_len = signature.len();
-                            for (slot, parameter) in
-                                declared_inline[..declared_len].iter_mut().zip(signature)
-                            {
-                                *slot = payload.get(&parameter.name).copied();
+                let elsewhere = if let Some(slots) = declared_slots {
+                    route
+                        .terms
+                        .iter()
+                        .any(|&(place, want)| slots.get(place).is_some_and(|&v| v != want))
+                } else {
+                    if !declared_ready {
+                        declared_ready = true;
+                        if let (Some(signature), Some(payload)) =
+                            (self.events.get(event), payload_map)
+                        {
+                            if signature.len() <= declared_inline.len() {
+                                declared_len = signature.len();
+                                for (slot, parameter) in
+                                    declared_inline[..declared_len].iter_mut().zip(signature)
+                                {
+                                    *slot = payload.get(&parameter.name).copied();
+                                }
+                            } else {
+                                declared_heap = Some(self.declared_values(event, payload));
                             }
-                        } else {
-                            declared_heap = Some(self.declared_values(event, payload));
                         }
                     }
-                }
-                let declared_slice = declared_heap
-                    .as_deref()
-                    .unwrap_or(&declared_inline[..declared_len]);
-                if routed_elsewhere(&route.terms, declared_slice) {
+                    let declared_slice = declared_heap
+                        .as_deref()
+                        .unwrap_or(&declared_inline[..declared_len]);
+                    routed_elsewhere(&route.terms, declared_slice)
+                };
+                if elsewhere {
                     #[cfg(debug_assertions)]
                     {
                         let guard = self.evaluate(&rule.condition, &parameters);
@@ -6412,6 +6641,8 @@ impl ReactiveSession {
         // Binding failures roll back the same numeric/graph/cue transaction.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::BindingEvaluation);
+        self.last_grounds_written = self.commitment_grounds.take_touched_one();
+        self.last_series_written = self.decision_series.take_touched_one();
         if has_bindings {
             let changes = Changes::between(old, self);
             self.end_write_log();
@@ -6434,6 +6665,10 @@ impl ReactiveSession {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::FinalSettlement);
         self.settle_archive_provenance(Some(old), true);
+        if windowed {
+            self.last_grounds_written = None;
+            self.last_series_written = None;
+        }
         #[cfg(debug_assertions)]
         self.check_history_reach_held(Some(old));
         Ok(())
@@ -8236,11 +8471,11 @@ impl ReactiveSession {
                 }
                 self.commitment_bases.insert(
                     name.clone(),
-                    CommitmentBasis {
+                    Arc::new(CommitmentBasis {
                         value: used_value,
                         provenance,
                         thresholds,
-                    },
+                    }),
                 );
                 if let Some(record) = &permission {
                     self.add_pin(&record.grant);
@@ -10242,7 +10477,11 @@ impl ReactiveSession {
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
             unset: self.states.unset_names(),
-            commitment_bases: (**self.commitment_bases).clone(),
+            commitment_bases: self
+                .commitment_bases
+                .iter()
+                .map(|(name, basis)| (name.clone(), (**basis).clone()))
+                .collect(),
             reading_streams: self
                 .reading_streams
                 .iter()
@@ -12264,6 +12503,66 @@ impl<'de> serde::Deserialize<'de> for BorrowedPayloadValue<'de> {
             }
         }
         deserializer.deserialize_any(Visitor)
+    }
+}
+
+struct SlotPayloadSeed<'a> {
+    signature: &'a [Parameter],
+    slots: &'a mut [f64; 8],
+    present: &'a mut u8,
+}
+
+impl<'de> serde::de::DeserializeSeed<'de> for SlotPayloadSeed<'_> {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de> serde::de::Visitor<'de> for SlotPayloadSeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("an object of unique event parameters")
+    }
+
+    fn visit_map<M: serde::de::MapAccess<'de>>(self, mut map: M) -> Result<(), M::Error> {
+        while let Some((key, value)) =
+            map.next_entry::<std::borrow::Cow<'de, str>, BorrowedPayloadValue<'de>>()?
+        {
+            let Some(index) = self
+                .signature
+                .iter()
+                .position(|parameter| parameter.name == key.as_ref())
+            else {
+                return Err(serde::de::Error::custom("fallback"));
+            };
+            let bit = 1u8 << index;
+            if (*self.present & bit) != 0 {
+                return Err(serde::de::Error::custom("fallback"));
+            }
+            let number = match (value, &self.signature[index].domain) {
+                (BorrowedPayloadValue::Number(number), _) => number,
+                (BorrowedPayloadValue::Text(text), domain) if !domain.is_numeric() => {
+                    let Some(position) = domain
+                        .members()
+                        .iter()
+                        .position(|member| member == text.as_ref())
+                    else {
+                        return Err(serde::de::Error::custom("fallback"));
+                    };
+                    (position + 1) as f64
+                }
+                _ => return Err(serde::de::Error::custom("fallback")),
+            };
+            self.slots[index] = number;
+            *self.present |= bit;
+        }
+        Ok(())
     }
 }
 

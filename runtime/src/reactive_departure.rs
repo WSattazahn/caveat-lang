@@ -770,8 +770,11 @@ impl ReactiveSession {
             .any(|basis| names_any(&basis.provenance, &departing))
         {
             for (name, basis) in self.commitment_bases.make_mut().iter_mut() {
+                if !names_any(&basis.provenance, &departing) {
+                    continue;
+                }
                 compact(
-                    &mut basis.provenance,
+                    &mut Arc::make_mut(basis).provenance,
                     &departing,
                     &live_take_backs,
                     sequence,
@@ -1254,7 +1257,10 @@ impl ReactiveSession {
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
             for basis in self.commitment_bases.make_mut().values_mut() {
-                settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
+                if settled(&basis.provenance) {
+                    continue;
+                }
+                settle_provenance(&mut Arc::make_mut(basis).provenance, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
