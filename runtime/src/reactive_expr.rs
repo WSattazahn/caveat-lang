@@ -27,7 +27,6 @@ const FOLD_ACC: &str = "$fold_acc";
 const FOLD_VALUE: &str = "$fold_value";
 /// Internal numeric-host request; source identifiers cannot spell this name.
 pub(crate) const ELAPSED_READ: &str = "$elapsed";
-type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), EvalError> + 'a;
 
 /// What kind of evaluation failure occurred. Dispatch refuses the classified
 /// kinds recoverably; see spec/caveat-dispatch-0.1.md. `Other` stays fatal.
@@ -174,6 +173,8 @@ struct Budget {
     /// The argument values of each expanded call being evaluated, innermost
     /// last.
     frames: RefCell<Vec<Vec<f64>>>,
+    /// The `(acc, value)` pair bound inside an active `ExpandedFold` body.
+    fold_vars: Cell<Option<(f64, f64)>>,
 }
 
 impl Budget {
@@ -3776,59 +3777,114 @@ impl Expr {
         quiet_conditions: bool,
         node_budget: usize,
     ) -> Result<Tracked<Value>, EvalError> {
-        // The existing evaluator already visits precisely the operands that
-        // contribute to this evaluation. Accumulating at those reads gives
-        // identical propagation without copying full traces at every AST node.
+        let host = ClosureHost {
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+        };
+        let stripped = MAX_EVALUATED_NODES.saturating_sub(node_budget);
+        self.evaluate_with_host(&host, quiet_conditions, stripped)
+    }
+}
+
+/// Host callbacks for evaluating an `Expr` with static dispatch and direct
+/// structured lookup for `occurrence`/`reading`/`revision` and `in_basis`
+/// predicates (avoiding dynamic closure tables and string formatting/parsing).
+pub trait EvalHost {
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError>;
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError>;
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+    ) -> Result<Tracked<bool>, EvalError> {
+        self.predicate(&selector_kind(kind), &format!("{evidence}#{index}"))
+    }
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let rev = revision.map(|k| k.to_string()).unwrap_or_default();
+        let idx = at.map(|n| n.to_string()).unwrap_or_default();
+        self.predicate(IN_BASIS, &format!("{series}#{rev}|{kind}|{name}#{idx}"))
+    }
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError>;
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError>;
+    fn identifier(&self, handle: f64) -> Result<String, String>;
+}
+
+struct ClosureHost<'a, N, P, Q, H, I> {
+    numbers: &'a N,
+    predicate: &'a P,
+    qualify: &'a Q,
+    history: &'a H,
+    identifiers: &'a I,
+}
+
+impl<N, P, Q, H, I> EvalHost for ClosureHost<'_, N, P, Q, H, I>
+where
+    N: Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+    P: Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+    Q: Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+    H: Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+    I: Fn(f64) -> Result<String, String>,
+{
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError> {
+        (self.numbers)(name)
+    }
+
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        (self.predicate)(kind, name)
+    }
+
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError> {
+        (self.qualify)(evidence, caveats)
+    }
+
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
+        (self.history)(name, query)
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        (self.identifiers)(handle)
+    }
+}
+
+impl Expr {
+    /// Evaluate with a statically dispatched `EvalHost`, charging
+    /// `stripped_nodes` against the node evaluation budget.
+    pub fn evaluate_with_host<H: EvalHost>(
+        &self,
+        host: &H,
+        quiet_conditions: bool,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
         let provenance = RefCell::new(Provenance::default());
         let budget = Budget {
-            nodes: Cell::new(node_budget),
+            nodes: Cell::new(MAX_EVALUATED_NODES.saturating_sub(stripped_nodes)),
             quiet_conditions,
             quiet: Cell::new(false),
             frames: RefCell::new(Vec::new()),
+            fold_vars: Cell::new(None),
         };
-        let keep = |read: Provenance| {
-            if budget.quiet.get() {
-                return Ok(());
-            }
-            read_into(&provenance, read)
-        };
-        let value = self.evaluate_values(
-            &|name| {
-                let Some(tracked) = numbers(name)? else {
-                    return Ok(None);
-                };
-                let value = finite(tracked.value)?;
-                keep(tracked.provenance)?;
-                Ok(Some(value))
-            },
-            &|kind, name| {
-                let tracked = predicate(kind, name)?;
-                keep(tracked.provenance)?;
-                Ok(tracked.value)
-            },
-            &|evidence, caveats| keep(qualify(evidence, caveats)?),
-            &|name, query| {
-                let tracked = history(name, query)?;
-                let value = finite(tracked.value)?;
-                keep(tracked.provenance)?;
-                Ok(value)
-            },
-            identifiers,
-            &budget,
-        )?;
+        let value = self.evaluate_values_host(host, &provenance, &budget)?;
         Ok(Tracked {
             value,
             provenance: provenance.into_inner(),
         })
     }
 
-    fn evaluate_values(
+    fn evaluate_values_host<H: EvalHost>(
         &self,
-        numbers: &dyn Fn(&str) -> Result<Option<f64>, EvalError>,
-        predicate: &dyn Fn(&str, &str) -> Result<bool, EvalError>,
-        qualify: &QualificationSink<'_>,
-        history: &dyn Fn(&str, HistoryRead) -> Result<f64, EvalError>,
-        identifiers: &dyn Fn(f64) -> Result<String, String>,
+        host: &H,
+        provenance: &RefCell<Provenance>,
         remaining: &Budget,
     ) -> Result<Value, EvalError> {
         let budget = remaining.get();
@@ -3839,20 +3895,19 @@ impl Expr {
             ));
         }
         remaining.set(budget - 1);
+        let keep = |read: Provenance| -> Result<(), EvalError> {
+            if remaining.quiet.get() {
+                return Ok(());
+            }
+            read_into(provenance, read)
+        };
         match &self.node {
             Node::Outcome(name, index) => {
                 let index = match index {
                     None => None,
                     Some(index) => {
                         let k = index
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
+                            .evaluate_values_host(host, provenance, remaining)?
                             .number()?;
                         if k < 1.0 || k.fract() != 0.0 || k > MAX_FOLD_RECORDS as f64 {
                             return Err(EvalError::new(
@@ -3863,16 +3918,22 @@ impl Expr {
                         Some(k as usize)
                     }
                 };
-                Ok(Value::Number(finite(history(
-                    name,
-                    HistoryRead::Outcome(index),
-                )?)?))
+                let tracked = host.history(name, HistoryRead::Outcome(index))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
             Node::Elapsed => {
-                let value =
-                    numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
-                Ok(Value::Number(finite(value)?))
+                let tracked = if remaining.fold_vars.get().is_some() {
+                    None
+                } else {
+                    host.number(ELAPSED_READ)?
+                }
+                .ok_or("elapsed() requires a reactive session")?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::Bool(value) => Ok(Value::Bool(*value)),
             Node::Text(value) => {
@@ -3880,67 +3941,82 @@ impl Expr {
                 Ok(Value::Text(value.clone()))
             }
             Node::Variable(name) => {
-                let value =
-                    numbers(name)?.ok_or_else(|| format!("unknown numeric identifier {name}"))?;
-                Ok(Value::Number(finite(value)?))
+                if let Some((acc, val)) = remaining.fold_vars.get() {
+                    let value = match name.as_str() {
+                        FOLD_ACC => acc,
+                        FOLD_VALUE => val,
+                        _ => return Err(format!("unknown numeric identifier {name}").into()),
+                    };
+                    return Ok(Value::Number(finite(value)?));
+                }
+                let tracked = host
+                    .number(name)?
+                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
-            Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
-            // The host resolves `EVIDENCE#INDEX` to a held occurrence, or
-            // answers false when the index names none.
+            Node::Predicate(name, target) => {
+                let tracked = host.predicate(name, target)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
+            }
             Node::AtOccurrence(kind, evidence, index) => {
                 let index = index
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                Ok(Value::Bool(predicate(
-                    &selector_kind(kind),
-                    &format!("{evidence}#{index}"),
-                )?))
+                let tracked = host.at_occurrence(kind, evidence, index)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
             }
-            // Every index is evaluated, whatever it names. The host resolves
-            // the revision and the reference, or answers false.
             Node::InBasis(basis, children) => {
-                let mut indexes = Vec::new();
-                for child in children {
-                    indexes.push(
-                        child
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
-                            .number()?,
-                    );
-                }
-                let mut indexes = indexes.into_iter();
+                let mut iter = children.iter();
                 let revision = if basis.revision {
-                    indexes.next().map(|k| k.to_string()).unwrap_or_default()
+                    match iter.next() {
+                        Some(child) => Some(
+                            child
+                                .evaluate_values_host(host, provenance, remaining)?
+                                .number()?,
+                        ),
+                        None => None,
+                    }
                 } else {
-                    String::new()
+                    None
                 };
-                let at = indexes.next().map(|n| n.to_string()).unwrap_or_default();
-                Ok(Value::Bool(predicate(
-                    IN_BASIS,
-                    &format!(
-                        "{}#{revision}|{}|{}#{at}",
-                        basis.series,
-                        basis.kind.name(),
-                        basis.name
+                let at = match iter.next() {
+                    Some(child) => Some(
+                        child
+                            .evaluate_values_host(host, provenance, remaining)?
+                            .number()?,
                     ),
-                )?))
+                    None => None,
+                };
+                let tracked =
+                    host.in_basis(&basis.series, revision, basis.kind.name(), &basis.name, at)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
             }
-            Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
+            Node::Latest(name) => {
+                let tracked = host.history(name, HistoryRead::Latest)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
+            }
             Node::GroundsOf(name) => {
-                Ok(Value::Number(finite(history(name, HistoryRead::Grounds)?)?))
+                let tracked = host.history(name, HistoryRead::Grounds)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::HistoryCount(name) => {
-                Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
+                let tracked = host.history(name, HistoryRead::Count)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::HistoryAt(name, index) => {
                 let index = index
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
                 if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
                     return Err(EvalError::new(
@@ -3948,70 +4024,56 @@ impl Expr {
                         "history index must be an integer in 0..256",
                     ));
                 }
-                Ok(Value::Number(finite(history(
-                    name,
-                    HistoryRead::At(index as usize),
-                )?)?))
+                let tracked = host.history(name, HistoryRead::At(index as usize))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
             Node::ExpandedFold(name, initial, body) => {
                 let mut accumulator = initial
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                let count = finite(history(name, HistoryRead::Count)?)?;
+                let count_tracked = host.history(name, HistoryRead::Count)?;
+                let count = finite(count_tracked.value)?;
+                keep(count_tracked.provenance)?;
                 if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
                     return Err("history fold count exceeds bounded history capacity".into());
                 }
+                let saved_fold = remaining.fold_vars.get();
                 for index in 0..count as usize {
                     // Eager record reads retain provenance even if the reducer
                     // ignores an argument or multiplies it by zero.
-                    let value = finite(history(name, HistoryRead::At(index))?)?;
-                    accumulator = body
-                        .evaluate_values(
-                            &|variable| {
-                                Ok(match variable {
-                                    FOLD_ACC => Some(accumulator),
-                                    FOLD_VALUE => Some(value),
-                                    _ => None,
-                                })
-                            },
-                            predicate,
-                            qualify,
-                            history,
-                            identifiers,
-                            remaining,
-                        )?
-                        .number()?;
+                    let val_tracked = host.history(name, HistoryRead::At(index))?;
+                    let value = finite(val_tracked.value)?;
+                    keep(val_tracked.provenance)?;
+                    remaining.fold_vars.set(Some((accumulator, value)));
+                    let step = body.evaluate_values_host(host, provenance, remaining);
+                    remaining.fold_vars.set(saved_fold);
+                    accumulator = step?.number()?;
                 }
                 Ok(Value::Number(accumulator))
             }
             Node::Qualified(value, evidence, caveats) => {
                 let value = value
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                qualify(evidence, caveats)?;
+                keep(host.qualify(evidence, caveats)?)?;
                 Ok(Value::Number(value))
             }
             Node::If(condition, yes, no) => {
                 if condition
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .boolean()?
                 {
-                    yes.evaluate_values(
-                        numbers,
-                        predicate,
-                        qualify,
-                        history,
-                        identifiers,
-                        remaining,
-                    )
+                    yes.evaluate_values_host(host, provenance, remaining)
                 } else {
-                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                    no.evaluate_values_host(host, provenance, remaining)
                 }
             }
             Node::Require(condition, value) => {
                 if !condition
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .boolean()?
                 {
                     return Err(EvalError::new(
@@ -4019,31 +4081,17 @@ impl Expr {
                         "source expression requirement failed",
                     ));
                 }
-                value.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                value.evaluate_values_host(host, provenance, remaining)
             }
             Node::OnlyIf(condition, value) => {
                 // In grounds, the condition's reads are not kept: it chose
                 // the value without being what the value rests on.
                 let quiet = remaining.quiet.get();
                 remaining.quiet.set(quiet || remaining.quiet_conditions);
-                let holds = condition.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                );
+                let holds = condition.evaluate_values_host(host, provenance, remaining);
                 remaining.quiet.set(quiet);
                 if holds?.boolean()? {
-                    value.evaluate_values(
-                        numbers,
-                        predicate,
-                        qualify,
-                        history,
-                        identifiers,
-                        remaining,
-                    )
+                    value.evaluate_values_host(host, provenance, remaining)
                 } else {
                     Ok(Value::Number(0.0))
                 }
@@ -4056,29 +4104,12 @@ impl Expr {
                 for argument in arguments {
                     values.push(
                         argument
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
+                            .evaluate_values_host(host, provenance, remaining)?
                             .number()?,
                     );
                 }
-                // The body reads these through `Argument`. Its own calls'
-                // arguments are evaluated before their frame is pushed, so an
-                // `Argument` always names the innermost call around it.
                 remaining.frames.borrow_mut().push(values);
-                let value = body.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                );
+                let value = body.evaluate_values_host(host, provenance, remaining);
                 remaining.frames.borrow_mut().pop();
                 value
             }
@@ -4090,14 +4121,7 @@ impl Expr {
                 .map(|value| Value::Number(*value))
                 .ok_or_else(|| EvalError::from(format!("argument {index} read outside its call"))),
             Node::Unary(operator, child) => {
-                let value = child.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let value = child.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -4105,27 +4129,13 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let left = left.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right = right.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let right = right.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -4185,14 +4195,7 @@ impl Expr {
                 let mut evaluated = [0.0_f64; 2];
                 for (slot, argument) in evaluated.iter_mut().zip(arguments.iter()) {
                     *slot = argument
-                        .evaluate_values(
-                            numbers,
-                            predicate,
-                            qualify,
-                            history,
-                            identifiers,
-                            remaining,
-                        )?
+                        .evaluate_values_host(host, provenance, remaining)?
                         .number()?;
                 }
                 let result = match function {
@@ -4224,7 +4227,7 @@ impl Expr {
                         return Ok(Value::Text(String::new()))
                     }
                     Function::IdText => {
-                        return Ok(Value::Text(identifiers(evaluated[0]).map_err(
+                        return Ok(Value::Text(host.identifier(evaluated[0]).map_err(
                             |message| EvalError::new(EvalFailure::Domain, message),
                         )?))
                     }

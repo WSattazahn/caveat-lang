@@ -545,9 +545,9 @@ export function compare(expected, actual, caseId, runner) {
 }
 
 const mutationAnchor = [
-  '                let Some(tracked) = numbers(name)? else {',
-  '                    return Ok(None);',
-  '                };',
+  '                let tracked = host',
+  '                    .number(name)?',
+  '                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;',
   '                let value = finite(tracked.value)?;',
   '                keep(tracked.provenance)?;',
 ].join('\n');
@@ -558,11 +558,11 @@ export function dependencyDropMutation(source, name = "a") {
   if (normalized.split(mutationAnchor).length !== 2) throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
   return normalized.replace(mutationAnchor, mutationAnchor.replace(
     'keep(tracked.provenance)?;',
-    'if name != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'));
+    'if name.as_str() != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'));
 }
 
-const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values(\n                        numbers,\n                        predicate,\n                        qualify,\n                        history,\n                        identifiers,\n                        remaining,\n                    )\n                } else {\n                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)\n                }\n            }\n";
-const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                let no_value = no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
+const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values_host(host, provenance, remaining)\n                } else {\n                    no.evaluate_values_host(host, provenance, remaining)\n                }\n            }\n";
+const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values_host(host, provenance, remaining)?;\n                let no_value = no.evaluate_values_host(host, provenance, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
 export function unselectedBranchMutation(source) {
   const normalized = source.replaceAll('\r\n', '\n');
   if (normalized.split(branchMutationAnchor).length !== 2) {

@@ -2087,13 +2087,17 @@ impl Changes {
             for edge in added {
                 match edge.relation {
                     Relation::Qualifies => {
-                        push_unique(&mut requalified.nodes, edge.to);
-                        if let Some(name) = new.symbols.shared_name_of(edge.to) {
-                            push_unique(&mut requalified.listed, name);
+                        if old.graph.nodes.contains_key(&edge.to) {
+                            push_unique(&mut requalified.nodes, edge.to);
+                            if let Some(name) = new.symbols.shared_name_of(edge.to) {
+                                push_unique(&mut requalified.listed, name);
+                            }
                         }
                     }
                     Relation::Supports | Relation::Opposes => {
-                        push_unique(&mut requalified.nodes, edge.from);
+                        if old.graph.nodes.contains_key(&edge.from) {
+                            push_unique(&mut requalified.nodes, edge.from);
+                        }
                         mark_touched(edge.from);
                         mark_touched(edge.to);
                     }
@@ -2571,8 +2575,8 @@ where
 
 #[derive(Debug, Clone)]
 pub struct ReactiveSession {
-    source_id: String,
-    source_sha256: String,
+    source_id: Arc<str>,
+    source_sha256: Arc<str>,
     source_unrecorded_through: u64,
     /// Written only when corrected and historical linking differ. The raw
     /// source identity stays the same under either interpretation.
@@ -3076,8 +3080,8 @@ impl ReactiveSession {
             taken_back,
         } = write::seal_declared(evaluation.graph, evaluation.symbols);
         let mut session = Self {
-            source_id: source_identity(source),
-            source_sha256: source_digest(source),
+            source_id: Arc::from(source_identity(source)),
+            source_sha256: Arc::from(source_digest(source)),
             source_unrecorded_through: 0,
             module_bindings,
             sequence: 0,
@@ -5946,15 +5950,7 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<(BTreeMap<String, f64>, Vec<String>), DispatchFailure> {
-        // Typed map parsing rejects duplicate fields instead of last-write wins.
-        let payload: Payload = serde_json::from_str(payload_json).map_err(|error| {
-            DispatchFailure::rejected(
-                RejectionOrigin::Input,
-                RejectionCode::PayloadInvalid,
-                format!("invalid event payload: {error}"),
-            )
-        })?;
-        let signature = self.events.get(event);
+        let signature = self.events.get(event).map(Vec::as_slice);
         let payload_invalid = |message: String| {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
@@ -5962,67 +5958,44 @@ impl ReactiveSession {
                 message,
             )
         };
-        // Identifier texts wait until the others resolve, so that handles are
-        // given in declaration order whatever order the payload lists them in.
+        let mut resolved = BTreeMap::new();
         let mut texts = BTreeMap::new();
-        let mut resolved = payload
-            .0
-            .into_iter()
-            .filter_map(|(name, value)| {
-                let parameter = signature
-                    .and_then(|parameters| parameters.iter().find(|p| p.name == name));
-                let number = match (value, parameter.map(|p| &p.domain)) {
-                    (PayloadValue::Text(text), Some(ParameterDomain::Identifier { .. })) => {
-                        if let Err(message) = Identifiers::check_text(&text) {
-                            return Some(Err(payload_invalid(format!(
-                                "event {event} parameter {name}: {message}"
-                            ))));
-                        }
-                        texts.insert(name, text);
-                        return None;
-                    }
-                    (PayloadValue::Number(_), Some(ParameterDomain::Identifier { .. })) => {
-                        return Some(Err(payload_invalid(format!(
-                            "event {event} parameter {name} is an identifier: send its text"
-                        ))))
-                    }
-                    (PayloadValue::Number(number), _) => number,
-                    (PayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
-                        let Some(position) =
-                            domain.members().iter().position(|member| *member == text)
-                        else {
-                            return Some(Err(payload_invalid(format!(
-                                "event {event} parameter {name} does not accept {text}; expected one of {}",
-                                domain.members().join(", ")
-                            ))));
-                        };
-                        (position + 1) as f64
-                    }
-                    (PayloadValue::Text(_), _) => {
-                        return Some(Err(payload_invalid(format!(
-                            "event {event} parameter {name} expects a number"
-                        ))))
-                    }
-                };
-                Some(Ok((name, number)))
-            })
-            .collect::<Result<BTreeMap<_, _>, _>>()?;
+        let mut first_domain_error: Option<(String, String)> = None;
+        let mut deserializer = serde_json::Deserializer::from_str(payload_json);
+        let seed = PayloadSeed {
+            event,
+            signature,
+            resolved: &mut resolved,
+            texts: &mut texts,
+            first_domain_error: &mut first_domain_error,
+        };
+        use serde::de::DeserializeSeed;
+        seed.deserialize(&mut deserializer)
+            .map_err(|error| payload_invalid(format!("invalid event payload: {error}")))?;
+        deserializer
+            .end()
+            .map_err(|error| payload_invalid(format!("invalid event payload: {error}")))?;
+        if let Some((_, message)) = first_domain_error {
+            return Err(payload_invalid(message));
+        }
         let mut new_identifiers: Vec<String> = Vec::new();
-        for parameter in signature.into_iter().flatten() {
-            let Some(text) = texts.remove(&parameter.name) else {
-                continue;
-            };
-            let handle = match self.identifiers.handle(&text) {
-                Some(handle) => handle,
-                None => match new_identifiers.iter().position(|new| *new == text) {
-                    Some(index) => self.identifiers.len() + index + 1,
-                    None => {
-                        new_identifiers.push(text);
-                        self.identifiers.len() + new_identifiers.len()
-                    }
-                },
-            };
-            resolved.insert(parameter.name.clone(), handle as f64);
+        if !texts.is_empty() {
+            for parameter in signature.into_iter().flatten() {
+                let Some(text) = texts.remove(&parameter.name) else {
+                    continue;
+                };
+                let handle = match self.identifiers.handle(&text) {
+                    Some(handle) => handle,
+                    None => match new_identifiers.iter().position(|new| *new == text) {
+                        Some(index) => self.identifiers.len() + index + 1,
+                        None => {
+                            new_identifiers.push(text);
+                            self.identifiers.len() + new_identifiers.len()
+                        }
+                    },
+                };
+                resolved.insert(parameter.name.clone(), handle as f64);
+            }
         }
         Ok((resolved, new_identifiers))
     }
@@ -6159,6 +6132,14 @@ impl ReactiveSession {
         }
         let shown = self.take_shown();
         let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
+        // Transient per-event outputs are replaced by `run_event` on every
+        // accepted event; moving them out avoids cloning and immediately
+        // dropping them inside the transaction, while rollback restores them.
+        let prev_effects = std::mem::take(&mut self.effects);
+        let prev_cues = std::mem::take(&mut self.cues);
+        let prev_cue_qualifications = std::mem::take(&mut self.cue_qualifications);
+        let prev_last_event = self.last_event.take();
+        let prev_last_agent = self.last_agent.take();
         // The archive stays out of the transaction's copy: the event appends
         // to an empty one, kept only if it succeeds.
         let archive = std::mem::take(&mut self.archive);
@@ -6212,6 +6193,11 @@ impl ReactiveSession {
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
                 self.last_binding_groups = last_binding_groups;
+                self.effects = prev_effects;
+                self.cues = prev_cues;
+                self.cue_qualifications = prev_cue_qualifications;
+                self.last_event = prev_last_event;
+                self.last_agent = prev_last_agent;
                 if windowed {
                     std::mem::swap(&mut self.collector, &mut next.collector);
                     self.collector.rollback();
@@ -6673,32 +6659,12 @@ impl ReactiveSession {
         parameters: &Parameters<'_>,
         stripped_nodes: usize,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers_charged(
-            &|name| {
-                if name == reactive_expr::ELAPSED_READ {
-                    return Ok(Some(Tracked::plain(self.elapsed)));
-                }
-                if let Some(cell) = self.states.get(name) {
-                    if cell.unset {
-                        return Err(unset_read(name));
-                    }
-                    return Ok(Some(cell.value.clone()));
-                }
-                Ok(parameters
-                    .lineage(name)
-                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
-            },
-            &|kind, name| match self.at_occurrence(kind, name) {
-                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
-                Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
-                Some((_, None)) => Ok(Tracked::plain(false)),
-                None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
-            },
-            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
-            &|name, query| self.history_read(name, query),
-            &|handle| self.identifier_text(handle),
-            stripped_nodes,
-        )
+        let host = SessionEval {
+            session: self,
+            parameters,
+            grounds: false,
+        };
+        expression.evaluate_with_host(&host, false, stripped_nodes)
     }
 
     /// `id_text(handle)`: the text of an identifier the session holds.
@@ -6720,31 +6686,12 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_grounds_with_identifiers(
-            &|name| {
-                if name == reactive_expr::ELAPSED_READ {
-                    return Ok(Some(Tracked::plain(self.elapsed)));
-                }
-                if let Some(cell) = self.states.get(name) {
-                    if cell.unset {
-                        return Err(unset_read(name));
-                    }
-                    return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
-                }
-                Ok(parameters
-                    .grounds(name)
-                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
-            },
-            &|kind, name| match self.at_occurrence(kind, name) {
-                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, true),
-                Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
-                Some((_, None)) => Ok(Tracked::plain(false)),
-                None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
-            },
-            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, true),
-            &|name, query| self.history_read(name, query),
-            &|handle| self.identifier_text(handle),
-        )
+        let host = SessionEval {
+            session: self,
+            parameters,
+            grounds: true,
+        };
+        expression.evaluate_with_host(&host, true, 0)
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
@@ -10080,60 +10027,38 @@ impl ReactiveSession {
     /// other predicate, and otherwise the plain kind with the held occurrence
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
-    fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
-        if kind == reactive_expr::AT_REVISION || kind == reactive_expr::AT_REVISION_RESOLVED {
-            let revision = name
-                .rsplit_once('#')
-                .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
-            let kind = if kind == reactive_expr::AT_REVISION {
-                "rests_on_withdrawn"
-            } else {
-                reactive_expr::RESOLVED
-            };
-            return Some((kind, revision));
-        }
-        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
-            return Some((kind, self.latest_target(name)));
-        }
-        let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
-        let held = name
-            .rsplit_once('#')
-            .and_then(|(evidence, index)| Some((evidence, index.parse::<f64>().ok()?)))
-            .and_then(|(evidence, index)| self.held_occurrence(evidence, index));
-        Some((kind, held))
-    }
-
-    /// `in_basis(…)`, whose target arrives as `SERIES#K|KIND|NAME#N`: whether
-    /// the revision's grounds hold the evidence named. The answer rests on the
-    /// revision's record, as `committed(…)` asked of it does; a revision or a
-    /// reference that names nothing held answers false. See
-    /// spec/caveat-in-basis-0.1.md.
-    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, EvalError> {
-        let malformed =
-            || EvalError::from(format!("in_basis received a malformed target {target}"));
-        let mut parts = target.splitn(3, '|');
-        let (Some(revision), Some(kind), Some(reference)) =
-            (parts.next(), parts.next(), parts.next())
-        else {
-            return Err(malformed());
-        };
-        let (series, k) = revision.rsplit_once('#').ok_or_else(malformed)?;
-        let (name, n) = reference.rsplit_once('#').ok_or_else(malformed)?;
-        let revision = if k.is_empty() {
-            match self.decision_series.get(series) {
+    /// `in_basis(…)` resolved directly without formatting/parsing a synthetic
+    /// target string: whether the revision's grounds hold the evidence named.
+    /// The answer rests on the revision's record, as `committed(…)` asked of it
+    /// does; a revision or a reference that names nothing held answers false.
+    /// See spec/caveat-in-basis-0.1.md.
+    fn in_basis_direct(
+        &self,
+        series: &str,
+        revision_index: Option<f64>,
+        kind: &str,
+        name: &str,
+        at_index: Option<f64>,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let revision = match revision_index {
+            None => match self.decision_series.get(series) {
                 Some(series) => series.current.clone(),
                 None => self
                     .predicate("committed", series)?
                     .then(|| series.to_string()),
-            }
-        } else {
-            k.parse().ok().and_then(|k| self.held_revision(series, k))
+            },
+            Some(k) => self.held_revision(series, k),
         };
         let evidence = match kind {
             "named" => Some(self.occurrence(name).to_string()),
             "latest" => self.latest_target(name),
-            "at" => n.parse().ok().and_then(|n| self.held_occurrence(name, n)),
-            _ => return Err(malformed()),
+            "at" => at_index.and_then(|n| self.held_occurrence(name, n)),
+            _ => {
+                return Err(EvalError::from(format!(
+                    "in_basis received unknown kind {kind}"
+                )))
+            }
         };
         let (Some(revision), Some(evidence)) = (revision, evidence) else {
             return Ok(Tracked::plain(false));
@@ -10333,8 +10258,8 @@ impl ReactiveSession {
             controls: (*self.controls).clone(),
             clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
-            source_id: self.source_id.clone(),
-            source_sha256: self.source_sha256.clone(),
+            source_id: self.source_id.to_string(),
+            source_sha256: self.source_sha256.to_string(),
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
@@ -12184,68 +12109,275 @@ fn parameter_difference(signature: &[Parameter], parameters: &BTreeMap<String, f
     text
 }
 
-enum PayloadValue {
+/// Statically dispatched expression evaluator host over a `ReactiveSession`.
+/// Serves both lineage (`grounds == false`) and grounds (`grounds == true`)
+/// evaluation in one monomorphization, with direct structured resolution for
+/// `occurrence`/`reading`/`revision` and `in_basis`.
+struct SessionEval<'a> {
+    session: &'a ReactiveSession,
+    parameters: &'a Parameters<'a>,
+    grounds: bool,
+}
+
+impl reactive_expr::EvalHost for SessionEval<'_> {
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError> {
+        if name == reactive_expr::ELAPSED_READ {
+            return Ok(Some(Tracked::plain(self.session.elapsed)));
+        }
+        if let Some(cell) = self.session.states.get(name) {
+            if cell.unset {
+                return Err(unset_read(name));
+            }
+            return Ok(Some(if self.grounds {
+                Tracked::new(cell.value.value, cell.grounds.clone())?
+            } else {
+                cell.value.clone()
+            }));
+        }
+        let param = if self.grounds {
+            self.parameters.grounds(name)
+        } else {
+            self.parameters.lineage(name)
+        };
+        Ok(param.or_else(|| {
+            self.session
+                .constants
+                .get(name)
+                .copied()
+                .map(Tracked::plain)
+        }))
+    }
+
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return match self.session.latest_target(name) {
+                Some(occurrence) => {
+                    if self.grounds {
+                        self.session.predicate_grounds(kind, &occurrence)
+                    } else {
+                        self.session.predicate_tracked(kind, &occurrence)
+                    }
+                }
+                None => Ok(Tracked::plain(false)),
+            };
+        }
+        let target = self.session.predicate_target(kind, name);
+        if self.grounds {
+            self.session.predicate_grounds(kind, target)
+        } else {
+            self.session.predicate_tracked(kind, target)
+        }
+    }
+
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let (resolved_kind, target) = if kind == reactive_expr::AT_REVISION {
+            (
+                "rests_on_withdrawn",
+                self.session.held_revision(evidence, index),
+            )
+        } else if kind == reactive_expr::AT_REVISION_RESOLVED {
+            (
+                reactive_expr::RESOLVED,
+                self.session.held_revision(evidence, index),
+            )
+        } else {
+            (kind, self.session.held_occurrence(evidence, index))
+        };
+        let Some(target) = target else {
+            return Ok(Tracked::plain(false));
+        };
+        if self.grounds {
+            self.session.predicate_grounds(resolved_kind, &target)
+        } else {
+            self.session.predicate_tracked(resolved_kind, &target)
+        }
+    }
+
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+    ) -> Result<Tracked<bool>, EvalError> {
+        self.session
+            .in_basis_direct(series, revision, kind, name, at, self.grounds)
+    }
+
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError> {
+        self.session
+            .qualify_read(self.session.occurrence(evidence), caveats, self.grounds)
+    }
+
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
+        self.session.history_read(name, query)
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        self.session.identifier_text(handle)
+    }
+}
+
+enum BorrowedPayloadValue<'de> {
     Number(f64),
-    Text(String),
+    Text(std::borrow::Cow<'de, str>),
 }
 
 // By hand rather than `#[serde(untagged)]`, whose error names the Rust enum
 // ("did not match any variant of untagged enum PayloadValue"); this one says
 // what a parameter takes and what it was given.
-impl<'de> serde::Deserialize<'de> for PayloadValue {
+impl<'de> serde::Deserialize<'de> for BorrowedPayloadValue<'de> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct Visitor;
-        impl serde::de::Visitor<'_> for Visitor {
-            type Value = PayloadValue;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = BorrowedPayloadValue<'de>;
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("a number or text")
             }
-            fn visit_f64<E>(self, value: f64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value))
+            fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value))
             }
-            fn visit_i64<E>(self, value: i64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value as f64))
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value as f64))
             }
-            fn visit_u64<E>(self, value: u64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value as f64))
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value as f64))
             }
-            fn visit_str<E>(self, value: &str) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Text(value.to_string()))
+            fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Borrowed(
+                    value,
+                )))
             }
-            fn visit_string<E>(self, value: String) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Text(value))
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Owned(
+                    value.to_string(),
+                )))
+            }
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Owned(value)))
             }
         }
         deserializer.deserialize_any(Visitor)
     }
 }
 
-struct Payload(BTreeMap<String, PayloadValue>);
+struct PayloadSeed<'a> {
+    event: &'a str,
+    signature: Option<&'a [Parameter]>,
+    resolved: &'a mut BTreeMap<String, f64>,
+    texts: &'a mut BTreeMap<String, String>,
+    first_domain_error: &'a mut Option<(String, String)>,
+}
 
-impl<'de> serde::Deserialize<'de> for Payload {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Payload;
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an object of unique event parameters")
+impl PayloadSeed<'_> {
+    fn record_error(&mut self, key: &str, message: String) {
+        if self
+            .first_domain_error
+            .as_ref()
+            .is_none_or(|(existing, _)| key < existing.as_str())
+        {
+            *self.first_domain_error = Some((key.to_owned(), message));
+        }
+    }
+}
+
+impl<'de> serde::de::DeserializeSeed<'de> for PayloadSeed<'_> {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de> serde::de::Visitor<'de> for PayloadSeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("an object of unique event parameters")
+    }
+
+    fn visit_map<M: serde::de::MapAccess<'de>>(mut self, mut map: M) -> Result<(), M::Error> {
+        let mut seen_invalid: Option<BTreeSet<String>> = None;
+        while let Some((key, value)) =
+            map.next_entry::<std::borrow::Cow<'de, str>, BorrowedPayloadValue<'de>>()?
+        {
+            if self.resolved.contains_key(key.as_ref())
+                || self.texts.contains_key(key.as_ref())
+                || seen_invalid
+                    .as_ref()
+                    .is_some_and(|set| set.contains(key.as_ref()))
+            {
+                return Err(serde::de::Error::custom(format!(
+                    "duplicate parameter {key}"
+                )));
             }
-            fn visit_map<M: serde::de::MapAccess<'de>>(
-                self,
-                mut map: M,
-            ) -> Result<Self::Value, M::Error> {
-                let mut values = BTreeMap::new();
-                while let Some((key, value)) = map.next_entry::<String, PayloadValue>()? {
-                    if values.insert(key.clone(), value).is_some() {
-                        return Err(serde::de::Error::custom(format!(
-                            "duplicate parameter {key}"
-                        )));
+            let parameter = self
+                .signature
+                .and_then(|parameters| parameters.iter().find(|p| p.name == key.as_ref()));
+            match (value, parameter.map(|p| &p.domain)) {
+                (BorrowedPayloadValue::Text(text), Some(ParameterDomain::Identifier { .. })) => {
+                    if let Err(message) = Identifiers::check_text(&text) {
+                        let msg = format!("event {} parameter {key}: {message}", self.event);
+                        self.record_error(key.as_ref(), msg);
+                        seen_invalid
+                            .get_or_insert_with(BTreeSet::new)
+                            .insert(key.into_owned());
+                    } else {
+                        self.texts.insert(key.into_owned(), text.into_owned());
                     }
                 }
-                Ok(Payload(values))
+                (BorrowedPayloadValue::Number(_), Some(ParameterDomain::Identifier { .. })) => {
+                    let msg = format!(
+                        "event {} parameter {key} is an identifier: send its text",
+                        self.event
+                    );
+                    self.record_error(key.as_ref(), msg);
+                    seen_invalid
+                        .get_or_insert_with(BTreeSet::new)
+                        .insert(key.into_owned());
+                }
+                (BorrowedPayloadValue::Number(number), _) => {
+                    self.resolved.insert(key.into_owned(), number);
+                }
+                (BorrowedPayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
+                    if let Some(position) = domain
+                        .members()
+                        .iter()
+                        .position(|member| member == text.as_ref())
+                    {
+                        self.resolved
+                            .insert(key.into_owned(), (position + 1) as f64);
+                    } else {
+                        let msg = format!(
+                            "event {} parameter {key} does not accept {text}; expected one of {}",
+                            self.event,
+                            domain.members().join(", ")
+                        );
+                        self.record_error(key.as_ref(), msg);
+                        seen_invalid
+                            .get_or_insert_with(BTreeSet::new)
+                            .insert(key.into_owned());
+                    }
+                }
+                (BorrowedPayloadValue::Text(_), _) => {
+                    let msg = format!("event {} parameter {key} expects a number", self.event);
+                    self.record_error(key.as_ref(), msg);
+                    seen_invalid
+                        .get_or_insert_with(BTreeSet::new)
+                        .insert(key.into_owned());
+                }
             }
         }
-        deserializer.deserialize_map(Visitor)
+        Ok(())
     }
 }
 
