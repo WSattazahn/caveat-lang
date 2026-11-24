@@ -338,7 +338,9 @@ impl PatchParts {
                 let mut changed = Vec::new();
                 let mut removed = false;
                 old_graph.nodes.diff(&self.graph.nodes, |id, old, new| {
-                    if matches!(old, Some(NodeKind::Commitment { .. })) && new.is_none() {
+                    if matches!(old, Some(NodeKind::Commitment { .. }))
+                        && !matches!(new, Some(NodeKind::Commitment { .. }))
+                    {
                         removed = true;
                         return false;
                     }
@@ -535,6 +537,27 @@ impl PatchParts {
             )
         };
         put("decision_journal", journal_change);
+        #[cfg(debug_assertions)]
+        if !full {
+            assert_eq!(
+                text(&self.bindings),
+                text(&session.bindings),
+                "incremental view patch bindings drifted from session"
+            );
+            assert_eq!(
+                self.binding_explanations, session.binding_explanations,
+                "incremental view patch binding_explanations drifted from session"
+            );
+            let live_commitments = session
+                .commitment_records(|id| self.symbols.name_of(*id))
+                .into_iter()
+                .map(|commitment| (commitment.action.clone(), commitment))
+                .collect::<BTreeMap<_, _>>();
+            assert_eq!(
+                self.commitments, live_commitments,
+                "incremental view patch commitments drifted from session"
+            );
+        }
         members
     }
 }
@@ -788,5 +811,225 @@ fn relation(symbols: &NameTable, edge: &Edge) -> MapRelation {
         to: symbols.name_of(edge.to).expect("a named node").into(),
         relation: relation_name(edge.relation).into(),
         origin: "live".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn apply_map(held: Option<&Value>, change: &Value, nested: bool) -> Value {
+        let set = change["set"].as_object().expect("map set");
+        let keys: Vec<String> = match change.get("keys") {
+            Some(keys) => keys
+                .as_array()
+                .expect("keys array")
+                .iter()
+                .map(|k| k.as_str().expect("key str").to_owned())
+                .collect(),
+            None => held
+                .and_then(Value::as_object)
+                .map(|m| m.keys().cloned().collect())
+                .unwrap_or_default(),
+        };
+        let mut out = serde_json::Map::new();
+        for key in keys {
+            let value = if let Some(entry) = set.get(&key) {
+                if nested {
+                    apply_map(held.and_then(|h| h.get(&key)), entry, false)
+                } else {
+                    entry.clone()
+                }
+            } else {
+                held.and_then(|h| h.get(&key))
+                    .expect("held key present")
+                    .clone()
+            };
+            out.insert(key, value);
+        }
+        Value::Object(out)
+    }
+
+    fn apply_list(held: Option<&Value>, change: &Value) -> Value {
+        let held = held.and_then(Value::as_array);
+        let mut out = Vec::new();
+        for item in change["items"].as_array().expect("list items") {
+            if let Some(run) = item.as_array() {
+                let start = run[0].as_u64().unwrap() as usize;
+                let len = run[1].as_u64().unwrap() as usize;
+                let src = held.expect("held list");
+                out.extend_from_slice(&src[start..start + len]);
+            } else {
+                out.push(item.clone());
+            }
+        }
+        Value::Array(out)
+    }
+
+    fn apply_patch(held: Option<&Value>, patch: &Value) -> Value {
+        let base = if patch["since"].is_null() { None } else { held };
+        let members = patch["members"].as_object().expect("members");
+        let mut view = serde_json::Map::new();
+        view.insert("schema".into(), patch["view_schema"].clone());
+        view.insert("sequence".into(), patch["sequence"].clone());
+        view.insert("last_event".into(), patch["last_event"].clone());
+        for name in [
+            "bindings",
+            "binding_explanations",
+            "cues",
+            "effects",
+            "commitments",
+            "commitment_grounds",
+            "decision_series",
+            "decision_journal",
+            "relations",
+        ] {
+            let value = match members.get(name) {
+                None => base.expect("base view")[name].clone(),
+                Some(change) if matches!(name, "cues" | "effects") => change["value"].clone(),
+                Some(change) if matches!(name, "decision_journal" | "relations") => {
+                    apply_list(base.map(|b| &b[name]), change)
+                }
+                Some(change) if name == "commitments" => {
+                    let held_map = base.map(|b| {
+                        let mut m = serde_json::Map::new();
+                        for c in b["commitments"].as_array().unwrap() {
+                            m.insert(c["action"].as_str().unwrap().to_owned(), c.clone());
+                        }
+                        Value::Object(m)
+                    });
+                    let map = apply_map(held_map.as_ref(), change, false);
+                    let obj = map.as_object().unwrap();
+                    let order: Vec<String> = match change.get("keys") {
+                        Some(k) => k
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|s| s.as_str().unwrap().to_owned())
+                            .collect(),
+                        None => base
+                            .unwrap()
+                            .get("commitments")
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|c| c["action"].as_str().unwrap().to_owned())
+                            .collect(),
+                    };
+                    Value::Array(order.into_iter().map(|k| obj[&k].clone()).collect())
+                }
+                Some(change) if matches!(name, "bindings" | "binding_explanations") => {
+                    apply_map(base.map(|b| &b[name]), change, true)
+                }
+                Some(change) => apply_map(base.map(|b| &b[name]), change, false),
+            };
+            view.insert(name.into(), value);
+        }
+        Value::Object(view)
+    }
+
+    fn verify_sequence(source: &str, events: &[(&str, &str)]) {
+        let mut plain = ReactiveSession::from_source(source).unwrap();
+        let mut patched = ReactiveSession::from_source(source).unwrap();
+        let mut base = ViewPatchBase::default();
+        let mut held: Option<Value> = None;
+        for &(event, payload) in events {
+            let expected_raw =
+                serde_json::to_string(&plain.dispatch_view_outcome_json(event, payload).unwrap())
+                    .unwrap();
+            let expected_val: Value = serde_json::from_str(&expected_raw).unwrap();
+            let expected = serde_json::to_string(&expected_val).unwrap();
+            let seq = held.as_ref().and_then(|v| v["sequence"].as_u64());
+            let patch_raw = serde_json::to_string(
+                &patched
+                    .dispatch_view_patch_outcome_json_from(&mut base, seq, event, payload, None)
+                    .unwrap(),
+            )
+            .unwrap();
+            let patch_outcome: Value = serde_json::from_str(&patch_raw).unwrap();
+            if patch_outcome["outcome"] == "accepted" {
+                let view = apply_patch(held.as_ref(), &patch_outcome["patch"]);
+                let reconstructed = serde_json::to_string(&json!({
+                    "schema": DISPATCH_SCHEMA,
+                    "outcome": "accepted",
+                    "view": view,
+                }))
+                .unwrap();
+                assert_eq!(reconstructed, expected, "{event} {payload}");
+                held = Some(view);
+            } else {
+                assert_eq!(
+                    serde_json::to_string(&patch_outcome).unwrap(),
+                    expected,
+                    "{event} {payload}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn incremental_patch_handles_binding_targets_zero_signs_commitments_and_departures() {
+        let source = r#"
+claim ok;
+caveat k consequence material;
+evidence tool from "tool";
+evidence note from "note";
+readings r from tool window 2;
+decisions d limit 8 reopened by r;
+journal window 2;
+state x = 0 min -10 max 10;
+state show_extra = 0 min 0 max 1;
+event noop;
+event set_x v min -10 max 10;
+event toggle v min 0 max 1;
+event sample_r v min -10 max 10;
+event decide;
+event flag;
+event withdraw_latest;
+on set_x set x = v;
+on toggle set show_extra = v;
+on sample_r sample r = v supports ok;
+on decide commit d because enough using latest(r);
+on flag qualify latest(r) with k;
+on withdraw_latest reveal note;
+on withdraw_latest withdraw latest(r) because note;
+bind panel.x = x;
+bind panel.extra = 1 when show_extra == 1;
+bind ephemeral.only = x when show_extra == 1;
+bind hist.count = history_count(r);
+"#;
+        verify_sequence(
+            source,
+            &[
+                ("noop", "{}"),
+                // 0.0 -> -0.0 and back, plus untouched noop
+                ("set_x", r#"{"v":-0.0}"#),
+                ("noop", "{}"),
+                ("set_x", r#"{"v":0.0}"#),
+                // Add inner property & brand-new outer target
+                ("toggle", r#"{"v":1}"#),
+                // Update property while outer target exists
+                ("set_x", r#"{"v":2}"#),
+                // Remove inner property & remove last property of outer target
+                ("toggle", r#"{"v":0}"#),
+                // Sample, commit, qualify, reopen, commit past window=2 so
+                // commitments, relations, and journal entries depart
+                ("sample_r", r#"{"v":1}"#),
+                ("decide", "{}"),
+                ("flag", "{}"),
+                ("sample_r", r#"{"v":2}"#),
+                ("decide", "{}"),
+                ("sample_r", r#"{"v":3}"#),
+                ("decide", "{}"),
+                ("withdraw_latest", "{}"),
+                ("sample_r", r#"{"v":4}"#),
+                ("decide", "{}"),
+                // Refused event leaves base valid for next accepted event
+                ("set_x", r#"{"v":999}"#),
+                ("set_x", r#"{"v":5}"#),
+            ],
+        );
     }
 }
