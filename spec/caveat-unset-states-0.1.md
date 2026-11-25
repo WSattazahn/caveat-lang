@@ -1,6 +1,6 @@
 # CAVEAT Unset States 0.1 — a state with no value until a rule sets it
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5: it becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5. It adds to
 [Reactive 0.1](caveat-reactive-0.1.md), [Dispatch 0.1](caveat-dispatch-0.1.md),
 [Save 0.1](caveat-save-0.1.md) and [Check 0.1](caveat-check-0.1.md); it
 changes no program that loads today.

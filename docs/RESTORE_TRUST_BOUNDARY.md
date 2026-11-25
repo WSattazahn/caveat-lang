@@ -1,6 +1,6 @@
 # Restore acceptance and host trust
 
-The unreleased [module-binding correction](../spec/caveat-save-0.1.md#module-binding-interpretation)
+The 1.5.0 [module-binding correction](../spec/caveat-save-0.1.md#module-binding-interpretation)
 adds an optional interpretation marker and restore choice. A source digest
 identifies bytes, not which historical linker interpreted them. The choice
 is made before state validation or event replay; it does not bypass those

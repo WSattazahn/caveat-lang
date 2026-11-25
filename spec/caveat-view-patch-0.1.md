@@ -1,6 +1,6 @@
 # CAVEAT View Patch 0.1
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5, implemented 2026-10-31. It adds an option and a runtime call; [View 0.1](caveat-view-0.1.md) and every other call are unchanged.
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5, implemented 2026-10-31. It adds an option and a runtime call; [View 0.1](caveat-view-0.1.md) and every other call are unchanged.
 
 A host that redraws from the whole [View 0.1](caveat-view-0.1.md) after every
 event pays to build, serialize and parse all of it, although most of it did

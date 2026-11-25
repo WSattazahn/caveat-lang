@@ -2,7 +2,7 @@
 
 **Status:** stable from 1.2.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.2. It adds to [Replay Save 0.1](caveat-replay-save-0.1.md) and changes nothing that 0.1 writes or restores.
 
-Unreleased amendment: affected module saves carry an optional
+From 1.5.0: affected module saves carry an optional
 [binding interpretation](caveat-save-0.1.md#module-binding-interpretation).
 Releases wrote this format from 1.2.0 on. Those that wrote it unmarked,
 1.2.0 to 1.4.1, all read a module's `hold` or `release` two words before

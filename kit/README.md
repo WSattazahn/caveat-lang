@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -24,7 +24,7 @@ In an empty directory with Node 20 or later, install the package:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 ```
 <!-- /caveat-package:install -->
 
@@ -109,7 +109,7 @@ installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -323,7 +323,7 @@ evidence, evidence sources, claims, caveats or retention reasons hold every
 word, ignoring case, with its value, whether it still stands, what it rests
 on and how it turned out. With `--json` it prints one `caveat-find/0.1`
 report; the MCP tool `caveat_find` does the same for inline records of one
-program. It is a 1.5 draft ([Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)).
+program (from 1.5.0, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)).
 
 ```sh
 npx --no-install caveat-lang find ledgers/ customer email
@@ -349,7 +349,7 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind. `--names` (draft for 1.5) also reports a `commit` whose name
+  left behind. `--names` (from 1.5.0) also reports a `commit` whose name
   is one or two edits from a declared decision series: it would run as a
   separate plain commitment and the series would never record it.
   `--records` also reports where a program reads a decision's

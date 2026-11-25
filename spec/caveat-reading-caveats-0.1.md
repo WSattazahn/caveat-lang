@@ -1,6 +1,6 @@
 # CAVEAT Reading Caveats 0.1 — a caveat on the one reading a sample takes
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5: it becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5. It adds to
 [Sampling](caveat-reactive-0.1.md), [Neutral samples 0.1](caveat-neutral-sample-0.1.md),
 [Reading Notes 0.1](caveat-reading-notes-0.1.md) and
 [Late Qualification 0.1](caveat-late-qualification-0.1.md); it changes no

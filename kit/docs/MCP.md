@@ -1,7 +1,7 @@
 # MCP authoring tools
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 This package exposes existing Caveat authoring operations to a local MCP
@@ -62,7 +62,7 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
 | caveat_dispatch | source, optional save, optional moduleBindings, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.5.0) |
-| caveat_find | source, records, query | Past decisions in the records whose names, evidence, sources, claims or caveats hold every word, with their standing (a 1.5 draft, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)) |
+| caveat_find | source, records, query | Past decisions in the records whose names, evidence, sources, claims or caveats hold every word, with their standing (from 1.5.0, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
 authoring diagnostics, and `caveat_test` to assert behavior after events. A

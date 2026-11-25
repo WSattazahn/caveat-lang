@@ -194,7 +194,7 @@ the place and the form the ledger's hand-written selections have, so a
 converted block expands to the same text (section 5).
 
 In a program that declares `work skips other routes;`
-([Routed Work 0.1](caveat-routed-work-0.1.md), a 1.5 draft), the copy for any
+([Routed Work 0.1](caveat-routed-work-0.1.md), from 1.5.0), the copy for any
 other member also counts no work against the event's 4,096 steps: its guard
 starts with a route the payload makes false. A hand-written selection in the
 same place and form has the same route.

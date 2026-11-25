@@ -46,7 +46,7 @@ export type KnownRejectionCode =
   | 'evaluation_limit'
   | 'wrong_agent'
   | 'text_limit'
-  /** 1.5 draft: a read of a state declared `unset` that has no value (spec/caveat-unset-states-0.1.md). */
+  /** From 1.5.0: a read of a state declared `unset` that has no value (spec/caveat-unset-states-0.1.md). */
   | 'unset_state';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
@@ -417,7 +417,7 @@ export interface InterfaceState {
   name: string;
   min: number;
   max: number;
-  /** 1.5 draft: declared `state NAME unset;`; absent otherwise (spec/caveat-unset-states-0.1.md). */
+  /** From 1.5.0: declared `state NAME unset;`; absent otherwise (spec/caveat-unset-states-0.1.md). */
   unset?: true;
 }
 
@@ -572,7 +572,7 @@ export interface Snapshot {
   last_agent?: string;
   values: Record<string, number>;
   qualified_values: Record<string, QualifiedValue>;
-  /** 1.5 draft: the states declared `unset` that have no value now, in name order; they are left out of `values`, and this is absent when none is (spec/caveat-unset-states-0.1.md). */
+  /** From 1.5.0: the states declared `unset` that have no value now, in name order; they are left out of `values`, and this is absent when none is (spec/caveat-unset-states-0.1.md). */
   unset?: string[];
   commitment_bases: Record<string, CommitmentBasis>;
   reading_streams: Record<string, ReadingStream>;
@@ -690,7 +690,7 @@ export interface QualifiedValue {
 export interface CommitmentBasis {
   value: number | null;
   provenance: Provenance;
-  /** 1.5 draft: the thresholds the commit named, with their values; absent when none (spec/caveat-thresholds-0.1.md). */
+  /** From 1.5.0: the thresholds the commit named, with their values; absent when none (spec/caveat-thresholds-0.1.md). */
   thresholds?: Record<string, number>;
 }
 

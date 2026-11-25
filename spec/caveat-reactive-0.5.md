@@ -68,7 +68,7 @@ the claim it bears on is retained. When the template is
 [renewable](caveat-renewal-0.1.md), the caveats qualifying its current
 occurrence when the sample is taken are linked too (from 1.4.0), and so are
 the caveats a [`sample … with`](caveat-reading-caveats-0.1.md) clause names
-when its condition holds (1.5 draft). The
+when its condition holds (from 1.5.0). The
 `withdrawn` caveat of a [withdrawal](caveat-withdrawal-0.1.md) is not: it is
 about an observation already made, not this one.
 

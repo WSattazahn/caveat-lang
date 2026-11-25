@@ -629,14 +629,14 @@ with uncertain when p > 0.3 and p < 0.9;`. Only that reading carries
 `uncertain`, so an irreversible decision resting on it must retain it, and a
 sure reading carries nothing. Prefer this to declaring the caveat on the
 evidence, which marks every reading, or to a second rule that qualifies
-`latest(STREAM)` afterwards (1.5 draft,
+`latest(STREAM)` afterwards (from 1.5.0,
 [reading caveats](../spec/caveat-reading-caveats-0.1.md)).
 
 When a decision compares a number with a bar, name the bar:
 `threshold go_bar = 0.9;` and then `using if(latest(beliefs) >= go_bar, 2, 1)`.
 The decision's record and `caveat explain` then list `go_bar = 0.9`, so a
 reviewer sees what the number was compared with without reading the source.
-A `define` would be inlined and leave no trace (1.5 draft,
+A `define` would be inlined and leave no trace (from 1.5.0,
 [thresholds](../spec/caveat-thresholds-0.1.md)).
 
 When a decision also needs someone's permission, say what permits it rather
@@ -916,7 +916,7 @@ its reason.
 
 ## Act on text from a source that may turn out bad
 
-Draft for 1.4 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
+From 1.4.0 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
 An agent that acts on text it read, such as an instruction in an email, gives
 that text a caveat and every action resting on it carries the caveat. Three
 forms keep such a program short:
@@ -959,15 +959,15 @@ decision's grounds then name both readings
 When several sources vote and a decision should rest on the ones that agreed,
 add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
 `if(...)` would make every vote it read a ground, dissenters included.
-`only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
-([Only If 0.1](../spec/caveat-only-if-0.1.md); the
+`only_if`'s condition is lineage only, as a rule's `when` is (from 1.4.0,
+[Only If 0.1](../spec/caveat-only-if-0.1.md); the
 [model-votes experiment](../experiments/model-votes/README.md)).
 
 When a decision reads another decision, `using latest(D)` carries `D`'s whole
 basis: after a reopening, that holds the predecessor's evidence, withdrawn or
 not. `using grounds_of(D)` carries `D`'s grounds alone, what `D` rested on,
 so the new decision carries `withdrawn` exactly when `rests_on_withdrawn(D)`
-is true. Draft for 1.5 ([Grounds Of 0.1](../spec/caveat-grounds-of-0.1.md)).
+is true (from 1.5.0, [Grounds Of 0.1](../spec/caveat-grounds-of-0.1.md)).
 
 ## What a withdrawal adds to a decision's grounds
 
