@@ -16,7 +16,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { real, repo, thermostat } from './helpers.mjs';
+import { CaveatError, createRuntime } from '../lib/session.mjs';
+import { Real, real, repo, thermostat } from './helpers.mjs';
 import { loadStreams } from './workload-streams.mjs';
 
 const EVENTS = Number(process.env.DISPATCH_VIEW_EVENTS ?? 120);
@@ -185,5 +186,148 @@ test('reuse is checked before the runtime is called', () => {
     const { view } = session.dispatchView('read', { value: 20 }, { reuse: true });
     assert.equal(view.sequence, 1);
     assert.throws(() => { 'use strict'; view.bindings.extra = 1; }, TypeError);
+  } finally { session.close(); }
+});
+
+test('malformed or truncated binary view patches are fatal and never return accepted', () => {
+  const validBuf = () => {
+    const raw = new Real(thermostat);
+    try {
+      return raw.dispatch_view_patch_binary_outcome('read', '{"value":20}', undefined);
+    } finally { raw.free(); }
+  };
+  const good = validBuf();
+  const trailing = new Uint8Array(good.length + 1);
+  trailing.set(good);
+  trailing[good.length] = 0;
+
+  // Mask with missing member bit on a full patch (since=null, mask=0x01fe instead of 0x01ff).
+  const missingMember = new Uint8Array(good);
+  // Header layout: [1 (accepted), 0 (hasSince=0), seq(1 byte), 1 (hasLastEvent=1), lenTag, ...last_event, maskLo, maskHi]
+  const lastEventBytes = new TextEncoder().encode('read');
+  const maskOffset = 1 + 1 + 1 + 1 + 1 + lastEventBytes.length;
+  missingMember[maskOffset] = 0xfe;
+  missingMember[maskOffset + 1] = 0x01;
+
+  // Mask with unknown high bit (0x02ff).
+  const unknownMaskBit = new Uint8Array(good);
+  unknownMaskBit[maskOffset + 1] = 0x03;
+
+  // Infinite-varint continuation bytes that would hang without EOF / shift bounds.
+  const truncatedVarint = new Uint8Array([1, 1, 0x80]);
+  const overflowVarint = new Uint8Array([1, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01]);
+
+  // Wrong `since` (claims held sequence 99 when session holds nothing).
+  const wrongSince = new Uint8Array([1, 1, 99, 1, 0, 0, 0]);
+
+  const malformedCases = [
+    ['non-Uint8Array', 'not bytes'],
+    ['empty buffer', new Uint8Array(0)],
+    ['unknown outcome tag', new Uint8Array([2])],
+    ['truncated rejected outcome', new Uint8Array([0, 0])],
+    ['invalid rejection origin tag', new Uint8Array([0, 99, 0, 0])],
+    ['truncated varint', truncatedVarint],
+    ['varint overflow', overflowVarint],
+    ['wrong since', wrongSince],
+    ['truncated valid patch', good.subarray(0, Math.floor(good.length / 2))],
+    ['trailing bytes', trailing],
+    ['missing member on full patch', missingMember],
+    ['unknown mask bit', unknownMaskBit],
+  ];
+
+  for (const [label, bad] of malformedCases) {
+    class BadBinary {
+      constructor(source) { this.inner = new Real(source); this.viewCalls = 0; }
+      dispatch_outcome(event, payload) { return this.inner.dispatch_outcome(event, payload); }
+      dispatch_view_patch_binary_outcome() { return bad; }
+      snapshot() { return this.inner.snapshot(); }
+      view() { this.viewCalls += 1; return this.inner.view(); }
+      save() { return this.inner.save(); }
+      free() { this.inner.free(); }
+    }
+    const session = createRuntime(BadBinary).open(thermostat);
+    try {
+      assert.throws(
+        () => session.dispatchView('read', { value: 20 }, { reuse: true }),
+        error => error instanceof CaveatError && error.kind === 'fatal' && /malformed binary view patch/.test(error.message),
+        label,
+      );
+      assert.equal(session.state, 'fatal', `${label}: session must become fatal`);
+      assert.throws(() => session.view(), error => error instanceof CaveatError && error.kind === 'fatal', `${label}: subsequent calls must refuse`);
+    } finally { session.close(); }
+  }
+});
+
+test('reuse falls back to JSON text view patches when binary patch exports are absent', () => {
+  const AGENT_SRC = `state x = 0 min 0 max 10;
+agent main sends bump;
+event bump v min 0 max 10;
+on bump set x = v;
+bind hud.x = x;`;
+
+  let textCalls = 0;
+  class TextPatchOnly {
+    constructor(source) { this.inner = new Real(source); }
+    dispatch_outcome(event, payload) { return this.inner.dispatch_outcome(event, payload); }
+    dispatch_view_patch_outcome(event, payload, held) {
+      textCalls += 1;
+      return this.inner.dispatch_view_patch_outcome(event, payload, held);
+    }
+    dispatch_view_patch_outcome_as(event, payload, held, agent) {
+      textCalls += 1;
+      return this.inner.dispatch_view_patch_outcome_as(event, payload, held, agent);
+    }
+    snapshot() { return this.inner.snapshot(); }
+    view() { return this.inner.view(); }
+    save() { return this.inner.save(); }
+    free() { this.inner.free(); }
+  }
+
+  const runtime = createRuntime(TextPatchOnly);
+  const s1 = runtime.open(thermostat);
+  const s2 = runtime.open(AGENT_SRC);
+  try {
+    const a = s1.dispatchView('read', { value: 17 }, { reuse: true });
+    assert.equal(a.outcome, 'accepted');
+    assert.ok(frozen(a.view));
+    const b = s1.dispatchView('read', { value: 25 }, { reuse: true });
+    assert.equal(b.outcome, 'accepted');
+    assert.equal(b.view.cues, a.view.cues);
+    assert.equal(b.view.bindings.heating.text, '0%');
+
+    const c = s2.dispatchView('bump', { v: 4 }, { reuse: true, agent: 'main' });
+    assert.equal(c.outcome, 'accepted');
+    assert.equal(c.view.bindings.hud.x, 4);
+    const d = s2.dispatchView('bump', { v: 5 }, { reuse: true, agent: 'other' });
+    assert.equal(d.outcome, 'rejected');
+    assert.equal(d.code, 'wrong_agent');
+    assert.equal(textCalls, 4);
+  } finally { s1.close(); s2.close(); }
+});
+
+test('binary view patch supports agent dispatch and preserves held view across refusals', () => {
+  const AGENT_SRC = `state x = 0 min 0 max 10;
+state y = 1 min 0 max 10;
+agent main sends set_x;
+event set_x v min 0 max 10;
+on set_x set x = v;
+bind a.x = x;
+bind b.y = y;`;
+  const session = real.open(AGENT_SRC);
+  try {
+    const first = session.dispatchView('set_x', { v: 3 }, { reuse: true, agent: 'main' });
+    assert.equal(first.outcome, 'accepted');
+    assert.equal(first.view.bindings.a.x, 3);
+    assert.ok(frozen(first.view));
+
+    const refused = session.dispatchView('set_x', { v: 4 }, { reuse: true, agent: 'intruder' });
+    assert.equal(refused.outcome, 'rejected');
+    assert.equal(refused.origin, 'input');
+    assert.equal(refused.code, 'wrong_agent');
+
+    const second = session.dispatchView('set_x', { v: 7 }, { reuse: true, agent: 'main' });
+    assert.equal(second.outcome, 'accepted');
+    assert.equal(second.view.bindings.a.x, 7);
+    assert.equal(second.view.bindings.b, first.view.bindings.b, 'unchanged target reused across refusal');
   } finally { session.close(); }
 });

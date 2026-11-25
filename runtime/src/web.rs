@@ -503,6 +503,29 @@ impl WebReactiveSession {
         self.view_patch(event, payload_json, held, Some(agent))
     }
 
+    /// Binary wire encoding of `dispatch_view_patch_outcome` for low-overhead
+    /// host decoding into frozen View 0.1 objects without JSON serialization
+    /// or `JSON.parse`. Fatal errors keep the same JSON error string.
+    pub fn dispatch_view_patch_binary_outcome(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+    ) -> Result<Vec<u8>, String> {
+        self.view_patch_binary(event, payload_json, held, None)
+    }
+
+    /// `dispatch_view_patch_binary_outcome` for an event the host says `agent` sent.
+    pub fn dispatch_view_patch_binary_outcome_as(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+        agent: &str,
+    ) -> Result<Vec<u8>, String> {
+        self.view_patch_binary(event, payload_json, held, Some(agent))
+    }
+
     /// Dispatch and return the per-event view rather than the full snapshot.
     pub fn dispatch_view(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
         self.forget_views();
@@ -540,6 +563,32 @@ impl WebReactiveSession {
             agent,
         ) {
             Ok(text) => Ok(text),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
+    fn view_patch_binary(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+        held: Option<f64>,
+        agent: Option<&str>,
+    ) -> Result<Vec<u8>, String> {
+        self.delta_base.clear();
+        // A sequence is a whole number; anything else holds no view.
+        let held = held
+            .filter(|held| held.fract() == 0.0 && *held >= 0.0)
+            .map(|held| held as u64);
+        match self.inner.dispatch_view_patch_outcome_binary_from(
+            &mut self.patch_base,
+            held,
+            event,
+            payload_json,
+            agent,
+        ) {
+            Ok(bytes) => Ok(bytes),
             Err(fatal) => {
                 Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
             }

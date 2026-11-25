@@ -314,6 +314,9 @@ export interface RuntimeSessionHandle {
   /** The View 0.1 patch from the view as of `held`. See spec/caveat-view-patch-0.1.md. */
   dispatch_view_patch_outcome?(event: string, payload: string, held: number | undefined): string;
   dispatch_view_patch_outcome_as?(event: string, payload: string, held: number | undefined, agent: string): string;
+  /** Compact binary wire encoding of the View 0.1 patch for low-overhead frozen view decoding. */
+  dispatch_view_patch_binary_outcome?(event: string, payload: string, held: number | undefined): Uint8Array;
+  dispatch_view_patch_binary_outcome_as?(event: string, payload: string, held: number | undefined, agent: string): Uint8Array;
   dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   what_if_view_outcome?(event: string, payload: string): string;
   what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;

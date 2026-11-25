@@ -335,6 +335,649 @@ function patchedView(held, patch) {
   });
 }
 
+// ------------------------------------------------ binary view-patch decoder
+
+const VIEW_SCHEMA_0_1 = 'caveat-reactive-view/0.1';
+const EMPTY_ARRAY = Object.freeze([]);
+const RELATION_NAMES = ['supports', 'opposes', 'qualifies', 'in_context', 'retains', 'reopens', 'relies_on'];
+const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
+const F64_BYTES = new Uint8Array(8);
+const F64_VIEW = new Float64Array(F64_BYTES.buffer);
+const F64_DV = new DataView(F64_BYTES.buffer);
+const LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
+function decodeBinaryViewPatch(buf, held) {
+  if (!(buf instanceof Uint8Array) || buf.length === 0) throw new TypeError('malformed binary view patch');
+  let pos = 0;
+  const end = buf.length;
+
+  function readByte() {
+    if (pos >= end) throw new TypeError('truncated binary view patch');
+    return buf[pos++];
+  }
+
+  function readVarint() {
+    if (pos >= end) throw new TypeError('truncated binary view patch');
+    let b = buf[pos++];
+    if (b < 0x80) return b;
+    let val = b & 0x7f;
+    let shift = 7;
+    for (;;) {
+      if (pos >= end) throw new TypeError('truncated binary view patch');
+      b = buf[pos++];
+      if (shift === 63) {
+        if (b > 1) throw new TypeError('varint overflow in binary view patch');
+        return val + b * (2 ** 63);
+      }
+      if (b < 0x80) return shift < 28 ? val | (b << shift) : val + b * (2 ** shift);
+      val = shift < 28 ? val | ((b & 0x7f) << shift) : val + (b & 0x7f) * (2 ** shift);
+      shift += 7;
+    }
+  }
+
+  function readF64() {
+    if (pos + 8 > end) throw new TypeError('truncated binary view patch');
+    F64_BYTES[0] = buf[pos];
+    F64_BYTES[1] = buf[pos + 1];
+    F64_BYTES[2] = buf[pos + 2];
+    F64_BYTES[3] = buf[pos + 3];
+    F64_BYTES[4] = buf[pos + 4];
+    F64_BYTES[5] = buf[pos + 5];
+    F64_BYTES[6] = buf[pos + 6];
+    F64_BYTES[7] = buf[pos + 7];
+    pos += 8;
+    const value = LITTLE_ENDIAN ? F64_VIEW[0] : F64_DV.getFloat64(0, true);
+    if (!Number.isFinite(value)) throw new TypeError('non-finite number in binary view patch');
+    return value;
+  }
+
+  function readStr() {
+    const tag = readVarint();
+    if (tag > 0xffffffff) throw new TypeError('string too large in binary view patch');
+    const len = tag >>> 1;
+    if (len === 0) return '';
+    if (pos + len > end) throw new TypeError('truncated string in binary view patch');
+    const start = pos;
+    pos += len;
+    if ((tag & 1) === 0 && len <= 48) {
+      let s = '';
+      let i = start;
+      const limit = pos;
+      while (i + 8 <= limit) {
+        s += String.fromCharCode(
+          buf[i], buf[i + 1], buf[i + 2], buf[i + 3],
+          buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7],
+        );
+        i += 8;
+      }
+      while (i < limit) s += String.fromCharCode(buf[i++]);
+      return s;
+    }
+    return UTF8_DECODER.decode(buf.subarray(start, pos));
+  }
+
+  function readOptStr() {
+    const tag = readByte();
+    if (tag === 0) return null;
+    if (tag === 1) return readStr();
+    throw new TypeError('malformed optional string tag');
+  }
+
+  function readStrList() {
+    const len = readVarint();
+    if (len === 0) return EMPTY_ARRAY;
+    if (len > end - pos) throw new TypeError('truncated string list in binary view patch');
+    const arr = new Array(len);
+    for (let i = 0; i < len; i += 1) arr[i] = readStr();
+    return Object.freeze(arr);
+  }
+
+  function readBindingValue() {
+    const tag = readByte();
+    if (tag === 0) return readF64();
+    if (tag === 1) return false;
+    if (tag === 2) return true;
+    if (tag === 3) return readStr();
+    throw new TypeError('malformed binding value');
+  }
+
+  function readProvenance() {
+    const flags = readByte();
+    if ((flags & ~7) !== 0) throw new TypeError('malformed provenance flags');
+    const evidence = readStrList();
+    const caveats = readStrList();
+    if (flags === 0) return Object.freeze({ evidence, caveats });
+    const obj = { evidence, caveats };
+    if (flags & 1) {
+      const n = readVarint();
+      if (n > end - pos) throw new TypeError('truncated departed list in binary view patch');
+      const departed = new Array(n);
+      for (let i = 0; i < n; i += 1) {
+        const history = readStr();
+        const read = readVarint();
+        const from = readVarint();
+        const through = readVarint();
+        const departed_at = readVarint();
+        const archive_ref = readOptStr();
+        const marker = archive_ref === null
+          ? { history, read, from, through, departed_at }
+          : { history, read, from, through, departed_at, archive_ref };
+        departed[i] = Object.freeze(marker);
+      }
+      obj.departed = Object.freeze(departed);
+    }
+    if (flags & 2) obj.inherited = readStrList();
+    if (flags & 4) obj.kept = readStrList();
+    return Object.freeze(obj);
+  }
+
+  function readEffect() {
+    const kind = readByte();
+    if (kind === 0) {
+      const stream = readStr();
+      const id = readStr();
+      const value = readF64();
+      const flags = readByte();
+      if ((flags & ~7) !== 0) throw new TypeError('malformed sample effect flags');
+      const obj = { kind: 'sample', stream, id, value };
+      if (flags & 1) obj.relation = readStr();
+      if (flags & 2) obj.target = readStr();
+      if (flags & 4) obj.note = readStr();
+      return Object.freeze(obj);
+    }
+    if (kind === 1) {
+      const evidence = readStr();
+      const flags = readByte();
+      if ((flags & ~3) !== 0) throw new TypeError('malformed reveal effect flags');
+      const obj = { kind: 'reveal', evidence };
+      if (flags & 1) obj.relation = readStr();
+      if (flags & 2) obj.target = readStr();
+      return Object.freeze(obj);
+    }
+    if (kind === 2) return Object.freeze({ kind: 'examine', caveat: readStr(), cost: readVarint() });
+    if (kind === 3) return Object.freeze({ kind: 'commit', action: readStr(), retained: readStrList() });
+    if (kind === 4) return Object.freeze({ kind: 'reopen', action: readStr(), because: readStr() });
+    if (kind === 5) return Object.freeze({ kind: 'qualify', evidence: readStr(), caveat: readStr() });
+    if (kind === 6) return Object.freeze({ kind: 'unqualify', evidence: readStr(), caveat: readStr(), occurrences: readStrList() });
+    if (kind === 7) return Object.freeze({ kind: 'renew', evidence: readStr(), occurrence: readStr() });
+    if (kind === 8) return Object.freeze({ kind: 'withdraw', evidence: readStr(), because: readStr() });
+    if (kind === 9) return Object.freeze({ kind: 'retire', history: readStr(), record: readStr() });
+    if (kind === 10) return Object.freeze({ kind: 'depart', history: readStr(), record: readStr() });
+    throw new TypeError('malformed effect');
+  }
+
+  function readCommitment() {
+    const action = readStr();
+    const openByte = readByte();
+    if (openByte !== 0 && openByte !== 1) throw new TypeError('malformed commitment open flag');
+    const open = openByte === 1;
+    const retained = readStrList();
+    const authLen = readVarint();
+    let retained_authorship;
+    if (authLen === 0) {
+      retained_authorship = EMPTY_ARRAY;
+    } else {
+      if (authLen > end - pos) throw new TypeError('truncated retained authorship in binary view patch');
+      retained_authorship = new Array(authLen);
+      for (let i = 0; i < authLen; i += 1) {
+        const caveat = readStr();
+        const written_by = readOptStr();
+        const weTag = readByte();
+        if (weTag > 2) throw new TypeError('malformed written_elsewhere tag');
+        const written_elsewhere = weTag === 0 ? null : weTag === 2;
+        retained_authorship[i] = Object.freeze({ caveat, written_by, written_elsewhere });
+      }
+      Object.freeze(retained_authorship);
+    }
+    const reopened_by = readStrList();
+    return Object.freeze({ action, open, retained, retained_authorship, reopened_by });
+  }
+
+  function readDecisionSeries() {
+    const limit = readVarint();
+    const current = readOptStr();
+    const revLen = readVarint();
+    let revisions;
+    if (revLen === 0) {
+      revisions = EMPTY_ARRAY;
+    } else {
+      if (revLen > end - pos) throw new TypeError('truncated revisions in binary view patch');
+      revisions = new Array(revLen);
+      for (let i = 0; i < revLen; i += 1) {
+        const id = readStr();
+        const previous = readOptStr();
+        const ordinal = readVarint();
+        const sequence = readVarint();
+        const event = readStr();
+        const hasOutcome = readByte();
+        if (hasOutcome === 0) {
+          revisions[i] = Object.freeze({ id, previous, ordinal, sequence, event });
+        } else if (hasOutcome === 1) {
+          const value = readF64();
+          const because = readStrList();
+          const hasMat = readByte();
+          if (hasMat !== 0 && hasMat !== 1) throw new TypeError('malformed materialized flag');
+          const materialized = hasMat === 1 ? readStrList() : null;
+          const oSeq = readVarint();
+          const oEvent = readStr();
+          const lineage = readProvenance();
+          const outcome = materialized === null
+            ? { value, because, sequence: oSeq, event: oEvent, lineage }
+            : { value, because, materialized, sequence: oSeq, event: oEvent, lineage };
+          revisions[i] = Object.freeze({ id, previous, ordinal, sequence, event, outcome: Object.freeze(outcome) });
+        } else {
+          throw new TypeError('malformed revision outcome flag');
+        }
+      }
+      Object.freeze(revisions);
+    }
+    const selection_qualifications = readProvenance();
+    const flags = readByte();
+    if ((flags & ~3) !== 0) throw new TypeError('malformed decision series flags');
+    if (flags === 0) return Object.freeze({ limit, current, revisions, selection_qualifications });
+    const obj = { limit, current, revisions, selection_qualifications };
+    if (flags & 1) obj.on_hold = readStrList();
+    if (flags & 2) obj.deferred = readStrList();
+    return Object.freeze(obj);
+  }
+
+  function readJournalEntry() {
+    const decision = readStr();
+    const commitment = readStr();
+    const change = readStr();
+    const sequence = readVarint();
+    const event = readStr();
+    const flags = readByte();
+    if ((flags & ~63) !== 0) throw new TypeError('malformed journal entry flags');
+    const obj = { decision, commitment, change, sequence, event };
+    if (flags & 1) obj.agent = readStr();
+    if (flags & 2) obj.elapsed = readF64();
+    if (flags & 4) obj.value = readF64();
+    obj.because = readStrList();
+    obj.caveats = readStrList();
+    if (flags & 8) obj.permitted_by = readStr();
+    if (flags & 16) obj.outcome = readF64();
+    if (flags & 32) obj.materialized = readStrList();
+    return Object.freeze(obj);
+  }
+
+  function readRelation() {
+    const from = readStr();
+    const rel = RELATION_NAMES[readByte()];
+    if (rel === undefined) throw new TypeError('malformed relation tag');
+    const to = readStr();
+    return Object.freeze({ from, relation: rel, to, origin: 'live' });
+  }
+
+  function applyBinMap(heldMap, readValue) {
+    const hasKeys = readByte();
+    if (hasKeys === 0) {
+      const setCount = readVarint();
+      if (heldMap === undefined || heldMap === null) throw new TypeError('missing held map');
+      if (!Object.hasOwn(heldMap, '__proto__')) {
+        const result = { ...heldMap };
+        for (let i = 0; i < setCount; i += 1) {
+          const key = readStr();
+          const val = readValue();
+          if (!Object.hasOwn(heldMap, key)) throw new TypeError(`map key ${JSON.stringify(key)} is not held`);
+          result[key] = val;
+        }
+        return Object.freeze(result);
+      }
+      const updates = new Map();
+      for (let i = 0; i < setCount; i += 1) {
+        const key = readStr();
+        const val = readValue();
+        if (!Object.hasOwn(heldMap, key)) throw new TypeError(`map key ${JSON.stringify(key)} is not held`);
+        updates.set(key, val);
+      }
+      const result = {};
+      for (const key of Object.keys(heldMap)) {
+        put(result, key, updates.has(key) ? updates.get(key) : heldMap[key]);
+      }
+      return Object.freeze(result);
+    }
+    if (hasKeys !== 1) throw new TypeError('malformed map change flag');
+    const keyCount = readVarint();
+    if (keyCount > end - pos) throw new TypeError('truncated map keys in binary view patch');
+    const keys = new Array(keyCount);
+    for (let i = 0; i < keyCount; i += 1) keys[i] = readStr();
+    const setCount = readVarint();
+    if (setCount > keyCount) throw new TypeError('map set exceeds keys in binary view patch');
+    const result = {};
+    if (setCount === keyCount) {
+      for (let i = 0; i < setCount; i += 1) {
+        const key = readStr();
+        if (key !== keys[i]) throw new TypeError('map set key mismatch in binary view patch');
+        put(result, key, readValue());
+      }
+      return Object.freeze(result);
+    }
+    if (setCount === 0) {
+      for (let i = 0; i < keyCount; i += 1) {
+        const key = keys[i];
+        if (heldMap === undefined || heldMap === null || !Object.hasOwn(heldMap, key)) {
+          throw new TypeError(`map key ${JSON.stringify(key)} is neither held nor set`);
+        }
+        put(result, key, heldMap[key]);
+      }
+      return Object.freeze(result);
+    }
+    if (setCount === 1) {
+      const k0 = readStr();
+      const v0 = readValue();
+      let used = false;
+      for (let i = 0; i < keyCount; i += 1) {
+        const key = keys[i];
+        if (key === k0) {
+          used = true;
+          put(result, key, v0);
+        } else {
+          if (heldMap === undefined || heldMap === null || !Object.hasOwn(heldMap, key)) {
+            throw new TypeError(`map key ${JSON.stringify(key)} is neither held nor set`);
+          }
+          put(result, key, heldMap[key]);
+        }
+      }
+      if (!used) throw new TypeError(`map key ${JSON.stringify(k0)} is not in keys`);
+      return Object.freeze(result);
+    }
+    const updates = new Map();
+    for (let i = 0; i < setCount; i += 1) updates.set(readStr(), readValue());
+    for (let i = 0; i < keyCount; i += 1) {
+      const key = keys[i];
+      if (updates.has(key)) {
+        put(result, key, updates.get(key));
+      } else {
+        if (heldMap === undefined || heldMap === null || !Object.hasOwn(heldMap, key)) {
+          throw new TypeError(`map key ${JSON.stringify(key)} is neither held nor set`);
+        }
+        put(result, key, heldMap[key]);
+      }
+    }
+    return Object.freeze(result);
+  }
+
+  function applyBinNested(heldOuter, readValue) {
+    const hasKeys = readByte();
+    if (hasKeys === 0) {
+      const setCount = readVarint();
+      if (heldOuter === undefined || heldOuter === null) throw new TypeError('missing held nested map');
+      if (!Object.hasOwn(heldOuter, '__proto__')) {
+        const result = { ...heldOuter };
+        for (let i = 0; i < setCount; i += 1) {
+          const target = readStr();
+          if (!Object.hasOwn(heldOuter, target)) throw new TypeError(`nested map key ${JSON.stringify(target)} is not held`);
+          result[target] = applyBinMap(heldOuter[target], readValue);
+        }
+        return Object.freeze(result);
+      }
+      const updates = new Map();
+      for (let i = 0; i < setCount; i += 1) {
+        const target = readStr();
+        if (!Object.hasOwn(heldOuter, target)) throw new TypeError(`nested map key ${JSON.stringify(target)} is not held`);
+        updates.set(target, applyBinMap(own(heldOuter, target), readValue));
+      }
+      const result = {};
+      for (const key of Object.keys(heldOuter)) {
+        put(result, key, updates.has(key) ? updates.get(key) : heldOuter[key]);
+      }
+      return Object.freeze(result);
+    }
+    if (hasKeys !== 1) throw new TypeError('malformed nested map change flag');
+    const keyCount = readVarint();
+    if (keyCount > end - pos) throw new TypeError('truncated nested map keys in binary view patch');
+    const keys = new Array(keyCount);
+    for (let i = 0; i < keyCount; i += 1) keys[i] = readStr();
+    const setCount = readVarint();
+    if (setCount > keyCount) throw new TypeError('nested map set exceeds keys in binary view patch');
+    const result = {};
+    if (setCount === 1) {
+      const t0 = readStr();
+      const v0 = applyBinMap(own(heldOuter, t0), readValue);
+      let used = false;
+      for (let i = 0; i < keyCount; i += 1) {
+        const key = keys[i];
+        if (key === t0) {
+          used = true;
+          put(result, key, v0);
+        } else {
+          if (heldOuter === undefined || heldOuter === null || !Object.hasOwn(heldOuter, key)) {
+            throw new TypeError(`nested map key ${JSON.stringify(key)} is neither held nor set`);
+          }
+          put(result, key, heldOuter[key]);
+        }
+      }
+      if (!used) throw new TypeError(`nested map key ${JSON.stringify(t0)} is not in keys`);
+      return Object.freeze(result);
+    }
+    const updates = new Map();
+    for (let i = 0; i < setCount; i += 1) {
+      const target = readStr();
+      updates.set(target, applyBinMap(own(heldOuter, target), readValue));
+    }
+    for (let i = 0; i < keyCount; i += 1) {
+      const key = keys[i];
+      if (updates.has(key)) {
+        put(result, key, updates.get(key));
+      } else {
+        if (heldOuter === undefined || heldOuter === null || !Object.hasOwn(heldOuter, key)) {
+          throw new TypeError(`nested map key ${JSON.stringify(key)} is neither held nor set`);
+        }
+        put(result, key, heldOuter[key]);
+      }
+    }
+    return Object.freeze(result);
+  }
+
+  function applyBinCommitments(heldList) {
+    const hasKeys = readByte();
+    if (hasKeys === 0) {
+      const setCount = readVarint();
+      if (!heldList) throw new TypeError('missing held commitments');
+      const result = heldList.slice();
+      if (setCount === 1) {
+        const action = readStr();
+        const val = readCommitment();
+        let found = false;
+        for (let i = 0; i < result.length; i += 1) {
+          if (result[i].action === action) { result[i] = val; found = true; break; }
+        }
+        if (!found) throw new TypeError(`commitment ${JSON.stringify(action)} is not held`);
+        return Object.freeze(result);
+      }
+      const updates = new Map();
+      for (let i = 0; i < setCount; i += 1) updates.set(readStr(), readCommitment());
+      let matched = 0;
+      for (let i = 0; i < result.length; i += 1) {
+        const updated = updates.get(result[i].action);
+        if (updated !== undefined) { result[i] = updated; matched += 1; }
+      }
+      if (matched !== updates.size) throw new TypeError('commitment update key is not held');
+      return Object.freeze(result);
+    }
+    if (hasKeys !== 1) throw new TypeError('malformed commitments change flag');
+    const keyCount = readVarint();
+    if (keyCount > end - pos) throw new TypeError('truncated commitment keys in binary view patch');
+    const keys = new Array(keyCount);
+    for (let i = 0; i < keyCount; i += 1) keys[i] = readStr();
+    const setCount = readVarint();
+    if (setCount > keyCount) throw new TypeError('commitments set exceeds keys in binary view patch');
+    if (keyCount === 0) return EMPTY_ARRAY;
+    let byAction = null;
+    if (heldList && heldList.length > 0 && setCount < keyCount) {
+      byAction = new Map();
+      for (let i = 0; i < heldList.length; i += 1) byAction.set(heldList[i].action, heldList[i]);
+    }
+    const result = new Array(keyCount);
+    if (setCount === keyCount) {
+      for (let i = 0; i < keyCount; i += 1) {
+        if (readStr() !== keys[i]) throw new TypeError('commitment key mismatch in binary view patch');
+        result[i] = readCommitment();
+      }
+      return Object.freeze(result);
+    }
+    if (setCount === 1) {
+      const a0 = readStr();
+      const v0 = readCommitment();
+      let used = false;
+      for (let i = 0; i < keyCount; i += 1) {
+        const k = keys[i];
+        if (k === a0) {
+          used = true;
+          result[i] = v0;
+        } else {
+          if (!byAction || !byAction.has(k)) throw new TypeError(`commitment ${JSON.stringify(k)} is neither held nor set`);
+          result[i] = byAction.get(k);
+        }
+      }
+      if (!used) throw new TypeError(`commitment ${JSON.stringify(a0)} is not in keys`);
+      return Object.freeze(result);
+    }
+    const updates = new Map();
+    for (let i = 0; i < setCount; i += 1) updates.set(readStr(), readCommitment());
+    for (let i = 0; i < keyCount; i += 1) {
+      const k = keys[i];
+      if (updates.has(k)) {
+        result[i] = updates.get(k);
+      } else {
+        if (!byAction || !byAction.has(k)) throw new TypeError(`commitment ${JSON.stringify(k)} is neither held nor set`);
+        result[i] = byAction.get(k);
+      }
+    }
+    return Object.freeze(result);
+  }
+
+  function applyBinList(heldList, readItem) {
+    const itemCount = readVarint();
+    if (itemCount === 0) return EMPTY_ARRAY;
+    if (itemCount > end - pos) throw new TypeError('truncated list in binary view patch');
+    const tag0 = readByte();
+    if (tag0 === 0) {
+      const start = readVarint();
+      const length = readVarint();
+      if (!heldList || length < 1 || start + length > heldList.length) throw new TypeError('malformed list run');
+      if (itemCount === 2 && pos < end && buf[pos] === 1) {
+        pos += 1;
+        const result = heldList.slice(start, start + length);
+        result.push(readItem());
+        return Object.freeze(result);
+      }
+      const result = heldList.slice(start, start + length);
+      for (let i = 1; i < itemCount; i += 1) {
+        const tag = readByte();
+        if (tag === 0) {
+          const s = readVarint();
+          const l = readVarint();
+          if (l < 1 || s + l > heldList.length) throw new TypeError('malformed list run');
+          for (let j = s; j < s + l; j += 1) result.push(heldList[j]);
+        } else if (tag === 1) {
+          result.push(readItem());
+        } else {
+          throw new TypeError('malformed list item tag');
+        }
+      }
+      return Object.freeze(result);
+    }
+    if (tag0 !== 1) throw new TypeError('malformed list item tag');
+    const result = new Array(itemCount);
+    result[0] = readItem();
+    let outIdx = 1;
+    for (let i = 1; i < itemCount; i += 1) {
+      const tag = readByte();
+      if (tag === 0) {
+        const s = readVarint();
+        const l = readVarint();
+        if (!heldList || l < 1 || s + l > heldList.length) throw new TypeError('malformed list run');
+        for (let j = s; j < s + l; j += 1) result[outIdx++] = heldList[j];
+      } else if (tag === 1) {
+        result[outIdx++] = readItem();
+      } else {
+        throw new TypeError('malformed list item tag');
+      }
+    }
+    result.length = outIdx;
+    return Object.freeze(result);
+  }
+
+  const outcomeTag = readByte();
+  if (outcomeTag === 0) {
+    const origin = ORIGINS[readByte()];
+    const code = readStr();
+    const message = readStr();
+    if (!origin || pos !== end) throw new TypeError('malformed rejected binary patch');
+    return { schema: DISPATCH_SCHEMA, outcome: 'rejected', origin, code, message };
+  }
+  if (outcomeTag !== 1) throw new TypeError('malformed binary patch outcome tag');
+
+  const hasSince = readByte();
+  if (hasSince !== 0 && hasSince !== 1) throw new TypeError('malformed binary patch since flag');
+  const since = hasSince === 1 ? readVarint() : null;
+  const base = since === null ? null : held;
+  if (since !== null && (!held || held.sequence !== since)) throw new TypeError('view patch applies to a view not held');
+  const sequence = readVarint();
+  const last_event = readOptStr();
+  if (pos + 2 > end) throw new TypeError('truncated binary view patch');
+  const mask = buf[pos] | (buf[pos + 1] << 8);
+  pos += 2;
+  if ((mask & ~0x1ff) !== 0) throw new TypeError('unknown member bits in binary view patch');
+  if (base === null && mask !== 0x1ff) throw new TypeError('full binary view patch leaves out members');
+
+  const bindings = (mask & 1) ? applyBinNested(base?.bindings, readBindingValue) : base.bindings;
+  const binding_explanations = (mask & 2) ? applyBinNested(base?.binding_explanations, readProvenance) : base.binding_explanations;
+  let cues;
+  if (mask & 4) {
+    const cuesTag = readByte();
+    if (cuesTag === 0) {
+      cues = EMPTY_ARRAY;
+    } else if (cuesTag === 1) {
+      const parsed = JSON.parse(readStr());
+      if (!Array.isArray(parsed)) throw new TypeError('malformed cues in binary view patch');
+      cues = deepFreezeNew(parsed);
+    } else {
+      throw new TypeError('malformed cues tag in binary view patch');
+    }
+  } else {
+    cues = base.cues;
+  }
+  let effects;
+  if (mask & 8) {
+    const n = readVarint();
+    if (n === 0) {
+      effects = EMPTY_ARRAY;
+    } else {
+      if (n > end - pos) throw new TypeError('truncated effects in binary view patch');
+      effects = new Array(n);
+      for (let i = 0; i < n; i += 1) effects[i] = readEffect();
+      Object.freeze(effects);
+    }
+  } else {
+    effects = base.effects;
+  }
+  const commitments = (mask & 16) ? applyBinCommitments(base?.commitments) : base.commitments;
+  const commitment_grounds = (mask & 32) ? applyBinMap(base?.commitment_grounds, readProvenance) : base.commitment_grounds;
+  const decision_series = (mask & 64) ? applyBinMap(base?.decision_series, readDecisionSeries) : base.decision_series;
+  const decision_journal = (mask & 128) ? applyBinList(base?.decision_journal, readJournalEntry) : base.decision_journal;
+  const relations = (mask & 256) ? applyBinList(base?.relations, readRelation) : base.relations;
+  if (pos !== end) throw new TypeError('trailing bytes in binary view patch');
+
+  const view = Object.freeze({
+    schema: VIEW_SCHEMA_0_1,
+    sequence,
+    last_event,
+    bindings,
+    binding_explanations,
+    cues,
+    effects,
+    commitments,
+    commitment_grounds,
+    decision_series,
+    decision_journal,
+    relations,
+  });
+  return { schema: DISPATCH_SCHEMA, outcome: 'accepted', view };
+}
+
 // An accepted dispatch outcome as the runtime writes it: these fields in this
 // order, the snapshot last. The snapshot's text, or null for any other text,
 // which is parsed and checked in full.
@@ -512,6 +1155,31 @@ export class CaveatSession {
   // with every part the event left alone the same object as in the view the
   // last such call returned. See spec/caveat-view-patch-0.1.md.
   #dispatchReusedView(event, payload, agent) {
+    const noBinary = agent === null
+      ? typeof this.#inner.dispatch_view_patch_binary_outcome !== 'function'
+      : typeof this.#inner.dispatch_view_patch_binary_outcome_as !== 'function';
+    if (!noBinary) {
+      if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+      const text = payloadText(payload);
+      this.#lastSnapshot = null;
+      const held = this.#heldView?.sequence;
+      let bytes;
+      try {
+        bytes = agent === null
+          ? this.#inner.dispatch_view_patch_binary_outcome(event, text, held)
+          : this.#inner.dispatch_view_patch_binary_outcome_as(event, text, held, agent);
+      } catch (error) { this.#heldView = null; throw this.#fail(error); }
+      let decoded;
+      try {
+        decoded = decodeBinaryViewPatch(bytes, this.#heldView);
+      } catch (error) {
+        this.#heldView = null;
+        throw this.#fail(new CaveatError('fatal', `dispatchView returned malformed binary view patch: ${messageOf(error)}`));
+      }
+      if (decoded.outcome !== 'accepted') return decoded;
+      this.#heldView = decoded.view;
+      return decoded;
+    }
     if (typeof this.#inner.dispatch_view_patch_outcome !== 'function') {
       throw new CaveatError('load', 'this runtime build has no dispatch_view_patch_outcome; it predates dispatchView reuse');
     }
