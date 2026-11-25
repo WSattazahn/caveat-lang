@@ -26,6 +26,7 @@ Run each as `npx --no-install caveat …` in a project with the package installe
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
 | `serve [--state FILE] PROGRAM` | Keeps a session open over standard input and output; with `--state`, in a file across runs ([serve](../../spec/caveat-serve-0.1.md)). Ambiguous historical module saves need a one-time [binding choice](../../spec/caveat-save-0.1.md#module-binding-interpretation). |
 | `init [DIRECTORY]` | Writes the getting-started program, its scenarios and an events file. |
+| `review`, `find`, `mcp`, `doctor`, `demo agent` | `review` inspects which evidence decided a revision (`--all DIR` for a set of ledgers, [review](../../spec/caveat-review-0.1.md), [ledger sets](../../spec/caveat-ledger-sets-0.1.md)); `find DIR WORD…` searches past decisions ([find](../../spec/caveat-find-0.1.md)); `mcp` runs the 7-tool [MCP bridge](MCP.md); `doctor` checks the install; `demo agent` runs the starter lifecycle. |
 
 Each answers only its own question. A program that loads can still do the
 wrong thing, and a clean check is not a passing test.
@@ -186,14 +187,6 @@ An agent integrating Caveat into an application made these three:
 
 ## More
 
-- [Worked example](WORKED_EXAMPLE.md): one program through every command.
-- [Getting started](GETTING_STARTED.md): a slower first walk through.
-- [Authoring guide](../../docs/AI_AUTHORING.md): time, evidence that ages,
-  and running a session from a script.
-- The profiles, in order: [reactive 0.1](../../spec/caveat-reactive-0.1.md)
-  through [0.5 histories](../../spec/caveat-reactive-0.5.md),
-  [0.6](../../spec/caveat-reactive-0.6.md) and
-  [0.7 procedures](../../spec/caveat-reactive-0.7.md), with the
-  [documentation index](README.md) for everything else.
-- Not covered here: connections, cues and controls in worlds and games,
-  attention budgets (`budget`, `examine`, `defer`), modules and bundles.
+- [Worked example](WORKED_EXAMPLE.md) (one program through every command), [Getting started](GETTING_STARTED.md) (slower walk-through), and the [Authoring guide](../../docs/AI_AUTHORING.md) (time, aging evidence, scripts).
+- Profiles in order: [reactive 0.1](../../spec/caveat-reactive-0.1.md) through [0.5](../../spec/caveat-reactive-0.5.md), [0.6](../../spec/caveat-reactive-0.6.md), [0.7](../../spec/caveat-reactive-0.7.md), and the [documentation index](README.md) for all 1.x profiles.
+- Not covered here: connections, cues and controls in worlds and games, attention budgets (`budget`, `examine`, `defer`), modules and bundles.

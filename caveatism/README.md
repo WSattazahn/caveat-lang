@@ -15,8 +15,8 @@ Three rules govern everything in this directory, and they come from the material
 | `archive/` | The Caveatist Archive, v1.2, with v1.0, v1.1 and its amendments preserved inside it. |
 | `atlas/` | The Caveatist Atlas, v1.0: culture, institutions and material life. |
 | `agent/CAVEATIST.md` | The practice, written for an agent. Optional; linked from `AGENTS.md` as culture. |
-| `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` and `/plugins/caveat/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). Listed in Anthropic's plugin directory as the plugin `caveat` since 2026-10-05 (published at `4f77b29`), for Claude Code, Cowork and the Claude apps. A Codex manifest in the same folder packages that copy for OpenAI's plugin directory (ChatGPT and Codex); not listed there yet. |
-| `canon/` | The Archive as a Caveat program, with its events and scenarios. Verified on `caveat-lang@0.1.0-rc.11`. |
+| `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` and `/plugins/caveat/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). Listed in Anthropic's plugin directory as the plugin `caveat` since 2026-10-05, for Claude Code, Cowork and the Claude apps, and published as `1.1.1` in OpenAI's plugin directory (ChatGPT and Codex) via the Codex manifest in the same folder. |
+| `canon/` | The Archive as a Caveat program, with its events and scenarios. Verified on `caveat-lang@1.5.0`. |
 | `character/` | Mr. Caveat: the hero, avatar and social images, their prompts, candidates, proofs, validation and provenance. |
 
 ## Mr. Caveat

@@ -126,7 +126,9 @@ still shown. Follow
 [the agent quickstart](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/AGENT_START.md) to adapt this into an integration.
 
 [Getting started](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/GETTING_STARTED.md) walks through those files and has you
-change the program. The [worked
+change the program. For a 15-minute hands-on agent tutorial, try
+[An agent with an undo list](https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md).
+The [worked
 example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/WORKED_EXAMPLE.md) takes one program through every command. The
 [documentation index](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/README.md) lists the authoring guide, the language
 reference and the thermostat example that ship in the package. These links
@@ -293,7 +295,7 @@ observed them, alone and
 together, and lists the evidence without which the deciding event commits
 nothing, the evidence that only moved the value, and the retained caveats
 the revision's outcome says came true. It gives no scores and changes no
-session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-review-0.1.md)).
+session. Added in 1.4.0 ([Review 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-review-0.1.md)).
 
 ```sh
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
@@ -311,7 +313,7 @@ inspect the individual reviews before treating a group as a pattern.
 A program records that it read a past review with ordinary evidence
 whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
 a review lists it under Consulted, and `--all` says what that review found.
-It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+Added in 1.4.0 ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
 
 ```sh
 npx --no-install caveat-lang review --all ledgers/

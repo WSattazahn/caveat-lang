@@ -481,9 +481,8 @@ For timing exact to the event, use clock steps that are powers of two, such as
 `0.0625`; otherwise expect a schedule to apply within an event of its nominal
 time.
 
-From rc.15, a program that needs timing exact to the event can declare an
-[integer clock](../spec/caveat-elapsed-0.1.md#integer-clocks) instead. (The
-runtime accepts the declaration from rc.15's PR 3; check the package version.)
+A program that needs timing exact to the event can declare an
+[integer clock](../spec/caveat-elapsed-0.1.md#integer-clocks) instead.
 
 1. Choose the unit so that every delay and every `dt` the host sends is a
    whole number of it. Glowcap's `tick` in `0..0.1` seconds becomes a `step`
@@ -584,7 +583,7 @@ for example in a guard that refuses to flag a reading twice. To ask whether
 it carries any caveat at all, write `carries_any(latest(STREAM))`, or
 `carries_any(latest(STREAM), material)` for any of consequence `material` or
 above, `withdrawn` included, rather than listing caveats by name: a caveat
-declared later is then covered too (1.4 draft,
+declared later is then covered too (from 1.4.0,
 [carries any](../spec/caveat-carries-any-0.1.md)).
 `in_basis(DECISION, E)` is true when the decision's current revision rests on
 `E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
@@ -699,7 +698,7 @@ decisions payout limit 1 irreversible strict;
 ```
 
 A decision that can be undone may rule options out too, for as long as it
-stands (1.4 draft):
+stands (from 1.4.0):
 
 ```caveat
 decisions no_rewrite limit 4 forecloses rewrite;
@@ -790,7 +789,7 @@ No new string matcher is part of this candidate.
 
 ## Consulting a source without taking a stance
 
-In rc.7, `on consult reveal memory;` observes the current evidence occurrence
+`on consult reveal memory;` observes the current evidence occurrence
 without claiming that it supports or opposes anything. `observed(memory)` then
 becomes true and `qualified(value, memory)`, late qualification and withdrawal
 can use it. Sampling from a source still does not observe the source itself.

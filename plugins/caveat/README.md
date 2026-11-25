@@ -4,7 +4,7 @@ The Caveatist practice for agents, as one skill, `caveatist`: keep claims with t
 
 In Claude Code the plugin is that one skill and nothing else: no agents, hooks, commands or MCP servers. It runs nothing, sends nothing and fetches nothing. When the `caveat-lang` runtime is installed, the skill suggests recording decisions in a Caveat program instead of prose; installing the runtime is up to you.
 
-In ChatGPT and Codex the plugin also connects the hosted Caveat MCP server (`.codex-plugin/mcp.json`), so the agent can validate, check, test, explain and trace Caveat programs without installing anything. Its five tools are the published package's read-only authoring tools; [`hosted-mcp/`](https://github.com/WSattazahn/caveat-lang/tree/main/hosted-mcp) is its source.
+In ChatGPT and Codex the plugin also connects the hosted Caveat MCP server (`.codex-plugin/mcp.json`), so the agent can validate, check, test, explain, trace, step saves for and search Caveat programs without installing anything. Its seven tools are the published package's read-only authoring tools; [`hosted-mcp/`](https://github.com/WSattazahn/caveat-lang/tree/main/hosted-mcp) is its source.
 
 The skill gives a fixed output: every decision or review ends with a record of its decision, grounds, retained caveats, caveats not pursued, withdrawals and what would reopen it. `skills/caveatist/SKILL.md` includes a worked example.
 

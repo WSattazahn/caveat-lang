@@ -49,6 +49,8 @@
   <p class="status"><strong>Available now: CAVEAT 1.5.0.</strong>
   Run CAVEAT in Node.js, the browser, or over MCP.
   <a href="#run">Get started</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md">15-min tutorial</a> ·
+  <a href="break.html">Try to break this</a> ·
   <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.5.0.md">Release notes</a>.</p>
 </header>
 
@@ -91,19 +93,25 @@ maintain yourself. In Caveat it is the runtime's job:</p>
 <p>Caveat is not an agent framework: it does not call models or tools. Your
 code, or your agent's harness, sends a Caveat program events through the Node
 or browser library, as JSON lines with <code>caveat serve</code> from any
-language, or through the MCP server, and acts on what the program decides.</p>
+language, or through the seven-tool MCP server (locally via
+<code>npx -y caveat-lang@1.5.0 mcp</code> or hosted at
+<code>https://caveat-mcp.waltersattazahn.workers.dev/mcp</code>), and acts on
+what the program decides.</p>
 
 <h2 id="when">When it pays off</h2>
-<p>For decisions that get revisited: release and deploy gates, dependency and
-runtime choices, accepted-risk exceptions, agent memory that gets corrected.
-Those are the cases where "what did this rest on?" and "what changes if that
-reading was wrong?" come up, and where Caveat answers them without extra
-bookkeeping.</p>
+<p>For decisions that get revisited: agent undo lists when a tool result turns
+out wrong, release and deploy gates, multi-agent handoffs, dependency and
+runtime choices, accepted-risk exceptions, and auditable decision memory.
+Those are the cases where "what did this rest on?", "what changes if that
+reading was wrong?", and "have we decided this before?" come up, and where
+Caveat answers them without extra bookkeeping.</p>
 <p>It is not worth it for a one-off call nobody will look at again, for hot
 inner loops, or for a program where no one will ever ask why. Plain code is
 simpler there.</p>
 
-<p><strong>Integrating Caveat with an agent?</strong> Start with the
+<p><strong>Integrating Caveat with an agent?</strong> Try the
+<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md">15-minute
+agent undo-list tutorial</a> or the
 <a href="https://github.com/WSattazahn/caveat-lang/tree/main/kit/examples/agent-evidence">Python
 <code>caveat serve</code> example</a>. If a real integration exposes a missing
 capability, please
@@ -184,11 +192,11 @@ follow the worked example the same way.</p>
   log.</li>
   <li>Reading and decision histories have declared limits. An event that would
   exceed a limit is refused, unless the history declares a supported window,
-  in which case its oldest record retires. Since rc.16 a session can remove eligible retired
-  records from the live save and transfer history to a host-drained archive.
-  Required reasons remain: their dependency chains can grow, so windows do not
-  bound the complete save. Archive storage is additional. State is numbers,
-  and a program does no input or output of its own.</li>
+  in which case its oldest record retires. A windowed session can remove eligible
+  retired records from the live save and transfer history to a host-drained
+  archive. Required reasons remain: their dependency chains can grow, so windows
+  do not bound the complete save. Archive storage is additional. State is
+  numbers, and a program does no input or output of its own.</li>
   <li>The evidence that it helps is still small: the project's own games,
   authoring trials by AI agents and a benchmark game. Whether Caveat helps
   real decision systems is still a hypothesis.</li>
@@ -228,6 +236,12 @@ signatures and a fresh exact-version installation were verified.</p>
 <ul>
   <li><a href="https://www.npmjs.com/package/caveat-lang/v/1.5.0">caveat-lang on npm</a>,
   version 1.5.0.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md">An
+  agent with an undo list</a>: 15-minute hands-on tutorial.</li>
+  <li><a href="break.html">Try to break this</a>: interactive withdrawal-guarantee
+  checker running in your browser.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/WHY_CAVEAT.md">Why
+  Caveat</a>: side-by-side code comparison and benchmark summary.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v1.5.0-npm-publication.json">Verified
   publication record</a>: exact package identity, checksums and provenance.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v1.5.0/kit/docs/REFERENCE.md">Caveat

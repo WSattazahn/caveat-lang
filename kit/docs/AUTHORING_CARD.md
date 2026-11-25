@@ -78,7 +78,7 @@ for site as $s routed by site {
         on flag when committed($s_open) and not reopened($s_open) and in_basis($s_open, latest($s_$a))
             reopen $s_open because latest($s_$a);
 
-        # Every caveat is named here: there is no "carries any caveat" form.
+        # Caveats listed explicitly here; from 1.4.0, carries_any(latest($s_$a)) also matches any caveat.
         define $s_$a_doubted = withdrawn(latest($s_$a)) or carries(latest($s_$a), mislabeled)
             or carries(latest($s_$a), expired_kit);
         define $s_$a_ok = if(has_sample($s_$a), if($s_$a_doubted, 0, latest($s_$a)), 0);
@@ -208,9 +208,9 @@ PASS W03  A decision made after a withdrawal is grounded on the withdrawal's rea
   X's evidence and caveats to every step, samples included, even when the
   body never reads X. Pass a procedure only what it reads; never pass a flag
   to one that samples.
-- **"Any caveat" has to be spelled out.** There is no form for "carries any
-  caveat". Name every caveat, as `$s_$a_doubted` does, and add a new caveat
-  there too.
+- **Checking any caveat.** From 1.4.0, `carries_any(E)` (or
+  `carries_any(E, material)` for `material` or worse) matches any caveat
+  without listing each name by hand, so caveats declared later are covered too.
 - **`unqualify E with C` reaches every held occurrence of E.** To take a
   caveat back from the newest reading only, write `unqualify latest(S) with C`.
 - **A guard passes its evidence to what it guards.** Grounds are only what
