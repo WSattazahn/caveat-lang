@@ -52,9 +52,9 @@ Proposed replacement:
    ([Limits](LIMITS.md)), so the demo labels each agent's claims without
    proving who made them. Event sender identity is planned later 1.x work.
 2. **A tool the agent calls itself.** Exists today. `npx caveat-lang mcp`
-   exposes validate, check, test, explain and dependents in the published
-   1.4.1; main adds `caveat_dispatch` (one step of a running ledger) and
-   `caveat_find` (search past decisions) for 1.5.0 ([MCP tools](../kit/docs/MCP.md)).
+   exposes validate, check, test, explain, dependents, `caveat_dispatch` (one
+   step of a running ledger) and `caveat_find` (search past decisions) in the
+   published 1.5.0 ([MCP tools](../kit/docs/MCP.md)).
 3. **Evidence that agents can write it.** In the
    [v3](../experiments/agent-authoring/v3/RESULTS.md) and
    [v4](../experiments/agent-authoring/v4/RESULTS.md) authoring trials, fresh
