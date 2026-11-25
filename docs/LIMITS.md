@@ -26,15 +26,16 @@ page; the numbers here are the record behind that summary.
   by tests and by sampled agreement with that model, not by proof
   ([what is checked, and how](VERIFICATION.md)).
 
-## Draft module syntax
+## Module syntax before 1.5.0
 
 [D090](../experiments/agent-decisions/README.md#2026-11-14-draft-unset-module-finding)
-records two unpublished `unset`-profile module bugs: a procedure's effect
-word could be renamed, and UTF-8 text could displace a declaration's keyword
-position. The latter could also silently capture a root name. The candidate
-correction changes that accepted draft example from root value 11 to module
-value 7. Stable 1.0.0 and 1.4.1 do not load this draft syntax; the correction
-is not a choice between their incompatible hold/release bindings. See the
+recorded two bugs found while `unset`-profile module syntax was still in draft
+before 1.5.0: a procedure's effect word could be renamed, and UTF-8 text could
+displace a declaration's keyword position (which could silently capture a root
+name). Both were fixed before 1.5.0 shipped (`unset` is stable from 1.5.0,
+[Unset States 0.1](../spec/caveat-unset-states-0.1.md)); 1.0.0 through 1.4.1 do
+not load `unset` syntax, so the fix did not affect earlier releases' module
+bindings. See the
 [regressions](../runtime/tests/unset_name_compatibility.rs) and
 [compatibility follow-up](reviews/2026-11-14-compatibility-follow-up.md).
 
