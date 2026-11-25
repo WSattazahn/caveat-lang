@@ -347,7 +347,7 @@ impl<'a> Flows<'a> {
                 matches!(session.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
             })
             .map(|(name, _)| name.to_string())
-            .chain(session.reading_streams.keys().cloned())
+            .chain(session.reading_streams.keys().map(str::to_owned))
             .collect::<Vec<_>>();
         histories.sort_unstable();
         histories.dedup();
@@ -1632,13 +1632,13 @@ impl ReactiveSession {
             for (name, stream) in self.reading_streams.iter() {
                 held.push((
                     Place::Stream(name),
-                    Owner::StreamSelection(name.clone()),
+                    Owner::StreamSelection(name.to_owned()),
                     &stream.selection_qualifications,
                 ));
                 for reading in &stream.occurrences {
                     held.push((
                         Place::Reading(&reading.id),
-                        Owner::Stream(name.clone()),
+                        Owner::Stream(name.to_owned()),
                         &reading.provenance,
                     ));
                 }

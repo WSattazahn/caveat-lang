@@ -960,7 +960,7 @@ impl ReactiveSession {
         owners.extend(
             self.reading_streams
                 .keys()
-                .map(|name| CollectorOwner::Stream(name.as_str().into())),
+                .map(|name| CollectorOwner::Stream(name.into())),
         );
         owners.extend(
             self.decision_series
@@ -991,7 +991,7 @@ impl ReactiveSession {
         owners.extend(
             self.commitment_bases
                 .keys()
-                .map(|name| CollectorOwner::Record(name.as_str().into())),
+                .map(|name| CollectorOwner::Record(name.into())),
         );
         owners.extend(
             self.commitment_grounds

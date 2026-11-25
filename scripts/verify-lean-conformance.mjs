@@ -291,10 +291,12 @@ export function lateRequest(fixture, index, beforeRecord) {
 const commitmentMutationAnchor = '        // Current values only. Commitment bases and grounds, reading\n' +
   '        // archives and the journal record what was known then.\n';
 // make_mut writes any record, and tells the event's write log so.
-const basisMutation = '        for basis in self.commitment_bases.make_mut().values_mut() {\n' +
-  '            if basis.provenance.evidence.contains(evidence) {\n' +
-  '                Arc::make_mut(basis).provenance.merge(&added)?;\n' +
-  '            }\n' +
+const basisMutation = '        let mutated_bases: Vec<String> = self.commitment_bases.iter()\n' +
+  '            .filter(|(_, basis)| basis.provenance.evidence.contains(evidence))\n' +
+  '            .map(|(name, _)| name.to_owned())\n' +
+  '            .collect();\n' +
+  '        for name in mutated_bases {\n' +
+  '            self.commitment_bases.get_mut(&name).unwrap().provenance.merge(&added)?;\n' +
   '        }\n';
 const commitmentMutations = {
   basis: '        // Deliberate mutation: the late caveat reaches recorded commitment bases.\n' + basisMutation,
@@ -552,23 +554,41 @@ const mutationAnchor = [
   '                keep(tracked.provenance)?;',
 ].join('\n');
 
+const dualMutationAnchor = [
+  '                let (val, lin, gnd) = host',
+  '                    .number(name, quiet_grounds)?',
+  '                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;',
+  '                let value = finite(val)?;',
+  '                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;',
+].join('\n');
+
 export function dependencyDropMutation(source, name = "a") {
   if (!["a", "b", "g"].includes(name)) throw new InfrastructureFailure("Unregistered metadata-drop state");
   const normalized = source.replaceAll('\r\n', '\n');
-  if (normalized.split(mutationAnchor).length !== 2) throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
-  return normalized.replace(mutationAnchor, mutationAnchor.replace(
-    'keep(tracked.provenance)?;',
-    'if name.as_str() != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'));
+  if (normalized.split(mutationAnchor).length !== 2 || normalized.split(dualMutationAnchor).length !== 2) {
+    throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
+  }
+  return normalized
+    .replace(mutationAnchor, mutationAnchor.replace(
+      'keep(tracked.provenance)?;',
+      'if name.as_str() != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'))
+    .replace(dualMutationAnchor, dualMutationAnchor.replace(
+      'keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;',
+      'if name.as_str() != ' + JSON.stringify(name) + ' { keep_both(lineage, grounds, quiet_grounds, lin, gnd)?; }'));
 }
 
 const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values_host(host, provenance, remaining)\n                } else {\n                    no.evaluate_values_host(host, provenance, remaining)\n                }\n            }\n";
 const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values_host(host, provenance, remaining)?;\n                let no_value = no.evaluate_values_host(host, provenance, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
+const dualBranchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_both_values(host, lineage, grounds, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_both_values(host, lineage, grounds, remaining)\n                } else {\n                    no.evaluate_both_values(host, lineage, grounds, remaining)\n                }\n            }\n";
+const dualBranchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_both_values(host, lineage, grounds, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_both_values(host, lineage, grounds, remaining)?;\n                let no_value = no.evaluate_both_values(host, lineage, grounds, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
 export function unselectedBranchMutation(source) {
   const normalized = source.replaceAll('\r\n', '\n');
-  if (normalized.split(branchMutationAnchor).length !== 2) {
+  if (normalized.split(branchMutationAnchor).length !== 2 || normalized.split(dualBranchMutationAnchor).length !== 2) {
     throw new InfrastructureFailure('Untaken-branch mutation anchor must occur exactly once');
   }
-  return normalized.replace(branchMutationAnchor, branchMutationReplacement);
+  return normalized
+    .replace(branchMutationAnchor, branchMutationReplacement)
+    .replace(dualBranchMutationAnchor, dualBranchMutationReplacement);
 }
 
 function capture(session) { return { snapshot: session.snapshot(), save: session.save(), view: session.view() }; }

@@ -423,9 +423,9 @@ on read sample s = 8 supports seen;
         block.searched(index);
         block.start_stream_cow(
             Arc::strong_count(&streams) > 1,
-            Arc::strong_count(&streams["r"]) > 1,
+            Arc::strong_count(&streams) > 1,
         );
-        let stream = Arc::make_mut(streams.get_mut("r").unwrap());
+        let stream = streams.get_mut("r").unwrap();
         block.finish_cow();
         let reading = stream.occurrences.remove(index.unwrap());
         block.removed();
@@ -452,7 +452,7 @@ on read sample s = 8 supports seen;
         assert_eq!(profile.renewal_removal, RemovalProfile::default());
         assert_eq!(session.reading_streams["r"].occurrences.len(), 2);
         assert_eq!(streams["r"].occurrences.len(), 1);
-        assert!(Arc::ptr_eq(&streams["s"], &session.reading_streams["s"]));
+        assert!(std::ptr::eq(&streams["s"], &session.reading_streams["s"]));
         assert_eq!(reading.id, "r@1");
         assert_eq!(reading.value, 7.0);
     }

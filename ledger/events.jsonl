@@ -532,3 +532,5 @@
 {"event":"approve","payload":{"item":501}}
 {"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":502}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":503}}
