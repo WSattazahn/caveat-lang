@@ -1,6 +1,6 @@
 # CAVEAT Thresholds 0.1 — a named number the record lists
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5: it becomes stable when a 1.x release ships it. It adds to
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5. It adds to
 [Define 0.1](caveat-define-0.1.md) and [Reactive 0.5](caveat-reactive-0.5.md)
 ("Decision series"); it changes no program that loads today.
 

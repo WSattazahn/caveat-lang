@@ -2,7 +2,7 @@
 
 **Status:** stable from 1.1.0 under the [compatibility commitment](../docs/COMPATIBILITY.md).
 
-Unreleased amendment: affected module saves carry an optional
+From 1.5.0: affected module saves carry an optional
 [binding interpretation](caveat-save-0.1.md#module-binding-interpretation).
 Releases wrote this format from 1.1.0 on, so only those count as the
 writers of an unmarked one.

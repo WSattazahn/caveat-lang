@@ -1,6 +1,6 @@
-# CAVEAT Find 0.1 (draft) — finding past decisions by what they rest on
+# CAVEAT Find 0.1 — finding past decisions by what they rest on
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.5, building on [Ledger Sets 0.1](caveat-ledger-sets-0.1.md) and [Explanations 0.2](caveat-explanations-0.2.md). It is a report of the kit: it adds no syntax, changes no program and no session, and a program means what it meant before.
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5, building on [Ledger Sets 0.1](caveat-ledger-sets-0.1.md) and [Explanations 0.2](caveat-explanations-0.2.md). It is a report of the kit: it adds no syntax, changes no program and no session, and a program means what it meant before.
 
 An agent that starts a task fresh does not know what was decided last time,
 or why. A person in the same place searches their notes; a mathematician

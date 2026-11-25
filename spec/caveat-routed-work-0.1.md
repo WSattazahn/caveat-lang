@@ -1,6 +1,6 @@
 # CAVEAT Routed Work 0.1 — a rule on another route costs no work
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5. It adds one statement, `work skips other routes;`, which does not load in 1.4, so every program that loads today keeps its output bytes and exit statuses. Tested in `runtime/tests/routed_work.rs`; the regression case for the finding is `gap_2b_routed_copies_for_other_members_cost_no_work`.
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5. It adds one statement, `work skips other routes;`, which does not load in 1.4, so every program that loads today keeps its output bytes and exit statuses. Tested in `runtime/tests/routed_work.rs`; the regression case for the finding is `gap_2b_routed_copies_for_other_members_cost_no_work`.
 
 ## Why
 

@@ -114,7 +114,7 @@ consume work; a work-limit failure is atomic. Existing expression and history
 limits also apply. In a program that declares `work skips other routes;`, a
 top-level rule whose route the payload makes false, such as another member's
 copy of a routed rule, counts no work, and neither does the skipped traversal
-under it ([Routed Work 0.1](caveat-routed-work-0.1.md), 1.5 draft).
+under it ([Routed Work 0.1](caveat-routed-work-0.1.md), from 1.5.0).
 
 Braces group procedure bodies; quoted braces, semicolons, and comment markers
 remain literal text. Comments and Unicode source positions retain the

@@ -426,7 +426,7 @@ C008 reports a `rule`, `proc` or `bind` that reads a decision's record, in a
 program with at least one `qualify` effect, in a rule or a procedure. A
 `qualify … after` counts; an `unqualify` does not. A record is read by
 `committed(D)` or `reopened(D)`, or by `latest`, `grounds_of`
-(draft for 1.5), `history_count`, `history_at` or a fold of a decision
+(from 1.5.0), `history_count`, `history_at` or a fold of a decision
 series, in the rule's guard or any
 expression of its effect, in any step of a procedure, or in a binding's
 value, `when` condition or `because`. In a procedure, a `decisions`
@@ -504,7 +504,7 @@ gained a caveat.
 
 ### C010 `commit-on-withdrawable` and C011 `withdrawal-not-reopened`
 
-**Status:** draft for 1.5.
+**Status:** stable from 1.5.0.
 
 Reported only with `--withdrawals`, or `runtime.check(source, { withdrawals:
 true })` from a script. Without it, a program checks, tests and exits exactly
@@ -600,7 +600,7 @@ clean; without its `withdrawn` guard or one of its reopen rules, it does not.
 
 ### C012 `near-miss-commitment`
 
-**Status:** draft for 1.5.
+**Status:** stable from 1.5.0.
 
 Reported only with `--names`, or `runtime.check(source, { names: true })`
 from a script, so every program checks, tests and exits as it did before.
