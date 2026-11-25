@@ -11,7 +11,7 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "caveat-lang": "1.4.1"
+    "caveat-lang": "1.5.0"
   },
   "devDependencies": {
     "wrangler": "4.151.1"

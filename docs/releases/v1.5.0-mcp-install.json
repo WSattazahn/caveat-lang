@@ -1,0 +1,118 @@
+{
+  "schema": "caveat-mcp-install-verification/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-11-25T03:46:21Z",
+  "name": "caveat-lang",
+  "version": "1.5.0",
+  "tag": "v1.5.0",
+  "revision": "50005f721bac6fd43fcb83cc824327b09cc8d72a",
+  "command": "npx -y caveat-lang@1.5.0 mcp",
+  "launch": {
+    "platform": "win32",
+    "cwd": "New empty directory",
+    "npmCache": "New empty npm cache",
+    "registry": "https://registry.npmjs.org",
+    "thirdPartyLifecycleScripts": false
+  },
+  "package": {
+    "resolved": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.5.0.tgz",
+    "integrity": "sha512-JTnOQZi3YGVflH42TmGgpRiuSx/PvhLKw9q+aDBkW6pVxuijhDKcwFyP6OxYx8SBbnipJKvbSXDdv1Z0kRG16g==",
+    "buildRevision": "50005f721bac6fd43fcb83cc824327b09cc8d72a",
+    "freshInstallFromRegistry": true
+  },
+  "sdkClient": {
+    "client": "@modelcontextprotocol/sdk@1.32.1",
+    "server": {
+      "name": "caveat-lang",
+      "title": "CAVEAT Language",
+      "version": "1.5.0"
+    },
+    "catalog": {
+      "count": 7,
+      "sha256": "2ba2ef3bd76aa154bdc7ec4c4079cc5dee263c4a406e8e28f748234910e3d4ec"
+    },
+    "calls": [
+      {
+        "name": "caveat_validate",
+        "schema": "caveat-validate/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_check",
+        "schema": "caveat-check/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_test",
+        "schema": "caveat-scenario-report/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_explain",
+        "schema": "caveat-explain/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_dependents",
+        "schema": "caveat-dependents/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_dispatch",
+        "schema": "caveat-dispatch-step/0.1",
+        "exitCode": 0
+      },
+      {
+        "name": "caveat_find",
+        "schema": "caveat-find/0.1",
+        "exitCode": 0
+      }
+    ],
+    "invalidSource": true,
+    "virtualPathRefused": true,
+    "retry": true,
+    "stderr": 0,
+    "note": "scripts/test-mcp-client.mjs checkMcpClient against the published package installed with a fresh cache: the catalog equals kit/lib/mcp.mjs at the tag, all seven tools succeed on the umbrella template, invalid source returns exitCode 2, a path outside inline.cav is refused, and a retry succeeds. stderr is its length in characters."
+  },
+  "stateless": {
+    "protocolVersion": "2026-07-28",
+    "server": {
+      "name": "caveat-lang",
+      "version": "1.5.0",
+      "title": "CAVEAT Language"
+    },
+    "catalog": {
+      "count": 7,
+      "sha256": "31ffd15bdeff5c8f12f3f2115e36b64cbddd89a18450bab33195af6829b3718f"
+    },
+    "discover": true,
+    "toolsCall": "validate",
+    "unsupportedVersion": -32022,
+    "note": "scripts/test-mcp-client.mjs checkMcpStatelessProbe (2026-07-28 server/discover path) against the same installed package."
+  },
+  "npx": {
+    "command": "npx -y caveat-lang@1.5.0 mcp",
+    "protocolVersion": "2025-11-25",
+    "serverInfo": {
+      "name": "caveat-lang",
+      "version": "1.5.0",
+      "title": "CAVEAT Language"
+    },
+    "toolNames": [
+      "caveat_validate",
+      "caveat_check",
+      "caveat_test",
+      "caveat_explain",
+      "caveat_dependents",
+      "caveat_dispatch",
+      "caveat_find"
+    ],
+    "catalogSha256": "31ffd15bdeff5c8f12f3f2115e36b64cbddd89a18450bab33195af6829b3718f",
+    "dependentsExitCode": 0
+  },
+  "limits": [
+    "This checks the published package from the release host, not Glama rebuilding or rescoring, nor installation in a graphical MCP client.",
+    "The SDK catalog hash covers the SDK-parsed tool objects; the raw catalog hash covers tools/list as sent.",
+    "Catalog expanded from five to seven tools in 1.5.0 with caveat_dispatch and caveat_find."
+  ]
+}

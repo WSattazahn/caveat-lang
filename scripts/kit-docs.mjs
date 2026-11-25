@@ -148,11 +148,18 @@ export function trackedFiles(repository) {
 // mcpName equals the server name exactly. rc.13 shipped a lowercase login and
 // could not be listed; rc.14 was the fix release.
 export const MCP_SERVER_NAME = 'io.github.WSattazahn/caveat-lang';
+export const MCP_DESCRIPTION_MAX_LENGTH = 100;
 
 export function checkRegistryIdentity(manifest, server) {
   const version = packageIdentity(manifest).slice(manifest.name.length + 1);
   assert.equal(manifest.mcpName, MCP_SERVER_NAME, `kit/package.json: mcpName must be ${MCP_SERVER_NAME}, the GitHub login's exact case`);
   assert.equal(server.name, MCP_SERVER_NAME, `server.json: name must be ${MCP_SERVER_NAME}, the GitHub login's exact case`);
+  assert.equal(typeof server.description, 'string', 'server.json: description must be a string');
+  assert.ok(server.description.trim().length > 0, 'server.json: description must not be empty');
+  assert.ok(
+    server.description.length <= MCP_DESCRIPTION_MAX_LENGTH,
+    `server.json: description length ${server.description.length} exceeds the MCP Registry limit of ${MCP_DESCRIPTION_MAX_LENGTH}`,
+  );
   assert.equal(server.version, version, 'server.json: version must equal the kit version');
   const packages = (server.packages ?? []).filter(entry => entry.registryType === 'npm' && entry.identifier === manifest.name);
   assert.equal(packages.length, 1, `server.json: expected one npm package entry for ${manifest.name}`);

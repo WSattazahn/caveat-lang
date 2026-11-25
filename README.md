@@ -19,15 +19,15 @@ original grounds. Your application stores the events; Caveat does not sign
 them or authenticate the evidence, so it complements your platform's identity,
 permission and logging controls rather than replacing them.
 
-The published release is **1.4.1**, a patch release of 1.4.0. See the
-[1.4.1 release record](docs/releases/v1.4.1.md) for what it fixes, the
-[1.4.0 release record](docs/releases/v1.4.0.md) for what 1.4 adds and the
+The published release is **1.5.0**, the fifth minor release of 1.x. See the
+[1.5.0 release record](docs/releases/v1.5.0.md) for what it adds and fixes, the
+[1.4.0 release record](docs/releases/v1.4.0.md) for what 1.4 added and the
 [1.0.0 release record](docs/releases/v1.0.0.md) for what 1.x promises.
 
-> npm publication verified 2026-10-26T23:13:05.492Z: exact **caveat-lang@1.4.1**,
-> tested Linux artifact SHA256 `ecb535b181f5f33836f4730ed8c1c0c8ac9a1622eb55e3d43e3e3c3492f281f5`.
-> Published by `publish-npm.yml` from tag `v1.4.1` with an npm provenance attestation. Both `latest` and `next` were verified at 1.4.1 on 2026-10-26.
-> [Publication record](docs/releases/v1.4.1-npm-publication.json).
+> npm publication verified 2026-11-25T03:28:26.088Z: exact **caveat-lang@1.5.0**,
+> tested Linux artifact SHA256 `96d62570255d5ecc22351195beb45c7e1fc78e6edddda8e35694c0a1ac728dfd`.
+> Published by `publish-npm.yml` from tag `v1.5.0` with an npm provenance attestation. Both `latest` and `next` and the MCP Registry were verified at 1.5.0 on 2026-11-25.
+> [Publication record](docs/releases/v1.5.0-npm-publication.json).
 
 
 When a tool result is corrected or a memory turns out to be stale, an application
@@ -35,12 +35,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published release, **1.4.1**, in an empty directory with Node 20 or
+Try the published release, **1.5.0**, in an empty directory with Node 20 or
 later. No Rust installation is needed. Install it:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 ```
 
 Then paste this "hello, world": one piece of evidence, one decision resting on
@@ -137,7 +137,7 @@ Restoring a save still does not authenticate its history. A refused operation is
 not completed; hosts must inspect its outcome. The package has no npm runtime
 dependencies.
 
-With 1.4.1 installed, use `npx --no-install caveat-lang doctor` to check it and
+With 1.5.0 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
@@ -298,7 +298,7 @@ MCP client's configuration:
   "mcpServers": {
     "caveat-language": {
       "command": "npx",
-      "args": ["-y", "caveat-lang@1.4.1", "mcp"]
+      "args": ["-y", "caveat-lang@1.5.0", "mcp"]
     }
   }
 }
@@ -312,7 +312,7 @@ MCP client's configuration:
 | `caveat_explain` | source, optional events | Decisions, their exact grounds, caveats and history |
 | `caveat_dependents` | source, subject, optional events | What depends on the named evidence, stream or caveat |
 | `caveat_dispatch` (from 1.5.0) | source, optional save, optional moduleBindings, optional events | One step of a running ledger: the state after the events, and the save to pass back next time |
-| `caveat_find` | source, records, query | Past decisions matching every word, with their grounds and whether they still stand (1.5 draft) |
+| `caveat_find` (from 1.5.0) | source, records, query | Past decisions matching every word, with their grounds and whether they still stand |
 
 Every tool works on inline source text and supplied events. The server has no
 file, network or persistent-session tools, and it runs each call in a fresh
@@ -385,6 +385,20 @@ past its 65,536-byte limit is refused as `limit/text_limit` instead of ending
 the session (D025). Saves restore in both directions between 1.4.0 and 1.4.1.
 The [1.4.1 verified publication record](docs/releases/v1.4.1.md) has the
 details.
+
+1.5.0 adds six language profiles (`sum`/`any`/`all` across members,
+`grounds_of`, `sample ... with` reading caveats, `threshold`, `work skips other
+routes;`, and `state ... unset` / `is_set` with refusal code
+`evaluation/unset_state`), `caveat find` and `caveat_find`, the `caveat_dispatch`
+MCP tool, reused views (`dispatchView(..., { reuse: true })`) with compact
+binary wire patching, opt-in `check` (`--withdrawals`, `--names`), `explain`
+(`--later-caveats`, `--lineage-notes`) and `review --all --summary` flags, and
+`whatIf(..., { agent })`. It also delivers the module-binding correction
+(D088, D091, D093–D097) with explicit `moduleBindings` restore options, removes
+restore's 16 MiB state-save cap (D070), fixes runtime and restore validation
+findings (D027–D105), and significantly speeds up event dispatch and view
+patching. The [1.5.0 verified publication record](docs/releases/v1.5.0.md) lists
+each change.
 
 rc.20 clarified when to use each MCP tool, its
 inputs and its results. It also fixed human-readable explanations of caveats
