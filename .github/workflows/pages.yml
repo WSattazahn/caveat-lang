@@ -164,6 +164,8 @@ jobs:
         run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play live Trail Rescue on desktop and mobile
         run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
+      - name: Play live three-agent demo on desktop and mobile
+        run: .github/ci/retry-once.sh 4 npm run test:agents-page
       - uses: ./.github/actions/upload-artifact
         if: always()
         with:
@@ -171,6 +173,7 @@ jobs:
           path: |
             test-results/glowcap-*.png
             test-results/trail-rescue-*.png
+            test-results/agents-*.png
 
   visual-mr-caveat:
     name: live Mr. Caveat QA

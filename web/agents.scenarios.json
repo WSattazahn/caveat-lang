@@ -1,0 +1,95 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "agents.cav",
+  "scenarios": [
+    {
+      "id": "AG01",
+      "title": "Withdrawing security's stale CVE mirror reopens security and perf decisions, preserves frozen grounds, and leaves comms in force",
+      "steps": [
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 1 } },
+        { "send": "approve_security", "agent": "security" },
+        { "send": "perf_check", "agent": "perf", "payload": { "p95_ms": 140 } },
+        { "send": "approve_canary", "agent": "perf" },
+        { "send": "notes_check", "agent": "comms", "payload": { "entries": 12 } },
+        { "send": "publish_notes", "agent": "comms" },
+        {
+          "expect": {
+            "/bindings/status/sec_signoff": "in force",
+            "/bindings/status/canary_deploy": "in force",
+            "/bindings/status/release_notes": "in force",
+            "/commitment_grounds/sec_signoff@1": {
+              "evidence": ["advisory@1"],
+              "caveats": ["cached_mirror"]
+            },
+            "/commitment_grounds/canary_deploy@1": {
+              "evidence": { "$set": ["advisory@1", "bench@1"] },
+              "caveats": ["cached_mirror"]
+            },
+            "/commitment_grounds/release_notes@1": {
+              "evidence": ["changelog@1"],
+              "caveats": []
+            },
+            "/decision_journal/0/agent": "security",
+            "/decision_journal/1/agent": "perf",
+            "/decision_journal/2/agent": "comms"
+          }
+        },
+        { "checkpoint": "all_decided" },
+        { "resume": true },
+        { "send": "retract_advisory", "agent": "security" },
+        {
+          "expect": {
+            "/bindings/status/sec_signoff": "reopened",
+            "/bindings/status/canary_deploy": "reopened",
+            "/bindings/status/release_notes": "in force",
+            "/withdrawals/0": { "evidence": "advisory@1", "because": "mirror_audit", "agent": "security" }
+          }
+        },
+        {
+          "same_as": "all_decided",
+          "paths": [
+            "/commitment_grounds/sec_signoff@1",
+            "/commitment_grounds/canary_deploy@1",
+            "/commitment_grounds/release_notes@1",
+            "/decision_journal/0",
+            "/decision_journal/1",
+            "/decision_journal/2"
+          ]
+        },
+        { "send": "approve_security", "agent": "security", "rejected": "The latest advisory reading was withdrawn; recheck before signing off." },
+        { "send": "approve_canary", "agent": "perf", "rejected": "Cannot approve canary on a withdrawn security advisory." },
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 0 } },
+        { "send": "approve_security", "agent": "security" },
+        { "send": "approve_canary", "agent": "perf" },
+        {
+          "expect": {
+            "/bindings/status/sec_signoff": "in force",
+            "/bindings/status/canary_deploy": "in force",
+            "/bindings/status/release_notes": "in force",
+            "/commitment_grounds/sec_signoff@2": {
+              "evidence": ["advisory@2"],
+              "caveats": []
+            },
+            "/commitment_grounds/canary_deploy@2": {
+              "evidence": { "$set": ["advisory@2", "bench@1"] },
+              "caveats": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "AG02",
+      "title": "Each agent can send only its declared events, and refused sends change nothing",
+      "steps": [
+        { "send": "sec_check", "payload": { "clean": 1, "cached": 1 }, "rejected": { "origin": "input", "code": "wrong_agent" } },
+        { "send": "sec_check", "agent": "comms", "payload": { "clean": 1, "cached": 1 }, "rejected": { "origin": "input", "code": "wrong_agent" } },
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 1 } },
+        { "checkpoint": "after_sec" },
+        { "send": "approve_security", "agent": "comms", "rejected": { "origin": "input", "code": "wrong_agent" } },
+        { "send": "retract_advisory", "agent": "perf", "rejected": { "origin": "input", "code": "wrong_agent" } },
+        { "same_as": "after_sec", "paths": ["/sequence", "/bindings/status/sec_signoff"] }
+      ]
+    }
+  ]
+}
