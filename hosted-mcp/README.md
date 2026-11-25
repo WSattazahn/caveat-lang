@@ -1,7 +1,8 @@
 # Hosted Caveat MCP server
 
 The `caveat-lang` MCP tools (`caveat_validate`, `caveat_check`, `caveat_test`,
-`caveat_explain`, `caveat_dependents`) over Streamable HTTP, as a Cloudflare
+`caveat_explain`, `caveat_dependents`, `caveat_dispatch`, `caveat_find`) over
+Streamable HTTP, as a Cloudflare
 Worker at `https://caveat-mcp.waltersattazahn.workers.dev/mcp`. ChatGPT and
 Codex reach it through the Caveat plugin (`plugins/caveat/.codex-plugin/mcp.json`).
 

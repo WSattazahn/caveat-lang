@@ -538,3 +538,8 @@
 {"event":"approve","payload":{"item":504}}
 {"event":"ci_run","payload":{"green":1}}
 {"event":"approve","payload":{"item":505}}
+{"event":"ci_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":506}}
+{"event":"main_run","payload":{"green":1}}
+{"event":"approve","payload":{"item":150}}
+{"event":"ship_minor","payload":{"version":150}}
