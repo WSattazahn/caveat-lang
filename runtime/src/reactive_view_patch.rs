@@ -261,6 +261,72 @@ impl ReactiveSession {
             }
         }
     }
+
+    /// `dispatch_view_patch_outcome_text_from` encoded into a compact binary
+    /// wire buffer so the WebAssembly host can construct frozen View 0.1
+    /// objects directly without JSON formatting or `JSON.parse`.
+    pub fn dispatch_view_patch_outcome_binary_from(
+        &mut self,
+        base: &mut ViewPatchBase,
+        held: Option<u64>,
+        event: &str,
+        payload_json: &str,
+        agent: Option<&str>,
+    ) -> Result<Vec<u8>, DispatchFatal> {
+        let since = self.sequence;
+        let before = match (base.0.take(), held) {
+            (Some((sequence, parts)), Some(held)) if sequence == since && held == since => {
+                Some(parts)
+            }
+            _ => None,
+        };
+        match self.dispatch_classified(event, payload_json, agent) {
+            Ok(()) => {
+                let mut out = Vec::with_capacity(512);
+                out.push(1); // accepted
+                match before.is_some().then_some(since) {
+                    Some(seq) => {
+                        out.push(1);
+                        bin_varint(&mut out, seq);
+                    }
+                    None => out.push(0),
+                }
+                bin_varint(&mut out, self.sequence);
+                bin_opt_str(&mut out, self.last_event.as_deref());
+                let mask_pos = out.len();
+                out.extend_from_slice(&[0, 0]);
+                let (mask, parts) = match before {
+                    Some(mut parts) => {
+                        let mask = parts.sync_binary(self, false, &mut out);
+                        (mask, parts)
+                    }
+                    None => {
+                        let mut parts = PatchParts::new(self);
+                        let mask = parts.sync_binary(self, true, &mut out);
+                        (mask, parts)
+                    }
+                };
+                out[mask_pos..mask_pos + 2].copy_from_slice(&mask.to_le_bytes());
+                base.0 = Some((self.sequence, parts));
+                Ok(out)
+            }
+            Err(failure) => {
+                let outcome = failure.classify();
+                if outcome.is_ok() {
+                    if let Some(parts) = before {
+                        base.0 = Some((since, parts));
+                    }
+                }
+                let (origin, code, message) = outcome?;
+                let mut out = Vec::with_capacity(64 + message.len());
+                out.push(0); // rejected
+                out.push(origin.tag());
+                bin_str(&mut out, code.as_str());
+                bin_str(&mut out, &message);
+                Ok(out)
+            }
+        }
+    }
 }
 
 fn patch_outcome(failure: DispatchFailure) -> Result<DispatchViewPatchOutcome, DispatchFatal> {
@@ -1053,6 +1119,388 @@ impl PatchParts {
             );
         }
     }
+
+    /// Bring the parts up to date with `session` and encode changed members
+    /// into the compact binary patch buffer in VIEW_FIELDS bit order (0..8):
+    /// 0:bindings, 1:binding_explanations, 2:cues, 3:effects, 4:commitments,
+    /// 5:commitment_grounds, 6:decision_series, 7:decision_journal, 8:relations.
+    fn sync_binary(&mut self, session: &ReactiveSession, full: bool, out: &mut Vec<u8>) -> u16 {
+        let mut mask: u16 = 0;
+
+        // Bit 0: bindings
+        if full {
+            mask |= 1 << 0;
+            bin_nested_full(
+                out,
+                &mut self.bindings,
+                &session.bindings,
+                bin_binding_value,
+            );
+        } else if !session.last_binding_groups.is_empty()
+            && bin_nested_touched(
+                out,
+                &mut self.bindings,
+                &session.bindings,
+                &session.binding_groups,
+                &session.last_binding_groups,
+                &same_binding,
+                bin_binding_value,
+            )
+        {
+            mask |= 1 << 0;
+        }
+
+        // Bit 1: binding_explanations
+        if full {
+            mask |= 1 << 1;
+            bin_nested_full(
+                out,
+                &mut self.binding_explanations,
+                &session.binding_explanations,
+                bin_provenance,
+            );
+        } else if !session.last_binding_groups.is_empty()
+            && bin_nested_touched(
+                out,
+                &mut self.binding_explanations,
+                &session.binding_explanations,
+                &session.binding_groups,
+                &session.last_binding_groups,
+                &|old, new| old == new,
+                bin_provenance,
+            )
+        {
+            mask |= 1 << 1;
+        }
+
+        // Bit 2: cues
+        if full || !(session.cues.is_empty() && self.cues == "[]") {
+            let now = if session.cues.is_empty() {
+                "[]".to_owned()
+            } else {
+                text(&session.cues)
+            };
+            if full || self.cues != now {
+                mask |= 1 << 2;
+                if session.cues.is_empty() {
+                    out.push(0);
+                } else {
+                    out.push(1);
+                    bin_str(out, &now);
+                }
+                self.cues = now;
+            }
+        }
+
+        // Bit 3: effects
+        if full || !same_effects(&self.effects, &session.effects) {
+            mask |= 1 << 3;
+            self.effects.clone_from(&session.effects);
+            bin_varint(out, session.effects.len() as u64);
+            for effect in &session.effects {
+                bin_effect(out, effect);
+            }
+        }
+
+        // Prepare graph / symbol deltas once for commitments (4) and relations (8).
+        let old_symbols = std::mem::replace(&mut self.symbols, session.symbols.clone());
+        let symbols_changed = !old_symbols.shares_all(&self.symbols);
+        let old_graph = std::mem::replace(&mut self.graph, Arc::clone(&session.graph));
+        let graph_changed = !Arc::ptr_eq(&old_graph, &self.graph);
+        let names_kept = !full && (!symbols_changed || old_symbols.kept_in(&self.symbols));
+        let edges_appended = !full && self.graph.edges.starts_with(&old_graph.edges);
+
+        // Bit 4: commitments
+        if full || graph_changed || symbols_changed {
+            if names_kept && edges_appended && old_graph.origins.shares_all(&self.graph.origins) {
+                let mut changed = Vec::new();
+                let mut removed = false;
+                old_graph.nodes.diff(&self.graph.nodes, |id, old, new| {
+                    if matches!(old, Some(NodeKind::Commitment { .. }))
+                        && !matches!(new, Some(NodeKind::Commitment { .. }))
+                    {
+                        removed = true;
+                        return false;
+                    }
+                    if matches!(new, Some(NodeKind::Commitment { .. })) {
+                        changed.push(id);
+                    }
+                    true
+                });
+                if removed {
+                    let live = session
+                        .commitment_records(|id| self.symbols.name_of(*id))
+                        .into_iter()
+                        .map(|commitment| (commitment.action.clone(), commitment))
+                        .collect::<BTreeMap<_, _>>();
+                    if bin_sync_map(
+                        out,
+                        &mut self.commitments,
+                        &live,
+                        false,
+                        &|old, new| old == new,
+                        bin_commitment,
+                    ) {
+                        mask |= 1 << 4;
+                    }
+                } else {
+                    for edge in self.graph.edges.iter_from(old_graph.edges.len()) {
+                        match edge.relation {
+                            Relation::Retains => changed.push(edge.from),
+                            Relation::Reopens => changed.push(edge.to),
+                            _ => {}
+                        }
+                    }
+                    if !changed.is_empty() {
+                        changed.sort_unstable();
+                        changed.dedup();
+                        let mut keys_changed = false;
+                        let mut set_actions = BTreeSet::new();
+                        let name_of = |id: &NodeId| self.symbols.name_of(*id);
+                        for id in changed {
+                            let Some(record) = session.commitment_record(id, &name_of) else {
+                                continue;
+                            };
+                            let action = record.action.clone();
+                            match self.commitments.get_mut(&action) {
+                                Some(known) if *known == record => {}
+                                Some(known) => {
+                                    *known = record;
+                                    set_actions.insert(action);
+                                }
+                                None => {
+                                    keys_changed = true;
+                                    self.commitments.insert(action.clone(), record);
+                                    set_actions.insert(action);
+                                }
+                            }
+                        }
+                        if keys_changed || !set_actions.is_empty() {
+                            mask |= 1 << 4;
+                            if keys_changed {
+                                out.push(1);
+                                bin_varint(out, self.commitments.len() as u64);
+                                for key in self.commitments.keys() {
+                                    bin_str(out, key);
+                                }
+                            } else {
+                                out.push(0);
+                            }
+                            bin_varint(out, set_actions.len() as u64);
+                            for action in &set_actions {
+                                bin_str(out, action);
+                                bin_commitment(out, &self.commitments[action]);
+                            }
+                        }
+                    }
+                }
+            } else {
+                let live = session
+                    .commitment_records(|id| self.symbols.name_of(*id))
+                    .into_iter()
+                    .map(|commitment| (commitment.action.clone(), commitment))
+                    .collect::<BTreeMap<_, _>>();
+                if bin_sync_map(
+                    out,
+                    &mut self.commitments,
+                    &live,
+                    full,
+                    &|old, new| old == new,
+                    bin_commitment,
+                ) {
+                    mask |= 1 << 4;
+                }
+            }
+        }
+
+        // Bit 5: commitment_grounds
+        let old_grounds = std::mem::replace(
+            &mut self.commitment_grounds,
+            Arc::clone(&session.commitment_grounds),
+        );
+        if full || !Arc::ptr_eq(&old_grounds, &self.commitment_grounds) {
+            let wrote = if let Some(key) = (!full)
+                .then_some(session.last_grounds_written.as_deref())
+                .flatten()
+            {
+                bin_map_change_one(
+                    out,
+                    &old_grounds,
+                    &self.commitment_grounds,
+                    key,
+                    &|old, new| old == new,
+                    bin_provenance,
+                )
+            } else {
+                bin_map_changes(
+                    out,
+                    (!full).then_some(old_grounds.as_ref()),
+                    &self.commitment_grounds,
+                    &|old, new| old == new,
+                    bin_provenance,
+                )
+            };
+            if wrote {
+                mask |= 1 << 5;
+            }
+        }
+
+        // Bit 6: decision_series
+        let old_series = std::mem::replace(
+            &mut self.decision_series,
+            Arc::clone(&session.decision_series),
+        );
+        if full || !Arc::ptr_eq(&old_series, &self.decision_series) {
+            let wrote = if let Some(key) = (!full)
+                .then_some(session.last_series_written.as_deref())
+                .flatten()
+            {
+                bin_map_change_one(
+                    out,
+                    &old_series,
+                    &self.decision_series,
+                    key,
+                    &same_decision_series,
+                    bin_decision_series,
+                )
+            } else {
+                bin_map_changes(
+                    out,
+                    (!full).then_some(old_series.as_ref()),
+                    &self.decision_series,
+                    &same_decision_series,
+                    bin_decision_series,
+                )
+            };
+            if wrote {
+                mask |= 1 << 6;
+            }
+        }
+
+        // Bit 7: decision_journal
+        let old_journal = std::mem::replace(&mut self.decision_journal, session.journal.clone());
+        if full {
+            mask |= 1 << 7;
+            bin_varint(out, self.decision_journal.len() as u64);
+            for entry in &self.decision_journal {
+                out.push(1);
+                bin_journal_entry(out, entry);
+            }
+        } else if !self.decision_journal.shares_all(&old_journal) {
+            if self
+                .decision_journal
+                .starts_with_by(&old_journal, same_journal_entry)
+            {
+                let old_len = old_journal.len();
+                let new_len = self.decision_journal.len();
+                if old_len != new_len {
+                    mask |= 1 << 7;
+                    let item_count = usize::from(old_len > 0) + (new_len - old_len);
+                    bin_varint(out, item_count as u64);
+                    if old_len > 0 {
+                        out.push(0);
+                        bin_varint(out, 0);
+                        bin_varint(out, old_len as u64);
+                    }
+                    for entry in self.decision_journal.iter_from(old_len) {
+                        out.push(1);
+                        bin_journal_entry(out, entry);
+                    }
+                }
+            } else {
+                let old_entries = old_journal.iter().collect::<Vec<_>>();
+                let new_entries = self.decision_journal.iter().collect::<Vec<_>>();
+                if bin_list_changes(
+                    out,
+                    Some(&old_entries),
+                    &new_entries,
+                    |old, new| std::ptr::eq(*old, *new) || same_journal_entry(old, new),
+                    |out, entry| bin_journal_entry(out, entry),
+                ) {
+                    mask |= 1 << 7;
+                }
+            }
+        }
+
+        // Bit 8: relations
+        if full || graph_changed || symbols_changed {
+            if full {
+                mask |= 1 << 8;
+                bin_varint(out, self.graph.edges.len() as u64);
+                for edge in &self.graph.edges {
+                    out.push(1);
+                    bin_relation(out, &self.symbols, edge);
+                }
+            } else if edges_appended && names_kept {
+                let old_len = old_graph.edges.len();
+                let new_len = self.graph.edges.len();
+                if old_len != new_len {
+                    mask |= 1 << 8;
+                    let item_count = usize::from(old_len > 0) + (new_len - old_len);
+                    bin_varint(out, item_count as u64);
+                    if old_len > 0 {
+                        out.push(0);
+                        bin_varint(out, 0);
+                        bin_varint(out, old_len as u64);
+                    }
+                    for edge in self.graph.edges.iter_from(old_len) {
+                        out.push(1);
+                        bin_relation(out, &self.symbols, edge);
+                    }
+                }
+            } else {
+                let edges = |old: &&Edge, new: &&Edge| {
+                    old.from == new.from && old.to == new.to && old.relation == new.relation
+                };
+                let old_edges = old_graph.edges.iter().collect::<Vec<_>>();
+                let new_edges = self.graph.edges.iter().collect::<Vec<_>>();
+                let wrote = if !symbols_changed {
+                    bin_list_changes(out, Some(&old_edges), &new_edges, edges, |out, edge| {
+                        bin_relation(out, &self.symbols, edge)
+                    })
+                } else {
+                    bin_list_changes(
+                        out,
+                        Some(&old_edges),
+                        &new_edges,
+                        |old, new| {
+                            edges(old, new)
+                                && old_symbols.name_of(old.from) == self.symbols.name_of(new.from)
+                                && old_symbols.name_of(old.to) == self.symbols.name_of(new.to)
+                        },
+                        |out, edge| bin_relation(out, &self.symbols, edge),
+                    )
+                };
+                if wrote {
+                    mask |= 1 << 8;
+                }
+            }
+        }
+
+        #[cfg(debug_assertions)]
+        if !full {
+            debug_assert_eq!(
+                text(&self.bindings),
+                text(&session.bindings),
+                "PatchParts::sync_binary bindings drifted from session"
+            );
+            debug_assert_eq!(
+                self.binding_explanations, session.binding_explanations,
+                "PatchParts::sync_binary binding_explanations drifted from session"
+            );
+            let live_commitments = session
+                .commitment_records(|id| self.symbols.name_of(*id))
+                .into_iter()
+                .map(|c| (c.action.clone(), c))
+                .collect::<BTreeMap<_, _>>();
+            debug_assert_eq!(
+                self.commitments, live_commitments,
+                "PatchParts::sync_binary commitments drifted from session"
+            );
+        }
+
+        mask
+    }
 }
 
 /// A list member a host replaces whole when its text changes, avoiding JSON
@@ -1794,6 +2242,732 @@ fn write_list_changes<T>(
     out.extend_from_slice(b"]}");
 }
 
+// ------------------------------------------------ binary wire helpers
+
+#[inline]
+fn bin_varint(out: &mut Vec<u8>, mut value: u64) {
+    while value >= 0x80 {
+        out.push((value as u8) | 0x80);
+        value >>= 7;
+    }
+    out.push(value as u8);
+}
+
+#[inline]
+fn bin_f64(out: &mut Vec<u8>, value: f64) {
+    out.extend_from_slice(&value.to_le_bytes());
+}
+
+#[inline]
+fn bin_str(out: &mut Vec<u8>, s: &str) {
+    let non_ascii = u64::from(!s.is_ascii());
+    bin_varint(out, ((s.len() as u64) << 1) | non_ascii);
+    out.extend_from_slice(s.as_bytes());
+}
+
+#[inline]
+fn bin_opt_str(out: &mut Vec<u8>, s: Option<&str>) {
+    match s {
+        Some(text) => {
+            out.push(1);
+            bin_str(out, text);
+        }
+        None => out.push(0),
+    }
+}
+
+fn bin_str_slice(out: &mut Vec<u8>, items: &[String]) {
+    bin_varint(out, items.len() as u64);
+    for item in items {
+        bin_str(out, item);
+    }
+}
+
+fn bin_nameset(out: &mut Vec<u8>, set: &crate::reactive_expr::NameSet) {
+    bin_varint(out, set.len() as u64);
+    for name in set {
+        bin_str(out, name.as_str());
+    }
+}
+
+fn bin_binding_value(out: &mut Vec<u8>, value: &BindingValue) {
+    match value {
+        BindingValue::Number(n) => {
+            out.push(0);
+            bin_f64(out, *n);
+        }
+        BindingValue::Bool(false) => out.push(1),
+        BindingValue::Bool(true) => out.push(2),
+        BindingValue::Text(s) => {
+            out.push(3);
+            bin_str(out, s);
+        }
+    }
+}
+
+fn bin_provenance(out: &mut Vec<u8>, prov: &Provenance) {
+    let mut flags = 0u8;
+    if !prov.departed.is_empty() {
+        flags |= 1;
+    }
+    if !prov.inherited.is_empty() {
+        flags |= 2;
+    }
+    if !prov.kept.is_empty() {
+        flags |= 4;
+    }
+    out.push(flags);
+    bin_nameset(out, &prov.evidence);
+    bin_nameset(out, &prov.caveats);
+    if flags & 1 != 0 {
+        bin_varint(out, prov.departed.len() as u64);
+        for (history, marker) in &prov.departed {
+            bin_str(out, history);
+            bin_varint(out, marker.read);
+            bin_varint(out, marker.from);
+            bin_varint(out, marker.through);
+            bin_varint(out, marker.departed_at);
+            bin_opt_str(out, marker.archive_ref.as_ref().map(|t| t.id()));
+        }
+    }
+    if flags & 2 != 0 {
+        bin_nameset(out, &prov.inherited);
+    }
+    if flags & 4 != 0 {
+        bin_nameset(out, &prov.kept);
+    }
+}
+
+fn bin_effect(out: &mut Vec<u8>, effect: &EffectReport) {
+    match effect {
+        EffectReport::Sample {
+            stream,
+            id,
+            value,
+            relation,
+            target,
+            note,
+        } => {
+            out.push(0);
+            bin_str(out, stream);
+            bin_str(out, id);
+            bin_f64(out, *value);
+            let flags = u8::from(relation.is_some())
+                | (u8::from(target.is_some()) << 1)
+                | (u8::from(note.is_some()) << 2);
+            out.push(flags);
+            if let Some(rel) = relation {
+                bin_str(out, rel);
+            }
+            if let Some(t) = target {
+                bin_str(out, t);
+            }
+            if let Some(n) = note {
+                bin_str(out, n);
+            }
+        }
+        EffectReport::Reveal {
+            evidence,
+            relation,
+            target,
+        } => {
+            out.push(1);
+            bin_str(out, evidence);
+            let flags = u8::from(relation.is_some()) | (u8::from(target.is_some()) << 1);
+            out.push(flags);
+            if let Some(rel) = relation {
+                bin_str(out, rel);
+            }
+            if let Some(t) = target {
+                bin_str(out, t);
+            }
+        }
+        EffectReport::Examine { caveat, cost } => {
+            out.push(2);
+            bin_str(out, caveat);
+            bin_varint(out, *cost);
+        }
+        EffectReport::Commit { action, retained } => {
+            out.push(3);
+            bin_str(out, action);
+            bin_str_slice(out, retained);
+        }
+        EffectReport::Reopen { action, because } => {
+            out.push(4);
+            bin_str(out, action);
+            bin_str(out, because);
+        }
+        EffectReport::Qualify { evidence, caveat } => {
+            out.push(5);
+            bin_str(out, evidence);
+            bin_str(out, caveat);
+        }
+        EffectReport::Unqualify {
+            evidence,
+            caveat,
+            occurrences,
+        } => {
+            out.push(6);
+            bin_str(out, evidence);
+            bin_str(out, caveat);
+            bin_str_slice(out, occurrences);
+        }
+        EffectReport::Renew {
+            evidence,
+            occurrence,
+        } => {
+            out.push(7);
+            bin_str(out, evidence);
+            bin_str(out, occurrence);
+        }
+        EffectReport::Withdraw { evidence, because } => {
+            out.push(8);
+            bin_str(out, evidence);
+            bin_str(out, because);
+        }
+        EffectReport::Retire { history, record } => {
+            out.push(9);
+            bin_str(out, history);
+            bin_str(out, record);
+        }
+        EffectReport::Depart { history, record } => {
+            out.push(10);
+            bin_str(out, history);
+            bin_str(out, record);
+        }
+    }
+}
+
+fn bin_commitment(out: &mut Vec<u8>, c: &MapCommitment) {
+    bin_str(out, &c.action);
+    out.push(u8::from(c.open));
+    bin_str_slice(out, &c.retained);
+    bin_varint(out, c.retained_authorship.len() as u64);
+    for a in &c.retained_authorship {
+        bin_str(out, &a.caveat);
+        bin_opt_str(out, a.written_by.as_deref());
+        out.push(match a.written_elsewhere {
+            None => 0,
+            Some(false) => 1,
+            Some(true) => 2,
+        });
+    }
+    bin_str_slice(out, &c.reopened_by);
+}
+
+fn bin_decision_series(out: &mut Vec<u8>, s: &DecisionSeries) {
+    bin_varint(out, s.limit as u64);
+    bin_opt_str(out, s.current.as_deref());
+    bin_varint(out, s.revisions.len() as u64);
+    for rev in &s.revisions {
+        bin_str(out, &rev.id);
+        bin_opt_str(out, rev.previous.as_deref());
+        bin_varint(out, rev.ordinal);
+        bin_varint(out, rev.sequence);
+        bin_str(out, &rev.event);
+        match &rev.outcome {
+            None => out.push(0),
+            Some(outcome) => {
+                out.push(1);
+                bin_f64(out, outcome.value);
+                bin_str_slice(out, &outcome.because);
+                if outcome.materialized.is_empty() {
+                    out.push(0);
+                } else {
+                    out.push(1);
+                    bin_str_slice(out, &outcome.materialized);
+                }
+                bin_varint(out, outcome.sequence);
+                bin_str(out, &outcome.event);
+                bin_provenance(out, &outcome.lineage);
+            }
+        }
+    }
+    bin_provenance(out, &s.selection_qualifications);
+    let flags = u8::from(!s.on_hold.is_empty()) | (u8::from(!s.deferred.is_empty()) << 1);
+    out.push(flags);
+    if flags & 1 != 0 {
+        bin_str_slice(out, &s.on_hold);
+    }
+    if flags & 2 != 0 {
+        bin_str_slice(out, &s.deferred);
+    }
+}
+
+fn bin_journal_entry(out: &mut Vec<u8>, entry: &JournalEntry) {
+    bin_str(out, &entry.decision);
+    bin_str(out, &entry.commitment);
+    bin_str(out, &entry.change);
+    bin_varint(out, entry.sequence);
+    bin_str(out, &entry.event);
+    let flags = u8::from(entry.agent.is_some())
+        | (u8::from(entry.elapsed.is_some()) << 1)
+        | (u8::from(entry.value.is_some()) << 2)
+        | (u8::from(entry.permitted_by.is_some()) << 3)
+        | (u8::from(entry.outcome.is_some()) << 4)
+        | (u8::from(!entry.materialized.is_empty()) << 5);
+    out.push(flags);
+    if let Some(agent) = &entry.agent {
+        bin_str(out, agent);
+    }
+    if let Some(elapsed) = entry.elapsed {
+        bin_f64(out, elapsed);
+    }
+    if let Some(value) = entry.value {
+        bin_f64(out, value);
+    }
+    bin_str_slice(out, &entry.because);
+    bin_str_slice(out, &entry.caveats);
+    if let Some(permitted_by) = &entry.permitted_by {
+        bin_str(out, permitted_by);
+    }
+    if let Some(outcome) = entry.outcome {
+        bin_f64(out, outcome);
+    }
+    if flags & 32 != 0 {
+        bin_str_slice(out, &entry.materialized);
+    }
+}
+
+fn relation_tag(relation: Relation) -> u8 {
+    match relation {
+        Relation::Supports => 0,
+        Relation::Opposes => 1,
+        Relation::Qualifies => 2,
+        Relation::InContext => 3,
+        Relation::Retains => 4,
+        Relation::Reopens => 5,
+        Relation::ReliesOn => 6,
+    }
+}
+
+fn bin_relation(out: &mut Vec<u8>, symbols: &NameTable, edge: &Edge) {
+    bin_str(out, symbols.name_of(edge.from).expect("a named node"));
+    out.push(relation_tag(edge.relation));
+    bin_str(out, symbols.name_of(edge.to).expect("a named node"));
+}
+
+fn bin_nested_full<V: Clone>(
+    out: &mut Vec<u8>,
+    held: &mut Nested<V>,
+    live: &Nested<V>,
+    encode: fn(&mut Vec<u8>, &V),
+) {
+    held.clone_from(live);
+    out.push(1); // outer keys present
+    bin_varint(out, live.len() as u64);
+    for key in live.keys() {
+        bin_str(out, key);
+    }
+    bin_varint(out, live.len() as u64);
+    for (target, props) in live {
+        bin_str(out, target);
+        out.push(1); // inner keys present
+        bin_varint(out, props.len() as u64);
+        for prop in props.keys() {
+            bin_str(out, prop);
+        }
+        bin_varint(out, props.len() as u64);
+        for (prop, val) in props {
+            bin_str(out, prop);
+            encode(out, val);
+        }
+    }
+}
+
+fn bin_nested_touched<V: Clone>(
+    out: &mut Vec<u8>,
+    held: &mut Nested<V>,
+    live: &Nested<V>,
+    groups: &[BindingGroup],
+    touched: &[usize],
+    same: &dyn Fn(&V, &V) -> bool,
+    encode: fn(&mut Vec<u8>, &V),
+) -> bool {
+    if let Some((&first_group, rest)) = touched.split_first() {
+        let target = groups[first_group].target.as_str();
+        if rest.iter().all(|&g| groups[g].target == target) {
+            let existed = held.contains_key(target);
+            let mut inner_keys_changed = false;
+            let mut prop_set: Vec<(&str, &V)> = Vec::with_capacity(touched.len());
+            for &group in touched {
+                let property = groups[group].property.as_str();
+                let live_value = live.get(target).and_then(|props| props.get(property));
+                let held_value = held.get(target).and_then(|props| props.get(property));
+                match (held_value, live_value) {
+                    (Some(known), Some(value)) if same(known, value) => {}
+                    (Some(_), Some(value)) => {
+                        *held
+                            .get_mut(target)
+                            .expect("target held")
+                            .get_mut(property)
+                            .expect("property held") = value.clone();
+                        prop_set.push((property, value));
+                    }
+                    (None, Some(value)) => {
+                        held.entry(target.to_owned())
+                            .or_default()
+                            .insert(property.to_owned(), value.clone());
+                        inner_keys_changed = true;
+                        prop_set.push((property, value));
+                    }
+                    (Some(_), None) => {
+                        let empty = {
+                            let props = held.get_mut(target).expect("target held");
+                            props.remove(property);
+                            props.is_empty()
+                        };
+                        if empty {
+                            held.remove(target);
+                        }
+                        inner_keys_changed = true;
+                    }
+                    (None, None) => {}
+                }
+            }
+            let live_props = live.get(target);
+            let outer_keys_changed = live_props.is_some() != existed;
+            if let Some(live_props) = live_props {
+                if !existed {
+                    inner_keys_changed = true;
+                }
+                if !outer_keys_changed && !inner_keys_changed && prop_set.is_empty() {
+                    return false;
+                }
+                if prop_set.len() > 1 {
+                    prop_set.sort_unstable_by_key(|(k, _)| *k);
+                    prop_set.dedup_by_key(|(k, _)| *k);
+                }
+                if outer_keys_changed {
+                    out.push(1);
+                    bin_varint(out, live.len() as u64);
+                    for k in live.keys() {
+                        bin_str(out, k);
+                    }
+                } else {
+                    out.push(0);
+                }
+                if inner_keys_changed || !prop_set.is_empty() {
+                    bin_varint(out, 1);
+                    bin_str(out, target);
+                    if inner_keys_changed {
+                        out.push(1);
+                        bin_varint(out, live_props.len() as u64);
+                        for k in live_props.keys() {
+                            bin_str(out, k);
+                        }
+                    } else {
+                        out.push(0);
+                    }
+                    bin_varint(out, prop_set.len() as u64);
+                    for (prop, val) in prop_set {
+                        bin_str(out, prop);
+                        encode(out, val);
+                    }
+                } else {
+                    bin_varint(out, 0);
+                }
+                return true;
+            } else if outer_keys_changed {
+                out.push(1);
+                bin_varint(out, live.len() as u64);
+                for k in live.keys() {
+                    bin_str(out, k);
+                }
+                bin_varint(out, 0);
+                return true;
+            }
+            return false;
+        }
+    }
+    let mut existed_before: BTreeMap<&str, bool> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        existed_before
+            .entry(target)
+            .or_insert_with(|| held.contains_key(target));
+    }
+    let mut per_target: BTreeMap<&str, (bool, BTreeMap<&str, &V>)> = BTreeMap::new();
+    for &group in touched {
+        let target = groups[group].target.as_str();
+        let property = groups[group].property.as_str();
+        let live_value = live.get(target).and_then(|props| props.get(property));
+        let held_value = held.get(target).and_then(|props| props.get(property));
+        match (held_value, live_value) {
+            (Some(known), Some(value)) if same(known, value) => {}
+            (Some(_), Some(value)) => {
+                *held
+                    .get_mut(target)
+                    .expect("target held")
+                    .get_mut(property)
+                    .expect("property held") = value.clone();
+                per_target
+                    .entry(target)
+                    .or_default()
+                    .1
+                    .insert(property, value);
+            }
+            (None, Some(value)) => {
+                held.entry(target.to_owned())
+                    .or_default()
+                    .insert(property.to_owned(), value.clone());
+                let entry = per_target.entry(target).or_default();
+                entry.0 = true;
+                entry.1.insert(property, value);
+            }
+            (Some(_), None) => {
+                let empty = {
+                    let props = held.get_mut(target).expect("target held");
+                    props.remove(property);
+                    props.is_empty()
+                };
+                if empty {
+                    held.remove(target);
+                }
+                per_target.entry(target).or_default().0 = true;
+            }
+            (None, None) => {}
+        }
+    }
+    let mut outer_keys_changed = false;
+    for (&target, &had) in &existed_before {
+        if live.contains_key(target) != had {
+            outer_keys_changed = true;
+            break;
+        }
+    }
+    let mut active = Vec::new();
+    for (target, (mut inner_keys_changed, prop_set)) in per_target {
+        let Some(live_props) = live.get(target) else {
+            continue;
+        };
+        if !existed_before[target] {
+            inner_keys_changed = true;
+        }
+        if inner_keys_changed || !prop_set.is_empty() {
+            active.push((target, inner_keys_changed, live_props, prop_set));
+        }
+    }
+    if !outer_keys_changed && active.is_empty() {
+        return false;
+    }
+    if outer_keys_changed {
+        out.push(1);
+        bin_varint(out, live.len() as u64);
+        for k in live.keys() {
+            bin_str(out, k);
+        }
+    } else {
+        out.push(0);
+    }
+    bin_varint(out, active.len() as u64);
+    for (target, inner_keys_changed, live_props, prop_set) in active {
+        bin_str(out, target);
+        if inner_keys_changed {
+            out.push(1);
+            bin_varint(out, live_props.len() as u64);
+            for k in live_props.keys() {
+                bin_str(out, k);
+            }
+        } else {
+            out.push(0);
+        }
+        bin_varint(out, prop_set.len() as u64);
+        for (prop, val) in prop_set {
+            bin_str(out, prop);
+            encode(out, val);
+        }
+    }
+    true
+}
+
+fn bin_sync_map<V: Clone>(
+    out: &mut Vec<u8>,
+    held: &mut BTreeMap<String, V>,
+    live: &BTreeMap<String, V>,
+    full: bool,
+    same: &dyn Fn(&V, &V) -> bool,
+    encode: fn(&mut Vec<u8>, &V),
+) -> bool {
+    let keys_changed = full || !held.keys().eq(live.keys());
+    if keys_changed {
+        held.retain(|key, _| live.contains_key(key));
+    }
+    let mut changed: Vec<(&str, &V)> = Vec::new();
+    for (key, value) in live {
+        match held.get_mut(key) {
+            Some(known) if same(known, value) => {}
+            Some(known) => {
+                *known = value.clone();
+                changed.push((key.as_str(), value));
+            }
+            None => {
+                held.insert(key.clone(), value.clone());
+                changed.push((key.as_str(), value));
+            }
+        }
+    }
+    if !keys_changed && changed.is_empty() {
+        return false;
+    }
+    if keys_changed {
+        out.push(1);
+        bin_varint(out, live.len() as u64);
+        for k in live.keys() {
+            bin_str(out, k);
+        }
+    } else {
+        out.push(0);
+    }
+    bin_varint(out, changed.len() as u64);
+    for (key, val) in changed {
+        bin_str(out, key);
+        encode(out, val);
+    }
+    true
+}
+
+fn bin_map_change_one<V>(
+    out: &mut Vec<u8>,
+    before: &BTreeMap<String, V>,
+    after: &BTreeMap<String, V>,
+    key: &str,
+    same: &dyn Fn(&V, &V) -> bool,
+    encode: fn(&mut Vec<u8>, &V),
+) -> bool {
+    #[cfg(debug_assertions)]
+    let start_len = out.len();
+    let old_val = before.get(key);
+    let new_val = after.get(key);
+    let keys_changed = old_val.is_some() != new_val.is_some();
+    let changed_val = match (old_val, new_val) {
+        (Some(old), Some(new)) if same(old, new) => None,
+        (_, Some(new)) => Some(new),
+        (_, None) => None,
+    };
+    if !keys_changed && changed_val.is_none() {
+        #[cfg(debug_assertions)]
+        {
+            let mut expected = Vec::new();
+            let wrote = bin_map_changes(&mut expected, Some(before), after, same, encode);
+            assert!(
+                !wrote && expected.is_empty(),
+                "single-key binary patch diff missed change for key {key:?}"
+            );
+        }
+        return false;
+    }
+    if keys_changed {
+        out.push(1);
+        bin_varint(out, after.len() as u64);
+        for k in after.keys() {
+            bin_str(out, k);
+        }
+    } else {
+        out.push(0);
+    }
+    if let Some(val) = changed_val {
+        bin_varint(out, 1);
+        bin_str(out, key);
+        encode(out, val);
+    } else {
+        bin_varint(out, 0);
+    }
+    #[cfg(debug_assertions)]
+    {
+        let mut expected = Vec::new();
+        let wrote = bin_map_changes(&mut expected, Some(before), after, same, encode);
+        assert!(wrote);
+        assert_eq!(
+            &out[start_len..],
+            expected.as_slice(),
+            "single-key binary patch diff drifted for key {key:?}"
+        );
+    }
+    true
+}
+
+fn bin_map_changes<V>(
+    out: &mut Vec<u8>,
+    before: Option<&BTreeMap<String, V>>,
+    after: &BTreeMap<String, V>,
+    same: &dyn Fn(&V, &V) -> bool,
+    encode: fn(&mut Vec<u8>, &V),
+) -> bool {
+    let keys_changed = before.is_none_or(|old| !old.keys().eq(after.keys()));
+    let mut changed: Vec<(&str, &V)> = Vec::new();
+    for (key, new) in after {
+        if !before
+            .and_then(|old| old.get(key))
+            .is_some_and(|known| same(known, new))
+        {
+            changed.push((key.as_str(), new));
+        }
+    }
+    if !keys_changed && changed.is_empty() {
+        return false;
+    }
+    if keys_changed {
+        out.push(1);
+        bin_varint(out, after.len() as u64);
+        for k in after.keys() {
+            bin_str(out, k);
+        }
+    } else {
+        out.push(0);
+    }
+    bin_varint(out, changed.len() as u64);
+    for (key, val) in changed {
+        bin_str(out, key);
+        encode(out, val);
+    }
+    true
+}
+
+fn bin_list_changes<T>(
+    out: &mut Vec<u8>,
+    before: Option<&[T]>,
+    after: &[T],
+    same: impl Fn(&T, &T) -> bool,
+    render: impl Fn(&mut Vec<u8>, &T),
+) -> bool {
+    let old = before.unwrap_or_default();
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut run: Option<(usize, usize)> = None;
+    let mut kept = 0;
+    for (position, entry) in old.iter().enumerate() {
+        if kept < after.len() && same(entry, &after[kept]) {
+            kept += 1;
+            run = match run {
+                Some((start, length)) if start + length == position => Some((start, length + 1)),
+                Some(done) => {
+                    runs.push(done);
+                    Some((position, 1))
+                }
+                None => Some((position, 1)),
+            };
+        }
+    }
+    if before.is_some() && kept == old.len() && kept == after.len() {
+        return false;
+    }
+    if let Some(done) = run {
+        runs.push(done);
+    }
+    let item_count = runs.len() + (after.len() - kept);
+    bin_varint(out, item_count as u64);
+    for (start, length) in runs {
+        out.push(0);
+        bin_varint(out, start as u64);
+        bin_varint(out, length as u64);
+    }
+    for entry in &after[kept..] {
+        out.push(1);
+        render(out, entry);
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1911,31 +3085,568 @@ mod tests {
     }
 
     fn verify_sequence(source: &str, events: &[(&str, &str)]) {
+        verify_sequence_with_agents(
+            source,
+            &events
+                .iter()
+                .map(|&(event, payload)| (event, payload, None))
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    struct BinReader<'a> {
+        buf: &'a [u8],
+        pos: usize,
+    }
+
+    impl<'a> BinReader<'a> {
+        fn byte(&mut self) -> u8 {
+            let b = self.buf[self.pos];
+            self.pos += 1;
+            b
+        }
+
+        fn varint(&mut self) -> u64 {
+            let mut val = 0u64;
+            let mut shift = 0u32;
+            loop {
+                let b = self.byte();
+                val |= u64::from(b & 0x7f) << shift;
+                if b < 0x80 {
+                    return val;
+                }
+                shift += 7;
+            }
+        }
+
+        fn f64(&mut self) -> Value {
+            let mut bytes = [0u8; 8];
+            bytes.copy_from_slice(&self.buf[self.pos..self.pos + 8]);
+            self.pos += 8;
+            let n = f64::from_le_bytes(bytes);
+            serde_json::to_value(n).expect("finite f64")
+        }
+
+        fn str(&mut self) -> String {
+            let tag = self.varint();
+            let len = (tag >> 1) as usize;
+            let bytes = &self.buf[self.pos..self.pos + len];
+            self.pos += len;
+            let s = std::str::from_utf8(bytes).expect("valid utf8");
+            assert_eq!(tag & 1 == 0, s.is_ascii(), "ascii flag mismatch for {s:?}");
+            s.to_owned()
+        }
+
+        fn opt_str(&mut self) -> Value {
+            match self.byte() {
+                0 => Value::Null,
+                1 => Value::String(self.str()),
+                other => panic!("unexpected opt_str tag {other}"),
+            }
+        }
+
+        fn str_list(&mut self) -> Value {
+            let len = self.varint() as usize;
+            Value::Array((0..len).map(|_| Value::String(self.str())).collect())
+        }
+
+        fn binding_value(&mut self) -> Value {
+            match self.byte() {
+                0 => self.f64(),
+                1 => Value::Bool(false),
+                2 => Value::Bool(true),
+                3 => Value::String(self.str()),
+                other => panic!("unexpected binding tag {other}"),
+            }
+        }
+
+        fn provenance(&mut self) -> Value {
+            let flags = self.byte();
+            let mut obj = serde_json::Map::new();
+            obj.insert("evidence".into(), self.str_list());
+            obj.insert("caveats".into(), self.str_list());
+            if flags & 1 != 0 {
+                let n = self.varint() as usize;
+                let mut departed = Vec::with_capacity(n);
+                for _ in 0..n {
+                    let mut m = serde_json::Map::new();
+                    m.insert("history".into(), Value::String(self.str()));
+                    m.insert("read".into(), json!(self.varint()));
+                    m.insert("from".into(), json!(self.varint()));
+                    m.insert("through".into(), json!(self.varint()));
+                    m.insert("departed_at".into(), json!(self.varint()));
+                    match self.opt_str() {
+                        Value::Null => {}
+                        Value::String(r) => {
+                            m.insert("archive_ref".into(), Value::String(r));
+                        }
+                        _ => unreachable!(),
+                    }
+                    departed.push(Value::Object(m));
+                }
+                obj.insert("departed".into(), Value::Array(departed));
+            }
+            if flags & 2 != 0 {
+                obj.insert("inherited".into(), self.str_list());
+            }
+            if flags & 4 != 0 {
+                obj.insert("kept".into(), self.str_list());
+            }
+            Value::Object(obj)
+        }
+
+        fn effect(&mut self) -> Value {
+            let mut obj = serde_json::Map::new();
+            match self.byte() {
+                0 => {
+                    obj.insert("kind".into(), json!("sample"));
+                    obj.insert("stream".into(), Value::String(self.str()));
+                    obj.insert("id".into(), Value::String(self.str()));
+                    obj.insert("value".into(), self.f64());
+                    let flags = self.byte();
+                    if flags & 1 != 0 {
+                        obj.insert("relation".into(), Value::String(self.str()));
+                    }
+                    if flags & 2 != 0 {
+                        obj.insert("target".into(), Value::String(self.str()));
+                    }
+                    if flags & 4 != 0 {
+                        obj.insert("note".into(), Value::String(self.str()));
+                    }
+                }
+                1 => {
+                    obj.insert("kind".into(), json!("reveal"));
+                    obj.insert("evidence".into(), Value::String(self.str()));
+                    let flags = self.byte();
+                    if flags & 1 != 0 {
+                        obj.insert("relation".into(), Value::String(self.str()));
+                    }
+                    if flags & 2 != 0 {
+                        obj.insert("target".into(), Value::String(self.str()));
+                    }
+                }
+                2 => {
+                    obj.insert("kind".into(), json!("examine"));
+                    obj.insert("caveat".into(), Value::String(self.str()));
+                    obj.insert("cost".into(), json!(self.varint()));
+                }
+                3 => {
+                    obj.insert("kind".into(), json!("commit"));
+                    obj.insert("action".into(), Value::String(self.str()));
+                    obj.insert("retained".into(), self.str_list());
+                }
+                4 => {
+                    obj.insert("kind".into(), json!("reopen"));
+                    obj.insert("action".into(), Value::String(self.str()));
+                    obj.insert("because".into(), Value::String(self.str()));
+                }
+                5 => {
+                    obj.insert("kind".into(), json!("qualify"));
+                    obj.insert("evidence".into(), Value::String(self.str()));
+                    obj.insert("caveat".into(), Value::String(self.str()));
+                }
+                6 => {
+                    obj.insert("kind".into(), json!("unqualify"));
+                    obj.insert("evidence".into(), Value::String(self.str()));
+                    obj.insert("caveat".into(), Value::String(self.str()));
+                    obj.insert("occurrences".into(), self.str_list());
+                }
+                7 => {
+                    obj.insert("kind".into(), json!("renew"));
+                    obj.insert("evidence".into(), Value::String(self.str()));
+                    obj.insert("occurrence".into(), Value::String(self.str()));
+                }
+                8 => {
+                    obj.insert("kind".into(), json!("withdraw"));
+                    obj.insert("evidence".into(), Value::String(self.str()));
+                    obj.insert("because".into(), Value::String(self.str()));
+                }
+                9 => {
+                    obj.insert("kind".into(), json!("retire"));
+                    obj.insert("history".into(), Value::String(self.str()));
+                    obj.insert("record".into(), Value::String(self.str()));
+                }
+                10 => {
+                    obj.insert("kind".into(), json!("depart"));
+                    obj.insert("history".into(), Value::String(self.str()));
+                    obj.insert("record".into(), Value::String(self.str()));
+                }
+                other => panic!("unexpected effect kind {other}"),
+            }
+            Value::Object(obj)
+        }
+
+        fn commitment(&mut self) -> Value {
+            let mut obj = serde_json::Map::new();
+            obj.insert("action".into(), Value::String(self.str()));
+            obj.insert("open".into(), Value::Bool(self.byte() != 0));
+            obj.insert("retained".into(), self.str_list());
+            let auth_len = self.varint() as usize;
+            let mut auth = Vec::with_capacity(auth_len);
+            for _ in 0..auth_len {
+                let mut a = serde_json::Map::new();
+                a.insert("caveat".into(), Value::String(self.str()));
+                a.insert("written_by".into(), self.opt_str());
+                let we = match self.byte() {
+                    0 => Value::Null,
+                    1 => Value::Bool(false),
+                    2 => Value::Bool(true),
+                    other => panic!("unexpected written_elsewhere tag {other}"),
+                };
+                a.insert("written_elsewhere".into(), we);
+                auth.push(Value::Object(a));
+            }
+            obj.insert("retained_authorship".into(), Value::Array(auth));
+            obj.insert("reopened_by".into(), self.str_list());
+            Value::Object(obj)
+        }
+
+        fn decision_series(&mut self) -> Value {
+            let mut obj = serde_json::Map::new();
+            obj.insert("limit".into(), json!(self.varint()));
+            obj.insert("current".into(), self.opt_str());
+            let rev_len = self.varint() as usize;
+            let mut revs = Vec::with_capacity(rev_len);
+            for _ in 0..rev_len {
+                let mut r = serde_json::Map::new();
+                r.insert("id".into(), Value::String(self.str()));
+                r.insert("previous".into(), self.opt_str());
+                r.insert("ordinal".into(), json!(self.varint()));
+                r.insert("sequence".into(), json!(self.varint()));
+                r.insert("event".into(), Value::String(self.str()));
+                if self.byte() == 1 {
+                    let mut o = serde_json::Map::new();
+                    o.insert("value".into(), self.f64());
+                    o.insert("because".into(), self.str_list());
+                    if self.byte() == 1 {
+                        o.insert("materialized".into(), self.str_list());
+                    }
+                    o.insert("sequence".into(), json!(self.varint()));
+                    o.insert("event".into(), Value::String(self.str()));
+                    o.insert("lineage".into(), self.provenance());
+                    r.insert("outcome".into(), Value::Object(o));
+                }
+                revs.push(Value::Object(r));
+            }
+            obj.insert("revisions".into(), Value::Array(revs));
+            obj.insert("selection_qualifications".into(), self.provenance());
+            let flags = self.byte();
+            if flags & 1 != 0 {
+                obj.insert("on_hold".into(), self.str_list());
+            }
+            if flags & 2 != 0 {
+                obj.insert("deferred".into(), self.str_list());
+            }
+            Value::Object(obj)
+        }
+
+        fn journal_entry(&mut self) -> Value {
+            let mut obj = serde_json::Map::new();
+            obj.insert("decision".into(), Value::String(self.str()));
+            obj.insert("commitment".into(), Value::String(self.str()));
+            obj.insert("change".into(), Value::String(self.str()));
+            obj.insert("sequence".into(), json!(self.varint()));
+            obj.insert("event".into(), Value::String(self.str()));
+            let flags = self.byte();
+            if flags & 1 != 0 {
+                obj.insert("agent".into(), Value::String(self.str()));
+            }
+            if flags & 2 != 0 {
+                obj.insert("elapsed".into(), self.f64());
+            }
+            if flags & 4 != 0 {
+                obj.insert("value".into(), self.f64());
+            }
+            obj.insert("because".into(), self.str_list());
+            obj.insert("caveats".into(), self.str_list());
+            if flags & 8 != 0 {
+                obj.insert("permitted_by".into(), Value::String(self.str()));
+            }
+            if flags & 16 != 0 {
+                obj.insert("outcome".into(), self.f64());
+            }
+            if flags & 32 != 0 {
+                obj.insert("materialized".into(), self.str_list());
+            }
+            Value::Object(obj)
+        }
+
+        fn relation(&mut self) -> Value {
+            const NAMES: [&str; 7] = [
+                "supports",
+                "opposes",
+                "qualifies",
+                "in_context",
+                "retains",
+                "reopens",
+                "relies_on",
+            ];
+            let from = self.str();
+            let rel = NAMES[self.byte() as usize];
+            let to = self.str();
+            json!({ "from": from, "relation": rel, "to": to, "origin": "live" })
+        }
+
+        fn map(&mut self, held: Option<&Value>, read_val: fn(&mut Self) -> Value) -> Value {
+            let has_keys = self.byte();
+            let keys: Vec<String> = if has_keys == 1 {
+                let n = self.varint() as usize;
+                (0..n).map(|_| self.str()).collect()
+            } else {
+                held.unwrap().as_object().unwrap().keys().cloned().collect()
+            };
+            let set_len = self.varint() as usize;
+            let mut updates = BTreeMap::new();
+            for _ in 0..set_len {
+                let k = self.str();
+                updates.insert(k, read_val(self));
+            }
+            let mut out = serde_json::Map::new();
+            for k in keys {
+                let v = updates
+                    .remove(&k)
+                    .unwrap_or_else(|| held.unwrap()[&k].clone());
+                out.insert(k, v);
+            }
+            Value::Object(out)
+        }
+
+        fn nested(&mut self, held: Option<&Value>, read_val: fn(&mut Self) -> Value) -> Value {
+            let has_keys = self.byte();
+            let keys: Vec<String> = if has_keys == 1 {
+                let n = self.varint() as usize;
+                (0..n).map(|_| self.str()).collect()
+            } else {
+                held.unwrap().as_object().unwrap().keys().cloned().collect()
+            };
+            let set_len = self.varint() as usize;
+            let mut updates = BTreeMap::new();
+            for _ in 0..set_len {
+                let target = self.str();
+                let inner = self.map(held.and_then(|h| h.get(&target)), read_val);
+                updates.insert(target, inner);
+            }
+            let mut out = serde_json::Map::new();
+            for k in keys {
+                let v = updates
+                    .remove(&k)
+                    .unwrap_or_else(|| held.unwrap()[&k].clone());
+                out.insert(k, v);
+            }
+            Value::Object(out)
+        }
+
+        fn commitments(&mut self, held: Option<&Value>) -> Value {
+            let held_map = held.map(|h| {
+                let mut m = BTreeMap::new();
+                for c in h.as_array().unwrap() {
+                    m.insert(c["action"].as_str().unwrap().to_owned(), c.clone());
+                }
+                m
+            });
+            let has_keys = self.byte();
+            let keys: Vec<String> = if has_keys == 1 {
+                let n = self.varint() as usize;
+                (0..n).map(|_| self.str()).collect()
+            } else {
+                held.unwrap()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|c| c["action"].as_str().unwrap().to_owned())
+                    .collect()
+            };
+            let set_len = self.varint() as usize;
+            let mut updates = BTreeMap::new();
+            for _ in 0..set_len {
+                let k = self.str();
+                updates.insert(k, self.commitment());
+            }
+            Value::Array(
+                keys.into_iter()
+                    .map(|k| {
+                        updates
+                            .remove(&k)
+                            .unwrap_or_else(|| held_map.as_ref().unwrap()[&k].clone())
+                    })
+                    .collect(),
+            )
+        }
+
+        fn list(&mut self, held: Option<&Value>, read_item: fn(&mut Self) -> Value) -> Value {
+            let count = self.varint() as usize;
+            let mut out = Vec::new();
+            for _ in 0..count {
+                match self.byte() {
+                    0 => {
+                        let start = self.varint() as usize;
+                        let len = self.varint() as usize;
+                        let src = held.unwrap().as_array().unwrap();
+                        out.extend_from_slice(&src[start..start + len]);
+                    }
+                    1 => out.push(read_item(self)),
+                    other => panic!("unexpected list tag {other}"),
+                }
+            }
+            Value::Array(out)
+        }
+    }
+
+    fn decode_binary_outcome(bytes: &[u8], held: Option<&Value>) -> Value {
+        let mut r = BinReader { buf: bytes, pos: 0 };
+        let outcome = r.byte();
+        if outcome == 0 {
+            const ORIGINS: [&str; 4] = ["policy", "input", "evaluation", "limit"];
+            let origin = ORIGINS[r.byte() as usize];
+            let code = r.str();
+            let message = r.str();
+            assert_eq!(r.pos, bytes.len());
+            return json!({
+                "schema": DISPATCH_SCHEMA,
+                "outcome": "rejected",
+                "origin": origin,
+                "code": code,
+                "message": message,
+            });
+        }
+        assert_eq!(outcome, 1);
+        let since = if r.byte() == 1 {
+            Some(r.varint())
+        } else {
+            None
+        };
+        let base = since.map(|seq| {
+            let h = held.expect("held view for since");
+            assert_eq!(h["sequence"].as_u64(), Some(seq));
+            h
+        });
+        let sequence = r.varint();
+        let last_event = r.opt_str();
+        let mask = u16::from_le_bytes([r.byte(), r.byte()]);
+        let bindings = if mask & 1 != 0 {
+            r.nested(base.map(|b| &b["bindings"]), BinReader::binding_value)
+        } else {
+            base.unwrap()["bindings"].clone()
+        };
+        let binding_explanations = if mask & 2 != 0 {
+            r.nested(
+                base.map(|b| &b["binding_explanations"]),
+                BinReader::provenance,
+            )
+        } else {
+            base.unwrap()["binding_explanations"].clone()
+        };
+        let cues = if mask & 4 != 0 {
+            if r.byte() == 0 {
+                Value::Array(Vec::new())
+            } else {
+                serde_json::from_str(&r.str()).unwrap()
+            }
+        } else {
+            base.unwrap()["cues"].clone()
+        };
+        let effects = if mask & 8 != 0 {
+            let n = r.varint() as usize;
+            Value::Array((0..n).map(|_| r.effect()).collect())
+        } else {
+            base.unwrap()["effects"].clone()
+        };
+        let commitments = if mask & 16 != 0 {
+            r.commitments(base.map(|b| &b["commitments"]))
+        } else {
+            base.unwrap()["commitments"].clone()
+        };
+        let commitment_grounds = if mask & 32 != 0 {
+            r.map(
+                base.map(|b| &b["commitment_grounds"]),
+                BinReader::provenance,
+            )
+        } else {
+            base.unwrap()["commitment_grounds"].clone()
+        };
+        let decision_series = if mask & 64 != 0 {
+            r.map(
+                base.map(|b| &b["decision_series"]),
+                BinReader::decision_series,
+            )
+        } else {
+            base.unwrap()["decision_series"].clone()
+        };
+        let decision_journal = if mask & 128 != 0 {
+            r.list(
+                base.map(|b| &b["decision_journal"]),
+                BinReader::journal_entry,
+            )
+        } else {
+            base.unwrap()["decision_journal"].clone()
+        };
+        let relations = if mask & 256 != 0 {
+            r.list(base.map(|b| &b["relations"]), BinReader::relation)
+        } else {
+            base.unwrap()["relations"].clone()
+        };
+        assert_eq!(r.pos, bytes.len(), "trailing bytes in binary patch");
+        let mut view = serde_json::Map::new();
+        view.insert("schema".into(), json!(REACTIVE_VIEW_SCHEMA));
+        view.insert("sequence".into(), json!(sequence));
+        view.insert("last_event".into(), last_event);
+        view.insert("bindings".into(), bindings);
+        view.insert("binding_explanations".into(), binding_explanations);
+        view.insert("cues".into(), cues);
+        view.insert("effects".into(), effects);
+        view.insert("commitments".into(), commitments);
+        view.insert("commitment_grounds".into(), commitment_grounds);
+        view.insert("decision_series".into(), decision_series);
+        view.insert("decision_journal".into(), decision_journal);
+        view.insert("relations".into(), relations);
+        json!({
+            "schema": DISPATCH_SCHEMA,
+            "outcome": "accepted",
+            "view": Value::Object(view),
+        })
+    }
+
+    fn verify_sequence_with_agents(source: &str, events: &[(&str, &str, Option<&str>)]) {
         let mut plain = ReactiveSession::from_source(source).unwrap();
         let mut patched = ReactiveSession::from_source(source).unwrap();
         let mut streamed = ReactiveSession::from_source(source).unwrap();
+        let mut binary = ReactiveSession::from_source(source).unwrap();
         let mut base = ViewPatchBase::default();
         let mut base_text = ViewPatchBase::default();
+        let mut base_bin = ViewPatchBase::default();
         let mut held: Option<Value> = None;
-        for &(event, payload) in events {
-            let expected_raw =
-                serde_json::to_string(&plain.dispatch_view_outcome_json(event, payload).unwrap())
-                    .unwrap();
+        let mut held_bin: Option<Value> = None;
+        for &(event, payload, agent) in events {
+            let expected_raw = serde_json::to_string(
+                &plain
+                    .dispatch_view_outcome_as_json(event, payload, agent)
+                    .unwrap(),
+            )
+            .unwrap();
             let expected_val: Value = serde_json::from_str(&expected_raw).unwrap();
             let expected = serde_json::to_string(&expected_val).unwrap();
             let seq = held.as_ref().and_then(|v| v["sequence"].as_u64());
             let patch_raw = serde_json::to_string(
                 &patched
-                    .dispatch_view_patch_outcome_json_from(&mut base, seq, event, payload, None)
+                    .dispatch_view_patch_outcome_json_from(&mut base, seq, event, payload, agent)
                     .unwrap(),
             )
             .unwrap();
             let streamed_raw = streamed
-                .dispatch_view_patch_outcome_text_from(&mut base_text, seq, event, payload, None)
+                .dispatch_view_patch_outcome_text_from(&mut base_text, seq, event, payload, agent)
                 .unwrap();
             assert_eq!(
                 streamed_raw, patch_raw,
                 "streamed != structured on {event} {payload}"
+            );
+            let bin_bytes = binary
+                .dispatch_view_patch_outcome_binary_from(&mut base_bin, seq, event, payload, agent)
+                .unwrap();
+            let bin_outcome = decode_binary_outcome(&bin_bytes, held_bin.as_ref());
+            assert_eq!(
+                serde_json::to_string(&bin_outcome).unwrap(),
+                expected,
+                "binary != expected on {event} {payload}"
             );
             let patch_outcome: Value = serde_json::from_str(&patch_raw).unwrap();
             if patch_outcome["outcome"] == "accepted" {
@@ -1948,6 +3659,7 @@ mod tests {
                 .unwrap();
                 assert_eq!(reconstructed, expected, "{event} {payload}");
                 held = Some(view);
+                held_bin = Some(bin_outcome["view"].clone());
             } else {
                 assert_eq!(
                     serde_json::to_string(&patch_outcome).unwrap(),
@@ -2077,5 +3789,119 @@ bind a.val = latest(r) when has_sample(r);
             assert_eq!(streamed, structured, "mismatch on event {event} {payload}");
             held = Some(s_text.sequence);
         }
+    }
+
+    #[test]
+    fn binary_view_patch_covers_outcomes_holds_authorship_agents_effects_and_cues() {
+        let relation_variants = [
+            Relation::Supports,
+            Relation::Opposes,
+            Relation::Qualifies,
+            Relation::InContext,
+            Relation::Retains,
+            Relation::Reopens,
+            Relation::ReliesOn,
+        ];
+        const NAMES: [&str; 7] = [
+            "supports",
+            "opposes",
+            "qualifies",
+            "in_context",
+            "retains",
+            "reopens",
+            "relies_on",
+        ];
+        for relation in relation_variants {
+            assert_eq!(
+                NAMES[relation_tag(relation) as usize],
+                relation_name(relation)
+            );
+        }
+
+        let source = r#"
+origin ext;
+caveat remote_c consequence material;
+origin main;
+claim ok;
+claim permit;
+evidence sensor from "sensor";
+evidence grant from "grant";
+evidence pause_reason from "pause";
+evidence recheck from "recheck";
+caveat local_c consequence low;
+caveat taken_c consequence low;
+renewable grant limit 4;
+identifiers limit 8;
+readings r from sensor window 2;
+decisions d limit 4 reopened by r;
+journal window 4;
+agent main sends decide, pause, resume, close, wrong;
+agent worker sends sample_r, flag, unflag, renew_g, retract;
+state label_on = 0 min 0 max 1;
+cue ping sound 440 0.2 0.5;
+event tick dt min 0 max 0.1;
+event sample_r v min -10 max 10, note_id id;
+event flag;
+event unflag;
+event renew_g;
+event decide;
+event pause;
+event resume;
+event close;
+event retract;
+event wrong;
+on sample_r sample r = v supports ok noting note_id;
+on sample_r emit ping;
+on flag qualify latest(r) with taken_c;
+on flag qualify latest(r) with remote_c;
+on unflag unqualify latest(r) with taken_c;
+on renew_g when not observed(grant) reveal grant supports permit;
+on renew_g renew grant;
+on decide when not observed(grant) reveal grant supports permit;
+on decide commit d because enough using latest(r) permitted by grant retaining local_c, remote_c;
+on pause reveal pause_reason supports ok;
+on pause hold d because pause_reason;
+on resume release d because pause_reason;
+on close resolve d = 1 because latest(r) materialized remote_c;
+on retract reveal recheck opposes ok;
+on retract withdraw latest(r) because recheck;
+on wrong reject "No.";
+bind hud.flag = label_on == 1;
+bind hud.note = "café — 東京" when label_on == 0;
+"#;
+        verify_sequence_with_agents(
+            source,
+            &[
+                ("tick", r#"{"dt":0.05}"#, None),
+                ("sample_r", r#"{"v":2.5,"note_id":"αβγ-1"}"#, Some("worker")),
+                ("flag", "{}", Some("worker")),
+                ("decide", "{}", Some("main")),
+                ("pause", "{}", Some("main")),
+                (
+                    "sample_r",
+                    r#"{"v":3.0,"note_id":"deferred-2"}"#,
+                    Some("worker"),
+                ),
+                ("resume", "{}", Some("main")),
+                ("decide", "{}", Some("main")),
+                ("close", "{}", Some("main")),
+                ("unflag", "{}", Some("worker")),
+                ("renew_g", "{}", Some("worker")),
+                ("retract", "{}", Some("worker")),
+                (
+                    "sample_r",
+                    r#"{"v":4.0,"note_id":"window-3"}"#,
+                    Some("worker"),
+                ),
+                (
+                    "sample_r",
+                    r#"{"v":5.0,"note_id":"window-4"}"#,
+                    Some("worker"),
+                ),
+                ("wrong", "{}", Some("main")),
+                ("decide", "{}", Some("worker")), // wrong_agent rejection
+                ("tick", r#"{"dt":0.1}"#, None),
+            ],
+        );
     }
 }
