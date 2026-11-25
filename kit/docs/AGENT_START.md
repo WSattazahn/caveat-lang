@@ -44,8 +44,8 @@ npx --no-install caveat-lang demo agent
 PATH executable ownership. `demo agent` runs the shipped assessment program:
 observe 85, assess, withdraw the reading after a correction, observe 92, assess
 again. Both revisions remain inspectable and the original grounds stay frozen.
-These are illustrative scores. The demo writes no files. rc.6 has neither
-command; [CLI names](NAMES.md) explains the version and naming boundary.
+These are illustrative scores. The demo writes no files;
+[CLI names](NAMES.md) explains command naming and PATH collisions.
 
 ## Build one small, testable integration
 
@@ -84,13 +84,14 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
 
 A session lasts as long as the process that holds it. `caveat serve`, and so
 the Python client's `CaveatServer`, keeps one session of one program until it
-is closed. The [MCP authoring tools](MCP.md) keep none: each tool call starts a
-fresh subprocess and runtime with no session handle, so a call sees only the
-source and events it is sent. One MCP connection accepts 4,096 request IDs; the
-bridge then ends it, and the host must reconnect. For a long-running agent,
-keep the session in `caveat serve --state FILE`, which restores the session
-from the file on start and rewrites it after every accepted event, or send the
-full event history again with each MCP call.
+is closed; `caveat serve --state FILE` restores the session from the file on
+start and rewrites it after every accepted event. The
+[MCP authoring tools](MCP.md) keep no session state in the server (each call
+starts a fresh subprocess, and one connection accepts 4,096 request IDs before
+reconnecting), but from 1.5.0 **`caveat_dispatch`** continues one running
+ledger across stateless calls by returning and accepting a compact save
+(`report.save`), and **`caveat_find`** searches past decision records without
+replaying them by hand.
 
 Observing is separate from assessing. Reassessing requires reopening the current
 revision. Withdrawal preserves the archive, and late qualification leaves prior

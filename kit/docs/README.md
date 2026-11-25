@@ -26,7 +26,7 @@ background, not required reading.
   game loop, saves and cost, with [the intel example](../examples/intel-betrayal/README.md).
 
 - [Project names and CLI commands](NAMES.md): the unambiguous `caveat-lang`
-  command introduced in rc.7, the supported `caveat` shorthand and other projects with the
+  command, the supported `caveat` shorthand and other projects with the
   same name.
 
 ## The reactive language
@@ -90,9 +90,54 @@ Features added alongside the profiles:
 - [Observation order](../../spec/caveat-observation-order-0.1.md): uses of
   evidence that are certain to fail are load-time errors.
 - [Elapsed](../../spec/caveat-elapsed-0.1.md): reading the session clock.
-- [Save](../../spec/caveat-save-0.1.md) and
-  [view](../../spec/caveat-view-0.1.md): saving and restoring a session,
-  and the compact per-event view.
+- [Save](../../spec/caveat-save-0.1.md),
+  [replay saves 0.1](../../spec/caveat-replay-save-0.1.md) &
+  [0.2](../../spec/caveat-replay-save-0.2.md),
+  [view 0.1](../../spec/caveat-view-0.1.md),
+  [view 0.2](../../spec/caveat-view-0.2.md) and
+  [view patch 0.1](../../spec/caveat-view-patch-0.1.md): saving and restoring
+  a session, compact positional replay saves, per-event views and incremental
+  reused views.
+- [Neutral reveal](../../spec/caveat-neutral-reveal-0.1.md) and
+  [neutral sample](../../spec/caveat-neutral-sample-0.1.md): observing or
+  sampling evidence without taking a stance on a claim.
+- [Take-back](../../spec/caveat-take-back-0.1.md): `unqualify`, taking back a
+  caveat while recording the take-back and keeping prior decision bases.
+- [Citing](../../spec/caveat-citing-0.1.md) and
+  [retention reasons](../../spec/caveat-retention-reasons-0.1.md): decisions
+  with grounds but no numeric value (`citing`), and `retaining C because E`.
+- [Reading notes](../../spec/caveat-reading-notes-0.1.md),
+  [reading index](../../spec/caveat-reading-index-0.1.md),
+  [earlier occurrence](../../spec/caveat-earlier-occurrence-0.1.md),
+  [latest](../../spec/caveat-latest-0.1.md),
+  [past revisions](../../spec/caveat-past-revisions-0.1.md),
+  [in basis](../../spec/caveat-in-basis-0.1.md) and
+  [changed triggers](../../spec/caveat-changed-triggers-0.1.md): addressing
+  specific readings, occurrences and revisions, noting text on readings, and
+  value-change reopening triggers.
+- [Nested repetition](../../spec/caveat-nested-repetition-0.1.md),
+  [holds](../../spec/caveat-holds-0.1.md),
+  [foreclosure 0.1](../../spec/caveat-foreclosure-0.1.md) &
+  [0.2](../../spec/caveat-foreclosure-0.2.md) and
+  [strict irreversible](../../spec/caveat-strict-irreversible-0.1.md): nested
+  `for` blocks, deferring reopenings with `hold`/`release`, irreversible and
+  reversible foreclosure, and strict lineage caveat checks.
+- [Outcomes](../../spec/caveat-outcomes-0.1.md): recording how a decision
+  turned out (`resolve`, `resolved`, `outcome`, `materialized`).
+- [Agents](../../spec/caveat-agents-0.1.md),
+  [untrusted sources](../../spec/caveat-untrusted-sources-0.1.md),
+  [carries any](../../spec/caveat-carries-any-0.1.md) and
+  [only if](../../spec/caveat-only-if-0.1.md): event sender declarations,
+  `withdraw every`, single-use `because once`, consequence-threshold caveat
+  checks (`carries_any`), and lineage-only guards (`only_if`).
+- [Across members](../../spec/caveat-across-members-0.1.md),
+  [grounds of](../../spec/caveat-grounds-of-0.1.md),
+  [reading caveats](../../spec/caveat-reading-caveats-0.1.md),
+  [thresholds](../../spec/caveat-thresholds-0.1.md),
+  [routed work](../../spec/caveat-routed-work-0.1.md) and
+  [unset states](../../spec/caveat-unset-states-0.1.md): `sum`/`any`/`all`
+  across members, `grounds_of(SERIES)`, conditional per-reading caveats,
+  named thresholds, `work skips other routes;`, and `state … unset` / `is_set`.
 - [Standard functions](../../runtime/prelude.cav): the prelude every
   program can call.
 
@@ -153,6 +198,12 @@ Background:
 - [Interface 0.1](../../spec/caveat-interface-0.1.md): a program's events,
   payload fields, displayed values and declared names, which `caveat types`
   turns into TypeScript declarations.
+- [Dependents 0.1](../../spec/caveat-dependents-0.1.md),
+  [Review 0.1](../../spec/caveat-review-0.1.md),
+  [Ledger Sets 0.1](../../spec/caveat-ledger-sets-0.1.md) and
+  [Find 0.1](../../spec/caveat-find-0.1.md): impact tracing, decision review
+  across single or multiple ledgers, and searching past decisions by plain
+  words (`caveat find` and `caveat_find`).
 
 ## Example
 

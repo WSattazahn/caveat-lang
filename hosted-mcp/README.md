@@ -45,7 +45,7 @@ stdio; `test/handler.test.mjs` checks that side by side, and
 
 The free plan allows 3 MB compressed script and 10 ms CPU per request.
 
-- Bundle: 3,247 KiB, 866 KiB gzip (`npm run check`).
+- Bundle: 5,254 KiB, 1,382 KiB gzip (`npm run check` / `wrangler deploy` on `caveat-lang@1.5.0`).
 - CPU (`npm run measure`, Node, one runtime per process as in the Worker):
   once warm, validate, check, explain and dependents take under 1 ms each for
   the starter program, and `caveat_test` with the starter's two scenarios

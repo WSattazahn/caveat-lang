@@ -402,11 +402,12 @@ policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
 
 A `CaveatServer` holds its session as long as its `caveat serve` process runs.
-The [MCP authoring tools](../../docs/MCP.md) are a different route: each tool
-call is a fresh subprocess with no session handle, and one connection accepts
-4,096 request IDs before the bridge ends it and the host must reconnect. They
-suit checking a program, not holding an agent's evidence across a long task;
-use this server, and its save, for that.
+The [MCP authoring tools](../../docs/MCP.md) keep no session state in the
+server (each call starts a fresh subprocess, and one connection accepts 4,096
+request IDs before reconnecting). From 1.5.0, `caveat_dispatch` lets an MCP
+host step one ledger across calls by passing the compact save back each time;
+use `caveat serve` (with `--state`) when your application wants a persistent
+local process or file-backed session.
 
 From this repository checkout or the installed package, run the lifecycle
 suite separately from the original 53 tests:

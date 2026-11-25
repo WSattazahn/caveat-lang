@@ -24,7 +24,7 @@ level, Caveat slightly ahead.** Across all eight requests the change cost was
 105 lines against TypeScript's 110. The program was 154 lines against 164,
 dispatch took 97 µs (down from 202 µs), and the runtime shipped 333 KB
 gzipped. This round was written knowing every request. Details are
-[below](#round-4-the-language-after-rounds-1-3).
+[below](#round-4-the-language-after-rounds-13).
 
 **Round 5, after late qualification and the decision journal: Caveat.**
 Replaying CR5–CR8 from round 4's CR4 state cost 36 changed lines against

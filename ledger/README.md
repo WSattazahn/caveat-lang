@@ -4,8 +4,8 @@ caveat-lang's decisions about caveat-lang, kept in Caveat. `project.cav` is
 the program, `events.jsonl` the record of what happened in the order it
 happened, `project.scenarios.json` the tests of what the ledger must say,
 and `replay-check.mjs` the check that the record still replays. It loads and
-passes on the published 1.0.0, 1.0.2 and 1.0.3 runtimes as well as on `main`, so
-every thread that has `caveat` installed can ask it.
+passes across the published 1.x runtimes (from 1.0.0 through 1.5.0) as well as
+on `main`, so every thread that has `caveat` installed can ask it.
 
 This exists because the language's claim is that a decision should carry
 what it rested on, with its caveats, and should be found when that evidence
@@ -142,19 +142,19 @@ Kept here because the pinches are findings about the language, and the point
 of the ledger is to find them on the project's own decisions.
 
 - **A caveat on a reading.** A finding is naturally a reading in a stream
-  (`findings`, value the D-number), but `qualify latest(findings) with …`
-  does not load: a caveat can go on named evidence only. So every finding a
+  (`findings`, value the D-number), but in 1.0 `qualify latest(findings) with …`
+  did not load: a caveat could go on named evidence only. So every finding a
   decision rests on is declared twice, as a reading for the count and as
-  named evidence for its caveats. This is one of the two gaps planned for
-  1.1 (`qualify latest(stream)`).
+  named evidence for its caveats. (`qualify latest(STREAM)` landed in 1.1.0;
+  `project.cav` keeps the 1.0 form so earlier 1.x runtimes can still replay it.)
 - **A past decision resting on doubted evidence.** A late `qualify` leaves a
   decision's recorded grounds alone, by design, so finding the decisions that
   rest on newly doubted evidence goes through a state: each decision commits
   `using` a basis state computed from `qualified(…)` reads, the late caveat
   reaches the state, and `reopen D because caveated(STATE, CAVEAT)` names the
-  evidence. One state per decision series. This is the other 1.1 gap (a
-  question over past decision revisions), and the ledger shows the shape
-  authors build by hand until it lands.
+  evidence. One state per decision series. (Past-revision queries
+  `in_basis` and `rests_on_withdrawn(revision(…))` landed in 1.1.0; the ledger
+  preserves the 1.0 shape.)
 - **Approvals are numbers.** The owner's go is a reading whose value is an
   item code, checked by `permitted by latest(approvals) for CODE`. It works,
   and `explain` shows `permitted by approvals@3 for 101`, but a code table is

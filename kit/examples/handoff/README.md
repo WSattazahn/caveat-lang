@@ -39,7 +39,7 @@ node host.mjs
 This program declares no agents, so the runtime does not know who sends an
 event: without help, a sub-agent could send `main_return` and release the
 main agent's hold (H10). `caveat-lang/handoff` keeps that boundary in the
-host. From the 1.4 draft a program can also keep it itself; see
+host. From 1.4.0, a program can also keep it itself; see
 [Letting the program check the sender](#letting-the-program-check-the-sender).
 
 ```js
@@ -81,7 +81,7 @@ mattering.
 
 ## Letting the program check the sender
 
-[Agents 0.1](../../../spec/caveat-agents-0.1.md), a 1.4 draft,
+[Agents 0.1](../../../spec/caveat-agents-0.1.md) (from 1.4.0)
 lets the program say which agent may send which event:
 
 ```caveat
