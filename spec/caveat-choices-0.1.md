@@ -1,6 +1,6 @@
 # CAVEAT Choices 0.1 — `lowest`, `highest` and `choose`, whose comparison is lineage, not grounds
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Proposed for 1.5 and not implemented: it becomes stable when a 1.x release ships it. It adds to
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft for 1.6: it becomes stable when a 1.x release ships it. It adds to
 [Only If 0.1](caveat-only-if-0.1.md) and [Reactive 0.7](caveat-reactive-0.7.md);
 it changes no program that loads today.
 
@@ -97,16 +97,21 @@ same grounds. A program that wants both on a tie writes `min`.
 - Grounds that leave out a decision's upstream values. A decision that uses
   another keeps that decision's grounds, as today.
 
-## Proofs to add with the implementation
+## Proofs
 
-`runtime/tests/choices.rs`: the value of `lowest` and `highest` equals `min`
-and `max` on random finite inputs, ties included; grounds and lineage of a
-commit and of a state; withdrawal of the returned argument and of the other
-one; nesting; `choose` not evaluating the branch it does not take; save and
-restore; and `fn choose`, `fn lowest` and `fn highest` kept. The third test's
-bridge record, rewritten with `lowest`, lists only the returned report under
-each part.
+`runtime/tests/choices.rs` checks: the value of `lowest` and `highest` equals
+`min` and `max` on random finite inputs, ties and signed zeros included;
+grounds and lineage of a commit and of a state; caveats on the losing argument
+under `irreversible` and `irreversible strict`; withdrawal of the returned
+argument and of the other one; nesting; `choose` not evaluating the branch it
+does not take; eager evaluation errors of `lowest` and `highest`; save and
+restore; `caveat check` C013/C006/C008/C010/C011 and observation order; module
+compatibility; `fn choose`, `fn lowest` and `fn highest` kept; and the third
+agent test's multi-part bridge record rewritten with `lowest`, listing only the
+returned report under each part and overall bridge rating.
 
 ## Changes
 
 - 0.1 (draft): first version.
+- 0.1 (draft, implemented for 1.6): implemented `choose`, `lowest` and `highest`
+  in the runtime and VS Code grammar with `runtime/tests/choices.rs`.
