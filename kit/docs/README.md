@@ -138,6 +138,8 @@ Features added alongside the profiles:
   [unset states](../../spec/caveat-unset-states-0.1.md): `sum`/`any`/`all`
   across members, `grounds_of(SERIES)`, conditional per-reading caveats,
   named thresholds, `work skips other routes;`, and `state … unset` / `is_set`.
+- [Choices 0.1](../../spec/caveat-choices-0.1.md) (1.6 draft): `choose`,
+  `lowest` and `highest`, whose comparison enters lineage, not grounds.
 - [Standard functions](../../runtime/prelude.cav): the prelude every
   program can call.
 

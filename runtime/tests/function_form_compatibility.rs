@@ -36,6 +36,80 @@ fn authored_form_names_work_inside_functions_and_keep_result_types() {
         library.call_numbers("a_call", &[4.0]).unwrap().value,
         FunctionValue::Number(8.0)
     );
+    for (name, call, params, body, expected) in [
+        (
+            "choose",
+            "choose(x, x, x)",
+            "a, b, c",
+            "a + b + c",
+            FunctionValue::Number(12.0),
+        ),
+        (
+            "choose",
+            "choose(x, x, x)",
+            "a, b, c",
+            "a + b > c",
+            FunctionValue::Bool(true),
+        ),
+        (
+            "choose",
+            "choose(x, x, x)",
+            "a, b, c",
+            "text(a)",
+            FunctionValue::Text("4".into()),
+        ),
+        (
+            "lowest",
+            "lowest(x, x)",
+            "a, b",
+            "a + b",
+            FunctionValue::Number(8.0),
+        ),
+        (
+            "lowest",
+            "lowest(x, x)",
+            "a, b",
+            "a == b",
+            FunctionValue::Bool(true),
+        ),
+        (
+            "lowest",
+            "lowest(x, x)",
+            "a, b",
+            "text(a)",
+            FunctionValue::Text("4".into()),
+        ),
+        (
+            "highest",
+            "highest(x, x)",
+            "a, b",
+            "a * b",
+            FunctionValue::Number(16.0),
+        ),
+        (
+            "highest",
+            "highest(x, x)",
+            "a, b",
+            "a > 0",
+            FunctionValue::Bool(true),
+        ),
+        (
+            "highest",
+            "highest(x, x)",
+            "a, b",
+            "text(b)",
+            FunctionValue::Text("4".into()),
+        ),
+    ] {
+        let source = format!("fn a_call(x) = {call};\nfn {name}({params}) = {body};\n");
+        let library = SourceLibrary::from_module_source(&source)
+            .unwrap_or_else(|error| panic!("{source}: {error}"));
+        assert_eq!(
+            library.call_numbers("a_call", &[4.0]).unwrap().value,
+            expected,
+            "{source}"
+        );
+    }
 }
 
 #[test]

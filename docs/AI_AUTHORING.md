@@ -962,6 +962,14 @@ add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
 [Only If 0.1](../spec/caveat-only-if-0.1.md); the
 [model-votes experiment](../experiments/model-votes/README.md)).
 
+When a decision picks the smallest or largest of several readings, or chooses
+between two numeric expressions on a condition that should stay in lineage
+rather than grounds, write `lowest(A, B)`, `highest(A, B)` or
+`choose(CONDITION, YES, NO)` instead of `min`, `max` or `if`. Only the returned
+branch enters grounds (on a tie, `B`), so withdrawing a non-winning report
+leaves `rests_on_withdrawn` false downstream (1.6 draft,
+[Choices 0.1](../spec/caveat-choices-0.1.md)).
+
 When a decision reads another decision, `using latest(D)` carries `D`'s whole
 basis: after a reopening, that holds the predecessor's evidence, withdrawn or
 not. `using grounds_of(D)` carries `D`'s grounds alone, what `D` rested on,

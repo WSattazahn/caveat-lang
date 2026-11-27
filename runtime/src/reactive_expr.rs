@@ -164,6 +164,15 @@ pub const GROUNDS_OF: &str = "grounds_of";
 /// The name of `only_if(CONDITION, VALUE)`. See spec/caveat-only-if-0.1.md.
 pub const ONLY_IF: &str = "only_if";
 
+/// The name of `choose(CONDITION, YES, NO)`. See spec/caveat-choices-0.1.md.
+pub const CHOOSE: &str = "choose";
+
+/// The name of `lowest(A, B)`. See spec/caveat-choices-0.1.md.
+pub const LOWEST: &str = "lowest";
+
+/// The name of `highest(A, B)`. See spec/caveat-choices-0.1.md.
+pub const HIGHEST: &str = "highest";
+
 /// What one evaluation may still do: its node budget and, when it computes
 /// grounds, whether the reads of an `only_if` condition are left out of them.
 struct Budget {
@@ -1744,6 +1753,15 @@ enum Node {
     /// `only_if(CONDITION, VALUE)`: VALUE when CONDITION holds, else 0. The
     /// condition is lineage, not grounds (spec/caveat-only-if-0.1.md).
     OnlyIf(Box<Expr>, Box<Expr>),
+    /// `choose(CONDITION, YES, NO)`: YES when CONDITION holds, else NO. The
+    /// condition is lineage, not grounds (spec/caveat-choices-0.1.md).
+    Choose(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// `lowest(A, B)`: the smaller of A and B (B on a tie). Both arguments are
+    /// lineage; only the returned argument is grounds (spec/caveat-choices-0.1.md).
+    Lowest(Box<Expr>, Box<Expr>),
+    /// `highest(A, B)`: the larger of A and B (B on a tie). Both arguments are
+    /// lineage; only the returned argument is grounds (spec/caveat-choices-0.1.md).
+    Highest(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1917,11 +1935,13 @@ impl Expr {
             }
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 visit(left);
                 visit(right);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 visit(condition);
                 visit(yes);
                 visit(no);
@@ -1993,7 +2013,10 @@ impl Expr {
             | Node::AtOccurrence(..)
             | Node::InBasis(..)
             | Node::Outcome(..)
-            | Node::GroundsOf(_) => true,
+            | Node::GroundsOf(_)
+            | Node::Choose(..)
+            | Node::Lowest(..)
+            | Node::Highest(..) => true,
             Node::Predicate(kind, _) => {
                 kind == RESOLVED
                     || kind == ON_HOLD
@@ -2056,7 +2079,11 @@ impl Expr {
                 .unwrap_or(Release::Before1_1)
         };
         match &self.node {
-            Node::Threshold(..) | Node::GroundsOf(_) => Release::Later,
+            Node::Threshold(..)
+            | Node::GroundsOf(_)
+            | Node::Choose(..)
+            | Node::Lowest(..)
+            | Node::Highest(..) => Release::Later,
             Node::AtOccurrence(kind, _, index) => {
                 let form = if kind == AT_REVISION_RESOLVED {
                     Release::V1_3
@@ -2142,10 +2169,11 @@ impl Expr {
             Node::InBasis(_, children)
             | Node::Function(_, children)
             | Node::UserCall(_, children) => any(children),
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
-                left.writes_only_if() || right.writes_only_if()
-            }
-            Node::If(condition, yes, no) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => left.writes_only_if() || right.writes_only_if(),
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.writes_only_if() || yes.writes_only_if() || no.writes_only_if()
             }
             Node::ExpandedCall(arguments, body) => any(arguments) || body.writes_only_if(),
@@ -2230,11 +2258,13 @@ impl Expr {
             Node::Unary(_, child) => child.collect_reads(reads),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_reads(reads);
                 right.collect_reads(reads);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_reads(reads);
                 yes.collect_reads(reads);
                 no.collect_reads(reads);
@@ -2318,11 +2348,13 @@ impl Expr {
             Node::Unary(_, value) => value.collect_sources(sources),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_sources(sources);
                 right.collect_sources(sources);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_sources(sources);
                 yes.collect_sources(sources);
                 no.collect_sources(sources);
@@ -2412,11 +2444,13 @@ impl Expr {
             Node::Unary(_, value) => value.collect_carried(carried),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_carried(carried);
                 right.collect_carried(carried);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_carried(carried);
                 yes.collect_carried(carried);
                 no.collect_carried(carried);
@@ -2510,12 +2544,19 @@ impl Expr {
                 value.collect_grounded(grounded);
             }
             Node::Unary(_, value) => value.collect_grounded(grounded),
-            Node::Binary(_, left, right) | Node::Require(left, right) => {
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_grounded(grounded);
                 right.collect_grounded(grounded);
             }
             // The condition's reads are left out of grounds.
             Node::OnlyIf(_, value) => value.collect_grounded(grounded),
+            Node::Choose(_, yes, no) => {
+                yes.collect_grounded(grounded);
+                no.collect_grounded(grounded);
+            }
             Node::If(condition, yes, no) => {
                 condition.collect_grounded(grounded);
                 yes.collect_grounded(grounded);
@@ -2606,11 +2647,13 @@ impl Expr {
             }
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_record_reads(records);
                 right.collect_record_reads(records);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_record_reads(records);
                 yes.collect_record_reads(records);
                 no.collect_record_reads(records);
@@ -2682,11 +2725,13 @@ impl Expr {
             }
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_histories(histories);
                 right.collect_histories(histories);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_histories(histories);
                 yes.collect_histories(histories);
                 no.collect_histories(histories);
@@ -2771,11 +2816,13 @@ impl Expr {
             }
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.collect_withdrawal_reads(tested, bases);
                 right.collect_withdrawal_reads(tested, bases);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_withdrawal_reads(tested, bases);
                 yes.collect_withdrawal_reads(tested, bases);
                 no.collect_withdrawal_reads(tested, bases);
@@ -2944,11 +2991,13 @@ impl Expr {
             }
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => {
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 visit(left);
                 visit(right);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 visit(condition);
                 visit(yes);
                 visit(no);
@@ -3064,6 +3113,11 @@ impl Expr {
             }
             Node::Require(condition, value) => Node::Require(child(condition), child(value)),
             Node::OnlyIf(condition, value) => Node::OnlyIf(child(condition), child(value)),
+            Node::Choose(condition, yes, no) => {
+                Node::Choose(child(condition), child(yes), child(no))
+            }
+            Node::Lowest(left, right) => Node::Lowest(child(left), child(right)),
+            Node::Highest(left, right) => Node::Highest(child(left), child(right)),
             Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
             Node::HistoryAt(history, index) => Node::HistoryAt(rename(history), child(index)),
             Node::Fold(history, initial, reducer) => {
@@ -3150,7 +3204,7 @@ impl Expr {
                 left.collect_unguarded_reads(guarded, reads);
                 right.collect_unguarded_reads(&with(left.is_set_guards(true)), reads);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_unguarded_reads(guarded, reads);
                 yes.collect_unguarded_reads(&with(condition.is_set_guards(false)), reads);
                 no.collect_unguarded_reads(&with(condition.is_set_guards(true)), reads);
@@ -3186,8 +3240,12 @@ impl Expr {
             Node::Qualified(value, _, _) | Node::Unary(_, value) => vec![value],
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => vec![left, right],
-            Node::If(condition, yes, no) => vec![condition, yes, no],
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => vec![left, right],
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
+                vec![condition, yes, no]
+            }
             Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
                 arguments.iter().collect()
             }
@@ -3255,8 +3313,12 @@ impl Expr {
             Node::Unary(_, operand) => child(operand),
             Node::Binary(_, left, right)
             | Node::Require(left, right)
-            | Node::OnlyIf(left, right) => child(left) || child(right),
-            Node::If(condition, yes, no) => child(condition) || child(yes) || child(no),
+            | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => child(left) || child(right),
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
+                child(condition) || child(yes) || child(no)
+            }
             Node::HistoryAt(history, index) => history.contains(word) || child(index),
             Node::AtOccurrence(kind, evidence, index) => {
                 kind.contains(word) || evidence.contains(word) || child(index)
@@ -3313,11 +3375,13 @@ impl Expr {
             Node::Binary(_, left, right)
             | Node::Require(left, right)
             | Node::OnlyIf(left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right)
             | Node::ExpandedFold(_, left, right) => {
                 left.collect_caveat_reads(examined, extras);
                 right.collect_caveat_reads(examined, extras);
             }
-            Node::If(condition, yes, no) => {
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
                 condition.collect_caveat_reads(examined, extras);
                 yes.collect_caveat_reads(examined, extras);
                 no.collect_caveat_reads(examined, extras);
@@ -3365,8 +3429,11 @@ impl Expr {
             Node::Binary(Binary::And | Binary::Or, left, _)
             | Node::Require(left, _)
             | Node::OnlyIf(left, _)
-            | Node::If(left, _, _) => left.qualified_unconditionally(evidence),
-            Node::Binary(_, left, right) => {
+            | Node::If(left, _, _)
+            | Node::Choose(left, _, _) => left.qualified_unconditionally(evidence),
+            Node::Binary(_, left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => {
                 left.qualified_unconditionally(evidence);
                 right.qualified_unconditionally(evidence);
             }
@@ -3412,11 +3479,15 @@ impl Expr {
             | Node::Outcome(_, Some(child))
             | Node::Fold(_, child, _) => child.depth + 1,
             Node::ExpandedFold(_, initial, body) => initial.depth.max(body.depth) + 1,
-            Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
+            Node::Binary(_, left, right)
+            | Node::Lowest(left, right)
+            | Node::Highest(left, right) => left.depth.max(right.depth) + 1,
             Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
                 condition.depth.max(value.depth) + 1
             }
-            Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
+            Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
+                condition.depth.max(yes.depth).max(no.depth) + 1
+            }
             Node::Function(_, children)
             | Node::UserCall(_, children)
             | Node::InBasis(_, children) => {
@@ -3603,6 +3674,24 @@ impl Expr {
                     .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
                 value
+                    .validate_calls(numeric, predicate, user_call, functions)?
+                    .require(ValueType::Number)?;
+                Ok(ValueType::Number)
+            }
+            Node::Choose(condition, yes, no) => {
+                condition
+                    .validate_calls(numeric, predicate, user_call, functions)?
+                    .require(ValueType::Bool)?;
+                yes.validate_calls(numeric, predicate, user_call, functions)?
+                    .require(ValueType::Number)?;
+                no.validate_calls(numeric, predicate, user_call, functions)?
+                    .require(ValueType::Number)?;
+                Ok(ValueType::Number)
+            }
+            Node::Lowest(left, right) | Node::Highest(left, right) => {
+                left.validate_calls(numeric, predicate, user_call, functions)?
+                    .require(ValueType::Number)?;
+                right
                     .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Number)
@@ -4133,6 +4222,22 @@ impl Expr {
                     Ok(Value::Number(0.0))
                 }
             }
+            Node::Choose(condition, yes, no) => {
+                let quiet = remaining.quiet.get();
+                remaining.quiet.set(quiet || remaining.quiet_conditions);
+                let holds = condition.evaluate_values_host(host, provenance, remaining);
+                remaining.quiet.set(quiet);
+                let branch = if holds?.boolean()? { yes } else { no };
+                Ok(Value::Number(
+                    branch
+                        .evaluate_values_host(host, provenance, remaining)?
+                        .number()?,
+                ))
+            }
+            Node::Lowest(left, right) | Node::Highest(left, right) => {
+                let highest = matches!(&self.node, Node::Highest(..));
+                Self::evaluate_extremum_host(left, right, highest, host, provenance, remaining)
+            }
             Node::UserCall(name, _) => {
                 Err(format!("source function {name} must be expanded before evaluation").into())
             }
@@ -4511,6 +4616,31 @@ impl Expr {
                     Ok(Value::Number(0.0))
                 }
             }
+            Node::Choose(condition, yes, no) => {
+                let prev = remaining.quiet.get();
+                remaining.quiet.set(true);
+                let holds = condition.evaluate_both_values(host, lineage, grounds, remaining);
+                remaining.quiet.set(prev);
+                let branch = if holds?.boolean()? { yes } else { no };
+                Ok(Value::Number(
+                    branch
+                        .evaluate_both_values(host, lineage, grounds, remaining)?
+                        .number()?,
+                ))
+            }
+            Node::Lowest(left, right) | Node::Highest(left, right) => {
+                let highest = matches!(&self.node, Node::Highest(..));
+                Self::evaluate_extremum_both(
+                    left,
+                    right,
+                    highest,
+                    quiet_grounds,
+                    host,
+                    lineage,
+                    grounds,
+                    remaining,
+                )
+            }
             Node::UserCall(name, _) => {
                 Err(format!("source function {name} must be expanded before evaluation").into())
             }
@@ -4646,6 +4776,91 @@ impl Expr {
                 Ok(Value::Number(finite(result)?))
             }
         }
+    }
+
+    #[inline(never)]
+    fn evaluate_extremum_host<H: EvalHost>(
+        left: &Expr,
+        right: &Expr,
+        highest: bool,
+        host: &H,
+        provenance: &RefCell<Provenance>,
+        remaining: &Budget,
+    ) -> Result<Value, EvalError> {
+        let (a, b) = if !remaining.quiet_conditions || remaining.quiet.get() {
+            let a = left
+                .evaluate_values_host(host, provenance, remaining)?
+                .number()?;
+            let b = right
+                .evaluate_values_host(host, provenance, remaining)?
+                .number()?;
+            (a, b)
+        } else {
+            let left_grounds = RefCell::new(Provenance::default());
+            let right_grounds = RefCell::new(Provenance::default());
+            let a = left
+                .evaluate_values_host(host, &left_grounds, remaining)?
+                .number()?;
+            let b = right
+                .evaluate_values_host(host, &right_grounds, remaining)?
+                .number()?;
+            let chosen = if if highest { a > b } else { a < b } {
+                left_grounds.into_inner()
+            } else {
+                right_grounds.into_inner()
+            };
+            read_into(provenance, chosen)?;
+            (a, b)
+        };
+        Ok(Value::Number(if if highest { a > b } else { a < b } {
+            a
+        } else {
+            b
+        }))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    fn evaluate_extremum_both<H: DualEvalHost>(
+        left: &Expr,
+        right: &Expr,
+        highest: bool,
+        quiet_grounds: bool,
+        host: &H,
+        lineage: &mut Provenance,
+        grounds: &mut Provenance,
+        remaining: &Budget,
+    ) -> Result<Value, EvalError> {
+        let (a, b) = if quiet_grounds {
+            let a = left
+                .evaluate_both_values(host, lineage, grounds, remaining)?
+                .number()?;
+            let b = right
+                .evaluate_both_values(host, lineage, grounds, remaining)?
+                .number()?;
+            (a, b)
+        } else {
+            let mut left_grounds = Provenance::default();
+            let mut right_grounds = Provenance::default();
+            let a = left
+                .evaluate_both_values(host, lineage, &mut left_grounds, remaining)?
+                .number()?;
+            let b = right
+                .evaluate_both_values(host, lineage, &mut right_grounds, remaining)?
+                .number()?;
+            let chosen = if if highest { a > b } else { a < b } {
+                left_grounds
+            } else {
+                right_grounds
+            };
+            keep_both(lineage, grounds, false, Provenance::default(), chosen)?;
+            (a, b)
+        };
+        Ok(Value::Number(if if highest { a > b } else { a < b } {
+            a
+        } else {
+            b
+        }))
     }
 }
 
@@ -5125,6 +5340,49 @@ impl Parser {
                 Err(_) => self.cursor = start,
             }
         }
+        // `choose(CONDITION, YES, NO)`, `lowest(A, B)`, `highest(A, B)`. A
+        // program that defines `fn choose`, `fn lowest` or `fn highest` keeps
+        // its function (spec/caveat-choices-0.1.md).
+        if name == CHOOSE {
+            let start = self.cursor;
+            let parsed = (|| {
+                let condition = self.expression(0, nesting)?;
+                self.expect(TokenKind::Comma, "',' after the choose condition")?;
+                let yes = self.expression(0, nesting)?;
+                self.expect(TokenKind::Comma, "',' after the choose true branch")?;
+                let no = self.expression(0, nesting)?;
+                self.expect(TokenKind::RightParen, "')' after the choose false branch")?;
+                Ok::<_, String>(Node::Choose(
+                    Box::new(condition),
+                    Box::new(yes),
+                    Box::new(no),
+                ))
+            })();
+            match parsed {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
+        if matches!(name.as_str(), LOWEST | HIGHEST) {
+            let start = self.cursor;
+            let parsed = (|| {
+                let left = self.expression(0, nesting)?;
+                self.expect(TokenKind::Comma, "',' between arguments")?;
+                let right = self.expression(0, nesting)?;
+                self.expect(TokenKind::RightParen, "')' after arguments")?;
+                Ok::<_, String>(if name == LOWEST {
+                    Node::Lowest(Box::new(left), Box::new(right))
+                } else {
+                    Node::Highest(Box::new(left), Box::new(right))
+                })
+            })();
+            match parsed {
+                Ok(node) => return Ok(node),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         if name == "qualified" {
             let value = self.expression(0, nesting)?;
             self.expect(TokenKind::Comma, "',' before qualification evidence")?;
@@ -5567,6 +5825,20 @@ fn source_function_call(
         Node::GroundsOf(series) if functions.contains_key(GROUNDS_OF) => {
             (GROUNDS_OF, vec![revision_call(series, None)?])
         }
+        Node::Choose(condition, yes, no) if functions.contains_key(CHOOSE) => (
+            CHOOSE,
+            vec![
+                condition.as_ref().clone(),
+                yes.as_ref().clone(),
+                no.as_ref().clone(),
+            ],
+        ),
+        Node::Lowest(left, right) if functions.contains_key(LOWEST) => {
+            (LOWEST, vec![left.as_ref().clone(), right.as_ref().clone()])
+        }
+        Node::Highest(left, right) if functions.contains_key(HIGHEST) => {
+            (HIGHEST, vec![left.as_ref().clone(), right.as_ref().clone()])
+        }
         _ => return Ok(None),
     };
     Ok(Some(Node::UserCall(name.into(), arguments)))
@@ -5686,8 +5958,9 @@ pub(crate) fn validate_functions_reading(
     // Check expansion limits for unused definitions as well. Each body is
     // checked separately, so a large unused macro cannot escape validation.
     for (name, definition) in functions {
-        expand(&definition.body, functions)
+        let expanded = expand(&definition.body, functions)
             .map_err(|error| format!("source function {name}: {error}"))?;
+        reading.first = reading.first.max(expanded.first_release());
     }
     Ok(reading)
 }
@@ -5740,11 +6013,14 @@ fn collect_calls(
             collect_calls(left, functions, calls, last)?;
             collect_calls(right, functions, calls, last)?;
         }
-        Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
+        Node::Require(condition, value)
+        | Node::OnlyIf(condition, value)
+        | Node::Lowest(condition, value)
+        | Node::Highest(condition, value) => {
             collect_calls(condition, functions, calls, last)?;
             collect_calls(value, functions, calls, last)?;
         }
-        Node::If(condition, yes, no) => {
+        Node::If(condition, yes, no) | Node::Choose(condition, yes, no) => {
             collect_calls(condition, functions, calls, last)?;
             collect_calls(yes, functions, calls, last)?;
             collect_calls(no, functions, calls, last)?;
@@ -6050,6 +6326,19 @@ impl Expander<'_> {
             Node::OnlyIf(condition, value) => Node::OnlyIf(
                 Box::new(self.walk(condition, parameters)?),
                 Box::new(self.walk(value, parameters)?),
+            ),
+            Node::Choose(condition, yes, no) => Node::Choose(
+                Box::new(self.walk(condition, parameters)?),
+                Box::new(self.walk(yes, parameters)?),
+                Box::new(self.walk(no, parameters)?),
+            ),
+            Node::Lowest(left, right) => Node::Lowest(
+                Box::new(self.walk(left, parameters)?),
+                Box::new(self.walk(right, parameters)?),
+            ),
+            Node::Highest(left, right) => Node::Highest(
+                Box::new(self.walk(left, parameters)?),
+                Box::new(self.walk(right, parameters)?),
             ),
             Node::If(condition, yes, no) => Node::If(
                 Box::new(self.walk(condition, parameters)?),

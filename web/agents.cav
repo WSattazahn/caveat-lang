@@ -1,0 +1,105 @@
+scene "Three agents share one release ledger. When one source turns out bad, only the decisions resting on it reopen.";
+
+claim deps_clean;
+claim perf_ok;
+claim notes_ready;
+
+evidence cve_mirror from "Security agent's CVE mirror";
+evidence load_runner from "Performance agent's staging load run";
+evidence git_log from "Comms agent's merged PR log";
+evidence mirror_audit from "Security agent's audit: cached CVE mirror was 14 days stale";
+
+caveat cached_mirror consequence material;
+
+readings advisory from cve_mirror limit 6;
+state last_cached = 0;
+readings bench from load_runner limit 6;
+readings changelog from git_log limit 6;
+
+decisions sec_signoff limit 4;
+decisions canary_deploy limit 4;
+decisions release_notes limit 4;
+
+agent security sends sec_check, approve_security, retract_advisory;
+agent perf sends perf_check, approve_canary;
+agent comms sends notes_check, publish_notes;
+
+event sec_check clean min 0 max 1, cached min 0 max 1;
+event approve_security;
+event retract_advisory;
+event perf_check p95_ms min 1 max 5000;
+event approve_canary;
+event notes_check entries min 0 max 500;
+event publish_notes;
+
+on sec_check when clean == 1
+    sample advisory = clean supports deps_clean with cached_mirror when cached == 1;
+on sec_check when clean == 0
+    sample advisory = clean opposes deps_clean with cached_mirror when cached == 1;
+on sec_check when cached == 1 set last_cached = history_count(advisory);
+
+on approve_security when not has_sample(advisory)
+    reject "Run the security check first.";
+on approve_security when withdrawn(latest(advisory))
+    reject "The latest advisory reading was withdrawn; recheck before signing off.";
+on approve_security when latest(advisory) < 1
+    reject "Security check did not clear dependencies.";
+on approve_security when committed(sec_signoff) and not reopened(sec_signoff)
+    reject "Security signoff is already in force.";
+on approve_security
+    commit sec_signoff because enough using latest(advisory);
+
+on perf_check when p95_ms <= 200 sample bench = p95_ms supports perf_ok;
+on perf_check when p95_ms > 200 sample bench = p95_ms opposes perf_ok;
+
+on approve_canary when not has_sample(bench) or not has_sample(advisory)
+    reject "Need both a load run and a security check first.";
+on approve_canary when withdrawn(latest(advisory))
+    reject "Cannot approve canary on a withdrawn security advisory.";
+on approve_canary when latest(bench) > 200 or latest(advisory) < 1
+    reject "Latency or security check does not clear canary.";
+on approve_canary when committed(canary_deploy) and not reopened(canary_deploy)
+    reject "Canary deployment is already in force.";
+on approve_canary
+    commit canary_deploy because enough citing latest(bench), latest(advisory);
+
+on notes_check when entries > 0 sample changelog = entries supports notes_ready;
+on notes_check when entries == 0 sample changelog = entries opposes notes_ready;
+
+on publish_notes when not has_sample(changelog)
+    reject "Scan the merged PR log first.";
+on publish_notes when latest(changelog) < 1
+    reject "Changelog has no entries to publish.";
+on publish_notes when committed(release_notes) and not reopened(release_notes)
+    reject "Release notes are already published.";
+on publish_notes
+    commit release_notes because enough using latest(changelog);
+
+on retract_advisory when not has_sample(advisory)
+    reject "No advisory reading to withdraw.";
+on retract_advisory when last_cached == 0
+    reject "There is no cached advisory to withdraw.";
+on retract_advisory when withdrawn(reading(advisory, last_cached))
+    reject "The latest cached advisory was already withdrawn.";
+on retract_advisory when not observed(mirror_audit)
+    reveal mirror_audit opposes deps_clean;
+on retract_advisory
+    withdraw reading(advisory, last_cached) because mirror_audit;
+on retract_advisory when committed(sec_signoff) and not reopened(sec_signoff) and rests_on_withdrawn(sec_signoff)
+    reopen sec_signoff because mirror_audit;
+on retract_advisory when committed(canary_deploy) and not reopened(canary_deploy) and rests_on_withdrawn(canary_deploy)
+    reopen canary_deploy because mirror_audit;
+on retract_advisory when committed(release_notes) and not reopened(release_notes) and rests_on_withdrawn(release_notes)
+    reopen release_notes because mirror_audit;
+
+bind status.sec_signoff = "not decided";
+bind status.sec_signoff = "in force" when committed(sec_signoff) and not reopened(sec_signoff);
+bind status.sec_signoff = "reopened" when reopened(sec_signoff);
+
+bind status.canary_deploy = "not decided";
+bind status.canary_deploy = "in force" when committed(canary_deploy) and not reopened(canary_deploy);
+bind status.canary_deploy = "reopened" when reopened(canary_deploy);
+
+bind status.release_notes = "not decided";
+bind status.release_notes = "in force" when committed(release_notes) and not reopened(release_notes);
+bind status.release_notes = "reopened" when reopened(release_notes);

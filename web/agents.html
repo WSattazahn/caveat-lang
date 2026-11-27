@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:,">
+  <title>Three agents, one record — CAVEAT Language</title>
+  <meta name="description" content="Three agents share one Caveat release ledger in your browser. Withdraw one bad source and watch only the decisions resting on it reopen while every original reason stays on record.">
+  <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/agents.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Three agents, one record — CAVEAT Language">
+  <meta property="og:description" content="Three agents share one Caveat release ledger in your browser. Withdraw one bad source and watch only the decisions resting on it reopen while every original reason stays on record.">
+  <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/agents.html">
+  <style>
+    :root{
+      color-scheme:light dark;
+      --ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--card:#ffffff;--line:#d8d4cb;--link:#1f5f8b;
+      --ok:#226638;--ok-bg:#e6f4ea;--warn:#9a5b00;--warn-bg:#fef3dc;--bad:#a3322a;--bad-bg:#fce8e6;
+      --sec:#1f5f8b;--perf:#6b46c1;--comms:#2b7a5b;
+    }
+    @media (prefers-color-scheme:dark){:root{
+      --ink:#ece7de;--muted:#b3b0aa;--bg:#111a24;--code:#1b2733;--card:#16222e;--line:#2e3b48;--link:#9ccbe8;
+      --ok:#8fd19e;--ok-bg:#173222;--warn:#f6c46b;--warn-bg:#332611;--bad:#ff9a8f;--bad-bg:#381a18;
+      --sec:#8cc6ec;--perf:#c6a9ff;--comms:#7fd4b3;
+    }}
+    *{box-sizing:border-box}
+    html{background:var(--bg)}
+    body{margin:0 auto;max-width:56rem;padding:24px 16px 56px;background:var(--bg);color:var(--ink);
+      font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;overflow-wrap:break-word}
+    h1{font-size:2.1rem;line-height:1.15;margin:.3em 0 .35em}
+    h2{font-size:1.25rem;margin:1.8em 0 .5em;padding-top:.6em;border-top:1px solid var(--line)}
+    h3{font-size:1.05rem;margin:.2em 0 .4em}
+    a{color:var(--link)}
+    code,pre{font:14px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace}
+    code{background:var(--code);padding:0 .25em;border-radius:3px}
+    pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow-x:auto;white-space:pre;margin:.5em 0}
+    .lede{font-size:1.1rem}
+    .boundary{border-left:4px solid #c9a24a;padding:.5em .9em;background:var(--code);font-size:.95rem}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;margin:.8em 0}
+    button{font:inherit;font-size:.95rem;padding:.45em .85em;border-radius:6px;border:1px solid var(--line);
+      background:var(--card);color:var(--ink);cursor:pointer;text-align:left}
+    button.primary{border-color:var(--link);font-weight:600}
+    button.danger{border-color:var(--bad);color:var(--bad);font-weight:600}
+    button.active{border-color:var(--link);background:var(--code);font-weight:600}
+    button:disabled{opacity:.48;cursor:default}
+    .manual summary{cursor:pointer;color:var(--muted);font-size:.95rem;margin:.5em 0}
+    .manual .controls button{font-size:.88rem;padding:.35em .7em}
+    #status{font-weight:600;color:var(--muted);margin:.6em 0}
+    #stopped{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad);border-radius:6px;padding:.7em .9em;font-weight:600}
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:1em 0}
+    @media (max-width:740px){.cards{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+    .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:.4em}
+    .agent-tag{font-size:.8rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:.12em .45em;border-radius:4px;background:var(--code)}
+    .agent-security{color:var(--sec)}
+    .agent-perf{color:var(--perf)}
+    .agent-comms{color:var(--comms)}
+    .badge{font-size:.82rem;font-weight:700;padding:.15em .55em;border-radius:999px;background:var(--code);color:var(--muted)}
+    .badge.in-force{background:var(--ok-bg);color:var(--ok)}
+    .badge.reopened{background:var(--warn-bg);color:var(--warn)}
+    .card-meta{font-size:.9rem;margin:.35em 0}
+    .card-meta dt{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;margin-top:.45em}
+    .card-meta dd{margin:.1em 0 0;font-size:.9rem}
+    .withdrawn{color:var(--bad);text-decoration:line-through}
+    .caveat-pill{display:inline-block;font-size:.78rem;padding:.05em .4em;border-radius:4px;background:var(--warn-bg);color:var(--warn);margin-left:4px}
+    .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:.5em 0}
+    .note{color:var(--muted);font-size:.92rem}
+    footer{margin-top:3em;padding-top:1em;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Three agents, one record</h1>
+  <p class="lede">Three agents contribute to one Caveat release ledger:
+  <strong>Security</strong> checks a CVE mirror, <strong>Performance</strong>
+  approves the canary using both its load run and Security's check, and
+  <strong>Comms</strong> publishes release notes from the git log. When
+  Security's CVE mirror turns out to be 14 days stale, withdraw it: only the
+  decisions whose frozen grounds rested on it reopen — Comms's release notes
+  stay in force, and every reopened decision keeps the exact grounds it was
+  originally made on.</p>
+  <p class="boundary">Runs locally in your browser on the Caveat WebAssembly
+  runtime (<span id="version">loading…</span>); nothing is sent anywhere.
+  Caveat enforces each <code>agent … sends …</code> rule against the sender
+  label the host supplies and records that label on every entry; it does not
+  authenticate processes or verify that evidence is true
+  (<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md">Limits</a>).</p>
+</header>
+
+<main>
+  <p id="stopped" role="alert" hidden></p>
+
+  <h2>Walk through the scenario</h2>
+  <div class="controls" aria-label="Guided steps">
+    <button type="button" class="primary" id="step-decide" disabled>1. All three agents decide</button>
+    <button type="button" id="step-wrong-agent" disabled>2. Try wrong agent (comms → approve_security)</button>
+    <button type="button" class="danger" id="step-withdraw" disabled>3. Withdraw latest cached advisory (security)</button>
+    <button type="button" id="step-recommit" disabled>4. Recheck live mirror &amp; recommit</button>
+    <button type="button" id="step-reset" disabled>Reset</button>
+  </div>
+
+  <details class="manual">
+    <summary>Or dispatch individual agent events</summary>
+    <div class="controls" id="manual-controls">
+      <button type="button" data-agent="security" data-event="sec_check" data-payload='{"clean":1,"cached":1}' disabled>security: sec_check (cached mirror)</button>
+      <button type="button" data-agent="security" data-event="approve_security" data-payload="{}" disabled>security: approve_security</button>
+      <button type="button" data-agent="perf" data-event="perf_check" data-payload='{"p95_ms":140}' disabled>perf: perf_check (140 ms)</button>
+      <button type="button" data-agent="perf" data-event="approve_canary" data-payload="{}" disabled>perf: approve_canary</button>
+      <button type="button" data-agent="comms" data-event="notes_check" data-payload='{"entries":12}' disabled>comms: notes_check (12 PRs)</button>
+      <button type="button" data-agent="comms" data-event="publish_notes" data-payload="{}" disabled>comms: publish_notes</button>
+      <button type="button" data-agent="security" data-event="retract_advisory" data-payload="{}" disabled>security: withdraw latest cached advisory</button>
+      <button type="button" data-agent="security" data-event="sec_check" data-payload='{"clean":1,"cached":0}' disabled>security: sec_check (live mirror)</button>
+    </div>
+  </details>
+
+  <p id="status" role="status">Loading the WebAssembly runtime…</p>
+
+  <h2>Decisions on the shared ledger</h2>
+  <div class="cards" id="decision-cards">
+    <section class="card" data-series="sec_signoff">
+      <div class="card-top">
+        <span class="agent-tag agent-security">security</span>
+        <span class="badge" data-role="status">not decided</span>
+      </div>
+      <h3><code>sec_signoff</code></h3>
+      <dl class="card-meta">
+        <dt>Current revision</dt><dd data-role="revision">none</dd>
+        <dt>Frozen grounds</dt><dd data-role="grounds">none</dd>
+        <dt>Last change</dt><dd data-role="history">waiting for security check</dd>
+      </dl>
+    </section>
+
+    <section class="card" data-series="canary_deploy">
+      <div class="card-top">
+        <span class="agent-tag agent-perf">perf</span>
+        <span class="badge" data-role="status">not decided</span>
+      </div>
+      <h3><code>canary_deploy</code></h3>
+      <dl class="card-meta">
+        <dt>Current revision</dt><dd data-role="revision">none</dd>
+        <dt>Frozen grounds</dt><dd data-role="grounds">none</dd>
+        <dt>Last change</dt><dd data-role="history">needs perf + security check</dd>
+      </dl>
+    </section>
+
+    <section class="card" data-series="release_notes">
+      <div class="card-top">
+        <span class="agent-tag agent-comms">comms</span>
+        <span class="badge" data-role="status">not decided</span>
+      </div>
+      <h3><code>release_notes</code></h3>
+      <dl class="card-meta">
+        <dt>Current revision</dt><dd data-role="revision">none</dd>
+        <dt>Frozen grounds</dt><dd data-role="grounds">none</dd>
+        <dt>Last change</dt><dd data-role="history">waiting for PR log</dd>
+      </dl>
+    </section>
+  </div>
+
+  <h2>What rests on a source? (<code>caveat dependents</code>)</h2>
+  <p class="note">Ask Caveat forward from any evidence source or caveat at any point — before or after withdrawal.</p>
+  <div class="tabs" role="group" aria-label="Dependents subject">
+    <button type="button" class="active" data-subject="cve_mirror" disabled>cve_mirror</button>
+    <button type="button" data-subject="cached_mirror" disabled>cached_mirror</button>
+    <button type="button" data-subject="load_runner" disabled>load_runner</button>
+    <button type="button" data-subject="git_log" disabled>git_log</button>
+  </div>
+  <pre id="dependents-out">Loading…</pre>
+
+  <h2>Full decision record (<code>caveat explain</code>)</h2>
+  <p class="note">Every accepted and refused event, each revision's frozen grounds, agent attribution (<code>by security</code>, <code>by perf</code>, <code>by comms</code>), and withdrawals.</p>
+  <pre id="explain-out">Loading…</pre>
+
+  <details>
+    <summary>Read the Caveat program (<a href="agents.cav">agents.cav</a>)</summary>
+    <pre id="source-out">Loading…</pre>
+  </details>
+</main>
+
+<footer>
+  <a href="about.html">About CAVEAT Language</a> ·
+  <a href="break.html">Try to break this</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang">Source</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-agents-0.1.md">Agents 0.1</a> ·
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-withdrawal-0.1.md">Withdrawal 0.1</a>
+</footer>
+
+<script type="module" src="./agents.js"></script>
+</body>
+</html>
