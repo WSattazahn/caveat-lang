@@ -130,6 +130,33 @@ on put set m_hi = max(latest(a), latest(b));
 }
 
 #[test]
+fn ordinary_wrapper_keeps_eager_argument_grounds() {
+    let source = r#"
+evidence first from "first report";
+evidence second from "second report";
+readings a from first limit 1;
+readings b from second limit 1;
+fn select_low(x, y) = lowest(x, y);
+decisions direct limit 1;
+decisions wrapped limit 1;
+event assess;
+on assess sample a = 3;
+on assess sample b = 8;
+on assess commit direct because enough using lowest(latest(a), latest(b));
+on assess commit wrapped because enough using select_low(latest(a), latest(b));
+"#;
+    let mut session = ReactiveSession::from_source(source).unwrap();
+    run(&mut session, &[("assess", "{}")]);
+    let view = snapshot(&session);
+    for id in ["direct@1", "wrapped@1"] {
+        assert_eq!(view["commitment_bases"][id]["value"], json!(3.0));
+    }
+    let grounds = &view["commitment_grounds"];
+    assert_eq!(names(&grounds["direct@1"]["evidence"]), ["a@1"]);
+    assert_eq!(names(&grounds["wrapped@1"]["evidence"]), ["a@1", "b@1"]);
+}
+
+#[test]
 fn choose_grounds_and_lineage_for_state_and_commit() {
     let source = r#"
 evidence cond_ev from "selector";

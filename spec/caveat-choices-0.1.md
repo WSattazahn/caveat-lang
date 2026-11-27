@@ -88,6 +88,17 @@ keeps one: B, the one `min` returns. That keeps `lowest` a drop-in for `min`
 in value, and gives a tie a single, fixed ground, so a save restores to the
 same grounds. A program that wants both on a tie writes `min`.
 
+## Calling through a source function
+
+Given readings of 3 in `a` and 8 in `b`, a decision using
+`lowest(latest(a), latest(b))` records only the reading from `a` as a ground.
+With `fn select_low(x, y) = lowest(x, y);`, a decision using
+`select_low(latest(a), latest(b))` still gets 3, but records both readings as
+grounds. An ordinary source function evaluates all its arguments at the call
+site. The same rule applies to a wrapper around `highest` or `choose`. Keep
+the choice at the point where its operands read evidence when only the selected
+operand should supply grounds.
+
 ## Not in this profile
 
 - A `lowest` or `highest` over a whole kind, such as
