@@ -188,6 +188,8 @@ jobs:
         run: npm run test:lean-bridge
       - name: Try to break this page checker, its examples and mutation controls
         run: npm run test:break
+      - name: Multi-agent shared-record demo program checks clean and passes its scenarios
+        run: npm run test:agents-demo
       - name: Installable Caveatist skill copy and plugin metadata
         run: |
           cmp caveatism/skills/caveatist/SKILL.md skills/caveatist/SKILL.md
@@ -715,6 +717,8 @@ jobs:
         run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play Trail Rescue on desktop and mobile
         run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
+      - name: Play the three-agent shared-record demo on desktop and mobile
+        run: .github/ci/retry-once.sh 4 npm run test:agents-page
       - name: Developer kit session library and runner in Chromium
         run: npm run test:kit-browser
       - name: Pack the developer kit and use it from a fresh install
@@ -755,6 +759,7 @@ jobs:
           path: |
             test-results/glowcap-page.png
             test-results/trail-rescue-*.png
+            test-results/agents-*.png
 
   kit-security:
     name: packed kit dependency security

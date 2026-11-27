@@ -31,8 +31,8 @@ run. Artifacts from other runs remain retained independently. The gate records
 the selected runtime attempt and refuses deployment if a later attempt has
 replaced it, even if that later attempt has already passed.
 
-After deployment, live tests verify the build metadata and play Glowcap and
-Trail Rescue on desktop and mobile. The existing Mr. Caveat, Moon Garden
+After deployment, live tests verify the build metadata and play Glowcap,
+Trail Rescue and the three-agent demo on desktop and mobile. The existing Mr. Caveat, Moon Garden
 2D/3D and conditional Legacy Door checks remain. The Door condition comes
 from the selected runtime run's job result, preserving the scope of its
 original push, including pushes containing several commits.

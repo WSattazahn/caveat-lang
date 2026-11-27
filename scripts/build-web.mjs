@@ -170,6 +170,13 @@ try {
   // and no call into an instance after it traps. It is copied as .js, which
   // every server sends as JavaScript.
   await cp(path.join(root, 'kit/lib/session.mjs'), path.join(dist, 'caveat-session.js'));
+  await cp(path.join(root, 'kit/lib/archive.mjs'), path.join(dist, 'caveat-archive.js'));
+  const explainSource = await readFile(path.join(root, 'kit/lib/explain.mjs'), 'utf8');
+  const browserExplain = explainSource.replace("from './archive.mjs'", "from './caveat-archive.js'");
+  if (browserExplain === explainSource) {
+    throw new Error("kit/lib/explain.mjs no longer imports './archive.mjs'");
+  }
+  await writeFile(path.join(dist, 'caveat-explain.js'), browserExplain);
   await writeFile(path.join(dist, '.nojekyll'), '');
   console.log('Built dist/: CAVEAT WebAssembly, game sources, browser assets, and local Three.js.');
 } catch (error) {

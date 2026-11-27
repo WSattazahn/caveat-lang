@@ -45,12 +45,16 @@ Proposed replacement:
 
 ## What someone managing agents would want to see
 
-1. **Several agents, one record.** Three agents each add claims to one Caveat
-   record. One source turns out bad; only the decisions that rested on it
-   reopen, and `caveat explain` shows what each stood on. This demo does not
-   exist yet. Limit to state with it: Caveat does not know who sent an event
-   ([Limits](LIMITS.md)), so the demo labels each agent's claims without
-   proving who made them. Event sender identity is planned later 1.x work.
+1. **Several agents, one record.** Exists today at
+   [Three agents, one record](https://wsattazahn.github.io/caveat-lang/agents.html)
+   ([`web/agents.html`](../web/agents.html), [`web/agents.cav`](../web/agents.cav)).
+   Three named agents (`security`, `perf`, `comms`, using
+   [Agents 0.1](../spec/caveat-agents-0.1.md), shipped in 1.4.0) each add claims
+   to one Caveat record. One source turns out stale; only the decisions that
+   rested on it reopen, and live `caveat explain` and `caveat dependents` show
+   what each stood on. Limit stated on the page: Caveat enforces `agent` rules
+   against the sender label the host passes without authenticating processes
+   ([Limits](LIMITS.md)).
 2. **A tool the agent calls itself.** Exists today. `npx caveat-lang mcp`
    exposes validate, check, test, explain, dependents, `caveat_dispatch` (one
    step of a running ledger) and `caveat_find` (search past decisions) in the

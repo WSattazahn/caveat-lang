@@ -95,6 +95,7 @@ npx --no-install caveat-lang explain umbrella.cav events.jsonl
 | **Write `.cav` programs cleanly** | [Authoring card](kit/docs/AUTHORING_CARD.md) · [Caveat on one page](kit/docs/REFERENCE.md) · [Authoring guide](docs/AI_AUTHORING.md) |
 | **Embed Caveat in Node, browser, or Python** | [Agent quickstart](kit/docs/AGENT_START.md) · [Integration starter](kit/docs/STARTER.md) · [Python `caveat serve` example](kit/examples/agent-evidence/README.md) · [Python native package](python/README.md) |
 | **Use Caveat in a game** | [Caveat in a game](kit/docs/GAMES.md) · [Intel betrayal example](kit/examples/intel-betrayal/README.md) |
+| **See three agents share one ledger in your browser** | [Three agents, one record](https://wsattazahn.github.io/caveat-lang/agents.html) |
 | **Test withdrawal guarantees in your browser** | [Try to break this](https://wsattazahn.github.io/caveat-lang/break.html) |
 | **Check what is proved, tested, and promised** | [What is checked, and how](docs/VERIFICATION.md) · [Compatibility commitment](docs/COMPATIBILITY.md) · [Limits](docs/LIMITS.md) |
 | **Browse every language & kit specification** | [Documentation index](kit/docs/README.md) · [`spec/`](spec/) |
@@ -221,6 +222,7 @@ Every tool works on inline source text and supplied events. The server has no fi
 Everything below runs in the browser on the WebAssembly runtime (demonstrations, not part of the npm package's compatibility promise):
 
 - **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)** — one-page overview, runnable example, and limitations.
+- **[Three agents, one record](https://wsattazahn.github.io/caveat-lang/agents.html)** — three agents (`security`, `perf`, `comms`) contribute to one release ledger; withdraw one stale source and see selective reopening with live `caveat explain` and `caveat dependents` (`web/agents.cav`).
 - **[Try to break this](https://wsattazahn.github.io/caveat-lang/break.html)** — one precise claim about withdrawing evidence, checked step by step against five rules in your browser.
 - **[Glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html)** — start with **Change what you know**: make a trust decision in one click, learn something new in a second, and see what reopened and what stayed frozen (`game/glowcap.cav`).
 - **[Trail Rescue](https://wsattazahn.github.io/caveat-lang/trail-rescue.html)** — weigh fallible scout reports, choose a tunnel, and reconsider when evidence ages (`game/trail_rescue.cav`, [protocol](experiments/trail-rescue/PROTOCOL.md), [results](experiments/trail-rescue/RESULTS.md)).
