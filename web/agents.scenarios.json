@@ -79,6 +79,30 @@
       ]
     },
     {
+      "id": "AG03",
+      "title": "The cached-mirror audit never withdraws a live result",
+      "steps": [
+        { "send": "retract_advisory", "agent": "security", "rejected": "No advisory reading to withdraw." },
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 0 } },
+        { "send": "retract_advisory", "agent": "security", "rejected": "There is no cached advisory to withdraw." },
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 1 } },
+        { "send": "approve_security", "agent": "security" },
+        { "send": "sec_check", "agent": "security", "payload": { "clean": 1, "cached": 0 } },
+        { "send": "perf_check", "agent": "perf", "payload": { "p95_ms": 140 } },
+        { "send": "approve_canary", "agent": "perf" },
+        { "resume": true },
+        { "send": "retract_advisory", "agent": "security" },
+        { "expect": {
+          "/withdrawals/0/evidence": "advisory@2",
+          "/withdrawals/1": { "$absent": true },
+          "/bindings/status/sec_signoff": "reopened",
+          "/bindings/status/canary_deploy": "in force",
+          "/commitment_grounds/canary_deploy@1/evidence": { "$set": ["advisory@3", "bench@1"] }
+        }},
+        { "send": "retract_advisory", "agent": "security", "rejected": "The latest cached advisory was already withdrawn." }
+      ]
+    },
+    {
       "id": "AG02",
       "title": "Each agent can send only its declared events, and refused sends change nothing",
       "steps": [

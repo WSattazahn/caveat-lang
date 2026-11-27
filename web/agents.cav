@@ -12,6 +12,7 @@ evidence mirror_audit from "Security agent's audit: cached CVE mirror was 14 day
 caveat cached_mirror consequence material;
 
 readings advisory from cve_mirror limit 6;
+state last_cached = 0;
 readings bench from load_runner limit 6;
 readings changelog from git_log limit 6;
 
@@ -35,6 +36,7 @@ on sec_check when clean == 1
     sample advisory = clean supports deps_clean with cached_mirror when cached == 1;
 on sec_check when clean == 0
     sample advisory = clean opposes deps_clean with cached_mirror when cached == 1;
+on sec_check when cached == 1 set last_cached = history_count(advisory);
 
 on approve_security when not has_sample(advisory)
     reject "Run the security check first.";
@@ -75,12 +77,14 @@ on publish_notes
 
 on retract_advisory when not has_sample(advisory)
     reject "No advisory reading to withdraw.";
-on retract_advisory when withdrawn(latest(advisory))
-    reject "The latest advisory reading is already withdrawn.";
+on retract_advisory when last_cached == 0
+    reject "There is no cached advisory to withdraw.";
+on retract_advisory when withdrawn(reading(advisory, last_cached))
+    reject "The latest cached advisory was already withdrawn.";
 on retract_advisory when not observed(mirror_audit)
     reveal mirror_audit opposes deps_clean;
 on retract_advisory
-    withdraw latest(advisory) because mirror_audit;
+    withdraw reading(advisory, last_cached) because mirror_audit;
 on retract_advisory when committed(sec_signoff) and not reopened(sec_signoff) and rests_on_withdrawn(sec_signoff)
     reopen sec_signoff because mirror_audit;
 on retract_advisory when committed(canary_deploy) and not reopened(canary_deploy) and rests_on_withdrawn(canary_deploy)

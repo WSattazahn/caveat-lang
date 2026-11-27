@@ -75,7 +75,7 @@ function replayAll(targetRuntime, entries) {
   }
 }
 
-async function recoverFromTrap(pendingEntries, attemptGeneration) {
+async function recoverFromTrap(pendingEntries, attemptGeneration, batchStart = pendingEntries.length) {
   $('status').textContent = 'WebAssembly runtime trapped; retrying once on a fresh instance…';
   for (const button of allButtons()) button.disabled = true;
   let freshRuntime;
@@ -92,22 +92,21 @@ async function recoverFromTrap(pendingEntries, attemptGeneration) {
     session = fresh;
     history = pendingEntries;
     sentEvents = recorded;
-    render('Recovered on a fresh WebAssembly runtime instance.');
+    render('Recovered on a fresh WebAssembly runtime instance.', recorded.slice(batchStart), false);
   } catch (error) {
     halt(`Runtime failed again after fresh-instance retry: ${error.message ?? error}`);
   }
 }
 
-function sendBatch(entries, summaryText) {
+function sendBatch(entries) {
   if (stopped || !runtime || !session) return;
   const attemptGeneration = ++generation;
   const nextHistory = [...history, ...entries];
-  let lastOutcome = null;
+  const batchStart = history.length;
   try {
     for (const { agent, event, payload } of entries) {
       const raw = session.dispatch(event, payload, { agent });
       const { snapshot, ...outcome } = raw;
-      lastOutcome = { agent, event, outcome };
       sentEvents.push({
         event,
         payload,
@@ -117,15 +116,12 @@ function sendBatch(entries, summaryText) {
       });
     }
     history = nextHistory;
-    const message = summaryText ?? (lastOutcome.outcome.outcome === 'accepted'
-      ? `Accepted ${lastOutcome.event} by ${lastOutcome.agent}.`
-      : `Refused ${lastOutcome.event} by ${lastOutcome.agent} (${lastOutcome.outcome.origin}/${lastOutcome.outcome.code}): ${lastOutcome.outcome.message}`);
-    render(message);
+    render('', sentEvents.slice(batchStart));
   } catch (error) {
     if (runtime.trapped) {
       try { session.close(); } catch { /* abandon trapped session */ }
       session = null;
-      recoverFromTrap(nextHistory, attemptGeneration);
+      recoverFromTrap(nextHistory, attemptGeneration, batchStart);
     } else {
       halt(`Unexpected runtime failure: ${error.message ?? error}`);
     }
@@ -154,16 +150,40 @@ function resetSession() {
   }
 }
 
-function render(statusMessage) {
+function describeBatch(records, snapshot) {
+  const accepted = records.filter(entry => entry.outcome.outcome === 'accepted');
+  const sequences = new Set(accepted.map(entry => entry.sequence));
+  const messages = [];
+  if (accepted.length) {
+    const first = accepted[0];
+    messages.push(accepted.length === 1
+      ? `Accepted ${first.event} by ${first.agent}.`
+      : `Accepted ${accepted.length} events.`);
+  }
+  for (const { event, agent, outcome } of records) {
+    if (outcome.outcome !== 'accepted') {
+      messages.push(`Refused ${event} by ${agent} (${outcome.origin}/${outcome.code}): ${outcome.message}`);
+    }
+  }
+  for (const withdrawal of snapshot.withdrawals ?? []) {
+    if (sequences.has(withdrawal.sequence)) messages.push(`Withdrew ${withdrawal.evidence}.`);
+  }
+  for (const entry of snapshot.decision_journal ?? []) {
+    if (sequences.has(entry.sequence)) messages.push(`${entry.commitment} ${entry.change}.`);
+  }
+  return messages.join(' ');
+}
+
+function render(statusMessage, records = [], retry = true) {
   if (stopped || !session) return;
   let snapshot;
   try {
     snapshot = session.snapshot();
   } catch (error) {
-    if (runtime.trapped) {
+    if (runtime.trapped && retry) {
       try { session.close(); } catch { /* ignore */ }
       session = null;
-      recoverFromTrap([...history], ++generation);
+      recoverFromTrap([...history], ++generation, history.length - records.length);
     } else {
       halt(`Snapshot failed: ${error.message ?? error}`);
     }
@@ -209,7 +229,7 @@ function render(statusMessage) {
 
   $('dependents-out').textContent = formatDependents(depReport, 'agents.cav', sentEvents.length);
   $('explain-out').textContent = formatExplanation(explainReport, 'agents.cav');
-  $('status').textContent = statusMessage;
+  $('status').textContent = [statusMessage, describeBatch(records, snapshot)].filter(Boolean).join(' ');
 
   for (const button of allButtons()) button.disabled = false;
   for (const tab of document.querySelectorAll('[data-subject]')) {
@@ -235,22 +255,16 @@ async function start() {
     session = runtime.open(source);
 
     $('step-decide').addEventListener('click', () => {
-      sendBatch(DECIDE_STEPS, 'All three agents checked their sources and committed their decisions.');
+      sendBatch(DECIDE_STEPS);
     });
     $('step-wrong-agent').addEventListener('click', () => {
-      sendBatch(
-        [{ agent: 'comms', event: 'approve_security', payload: {} }],
-        'Refused approve_security by comms (input/wrong_agent): comms cannot send security events. Nothing changed.'
-      );
+      sendBatch([{ agent: 'comms', event: 'approve_security', payload: {} }]);
     });
     $('step-withdraw').addEventListener('click', () => {
-      sendBatch(
-        [{ agent: 'security', event: 'retract_advisory', payload: {} }],
-        'Security withdrew advisory@1. sec_signoff and canary_deploy reopened; release_notes stayed in force.'
-      );
+      sendBatch([{ agent: 'security', event: 'retract_advisory', payload: {} }]);
     });
     $('step-recommit').addEventListener('click', () => {
-      sendBatch(RECOMMIT_STEPS, 'Security rechecked the live mirror (advisory@2); sec_signoff@2 and canary_deploy@2 are now in force.');
+      sendBatch(RECOMMIT_STEPS);
     });
     $('step-reset').addEventListener('click', resetSession);
 

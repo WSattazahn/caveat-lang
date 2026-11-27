@@ -54,6 +54,12 @@ try {
   await page.waitForFunction(() => window.__agents?.ready === true);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no horizontal scroll on desktop');
 
+  // Out-of-order guided actions must report the runtime refusal.
+  await page.locator('#step-withdraw').click();
+  assert.match(await page.locator('#status').innerText(), /Refused retract_advisory.*No advisory reading/);
+  assert.equal(await page.evaluate(() => window.__agents.sequence()), 0);
+  assert.equal(await cardStatus(page, 'sec_signoff'), 'not decided');
+
   // Step 1: all three agents add claims and commit.
   await page.locator('#step-decide').click();
   assert.equal(await cardStatus(page, 'sec_signoff'), 'in force');
@@ -111,6 +117,27 @@ try {
   assert.match(explainFinal, /sec_signoff@1 = 1\s+superseded/);
   assert.match(explainFinal, /sec_signoff@2 = 1\s+in force/);
   assert.match(explainFinal, /canary_deploy@2 = null\s+in force/);
+
+  // The fresh recheck survives another attempt to withdraw the cached report.
+  await page.locator('#step-withdraw').click();
+  assert.match(await page.locator('#status').innerText(), /Refused retract_advisory.*already withdrawn/);
+  assert.equal(await cardStatus(page, 'sec_signoff'), 'in force');
+
+  // Mixing manual steps with the walkthrough yields both accepted and refused events.
+  await page.locator('#step-reset').click();
+  await page.locator('details.manual summary').click();
+  await page.locator('[data-event="sec_check"]').first().click();
+  await page.locator('[data-event="approve_security"]').click();
+  await page.locator('#step-decide').click();
+  const mixedStatus = await page.locator('#status').innerText();
+  assert.match(mixedStatus, /Accepted 5 events/);
+  assert.match(mixedStatus, /Refused approve_security.*already in force/);
+  assert.match(mixedStatus, /canary_deploy@1 committed/);
+  await page.locator('#step-withdraw').click();
+  const correction = await page.locator('#status').innerText();
+  assert.match(correction, /Withdrew advisory@2/);
+  assert.match(correction, /canary_deploy@1 reopened/);
+  assert.doesNotMatch(correction, /sec_signoff@1 reopened/);
 
   // Reset restores initial state.
   await page.locator('#step-reset').click();

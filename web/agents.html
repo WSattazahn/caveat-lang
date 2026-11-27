@@ -96,7 +96,7 @@
   <div class="controls" aria-label="Guided steps">
     <button type="button" class="primary" id="step-decide" disabled>1. All three agents decide</button>
     <button type="button" id="step-wrong-agent" disabled>2. Try wrong agent (comms → approve_security)</button>
-    <button type="button" class="danger" id="step-withdraw" disabled>3. Withdraw stale CVE mirror (security)</button>
+    <button type="button" class="danger" id="step-withdraw" disabled>3. Withdraw latest cached advisory (security)</button>
     <button type="button" id="step-recommit" disabled>4. Recheck live mirror &amp; recommit</button>
     <button type="button" id="step-reset" disabled>Reset</button>
   </div>
@@ -110,7 +110,7 @@
       <button type="button" data-agent="perf" data-event="approve_canary" data-payload="{}" disabled>perf: approve_canary</button>
       <button type="button" data-agent="comms" data-event="notes_check" data-payload='{"entries":12}' disabled>comms: notes_check (12 PRs)</button>
       <button type="button" data-agent="comms" data-event="publish_notes" data-payload="{}" disabled>comms: publish_notes</button>
-      <button type="button" data-agent="security" data-event="retract_advisory" data-payload="{}" disabled>security: retract_advisory</button>
+      <button type="button" data-agent="security" data-event="retract_advisory" data-payload="{}" disabled>security: withdraw latest cached advisory</button>
       <button type="button" data-agent="security" data-event="sec_check" data-payload='{"clean":1,"cached":0}' disabled>security: sec_check (live mirror)</button>
     </div>
   </details>
