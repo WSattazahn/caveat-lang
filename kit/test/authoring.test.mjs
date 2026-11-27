@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { AUTHORING_LIMITS, AuthoringError, runAuthoringOperation, validateAuthoringArguments } from '../lib/authoring.mjs';
-import { defaultRuntimeDirectory } from '../lib/node.mjs';
+import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.mjs';
 import { faultingRuntimeDirectory } from './fatal-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -73,6 +73,28 @@ test('all five inline authoring results preserve the existing CLI report shapes 
   }
 });
 
+test('find searches each inline record of the program, as find does over ledgers', async () => {
+  const records = [
+    { name: 'ticket-1', events },
+    { name: 'ticket-2', events: [{ event: 'read', payload: { value: 40 } }] },
+  ];
+  const found = await bridge('find', { source, records, query: 'Plan fixture' });
+  assert.equal(found.operation, 'find');
+  assert.equal(found.exitCode, 0);
+  assert.equal(found.sourceSha256, createHash('sha256').update(source).digest('hex'));
+  assert.equal(found.report.schema, 'caveat-find/0.1');
+  assert.equal(found.report.program, 'inline.cav');
+  assert.deepEqual(found.report.searched.map(entry => [entry.events, entry.revisions, entry.fatal]), [['ticket-1', 1, null], ['ticket-2', 0, null]]);
+  assert.deepEqual(found.report.found.map(item => [item.program, item.events, item.revision, item.status]), [['inline.cav', 'ticket-1', 'plan@1', 'in force']]);
+  assert.deepEqual(found.report.found[0].matched, { plan: ['decision plan', 'revision plan@1'], fixture: ['source supplied fixture readings'] });
+  // A record's name is matched as the program's.
+  assert.deepEqual((await bridge('find', { source, records, query: 'ticket-2' })).report.found, []);
+  assert.equal((await bridge('find', { source, records, query: 'ticket-1 plan' })).report.found.length, 1);
+  const invalid = await bridge('find', { source: 'not valid Caveat;', records, query: 'plan' });
+  assert.equal(invalid.exitCode, 2);
+  assert.equal(invalid.report.loads, false);
+});
+
 test('strict warnings, syntax errors and scenario assertion failures retain authoring exit codes', async () => {
   const warning = source.replace(' reopened by values', '');
   const warned = await bridge('check', { source: warning, strict: true });
@@ -118,6 +140,247 @@ test('policy refusal remains an outcome and fatal dispatch reports the last good
   assert.match(unknown.report.error, /missing is not evidence/);
 });
 
+test('caveat_dispatch keeps one ledger across calls through the save it returns', async () => {
+  const first = await bridge('dispatch', { source, events: events.slice(0, 1) });
+  assert.equal(first.exitCode, 0);
+  assert.equal(first.report.schema, 'caveat-dispatch-step/0.1');
+  assert.equal(first.report.explainSchema, 'caveat-explain/0.1');
+  assert.equal(first.report.restored, false);
+  assert.equal(typeof first.report.save, 'string');
+  const second = await bridge('dispatch', { source, save: first.report.save, events: events.slice(1) });
+  assert.equal(second.exitCode, 0);
+  assert.equal(second.report.restored, true);
+  assert.deepEqual(second.report.events.map(item => item.outcome.outcome), ['accepted', 'rejected']);
+  // Chained steps reach what one replay of the whole history explains.
+  const whole = await bridge('explain', { source, events });
+  // Only which earlier event observed a reading is not in the save.
+  const unobserved = report => report.decisions.map(series => ({ ...series, revisions: series.revisions.map(revision => ({
+    ...revision, observed_by: revision.observed_by.map(item => ({ ...item, event: null, payload: null, sequence: null })) })) }));
+  assert.deepEqual(unobserved(second.report), unobserved(whole.report));
+  assert.deepEqual(second.report.decisions[0].revisions[0].observed_by[0], { evidence: 'values@1', event: null, payload: null, sequence: null });
+  for (const key of ['sequence', 'evidence', 'displayed']) assert.deepEqual(second.report[key], whole.report[key], key);
+  const unchanged = await bridge('dispatch', { source, save: second.report.save });
+  assert.equal(unchanged.exitCode, 0);
+  assert.deepEqual(unchanged.report.events, []);
+  assert.equal(unchanged.report.sequence, whole.report.sequence);
+});
+
+test('caveat_dispatch returns the compact save, which restores like the state save', async () => {
+  const step = await bridge('dispatch', { source, events });
+  assert.equal(step.exitCode, 0);
+  // A short ledger comes back as its events, not its state.
+  assert.equal(JSON.parse(step.report.save).schema, 'caveat-replay-save/0.2');
+  const runtime = await (await import('../lib/node.mjs')).loadRuntimeFromDirectory();
+  const state = runtime.open(source);
+  try {
+    for (const { event, payload = {} } of events) state.dispatch(event, payload);
+    const full = state.save();
+    assert.ok(step.report.save.length < full.length, `${step.report.save.length} < ${full.length}`);
+    // Continuing from either save reaches the same report.
+    const next = [{ event: 'read', payload: { value: 90 } }];
+    const fromCompact = await bridge('dispatch', { source, save: step.report.save, events: next });
+    const fromState = await bridge('dispatch', { source, save: full, events: next });
+    const { save: compactAfter, ...compactReport } = fromCompact.report;
+    const { save: stateAfter, ...stateReport } = fromState.report;
+    assert.deepEqual(compactReport, stateReport);
+    // A session restored from a state save has no events to replay, so it
+    // keeps returning state saves; one restored from a replay save does not.
+    assert.equal(JSON.parse(compactAfter).schema, 'caveat-replay-save/0.2');
+    assert.equal(JSON.parse(stateAfter).schema, 'caveat-reactive-save/0.1');
+  } finally { state.close(); }
+});
+
+test('caveat_dispatch saves the last good state after a fatal event and refuses a save for other source', async () => {
+  // The fault is the fixture runtime's: no program reaches a fatal outcome.
+  const runtimeDirectory = await faultingRuntimeDirectory();
+  const start = await bridge('dispatch', { source, events: events.slice(0, 2) });
+  const fatal = await runAuthoringOperation('caveat_dispatch', { source, save: start.report.save,
+    events: [{ event: 'fault' }, { event: 'read', payload: { value: 90 } }] }, { runtimeDirectory });
+  assert.equal(fatal.exitCode, 1);
+  assert.deepEqual(fatal.report.events.map(item => item.outcome.outcome), ['fatal']);
+  assert.equal(fatal.report.sequence, 2);
+  const resumed = await bridge('dispatch', { source, save: fatal.report.save, events: [{ event: 'read', payload: { value: 90 } }] });
+  assert.equal(resumed.exitCode, 0);
+  assert.equal(resumed.report.sequence, 3);
+  const other = await bridge('dispatch', { source: `${source}\n`, save: start.report.save });
+  assert.equal(other.exitCode, 2);
+  assert.equal(other.report.restored, false);
+  assert.equal(other.report.loads, true);
+  // A state save and a replay save word the refusal differently.
+  assert.match(other.report.error, /different program|source digest is not this source's/);
+  for (const save of [undefined, start.report.save]) {
+    const broken = await bridge('dispatch', { source: 'state invalid = ;', ...(save === undefined ? {} : { save }) });
+    assert.equal(broken.exitCode, 2);
+    assert.equal(broken.report.loads, false);
+    assert.equal(broken.report.restored, false);
+  }
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: {} }), error => error.kind === 'input');
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: 'x'.repeat(AUTHORING_LIMITS.saveBytes + 1) }), error => error.kind === 'limit');
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, subject: 'values' }), error => error.kind === 'input');
+});
+
+test('caveat_dispatch preserves a marked legacy save error when scoped loading fails', async () => {
+  const legacy = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only.bundle', import.meta.url), 'utf8');
+  const historical = await readFile(new URL('../../runtime/tests/fixtures/module-bindings/legacy-only-v1.4.1-state.json', import.meta.url), 'utf8');
+  const fresh = await bridge('dispatch', { source: legacy });
+  assert.deepEqual([fresh.exitCode, fresh.report.loads], [2, false]);
+  const restored = await bridge('dispatch', { source: legacy, save: historical });
+  assert.deepEqual([restored.exitCode, restored.report.restored], [0, true]);
+  const marked = JSON.parse(restored.report.save);
+  assert.equal(marked.module_bindings, 'legacy-hold-capture');
+  marked.states.m__v.value = 'not a number';
+  const saved = JSON.stringify(marked);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  let restoreMessage;
+  assert.throws(() => runtime.restore(legacy, saved), error => {
+    restoreMessage = error.message;
+    return error.kind === 'restore';
+  });
+  const refused = await bridge('dispatch', { source: legacy, save: saved });
+  assert.equal(refused.exitCode, 2);
+  assert.deepEqual(refused.report, {
+    schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+    restored: false, error: restoreMessage,
+  });
+});
+
+// Only releases from 1.2.0 to 1.4.1 loaded this bundle, so an unmarked save
+// of it is read as they read it, with no choice; a fresh load reads the
+// module's hold as its own and refuses it. A fresh load that fails otherwise
+// than the restore did says nothing about that reading (D096).
+test('an unmarked save that fails to restore keeps its error where a fresh load refuses its bundle otherwise (D096)', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const legacy = await fixture('legacy-only.bundle');
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  assert.throws(() => runtime.open(legacy), error => error.kind === 'load');
+  const broken = JSON.parse(await fixture('legacy-only-v1.4.1-state.json'));
+  broken.states.m__v.value = 'not a number';
+  for (const saved of [JSON.stringify(broken), await fixture('collision-v1.4.1-state.json')]) {
+    let restoreMessage;
+    assert.throws(() => runtime.restore(legacy, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const refused = await bridge('dispatch', { source: legacy, save: saved });
+    assert.equal(refused.exitCode, 2);
+    assert.deepEqual(refused.report, {
+      schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+      restored: false, error: restoreMessage,
+    });
+  }
+  // A bundle that loads under no reading fails its restore as its fresh load
+  // does, and still says it does not load.
+  const body = 'state v = ;\n';
+  const unloadable = `#caveat-bundle 1\n#module main ${Buffer.byteLength(body)}\n${body}`;
+  const saved = JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'unused', sequence: 0, states: {}, graph: {} });
+  const refused = await bridge('dispatch', { source: unloadable, save: saved });
+  assert.deepEqual([refused.exitCode, refused.report.loads, refused.report.restored], [2, false, false]);
+  assert.match(refused.report.error, /expected expression/);
+});
+
+test('a marked restore failure does not claim its source loaded', async () => {
+  const invalidSource = 'state invalid = ;';
+  const fresh = await bridge('dispatch', { source: invalidSource });
+  assert.deepEqual([fresh.exitCode, fresh.report.loads], [2, false]);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  for (const module_bindings of ['legacy-hold-capture', 'unknown', null]) {
+    const saved = JSON.stringify({
+      schema: 'caveat-reactive-save/0.1', source_id: 'unused',
+      module_bindings, sequence: 0, states: {}, graph: {},
+    });
+    let restoreMessage;
+    assert.throws(() => runtime.restore(invalidSource, saved), error => {
+      restoreMessage = error.message;
+      return error.kind === 'restore';
+    });
+    const refused = await bridge('dispatch', { source: invalidSource, save: saved });
+    assert.equal(refused.exitCode, 2);
+    assert.deepEqual(refused.report, {
+      schema: 'caveat-dispatch-step/0.1', program: 'inline.cav',
+      restored: false, error: restoreMessage,
+    });
+    assert.equal(Object.hasOwn(refused.report, 'loads'), false);
+  }
+});
+
+// A runtime directory whose build predates restore options: the real wasm
+// beside a module whose session class has no restore_options.
+async function olderRuntimeDirectory() {
+  const real = defaultRuntimeDirectory();
+  const directory = path.join(root, 'test-results', 'older-runtime', `${process.pid}-${Date.now()}-${next++}`);
+  await mkdir(directory, { recursive: true });
+  await copyFile(path.join(real, 'caveat_runtime_bg.wasm'), path.join(directory, 'caveat_runtime_bg.wasm'));
+  const realModule = pathToFileURL(path.join(real, 'caveat_runtime.js')).href;
+  await writeFile(path.join(directory, 'caveat_runtime.js'), `// Written by kit/test/authoring.test.mjs: the real runtime without restore_options.
+const real = await import(${JSON.stringify(realModule)} + '?older=' + encodeURIComponent(import.meta.url));
+export class WebReactiveSession extends real.WebReactiveSession {}
+WebReactiveSession.restore_options = undefined;
+export default function init(args) { return real.default(args); }
+`);
+  return directory;
+}
+
+test('caveat_dispatch takes the module binding reading a release\'s save can need (D094)', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const collision = await fixture('collision.bundle');
+  // 1.0.0 and 1.4.1 both write this initial save; the next event computes
+  // 10 under 1.0.0's reading and 14 under 1.4.1's.
+  const initial = await fixture('collision-v1.4.1-initial.json');
+  const go = [{ event: 'm__go' }];
+  const unchosen = await bridge('dispatch', { source: collision, save: initial, events: go });
+  assert.deepEqual([unchosen.exitCode, unchosen.report.loads, unchosen.report.restored], [2, true, false]);
+  assert.match(unchosen.report.error, /supply moduleBindings as scoped or legacy-hold-capture/);
+  const runtime = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
+  for (const [moduleBindings, expected] of [['scoped', 10], ['legacy-hold-capture', 14]]) {
+    const step = await bridge('dispatch', { source: collision, save: initial, moduleBindings, events: go });
+    assert.deepEqual([step.exitCode, step.report.restored], [0, true]);
+    assert.deepEqual(step.report.events.map(item => item.outcome.outcome), ['accepted']);
+    // The save it returns names the reading, so the next call needs no choice.
+    assert.equal(JSON.parse(step.report.save).module_bindings, moduleBindings);
+    const next = await bridge('dispatch', { source: collision, save: step.report.save, events: go });
+    assert.deepEqual([next.exitCode, next.report.restored], [0, true]);
+    const session = runtime.restore(collision, next.report.save);
+    try { assert.equal(session.snapshot().values.m__v, expected); } finally { session.close(); }
+    // Naming the save's own reading again is no conflict; naming the other
+    // is refused, with no claim about whether the source loads.
+    assert.equal((await bridge('dispatch', { source: collision, save: step.report.save, moduleBindings })).exitCode, 0);
+    const other = moduleBindings === 'scoped' ? 'legacy-hold-capture' : 'scoped';
+    const conflict = await bridge('dispatch', { source: collision, save: step.report.save, moduleBindings: other });
+    assert.deepEqual([conflict.exitCode, conflict.report.restored, Object.hasOwn(conflict.report, 'loads')], [2, false, false]);
+    assert.match(conflict.report.error, /moduleBindings conflicts with saved module_bindings/);
+  }
+  // A save of another program is refused as one, whatever reading is named,
+  // with no claim about whether the source loads.
+  const elsewhere = await bridge('dispatch', { source, save: initial, moduleBindings: 'legacy-hold-capture' });
+  assert.deepEqual([elsewhere.exitCode, elsewhere.report.restored, Object.hasOwn(elsewhere.report, 'loads')], [2, false, false]);
+  assert.match(elsewhere.report.error, /different program|source digest is not this source's/);
+  // A chosen restore that fails keeps the restore's own error: a fresh load
+  // reads the bundle as a fresh session does, which here refuses it, while
+  // the chosen reading loads it.
+  const legacyOnly = await fixture('legacy-only.bundle');
+  const broken = JSON.parse(await fixture('legacy-only-v1.4.1-state.json'));
+  broken.states.m__v.value = 'not a number';
+  const brokenSave = JSON.stringify(broken);
+  let chosenMessage;
+  assert.throws(() => runtime.restore(legacyOnly, brokenSave, { moduleBindings: 'legacy-hold-capture' }), error => {
+    chosenMessage = error.message;
+    return error.kind === 'restore';
+  });
+  const chosen = await bridge('dispatch', { source: legacyOnly, save: brokenSave, moduleBindings: 'legacy-hold-capture' });
+  assert.equal(chosen.exitCode, 2);
+  assert.deepEqual(chosen.report, { schema: 'caveat-dispatch-step/0.1', program: 'inline.cav', restored: false, error: chosenMessage });
+  // A runtime build that predates the choice cannot take it.
+  await assert.rejects(runAuthoringOperation('caveat_dispatch', { source: collision, save: initial, moduleBindings: 'scoped' },
+    { runtimeDirectory: await olderRuntimeDirectory() }),
+  error => error instanceof AuthoringError && error.kind === 'runtime' && /restore_options/.test(error.message));
+  assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, moduleBindings: 'scoped' }),
+    error => error.kind === 'input' && /moduleBindings requires save/.test(error.message));
+  for (const moduleBindings of ['root', null, 1]) {
+    assert.throws(() => validateAuthoringArguments('caveat_dispatch', { source, save: initial, moduleBindings }), error => error.kind === 'input');
+  }
+  assert.throws(() => validateAuthoringArguments('caveat_explain', { source, moduleBindings: 'scoped' }), error => error.kind === 'input');
+});
+
 test('the bridge accepts inline source only and refuses virtual source escapes before loading', async t => {
   for (const target of ['../secret.cav', '/tmp/secret.cav', 'C:\\private\\secret.cav', 'file:///secret.cav', 'https://example.com/program.cav']) {
     await t.test(target, async () => {
@@ -135,6 +398,12 @@ test('the bridge accepts inline source only and refuses virtual source escapes b
     ['caveat_explain', { source, events: [{ event: 'read', payload: { value: Infinity } }] }],
     ['caveat_check', { source, strict: 'true' }],
     ['caveat_dependents', { source, subject: '' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }], query: '   ' }],
+    ['caveat_find', { source, records: [], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: '', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [] }, { name: 'a', events: [] }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [], path: 'x' }], query: 'plan' }],
+    ['caveat_find', { source, records: [{ name: 'a', events: [{ event: '' }] }], query: 'plan' }],
     ['caveat_whatif', { source }],
     [{ toString: null }, { source }],
   ]) assert.throws(() => validateAuthoringArguments(tool, args), error => error instanceof AuthoringError && error.kind === 'input');
@@ -153,6 +422,9 @@ test('source, data, event, scenario, step, expanded-send and depth limits apply 
     ['caveat_test', { source, scenarios: doc(Array.from({ length: 2001 }, () => ({ resume: true }))) }],
     ['caveat_test', { source, scenarios: doc([{ send: 'read', payload: { value: 1 }, repeat: 1001 }]) }],
     ['caveat_explain', { source, events: [{ event: 'read', payload: nested }] }],
+    ['caveat_find', { source, query: 'plan', records: Array.from({ length: 65 }, (_, i) => ({ name: `${i}`, events: [] })) }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: Array.from({ length: 1001 }, () => ({ event: 'assess' })) }] }],
+    ['caveat_find', { source, query: 'plan', records: [{ name: 'a', events: [{ event: 'read', payload: { value: 'x'.repeat(AUTHORING_LIMITS.dataBytes) } }] }] }],
   ];
   for (const [tool, args] of over) {
     await assert.rejects(runAuthoringOperation(tool, args, { runtimeDirectory: '/definitely-missing-runtime' }), error => error instanceof AuthoringError && error.kind === 'limit');

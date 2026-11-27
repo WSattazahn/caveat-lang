@@ -45,7 +45,9 @@ export type KnownRejectionCode =
   | 'provenance_limit'
   | 'evaluation_limit'
   | 'wrong_agent'
-  | 'text_limit';
+  | 'text_limit'
+  /** From 1.5.0: a read of a state declared `unset` that has no value (spec/caveat-unset-states-0.1.md). */
+  | 'unset_state';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */
@@ -54,6 +56,13 @@ export interface DispatchAccepted {
   outcome: 'accepted';
   snapshot: Snapshot;
 }
+
+/** A value no part of which can be written: what `dispatchView` returns with `reuse`. */
+export type DeepReadonly<T> = T extends (infer E)[]
+  ? readonly DeepReadonly<E>[]
+  : T extends object
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+    : T;
 
 /** An accepted event, from `dispatchView`: the view after it. */
 export interface DispatchViewAccepted<V = View> {
@@ -117,6 +126,16 @@ export declare function payloadText(payload: unknown): string;
 
 export type SessionState = 'open' | 'closed' | 'fatal';
 
+/** How an older, unmarked save resolved module references to hold/release. */
+export interface RestoreOptions {
+  /**
+   * Choose only when the save has no recorded interpretation. A choice that
+   * conflicts with a recorded marker is refused. Fresh sessions use scoped
+   * module bindings; legacy-hold-capture preserves older captured root names.
+   */
+  moduleBindings?: 'scoped' | 'legacy-hold-capture';
+}
+
 /** Options for `CaveatSession.save`. */
 export interface SaveOptions {
   /** The replay save when it is smaller. Default false: the state save. */
@@ -149,6 +168,13 @@ export declare class CaveatSession {
    * JSON would change throws `CaveatError("payload")` and changes nothing.
    */
   dispatch(event: string, payload?: object, options?: DispatchOptions): DispatchOutcome;
+  /**
+   * The same outcome, read-only, with every part the event left alone the
+   * same object as in the view the last such call returned. The JSON text is
+   * the same as without `reuse`. Cannot be combined with `fields`. See
+   * spec/caveat-view-patch-0.1.md.
+   */
+  dispatchView(event: string, payload: object, options: DispatchOptions & { reuse: true }): DispatchViewOutcome<DeepReadonly<View>>;
   /** The same transaction as `dispatch`, with the view in place of the snapshot. */
   dispatchView(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
   /**
@@ -166,10 +192,12 @@ export declare class CaveatSession {
    * What `dispatchView` would return, run on a copy of the session that is
    * then dropped. The session is unchanged whatever the outcome; a fatal
    * outcome throws but leaves it usable. See spec/caveat-dispatch-0.1.md,
-   * "The what-if path".
+   * "The what-if path". With `{ agent }`, what the event would do sent by
+   * that agent (spec/caveat-agents-0.1.md); a runtime build without agents
+   * on the what-if path throws `CaveatError("load")`.
    */
-  whatIf(event: string, payload?: object): DispatchViewOutcome;
-  whatIf(event: string, payload: object, options: { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
+  whatIf(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
+  whatIf(event: string, payload: object, options: DispatchOptions & { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   snapshotText(): string;
   snapshot(): Snapshot;
   viewText(options?: { schema?: '0.1' | '0.2' }): string;
@@ -257,8 +285,13 @@ export interface CaveatRuntime {
   readonly openSessions: number;
   /** Called by a session's `close()`; hosts do not call it. */
   released(session: CaveatSession): void;
-  /** The message a trap is reported with: names running out of memory when the runtime can tell. */
-  trapMessage(error: unknown): string;
+  /**
+   * The message a trap is reported with: names running out of memory when the
+   * runtime can tell, with the sessions still open. Given the text of the save
+   * being restored, or checked when `during` is `"checking"`, it also names
+   * the restore or check and the save's length.
+   */
+  trapMessage(error: unknown, save?: string, during?: 'restoring' | 'checking'): string;
   /** Throws `CaveatError("load")` when the source does not load. */
   open(source: string): CaveatSession;
   /** Advisory warnings for a program that loads; throws as `open` does when it does not. */
@@ -266,7 +299,7 @@ export interface CaveatRuntime {
   /** The program's interface (spec/caveat-interface-0.1.md); throws as `open` does when it does not load. */
   interface(source: string): ProgramInterface;
   /** Throws `CaveatError("restore")` when the save does not restore with this source. */
-  restore(source: string, saved: string): CaveatSession;
+  restore(source: string, saved: string, options?: RestoreOptions): CaveatSession;
 }
 
 /** A session object of the runtime: `WebReactiveSession`, or a stand-in with its methods. */
@@ -278,9 +311,17 @@ export interface RuntimeSessionHandle {
   dispatch_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_outcome_as?(event: string, payload: string, agent: string): string;
   dispatch_view_delta_outcome_as?(event: string, payload: string, agent: string): string;
+  /** The View 0.1 patch from the view as of `held`. See spec/caveat-view-patch-0.1.md. */
+  dispatch_view_patch_outcome?(event: string, payload: string, held: number | undefined): string;
+  dispatch_view_patch_outcome_as?(event: string, payload: string, held: number | undefined, agent: string): string;
+  /** Compact binary wire encoding of the View 0.1 patch for low-overhead frozen view decoding. */
+  dispatch_view_patch_binary_outcome?(event: string, payload: string, held: number | undefined): Uint8Array;
+  dispatch_view_patch_binary_outcome_as?(event: string, payload: string, held: number | undefined, agent: string): Uint8Array;
   dispatch_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   what_if_view_outcome?(event: string, payload: string): string;
   what_if_view_fields_outcome?(event: string, payload: string, fields: string): string;
+  what_if_view_outcome_as?(event: string, payload: string, agent: string): string;
+  what_if_view_fields_outcome_as?(event: string, payload: string, fields: string, agent: string): string;
   snapshot(): string;
   snapshot_compact?(): string;
   view(): string;
@@ -297,9 +338,11 @@ export interface RuntimeSessionHandle {
 export interface RuntimeSessionClass {
   new (source: string): RuntimeSessionHandle;
   restore(source: string, saved: string): RuntimeSessionHandle;
+  /** `options` is JSON: `{"moduleBindings"?: "scoped" | "legacy-hold-capture"}`. */
+  restore_options?(source: string, saved: string, options: string): RuntimeSessionHandle;
   check?(source: string): string;
   check_with?(source: string, unused: boolean): string;
-  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "save"?: string}`. */
+  /** `options` is JSON: `{"unused"?: boolean, "records"?: boolean, "withdrawals"?: boolean, "save"?: string}`. */
   check_options?(source: string, options: string): string;
   interface?(source: string): string;
   /** True once the instance has failed to allocate memory; safe to read after a trap. */
@@ -374,6 +417,8 @@ export interface InterfaceState {
   name: string;
   min: number;
   max: number;
+  /** From 1.5.0: declared `state NAME unset;`; absent otherwise (spec/caveat-unset-states-0.1.md). */
+  unset?: true;
 }
 
 /** `always`: some declaration has no condition, so every view shows it. */
@@ -408,6 +453,8 @@ export interface InterfaceReadings {
 export interface CheckOptions {
   /** Also report C007 `unused-declaration`: a claim, evidence, caveat or state nothing else names. */
   unused?: boolean;
+  /** Also report C012 `near-miss-commitment`: a `commit` one or two edits from a declared decision series. */
+  names?: boolean;
   /**
    * Also report C008 `record-reads-late-caveat`: a rule, procedure or binding
    * that reads a decision's record in a program that qualifies evidence late
@@ -420,6 +467,13 @@ export interface CheckOptions {
    * Throws `CaveatError("restore")` when it does not restore.
    */
   save?: string;
+  /**
+   * Also report C010 `commit-on-withdrawable`, a commit on a source the
+   * program can withdraw that nothing asks is withdrawn, and C011
+   * `withdrawal-not-reopened`, a decision committed on such a source that no
+   * rule reopens when it is withdrawn.
+   */
+  withdrawals?: boolean;
 }
 
 export interface CheckReport {
@@ -518,6 +572,8 @@ export interface Snapshot {
   last_agent?: string;
   values: Record<string, number>;
   qualified_values: Record<string, QualifiedValue>;
+  /** From 1.5.0: the states declared `unset` that have no value now, in name order; they are left out of `values`, and this is absent when none is (spec/caveat-unset-states-0.1.md). */
+  unset?: string[];
   commitment_bases: Record<string, CommitmentBasis>;
   reading_streams: Record<string, ReadingStream>;
   decision_series: Record<string, DecisionSeries>;
@@ -634,6 +690,8 @@ export interface QualifiedValue {
 export interface CommitmentBasis {
   value: number | null;
   provenance: Provenance;
+  /** From 1.5.0: the thresholds the commit named, with their values; absent when none (spec/caveat-thresholds-0.1.md). */
+  thresholds?: Record<string, number>;
 }
 
 export interface ReadingOccurrence {

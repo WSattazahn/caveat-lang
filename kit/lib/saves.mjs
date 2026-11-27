@@ -15,8 +15,9 @@ const REPLAY_V2 = 'caveat-replay-save/0.2';
 // A parameter's value as a payload names it: a typed parameter's position,
 // from 1, as its member's name; an identifier as its text; a number as is.
 function named(parameter, value) {
-  if (parameter.type === 'entity' || parameter.type === 'member') {
-    const member = Number.isInteger(value) ? parameter.members[value - 1] : undefined;
+  const members = parameter.domain?.entity?.members ?? parameter.domain?.member?.members;
+  if (members) {
+    const member = Number.isInteger(value) ? members[value - 1] : undefined;
     if (member === undefined) throw new CaveatError('restore', `save names position ${value} of ${parameter.name}, which has no such member`);
     return member;
   }
@@ -57,24 +58,33 @@ function fromPositional(events, ordered) {
  * The events a replay save holds, in order, each with a payload that names
  * its members, read with the source that wrote the save. Throws
  * `CaveatError("restore")` when the save does not restore with that source,
- * and when it is a state save, which holds no events.
+ * and when it is a state save, which holds no events. `options` are
+ * `runtime.restore`'s: how to read a save that names no module binding
+ * reading where releases could have written it under either.
  */
-export function savedEvents(runtime, source, saved) {
-  runtime.restore(source, saved).close();
-  const { schema, events } = JSON.parse(saved);
-  const ordered = runtime.interface(source).events;
-  if (schema === REPLAY_V1) return fromNamed(events, new Map(ordered.map(signature => [signature.name, signature])));
-  if (schema === REPLAY_V2) return fromPositional(events, ordered);
-  throw new CaveatError('restore', 'a state save holds no events to replay: keep the accepted events beside it, or save with { compact: true } while they fit');
+export function savedEvents(runtime, source, saved, options) {
+  const session = runtime.restore(source, saved, options);
+  try {
+    const { schema, events } = JSON.parse(saved);
+    if (schema !== REPLAY_V1 && schema !== REPLAY_V2) {
+      throw new CaveatError('restore', 'a state save holds no events to replay: keep the accepted events beside it, or save with { compact: true } while they fit');
+    }
+    // A marked legacy save may run a program that fresh scoped loading
+    // refuses. Read its signatures from that restored interpretation.
+    const ordered = session.snapshot().events;
+    if (schema === REPLAY_V1) return fromNamed(events, new Map(ordered.map(signature => [signature.name, signature])));
+    return fromPositional(events, ordered);
+  } finally { session.close(); }
 }
 
 /**
  * A session of `newSource` made by sending it the events of a save written
  * with `oldSource`. Each event the new program refuses is a conflict and
  * changes nothing; the rest are still sent. The save is not changed.
+ * `options` are `runtime.restore`'s, for reading the save with `oldSource`.
  */
-export function carrySave(runtime, oldSource, saved, newSource) {
-  const events = savedEvents(runtime, oldSource, saved);
+export function carrySave(runtime, oldSource, saved, newSource, options) {
+  const events = savedEvents(runtime, oldSource, saved, options);
   const session = runtime.open(newSource);
   try {
     const { accepted, conflicts } = replayOnto(session, events);

@@ -1,0 +1,64 @@
+{
+  "programs": 212,
+  "threshold_statements": [],
+  "other_uses_of_threshold": [],
+  "number_defines": 11,
+  "programs_with_number_defines": 4,
+  "number_define_statements": [
+    {
+      "file": "experiments/glowcap/round7/clock/C1.cav",
+      "line": 58,
+      "text": "define entry_trusted = 7"
+    },
+    {
+      "file": "experiments/glowcap/round7/clock/C1.cav",
+      "line": 59,
+      "text": "define entry_untrusted = 8"
+    },
+    {
+      "file": "experiments/glowcap/round7/clock/C1.cav",
+      "line": 102,
+      "text": "define lives = 64"
+    },
+    {
+      "file": "experiments/glowcap/round7/clock/C1.cav",
+      "line": 103,
+      "text": "define regrow_seconds = 45000"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "line": 52,
+      "text": "define entry_trusted = 7"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "line": 53,
+      "text": "define entry_untrusted = 8"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "line": 96,
+      "text": "define lives = 64"
+    },
+    {
+      "file": "experiments/glowcap/round7/runs/C1/impl/glowcap.cav",
+      "line": 97,
+      "text": "define regrow_seconds = 45"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C1/impl/glowcap.cav",
+      "line": 119,
+      "text": "define fade_seconds = 60"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "line": 486,
+      "text": "define e6_after = 0"
+    },
+    {
+      "file": "experiments/glowcap/round8/runs/C2/impl/glowcap.cav",
+      "line": 494,
+      "text": "define e6_page = 6"
+    }
+  ]
+}

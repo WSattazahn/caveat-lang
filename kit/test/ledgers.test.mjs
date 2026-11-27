@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { CONSULTED_SOURCE, LEDGER_REVIEW_SCHEMA, consultedSources, formatConsulted, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
+import { CONSULTED_SOURCE, LEDGER_REVIEW_SCHEMA, LEDGER_SUMMARY_SCHEMA, consultedSources, formatConsulted, formatSummary, reviewLedgers, reviewWithConsulted, summarizeLedgers } from '../lib/ledgers.mjs';
 import { real } from './helpers.mjs';
 
 const cli = path.join(fileURLToPath(new URL('../', import.meta.url)), 'bin', 'caveat.mjs');
@@ -134,6 +134,51 @@ test('a program that consults nothing and has no outcome adds no entry; one that
   assert.equal(typeof entries[0].error, 'string');
 });
 
+// The harder demo's shape: one caveat on two carriers' scans, true only for one.
+const carrier = (scan, wrong) => `claim refund_warranted;
+evidence order_record from "the order system";
+evidence ${scan} from "the delivered scan";
+evidence scan_gps from "the scan's GPS";
+evidence customer_reply from "the customer's follow-up";
+caveat depot_scan consequence material;
+depot_scan qualifies ${scan};
+decisions refund limit 4;
+state price = 0 min 0 max 500;
+state delivered = 0 min 0 max 1;
+event read_order; event read_tracking; event decide; event outcome;
+on read_order reveal order_record supports refund_warranted;
+on read_order set price = qualified(60, order_record);
+on read_tracking reveal ${scan} opposes refund_warranted;
+on read_tracking set delivered = qualified(1, ${scan});
+on decide when delivered >= 1 commit refund because enough using price - price * delivered retaining depot_scan;
+${wrong
+    ? 'on outcome reveal scan_gps supports refund_warranted;\non outcome resolve refund = 60 because scan_gps materialized depot_scan;'
+    : 'on outcome reveal customer_reply opposes refund_warranted;\non outcome resolve refund = 0 because customer_reply;'}
+`;
+
+test('the summary counts how often each caveat came true, by the evidence that carried it', () => {
+  const sent = events(['read_order', 'read_tracking', 'decide', 'outcome']);
+  const ledgers = [['zephyr_scan', true], ['northway_scan', false], ['zephyr_scan', true]].map(([scan, wrong], index) => ({
+    program: `t${index}.cav`, events_file: `t${index}.events.jsonl`, source: carrier(scan, wrong), events: sent,
+  }));
+  const entries = reviewLedgers(open, [...ledgers, { program: 'broken.cav', events_file: 'b.jsonl', source: 'claim;', events: [] }]);
+  const summary = summarizeLedgers(entries);
+  assert.deepEqual(summary, {
+    schema: LEDGER_SUMMARY_SCHEMA,
+    revisions: 3,
+    caveats: [{
+      caveat: 'depot_scan', retained: 3, came_true: 2,
+      by_evidence: [{ evidence: 'northway_scan', retained: 1, came_true: 0 }, { evidence: 'zephyr_scan', retained: 2, came_true: 2 }],
+    }],
+  });
+  assert.deepEqual(formatSummary(summary), [
+    'Across the set (3 revisions with an outcome)',
+    '  depot_scan: came true in 2 of 3; carried by northway_scan, 0 of 1; carried by zephyr_scan, 2 of 2',
+    '',
+  ]);
+  assert.deepEqual(formatSummary(summarizeLedgers([])), []);
+});
+
 test('caveat review --all finds ledgers under a directory and reports them', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'caveat-ledgers-'));
   try {
@@ -153,11 +198,27 @@ test('caveat review --all finds ledgers under a directory and reports them', asy
     assert.match(text.stdout, /ticket-a\.cav: review of refund@1 = 80 {2}in force\n/);
     assert.match(text.stdout, /program\.cav: review of refund@1 = 80 {2}in force\n/);
     assert.match(text.stdout, /\nConsulted: lesson, the review of refund@1 of program [0-9a-f]{12}; [^\n]*ticket-a\.cav: self_reported came true, decisive\n/);
-    assert.match(text.stdout, /\n2 revisions reviewed in 2 ledgers\.\n$/);
+    assert.match(text.stdout, /, decisive\n\n2 revisions reviewed in 2 ledgers\.\n$/);
+    assert.doesNotMatch(text.stdout, /Across the set/);
+
+    const summed = caveat(['review', '--all', '--summary', directory]);
+    assert.equal(summed.status, 0, summed.stderr);
+    assert.equal(summed.stdout.replace(/Across the set[^]*?\n\n(?=2 revisions)/, ''), text.stdout);
+    assert.match(summed.stdout, /\nAcross the set \(1 revision with an outcome\)\n {2}self_reported: came true in 1 of 1; carried by customer_email, 1 of 1\n\n2 revisions reviewed in 2 ledgers\.\n$/);
 
     const json = caveat(['review', '--all', '--json', directory]);
     assert.equal(json.status, 0, json.stderr);
     const lines = json.stdout.trim().split('\n').map(line => JSON.parse(line));
+    assert.ok(lines.every(line => line.schema === LEDGER_REVIEW_SCHEMA));
+    const summedJson = caveat(['review', '--all', '--json', '--summary', directory]);
+    assert.equal(summedJson.status, 0, summedJson.stderr);
+    const all = summedJson.stdout.trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(all.at(-1).schema, LEDGER_SUMMARY_SCHEMA);
+    assert.deepEqual(all.slice(0, -1), lines);
+
+    const alone = caveat(['review', '--summary', path.join(directory, 'ticket-a.cav'), 'refund@1', path.join(directory, 'ticket-a.events.jsonl')]);
+    assert.equal(alone.status, 2);
+    assert.match(alone.stderr, /--summary is read with --all/);
     assert.deepEqual(lines.map(line => [path.relative(directory, line.program), line.revision]), [['ticket-a.cav', 'refund@1'], [path.join('ticket-b', 'program.cav'), 'refund@1']]);
     assert.equal(lines[1].consulted[0].found.program, path.join(directory, 'ticket-a.cav'));
 

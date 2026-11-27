@@ -43,7 +43,7 @@ rule for failed writes and restarts.
 `caveat serve` has matching `undrained` and `drainArchive` operations. Its
 `explain` and `dependents` requests accept an `archive` array supplied by the
 host. The server does not keep an extra accumulated archive for you. See
-[Serve 0.1](reference/spec/caveat-serve-0.1.md) for exact request fields.
+[Serve 0.1](../../spec/caveat-serve-0.1.md) for exact request fields.
 
 ## Interpret conservative and historical results correctly
 
@@ -110,12 +110,12 @@ placing it on a frame or request deadline. The version's
 [release notes](https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.16.md)
 record measured workloads and their limitations.
 
-The packaged [Windows](reference/spec/caveat-windows-0.1.md),
-[lineage-compaction](reference/spec/caveat-lineage-compaction-0.1.md),
-[departure](reference/spec/caveat-departure-0.1.md) and
-[withdrawal collection](reference/spec/caveat-withdrawal-collection-0.1.md)
+The packaged [Windows](../../spec/caveat-windows-0.1.md),
+[lineage-compaction](../../spec/caveat-lineage-compaction-0.1.md),
+[departure](../../spec/caveat-departure-0.1.md) and
+[withdrawal collection](../../spec/caveat-withdrawal-collection-0.1.md)
 specifications describe the retention rules; the
-[collector draft](reference/docs/design/withdrawal-collector-draft.md) keeps
+[collector draft](../../docs/design/withdrawal-collector-draft.md) keeps
 their evidence. The
-[root inventory](reference/experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
+[root inventory](../../experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
 records the source consumers behind conservative retention.

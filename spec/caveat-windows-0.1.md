@@ -31,7 +31,11 @@ evidence; a history has a limit or a window, not both. `journal
 window N` is a new top-level declaration for the
 [decision journal](caveat-decision-journal-0.1.md), which has no limit; a
 program with it may not also give a stream or renewable evidence named
-`journal` a window, since retirement names the journal's history `journal`. `N` is
+`journal` a window, since retirement names the journal's history `journal`.
+Such a stream or renewable evidence with a limit, a decision series named
+`journal`, and a name the program declares spelled `journal@K` may stand
+beside it, and no record or name of theirs is the journal's entry spelled
+the same way ([Departure 0.1](caveat-departure-0.1.md)). `N` is
 an integer in `1..256`. A windowed stream's `N` counts toward the
 1,024 total of reading and decision capacities, as a limit does
 ([Reactive 0.5](caveat-reactive-0.5.md)).
@@ -91,7 +95,11 @@ before the effect that added the new record:
 A refused or failed event retires nothing: the retirement rolls back with the
 rest of the event ([Dispatch 0.1](caveat-dispatch-0.1.md)). A windowed history
 never refuses for being full, so `limit/history_limit` and
-`limit/renewal_limit` do not arise for it. Every other refusal, and the rc.11
+`limit/renewal_limit` do not arise for it for that reason. A `renew` that
+would make a name the program declares as evidence, a claim, a caveat or a
+commitment, such as `foo@2` beside `renewable foo window 1`, is refused as
+`limit/renewal_limit`, with a window as with a limit
+([Renewal 0.1](caveat-renewal-0.1.md)). Every other refusal, and the rc.11
 to rc.13 catalog, is unchanged.
 
 While records only retire, the session still holds them. A windowed history
@@ -130,20 +138,78 @@ windowed program anyway.
 Restore refuses a save when:
 
 - `retired` names a record of a history without a window, or a record the
-  session does not hold;
+  session does not hold, other than evidence an older release's save kept
+  retired with a journal entry (see below);
 - a retirement is dated 0, past the save's `sequence`, or before the record
   it retires was added;
+- a retirement dated at the save's `sequence` is not one of the last event's
+  `retire` effects;
+- a retired reading or journal entry numbered `K`, under a window of `N`, is
+  not dated at the sequence of the one numbered `K + N`, which took its place
+  in the window. When that reading has
+  [departed](caveat-departure-0.1.md), the retirement must lie between the
+  sequences of the nearest readings held before and after it;
 - a windowed history's live records are not exactly its newest
   `min(N, total)`: a gap, a live record older than a retired one, or more live
   records than its window;
 - a retired record is the current occurrence, or a journal entry dated after
   its retirement reopens a decision because of it.
 
+A record retires as its history adds the record that takes its place in the
+window, in that record's event, so its retirement carries that event's
+sequence. A renewable evidence's records carry no sequence: restore holds a
+renewal's retirement to the order of its records and, when it is dated at
+the save's `sequence`, to the last event's effects, and to nothing else.
+
 Retired evidence counts as observed for every check that requires cited
-evidence to have been observed: it was observed when it was cited. As with
-every restore check, a save that passes holds records the program could hold,
-not records events are shown to have produced
-([Save 0.1](caveat-save-0.1.md)).
+evidence to have been observed: it was observed when it was cited. Evidence
+a declaration's `reopen` names may never have been observed. `reopen hold
+because sensor;` cites `sensor` as the program loads, a renewal can retire
+it before any event observes it, and once it has retired, reading
+`reopened(hold)` carries it, as a read of other retired evidence does; until
+then that read is refused ([Dispatch 0.1](caveat-dispatch-0.1.md), D045).
+Restore accepts such a retired cause that no event observed wherever a
+record cites it: a state's lineage or grounds, a commitment's basis, grounds
+and `relies_on` relations, the journal entry of a commit, a reading, an
+outcome's lineage, and the qualifications records keep. A record the save
+dates may cite it only from the event the save says retired it: a reading or
+an outcome by its own sequence; a commitment's basis by its revision's
+sequence, or that of its commit's journal entry; and a reopening's record by
+the latest `reopened`, `held`, `deferred` or `released` journal entry of its
+commitment, since each reopening, hold, deferral and release that joins the
+record journals one of these in the same event, and the journal departs
+oldest first. A record that carries no date, such as a state's lineage or
+the observation, examination and predicate qualifications, is not dated, and
+neither is one whose only date is a journal entry that has departed. A cause
+an event observed before it retired, with a stance or in the observation
+ledger, is cited as other observed evidence is, so in a session with an
+observation ledger a reading may cite it only once the ledger observes it.
+What an event names itself must have been observed, so restore still refuses
+the cause as a withdrawal's evidence or reason, a hold or a deferral, an
+outcome's reason, the evidence of a scheduled qualification, the key of an
+observation record, a permission's grant, a retention reason, the cause of a
+`reopens` relation a rule made, a witness of a journal entry other than a
+commit's, or evidence the last event's effects report. As with every restore
+check, a save that passes holds records the program could hold, not records
+events are shown to have produced ([Save 0.1](caveat-save-0.1.md)).
+
+Beside `journal window`, an older release also took journal entry
+`journal@K`'s retirement for that of such evidence spelled `journal@K`
+(D105). Where no declaration observes that evidence, its sessions read
+`reopened(…)` of the commitment once the entry had retired, and what read
+it cites the evidence; their saves list `journal@K` in `retired` while
+that citation keeps the entry. A session restored from such a save keeps
+the evidence retired, from the sequence the save gives, so that read and
+what cites the evidence stay as they were, and lists `journal@K` in
+`retired` after the entry has departed too. Restore accepts a `retired`
+name `journal@K` the journal no longer holds only as such evidence's
+retirement, dated as the entry's was: before the save's last event, at
+the sequence of entry `journal@K+N` under `journal window N` while the
+journal holds that entry, and no later than the sequence of the oldest
+entry it holds once that entry has departed too. It refuses any other
+such name as before. No session that starts now retires such evidence:
+an entry's retirement is not the evidence's
+([Departure 0.1](caveat-departure-0.1.md)).
 
 ## Decision series: not in rc.15
 
@@ -171,6 +237,77 @@ series windows follow it.
 
 ## Changes
 
+- 2026-11-22 (D074, D105): beside `journal window`, a reading stream,
+  renewable evidence or decision series named `journal`, and a name the
+  program declares spelled `journal@K`, are kept apart from the journal's
+  entries of the same names. Before, an entry's retirement and departure
+  reached a record or declared name of its spelling: its reads took it for
+  retired, a pin on it kept the entry, and the entry's departure took it
+  from the session. A session restored from an older release's save keeps
+  declared evidence that release read as retired with an entry retired
+  ("Save and restore"). See [Departure 0.1](caveat-departure-0.1.md) and
+  [Save 0.1](caveat-save-0.1.md), "Changes".
+- 2026-11-22 (D103): a `renew` of windowed renewable evidence that would make
+  a name the program declares as evidence, a claim, a caveat or a
+  commitment, such as `foo@2` beside `renewable foo window 1`, is refused as
+  `limit/renewal_limit` and retires nothing, below the 65,536-record ceiling
+  as at it. Before, the event was fatal `unclassified`, although the runtime
+  had already rolled back the event and any retirement it had made. See
+  [Renewal 0.1](caveat-renewal-0.1.md), "Changes".
+- 2026-11-12 (D060): restore holds a retirement's date to what else the save
+  dates. It checked only that the date was not 0, not past the save's
+  `sequence` and not before the retired record was added, so it accepted a
+  retirement dated at an event that added nothing to the record's history.
+  With `renewable sensor window 1;`, a first event that renews `sensor` and
+  a second that renews nothing, a save edited to say the second event
+  retired `sensor` restored. A record retires as its history adds the record
+  that takes its place in the window, in that record's event. Restore now
+  refuses a retirement dated at the save's `sequence` that is not one of the
+  last event's `retire` effects, with "retired sensor is dated at the last
+  event, which did not retire it", and a retired reading or journal entry
+  numbered `K`, under a window of `N`, that is not dated at the sequence of
+  the one numbered `K + N`, with "retired a@1 is not dated at the event that
+  added a@2". When that reading has departed, the date must lie between the
+  sequences of the nearest readings held before and after it. A renewal's
+  records carry no sequence, so a renewal's retirement dated before the last
+  event is held to the order of its records only, as before. Both checks run
+  after every other, so a save refused before is refused with the same
+  message. A save the runtime wrote restores as before.
+- 2026-11-12 (D059): a windowed stream or renewable evidence named
+  `journal`, in a program without `journal window`, restores and departs as
+  one of any other name does. Restore refused the save written by each
+  event that retired one of its records, and its recount of pins dropped a
+  journal entry's once a record of that entry's name had retired. See
+  [Save 0.1](caveat-save-0.1.md), "Changes".
+- 2026-11-08 (D051): restore accepts a save that cites evidence a
+  declaration's `reopen` names once a renewal has retired it, though no
+  event observed it. `reopen hold because sensor;` cites `sensor` as the
+  program loads, and once `sensor` has retired, `reopened(hold)` reads it
+  observed or not, so what that read makes carries it: a lineage or grounds,
+  a commitment's basis with its `relies_on` relations and journal entry, a
+  reading, an outcome's lineage, and the qualifications records keep. This
+  profile counted retired evidence as observed because it was observed when
+  it was cited, which such a cause need not have been. Restore refused the
+  save the runtime wrote after such a read, and every later save that still
+  held what it made, with "state seen: sensor is not observed" and the like,
+  breaking the promise that a 1.x save restores. It now accepts such a cause
+  that no event observed wherever a record cites it, and in a reading, a
+  commitment's basis, an outcome or a reopening's record only from the event
+  the save says retired it, since the read is refused before then. A
+  reopening's record, which a hold, a deferral and a release join too, is
+  dated by the latest reopening, hold, deferral or release the journal holds
+  for its commitment. A cause an event observed is cited as other observed
+  evidence is: in a session with an observation ledger, a reading may cite
+  it only once the ledger observes it. What an event names itself must still
+  have been observed, so a save that names the cause there is still refused.
+  A save refused only because a record cites such a cause now restores,
+  unless a reading, a basis, an outcome or a reopening's record cites it
+  before the save says it retired: that save is still refused, for a basis
+  now with "commitment other: sensor is not observed" and the like in place
+  of the message of its `relies_on` relation. A save with another fault too,
+  such as a retirement restore refuses, may now be refused for that fault
+  instead. A save in which no record cites such a cause restores, or is
+  refused with the same message, as before.
 - 2026-10-05 (rc.15, specified): new profile. Declared windows on reading
   streams, renewable evidence and the journal; retirement as a reported,
   transactional effect that keeps every record; the `retired` snapshot and

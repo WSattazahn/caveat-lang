@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { followGuide, guideSteps } from './guide.mjs';
 import { checkPackageDocuments } from '../../scripts/kit-docs.mjs';
+import { packageLinks } from './links.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.join(kit, '..');
@@ -56,7 +57,9 @@ test('every packaged documentation source exists', () => {
 test('links in the kit documentation resolve inside the package', async () => {
   const files = await packageFiles();
   for (const document of KIT_DOCUMENTS) {
-    const markdown = await readFile(path.join(kit, document), 'utf8');
+    // As packed: links to repository files the package copies point to the copies.
+    const source = await readFile(path.join(kit, document), 'utf8');
+    const { text: markdown } = packageLinks(source, { from: `kit/${document}`, shipped: file => manifest.reference.includes(file) });
     for (const target of relativeLinks(markdown)) {
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(document), target));
       assert.ok(files.has(resolved), `${document} links to ${target}, which is not in the package`);

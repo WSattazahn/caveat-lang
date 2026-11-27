@@ -168,6 +168,8 @@ const FORECLOSURE = 'claim c; evidence e from "check"; decisions drop limit 1 ir
 const REVERSIBLE_FORECLOSURE = 'claim c; evidence e from "check"; decisions hold_off limit 2 forecloses rollback; decisions rollback limit 2; event go; on go reveal e supports c; on go commit hold_off because enough using qualified(1, e);';
 // An outcome on a revision (spec/caveat-outcomes-0.1.md).
 const OUTCOME = 'claim c; evidence e from "check"; caveat doubt consequence low; decisions d limit 2; event go; event close; on go reveal e supports c; on go commit d because enough using qualified(1, e) retaining doubt; on close resolve d = 1 because e materialized doubt;';
+// A commit that names thresholds lists them (spec/caveat-thresholds-0.1.md).
+const THRESHOLDS = 'threshold bar = 0.5; evidence probe from "probe"; readings r from probe limit 2; event go; on go sample r = 0.7; on go when latest(r) >= bar commit d because enough using latest(r);';
 const RETENTION_REASON = 'claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough retaining doubt because e;';
 // Windows retire a reading, a revision and a journal entry
 // (spec/caveat-windows-0.1.md).
@@ -208,6 +210,9 @@ function sessionsOf() {
     [FORECLOSURE, [['go']]],
     [REVERSIBLE_FORECLOSURE, [['go']]],
     [OUTCOME, [['go'], ['close']]],
+    [THRESHOLDS, [['go']]],
+    // A state with no value yet (spec/caveat-unset-states-0.1.md).
+    ['state part unset; state seen = 0; event go; on go when not is_set(part) set seen = 1;', [['go']]],
     [AGENTS, AGENTS_EVENTS],
     // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
@@ -253,6 +258,13 @@ test('every entry point names its declarations, which declare exactly its export
     const exported = await import(pathToFileURL(path.join(kit, target.default)).href);
     assert.deepEqual(sorted([...declarations[name].values]), sorted(Object.keys(exported)), `${entry}: declared values against exports`);
   }
+});
+
+// ledgers is used by the CLI rather than exported as a package entry point,
+// so the public-entry-point loop above does not cover its declarations.
+test('the private ledgers module declares exactly its runtime exports', async () => {
+  const exported = await import('../lib/ledgers.mjs');
+  assert.deepEqual(sorted([...declarations.ledgers.values]), sorted(Object.keys(exported)));
 });
 
 test('generated runtime declarations name the library their disposal members require', async () => {
@@ -490,7 +502,8 @@ test('a program interface has the declared shapes and kinds', () => {
     cue ping sound 440 0.2 0.5;
     on read sample soil = celsius supports frost_risk; on read set level = celsius;
     bind gauge.value = level; bind gauge.label = "cold" when level < 0; bind gauge.low = level < 0;`;
-  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail), real.interface(AGENTS)];
+  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail), real.interface(AGENTS),
+    real.interface('state part unset min 0 max 9; event go; on go set part = 1;')];
   assertShape('ProgramInterface', interfaces, { complete: true });
   const parameters = interfaces.flatMap(found => found.events.flatMap(event => event.parameters));
   assertShape('InterfaceParameter', parameters, { complete: true });
@@ -517,9 +530,12 @@ test('explain, dependents and check reports have the declared fields', () => {
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
     ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
     [RETENTION_REASON, [['go']], 'doubt'],
+    // A take-back marks a relation and records it (spec/caveat-take-back-0.1.md).
+    ['claim c; evidence e from "check"; caveat doubt consequence low; event go; event undo; on go reveal e supports c; on go qualify e with doubt; on undo unqualify e with doubt;', [['go'], ['undo']], 'doubt'],
     [FORECLOSURE, [['go']], 'e'],
     [REVERSIBLE_FORECLOSURE, [['go']], 'e'],
     [OUTCOME, [['go'], ['close']], 'e'],
+    [THRESHOLDS, [['go']], 'probe'],
     [AGENTS, AGENTS_EVENTS, 'reports'],
     // Before the last decide sighting@1 is retired; after it, departed
     // (spec/caveat-departure-0.1.md).
@@ -537,6 +553,7 @@ test('explain, dependents and check reports have the declared fields', () => {
     const sent = traced.map(({ event, payload, agent, outcome }) => ({ event, payload, ...(agent === undefined ? {} : { agent }), outcome }));
     explained.push(explain(session.snapshot(), sent));
     explained.push(explain(session.snapshot(), traced));
+    explained.push(explain(session.snapshot(), sent, { laterCaveats: true, lineageNotes: true }));
     rests.push(dependents(session.snapshot(), subject));
     const archive = session.drainArchive();
     if (archive.length) {

@@ -1,7 +1,7 @@
 # Start an agent integration
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 Use Caveat when your application needs to keep a decision's evidence, carry its
@@ -18,7 +18,7 @@ place of the npm package specifier.
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -44,17 +44,19 @@ npx --no-install caveat-lang demo agent
 PATH executable ownership. `demo agent` runs the shipped assessment program:
 observe 85, assess, withdraw the reading after a correction, observe 92, assess
 again. Both revisions remain inspectable and the original grounds stay frozen.
-These are illustrative scores. The demo writes no files. rc.6 has neither
-command; [CLI names](NAMES.md) explains the version and naming boundary.
+These are illustrative scores. The demo writes no files;
+[CLI names](NAMES.md) explains command naming and PATH collisions.
 
 ## Build one small, testable integration
 
 1. Start with the [authoring card](AUTHORING_CARD.md): one tested program
-   with the usual parts and the mistakes that cost the most. Then read
+   with the usual parts and the mistakes that cost the most. When the task
+   has several items or streams that follow the same rules, write the rules
+   once, with a `for` block or a `proc`, as the card shows, not once per item. Then read
    [Caveat on one page](REFERENCE.md) before inventing syntax. The
-   [authoring guide](reference/docs/AI_AUTHORING.md) covers lifecycle and
+   [authoring guide](../../docs/AI_AUTHORING.md) covers lifecycle and
    qualification details; specifications linked there define the contracts.
-2. State required outcomes in [scenarios](reference/spec/caveat-scenarios-0.1.md).
+2. State required outcomes in [scenarios](../../spec/caveat-scenarios-0.1.md).
    Include a refusal, a correction and an assertion that earlier grounds remain
    unchanged. `validate` answers whether source loads; `check` offers warnings;
    `test` checks the stated outcomes. They answer different questions.
@@ -82,13 +84,14 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
 
 A session lasts as long as the process that holds it. `caveat serve`, and so
 the Python client's `CaveatServer`, keeps one session of one program until it
-is closed. The [MCP authoring tools](MCP.md) keep none: each tool call starts a
-fresh subprocess and runtime with no session handle, so a call sees only the
-source and events it is sent. One MCP connection accepts 4,096 request IDs; the
-bridge then ends it, and the host must reconnect. For a long-running agent,
-keep the session in `caveat serve --state FILE`, which restores the session
-from the file on start and rewrites it after every accepted event, or send the
-full event history again with each MCP call.
+is closed; `caveat serve --state FILE` restores the session from the file on
+start and rewrites it after every accepted event. The
+[MCP authoring tools](MCP.md) keep no session state in the server (each call
+starts a fresh subprocess, and one connection accepts 4,096 request IDs before
+reconnecting), but from 1.5.0 **`caveat_dispatch`** continues one running
+ledger across stateless calls by returning and accepting a compact save
+(`report.save`), and **`caveat_find`** searches past decision records without
+replaying them by hand.
 
 Observing is separate from assessing. Reassessing requires reopening the current
 revision. Withdrawal preserves the archive, and late qualification leaves prior
@@ -99,7 +102,7 @@ difference between archived readings and future values.
 ## Type a JavaScript or TypeScript host
 
 `caveat types PROGRAM > program.d.ts` writes declarations from the program's
-[interface](reference/spec/caveat-interface-0.1.md): each event's payload
+[interface](../../spec/caveat-interface-0.1.md): each event's payload
 fields, each displayed value with its type, and the state, cue, decision,
 reading-stream, evidence, caveat and claim names. `typed` from
 `caveat-lang/types` returns the session unchanged, with those types:

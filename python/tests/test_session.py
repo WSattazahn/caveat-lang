@@ -10,7 +10,7 @@ import threading
 import types
 import unittest
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import caveat_lang as caveat
 from caveat_lang import _runtime
@@ -22,6 +22,14 @@ SOURCE = FIXTURE.read_bytes().decode("utf-8")
 KIT_COPY = Path(__file__).resolve().parents[2] / "kit" / "examples" / "agent-evidence" / "assessment.cav"
 # A program that declares agents (Agents 0.1).
 AGENTS = (Path(__file__).resolve().parent / "fixtures" / "agents.cav").read_bytes().decode("utf-8")
+# Copies of runtime/tests/fixtures/module-bindings/: 1.0.0 and 1.4.1 both
+# write this initial save of the bundle, with no module binding reading
+# named; its next event computes 10 under 1.0.0's reading of the module's
+# hold and 14 under 1.4.1's.
+BINDINGS = Path(__file__).resolve().parent / "fixtures" / "module-bindings"
+RUNTIME_BINDINGS = Path(__file__).resolve().parents[2] / "runtime" / "tests" / "fixtures" / "module-bindings"
+COLLISION = (BINDINGS / "collision.bundle").read_bytes().decode("utf-8")
+COLLISION_INITIAL = (BINDINGS / "collision-v1.4.1-initial.json").read_bytes().decode("utf-8")
 
 
 class FixtureTests(unittest.TestCase):
@@ -29,6 +37,12 @@ class FixtureTests(unittest.TestCase):
         if not KIT_COPY.exists():
             self.skipTest("not in a clone of the repository")
         self.assertEqual(FIXTURE.read_bytes(), KIT_COPY.read_bytes())
+
+    def test_the_module_binding_fixtures_are_the_runtime_s(self) -> None:
+        if not RUNTIME_BINDINGS.exists():
+            self.skipTest("not in a clone of the repository")
+        for name in ("collision.bundle", "collision-v1.4.1-initial.json"):
+            self.assertEqual((BINDINGS / name).read_bytes(), (RUNTIME_BINDINGS / name).read_bytes(), name)
 
 
 class DispatchTests(unittest.TestCase):
@@ -153,6 +167,39 @@ class SaveTests(unittest.TestCase):
         with self.assertRaises(caveat.RestoreError) as caught:
             caveat.restore(SOURCE + "\n# changed\n", save)
         self.assertEqual(caught.exception.kind, "restore")
+
+    def test_a_save_a_release_wrote_takes_its_module_binding_reading(self) -> None:
+        with self.assertRaises(caveat.RestoreError) as caught:
+            caveat.restore(COLLISION, COLLISION_INITIAL)
+        # The refusal names the keyword this package takes.
+        self.assertIn("supply module_bindings as scoped or legacy-hold-capture", str(caught.exception))
+        self.assertNotIn("moduleBindings", str(caught.exception))
+        choices: Tuple[Tuple[caveat.ModuleBindings, int], ...] = (("scoped", 10), ("legacy-hold-capture", 14))
+        for module_bindings, expected in choices:
+            with caveat.restore(COLLISION, COLLISION_INITIAL, module_bindings=module_bindings) as session:
+                session.dispatch("m__go")
+                self.assertEqual(session.snapshot()["values"]["m__v"], expected)
+                save = session.save()
+            # The save names the reading, so it restores without the choice.
+            self.assertEqual(json.loads(save)["module_bindings"], module_bindings)
+            with caveat.restore(COLLISION, save) as resumed:
+                self.assertEqual(resumed.snapshot()["values"]["m__v"], expected)
+            other: caveat.ModuleBindings = "legacy-hold-capture" if module_bindings == "scoped" else "scoped"
+            with self.assertRaises(caveat.RestoreError) as conflict:
+                caveat.restore(COLLISION, save, module_bindings=other)
+            self.assertIn("module_bindings conflicts with saved module_bindings", str(conflict.exception))
+            self.assertNotIn("moduleBindings", str(conflict.exception))
+        with self.assertRaises(ValueError):
+            caveat.restore(COLLISION, COLLISION_INITIAL, module_bindings="root")  # type: ignore[arg-type]
+
+    def test_check_refuses_a_bundle_before_restoring_its_save(self) -> None:
+        # Check reads no bundle, so it refuses one first, as the command and the
+        # runtime do: restoring this save first would ask for a module binding
+        # reading check does not take (D097).
+        for save in (COLLISION_INITIAL, "{}"):
+            with self.assertRaises(caveat.LoadError) as caught:
+                caveat.check(COLLISION, records=True, save=save)
+            self.assertIn("single-file program, not a bundle", str(caught.exception))
 
     def test_archive(self) -> None:
         with caveat.open(SOURCE) as session:

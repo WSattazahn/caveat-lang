@@ -782,7 +782,12 @@ def kill(pid):
     if os.name == "nt":
         _run(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        os.kill(pid, signal.SIGKILL)
+        # alive() said it was running, but it can exit and be reaped before this
+        # signal arrives; a process that is already gone is stopped.
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
 
 
 def unstoppable():

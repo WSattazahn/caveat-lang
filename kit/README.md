@@ -1,12 +1,12 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
 
-**A decision ledger for agents.** Caveat is a rules language and a runtime
+**A decision ledger for agents: Caveat keeps an AI's reasons in a record you can check.** Caveat is a rules language and a runtime
 for decisions that may need taking back. A value keeps the evidence and
 caveats it was computed from, and a committed decision keeps that basis. When
 evidence is later corrected or withdrawn, a rule you write can reopen the
@@ -24,7 +24,7 @@ In an empty directory with Node 20 or later, install the package:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 ```
 <!-- /caveat-package:install -->
 
@@ -82,7 +82,10 @@ syntax; read it before writing your own program.
 - **Saves are not authenticated.** A save records its source's SHA-256, so it
   will not restore against a different program. It is not signed: an edited
   save can drop a caveat or change a value and still restore. Keep saves where
-  only your application writes them, or sign them yourself.
+  only your application writes them, or sign them yourself. Restore takes a
+  state save of any size, and one too large for the runtime's memory traps
+  the runtime and every session on it; bound the size of a save you did not
+  write before restoring it.
 - **It does not know who sent an event.** Your application decides who may
   send what.
 - **It is slower than plain code.** On a small program, a few thousand events
@@ -106,7 +109,7 @@ installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -123,7 +126,9 @@ still shown. Follow
 [the agent quickstart](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/AGENT_START.md) to adapt this into an integration.
 
 [Getting started](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/GETTING_STARTED.md) walks through those files and has you
-change the program. The [worked
+change the program. For a 15-minute hands-on agent tutorial, try
+[An agent with an undo list](https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md).
+The [worked
 example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/WORKED_EXAMPLE.md) takes one program through every command. The
 [documentation index](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/README.md) lists the authoring guide, the language
 reference and the thermostat example that ship in the package. These links
@@ -181,8 +186,8 @@ measure a model's confidence or authorize an external action.
 
 ## Use authoring tools from an MCP host
 
-This package can run `caveat-lang mcp` for the five existing
-authoring operations. It takes inline source and uses a fresh subprocess for
+This package can run `caveat-lang mcp` for the seven authoring
+operations. It takes inline source and uses a fresh subprocess for
 each call. See [MCP setup and limits](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/MCP.md): it speaks MCP 2026-07-28
 and the 2025-11-25 profile.
 
@@ -238,6 +243,31 @@ of the session before it), and 2 when the program or the events file cannot be
 used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
 the same report as data, and `formatExplanation` renders it as text.
 
+A decision keeps the caveats it was made with. `--later-caveats` (from 1.5;
+from code, `explain(snapshot, events, { laterCaveats: true })`) compares that
+record with the live qualifications on its grounds. For each grounds
+occurrence, `qualified_since` lists its current caveat names absent from
+both the revision's frozen grounds and its retained caveats. The text adds
+"E now carries C, absent from this record". Without the option, the field is absent
+and the output is as before.
+
+This is a difference from the whole revision's record, not a history of
+every qualification: a caveat already recorded through another ground or
+explicitly retained is not listed again. A taken-back qualification is no
+longer listed; reapplying it makes it live again. Withdrawals have their own
+report and are omitted here. Only occurrences whose relations remain in the
+snapshot can contribute; a supplied archive does not establish current
+qualifications on departed grounds. An empty list does not prove that no
+qualification happened, and the report does not reopen any decision.
+
+A decision made after a reopening also holds, in its lineage, what the revision
+before it rested on and what reopened it, so `explain` can list those as things
+that "could also have" influenced it although its grounds do not use them.
+`--lineage-notes` (from 1.5; from code, `explain(snapshot, events, {
+lineageNotes: true })`) marks each such name, as in "old_study (conclude@1
+rested on it)" or "retraction (it reopened conclude@1)", and adds the report's
+`lineage_from`. Without it, the output is as before.
+
 `caveat dependents` asks the reverse question: what rests on one piece of
 evidence, reading stream or caveat. It lists:
 
@@ -265,7 +295,7 @@ observed them, alone and
 together, and lists the evidence without which the deciding event commits
 nothing, the evidence that only moved the value, and the retained caveats
 the revision's outcome says came true. It gives no scores and changes no
-session. It is a 1.4 draft ([Review 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-review-0.1.md)).
+session. Added in 1.4.0 ([Review 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-review-0.1.md)).
 
 ```sh
 npx --no-install caveat-lang review program.cav choose@1 events.jsonl
@@ -274,14 +304,31 @@ npx --no-install caveat-lang review program.cav choose@1 events.jsonl
 `caveat review --all <directory>` reviews a set of past ledgers: every
 `NAME.cav` beside `NAME.events.jsonl` under the directory, and a directory's
 only `.cav` beside `events.jsonl`. It reviews each revision that has an
-outcome or consulted a past review, and with `--json` prints one object per
-line. A program records that it read a past review with ordinary evidence
+outcome or consulted a past review. With `--json` it prints one object per
+line. `--summary` adds counts of recorded outcomes by caveat and carrying
+evidence (with `--json`, as the last line). It groups exact identifier strings:
+matching names in different programs pool, while `scan` and `scan@1` stay
+separate. Matching names do not establish source identity, truth or causation;
+inspect the individual reviews before treating a group as a pattern.
+A program records that it read a past review with ordinary evidence
 whose source names it, `evidence lesson from "caveat-review:<program sha256>#refund@1";`;
 a review lists it under Consulted, and `--all` says what that review found.
-It is a 1.4 draft ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
+Added in 1.4.0 ([Ledger Sets 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-ledger-sets-0.1.md)).
 
 ```sh
 npx --no-install caveat-lang review --all ledgers/
+```
+
+`caveat find <directory> <word>...` asks the same ledgers whether something
+was decided before: every decision revision whose decision, program path,
+evidence, evidence sources, claims, caveats or retention reasons hold every
+word, ignoring case, with its value, whether it still stands, what it rests
+on and how it turned out. With `--json` it prints one `caveat-find/0.1`
+report; the MCP tool `caveat_find` does the same for inline records of one
+program (from 1.5.0, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)).
+
+```sh
+npx --no-install caveat-lang find ledgers/ customer email
 ```
 
 ## Check, replay, start
@@ -304,10 +351,16 @@ npx --no-install caveat-lang init my-project
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report. `--unused` also reports a claim,
   evidence, caveat or state that nothing else names, such as one a rewrite
-  left behind. `--records` also reports where a program reads a decision's
+  left behind. `--names` (from 1.5.0) also reports a `commit` whose name
+  is one or two edits from a declared decision series: it would run as a
+  separate plain commitment and the series would never record it.
+  `--records` also reports where a program reads a decision's
   record in a place a later `qualify` reaches (1.1 changed what those reads
   carry). `--records --save SAVE` lists the values in a save written by a
   1.0.x runtime that are missing such a caveat.
+  `--withdrawals` also reports each commit on something the program can
+  withdraw that nothing asks is withdrawn, and each decision on such a source
+  that no withdrawal reopens.
   [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
@@ -368,6 +421,17 @@ session.close();
 resumed.close();
 ```
 
+Fresh sessions use corrected module scope. A small class of historical
+module saves can be ambiguous because old runtimes captured a root
+`hold` or `release` declaration. If restore requests a choice, use the
+known history, for example
+`runtime.restore(source, saved, { moduleBindings: 'legacy-hold-capture' })`
+to continue that old behavior, or `'scoped'` for the corrected interpretation.
+The next save remembers the choice. This continues historical state; it
+does not convert old decisions to new semantics.
+[The save contract](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-save-0.1.md#module-binding-interpretation)
+explains the ambiguity and the corresponding `serve` option.
+
 To store a short session, call `session.save({ compact: true })` instead of
 keeping your own list of events. While the session's accepted events fit in
 4,096 bytes and are smaller than the state save, it returns them as a
@@ -393,7 +457,8 @@ To ask what an event would do without doing it, call
 from a copy of the session that is then dropped, so the session is unchanged
 whatever the answer: for example, which decisions withdrawing some evidence
 would reopen, or whether a commitment would be refused. It takes the same
-`{ fields }` option. A fatal answer throws but leaves the session usable
+`{ fields }` and `{ agent }` options, so it can ask about an event only one
+agent may send. A fatal answer throws but leaves the session usable
 ([dispatch](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md#the-what-if-path)).
 
 A runtime keeps the last few programs it loaded, so opening or restoring the
@@ -430,6 +495,13 @@ To recover, load again: `loadRuntimeFromDirectory()` always gives a fresh
 instance, and `loadRuntime()` given a module URL imports a fresh copy once the
 earlier instance has trapped.
 
+A trap is not always the program's doing. WebKit 26.0 trapped in about 1% of
+fresh pages while creating a session, a fault in its WebAssembly tier-up that
+newer WebKit does not have. Opening a program and dispatching its events give
+the same result every time, so a host that sees a trap can load a fresh
+runtime and run the same steps once more; the
+[break page](https://github.com/WSattazahn/caveat-lang/blob/main/web/break.js) does this.
+
 Close each session with `close()` once you no longer need it. A session holds
 runtime memory until it is closed, and the garbage collector frees an
 unclosed one only after its last reference is gone and only between
@@ -440,6 +512,15 @@ says it ran out of memory and how many sessions were still open
 (`runtime.openSessions`). Load the runtime again to continue. Code that uses
 the runtime's `WebReactiveSession` directly frees a session with `free()`, and
 `WebReactiveSession.out_of_memory()` tells whether a trap came from memory.
+
+Restoring a save needs memory that grows with the save's length (the
+[limits](https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md)
+give measured figures), so a large save can run the runtime out of memory
+with no other session open. Its `fatal` error then says the runtime ran out
+of memory while restoring a save, or while checking one in `runtime.check`,
+gives the save's length in characters and counts the other sessions open;
+when any are open, it still says to close each session once it is no longer
+needed. Load the runtime again as above.
 
 In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
 Serve the installed files over HTTP and load the runtime from URLs (adjust

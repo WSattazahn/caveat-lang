@@ -1,7 +1,7 @@
 # Agent evidence: calling Caveat from an application
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 This example shows an application, such as an agent's harness, using a Caveat
@@ -11,7 +11,7 @@ wrong, and asks for a new assessment. It talks to the program through
 `caveat serve`, from Python.
 
 - `assessment.cav`: the program.
-- `caller.py`: a client for [Serve 0.1](../../docs/reference/spec/caveat-serve-0.1.md),
+- `caller.py`: a client for [Serve 0.1](../../../spec/caveat-serve-0.1.md),
   standard library only, Python 3.9 or later.
 - `test_caller.py`: the original 53 caller tests, including real-server and
   protocol-failure cases.
@@ -33,7 +33,7 @@ package specifier:
 <!-- caveat-package:agent-install -->
 ```sh
 npm init -y
-npm install caveat-lang@1.4.1
+npm install caveat-lang@1.5.0
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
 npx --no-install caveat-lang validate assessment.cav
@@ -76,7 +76,7 @@ set `CAVEAT_COMMAND` to `["npx", "--no-install", "caveat-lang"]` (use
   `0..100`; anything else is refused as `input/bound_exceeded`. From 70 up it
   supports the answer, below 70 it opposes it. An opposing observation
   reopens an approval in force
-  ([reopening triggers](../../docs/reference/spec/caveat-reopening-triggers-0.1.md)).
+  ([reopening triggers](../../../spec/caveat-reopening-triggers-0.1.md)).
 - `assess` commits an approval that rests on the latest observation. The
   program refuses it, with its own `reject`, when there is no observation,
   when the latest one is withdrawn, when an approval is already in force, or
@@ -84,7 +84,7 @@ set `CAVEAT_COMMAND` to `["npx", "--no-install", "caveat-lang"]` (use
 - `retract` withdraws the latest observation, because of a recheck. This is
   the program's explicit withdrawal policy. The withdrawal keeps its record,
   and the approval keeps the grounds it was made on
-  ([withdrawal](../../docs/reference/spec/caveat-withdrawal-0.1.md)). A
+  ([withdrawal](../../../spec/caveat-withdrawal-0.1.md)). A
   withdrawal reopens nothing by itself; a later rule reopens an approval that
   rests on the withdrawn observation. The program refuses `retract` when
   there is no observation, or when the latest one is already withdrawn.
@@ -110,7 +110,7 @@ do not take one for another.
    server exits with status 2.
 2. **Was the event accepted?** `outcome` is `accepted` or `rejected`, with
    `origin`, `code` and `message` when rejected
-   ([dispatch outcomes](../../docs/reference/spec/caveat-dispatch-0.1.md)). A
+   ([dispatch outcomes](../../../spec/caveat-dispatch-0.1.md)). A
    rejected event is a successful request, and the session is unchanged.
 3. **Does the application's decision permit what it intends?** Only the
    current session says. Read it after the attempt, from the snapshot, or from
@@ -402,11 +402,12 @@ policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
 
 A `CaveatServer` holds its session as long as its `caveat serve` process runs.
-The [MCP authoring tools](../../docs/MCP.md) are a different route: each tool
-call is a fresh subprocess with no session handle, and one connection accepts
-4,096 request IDs before the bridge ends it and the host must reconnect. They
-suit checking a program, not holding an agent's evidence across a long task;
-use this server, and its save, for that.
+The [MCP authoring tools](../../docs/MCP.md) keep no session state in the
+server (each call starts a fresh subprocess, and one connection accepts 4,096
+request IDs before reconnecting). From 1.5.0, `caveat_dispatch` lets an MCP
+host step one ledger across calls by passing the compact save back each time;
+use `caveat serve` (with `--state`) when your application wants a persistent
+local process or file-backed session.
 
 From this repository checkout or the installed package, run the lifecycle
 suite separately from the original 53 tests:
@@ -451,10 +452,10 @@ and the rule are the same.
 - An accepted event, or an approval, permits nothing beyond what the
   application's own rule says it permits. It is not permission for any other
   action. To record who permitted a decision, see
-  [permission](../../docs/reference/spec/caveat-permission-0.1.md).
+  [permission](../../../spec/caveat-permission-0.1.md).
 - There is no receipt store, no hashing and no binding to files. Which
   records to keep, and how to tie them to what they describe, is specific to
   each application, and deliberately left out.
 
-The [authoring guide](../../docs/reference/docs/AI_AUTHORING.md) covers
+The [authoring guide](../../../docs/AI_AUTHORING.md) covers
 withdrawal, permission and reopening at more length.

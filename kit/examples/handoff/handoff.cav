@@ -62,6 +62,7 @@ event sub_object;
 event sub_report result in pass fail, coverage in full linux sample;
 
 # Main agent: the plan, and what it rules out.
+on main_request when withdrawn(schema_review) reject "The schema review was withdrawn; the plan cannot rest on it again.";
 on main_request reveal user_request supports cleanup_needed;
 on main_request reveal schema_review supports cleanup_needed;
 on main_request commit plan because enough citing qualified(1, user_request), qualified(1, schema_review);
@@ -105,9 +106,11 @@ on main_return release plan because return_review;
 # Shipping the sub-agent's work cannot be undone.
 on main_ship when not has_sample(reports) reject "No report to ship on.";
 on main_ship when latest(reports) == 0 reject "The latest report failed.";
+on main_ship when withdrawn(latest(reports)) reject "The latest report was withdrawn.";
 on main_ship commit ship because enough using latest(reports);
 on main_ship_on_linux when not has_sample(reports) reject "No report to ship on.";
 on main_ship_on_linux when latest(reports) == 0 reject "The latest report failed.";
+on main_ship_on_linux when withdrawn(latest(reports)) reject "The latest report was withdrawn.";
 on main_ship_on_linux when not observed(return_review) reject "Review the return first.";
 on main_ship_on_linux commit ship because enough using latest(reports)
     retaining linux_only because return_review;

@@ -285,3 +285,40 @@ fn maps_describe_rules_while_web_snapshots_expose_only_reached_results() {
         web.snapshot()
     );
 }
+
+/// Finding: with several actions that lack an `otherwise` resolution, the map
+/// named whichever came first in a hash set, so its load error changed from
+/// process to process. It names the first in source order. The actions are
+/// chosen so that the set the old check built would not walk the first first.
+#[test]
+fn several_actions_without_otherwise_name_the_first_in_source_order_not_hash_order() {
+    for salt in 0..64 {
+        let actions = (0..4)
+            .map(|index| format!("act{salt}x{index}"))
+            .collect::<Vec<_>>();
+        let mut walked = caveat_runtime::fast_hash::HashSet::default();
+        for action in &actions {
+            walked.insert(action.as_str());
+        }
+        if walked.iter().next() == Some(&actions[0].as_str()) {
+            continue;
+        }
+        let mut source =
+            String::from("place a kind corridor;\nstart_at a;\nevidence seen from \"camera\";\n");
+        for action in &actions {
+            source.push_str(&format!("action {action} from a to a steps stay;\n"));
+        }
+        for action in &actions {
+            source.push_str(&format!("resolve {action} as good when observed seen;\n"));
+        }
+        assert_eq!(
+            CaveatMap::from_source(&source).map(|_| ()).unwrap_err(),
+            format!(
+                "action {} requires exactly one otherwise resolution",
+                actions[0]
+            )
+        );
+        return;
+    }
+    panic!("no actions put a hash set's first against source order");
+}

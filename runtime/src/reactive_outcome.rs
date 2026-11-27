@@ -16,6 +16,17 @@ pub enum RejectionOrigin {
     Limit,
 }
 
+impl RejectionOrigin {
+    pub(crate) fn tag(self) -> u8 {
+        match self {
+            Self::Policy => 0,
+            Self::Input => 1,
+            Self::Evaluation => 2,
+            Self::Limit => 3,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -49,6 +60,45 @@ pub enum RejectionCode {
     EvaluationLimit,
     WrongAgent,
     TextLimit,
+    /// spec/caveat-unset-states-0.1.md
+    UnsetState,
+}
+
+impl RejectionCode {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Reject => "reject",
+            Self::UnknownEvent => "unknown_event",
+            Self::PayloadInvalid => "payload_invalid",
+            Self::BoundExceeded => "bound_exceeded",
+            Self::DecisionInForce => "decision_in_force",
+            Self::EmptyCaveatedSelection => "empty_caveated_selection",
+            Self::AttentionLimit => "attention_limit",
+            Self::WorkLimit => "work_limit",
+            Self::DepthLimit => "depth_limit",
+            Self::HistoryLimit => "history_limit",
+            Self::IdentifierLimit => "identifier_limit",
+            Self::RenewalLimit => "renewal_limit",
+            Self::NotPermitted => "not_permitted",
+            Self::UngroundedCitation => "ungrounded_citation",
+            Self::UnobservedEvidence => "unobserved_evidence",
+            Self::Expression => "expression",
+            Self::RequirementFailed => "requirement_failed",
+            Self::ScheduledLimit => "scheduled_limit",
+            Self::NotCommitted => "not_committed",
+            Self::AlreadyCommitted => "already_committed",
+            Self::Foreclosed => "foreclosed",
+            Self::CaveatedIrreversible => "caveated_irreversible",
+            Self::AlreadyResolved => "already_resolved",
+            Self::NotRetained => "not_retained",
+            Self::ReasonSpent => "reason_spent",
+            Self::ProvenanceLimit => "provenance_limit",
+            Self::EvaluationLimit => "evaluation_limit",
+            Self::WrongAgent => "wrong_agent",
+            Self::TextLimit => "text_limit",
+            Self::UnsetState => "unset_state",
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -255,6 +305,7 @@ impl From<EvalError> for DispatchFailure {
                 (RejectionOrigin::Limit, RejectionCode::EvaluationLimit)
             }
             EvalFailure::TextLimit => (RejectionOrigin::Limit, RejectionCode::TextLimit),
+            EvalFailure::UnsetState => (RejectionOrigin::Evaluation, RejectionCode::UnsetState),
             EvalFailure::Other => return error.message.into(),
         };
         Self::rejected(origin, code, error.message)
@@ -359,6 +410,63 @@ mod tests {
                 ),
                 (old, new) => panic!("{old:?} against {new:?}"),
             }
+        }
+    }
+
+    #[test]
+    fn binary_rejection_tags_and_codes_match_serde() {
+        let origins = [
+            RejectionOrigin::Policy,
+            RejectionOrigin::Input,
+            RejectionOrigin::Evaluation,
+            RejectionOrigin::Limit,
+        ];
+        let expected_origins = ["policy", "input", "evaluation", "limit"];
+        for (index, origin) in origins.into_iter().enumerate() {
+            assert_eq!(origin.tag() as usize, index);
+            assert_eq!(
+                serde_json::to_string(&origin).unwrap(),
+                format!("\"{}\"", expected_origins[index])
+            );
+        }
+        let all_codes = [
+            RejectionCode::Reject,
+            RejectionCode::UnknownEvent,
+            RejectionCode::PayloadInvalid,
+            RejectionCode::BoundExceeded,
+            RejectionCode::DecisionInForce,
+            RejectionCode::EmptyCaveatedSelection,
+            RejectionCode::AttentionLimit,
+            RejectionCode::WorkLimit,
+            RejectionCode::DepthLimit,
+            RejectionCode::HistoryLimit,
+            RejectionCode::IdentifierLimit,
+            RejectionCode::RenewalLimit,
+            RejectionCode::NotPermitted,
+            RejectionCode::UngroundedCitation,
+            RejectionCode::UnobservedEvidence,
+            RejectionCode::Expression,
+            RejectionCode::RequirementFailed,
+            RejectionCode::ScheduledLimit,
+            RejectionCode::NotCommitted,
+            RejectionCode::AlreadyCommitted,
+            RejectionCode::Foreclosed,
+            RejectionCode::CaveatedIrreversible,
+            RejectionCode::AlreadyResolved,
+            RejectionCode::NotRetained,
+            RejectionCode::ReasonSpent,
+            RejectionCode::ProvenanceLimit,
+            RejectionCode::EvaluationLimit,
+            RejectionCode::WrongAgent,
+            RejectionCode::TextLimit,
+            RejectionCode::UnsetState,
+        ];
+        for code in all_codes {
+            assert_eq!(
+                serde_json::to_string(&code).unwrap(),
+                format!("\"{}\"", code.as_str()),
+                "RejectionCode::{code:?} mismatch"
+            );
         }
     }
 }

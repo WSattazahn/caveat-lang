@@ -1,6 +1,6 @@
-# CAVEAT Across Members 0.1 (draft) — a sum, or "any", over a kind's members
+# CAVEAT Across Members 0.1 — a sum, or "any", over a kind's members
 
-**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable) until a 1.x release ships it. Draft for 1.5: specified on its branch, not yet in a release. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put `for` where an expression goes, which does not load in 1.4.
+**Status:** stable from 1.5.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.5. It adds to [Repetition 0.1](caveat-repetition-0.1.md) and [Nested Repetition 0.1](caveat-nested-repetition-0.1.md) and changes no program that loads today: the new forms put a `for KIND as $NAME:` header where an expression goes, which does not load in 1.4. An ordinary expression may already read an identifier named `for`.
 
 A [`for` block](caveat-repetition-0.1.md) writes a statement once per member
 of a kind. An expression that reads every member is still written by hand.
@@ -43,6 +43,16 @@ parentheses outside quoted text.
 The word must start a name of its own: `my_sum(for …` and `glow::any(for …`
 are not these forms. Whitespace may come between the word and `(`, and
 between `(` and `for`.
+
+An authored function still takes ordinary arguments: `sum(for + 1)`,
+`any(for , 2)` and `all(for (2))` are calls using an identifier or function
+named `for`, not across forms. An ordinary call may also contain an across
+form farther inside its argument.
+
+An evidence declaration's source, the words after `evidence NAME from`, is
+text, quoted or not, and holds no form: `evidence e2 from sum(for beast as
+$x: s);` keeps its source as written, as 1.4 did. In a `for` block, the
+block replaces the `$` words of a source as it replaces any other.
 
 ## 2. Expansion
 
@@ -130,3 +140,11 @@ reads the 208 tracked programs, comments and quoted text removed
 ## Changes
 
 - 2026-10-25: drafted from the [intel example](../kit/examples/intel-betrayal/README.md), whose sums named each informant.
+- 2026-11-14 (D086): an evidence declaration's source is left as written.
+  An unquoted source holding `sum(for …)` text was expanded, so a program
+  that 1.4 loads was refused when no entity of that kind is declared, or
+  when the declaration sits in a block that binds the same name. A
+  source in a block holding a `$` word the block does not bind is
+  refused again, as by every release; main had expanded the form there,
+  which bound the word.
+  Test: `runtime/tests/d086_across_text_in_evidence_source.rs`.

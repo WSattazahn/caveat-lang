@@ -186,9 +186,12 @@ test('round8_item7_unfreed_sessions: a trap from exhausted memory names the caus
   kept[2].close();
   assert.equal(runtime.openSessions, 2, 'a closed session is no longer counted');
   exhausted = true;
-  assert.throws(() => runtime.open(thermostat), error => error.kind === 'fatal'
-    && /ran out of WebAssembly memory with 2 session\(s\) open/.test(error.message)
-    && /close\(\)/.test(error.message) && /unreachable/.test(error.message));
+  assert.throws(() => runtime.open(thermostat), {
+    name: 'CaveatError',
+    kind: 'fatal',
+    message: 'the runtime ran out of WebAssembly memory with 2 session(s) open (trap: unreachable). '
+      + 'Close each session with close() once it is no longer needed. This runtime instance is now unusable; load it again.',
+  });
   assert.equal(runtime.trapped, true);
   assert.equal(kept.length, 3);
 });
@@ -197,6 +200,120 @@ test('round8_item7_unfreed_sessions: any other trap keeps its own message', () =
   const { runtime } = faulty({ dispatch() { throw new WebAssembly.RuntimeError('unreachable'); } });
   const session = runtime.open(thermostat);
   assert.throws(() => session.dispatch('read', { value: 17 }), error => error.kind === 'fatal' && error.message === 'unreachable');
+});
+
+// D070 review: restore takes a state save of any size, so a restore can run
+// out of memory however few sessions are open, and the message blamed the
+// open sessions and said to close them. A stand-in runtime whose memory runs
+// out at the call named `at`; it never reads the save.
+function exhaustingAt(at) {
+  let exhausted = false;
+  const trap = call => { if (exhausted && call === at) throw new WebAssembly.RuntimeError('unreachable'); };
+  class Exhausting {
+    constructor() { trap('open'); }
+    static restore() { trap('restore'); return new Exhausting(); }
+    static check() { trap('check'); return '{}'; }
+    static check_options() { trap('check_options'); return '{}'; }
+    static interface() { trap('interface'); return '{}'; }
+    static out_of_memory() { return exhausted; }
+    dispatch_outcome() { trap('dispatch'); return '{}'; }
+    save() { trap('save'); return '{}'; }
+    free() {}
+  }
+  return { runtime: createRuntime(Exhausting), exhaust: () => { exhausted = true; } };
+}
+
+// The message for a restore or check of a save that ran out of memory with
+// `others` other sessions open.
+const savingMessage = (during, length, others) => `the runtime ran out of WebAssembly memory while ${during} a save of ${length} characters, `
+  + `with ${others} other session(s) open (trap: unreachable). `
+  + `${during === 'checking' ? 'Checking' : 'Restoring'} a save needs memory that grows with its length. `
+  + (others > 0 ? 'Close each session with close() once it is no longer needed. ' : '')
+  + 'This runtime instance is now unusable; load it again.';
+
+// The message for any other call that ran out of memory with `open` sessions open.
+const openSessionsMessage = open => `the runtime ran out of WebAssembly memory with ${open} session(s) open (trap: unreachable). `
+  + 'Close each session with close() once it is no longer needed. This runtime instance is now unusable; load it again.';
+
+test('d070_restore_out_of_memory: a restore or check of a save that runs out of memory names it and the save\'s length', () => {
+  const saved = 'x'.repeat(12345);
+  for (const [at, call, during] of [
+    ['restore', runtime => runtime.restore(thermostat, saved), 'restoring'],
+    // check restores the save itself, then reads it again inside check_options.
+    ['restore', runtime => runtime.check(thermostat, { records: true, save: saved }), 'checking'],
+    ['check_options', runtime => runtime.check(thermostat, { records: true, save: saved }), 'checking'],
+  ]) {
+    for (const others of [0, 1]) {
+      const { runtime, exhaust } = exhaustingAt(at);
+      const open = Array.from({ length: others }, () => runtime.open(thermostat));
+      exhaust();
+      assert.throws(() => call(runtime), error => {
+        assert.ok(error instanceof CaveatError, at);
+        assert.equal(error.kind, 'fatal', at);
+        assert.equal(error.message, savingMessage(during, 12345, others), at);
+        return true;
+      });
+      assert.equal(runtime.trapped, true, at);
+      for (const session of open) {
+        assert.throws(() => session.snapshot(), error => error.kind === 'fatal' && /trapped/.test(error.message), at);
+      }
+    }
+  }
+});
+
+// The README's leak pattern, a batch of saves resumed and never closed: a
+// small save's restore runs out because of the sessions, and the message
+// still says to close them.
+test('d070_restore_out_of_memory: a restore that runs out among unclosed sessions still says to close them', () => {
+  const { runtime, exhaust } = exhaustingAt('restore');
+  const saved = 's'.repeat(2219);
+  const kept = Array.from({ length: 1756 }, () => runtime.restore(thermostat, saved));
+  assert.equal(runtime.openSessions, 1756);
+  exhaust();
+  assert.throws(() => runtime.restore(thermostat, saved), {
+    name: 'CaveatError',
+    kind: 'fatal',
+    message: 'the runtime ran out of WebAssembly memory while restoring a save of 2219 characters, '
+      + 'with 1756 other session(s) open (trap: unreachable). Restoring a save needs memory that grows with its length. '
+      + 'Close each session with close() once it is no longer needed. This runtime instance is now unusable; load it again.',
+  });
+  assert.equal(kept.length, 1756);
+});
+
+test('d070_restore_out_of_memory: a check without a save keeps the open-sessions message', () => {
+  const { runtime, exhaust } = exhaustingAt('check_options');
+  runtime.open(thermostat);
+  exhaust();
+  assert.throws(() => runtime.check(thermostat, { records: true }), {
+    name: 'CaveatError',
+    kind: 'fatal',
+    message: openSessionsMessage(1),
+  });
+  assert.equal(runtime.trapped, true);
+});
+
+// Every call that neither restores nor checks a save keeps the message as it
+// was: open, the program load check does before it restores a save,
+// interface, and a session's dispatch and save.
+test('d070_restore_out_of_memory: every other call keeps the open-sessions message', () => {
+  const saved = 'x'.repeat(12345);
+  for (const [at, call, open] of [
+    ['open', runtime => runtime.open(thermostat), 1],
+    ['open', runtime => runtime.check(thermostat, { records: true, save: saved }), 1],
+    ['interface', runtime => runtime.interface(thermostat), 1],
+    ['dispatch', (_runtime, session) => session.dispatch('read', { value: 17 }), 1],
+    ['save', (_runtime, session) => session.save(), 1],
+  ]) {
+    const { runtime, exhaust } = exhaustingAt(at);
+    const session = runtime.open(thermostat);
+    exhaust();
+    assert.throws(() => call(runtime, session), {
+      name: 'CaveatError',
+      kind: 'fatal',
+      message: openSessionsMessage(open),
+    }, at);
+    assert.equal(runtime.trapped, true, at);
+  }
 });
 
 test('the real runtime reports whether it has run out of memory', () => {

@@ -30,32 +30,6 @@ pub(super) struct ReplayEntry {
 }
 
 impl ReplayEntry {
-    /// `["event"]`, or `["event", {payload}]`.
-    fn to_value(&self) -> Value {
-        let mut entry = vec![Value::String(self.event.clone())];
-        if !self.payload.is_empty() {
-            entry.push(Value::Object(self.payload.clone()));
-        }
-        Value::Array(entry)
-    }
-
-    /// `[E, ARGUMENT, …]`, written into the save without its brackets: the event's position in `events`, which is in name
-    /// order as the interface lists them, then each parameter in declared
-    /// order, written as in the payload.
-    fn to_positional(&self, events: &BTreeMap<String, Vec<Parameter>>) -> Value {
-        let position = events.keys().position(|name| *name == self.event);
-        let mut entry = vec![Value::from(position.unwrap_or(usize::MAX))];
-        for parameter in events.get(&self.event).into_iter().flatten() {
-            entry.push(
-                self.payload
-                    .get(&parameter.name)
-                    .cloned()
-                    .unwrap_or(Value::Null),
-            );
-        }
-        Value::Array(entry)
-    }
-
     /// The entry that begins `items`, and how many values it takes: the
     /// event's position, then one value for each of its parameters.
     fn from_positional(
@@ -112,18 +86,6 @@ impl ReplayEntry {
     }
 }
 
-/// A parameter as JSON: a whole number within 2^53 without a fraction, so
-/// `1` rather than `1.0`, and any other value as `serde_json` writes an `f64`,
-/// `-0.0` included. Both read back as the same `f64`. An accepted event's
-/// parameters are finite.
-fn number(value: f64) -> Value {
-    const EXACT: f64 = 9_007_199_254_740_992.0;
-    if value.fract() == 0.0 && value.abs() < EXACT && !(value == 0.0 && value.is_sign_negative()) {
-        return Value::from(value as i64);
-    }
-    serde_json::Number::from_f64(value).map_or(Value::Null, Value::Number)
-}
-
 /// A hex digest as base64url without padding, as the positional replay save
 /// writes it; `None` if it is not hex.
 fn base64url(hex: &str) -> Option<String> {
@@ -145,11 +107,127 @@ fn base64url(hex: &str) -> Option<String> {
     Some(text)
 }
 
+use std::io::Write;
+
+/// A parameter value kept in a compact replay log without allocating a
+/// `serde_json::Value` or repeating parameter names on every event.
+#[derive(Debug, Clone, PartialEq)]
+enum ReplayValue {
+    Int(i64),
+    Float(f64),
+    Text(String),
+}
+
+impl ReplayValue {
+    fn from_number(value: f64) -> Self {
+        const EXACT: f64 = 9_007_199_254_740_992.0;
+        if value.fract() == 0.0
+            && value.abs() < EXACT
+            && !(value == 0.0 && value.is_sign_negative())
+        {
+            Self::Int(value as i64)
+        } else {
+            Self::Float(value)
+        }
+    }
+
+    fn to_value(&self) -> Value {
+        match self {
+            Self::Int(value) => Value::from(*value),
+            Self::Float(value) => {
+                serde_json::Number::from_f64(*value).map_or(Value::Null, Value::Number)
+            }
+            Self::Text(text) => Value::String(text.clone()),
+        }
+    }
+
+    fn json_len(&self) -> usize {
+        match self {
+            Self::Int(value) => signed_len(*value),
+            Self::Float(value) => {
+                let mut counter = ByteCounter(0);
+                let _ = serde_json::to_writer(&mut counter, value);
+                counter.0
+            }
+            Self::Text(text) => json_str_len(text),
+        }
+    }
+}
+
+struct ByteCounter(usize);
+
+impl Write for ByteCounter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0 += buf.len();
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn unsigned_len(mut value: u64) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
+}
+
+fn signed_len(value: i64) -> usize {
+    if value < 0 {
+        1 + unsigned_len(value.unsigned_abs())
+    } else {
+        unsigned_len(value as u64)
+    }
+}
+
+fn json_str_len(text: &str) -> usize {
+    if text.bytes().all(|b| b >= 0x20 && b != b'"' && b != b'\\') {
+        return text.len() + 2;
+    }
+    let mut counter = ByteCounter(0);
+    let _ = serde_json::to_writer(&mut counter, text);
+    counter.0
+}
+
+#[derive(Debug, Clone)]
+struct CompactEntry {
+    event_index: usize,
+    values: Vec<ReplayValue>,
+}
+
+impl CompactEntry {
+    fn to_named_value(&self, events: &BTreeMap<String, Vec<Parameter>>) -> Value {
+        let Some((event, parameters)) = events.iter().nth(self.event_index) else {
+            return Value::Null;
+        };
+        let mut entry = vec![Value::String(event.clone())];
+        if !self.values.is_empty() {
+            let mut map = serde_json::Map::with_capacity(self.values.len());
+            for (parameter, value) in parameters.iter().zip(&self.values) {
+                map.insert(parameter.name.clone(), value.to_value());
+            }
+            entry.push(Value::Object(map));
+        }
+        Value::Array(entry)
+    }
+
+    fn push_positional(&self, out: &mut Vec<Value>) {
+        out.push(Value::from(self.event_index));
+        for value in &self.values {
+            out.push(value.to_value());
+        }
+    }
+}
+
 /// The events a session accepted since its program loaded, while their
 /// replay save fits.
 #[derive(Debug, Clone)]
 pub(super) struct ReplayLog {
-    entries: Vec<ReplayEntry>,
+    entries: Vec<CompactEntry>,
     /// The bytes the entries take in a replay save, separators included,
     /// while they still fit; `None` once they no longer do.
     bytes: Option<usize>,
@@ -174,41 +252,107 @@ impl ReactiveSession {
         if self.replay.is_none() {
             return;
         }
-        let identifier = |name: &String| {
-            self.events.get(event).is_some_and(|signature| {
-                signature.iter().any(|parameter| {
-                    parameter.name == *name
-                        && matches!(parameter.domain, ParameterDomain::Identifier { .. })
-                })
-            })
-        };
-        let payload = parameters
+        let Some((event_index, (_, signature))) = self
+            .events
             .iter()
-            .map(|(name, value)| {
-                let value = match self.identifiers.text(*value) {
-                    Some(text) if identifier(name) => Value::String(text.to_string()),
-                    _ => number(*value),
-                };
-                (name.clone(), value)
-            })
-            .collect();
-        let entry = ReplayEntry {
-            event: event.to_string(),
-            payload,
-        };
-        // Without its brackets, and with the comma before it.
-        let positional = entry.to_positional(&self.events).to_string().len() - 1;
-        let named = entry.to_value().to_string().len() + 1;
-        let Some(log) = self.replay.as_mut() else {
+            .enumerate()
+            .find(|(_, (name, _))| name.as_str() == event)
+        else {
             return;
         };
+        let mut inline = [0.0f64; 8];
+        let mut heap = Vec::new();
+        let values: &[f64] = if signature.len() <= inline.len() {
+            for (slot, parameter) in inline[..signature.len()].iter_mut().zip(signature) {
+                *slot = parameters[&parameter.name];
+            }
+            &inline[..signature.len()]
+        } else {
+            heap.extend(signature.iter().map(|p| parameters[&p.name]));
+            &heap
+        };
+        self.record_replay_indexed(event_index, event, values);
+    }
+
+    /// Fast positional variant of `record_replay` reading parameter values
+    /// directly from declared-order slots without `BTreeMap` lookups.
+    pub(super) fn record_replay_slots(&mut self, event: &str, values: &[f64]) {
+        if self.replay.is_none() {
+            return;
+        }
+        let Some((event_index, _)) = self
+            .events
+            .iter()
+            .enumerate()
+            .find(|(_, (name, _))| name.as_str() == event)
+        else {
+            return;
+        };
+        self.record_replay_indexed(event_index, event, values);
+    }
+
+    fn record_replay_indexed(&mut self, event_index: usize, event: &str, raw_values: &[f64]) {
+        let Some(log) = self.replay.as_ref() else {
+            return;
+        };
+        let Some((_, signature)) = self.events.iter().nth(event_index) else {
+            return;
+        };
+        let track_named = log.bytes.is_some();
+        let mut values = Vec::with_capacity(signature.len());
+        // Positional entry `[E, v0, v1, ...]` without brackets plus comma:
+        // `1 + len(E) + sum(1 + len(v))`.
+        let mut positional = 1 + unsigned_len(event_index as u64);
+        // Named entry `["event"]` + comma = `3 + len("event")`, or
+        // `["event",{"k":v,...}]` + comma = `5 + len("event") + sum(len("k") + 2 + len(v))`.
+        let mut named = if track_named {
+            (if signature.is_empty() { 3 } else { 5 }) + json_str_len(event)
+        } else {
+            0
+        };
+        for (parameter, &raw) in signature.iter().zip(raw_values) {
+            let value = match parameter.domain {
+                ParameterDomain::Identifier { .. } => match self.identifiers.text(raw) {
+                    Some(text) => ReplayValue::Text(text.to_string()),
+                    None => ReplayValue::from_number(raw),
+                },
+                _ => ReplayValue::from_number(raw),
+            };
+            let vlen = value.json_len();
+            positional += 1 + vlen;
+            if track_named {
+                named += json_str_len(&parameter.name) + 2 + vlen;
+            }
+            values.push(value);
+        }
+        let entry = CompactEntry {
+            event_index,
+            values,
+        };
+        #[cfg(debug_assertions)]
+        {
+            let mut pos_values = Vec::with_capacity(entry.values.len() + 1);
+            entry.push_positional(&mut pos_values);
+            debug_assert_eq!(
+                positional,
+                Value::Array(pos_values).to_string().len() - 1,
+                "positional replay length mismatch"
+            );
+            if track_named {
+                debug_assert_eq!(
+                    named,
+                    entry.to_named_value(&self.events).to_string().len() + 1,
+                    "named replay length mismatch"
+                );
+            }
+        }
         // A positional entry is never longer than its named one, so the
         // positional log outlasts the named one.
         if log.positional_bytes + positional > REPLAY_SAVE_MAX_BYTES {
             self.replay = None;
             return;
         }
-        let log = Arc::make_mut(log);
+        let log = Arc::make_mut(self.replay.as_mut().expect("checked above"));
         log.entries.push(entry);
         log.positional_bytes += positional;
         log.bytes = log
@@ -227,13 +371,20 @@ impl ReactiveSession {
             schema: &'static str,
             source_id: &'a str,
             source_sha256: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            module_bindings: Option<ModuleBindings>,
             events: Vec<Value>,
         }
         let text = serde_json::to_string(&Written {
             schema: REPLAY_SAVE_SCHEMA,
             source_id: &self.source_id,
             source_sha256: &self.source_sha256,
-            events: log.entries.iter().map(ReplayEntry::to_value).collect(),
+            module_bindings: self.module_bindings,
+            events: log
+                .entries
+                .iter()
+                .map(|entry| entry.to_named_value(&self.events))
+                .collect(),
         })
         .ok()?;
         (text.len() <= REPLAY_SAVE_MAX_BYTES).then_some(text)
@@ -258,16 +409,14 @@ impl ReactiveSession {
         struct Written {
             schema: &'static str,
             sha256: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            module_bindings: Option<ModuleBindings>,
             events: Value,
         }
-        let values: Vec<Value> = log
-            .entries
-            .iter()
-            .flat_map(|entry| match entry.to_positional(&self.events) {
-                Value::Array(items) => items,
-                other => vec![other],
-            })
-            .collect();
+        let mut values: Vec<Value> = Vec::new();
+        for entry in &log.entries {
+            entry.push_positional(&mut values);
+        }
         // When every value is a whole number below 36, one base-36 digit each.
         let digits: Option<String> = values
             .iter()
@@ -280,6 +429,7 @@ impl ReactiveSession {
         let text = serde_json::to_string(&Written {
             schema: POSITIONAL_REPLAY_SAVE_SCHEMA,
             sha256: base64url(&self.source_sha256)?,
+            module_bindings: self.module_bindings,
             events: digits.map_or(Value::Array(values), Value::String),
         })
         .ok()?;
@@ -324,7 +474,11 @@ impl ReactiveSession {
 
     /// A session of `source` with the replay save's events dispatched again.
     /// An event the program does not accept refuses the save.
-    pub(super) fn restore_replay_json(source: &str, save: &str) -> Result<Self, String> {
+    pub(super) fn restore_replay_json(
+        source: &str,
+        save: &str,
+        options: &RestoreOptions,
+    ) -> Result<Self, String> {
         let refuse = |error: String| format!("cannot restore save: {error}");
         if save.len() > REPLAY_SAVE_MAX_BYTES {
             return Err(refuse(format!(
@@ -337,6 +491,8 @@ impl ReactiveSession {
             schema: String,
             source_id: String,
             source_sha256: String,
+            #[serde(default, deserialize_with = "deserialize_module_bindings")]
+            module_bindings: Option<ModuleBindings>,
             events: Vec<Value>,
         }
         #[derive(Deserialize)]
@@ -345,6 +501,8 @@ impl ReactiveSession {
             #[allow(dead_code)]
             schema: String,
             sha256: String,
+            #[serde(default, deserialize_with = "deserialize_module_bindings")]
+            module_bindings: Option<ModuleBindings>,
             events: Value,
         }
         #[derive(Deserialize)]
@@ -364,12 +522,47 @@ impl ReactiveSession {
                 serde_json::from_str(save).map_err(|error| refuse(error.to_string()))?;
             (None, Some(saved))
         };
-        let mut session = Self::from_source_cached(source)?;
+        let saved_bindings = positional
+            .as_ref()
+            .and_then(|save| save.module_bindings)
+            .or_else(|| named.as_ref().and_then(|save| save.module_bindings));
+        // Whose save this is: what does not depend on the program the source
+        // is read as, so it is checked before a historical reading is asked
+        // for too.
+        let identity = |source_id: &str, source_sha256: &str| -> Result<(), String> {
+            if let Some(saved) = &positional {
+                if base64url(source_sha256).as_deref() != Some(saved.sha256.as_str()) {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            if let Some(saved) = &named {
+                if saved.schema != REPLAY_SAVE_SCHEMA {
+                    return Err(refuse(format!(
+                        "schema {} is not {REPLAY_SAVE_SCHEMA}",
+                        saved.schema
+                    )));
+                }
+                if saved.source_id != source_id {
+                    return Err(refuse("it belongs to a different program".into()));
+                }
+                if saved.source_sha256 != source_sha256 {
+                    return Err(refuse("its source digest is not this source's".into()));
+                }
+            }
+            Ok(())
+        };
+        // Releases wrote Replay Save 0.1 from 1.1.0 on and 0.2 from 1.2.0 on.
+        let format = if positional.is_some() {
+            Release::V1_2..=Release::Later
+        } else {
+            Release::V1_1..=Release::Later
+        };
+        let mut session = Self::load_for_restore(source, saved_bindings, options, format, || {
+            identity(&source_identity(source), &source_digest(source))
+        })?;
+        identity(&session.source_id, &session.source_sha256)?;
         let mut entries = Vec::new();
         if let Some(saved) = positional {
-            if base64url(&session.source_sha256).as_deref() != Some(saved.sha256.as_str()) {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             let values = match saved.events {
                 Value::Array(values) => values,
                 Value::String(digits) => digits
@@ -397,18 +590,6 @@ impl ReactiveSession {
             }
         }
         if let Some(saved) = named {
-            if saved.schema != REPLAY_SAVE_SCHEMA {
-                return Err(refuse(format!(
-                    "schema {} is not {REPLAY_SAVE_SCHEMA}",
-                    saved.schema
-                )));
-            }
-            if saved.source_id != session.source_id {
-                return Err(refuse("it belongs to a different program".into()));
-            }
-            if saved.source_sha256 != session.source_sha256 {
-                return Err(refuse("its source digest is not this source's".into()));
-            }
             for value in &saved.events {
                 entries.push(ReplayEntry::from_value(value).map_err(refuse)?);
             }

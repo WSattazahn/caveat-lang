@@ -83,7 +83,7 @@ fn the_view_carries_the_journal() {
     let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
     let view = game.dispatch_view_json("see", "{}").unwrap();
     assert_eq!(
-        summary(view.decision_journal),
+        summary(&view.decision_journal.to_vec()),
         vec![entry("committed", "trust@1", &["first", "second"])]
     );
     let json = serde_json::to_value(&view).unwrap();
@@ -110,7 +110,7 @@ fn journal_changes_publish_their_time_and_the_commitments_frozen_value() {
     assert_eq!(journal[0].value, Some(2.0));
     assert_eq!(journal[1].elapsed, Some(24.0));
     assert_eq!(journal[1].value, Some(2.0));
-    assert_eq!(game.view().decision_journal, journal);
+    assert_eq!(game.view().decision_journal.to_vec(), journal);
     let json = serde_json::to_value(game.view()).unwrap();
     assert_eq!(json["decision_journal"][1]["elapsed"], 24.0);
     assert_eq!(json["decision_journal"][1]["value"], 2.0);

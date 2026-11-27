@@ -1,0 +1,6 @@
+{
+  "comment": "The released caveat-lang package the release gate runs on in publish-npm.yml. Changing it is a verification change: it needs the owner's own words.",
+  "version": "1.3.0",
+  "tarball": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-1.3.0.tgz",
+  "sha256": "5c3eb33e973fb000a117e5944bd9d7aa72a1371119e7e1735d83d152c449f136"
+}

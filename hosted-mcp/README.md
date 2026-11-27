@@ -1,7 +1,8 @@
 # Hosted Caveat MCP server
 
 The `caveat-lang` MCP tools (`caveat_validate`, `caveat_check`, `caveat_test`,
-`caveat_explain`, `caveat_dependents`) over Streamable HTTP, as a Cloudflare
+`caveat_explain`, `caveat_dependents`, `caveat_dispatch`, `caveat_find`) over
+Streamable HTTP, as a Cloudflare
 Worker at `https://caveat-mcp.waltersattazahn.workers.dev/mcp`. ChatGPT and
 Codex reach it through the Caveat plugin (`plugins/caveat/.codex-plugin/mcp.json`).
 
@@ -44,7 +45,7 @@ stdio; `test/handler.test.mjs` checks that side by side, and
 
 The free plan allows 3 MB compressed script and 10 ms CPU per request.
 
-- Bundle: 3,247 KiB, 866 KiB gzip (`npm run check`).
+- Bundle: 5,254 KiB, 1,382 KiB gzip (`npm run check` / `wrangler deploy` on `caveat-lang@1.5.0`).
 - CPU (`npm run measure`, Node, one runtime per process as in the Worker):
   once warm, validate, check, explain and dependents take under 1 ms each for
   the starter program, and `caveat_test` with the starter's two scenarios

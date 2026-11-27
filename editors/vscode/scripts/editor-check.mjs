@@ -6,9 +6,17 @@
 // CAVEAT_VSCODE names a VS Code executable to use. Without it, VS Code is
 // downloaded: CAVEAT_VSCODE_VERSION, or else the oldest version the manifest
 // supports. On Linux without a display, run this under xvfb-run.
+//
+// Network errors while looking up or downloading VS Code, and a lookup the
+// update server answers with anything but 200, are retried, up to
+// four tries 2, 4 and 8 s apart, and each address gets 5 s to connect.
+// Node's default of 250 ms per address failed runtime run 41258245240 in
+// 0.27 s: the runner has no IPv6 route, so a slow IPv4 connect to Microsoft's
+// update server was the only try and was cut off.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { setDefaultAutoSelectFamilyAttemptTimeout } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTests } from '@vscode/test-electron';
@@ -22,8 +30,25 @@ const vsix = join(root, 'test-results', 'vscode', `${manifest.name}-${manifest.v
 assert.ok(existsSync(vsix), `${vsix} is missing; run npm run package first`);
 
 const version = process.env.CAVEAT_VSCODE_VERSION ?? manifest.engines.vscode.replace(/^\^/, '');
-const executable = process.env.CAVEAT_VSCODE
-  || await downloadAndUnzipVSCode({ version, cachePath: join(root, 'test-results', 'vscode-download') });
+setDefaultAutoSelectFamilyAttemptTimeout(5000);
+const networkCodes = new Set(['ECONNREFUSED', 'ECONNRESET', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EPIPE', 'ETIMEDOUT']);
+// @vscode/test-electron rejects a lookup answered with anything but 200 with
+// this bare string, and a timed-out request with an Error of this message.
+const isNetworkError = error => error === 'Failed to get JSON' || networkCodes.has(error?.code)
+  || String(error?.message).startsWith('@vscode/test-electron request timeout');
+async function download(tries = 4) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await downloadAndUnzipVSCode({ version, cachePath: join(root, 'test-results', 'vscode-download') });
+    } catch (error) {
+      if (attempt >= tries || !isNetworkError(error)) throw error;
+      const wait = 1000 * 2 ** attempt;
+      console.warn(`VS Code ${version}: try ${attempt} of ${tries} failed (${error?.code ?? error?.message ?? error}); retrying in ${wait / 1000} s`);
+      await new Promise(resolve => setTimeout(resolve, wait));
+    }
+  }
+}
+const executable = process.env.CAVEAT_VSCODE || await download();
 const label = process.env.CAVEAT_VSCODE ? 'local' : version;
 const work = join(root, 'test-results', 'vscode-editor', label);
 rmSync(work, { recursive: true, force: true });

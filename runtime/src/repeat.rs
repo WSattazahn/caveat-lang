@@ -61,17 +61,26 @@ pub fn expand(source: &str) -> Result<String, String> {
 /// joined by `+`, `or` or `and`, and the whole in parentheses. See
 /// spec/caveat-across-members-0.1.md. `scope` names the bindings of the
 /// blocks `text` is in, which the copies keep as written for those blocks
-/// to replace. Text with no such form is returned unchanged.
+/// to replace. Text with no such form is returned unchanged, and so is an
+/// evidence declaration's source (`evidence_sources`).
 pub(crate) fn expand_across(
     text: &str,
     kinds: &[(String, Vec<String>)],
     scope: &[&str],
 ) -> Result<String, String> {
     let code = blank_comments(text);
+    let sources = evidence_sources(text);
     let mut out = String::with_capacity(text.len());
-    let mut cursor = 0;
-    while let Some((start, operator, open)) = across_at(&code[cursor..]) {
-        let (start, open) = (cursor + start, cursor + open);
+    let (mut cursor, mut search) = (0, 0);
+    while let Some((start, operator, open)) = across_at(&code[search..]) {
+        let (start, open) = (search + start, search + open);
+        if let Some(&(_, end)) = sources
+            .iter()
+            .find(|(from, to)| (*from..*to).contains(&start))
+        {
+            search = end;
+            continue;
+        }
         let close = closing_paren(&code, open).ok_or_else(|| {
             format!(
                 "`{}` is not closed: its `(` has no matching `)`",
@@ -122,12 +131,34 @@ pub(crate) fn expand_across(
         out.push_str(&copies.join(operator));
         out.push(')');
         cursor = close + 1;
+        search = cursor;
     }
     if cursor == 0 {
         return Ok(text.to_string());
     }
     out.push_str(&text[cursor..]);
     Ok(out)
+}
+
+/// Where the source of each evidence declaration in `text` lies, from its
+/// first word to the end of its statement: `evidence NAME from SOURCE`,
+/// where SOURCE is text, quoted or not, as the parser reads it (parser.rs
+/// `evidence_source`). No form in it expands: 1.4 kept
+/// `evidence e from sum(for beast as $x: s);` as written (finding D086).
+fn evidence_sources(text: &str) -> Vec<(usize, usize)> {
+    statements_of(text)
+        .into_iter()
+        .filter_map(|(start, end)| {
+            let statement = &text[start..end];
+            let ["evidence", _, "from", source, ..] = statement_words(statement)[..] else {
+                return None;
+            };
+            Some((
+                start + (source.as_ptr() as usize - statement.as_ptr() as usize),
+                end,
+            ))
+        })
+        .collect()
 }
 
 /// The first `sum(for`, `any(for` or `all(for` in `code`, comments already
@@ -172,9 +203,33 @@ fn across_at(code: &str) -> Option<(usize, &'static str, usize)> {
             continue;
         }
         let inside = after[paren + 1..].trim_start();
-        let opens_for = inside
-            .strip_prefix("for")
-            .is_some_and(|tail| tail.chars().next().is_some_and(char::is_whitespace));
+        let opens_for = inside.strip_prefix("for").is_some_and(|tail| {
+            if !tail.chars().next().is_some_and(char::is_whitespace) {
+                return false;
+            }
+            // An older program may pass a variable or a call named `for`
+            // to its own sum/any/all function. A kind follows `for` in the
+            // new form; an operator, delimiter or `(` continues that older
+            // expression instead. Do not parse the whole argument here: an
+            // ordinary outer call may contain an across form of its own.
+            let tail = tail.trim_start();
+            if !tail.chars().next().is_some_and(is_identifier_start) {
+                return false;
+            }
+            let end = tail
+                .find(|ch: char| !is_identifier_char(ch))
+                .unwrap_or(tail.len());
+            if matches!(&tail[..end], "and" | "or") {
+                // These are expression operators, but can also name an
+                // entity kind in a real `for and/or as $NAME:` header.
+                let rest = tail[end..].trim_start();
+                return rest.strip_prefix("as").is_some_and(|binding| {
+                    binding.chars().next().is_some_and(char::is_whitespace)
+                        && binding.trim_start().starts_with('$')
+                });
+            }
+            true
+        });
         if opens_for {
             return Some((at, operator, at + word.len() + paren));
         }

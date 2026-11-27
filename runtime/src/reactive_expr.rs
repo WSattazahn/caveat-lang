@@ -6,9 +6,10 @@
 use crate::fast_hash::{HashMap, HashSet};
 use crate::presentation::Number;
 use crate::reactive_archive::ArchiveTrace;
+pub(crate) use crate::release_line::Release;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -26,7 +27,6 @@ const FOLD_ACC: &str = "$fold_acc";
 const FOLD_VALUE: &str = "$fold_value";
 /// Internal numeric-host request; source identifiers cannot spell this name.
 pub(crate) const ELAPSED_READ: &str = "$elapsed";
-type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), EvalError> + 'a;
 
 /// What kind of evaluation failure occurred. Dispatch refuses the classified
 /// kinds recoverably; see spec/caveat-dispatch-0.1.md. `Other` stays fatal.
@@ -49,6 +49,9 @@ pub enum EvalFailure {
     /// A text value would hold more bytes than a text may; refused as
     /// `limit/text_limit` (D025).
     TextLimit,
+    /// A read of a state declared `unset` that has no value; refused as
+    /// `evaluation/unset_state`. See spec/caveat-unset-states-0.1.md.
+    UnsetState,
     Other,
 }
 
@@ -107,6 +110,9 @@ pub enum HistoryRead {
     /// `outcome(…)`: of the current revision, or of revision K, 1-based. See
     /// spec/caveat-outcomes-0.1.md.
     Outcome(Option<usize>),
+    /// `grounds_of(SERIES)`: the current revision's value, on its frozen
+    /// grounds and not its lineage. See spec/caveat-grounds-of-0.1.md.
+    Grounds,
 }
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 
@@ -135,6 +141,9 @@ pub const IN_BASIS: &str = "in_basis";
 /// The predicate kind of `on_hold(SERIES)`: whether the series' current
 /// revision is on hold. See spec/caveat-holds-0.1.md.
 pub const ON_HOLD: &str = "on_hold";
+/// `is_set(STATE)`: whether a state declared `unset` has a value. See
+/// spec/caveat-unset-states-0.1.md.
+pub const IS_SET: &str = "is_set";
 
 /// The predicate kind of `resolved(SERIES)`: whether the series' current
 /// revision has an outcome. See spec/caveat-outcomes-0.1.md.
@@ -148,6 +157,10 @@ pub const AT_REVISION_RESOLVED: &str = "revision:resolved";
 /// spec/caveat-outcomes-0.1.md.
 pub const OUTCOME: &str = "outcome";
 
+/// The name of `grounds_of(SERIES)`, a revision's value on its grounds
+/// alone. See spec/caveat-grounds-of-0.1.md.
+pub const GROUNDS_OF: &str = "grounds_of";
+
 /// The name of `only_if(CONDITION, VALUE)`. See spec/caveat-only-if-0.1.md.
 pub const ONLY_IF: &str = "only_if";
 
@@ -157,6 +170,11 @@ struct Budget {
     nodes: Cell<usize>,
     quiet_conditions: bool,
     quiet: Cell<bool>,
+    /// The argument values of each expanded call being evaluated, innermost
+    /// last.
+    frames: RefCell<Vec<Vec<f64>>>,
+    /// The `(acc, value)` pair bound inside an active `ExpandedFold` body.
+    fold_vars: Cell<Option<(f64, f64)>>,
 }
 
 impl Budget {
@@ -179,6 +197,15 @@ pub const CARRIES_ANY: &str = "carries_any";
 /// `carries:*` for any caveat, `carries:*material` for one of consequence
 /// `material` or above. No declared caveat is spelled with `*`.
 pub const ANY_CAVEAT: &str = "*";
+
+/// Whether a predicate kind is one `carries_any(…)` asks, of evidence, of
+/// `latest(…)` or of an occurrence or reading.
+fn asks_carries_any(kind: &str) -> bool {
+    let kind = kind.strip_prefix(AT_OCCURRENCE).unwrap_or(kind);
+    let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+    kind.strip_prefix("carries:")
+        .is_some_and(|caveat| caveat.starts_with(ANY_CAVEAT))
+}
 
 const CONSEQUENCE_WORDS: [&str; 5] = ["negligible", "low", "material", "high", "catastrophic"];
 
@@ -419,6 +446,13 @@ impl From<&str> for Name {
     }
 }
 
+/// A name the names index already holds: the copy shares its text.
+impl From<Arc<str>> for Name {
+    fn from(name: Arc<str>) -> Self {
+        Self(name)
+    }
+}
+
 impl From<Name> for String {
     fn from(name: Name) -> Self {
         name.0.to_string()
@@ -455,21 +489,113 @@ impl<'de> serde::Deserialize<'de> for Name {
     }
 }
 
-/// The names in name order, each once, and, once asked, their total bytes.
-/// A lineage holds one to three names far more often than more, so a sorted
-/// list finds and joins them with less work than a tree.
-#[derive(Debug, Default)]
+/// The names in name order, each once, and their total bytes, counted as
+/// the set is built. A lineage holds one to three names far more often than
+/// more, so one or two names are held in the set's own allocation, and more
+/// in a sorted list, which finds and joins them with less work than a tree.
+#[derive(Debug, Clone)]
 struct Names {
-    names: Vec<Name>,
-    bytes: OnceLock<usize>,
+    bytes: usize,
+    store: Store,
 }
 
-impl Clone for Names {
-    fn clone(&self) -> Self {
-        Self {
-            names: self.names.clone(),
-            bytes: self.bytes.clone(),
+/// A held set's names: never none, since an empty set holds no `Names`,
+/// and in a list only when there are three or more.
+#[derive(Debug, Clone)]
+enum Store {
+    One([Name; 1]),
+    Two([Name; 2]),
+    Heap(Vec<Name>),
+}
+
+impl Store {
+    fn as_slice(&self) -> &[Name] {
+        match self {
+            Self::One(names) => names,
+            Self::Two(names) => names,
+            Self::Heap(names) => names,
         }
+    }
+
+    /// Names already in name order, each once, at least one.
+    fn from_sorted(names: Vec<Name>) -> Self {
+        let names = match <[Name; 1]>::try_from(names) {
+            Ok(one) => return Self::One(one),
+            Err(names) => names,
+        };
+        match <[Name; 2]>::try_from(names) {
+            Ok(two) => Self::Two(two),
+            Err(names) => Self::Heap(names),
+        }
+    }
+
+    /// `held` with `name` placed at `at`: a new store at its exact size.
+    fn inserted(held: &[Name], at: usize, name: Name) -> Self {
+        if let [only] = held {
+            let only = only.clone();
+            return Self::Two(if at == 0 { [name, only] } else { [only, name] });
+        }
+        let mut names = Vec::with_capacity(held.len() + 1);
+        names.extend_from_slice(&held[..at]);
+        names.push(name);
+        names.extend_from_slice(&held[at..]);
+        Self::Heap(names)
+    }
+
+    /// Take out the name at `at`, in this store of two names or more.
+    fn remove(&mut self, at: usize) {
+        *self = match std::mem::replace(self, Self::Heap(Vec::new())) {
+            Self::Two([first, second]) => Self::One([if at == 0 { second } else { first }]),
+            // A list left with two names holds them itself again.
+            Self::Heap(mut names) => {
+                names.remove(at);
+                Self::from_sorted(names)
+            }
+            // A set of one name is emptied instead.
+            one @ Self::One(_) => one,
+        };
+    }
+
+    /// Place `name` at `at`, in this store.
+    fn insert(&mut self, at: usize, name: Name) {
+        *self = match std::mem::replace(self, Self::Heap(Vec::new())) {
+            Self::One([only]) => Self::Two(if at == 0 { [name, only] } else { [only, name] }),
+            Self::Two(two) => {
+                let mut names = Vec::with_capacity(4);
+                names.extend(two);
+                names.insert(at, name);
+                Self::Heap(names)
+            }
+            Self::Heap(mut names) => {
+                names.insert(at, name);
+                Self::Heap(names)
+            }
+        };
+    }
+}
+
+impl Names {
+    /// Debug builds: a held set is in name order, each name once, and its
+    /// byte count is its names' total.
+    #[cfg(debug_assertions)]
+    fn check(&self) {
+        let names = self.store.as_slice();
+        assert!(!names.is_empty(), "a held name set is empty");
+        assert!(
+            !matches!(&self.store, Store::Heap(names) if names.len() < 3),
+            "a name set holds fewer than three names in a list"
+        );
+        assert!(
+            names
+                .windows(2)
+                .all(|pair| pair[0].as_str() < pair[1].as_str()),
+            "a name set is out of order or repeats a name"
+        );
+        assert_eq!(
+            self.bytes,
+            names.iter().map(|name| name.len()).sum::<usize>(),
+            "a name set counts its bytes wrong"
+        );
     }
 }
 
@@ -483,14 +609,7 @@ impl NameSet {
     }
 
     fn names(&self) -> &[Name] {
-        self.0.as_ref().map_or(&[], |set| &set.names)
-    }
-
-    /// The list to change, copied first when another value shares it.
-    fn names_mut(&mut self) -> &mut Vec<Name> {
-        let set = Arc::make_mut(self.0.get_or_insert_with(Arc::default));
-        set.bytes = OnceLock::new();
-        &mut set.names
+        self.0.as_ref().map_or(&[], |set| set.store.as_slice())
     }
 
     fn position(&self, name: &str) -> Result<usize, usize> {
@@ -498,20 +617,99 @@ impl NameSet {
             .binary_search_by(|held| held.as_str().cmp(name))
     }
 
-    /// The names this set would add to `ours`.
-    fn added_to<'a>(&'a self, ours: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
-        let skip = self.is_empty() || self.shares(ours);
-        self.names()
-            .iter()
-            .filter(move |name| !skip && !ours.contains(name.as_str()))
+    /// Where `name` is or would go. A copy of a held name is found without
+    /// comparing its text.
+    fn find(&self, name: &Name) -> Result<usize, usize> {
+        self.names().binary_search_by(|held| held.cmp(name))
     }
 
-    /// The names' total bytes, counted once per set.
+    /// This set joined with `theirs`, or `None` when `theirs` adds no name.
+    /// Each name it adds is passed to `check` first, in name order, and the
+    /// first refusal is returned with nothing joined. One walk finds the
+    /// names and builds the join: a name is looked for by halving what is
+    /// left of this set when that is more than four names for each name left
+    /// of `theirs`, and by stepping through it otherwise.
+    fn joined(
+        &self,
+        theirs: &Self,
+        mut check: impl FnMut(&str) -> Result<(), EvalError>,
+    ) -> Result<Option<Self>, EvalError> {
+        if theirs.is_empty() || self.shares(theirs) {
+            return Ok(None);
+        }
+        let (ours, names) = (self.names(), theirs.names());
+        match (ours, names) {
+            ([], _) => {
+                for name in names {
+                    check(name)?;
+                }
+                return Ok(Some(theirs.clone()));
+            }
+            ([held], [name]) => {
+                let (first, second) = match held.cmp(name) {
+                    std::cmp::Ordering::Equal => return Ok(None),
+                    std::cmp::Ordering::Less => (held, name),
+                    std::cmp::Ordering::Greater => (name, held),
+                };
+                check(name)?;
+                return Ok(Some(Self(Some(Arc::new(Names {
+                    bytes: first.len() + second.len(),
+                    store: Store::Two([first.clone(), second.clone()]),
+                })))));
+            }
+            _ => {}
+        }
+        let mut joined: Option<Vec<Name>> = None;
+        // How many of ours are passed, and copied when `joined` is started.
+        let mut at = 0;
+        for (index, name) in names.iter().enumerate() {
+            let rest = &ours[at..];
+            let found = if rest.len() > 4 * (names.len() - index) {
+                rest.binary_search_by(|held| held.cmp(name))
+            } else {
+                stepped(rest, name)
+            };
+            match found {
+                Ok(offset) => {
+                    if let Some(joined) = &mut joined {
+                        joined.extend_from_slice(&rest[..=offset]);
+                    }
+                    at += offset + 1;
+                }
+                Err(offset) => {
+                    check(name)?;
+                    let joined = joined.get_or_insert_with(|| {
+                        let mut joined = Vec::with_capacity(ours.len() + names.len() - index);
+                        joined.extend_from_slice(&ours[..at]);
+                        joined
+                    });
+                    joined.extend_from_slice(&rest[..offset]);
+                    joined.push(name.clone());
+                    at += offset;
+                }
+            }
+        }
+        Ok(joined.map(|mut joined| {
+            joined.extend_from_slice(&ours[at..]);
+            Self::from_sorted(joined)
+        }))
+    }
+
+    /// The names' total bytes.
     fn bytes(&self) -> usize {
         self.0.as_ref().map_or(0, |set| {
-            *set.bytes
-                .get_or_init(|| set.names.iter().map(|name| name.len()).sum())
+            #[cfg(debug_assertions)]
+            set.check();
+            set.bytes
         })
+    }
+
+    pub fn from_single(name: Name) -> Self {
+        let bytes = name.len();
+        Self(Some(Arc::new(Names {
+            bytes,
+            store: Store::One([name]),
+        })))
     }
 
     pub fn len(&self) -> usize {
@@ -519,7 +717,7 @@ impl NameSet {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.names().is_empty()
+        self.0.is_none()
     }
 
     /// The names in name order.
@@ -541,42 +739,81 @@ impl NameSet {
         self.position(name.as_ref()).is_ok()
     }
 
+    /// Whether the set holds `name`. A copy of a held name is found without
+    /// comparing its text.
+    pub fn contains_name(&self, name: &Name) -> bool {
+        self.find(name).is_ok()
+    }
+
     /// Whether every name here is also in `other`.
     pub fn is_subset(&self, other: &Self) -> bool {
         self.shares(other)
-            || (self.len() <= other.len() && self.iter().all(|name| other.contains(name.as_str())))
+            || (self.len() <= other.len() && self.iter().all(|name| other.find(name).is_ok()))
     }
 
     /// The names here that `other` lacks, in name order.
     pub fn difference<'a>(&'a self, other: &'a Self) -> impl Iterator<Item = &'a Name> + 'a {
-        self.iter()
-            .filter(move |name| !other.contains(name.as_str()))
+        self.iter().filter(move |name| other.find(name).is_err())
     }
 
-    /// Add `name`; returns whether it was new. A name already held copies nothing.
+    /// Add `name`; returns whether it was new. A name already held copies
+    /// nothing; a set no other value shares grows in place, and a shared one
+    /// is copied once, with the name.
     pub fn insert(&mut self, name: impl Into<Name>) -> bool {
         let name = name.into();
-        match self.position(name.as_str()) {
-            Ok(_) => false,
-            Err(at) => {
-                self.names_mut().insert(at, name);
-                true
+        let Err(at) = self.find(&name) else {
+            return false;
+        };
+        let bytes = name.len();
+        match &mut self.0 {
+            None => {
+                self.0 = Some(Arc::new(Names {
+                    bytes,
+                    store: Store::One([name]),
+                }));
             }
+            Some(set) => match Arc::get_mut(set) {
+                Some(names) => {
+                    names.bytes += bytes;
+                    names.store.insert(at, name);
+                }
+                None => {
+                    *set = Arc::new(Names {
+                        bytes: set.bytes + bytes,
+                        store: Store::inserted(set.store.as_slice(), at, name),
+                    });
+                }
+            },
         }
+        true
     }
 
-    /// Remove `name`; returns whether it was held. A name not held copies nothing.
+    /// Remove `name`; returns whether it was held. A name not held copies
+    /// nothing, and a set no other value shares shrinks in place.
     pub fn remove<Q: AsRef<str> + ?Sized>(&mut self, name: &Q) -> bool {
-        match self.position(name.as_ref()) {
-            Ok(at) => {
-                self.names_mut().remove(at);
-                if self.names().is_empty() {
-                    self.0 = None;
-                }
-                true
-            }
-            Err(_) => false,
+        let Ok(at) = self.position(name.as_ref()) else {
+            return false;
+        };
+        if self.len() == 1 {
+            self.0 = None;
+            return true;
         }
+        match self.0.as_mut().and_then(Arc::get_mut) {
+            Some(names) => {
+                names.bytes -= names.store.as_slice()[at].len();
+                names.store.remove(at);
+            }
+            None => {
+                let names = self.names();
+                let kept = names[..at]
+                    .iter()
+                    .chain(&names[at + 1..])
+                    .cloned()
+                    .collect();
+                *self = Self::from_sorted(kept);
+            }
+        }
+        true
     }
 
     /// Keep only the names `keep` accepts.
@@ -598,8 +835,8 @@ impl NameSet {
     fn from_sorted(names: Vec<Name>) -> Self {
         Self((!names.is_empty()).then(|| {
             Arc::new(Names {
-                names,
-                bytes: OnceLock::new(),
+                bytes: names.iter().map(|name| name.len()).sum(),
+                store: Store::from_sorted(names),
             })
         }))
     }
@@ -607,35 +844,23 @@ impl NameSet {
     /// Add every name of `other`, sharing its set when this one is empty and
     /// copying nothing when it adds no name.
     fn absorb(&mut self, other: &Self) {
-        if other.is_empty() || self.shares(other) {
-        } else if self.is_empty() {
-            *self = other.clone();
-        } else if !other.is_subset(self) {
-            let (left, right) = (self.names(), other.names());
-            let mut joined = Vec::with_capacity(left.len() + right.len());
-            let (mut i, mut j) = (0, 0);
-            while i < left.len() && j < right.len() {
-                match left[i].cmp(&right[j]) {
-                    std::cmp::Ordering::Less => {
-                        joined.push(left[i].clone());
-                        i += 1;
-                    }
-                    std::cmp::Ordering::Greater => {
-                        joined.push(right[j].clone());
-                        j += 1;
-                    }
-                    std::cmp::Ordering::Equal => {
-                        joined.push(left[i].clone());
-                        i += 1;
-                        j += 1;
-                    }
-                }
-            }
-            joined.extend_from_slice(&left[i..]);
-            joined.extend_from_slice(&right[j..]);
-            *self = Self::from_sorted(joined);
+        if let Ok(Some(joined)) = self.joined(other, |_| Ok(())) {
+            *self = joined;
         }
     }
+}
+
+/// Where `name` is or would go in `names`, found by stepping from the start:
+/// the first place that does not hold a lesser name.
+fn stepped(names: &[Name], name: &Name) -> Result<usize, usize> {
+    for (at, held) in names.iter().enumerate() {
+        match held.cmp(name) {
+            std::cmp::Ordering::Less => {}
+            std::cmp::Ordering::Equal => return Ok(at),
+            std::cmp::Ordering::Greater => return Err(at),
+        }
+    }
+    Err(names.len())
 }
 
 impl PartialEq for NameSet {
@@ -682,10 +907,13 @@ impl IntoIterator for NameSet {
     type IntoIter = std::vec::IntoIter<Name>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0
-            .map(|set| Arc::unwrap_or_clone(set).names)
-            .unwrap_or_default()
-            .into_iter()
+        let names = match self.0.map(|set| Arc::unwrap_or_clone(set).store) {
+            None => Vec::new(),
+            Some(Store::One(names)) => Vec::from(names),
+            Some(Store::Two(names)) => Vec::from(names),
+            Some(Store::Heap(names)) => names,
+        };
+        names.into_iter()
     }
 }
 
@@ -817,20 +1045,156 @@ pub(crate) mod departure_markers {
     }
 }
 
+/// Names gathered in the order they are given, held in place while there
+/// are one or two, as most lineages have.
+#[derive(Default)]
+enum Gathered {
+    #[default]
+    None,
+    One(Name),
+    Two(Name, Name),
+    More(Vec<Name>),
+}
+
+impl Gathered {
+    fn push(&mut self, name: Name) {
+        *self = match std::mem::take(self) {
+            Self::None => Self::One(name),
+            Self::One(first) => Self::Two(first, name),
+            Self::Two(first, second) => Self::More(vec![first, second, name]),
+            Self::More(mut names) => {
+                names.push(name);
+                Self::More(names)
+            }
+        };
+    }
+
+    /// Each name in the order it was given.
+    fn walk(&self) -> impl Iterator<Item = &Name> + '_ {
+        let (held, more): ([Option<&Name>; 2], &[Name]) = match self {
+            Self::None => ([None, None], &[]),
+            Self::One(name) => ([Some(name), None], &[]),
+            Self::Two(first, second) => ([Some(first), Some(second)], &[]),
+            Self::More(names) => ([None, None], names),
+        };
+        held.into_iter().flatten().chain(more)
+    }
+
+    /// The set of these names: in name order, each once.
+    fn into_set(self) -> NameSet {
+        match self {
+            Self::None => NameSet::default(),
+            Self::One(name) => NameSet(Some(Arc::new(Names {
+                bytes: name.len(),
+                store: Store::One([name]),
+            }))),
+            Self::Two(first, second) => match first.cmp(&second) {
+                std::cmp::Ordering::Equal => Self::One(first).into_set(),
+                std::cmp::Ordering::Less => NameSet::pair(first, second),
+                std::cmp::Ordering::Greater => NameSet::pair(second, first),
+            },
+            Self::More(mut names) => {
+                names.sort_unstable();
+                names.dedup();
+                NameSet::from_sorted(names)
+            }
+        }
+    }
+}
+
+impl NameSet {
+    /// Two names in name order.
+    fn pair(first: Name, second: Name) -> Self {
+        Self(Some(Arc::new(Names {
+            bytes: first.len() + second.len(),
+            store: Store::Two([first, second]),
+        })))
+    }
+}
+
 impl Provenance {
     /// Construct a sorted, deduplicated trace without truncating dependencies.
     pub fn from_names(
         evidence: impl IntoIterator<Item = String>,
         caveats: impl IntoIterator<Item = String>,
     ) -> Result<Self, EvalError> {
+        Self::from_shared(
+            evidence.into_iter().map(Name::from),
+            caveats.into_iter().map(Name::from),
+        )
+    }
+
+    /// `from_names` for names already made, such as the names index's own,
+    /// which the lineage then shares. When every name given fits within the
+    /// limits together, as good as every lineage does, the sets are built
+    /// directly; otherwise the names are added one by one, so a lineage past
+    /// a limit is refused at the same name, with the same message.
+    pub(crate) fn from_shared(
+        evidence: impl IntoIterator<Item = Name>,
+        caveats: impl IntoIterator<Item = Name>,
+    ) -> Result<Self, EvalError> {
+        let (mut count, mut bytes) = (0usize, 0usize);
+        let mut gather = |names: &mut Gathered, name: Name| {
+            count += 1;
+            bytes = bytes.saturating_add(name.len());
+            names.push(name);
+        };
+        let mut given_evidence = Gathered::None;
+        for name in evidence {
+            gather(&mut given_evidence, name);
+        }
+        let mut given_caveats = Gathered::None;
+        for name in caveats {
+            gather(&mut given_caveats, name);
+        }
+        if count <= MAX_PROVENANCE_IDENTIFIERS && bytes <= MAX_PROVENANCE_BYTES {
+            // Every name fits, since all of them together do.
+            return Ok(Self {
+                evidence: given_evidence.into_set(),
+                caveats: given_caveats.into_set(),
+                ..Self::default()
+            });
+        }
+        Self::added_one_by_one(
+            given_evidence
+                .walk()
+                .map(|name| (true, name.clone()))
+                .chain(given_caveats.walk().map(|name| (false, name.clone()))),
+        )
+    }
+
+    /// What `merge` makes of this lineage and the one `from_shared` makes of
+    /// the single name `name`, as evidence or as a caveat, without making
+    /// that lineage: the same checks in the same order, so the same refusal,
+    /// and the same lineage. Evidence read here is no longer inherited.
+    pub(crate) fn merge_name(&mut self, name: Name, is_evidence: bool) -> Result<(), EvalError> {
+        // What `from_shared` checks of the one name, then what `merge` checks.
+        check_provenance_size(1, 0, name.len())?;
+        let (count, bytes) = self.size()?;
+        let names = if is_evidence {
+            &mut self.evidence
+        } else {
+            &mut self.caveats
+        };
+        if names.find(&name).is_err() {
+            check_provenance_size(count + 1, bytes, name.len())?;
+        }
+        if is_evidence {
+            self.inherited.remove(&*name);
+            self.evidence.insert(name);
+        } else {
+            self.caveats.insert(name);
+        }
+        Ok(())
+    }
+
+    /// The names added in turn, each set's repeats skipped, refused at the
+    /// first name past a limit.
+    fn added_one_by_one(names: impl Iterator<Item = (bool, Name)>) -> Result<Self, EvalError> {
         let mut result = Self::default();
         let mut count = 0;
         let mut bytes = 0;
-        for (is_evidence, name) in evidence
-            .into_iter()
-            .map(|name| (true, name))
-            .chain(caveats.into_iter().map(|name| (false, name)))
-        {
+        for (is_evidence, name) in names {
             let names = if is_evidence {
                 &mut result.evidence
             } else {
@@ -847,8 +1211,36 @@ impl Provenance {
         Ok(result)
     }
 
+    /// Fast constructor for one evidence name with no caveats.
+    pub fn from_single_evidence(evidence: Name) -> Result<Self, EvalError> {
+        check_provenance_size(1, 0, evidence.len())?;
+        Ok(Self {
+            evidence: NameSet::from_single(evidence),
+            ..Self::default()
+        })
+    }
+
+    /// Fast constructor for one evidence name and one caveat name.
+    pub fn from_evidence_and_caveat(evidence: Name, caveat: Name) -> Result<Self, EvalError> {
+        let ev_len = evidence.len();
+        check_provenance_size(1, 0, ev_len)?;
+        check_provenance_size(2, ev_len, caveat.len())?;
+        Ok(Self {
+            evidence: NameSet::from_single(evidence),
+            caveats: NameSet::from_single(caveat),
+            ..Self::default()
+        })
+    }
+
     pub fn is_empty(&self) -> bool {
         self.evidence.is_empty() && self.caveats.is_empty() && self.departed.is_empty()
+    }
+
+    /// Whether this lineage holds nothing at all, inherited and kept names
+    /// included: merging it changes nothing, and merging into it gives the
+    /// other lineage, once checked.
+    pub(crate) fn holds_nothing(&self) -> bool {
+        self.is_empty() && self.inherited.is_empty() && self.kept.is_empty()
     }
 
     /// The names this value read itself: `evidence` less `inherited`.
@@ -922,9 +1314,10 @@ impl Provenance {
             .and_then(|count| count.checked_add(self.departed.len()))
             .ok_or_else(provenance_identifier_error)?;
         check_provenance_size(count, 0, 0)?;
-        let bytes = self.evidence.bytes()
-            + self.caveats.bytes()
-            + self.departed.keys().map(String::len).sum::<usize>();
+        let mut bytes = self.evidence.bytes() + self.caveats.bytes();
+        if !self.departed.is_empty() {
+            bytes += self.departed.keys().map(String::len).sum::<usize>();
+        }
         check_provenance_size(count, 0, bytes)?;
         Ok((count, bytes))
     }
@@ -946,28 +1339,28 @@ impl Provenance {
     /// A name either side read itself is read here, so `inherited` keeps only
     /// names neither side read; markers for one history join.
     pub fn merge(&mut self, other: &Self) -> Result<(), EvalError> {
-        let (mut count, mut bytes) = self.size()?;
-        other.validate()?;
-        if other.is_empty() && other.inherited.is_empty() && other.kept.is_empty() {
-            // Nothing to add, and every inherited name here stays inherited.
+        if self.holds_nothing() {
+            if other.holds_nothing() {
+                return Ok(());
+            }
+            other.validate()?;
+            *self = other.clone();
             return Ok(());
         }
+        if other.holds_nothing() {
+            self.validate()?;
+            return Ok(());
+        }
+        let (mut count, mut bytes) = self.size()?;
+        other.validate()?;
         let mut check = |name: &str| {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
             Ok::<(), EvalError>(())
         };
-        let mut evidence = false;
-        for name in other.evidence.added_to(&self.evidence) {
-            check(name)?;
-            evidence = true;
-        }
-        let mut caveats = false;
-        for name in other.caveats.added_to(&self.caveats) {
-            check(name)?;
-            caveats = true;
-        }
+        let evidence = self.evidence.joined(&other.evidence, &mut check)?;
+        let caveats = self.caveats.joined(&other.caveats, &mut check)?;
         for history in other.departed.keys() {
             if !self.departed.contains_key(history) {
                 check(history)?;
@@ -985,11 +1378,11 @@ impl Provenance {
                 .collect();
             self.inherited = inherited;
         }
-        if evidence {
-            self.evidence.absorb(&other.evidence);
+        if let Some(evidence) = evidence {
+            self.evidence = evidence;
         }
-        if caveats {
-            self.caveats.absorb(&other.caveats);
+        if let Some(caveats) = caveats {
+            self.caveats = caveats;
         }
         self.kept.absorb(&other.kept);
         for (history, marker) in &other.departed {
@@ -1000,22 +1393,32 @@ impl Provenance {
         }
         Ok(())
     }
+
+    /// What `merge` would make of this value, or `None` when it would make
+    /// the same value: a record that already holds all of `other` is left
+    /// as it is, so a map that shares it is not copied to write it back.
+    /// Fails exactly as `merge` does.
+    pub(crate) fn merged(&self, other: &Self) -> Result<Option<Self>, EvalError> {
+        let mut merged = self.clone();
+        merged.merge(other)?;
+        Ok((merged != *self).then_some(merged))
+    }
 }
 
 /// Add what one read rests on to an evaluation's provenance, which only
 /// reads have built: a read resting on nothing changes nothing, and the
 /// first read's provenance, once checked, is the whole of it.
-fn read_into(provenance: &RefCell<Provenance>, read: &Provenance) -> Result<(), EvalError> {
-    if read.is_empty() && read.inherited.is_empty() && read.kept.is_empty() {
+fn read_into(provenance: &RefCell<Provenance>, read: Provenance) -> Result<(), EvalError> {
+    if read.holds_nothing() {
         return Ok(());
     }
     let mut provenance = provenance.borrow_mut();
-    if provenance.is_empty() && provenance.inherited.is_empty() && provenance.kept.is_empty() {
+    if provenance.holds_nothing() {
         read.validate()?;
-        *provenance = read.clone();
+        *provenance = read;
         return Ok(());
     }
-    provenance.merge(read)
+    provenance.merge(&read)
 }
 
 /// Both provenance bounds are the same resource, a value's lineage, so both
@@ -1086,12 +1489,200 @@ pub struct Reads {
     pub graph_unnamed: bool,
 }
 
+/// What a read takes of the thing it names, for the bound of finding D054.
+/// Evidence and a caveat are read through their records by every read but
+/// a withdrawal predicate, and a stream's readings by every read but a
+/// value read and `has_sample`, which take the readings as they were taken
+/// (D100), and a withdrawal predicate. A decision's parts have bounds of
+/// their own, so each read of one takes only the parts the runtime reads
+/// for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Read {
+    /// `observed`, `carries`, `examined` and `qualified`: the records of the
+    /// evidence, of the stream's readings or of the caveat.
+    Records,
+    /// `latest`, `history_at`, `history_count`, a fold and `has_sample`: a
+    /// stream's readings with its selection, or a series' bases with its
+    /// selection.
+    Value,
+    /// `grounds_of`: a revision's grounds, with the series' selection.
+    Grounds,
+    /// `outcome` and `resolved`: a revision's outcome, or, for `resolved`,
+    /// the series' selection where it has none.
+    Outcome,
+    /// `committed` and `in_basis`: a revision's basis and its reopening
+    /// record, its `committed` record and, for `committed`, the series'
+    /// selection. `in_basis` asks about one revision and reads no
+    /// selection; the bound gives it the selection all the same, which
+    /// widens nothing, since the bases take what a selection holds.
+    Committed,
+    /// `reopened` and `on_hold`: what `committed` takes, the `reopened`
+    /// record, and each cause of the reopening through its records.
+    Reopened,
+    /// `withdrawn`, `rests_on_withdrawn` and `permission_withdrawn`: the
+    /// `withdrawn` record of what the predicate asks about, and the reason
+    /// of each withdrawal it finds through its records. Nothing else of the
+    /// evidence or the decision it asks about.
+    Withdrawn,
+}
+
+/// What an expression's value can carry the lineage of (finding D054): the
+/// states it reads, and every graph or history name it asks about with what
+/// the read takes of it. See `Expr::collect_carried`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Carried {
+    /// Numeric names looked up, and the states `has_caveat` and `is_set`
+    /// ask about. Parameters and constants carry nothing of their own.
+    pub states: BTreeSet<String>,
+    /// The evidence, stream, series, commitment or caveat each graph or
+    /// history read names, and what the read takes of it.
+    pub graph: BTreeSet<(Read, String)>,
+    /// Could read anything.
+    pub anything: bool,
+}
+
+impl Carried {
+    /// What a predicate `kind` asked of `name` reads, as `predicate_tracked`
+    /// answers it. An occurrence or a `latest` asks the same of the record
+    /// it names.
+    fn predicate(&mut self, kind: &str, name: &str) {
+        let read = match kind {
+            IS_SET => {
+                self.states.insert(name.into());
+                return;
+            }
+            _ if kind.starts_with("has_caveat:") => {
+                self.states.insert(name.into());
+                return;
+            }
+            "committed" => Read::Committed,
+            "reopened" | ON_HOLD => Read::Reopened,
+            RESOLVED | AT_REVISION_RESOLVED => Read::Outcome,
+            "withdrawn"
+            | "withdrawn_latest"
+            | "permission_withdrawn"
+            | "rests_on_withdrawn"
+            | AT_REVISION => Read::Withdrawn,
+            // What `latest` reads, or the selection alone.
+            "has_sample" => Read::Value,
+            // `observed`, `carries`, `examined` and the rest.
+            _ => Read::Records,
+        };
+        self.graph.insert((read, name.into()));
+    }
+}
+
+/// What an expression's grounds can carry from (finding D054): what each
+/// read gives a value's grounds as `evaluate_grounds` reads it, which is
+/// less than its lineage. See `Expr::collect_grounded`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Grounded {
+    /// The states whose grounds it reads: a numeric name, and the states
+    /// `has_caveat` and `is_set` ask about.
+    pub states: BTreeSet<String>,
+    /// The decisions whose grounds `committed`, `reopened` and `in_basis`
+    /// read.
+    pub decisions: BTreeSet<String>,
+    /// The decisions whose reopening causes `reopened` names.
+    pub causes: BTreeSet<String>,
+    /// The decisions whose hold reasons `on_hold` names.
+    pub holds: BTreeSet<String>,
+    /// Asks a withdrawal predicate, whose grounds name the reasons of the
+    /// withdrawals it finds.
+    pub withdrawals: bool,
+    /// The evidence or stream `qualified`, `observed` and `carries` name,
+    /// with its caveats and without what its records hold.
+    pub named: BTreeSet<String>,
+    /// The names read as the lineage reads them, with what the read takes:
+    /// through a history or an outcome, and `has_sample` and `resolved`.
+    pub graph: BTreeSet<(Read, String)>,
+    /// Could read anything.
+    pub anything: bool,
+}
+
+impl Grounded {
+    /// What a predicate `kind` asked of `name` gives grounds, as
+    /// `predicate_grounds` answers it. An occurrence or a `latest` asks the
+    /// same of the record it names.
+    fn predicate(&mut self, kind: &str, name: &str) {
+        match kind {
+            IS_SET => {
+                self.states.insert(name.into());
+            }
+            _ if kind.starts_with("has_caveat:") => {
+                self.states.insert(name.into());
+            }
+            "committed" => {
+                self.decisions.insert(name.into());
+            }
+            "reopened" => {
+                self.decisions.insert(name.into());
+                self.causes.insert(name.into());
+            }
+            ON_HOLD => {
+                self.holds.insert(name.into());
+            }
+            "withdrawn"
+            | "withdrawn_latest"
+            | "permission_withdrawn"
+            | "rests_on_withdrawn"
+            | AT_REVISION => self.withdrawals = true,
+            "observed" => {
+                self.named.insert(name.into());
+            }
+            _ if kind.starts_with("carries:") => {
+                self.named.insert(name.into());
+            }
+            // The caveat and those that qualify it, no evidence.
+            "examined" => {}
+            // The outcome's lineage, as the lineage reads it.
+            RESOLVED | AT_REVISION_RESOLVED => {
+                self.graph.insert((Read::Outcome, name.into()));
+            }
+            // What `latest` reads, as the lineage reads it.
+            "has_sample" => {
+                self.graph.insert((Read::Value, name.into()));
+            }
+            // The rest: as the lineage reads.
+            _ => {
+                self.graph.insert((Read::Records, name.into()));
+            }
+        }
+    }
+}
+
+/// What a route term compares its name with: a number in the source, or a
+/// name, which the host reads at load if it names a fixed value. See
+/// [`Expr::route_terms`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum RouteValue {
+    Number(f64),
+    Name(String),
+}
+
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
     node: Node,
     depth: usize,
 }
+
+// Keep `Node` and `Expr` compact on both 32-bit WebAssembly (32 / 36 bytes)
+// and 64-bit native targets (64 / 72 bytes). Storing parsed numbers must not
+// bump `Node`'s alignment to 8 bytes on wasm32 (which would grow `Expr` to 48).
+const _: () = {
+    assert!(std::mem::align_of::<Number>() <= 4);
+    #[cfg(target_pointer_width = "32")]
+    {
+        assert!(std::mem::size_of::<Node>() == 32);
+        assert!(std::mem::size_of::<Expr>() == 36);
+    }
+    #[cfg(target_pointer_width = "64")]
+    {
+        assert!(std::mem::size_of::<Node>() == 64);
+        assert!(std::mem::size_of::<Expr>() == 72);
+    }
+};
 
 /// A pure source function with numeric parameters. Definitions may refer to other functions
 /// in any declaration order, but cannot capture state or graph predicates.
@@ -1105,6 +1696,9 @@ pub struct FunctionDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Number(Number),
+    /// A `threshold NAME = NUMBER;` read: its value, kept with its name so
+    /// that a commitment can list it. See spec/caveat-thresholds-0.1.md.
+    Threshold(String, Number),
     Elapsed,
     Bool(bool),
     Text(String),
@@ -1116,6 +1710,12 @@ enum Node {
     // Keep arguments even when the body ignores them: function arguments are
     // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
     ExpandedCall(Vec<Expr>, Box<Expr>),
+    /// A parameter read inside an expanded call's body: the position of the
+    /// argument in the innermost enclosing `ExpandedCall`, whose arguments
+    /// are evaluated once before its body. The body refers to the argument
+    /// instead of holding a copy, so a parameter read twice does not double
+    /// the expansion (finding D034: nested `min` over eight values).
+    Argument(usize),
     Predicate(String, String),
     /// `observed`, `withdrawn` or `carries` asked of `occurrence(EVIDENCE,
     /// INDEX)`: the predicate's kind, the renewable evidence and the index.
@@ -1131,6 +1731,9 @@ enum Node {
     /// index. See spec/caveat-outcomes-0.1.md.
     Outcome(String, Option<Box<Expr>>),
     Latest(String),
+    /// `grounds_of(SERIES)`: the current revision's value, with its frozen
+    /// grounds as basis. See spec/caveat-grounds-of-0.1.md.
+    GroundsOf(String),
     HistoryCount(String),
     HistoryAt(String, Box<Expr>),
     Fold(String, Box<Expr>, String),
@@ -1349,9 +1952,11 @@ impl Expr {
         }
         match &self.node {
             Node::Number(number) => bytes += number.value().to_string().len(),
+            Node::Threshold(name, _) => bytes += name.len(),
             Node::Text(text)
             | Node::Variable(text)
             | Node::Latest(text)
+            | Node::GroundsOf(text)
             | Node::HistoryCount(text)
             | Node::UserCall(text, _)
             | Node::HistoryAt(text, _)
@@ -1368,6 +1973,188 @@ impl Expr {
         (nodes, bytes)
     }
 
+    /// Whether this expression, as the program loaded it, holds a form that
+    /// no release before rc.12 reads (finding D083): `in_basis`,
+    /// `grounds_of`, `outcome`, `resolved`, `on_hold`, `is_set`, a
+    /// threshold's value, `carries_any`, `carries` asked of `latest(…)`,
+    /// `occurrence(…)`, `reading(…)` or `revision(…)`, and `only_if` when
+    /// `only_if` is true. Ask it only after `expand_with`, which turns a call
+    /// of a function the program names like one of these into that
+    /// function's body. The match is exhaustive, so a new kind of node must
+    /// say whether those releases read it.
+    pub(crate) fn has_form_after_rc11(&self, only_if: bool) -> bool {
+        let any = |children: &[Self]| {
+            children
+                .iter()
+                .any(|child| child.has_form_after_rc11(only_if))
+        };
+        match &self.node {
+            Node::Threshold(..)
+            | Node::AtOccurrence(..)
+            | Node::InBasis(..)
+            | Node::Outcome(..)
+            | Node::GroundsOf(_) => true,
+            Node::Predicate(kind, _) => {
+                kind == RESOLVED
+                    || kind == ON_HOLD
+                    || kind == IS_SET
+                    || kind.starts_with(AT_LATEST)
+                    || kind
+                        .strip_prefix("carries:")
+                        .is_some_and(|caveat| caveat.starts_with(ANY_CAVEAT))
+            }
+            Node::OnlyIf(condition, value) => {
+                only_if
+                    || condition.has_form_after_rc11(only_if)
+                    || value.has_form_after_rc11(only_if)
+            }
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => false,
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
+                child.has_form_after_rc11(only_if)
+            }
+            Node::Qualified(value, _, _) => value.has_form_after_rc11(only_if),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.has_form_after_rc11(only_if) || right.has_form_after_rc11(only_if)
+            }
+            Node::If(condition, yes, no) => {
+                condition.has_form_after_rc11(only_if)
+                    || yes.has_form_after_rc11(only_if)
+                    || no.has_form_after_rc11(only_if)
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => any(arguments),
+            Node::ExpandedCall(arguments, body) => {
+                any(arguments) || body.has_form_after_rc11(only_if)
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                initial.has_form_after_rc11(only_if) || body.has_form_after_rc11(only_if)
+            }
+        }
+    }
+
+    /// The first release that reads every form this expression, as the
+    /// program loaded it, holds (finding D088): `occurrence(…)`,
+    /// `reading(…)`, `revision(…)` and `latest(…)` as targets and
+    /// `in_basis` from 1.1.0, `on_hold` from 1.2.0, `resolved` and `outcome`
+    /// from 1.3.0, `only_if` and `carries_any` from 1.4.0, and a threshold's
+    /// value, `grounds_of` and `is_set` only after 1.4.1. Ask it only after
+    /// `expand_with`, which turns a call of a function the program names like
+    /// one of these into that function's body. The match is exhaustive, so a
+    /// new kind of node must say which release first read it.
+    pub(crate) fn first_release(&self) -> Release {
+        let all = |children: &[Self]| {
+            children
+                .iter()
+                .map(Self::first_release)
+                .max()
+                .unwrap_or(Release::Before1_1)
+        };
+        match &self.node {
+            Node::Threshold(..) | Node::GroundsOf(_) => Release::Later,
+            Node::AtOccurrence(kind, _, index) => {
+                let form = if kind == AT_REVISION_RESOLVED {
+                    Release::V1_3
+                } else if asks_carries_any(kind) {
+                    Release::V1_4
+                } else {
+                    Release::V1_1
+                };
+                form.max(index.first_release())
+            }
+            Node::InBasis(_, children) => Release::V1_1.max(all(children)),
+            Node::Outcome(_, index) => index.as_deref().map_or(Release::V1_3, |index| {
+                Release::V1_3.max(index.first_release())
+            }),
+            Node::Predicate(kind, _) => {
+                if kind == IS_SET {
+                    Release::Later
+                } else if asks_carries_any(kind) {
+                    Release::V1_4
+                } else if kind == RESOLVED {
+                    Release::V1_3
+                } else if kind == ON_HOLD {
+                    Release::V1_2
+                } else if kind.starts_with(AT_LATEST) {
+                    Release::V1_1
+                } else {
+                    Release::Before1_1
+                }
+            }
+            Node::OnlyIf(condition, value) => Release::V1_4
+                .max(condition.first_release())
+                .max(value.first_release()),
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => Release::Before1_1,
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
+                child.first_release()
+            }
+            Node::Qualified(value, _, _) => value.first_release(),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.first_release().max(right.first_release())
+            }
+            Node::If(condition, yes, no) => condition
+                .first_release()
+                .max(yes.first_release())
+                .max(no.first_release()),
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => all(arguments),
+            Node::ExpandedCall(arguments, body) => all(arguments).max(body.first_release()),
+            Node::ExpandedFold(_, initial, body) => {
+                initial.first_release().max(body.first_release())
+            }
+        }
+    }
+
+    /// Whether this expression holds `only_if(…)` as it was written, before
+    /// any function of that name is called for it.
+    fn writes_only_if(&self) -> bool {
+        let any = |children: &[Self]| children.iter().any(Self::writes_only_if);
+        match &self.node {
+            Node::OnlyIf(..) => true,
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::GroundsOf(_)
+            | Node::HistoryCount(_) => false,
+            Node::Unary(_, child)
+            | Node::Qualified(child, _, _)
+            | Node::HistoryAt(_, child)
+            | Node::Fold(_, child, _)
+            | Node::AtOccurrence(_, _, child) => child.writes_only_if(),
+            Node::Outcome(_, index) => index.as_deref().is_some_and(Self::writes_only_if),
+            Node::InBasis(_, children)
+            | Node::Function(_, children)
+            | Node::UserCall(_, children) => any(children),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.writes_only_if() || right.writes_only_if()
+            }
+            Node::If(condition, yes, no) => {
+                condition.writes_only_if() || yes.writes_only_if() || no.writes_only_if()
+            }
+            Node::ExpandedCall(arguments, body) => any(arguments) || body.writes_only_if(),
+            Node::ExpandedFold(_, initial, body) => {
+                initial.writes_only_if() || body.writes_only_if()
+            }
+        }
+    }
+
     /// Everything evaluating this expression can read: the numeric names it
     /// looks up, and whether it queries the graph or a history. Every branch
     /// is included, taken or not, so this over-approximates and never misses
@@ -1382,15 +2169,20 @@ impl Expr {
                     index.collect_reads(reads);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_) => {}
             Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
             }
             Node::Predicate(kind, name) => {
-                if kind.starts_with("has_caveat:") {
-                    // This reads a live state's grounds. An assignment can
-                    // replace those grounds without changing the graph.
+                if kind.starts_with("has_caveat:") || kind == IS_SET {
+                    // This reads a live state's grounds, or whether it has a
+                    // value. An assignment can change either without
+                    // changing the graph.
                     reads.names.insert(name.clone());
                 } else {
                     reads.graph = true;
@@ -1400,7 +2192,7 @@ impl Expr {
                     reads.observed.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 reads.graph = true;
                 reads.graph_names.insert(name.clone());
             }
@@ -1483,13 +2275,18 @@ impl Expr {
                     index.collect_sources(sources);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_) => {}
             Node::Elapsed => {
                 sources.insert("elapsed()".into());
             }
             Node::Variable(name)
             | Node::Predicate(_, name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => {
                 sources.insert(name.clone());
             }
@@ -1544,6 +2341,206 @@ impl Expr {
         }
     }
 
+    /// Everything this expression's lineage can carry from, taken or not:
+    /// what restore bounds a saved provenance by (finding D054). Each read
+    /// is kept with what it takes of the thing it names, as `evaluate` reads
+    /// it: `in_basis` takes the revision's records and nothing of the
+    /// evidence it looks for, and `qualified` the evidence's records and
+    /// nothing of the caveats it attaches by name. Every branch is included,
+    /// so this over-approximates. Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_carried(&self, carried: &mut Carried) {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed => {}
+            Node::Variable(name) => {
+                carried.states.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+                carried.predicate(kind, name);
+            }
+            Node::AtOccurrence(kind, name, index) => {
+                carried.predicate(kind, name);
+                index.collect_carried(carried);
+            }
+            // The revision's records, as `committed` asked of it reads them.
+            // The evidence is only looked for in its grounds.
+            Node::InBasis(basis, children) => {
+                carried
+                    .graph
+                    .insert((Read::Committed, basis.series.clone()));
+                for child in children {
+                    child.collect_carried(carried);
+                }
+            }
+            Node::Outcome(name, index) => {
+                carried.graph.insert((Read::Outcome, name.clone()));
+                if let Some(index) = index {
+                    index.collect_carried(carried);
+                }
+            }
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                carried.graph.insert((Read::Value, name.clone()));
+            }
+            Node::GroundsOf(name) => {
+                carried.graph.insert((Read::Grounds, name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                index.collect_carried(carried);
+            }
+            Node::Fold(name, initial, _) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                initial.collect_carried(carried);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                carried.graph.insert((Read::Value, name.clone()));
+                initial.collect_carried(carried);
+                body.collect_carried(carried);
+            }
+            // The evidence through its records. The caveats are attached by
+            // name: nothing reads their examination records.
+            Node::Qualified(value, evidence, _) => {
+                carried.graph.insert((Read::Records, evidence.clone()));
+                value.collect_carried(carried);
+            }
+            Node::Unary(_, value) => value.collect_carried(carried),
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                left.collect_carried(carried);
+                right.collect_carried(carried);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_carried(carried);
+                yes.collect_carried(carried);
+                no.collect_carried(carried);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+            }
+            // An unexpanded call's body is unknown here. Sessions expand
+            // every call before evaluating.
+            Node::UserCall(_, arguments) => {
+                carried.anything = true;
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_carried(carried);
+                }
+                body.collect_carried(carried);
+            }
+        }
+    }
+
+    /// Everything this expression's grounds can carry from, taken or not, as
+    /// `evaluate_grounds` reads each node (finding D054): a state gives its
+    /// grounds, `committed` and `in_basis` the commitment's grounds,
+    /// `reopened` those and the names of what reopened it, `on_hold` the
+    /// names of the reasons it is held for, a withdrawal predicate the names
+    /// of its reasons, `qualified`, `observed` and `carries` the name of the
+    /// evidence alone, and an `only_if` condition nothing. A read through a
+    /// history or an outcome gives what the lineage would. Every branch is
+    /// included, so this over-approximates. Exhaustive for the same reason
+    /// as `collect_reads`.
+    pub fn collect_grounded(&self, grounded: &mut Grounded) {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed => {}
+            Node::Variable(name) => {
+                grounded.states.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                let kind = kind.strip_prefix(AT_LATEST).unwrap_or(kind);
+                grounded.predicate(kind, name);
+            }
+            Node::AtOccurrence(kind, name, index) => {
+                grounded.predicate(kind, name);
+                index.collect_grounded(grounded);
+            }
+            // The revision's grounds; the evidence is only looked for there.
+            Node::InBasis(basis, children) => {
+                grounded.decisions.insert(basis.series.clone());
+                for child in children {
+                    child.collect_grounded(grounded);
+                }
+            }
+            Node::Outcome(name, index) => {
+                grounded.graph.insert((Read::Outcome, name.clone()));
+                if let Some(index) = index {
+                    index.collect_grounded(grounded);
+                }
+            }
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+            }
+            Node::GroundsOf(name) => {
+                grounded.graph.insert((Read::Grounds, name.clone()));
+            }
+            Node::HistoryAt(name, index) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                index.collect_grounded(grounded);
+            }
+            Node::Fold(name, initial, _) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                initial.collect_grounded(grounded);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                grounded.graph.insert((Read::Value, name.clone()));
+                initial.collect_grounded(grounded);
+                body.collect_grounded(grounded);
+            }
+            // The evidence and the caveats that qualify it, not its records.
+            Node::Qualified(value, evidence, _) => {
+                grounded.named.insert(evidence.clone());
+                value.collect_grounded(grounded);
+            }
+            Node::Unary(_, value) => value.collect_grounded(grounded),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_grounded(grounded);
+                right.collect_grounded(grounded);
+            }
+            // The condition's reads are left out of grounds.
+            Node::OnlyIf(_, value) => value.collect_grounded(grounded),
+            Node::If(condition, yes, no) => {
+                condition.collect_grounded(grounded);
+                yes.collect_grounded(grounded);
+                no.collect_grounded(grounded);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+            }
+            Node::UserCall(_, arguments) => {
+                grounded.anything = true;
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_grounded(grounded);
+                }
+                body.collect_grounded(grounded);
+            }
+        }
+    }
+
     /// Every record this expression reads, as (form, name), taken or not:
     /// `committed(D)` and `reopened(D)`, and `latest`, `history_count`,
     /// `history_at` and a fold of a history. Whether the name is a decision
@@ -1558,8 +2555,13 @@ impl Expr {
                     index.collect_record_reads(records);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
             Node::Predicate(kind, name) => match kind.as_str() {
                 "committed" => {
                     records.insert(("committed", name.clone()));
@@ -1571,6 +2573,10 @@ impl Expr {
             },
             Node::Latest(name) => {
                 records.insert(("latest", name.clone()));
+            }
+            // New in 1.5, so no 1.0.x runtime read a record through it.
+            Node::GroundsOf(name) => {
+                records.insert(("grounds_of", name.clone()));
             }
             Node::HistoryCount(name) => {
                 records.insert(("history_count", name.clone()));
@@ -1636,14 +2642,19 @@ impl Expr {
                     index.collect_histories(histories);
                 }
             }
-            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
-            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
             Node::Predicate(kind, name) => {
                 if kind == "has_sample" || kind == "withdrawn_latest" {
                     histories.insert(name.clone());
                 }
             }
-            Node::Latest(name) | Node::HistoryCount(name) => {
+            Node::Latest(name) | Node::GroundsOf(name) | Node::HistoryCount(name) => {
                 histories.insert(name.clone());
             }
             Node::HistoryAt(name, index) => {
@@ -1694,10 +2705,288 @@ impl Expr {
         }
     }
 
+    /// What this expression asks about withdrawal, taken or not. `tested`
+    /// gets each name it asks is withdrawn: `withdrawn(E)`,
+    /// `withdrawn(latest(S))`, `withdrawn(occurrence(E, N))` or
+    /// `withdrawn(reading(S, N))`, `carries(…, withdrawn)` and
+    /// `has_caveat(STATE, withdrawn)`. `bases` gets each decision series whose
+    /// basis it asks about: `rests_on_withdrawn(D)`, of a revision of D, and
+    /// `in_basis(D, …)`. Used by `caveat check`'s C010 and C011
+    /// (spec/caveat-check-0.1.md). Exhaustive for the same reason as
+    /// `collect_reads`.
+    pub fn collect_withdrawal_reads(
+        &self,
+        tested: &mut BTreeSet<String>,
+        bases: &mut BTreeSet<String>,
+    ) {
+        match &self.node {
+            Node::Outcome(_, index) => {
+                if let Some(index) = index {
+                    index.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Elapsed
+            | Node::Variable(_)
+            | Node::Argument(_) => {}
+            Node::Predicate(kind, name) => match kind.as_str() {
+                "withdrawn" | "withdrawn_latest" => {
+                    tested.insert(name.clone());
+                }
+                "rests_on_withdrawn" => {
+                    bases.insert(name.clone());
+                }
+                kind if kind.ends_with("carries:withdrawn") || kind == "has_caveat:withdrawn" => {
+                    tested.insert(name.clone());
+                }
+                _ => {}
+            },
+            Node::AtOccurrence(kind, name, index) => {
+                if kind == "withdrawn" || kind == "carries:withdrawn" {
+                    tested.insert(name.clone());
+                } else if kind == AT_REVISION {
+                    bases.insert(name.clone());
+                }
+                index.collect_withdrawal_reads(tested, bases);
+            }
+            Node::InBasis(basis, children) => {
+                bases.insert(basis.series.clone());
+                for child in children {
+                    child.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::Latest(_) | Node::GroundsOf(_) | Node::HistoryCount(_) => {}
+            Node::HistoryAt(_, index) | Node::Fold(_, index, _) => {
+                index.collect_withdrawal_reads(tested, bases)
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                initial.collect_withdrawal_reads(tested, bases);
+                body.collect_withdrawal_reads(tested, bases);
+            }
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => {
+                value.collect_withdrawal_reads(tested, bases)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                left.collect_withdrawal_reads(tested, bases);
+                right.collect_withdrawal_reads(tested, bases);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_withdrawal_reads(tested, bases);
+                yes.collect_withdrawal_reads(tested, bases);
+                no.collect_withdrawal_reads(tested, bases);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_withdrawal_reads(tested, bases);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_withdrawal_reads(tested, bases);
+                }
+                body.collect_withdrawal_reads(tested, bases);
+            }
+        }
+    }
+
+    /// A `threshold NAME = NUMBER;` read, as a define expands it. See
+    /// spec/caveat-thresholds-0.1.md.
+    pub fn threshold(name: &str, value: Number) -> Result<Self, String> {
+        Self::new(Node::Threshold(name.into(), value))
+    }
+
+    /// The threshold this expression is, if it is one.
+    pub fn as_threshold(&self) -> Option<(&str, f64)> {
+        match &self.node {
+            Node::Threshold(name, number) => Some((name, number.value())),
+            _ => None,
+        }
+    }
+
+    /// The route of a guard: the `NAME == VALUE` terms its `and` chain
+    /// evaluates first, in evaluation order, up to the first term of any
+    /// other shape, where VALUE is a number literal, signed or not, a
+    /// threshold, or a name. A routed copy's guard starts with them
+    /// (spec/caveat-routed-repetition-0.1.md). The host decides which names
+    /// it can read at load; a term whose name reads a plain number unequal to
+    /// its value makes the guard false with no dependency, exactly as
+    /// evaluating it would find (spec/caveat-routed-work-0.1.md).
+    /// Leading `PARAM == CONST` conjunctions accepted by `accept`, together
+    /// with the remaining condition (`None` when the entire expression was
+    /// consumed by the route or is trivially `true`) and the exact number of
+    /// AST nodes stripped from the front.
+    ///
+    /// Preserves `route_terms()` matching (including thresholds and signed
+    /// literals for `spec/caveat-routed-work-0.1.md`). If any matched term
+    /// contains a `Node::Threshold`, or if stripping would exceed
+    /// `MAX_EVALUATED_NODES`, the compiled `terms` are still returned for
+    /// routed-elsewhere skipping while the full expression is kept for
+    /// matching-route evaluation so threshold collection and node budgets stay
+    /// exact.
+    pub fn compile_route_expr(
+        &self,
+        accept: &impl Fn(&str, &RouteValue) -> Option<(usize, f64)>,
+    ) -> (Vec<(usize, f64)>, Option<Expr>, usize) {
+        fn route_literal(expr: &Expr) -> Option<(f64, usize, bool)> {
+            match &expr.node {
+                Node::Number(number) => Some((number.value(), 1, false)),
+                Node::Threshold(_, number) => Some((number.value(), 1, true)),
+                Node::Unary(Unary::Positive, inner) => {
+                    let (v, n, thr) = route_literal(inner)?;
+                    Some((v, n + 1, thr))
+                }
+                Node::Unary(Unary::Negative, inner) => {
+                    let (v, n, thr) = route_literal(inner)?;
+                    Some((-v, n + 1, thr))
+                }
+                _ => None,
+            }
+        }
+        fn walk(
+            expr: &Expr,
+            accept: &impl Fn(&str, &RouteValue) -> Option<(usize, f64)>,
+        ) -> (Vec<(usize, f64)>, Option<Expr>, usize, bool) {
+            match &expr.node {
+                Node::Bool(true) => (Vec::new(), None, 1, false),
+                Node::Binary(Binary::Equal, left, right) => {
+                    let Node::Variable(name) = &left.node else {
+                        return (Vec::new(), Some(expr.clone()), 0, false);
+                    };
+                    let (value, right_nodes, saw_threshold) =
+                        match (route_literal(right), &right.node) {
+                            (Some((number, n, thr)), _) => (RouteValue::Number(number), n, thr),
+                            (None, Node::Variable(value)) => {
+                                (RouteValue::Name(value.clone()), 1, false)
+                            }
+                            _ => return (Vec::new(), Some(expr.clone()), 0, false),
+                        };
+                    match accept(name, &value) {
+                        Some(term) => (vec![term], None, 2 + right_nodes, saw_threshold),
+                        None => (Vec::new(), Some(expr.clone()), 0, false),
+                    }
+                }
+                Node::Binary(Binary::And, left, right) => {
+                    let (mut terms, left_rem, left_nodes, left_thr) = walk(left, accept);
+                    if let Some(left_rem) = left_rem {
+                        if terms.is_empty() && left_nodes == 0 {
+                            return (Vec::new(), Some(expr.clone()), 0, false);
+                        }
+                        let depth = 1 + left_rem.depth.max(right.depth);
+                        return (
+                            terms,
+                            Some(Expr {
+                                node: Node::Binary(Binary::And, Box::new(left_rem), right.clone()),
+                                depth,
+                            }),
+                            left_nodes,
+                            left_thr,
+                        );
+                    }
+                    let (right_terms, right_rem, right_nodes, right_thr) = walk(right, accept);
+                    terms.extend(right_terms);
+                    (
+                        terms,
+                        right_rem,
+                        left_nodes + 1 + right_nodes,
+                        left_thr || right_thr,
+                    )
+                }
+                _ => (Vec::new(), Some(expr.clone()), 0, false),
+            }
+        }
+        let (terms, remainder, stripped_nodes, saw_threshold) = walk(self, accept);
+        if saw_threshold || stripped_nodes > MAX_EVALUATED_NODES {
+            (terms, Some(self.clone()), 0)
+        } else {
+            (terms, remainder, stripped_nodes)
+        }
+    }
+
+    pub fn route_terms(&self) -> Vec<(String, RouteValue)> {
+        fn walk(expr: &Expr, out: &mut Vec<(String, RouteValue)>) -> bool {
+            match &expr.node {
+                Node::Binary(Binary::And, left, right) => walk(left, out) && walk(right, out),
+                Node::Binary(Binary::Equal, left, right) => {
+                    let Node::Variable(name) = &left.node else {
+                        return false;
+                    };
+                    let value = match (right.literal_number(), &right.node) {
+                        (Some(number), _) => RouteValue::Number(number),
+                        (None, Node::Variable(value)) => RouteValue::Name(value.clone()),
+                        _ => return false,
+                    };
+                    out.push((name.clone(), value));
+                    true
+                }
+                _ => false,
+            }
+        }
+        let mut out = Vec::new();
+        walk(self, &mut out);
+        out
+    }
+
+    /// Every threshold the expression names, with its value, whichever
+    /// branch an evaluation takes.
+    pub fn collect_thresholds(&self, thresholds: &mut BTreeMap<String, f64>) {
+        if let Node::Threshold(name, number) = &self.node {
+            thresholds.insert(name.clone(), number.value());
+        }
+        let mut visit = |child: &Expr| child.collect_thresholds(thresholds);
+        match &self.node {
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::AtOccurrence(_, _, child) => {
+                visit(child)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => {
+                visit(left);
+                visit(right);
+            }
+            Node::If(condition, yes, no) => {
+                visit(condition);
+                visit(yes);
+                visit(no);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                arguments.iter().for_each(visit);
+            }
+            Node::ExpandedCall(arguments, body) => {
+                arguments.iter().for_each(&mut visit);
+                visit(body);
+            }
+            Node::Fold(_, initial, _) => visit(initial),
+            Node::ExpandedFold(_, initial, body) => {
+                visit(initial);
+                visit(body);
+            }
+            Node::Qualified(value, _, _) => visit(value),
+            Node::InBasis(_, children) => children.iter().for_each(visit),
+            Node::Outcome(_, Some(index)) => visit(index),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Argument(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::HistoryCount(_)
+            | Node::GroundsOf(_)
+            | Node::Outcome(_, None) => {}
+        }
+    }
+
     /// The number, if this expression is a number literal, signed or not.
     pub fn literal_number(&self) -> Option<f64> {
         match &self.node {
-            Node::Number(number) => Some(number.value()),
+            Node::Number(number) | Node::Threshold(_, number) => Some(number.value()),
             Node::Unary(Unary::Positive, inner) => inner.literal_number(),
             Node::Unary(Unary::Negative, inner) => inner.literal_number().map(|value| -value),
             _ => None,
@@ -1723,8 +3012,14 @@ impl Expr {
             Node::Outcome(series, index) => {
                 Node::Outcome(rename(series), index.as_ref().map(|index| child(index)))
             }
-            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Text(_) => self.node.clone(),
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_) => self.node.clone(),
             Node::Latest(history) => Node::Latest(rename(history)),
+            Node::GroundsOf(series) => Node::GroundsOf(rename(series)),
             Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
@@ -1805,6 +3100,104 @@ impl Expr {
         }
     }
 
+    /// The states `is_set(STATE)` asserts when this condition holds: each
+    /// `is_set` among its `and` operands. With `negated`, each
+    /// `not is_set(STATE)` instead, which holds when STATE is set and this
+    /// condition fails. See spec/caveat-unset-states-0.1.md.
+    pub fn is_set_guards(&self, negated: bool) -> BTreeSet<String> {
+        let operands = if negated {
+            self.disjuncts()
+        } else {
+            self.conjuncts()
+        };
+        operands
+            .into_iter()
+            .filter_map(|operand| match (&operand.node, negated) {
+                (Node::Predicate(kind, name), false) if kind == IS_SET => Some(name.clone()),
+                (Node::Unary(Unary::Not, inner), true) => match &inner.node {
+                    Node::Predicate(kind, name) if kind == IS_SET => Some(name.clone()),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The names this expression reads as values outside a guard: every
+    /// variable not in `guarded`, where `is_set(S) and …`, `not is_set(S) or
+    /// …` and `if(is_set(S), …, …)` guard S in what they evaluate only when S
+    /// is set. `is_set` itself reads no value. Used by `caveat check`'s C013
+    /// (spec/caveat-unset-states-0.1.md).
+    pub fn collect_unguarded_reads(
+        &self,
+        guarded: &BTreeSet<String>,
+        reads: &mut BTreeSet<String>,
+    ) {
+        let with = |extra: BTreeSet<String>| -> BTreeSet<String> {
+            guarded.iter().cloned().chain(extra).collect()
+        };
+        match &self.node {
+            Node::Variable(name) => {
+                if !guarded.contains(name) {
+                    reads.insert(name.clone());
+                }
+            }
+            Node::Binary(Binary::And, left, right) => {
+                left.collect_unguarded_reads(guarded, reads);
+                right.collect_unguarded_reads(&with(left.is_set_guards(false)), reads);
+            }
+            Node::Binary(Binary::Or, left, right) => {
+                left.collect_unguarded_reads(guarded, reads);
+                right.collect_unguarded_reads(&with(left.is_set_guards(true)), reads);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_unguarded_reads(guarded, reads);
+                yes.collect_unguarded_reads(&with(condition.is_set_guards(false)), reads);
+                no.collect_unguarded_reads(&with(condition.is_set_guards(true)), reads);
+            }
+            _ => {
+                for child in self.children() {
+                    child.collect_unguarded_reads(guarded, reads);
+                }
+            }
+        }
+    }
+
+    /// The expressions directly under this one. Exhaustive, so a new kind of
+    /// node says what it holds before it compiles.
+    fn children(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Number(_)
+            | Node::Threshold(..)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Argument(_)
+            | Node::Elapsed
+            | Node::Variable(_)
+            | Node::Predicate(..)
+            | Node::Latest(_)
+            | Node::GroundsOf(_)
+            | Node::HistoryCount(_) => Vec::new(),
+            Node::Outcome(_, index) => index.iter().map(|index| index.as_ref()).collect(),
+            Node::HistoryAt(_, index) | Node::AtOccurrence(_, _, index) => vec![index],
+            Node::InBasis(_, children) => children.iter().collect(),
+            Node::Fold(_, initial, _) => vec![initial],
+            Node::ExpandedFold(_, initial, body) => vec![initial, body],
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => vec![value],
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::OnlyIf(left, right) => vec![left, right],
+            Node::If(condition, yes, no) => vec![condition, yes, no],
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                arguments.iter().collect()
+            }
+            Node::ExpandedCall(arguments, body) => arguments
+                .iter()
+                .chain(std::iter::once(body.as_ref()))
+                .collect(),
+        }
+    }
+
     /// The operands of a chain of `and`, left to right; the expression itself
     /// if it is not one.
     pub fn conjuncts(&self) -> Vec<&Expr> {
@@ -1846,10 +3239,12 @@ impl Expr {
             Node::Outcome(series, index) => {
                 series.contains(word) || index.as_ref().is_some_and(|index| child(index))
             }
-            Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
+            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Argument(_) => false,
+            Node::Threshold(name, _) => name.contains(word),
             Node::Text(name)
             | Node::Variable(name)
             | Node::Latest(name)
+            | Node::GroundsOf(name)
             | Node::HistoryCount(name) => name.contains(word),
             Node::Predicate(kind, target) => kind.contains(word) || target.contains(word),
             Node::Qualified(value, evidence, caveats) => {
@@ -1941,11 +3336,14 @@ impl Expr {
                 body.collect_caveat_reads(examined, extras);
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
+            | Node::Argument(_)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -1992,12 +3390,15 @@ impl Expr {
                 initial.qualified_unconditionally(evidence)
             }
             Node::Number(_)
+            | Node::Threshold(..)
             | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
+            | Node::Argument(_)
             | Node::Predicate(_, _)
             | Node::Latest(_)
+            | Node::GroundsOf(_)
             | Node::HistoryCount(_) => {}
         }
     }
@@ -2045,11 +3446,16 @@ impl Expr {
         numeric: &HashSet<String>,
         predicate: &impl Fn(&str, &str) -> Result<(), String>,
     ) -> Result<ValueType, String> {
-        self.validate_calls(numeric, predicate, &|name, _| {
-            Err(format!(
-                "source function {name} must be expanded before validation"
-            ))
-        })
+        self.validate_calls(
+            numeric,
+            predicate,
+            &|name, _| {
+                Err(format!(
+                    "source function {name} must be expanded before validation"
+                ))
+            },
+            None,
+        )
     }
 
     fn validate_calls(
@@ -2057,24 +3463,37 @@ impl Expr {
         numeric: &HashSet<String>,
         predicate: &dyn Fn(&str, &str) -> Result<(), String>,
         user_call: &dyn Fn(&str, usize) -> Result<ValueType, String>,
+        functions: Option<&BTreeMap<String, FunctionDef>>,
     ) -> Result<ValueType, String> {
+        if let Some(functions) = functions {
+            if let Some(call) = source_function_call(&self.node, functions)? {
+                return Expr::new(call)?.validate_calls(
+                    numeric,
+                    predicate,
+                    user_call,
+                    Some(functions),
+                );
+            }
+        }
         match &self.node {
             Node::Outcome(name, index) => {
                 predicate(OUTCOME, name)?;
                 if let Some(index) = index {
                     index
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 Ok(ValueType::Number)
             }
-            Node::Number(_) => Ok(ValueType::Number),
+            Node::Number(_) | Node::Threshold(..) => Ok(ValueType::Number),
             Node::Elapsed => {
                 predicate("runtime_clock", "elapsed")?;
                 Ok(ValueType::Number)
             }
             Node::Bool(_) => Ok(ValueType::Bool),
             Node::Text(_) => Ok(ValueType::Text),
+            // Arguments are numeric; the call's arguments are checked as such.
+            Node::Argument(_) => Ok(ValueType::Number),
             Node::Variable(name) => {
                 if numeric.contains(name) {
                     Ok(ValueType::Number)
@@ -2089,7 +3508,7 @@ impl Expr {
             Node::AtOccurrence(kind, evidence, index) => {
                 predicate(&selector_kind(kind), evidence)?;
                 index
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Bool)
             }
@@ -2106,13 +3525,17 @@ impl Expr {
                 )?;
                 for child in children {
                     child
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 Ok(ValueType::Bool)
             }
             Node::Latest(name) => {
                 predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
+            Node::GroundsOf(name) => {
+                predicate(GROUNDS_OF, name)?;
                 Ok(ValueType::Number)
             }
             Node::HistoryCount(name) => {
@@ -2122,14 +3545,14 @@ impl Expr {
             Node::HistoryAt(name, index) => {
                 predicate("numeric_history", name)?;
                 index
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
             Node::Fold(name, initial, reducer) => {
                 predicate("numeric_history", name)?;
                 initial
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 user_call(reducer, 2)?.require(ValueType::Number)?;
                 Ok(ValueType::Number)
@@ -2137,7 +3560,7 @@ impl Expr {
             Node::ExpandedFold(name, initial, body) => {
                 predicate("numeric_history", name)?;
                 initial
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 body.validate_calls(
                     &[FOLD_ACC.into(), FOLD_VALUE.into()]
@@ -2145,13 +3568,14 @@ impl Expr {
                         .collect::<HashSet<String>>(),
                     &|_, _| Err("fold reducer must be pure".into()),
                     user_call,
+                    functions,
                 )?
                 .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
             Node::Qualified(value, evidence, caveats) => {
                 value
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 predicate("qualification_evidence", evidence)?;
                 for caveat in caveats {
@@ -2161,25 +3585,25 @@ impl Expr {
             }
             Node::If(condition, yes, no) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
-                let kind = yes.validate_calls(numeric, predicate, user_call)?;
-                no.validate_calls(numeric, predicate, user_call)?
+                let kind = yes.validate_calls(numeric, predicate, user_call, functions)?;
+                no.validate_calls(numeric, predicate, user_call, functions)?
                     .require(kind)?;
                 Ok(kind)
             }
             Node::Require(condition, value) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
-                value.validate_calls(numeric, predicate, user_call)
+                value.validate_calls(numeric, predicate, user_call, functions)
             }
             Node::OnlyIf(condition, value) => {
                 condition
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Bool)?;
                 value
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
@@ -2189,13 +3613,13 @@ impl Expr {
                     _ => ValueType::Number,
                 };
                 child
-                    .validate_calls(numeric, predicate, user_call)?
+                    .validate_calls(numeric, predicate, user_call, functions)?
                     .require(expected)?;
                 Ok(expected)
             }
             Node::Binary(operator, left, right) => {
-                let left_type = left.validate_calls(numeric, predicate, user_call)?;
-                let right_type = right.validate_calls(numeric, predicate, user_call)?;
+                let left_type = left.validate_calls(numeric, predicate, user_call, functions)?;
+                let right_type = right.validate_calls(numeric, predicate, user_call, functions)?;
                 match operator {
                     Binary::And | Binary::Or => {
                         left_type.require(ValueType::Bool)?;
@@ -2230,13 +3654,13 @@ impl Expr {
             | Node::ExpandedCall(arguments, _) => {
                 for argument in arguments {
                     argument
-                        .validate_calls(numeric, predicate, user_call)?
+                        .validate_calls(numeric, predicate, user_call, functions)?
                         .require(ValueType::Number)?;
                 }
                 match &self.node {
                     Node::UserCall(name, _) => user_call(name, arguments.len()),
                     Node::ExpandedCall(_, body) => {
-                        body.validate_calls(numeric, predicate, user_call)
+                        body.validate_calls(numeric, predicate, user_call, functions)
                     }
                     Node::Function(Function::Text | Function::IdText, _) => Ok(ValueType::Text),
                     _ => Ok(ValueType::Number),
@@ -2322,7 +3746,38 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
-        self.tracked(numbers, predicate, qualify, history, identifiers, false)
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            false,
+            MAX_EVALUATED_NODES,
+        )
+    }
+
+    /// As `evaluate_tracked_with_identifiers`, with `stripped_nodes` already
+    /// charged against the node evaluation budget (for a compiled route
+    /// prefix whose terms were already checked).
+    pub fn evaluate_tracked_with_identifiers_charged(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+        identifiers: &impl Fn(f64) -> Result<String, String>,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            false,
+            MAX_EVALUATED_NODES.saturating_sub(stripped_nodes),
+        )
     }
 
     /// As `evaluate_tracked_with_identifiers`, for a value's grounds: the
@@ -2337,9 +3792,18 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
-        self.tracked(numbers, predicate, qualify, history, identifiers, true)
+        self.tracked(
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+            true,
+            MAX_EVALUATED_NODES,
+        )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tracked(
         &self,
         numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
@@ -2348,59 +3812,116 @@ impl Expr {
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
         quiet_conditions: bool,
+        node_budget: usize,
     ) -> Result<Tracked<Value>, EvalError> {
-        // The existing evaluator already visits precisely the operands that
-        // contribute to this evaluation. Accumulating at those reads gives
-        // identical propagation without copying full traces at every AST node.
+        let host = ClosureHost {
+            numbers,
+            predicate,
+            qualify,
+            history,
+            identifiers,
+        };
+        let stripped = MAX_EVALUATED_NODES.saturating_sub(node_budget);
+        self.evaluate_with_host(&host, quiet_conditions, stripped)
+    }
+}
+
+/// Host callbacks for evaluating an `Expr` with static dispatch and direct
+/// structured lookup for `occurrence`/`reading`/`revision` and `in_basis`
+/// predicates (avoiding dynamic closure tables and string formatting/parsing).
+pub trait EvalHost {
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError>;
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError>;
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+    ) -> Result<Tracked<bool>, EvalError> {
+        self.predicate(&selector_kind(kind), &format!("{evidence}#{index}"))
+    }
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let rev = revision.map(|k| k.to_string()).unwrap_or_default();
+        let idx = at.map(|n| n.to_string()).unwrap_or_default();
+        self.predicate(IN_BASIS, &format!("{series}#{rev}|{kind}|{name}#{idx}"))
+    }
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError>;
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError>;
+    fn identifier(&self, handle: f64) -> Result<String, String>;
+}
+
+struct ClosureHost<'a, N, P, Q, H, I> {
+    numbers: &'a N,
+    predicate: &'a P,
+    qualify: &'a Q,
+    history: &'a H,
+    identifiers: &'a I,
+}
+
+impl<N, P, Q, H, I> EvalHost for ClosureHost<'_, N, P, Q, H, I>
+where
+    N: Fn(&str) -> Result<Option<Tracked<f64>>, EvalError>,
+    P: Fn(&str, &str) -> Result<Tracked<bool>, EvalError>,
+    Q: Fn(&str, &[String]) -> Result<Provenance, EvalError>,
+    H: Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
+    I: Fn(f64) -> Result<String, String>,
+{
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError> {
+        (self.numbers)(name)
+    }
+
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        (self.predicate)(kind, name)
+    }
+
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError> {
+        (self.qualify)(evidence, caveats)
+    }
+
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
+        (self.history)(name, query)
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        (self.identifiers)(handle)
+    }
+}
+
+impl Expr {
+    /// Evaluate with a statically dispatched `EvalHost`, charging
+    /// `stripped_nodes` against the node evaluation budget.
+    pub fn evaluate_with_host<H: EvalHost>(
+        &self,
+        host: &H,
+        quiet_conditions: bool,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
         let provenance = RefCell::new(Provenance::default());
         let budget = Budget {
-            nodes: Cell::new(MAX_EVALUATED_NODES),
+            nodes: Cell::new(MAX_EVALUATED_NODES.saturating_sub(stripped_nodes)),
             quiet_conditions,
             quiet: Cell::new(false),
+            frames: RefCell::new(Vec::new()),
+            fold_vars: Cell::new(None),
         };
-        let keep = |read: &Provenance| {
-            if budget.quiet.get() {
-                return Ok(());
-            }
-            read_into(&provenance, read)
-        };
-        let value = self.evaluate_values(
-            &|name| {
-                let Some(tracked) = numbers(name)? else {
-                    return Ok(None);
-                };
-                let value = finite(tracked.value)?;
-                keep(&tracked.provenance)?;
-                Ok(Some(value))
-            },
-            &|kind, name| {
-                let tracked = predicate(kind, name)?;
-                keep(&tracked.provenance)?;
-                Ok(tracked.value)
-            },
-            &|evidence, caveats| keep(&qualify(evidence, caveats)?),
-            &|name, query| {
-                let tracked = history(name, query)?;
-                let value = finite(tracked.value)?;
-                keep(&tracked.provenance)?;
-                Ok(value)
-            },
-            identifiers,
-            &budget,
-        )?;
+        let value = self.evaluate_values_host(host, &provenance, &budget)?;
         Ok(Tracked {
             value,
             provenance: provenance.into_inner(),
         })
     }
 
-    fn evaluate_values(
+    fn evaluate_values_host<H: EvalHost>(
         &self,
-        numbers: &dyn Fn(&str) -> Result<Option<f64>, EvalError>,
-        predicate: &dyn Fn(&str, &str) -> Result<bool, EvalError>,
-        qualify: &QualificationSink<'_>,
-        history: &dyn Fn(&str, HistoryRead) -> Result<f64, EvalError>,
-        identifiers: &dyn Fn(f64) -> Result<String, String>,
+        host: &H,
+        provenance: &RefCell<Provenance>,
         remaining: &Budget,
     ) -> Result<Value, EvalError> {
         let budget = remaining.get();
@@ -2411,20 +3932,19 @@ impl Expr {
             ));
         }
         remaining.set(budget - 1);
+        let keep = |read: Provenance| -> Result<(), EvalError> {
+            if remaining.quiet.get() {
+                return Ok(());
+            }
+            read_into(provenance, read)
+        };
         match &self.node {
             Node::Outcome(name, index) => {
                 let index = match index {
                     None => None,
                     Some(index) => {
                         let k = index
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
+                            .evaluate_values_host(host, provenance, remaining)?
                             .number()?;
                         if k < 1.0 || k.fract() != 0.0 || k > MAX_FOLD_RECORDS as f64 {
                             return Err(EvalError::new(
@@ -2435,16 +3955,22 @@ impl Expr {
                         Some(k as usize)
                     }
                 };
-                Ok(Value::Number(finite(history(
-                    name,
-                    HistoryRead::Outcome(index),
-                )?)?))
+                let tracked = host.history(name, HistoryRead::Outcome(index))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
-            Node::Number(value) => Ok(Value::Number(value.value())),
+            Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
             Node::Elapsed => {
-                let value =
-                    numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
-                Ok(Value::Number(finite(value)?))
+                let tracked = if remaining.fold_vars.get().is_some() {
+                    None
+                } else {
+                    host.number(ELAPSED_READ)?
+                }
+                .ok_or("elapsed() requires a reactive session")?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::Bool(value) => Ok(Value::Bool(*value)),
             Node::Text(value) => {
@@ -2452,64 +3978,82 @@ impl Expr {
                 Ok(Value::Text(value.clone()))
             }
             Node::Variable(name) => {
-                let value =
-                    numbers(name)?.ok_or_else(|| format!("unknown numeric identifier {name}"))?;
-                Ok(Value::Number(finite(value)?))
+                if let Some((acc, val)) = remaining.fold_vars.get() {
+                    let value = match name.as_str() {
+                        FOLD_ACC => acc,
+                        FOLD_VALUE => val,
+                        _ => return Err(format!("unknown numeric identifier {name}").into()),
+                    };
+                    return Ok(Value::Number(finite(value)?));
+                }
+                let tracked = host
+                    .number(name)?
+                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
-            Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
-            // The host resolves `EVIDENCE#INDEX` to a held occurrence, or
-            // answers false when the index names none.
+            Node::Predicate(name, target) => {
+                let tracked = host.predicate(name, target)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
+            }
             Node::AtOccurrence(kind, evidence, index) => {
                 let index = index
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                Ok(Value::Bool(predicate(
-                    &selector_kind(kind),
-                    &format!("{evidence}#{index}"),
-                )?))
+                let tracked = host.at_occurrence(kind, evidence, index)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
             }
-            // Every index is evaluated, whatever it names. The host resolves
-            // the revision and the reference, or answers false.
             Node::InBasis(basis, children) => {
-                let mut indexes = Vec::new();
-                for child in children {
-                    indexes.push(
-                        child
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
-                            .number()?,
-                    );
-                }
-                let mut indexes = indexes.into_iter();
+                let mut iter = children.iter();
                 let revision = if basis.revision {
-                    indexes.next().map(|k| k.to_string()).unwrap_or_default()
+                    match iter.next() {
+                        Some(child) => Some(
+                            child
+                                .evaluate_values_host(host, provenance, remaining)?
+                                .number()?,
+                        ),
+                        None => None,
+                    }
                 } else {
-                    String::new()
+                    None
                 };
-                let at = indexes.next().map(|n| n.to_string()).unwrap_or_default();
-                Ok(Value::Bool(predicate(
-                    IN_BASIS,
-                    &format!(
-                        "{}#{revision}|{}|{}#{at}",
-                        basis.series,
-                        basis.kind.name(),
-                        basis.name
+                let at = match iter.next() {
+                    Some(child) => Some(
+                        child
+                            .evaluate_values_host(host, provenance, remaining)?
+                            .number()?,
                     ),
-                )?))
+                    None => None,
+                };
+                let tracked =
+                    host.in_basis(&basis.series, revision, basis.kind.name(), &basis.name, at)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Bool(tracked.value))
             }
-            Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
+            Node::Latest(name) => {
+                let tracked = host.history(name, HistoryRead::Latest)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
+            }
+            Node::GroundsOf(name) => {
+                let tracked = host.history(name, HistoryRead::Grounds)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
+            }
             Node::HistoryCount(name) => {
-                Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
+                let tracked = host.history(name, HistoryRead::Count)?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::HistoryAt(name, index) => {
                 let index = index
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
                 if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
                     return Err(EvalError::new(
@@ -2517,70 +4061,56 @@ impl Expr {
                         "history index must be an integer in 0..256",
                     ));
                 }
-                Ok(Value::Number(finite(history(
-                    name,
-                    HistoryRead::At(index as usize),
-                )?)?))
+                let tracked = host.history(name, HistoryRead::At(index as usize))?;
+                let value = finite(tracked.value)?;
+                keep(tracked.provenance)?;
+                Ok(Value::Number(value))
             }
             Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
             Node::ExpandedFold(name, initial, body) => {
                 let mut accumulator = initial
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                let count = finite(history(name, HistoryRead::Count)?)?;
+                let count_tracked = host.history(name, HistoryRead::Count)?;
+                let count = finite(count_tracked.value)?;
+                keep(count_tracked.provenance)?;
                 if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
                     return Err("history fold count exceeds bounded history capacity".into());
                 }
+                let saved_fold = remaining.fold_vars.get();
                 for index in 0..count as usize {
                     // Eager record reads retain provenance even if the reducer
                     // ignores an argument or multiplies it by zero.
-                    let value = finite(history(name, HistoryRead::At(index))?)?;
-                    accumulator = body
-                        .evaluate_values(
-                            &|variable| {
-                                Ok(match variable {
-                                    FOLD_ACC => Some(accumulator),
-                                    FOLD_VALUE => Some(value),
-                                    _ => None,
-                                })
-                            },
-                            predicate,
-                            qualify,
-                            history,
-                            identifiers,
-                            remaining,
-                        )?
-                        .number()?;
+                    let val_tracked = host.history(name, HistoryRead::At(index))?;
+                    let value = finite(val_tracked.value)?;
+                    keep(val_tracked.provenance)?;
+                    remaining.fold_vars.set(Some((accumulator, value)));
+                    let step = body.evaluate_values_host(host, provenance, remaining);
+                    remaining.fold_vars.set(saved_fold);
+                    accumulator = step?.number()?;
                 }
                 Ok(Value::Number(accumulator))
             }
             Node::Qualified(value, evidence, caveats) => {
                 let value = value
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .number()?;
-                qualify(evidence, caveats)?;
+                keep(host.qualify(evidence, caveats)?)?;
                 Ok(Value::Number(value))
             }
             Node::If(condition, yes, no) => {
                 if condition
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .boolean()?
                 {
-                    yes.evaluate_values(
-                        numbers,
-                        predicate,
-                        qualify,
-                        history,
-                        identifiers,
-                        remaining,
-                    )
+                    yes.evaluate_values_host(host, provenance, remaining)
                 } else {
-                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                    no.evaluate_values_host(host, provenance, remaining)
                 }
             }
             Node::Require(condition, value) => {
                 if !condition
-                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
+                    .evaluate_values_host(host, provenance, remaining)?
                     .boolean()?
                 {
                     return Err(EvalError::new(
@@ -2588,31 +4118,17 @@ impl Expr {
                         "source expression requirement failed",
                     ));
                 }
-                value.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                value.evaluate_values_host(host, provenance, remaining)
             }
             Node::OnlyIf(condition, value) => {
                 // In grounds, the condition's reads are not kept: it chose
                 // the value without being what the value rests on.
                 let quiet = remaining.quiet.get();
                 remaining.quiet.set(quiet || remaining.quiet_conditions);
-                let holds = condition.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                );
+                let holds = condition.evaluate_values_host(host, provenance, remaining);
                 remaining.quiet.set(quiet);
                 if holds?.boolean()? {
-                    value.evaluate_values(
-                        numbers,
-                        predicate,
-                        qualify,
-                        history,
-                        identifiers,
-                        remaining,
-                    )
+                    value.evaluate_values_host(host, provenance, remaining)
                 } else {
                     Ok(Value::Number(0.0))
                 }
@@ -2621,29 +4137,28 @@ impl Expr {
                 Err(format!("source function {name} must be expanded before evaluation").into())
             }
             Node::ExpandedCall(arguments, body) => {
+                let mut values = Vec::with_capacity(arguments.len());
                 for argument in arguments {
-                    argument
-                        .evaluate_values(
-                            numbers,
-                            predicate,
-                            qualify,
-                            history,
-                            identifiers,
-                            remaining,
-                        )?
-                        .number()?;
+                    values.push(
+                        argument
+                            .evaluate_values_host(host, provenance, remaining)?
+                            .number()?,
+                    );
                 }
-                body.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
+                remaining.frames.borrow_mut().push(values);
+                let value = body.evaluate_values_host(host, provenance, remaining);
+                remaining.frames.borrow_mut().pop();
+                value
             }
+            Node::Argument(index) => remaining
+                .frames
+                .borrow()
+                .last()
+                .and_then(|frame| frame.get(*index))
+                .map(|value| Value::Number(*value))
+                .ok_or_else(|| EvalError::from(format!("argument {index} read outside its call"))),
             Node::Unary(operator, child) => {
-                let value = child.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let value = child.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -2651,27 +4166,13 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let left = left.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right = right.evaluate_values(
-                    numbers,
-                    predicate,
-                    qualify,
-                    history,
-                    identifiers,
-                    remaining,
-                )?;
+                let right = right.evaluate_values_host(host, provenance, remaining)?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -2728,51 +4229,42 @@ impl Expr {
                 }
             }
             Node::Function(function, arguments) => {
-                let arguments = arguments
-                    .iter()
-                    .map(|argument| {
-                        argument
-                            .evaluate_values(
-                                numbers,
-                                predicate,
-                                qualify,
-                                history,
-                                identifiers,
-                                remaining,
-                            )?
-                            .number()
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
+                let mut evaluated = [0.0_f64; 2];
+                for (slot, argument) in evaluated.iter_mut().zip(arguments.iter()) {
+                    *slot = argument
+                        .evaluate_values_host(host, provenance, remaining)?
+                        .number()?;
+                }
                 let result = match function {
-                    Function::Sin => arguments[0].sin(),
-                    Function::Cos => arguments[0].cos(),
+                    Function::Sin => evaluated[0].sin(),
+                    Function::Cos => evaluated[0].cos(),
                     Function::Sqrt => {
-                        if arguments[0] < 0.0 {
+                        if evaluated[0] < 0.0 {
                             return Err(EvalError::new(
                                 EvalFailure::Domain,
                                 "sqrt requires a nonnegative number",
                             ));
                         }
-                        arguments[0].sqrt()
+                        evaluated[0].sqrt()
                     }
-                    Function::Atan2 => arguments[0].atan2(arguments[1]),
-                    Function::Floor => arguments[0].floor(),
-                    Function::Ceil => arguments[0].ceil(),
-                    Function::Round => arguments[0].round(),
+                    Function::Atan2 => evaluated[0].atan2(evaluated[1]),
+                    Function::Floor => evaluated[0].floor(),
+                    Function::Ceil => evaluated[0].ceil(),
+                    Function::Round => evaluated[0].round(),
                     Function::Text => {
-                        return Ok(Value::Text(if arguments[0] == 0.0 {
+                        return Ok(Value::Text(if evaluated[0] == 0.0 {
                             "0".into()
                         } else {
-                            arguments[0].to_string()
+                            evaluated[0].to_string()
                         }))
                     }
                     // Handle 0 is "no identifier"; any other number that is
                     // not a handle the host holds is outside the domain.
-                    Function::IdText if arguments[0] == 0.0 => {
+                    Function::IdText if evaluated[0] == 0.0 => {
                         return Ok(Value::Text(String::new()))
                     }
                     Function::IdText => {
-                        return Ok(Value::Text(identifiers(arguments[0]).map_err(
+                        return Ok(Value::Text(host.identifier(evaluated[0]).map_err(
                             |message| EvalError::new(EvalFailure::Domain, message),
                         )?))
                     }
@@ -2781,6 +4273,451 @@ impl Expr {
             }
         }
     }
+
+    /// Evaluate an expression once to produce its value, its lineage, and its
+    /// grounds (`only_if` conditions excluded from grounds).
+    pub fn evaluate_both_with_host<H: DualEvalHost>(
+        &self,
+        host: &H,
+    ) -> Result<(Value, Provenance, Provenance), EvalError> {
+        let mut lineage = Provenance::default();
+        let mut grounds = Provenance::default();
+        let budget = Budget {
+            nodes: Cell::new(MAX_EVALUATED_NODES),
+            quiet_conditions: true,
+            quiet: Cell::new(false),
+            frames: RefCell::new(Vec::new()),
+            fold_vars: Cell::new(None),
+        };
+        let value = self.evaluate_both_values(host, &mut lineage, &mut grounds, &budget)?;
+        Ok((value, lineage, grounds))
+    }
+
+    fn evaluate_both_values<H: DualEvalHost>(
+        &self,
+        host: &H,
+        lineage: &mut Provenance,
+        grounds: &mut Provenance,
+        remaining: &Budget,
+    ) -> Result<Value, EvalError> {
+        let budget = remaining.get();
+        if budget == 0 {
+            return Err(EvalError::new(
+                EvalFailure::EvaluationLimit,
+                format!("expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes"),
+            ));
+        }
+        remaining.set(budget - 1);
+        let quiet_grounds = remaining.quiet.get();
+        match &self.node {
+            Node::Outcome(name, index) => {
+                let index = match index {
+                    None => None,
+                    Some(index) => {
+                        let k = index
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?;
+                        if k < 1.0 || k.fract() != 0.0 || k > MAX_FOLD_RECORDS as f64 {
+                            return Err(EvalError::new(
+                                EvalFailure::HistoryIndex,
+                                format!("outcome(revision({name}, {k})): {k} names no revision"),
+                            ));
+                        }
+                        Some(k as usize)
+                    }
+                };
+                let (val, lin, gnd) =
+                    host.history(name, HistoryRead::Outcome(index), quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Number(value) | Node::Threshold(_, value) => Ok(Value::Number(value.value())),
+            Node::Elapsed => {
+                let (val, lin, gnd) = if remaining.fold_vars.get().is_some() {
+                    None
+                } else {
+                    host.number(ELAPSED_READ, quiet_grounds)?
+                }
+                .ok_or("elapsed() requires a reactive session")?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Bool(value) => Ok(Value::Bool(*value)),
+            Node::Text(value) => {
+                check_text_size(value.len())?;
+                Ok(Value::Text(value.clone()))
+            }
+            Node::Variable(name) => {
+                if let Some((acc, val)) = remaining.fold_vars.get() {
+                    let value = match name.as_str() {
+                        FOLD_ACC => acc,
+                        FOLD_VALUE => val,
+                        _ => return Err(format!("unknown numeric identifier {name}").into()),
+                    };
+                    return Ok(Value::Number(finite(value)?));
+                }
+                let (val, lin, gnd) = host
+                    .number(name, quiet_grounds)?
+                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Predicate(name, target) => {
+                let (val, lin, gnd) = host.predicate(name, target, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::AtOccurrence(kind, evidence, index) => {
+                let index = index
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (val, lin, gnd) = host.at_occurrence(kind, evidence, index, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::InBasis(basis, children) => {
+                let mut iter = children.iter();
+                let revision = if basis.revision {
+                    match iter.next() {
+                        Some(child) => Some(
+                            child
+                                .evaluate_both_values(host, lineage, grounds, remaining)?
+                                .number()?,
+                        ),
+                        None => None,
+                    }
+                } else {
+                    None
+                };
+                let at = match iter.next() {
+                    Some(child) => Some(
+                        child
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?,
+                    ),
+                    None => None,
+                };
+                let (val, lin, gnd) = host.in_basis(
+                    &basis.series,
+                    revision,
+                    basis.kind.name(),
+                    &basis.name,
+                    at,
+                    quiet_grounds,
+                )?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Bool(val))
+            }
+            Node::Latest(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Latest, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::GroundsOf(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Grounds, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::HistoryCount(name) => {
+                let (val, lin, gnd) = host.history(name, HistoryRead::Count, quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::HistoryAt(name, index) => {
+                let index = index
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        "history index must be an integer in 0..256",
+                    ));
+                }
+                let (val, lin, gnd) =
+                    host.history(name, HistoryRead::At(index as usize), quiet_grounds)?;
+                let value = finite(val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
+            Node::ExpandedFold(name, initial, body) => {
+                let mut accumulator = initial
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (count_val, lin, gnd) =
+                    host.history(name, HistoryRead::Count, quiet_grounds)?;
+                let count = finite(count_val)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
+                    return Err("history fold count exceeds bounded history capacity".into());
+                }
+                let saved_fold = remaining.fold_vars.get();
+                for index in 0..count as usize {
+                    let (val, lin, gnd) =
+                        host.history(name, HistoryRead::At(index), quiet_grounds)?;
+                    let value = finite(val)?;
+                    keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                    remaining.fold_vars.set(Some((accumulator, value)));
+                    let step = body.evaluate_both_values(host, lineage, grounds, remaining);
+                    remaining.fold_vars.set(saved_fold);
+                    accumulator = step?.number()?;
+                }
+                Ok(Value::Number(accumulator))
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                let value = value
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .number()?;
+                let (lin, gnd) = host.qualify(evidence, caveats, quiet_grounds)?;
+                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;
+                Ok(Value::Number(value))
+            }
+            Node::If(condition, yes, no) => {
+                if condition
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .boolean()?
+                {
+                    yes.evaluate_both_values(host, lineage, grounds, remaining)
+                } else {
+                    no.evaluate_both_values(host, lineage, grounds, remaining)
+                }
+            }
+            Node::Require(condition, value) => {
+                if !condition
+                    .evaluate_both_values(host, lineage, grounds, remaining)?
+                    .boolean()?
+                {
+                    return Err(EvalError::new(
+                        EvalFailure::Requirement,
+                        "source expression requirement failed",
+                    ));
+                }
+                value.evaluate_both_values(host, lineage, grounds, remaining)
+            }
+            Node::OnlyIf(condition, value) => {
+                let prev = remaining.quiet.get();
+                remaining.quiet.set(true);
+                let holds = condition.evaluate_both_values(host, lineage, grounds, remaining);
+                remaining.quiet.set(prev);
+                if holds?.boolean()? {
+                    value.evaluate_both_values(host, lineage, grounds, remaining)
+                } else {
+                    Ok(Value::Number(0.0))
+                }
+            }
+            Node::UserCall(name, _) => {
+                Err(format!("source function {name} must be expanded before evaluation").into())
+            }
+            Node::ExpandedCall(arguments, body) => {
+                let mut values = Vec::with_capacity(arguments.len());
+                for argument in arguments {
+                    values.push(
+                        argument
+                            .evaluate_both_values(host, lineage, grounds, remaining)?
+                            .number()?,
+                    );
+                }
+                remaining.frames.borrow_mut().push(values);
+                let value = body.evaluate_both_values(host, lineage, grounds, remaining);
+                remaining.frames.borrow_mut().pop();
+                value
+            }
+            Node::Argument(index) => remaining
+                .frames
+                .borrow()
+                .last()
+                .and_then(|frame| frame.get(*index))
+                .map(|value| Value::Number(*value))
+                .ok_or_else(|| EvalError::from(format!("argument {index} read outside its call"))),
+            Node::Unary(operator, child) => {
+                let value = child.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Unary::Positive => Ok(Value::Number(value.number()?)),
+                    Unary::Negative => Ok(Value::Number(-value.number()?)),
+                    Unary::Not => Ok(Value::Bool(!value.boolean()?)),
+                }
+            }
+            Node::Binary(operator, left, right) => {
+                let left = left.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
+                    Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
+                    _ => {}
+                }
+                let right = right.evaluate_both_values(host, lineage, grounds, remaining)?;
+                match operator {
+                    Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
+                    Binary::Equal | Binary::NotEqual => {
+                        let equal = match (left, right) {
+                            (Value::Number(left), Value::Number(right)) => left == right,
+                            (Value::Bool(left), Value::Bool(right)) => left == right,
+                            (Value::Text(left), Value::Text(right)) => left == right,
+                            _ => return Err("equality requires operands of the same type".into()),
+                        };
+                        Ok(Value::Bool(if *operator == Binary::Equal {
+                            equal
+                        } else {
+                            !equal
+                        }))
+                    }
+                    Binary::Add => match (left, right) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(finite(left + right)?))
+                        }
+                        (Value::Text(mut left), Value::Text(right)) => {
+                            check_text_size(
+                                left.len()
+                                    .checked_add(right.len())
+                                    .ok_or("expression text size overflow")?,
+                            )?;
+                            left.push_str(&right);
+                            Ok(Value::Text(left))
+                        }
+                        _ => Err("addition requires two numbers or two texts".into()),
+                    },
+                    _ => {
+                        let left = left.number()?;
+                        let right = right.number()?;
+                        let result = match operator {
+                            Binary::Subtract => left - right,
+                            Binary::Multiply => left * right,
+                            Binary::Divide => {
+                                if right == 0.0 {
+                                    return Err(EvalError::new(
+                                        EvalFailure::DivisionByZero,
+                                        "division by zero in expression",
+                                    ));
+                                }
+                                left / right
+                            }
+                            Binary::Less => return Ok(Value::Bool(left < right)),
+                            Binary::LessEqual => return Ok(Value::Bool(left <= right)),
+                            Binary::Greater => return Ok(Value::Bool(left > right)),
+                            Binary::GreaterEqual => return Ok(Value::Bool(left >= right)),
+                            _ => unreachable!("boolean and equality operators handled above"),
+                        };
+                        Ok(Value::Number(finite(result)?))
+                    }
+                }
+            }
+            Node::Function(function, arguments) => {
+                let mut args = [0.0f64; 2];
+                for (slot, argument) in args.iter_mut().zip(arguments.iter()) {
+                    *slot = argument
+                        .evaluate_both_values(host, lineage, grounds, remaining)?
+                        .number()?;
+                }
+                let result = match function {
+                    Function::Sin => args[0].sin(),
+                    Function::Cos => args[0].cos(),
+                    Function::Sqrt => {
+                        if args[0] < 0.0 {
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                "sqrt requires a nonnegative number",
+                            ));
+                        }
+                        args[0].sqrt()
+                    }
+                    Function::Atan2 => args[0].atan2(args[1]),
+                    Function::Floor => args[0].floor(),
+                    Function::Ceil => args[0].ceil(),
+                    Function::Round => args[0].round(),
+                    Function::Text => {
+                        return Ok(Value::Text(if args[0] == 0.0 {
+                            "0".into()
+                        } else {
+                            args[0].to_string()
+                        }))
+                    }
+                    Function::IdText if args[0] == 0.0 => return Ok(Value::Text(String::new())),
+                    Function::IdText => {
+                        return Ok(Value::Text(host.identifier(args[0]).map_err(
+                            |message| EvalError::new(EvalFailure::Domain, message),
+                        )?))
+                    }
+                };
+                Ok(Value::Number(finite(result)?))
+            }
+        }
+    }
+}
+
+/// Statically dispatched expression host that returns both lineage and grounds
+/// for each leaf in a single AST traversal.
+pub trait DualEvalHost {
+    fn number(
+        &self,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<Option<(f64, Provenance, Provenance)>, EvalError>;
+    fn predicate(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError>;
+    fn qualify(
+        &self,
+        evidence: &str,
+        caveats: &[String],
+        quiet_grounds: bool,
+    ) -> Result<(Provenance, Provenance), EvalError>;
+    fn history(
+        &self,
+        name: &str,
+        query: HistoryRead,
+        quiet_grounds: bool,
+    ) -> Result<(f64, Provenance, Provenance), EvalError>;
+    fn identifier(&self, handle: f64) -> Result<String, String>;
+}
+
+fn keep_both(
+    lineage: &mut Provenance,
+    grounds: &mut Provenance,
+    quiet_grounds: bool,
+    lin: Provenance,
+    gnd: Provenance,
+) -> Result<(), EvalError> {
+    if !lin.holds_nothing() {
+        if lineage.holds_nothing() {
+            lin.validate()?;
+            *lineage = lin;
+        } else {
+            lineage.merge(&lin)?;
+        }
+    }
+    if !quiet_grounds && !gnd.holds_nothing() {
+        if grounds.holds_nothing() {
+            gnd.validate()?;
+            *grounds = gnd;
+        } else {
+            grounds.merge(&gnd)?;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -3320,6 +5257,23 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
             return Ok(Node::Latest(history));
         }
+        // `grounds_of(SERIES)`. A program may define `fn grounds_of` and call
+        // it with any arguments: what is not the form is its call
+        // (spec/caveat-grounds-of-0.1.md).
+        if name == GROUNDS_OF {
+            let start = self.cursor;
+            let form = self
+                .graph_identifier("grounds_of series")
+                .and_then(|series| {
+                    self.expect(TokenKind::RightParen, "')' after the grounds_of series")?;
+                    Ok(series)
+                });
+            match form {
+                Ok(series) => return Ok(Node::GroundsOf(series)),
+                Err(error) if !self.allow_user_functions => return Err(error),
+                Err(_) => self.cursor = start,
+            }
+        }
         // `withdrawn(latest(STREAM))`: whether the stream's current reading is
         // withdrawn. See spec/caveat-withdrawal-0.1.md.
         if name == "withdrawn" && self.peek() == Some(&TokenKind::Identifier("latest".into())) {
@@ -3357,6 +5311,26 @@ impl Parser {
             if !self.allow_user_functions {
                 return Err(format!(
                     "on_hold requires a decision series at byte {}",
+                    self.offset()
+                ));
+            }
+        }
+        // `is_set(STATE)`. A 1.x program may define `fn is_set` and call it
+        // with any arguments: what is not one plain name is its call
+        // (spec/caveat-unset-states-0.1.md).
+        if name == IS_SET {
+            if let (Some(TokenKind::Identifier(target)), Some(TokenKind::RightParen)) = (
+                self.peek().cloned(),
+                self.tokens.get(self.cursor + 1).map(|token| &token.kind),
+            ) {
+                if !target.contains('.') {
+                    self.cursor += 2;
+                    return Ok(Node::Predicate(name, target));
+                }
+            }
+            if !self.allow_user_functions {
+                return Err(format!(
+                    "is_set requires a state name at byte {}",
                     self.offset()
                 ));
             }
@@ -3564,6 +5538,40 @@ fn revision_call(series: &str, index: Option<&Expr>) -> Result<Expr, String> {
     }
 }
 
+/// Later forms share spellings with functions older programs may declare.
+/// Resolve them the same way during type inference and expansion: inference
+/// runs before expansion, so leaving a form there would reject a pure call
+/// or infer the intrinsic's result type instead of the authored function's.
+fn source_function_call(
+    node: &Node,
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<Option<Node>, String> {
+    let (name, arguments) = match node {
+        Node::Outcome(series, index) if functions.contains_key(OUTCOME) => {
+            (OUTCOME, vec![revision_call(series, index.as_deref())?])
+        }
+        Node::Predicate(name, target)
+            if matches!(name.as_str(), RESOLVED | ON_HOLD | IS_SET)
+                && functions.contains_key(name) =>
+        {
+            (name.as_str(), vec![revision_call(target, None)?])
+        }
+        Node::AtOccurrence(kind, series, index)
+            if kind == AT_REVISION_RESOLVED && functions.contains_key(RESOLVED) =>
+        {
+            (RESOLVED, vec![revision_call(series, Some(index))?])
+        }
+        Node::InBasis(basis, children) if functions.contains_key(IN_BASIS) => {
+            return basis.as_call(children).map(Some);
+        }
+        Node::GroundsOf(series) if functions.contains_key(GROUNDS_OF) => {
+            (GROUNDS_OF, vec![revision_call(series, None)?])
+        }
+        _ => return Ok(None),
+    };
+    Ok(Some(Node::UserCall(name.into(), arguments)))
+}
+
 fn predicate_name(name: &str) -> bool {
     matches!(
         name,
@@ -3595,6 +5603,31 @@ fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> 
 /// no state or graph data and may not recurse. Constants are literals; callers
 /// pass named coordinates explicitly as arguments.
 pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(), String> {
+    validate_functions_reading(functions).map(|_| ())
+}
+
+/// Which releases read every function body as this runtime does (finding
+/// D088): the first that reads every form the bodies use, and the last
+/// before one that refused a body this runtime reads again.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct FunctionsReading {
+    /// `only_if(…)` read as the form, where no release before 1.4.0 could
+    /// read it: the program declares no `fn only_if`, or the call of it
+    /// would not type-check (`infer_function`).
+    pub(crate) first: Release,
+    /// A body that calls the program's own function named like a form a
+    /// later release added, which that release refused in a body (finding
+    /// D084): `in_basis` (1.1.0), `on_hold` (1.2.0), `outcome` and
+    /// `resolved` (1.3.0), and `only_if` where it loads only as that call
+    /// (1.4.0, finding D093).
+    pub(crate) last: Release,
+}
+
+/// Validate every definition as `validate_functions` does, and say which
+/// releases read every body as this runtime does (`FunctionsReading`).
+pub(crate) fn validate_functions_reading(
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<FunctionsReading, String> {
     if functions.len() > MAX_REGISTRY_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
@@ -3637,8 +5670,18 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
     }
     let mut result_types = BTreeMap::new();
     let mut active = HashSet::default();
+    let mut reading = FunctionsReading {
+        first: Release::Before1_1,
+        last: Release::Later,
+    };
     for name in functions.keys() {
-        infer_function(name, functions, &mut result_types, &mut active)?;
+        infer_function(
+            name,
+            functions,
+            &mut result_types,
+            &mut active,
+            &mut reading,
+        )?;
     }
     // Check expansion limits for unused definitions as well. Each body is
     // checked separately, so a large unused macro cannot escape validation.
@@ -3646,64 +5689,93 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         expand(&definition.body, functions)
             .map_err(|error| format!("source function {name}: {error}"))?;
     }
-    Ok(())
+    Ok(reading)
 }
 
-fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
+/// The last release that read a function body's call of the program's own
+/// function named like this form (finding D084): from the release that added
+/// the form, a body was read with the form, which a function may not ask.
+/// `grounds_of` and `is_set` came after 1.4.1, so every release called the
+/// function.
+fn last_calling(node: &Node) -> Release {
+    match node {
+        Node::InBasis(..) => Release::Before1_1,
+        Node::Predicate(name, _) if name == ON_HOLD => Release::V1_1,
+        Node::Outcome(..) => Release::V1_2,
+        Node::Predicate(name, _) if name == RESOLVED => Release::V1_2,
+        Node::AtOccurrence(kind, _, _) if kind == AT_REVISION_RESOLVED => Release::V1_2,
+        _ => Release::Later,
+    }
+}
+
+fn collect_calls(
+    expression: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+    calls: &mut Vec<String>,
+    last: &mut Release,
+) -> Result<(), String> {
+    if let Some(call) = source_function_call(&expression.node, functions)? {
+        *last = (*last).min(last_calling(&expression.node));
+        return collect_calls(&Expr::new(call)?, functions, calls, last);
+    }
     match &expression.node {
         Node::Unary(_, child)
         | Node::Qualified(child, _, _)
         | Node::HistoryAt(_, child)
-        | Node::AtOccurrence(_, _, child) => collect_calls(child, calls),
+        | Node::AtOccurrence(_, _, child) => collect_calls(child, functions, calls, last)?,
         Node::InBasis(_, children) => {
             for child in children {
-                collect_calls(child, calls);
+                collect_calls(child, functions, calls, last)?;
             }
         }
         Node::Fold(_, initial, reducer) => {
-            calls.push(reducer);
-            collect_calls(initial, calls);
+            calls.push(reducer.clone());
+            collect_calls(initial, functions, calls, last)?;
         }
         Node::ExpandedFold(_, initial, body) => {
-            collect_calls(initial, calls);
-            collect_calls(body, calls);
+            collect_calls(initial, functions, calls, last)?;
+            collect_calls(body, functions, calls, last)?;
         }
         Node::Binary(_, left, right) => {
-            collect_calls(left, calls);
-            collect_calls(right, calls);
+            collect_calls(left, functions, calls, last)?;
+            collect_calls(right, functions, calls, last)?;
         }
         Node::Require(condition, value) | Node::OnlyIf(condition, value) => {
-            collect_calls(condition, calls);
-            collect_calls(value, calls);
+            collect_calls(condition, functions, calls, last)?;
+            collect_calls(value, functions, calls, last)?;
         }
         Node::If(condition, yes, no) => {
-            collect_calls(condition, calls);
-            collect_calls(yes, calls);
-            collect_calls(no, calls);
+            collect_calls(condition, functions, calls, last)?;
+            collect_calls(yes, functions, calls, last)?;
+            collect_calls(no, functions, calls, last)?;
         }
         Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
             if let Node::UserCall(name, _) = &expression.node {
-                calls.push(name);
+                calls.push(name.clone());
             }
             for argument in arguments {
-                collect_calls(argument, calls);
+                collect_calls(argument, functions, calls, last)?;
             }
         }
         Node::ExpandedCall(arguments, body) => {
             for argument in arguments {
-                collect_calls(argument, calls);
+                collect_calls(argument, functions, calls, last)?;
             }
-            collect_calls(body, calls);
+            collect_calls(body, functions, calls, last)?;
         }
         _ => {}
     }
+    Ok(())
 }
 
+/// `reading` gains what the body says about the releases that read it as
+/// this runtime does (`FunctionsReading`).
 fn infer_function(
     name: &str,
     functions: &BTreeMap<String, FunctionDef>,
     result_types: &mut BTreeMap<String, ValueType>,
     active: &mut HashSet<String>,
+    reading: &mut FunctionsReading,
 ) -> Result<ValueType, String> {
     if active.contains(name) {
         return Err(format!("recursive source function cycle involving {name}"));
@@ -3716,26 +5788,27 @@ fn infer_function(
         .ok_or_else(|| format!("unknown source function {name}"))?;
     active.insert(name.into());
     let mut calls = Vec::new();
-    collect_calls(&definition.body, &mut calls);
+    collect_calls(&definition.body, functions, &mut calls, &mut reading.last)?;
     for callee in calls {
         if callee == CARRIES_ANY && !functions.contains_key(CARRIES_ANY) {
             return Err("pure source functions cannot query graph predicates".into());
         }
-        infer_function(callee, functions, result_types, active)?;
+        infer_function(&callee, functions, result_types, active, reading)?;
     }
     let parameters = definition.parameters.iter().cloned().collect();
+    let no_capture = |kind: &str, _: &str| {
+        Err(if kind == "runtime_clock" {
+            "pure source functions cannot capture the runtime clock"
+        } else {
+            "pure source functions cannot query graph predicates"
+        }
+        .into())
+    };
     let kind = definition
         .body
         .validate_calls(
             &parameters,
-            &|kind, _| {
-                Err(if kind == "runtime_clock" {
-                    "pure source functions cannot capture the runtime clock"
-                } else {
-                    "pure source functions cannot query graph predicates"
-                }
-                .into())
-            },
+            &no_capture,
             &|called, arity| {
                 let callee = functions
                     .get(called)
@@ -3746,7 +5819,40 @@ fn infer_function(
                     .copied()
                     .ok_or_else(|| format!("source function {called} has no inferred result type"))
             },
+            Some(functions),
         )
+        .inspect(|_| {
+            // Read as the form, `only_if(…)` came in 1.4.0. A release before
+            // it read it as a call of the program's own `fn only_if`, so it
+            // loaded the body only where that call type-checks too.
+            if definition.body.writes_only_if()
+                && (!functions.contains_key(ONLY_IF)
+                    || expand(&definition.body, functions)
+                        .and_then(|expanded| expanded.validate(&parameters, &no_capture))
+                        .is_err())
+            {
+                reading.first = reading.first.max(Release::V1_4);
+            }
+        })
+        .or_else(|original| {
+            if !functions.contains_key(ONLY_IF) {
+                return Err(original);
+            }
+            // Before 1.4, `only_if` was an ordinary source function name.
+            // Its numeric calls can fail inference as the later intrinsic.
+            // Validate the actual expansion only after that failure: a 1.4
+            // program may have an unused body which infers as the intrinsic
+            // but would not type-check as a call of its own `fn only_if`.
+            // Successful legacy inference must keep accepting that body.
+            // Expansion still checks cycles, arity, captures and limits;
+            // validation checks every argument and branch, even unused ones.
+            // 1.4.0 and 1.4.1 refused such a body (finding D093).
+            let kind = expand(&definition.body, functions)
+                .and_then(|expanded| expanded.validate(&parameters, &no_capture))
+                .map_err(|_| original)?;
+            reading.last = reading.last.min(Release::V1_3);
+            Ok(kind)
+        })
         .map_err(|error| format!("source function {name}: {error}"))?;
     active.remove(name);
     result_types.insert(name.into(), kind);
@@ -3776,18 +5882,12 @@ impl Expander<'_> {
     fn walk(
         &mut self,
         expression: &Expr,
-        parameters: Option<&BTreeMap<String, Expr>>,
+        parameters: Option<&BTreeMap<String, usize>>,
     ) -> Result<Expr, String> {
+        if let Some(call) = source_function_call(&expression.node, self.functions)? {
+            return self.walk(&Expr::new(call)?, parameters);
+        }
         let node = match &expression.node {
-            // A program may define `fn outcome`; its calls keep their meaning
-            // (spec/caveat-outcomes-0.1.md).
-            Node::Outcome(series, index) if self.functions.contains_key(OUTCOME) => {
-                let call = Node::UserCall(
-                    OUTCOME.into(),
-                    vec![revision_call(series, index.as_deref())?],
-                );
-                return self.walk(&Expr::new(call)?, parameters);
-            }
             Node::Outcome(series, index) => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture numeric history".into());
@@ -3800,20 +5900,8 @@ impl Expander<'_> {
                     },
                 )
             }
-            Node::Predicate(name, target)
-                if name == RESOLVED && self.functions.contains_key(RESOLVED) =>
-            {
-                let call = Node::UserCall(RESOLVED.into(), vec![revision_call(target, None)?]);
-                return self.walk(&Expr::new(call)?, parameters);
-            }
-            Node::AtOccurrence(kind, series, index)
-                if kind == AT_REVISION_RESOLVED && self.functions.contains_key(RESOLVED) =>
-            {
-                let call =
-                    Node::UserCall(RESOLVED.into(), vec![revision_call(series, Some(index))?]);
-                return self.walk(&Expr::new(call)?, parameters);
-            }
-            Node::Number(number) => Node::Number(number.clone()),
+            Node::Number(number) => Node::Number(*number),
+            Node::Threshold(name, number) => Node::Threshold(name.clone(), *number),
             Node::Elapsed => {
                 if parameters.is_some() {
                     return Err("pure source functions cannot capture the runtime clock".into());
@@ -3822,36 +5910,27 @@ impl Expander<'_> {
             }
             Node::Bool(value) => Node::Bool(*value),
             Node::Text(value) => Node::Text(value.clone()),
+            Node::Argument(index) => Node::Argument(*index),
             Node::Variable(name) => {
                 if let Some(parameters) = parameters {
-                    let argument = parameters
+                    let index = parameters
                         .get(name)
                         .ok_or_else(|| format!("pure source function cannot capture {name}"))?;
-                    // The argument is already expanded in its caller's scope.
-                    // Do not substitute again if a caller name matches a formal.
-                    return self.walk(argument, None);
-                }
-                if let Some(body) = self.defines.get(name) {
-                    if self.active.contains(name) {
-                        return Err(format!("define {name} refers to itself"));
+                    // The argument is expanded once, in its caller's scope,
+                    // and held by the call; the body reads it by position.
+                    Node::Argument(*index)
+                } else {
+                    if let Some(body) = self.defines.get(name) {
+                        if self.active.contains(name) {
+                            return Err(format!("define {name} refers to itself"));
+                        }
+                        self.active.push(name.clone());
+                        let expanded = self.walk(body, None);
+                        self.active.pop();
+                        return expanded.map_err(|error| format!("define {name}: {error}"));
                     }
-                    self.active.push(name.clone());
-                    let expanded = self.walk(body, None);
-                    self.active.pop();
-                    return expanded.map_err(|error| format!("define {name}: {error}"));
+                    Node::Variable(name.clone())
                 }
-                Node::Variable(name.clone())
-            }
-            // A 1.0 program may define `fn on_hold`; its calls keep their
-            // meaning (docs/COMPATIBILITY.md).
-            Node::Predicate(name, target)
-                if name == ON_HOLD && self.functions.contains_key(ON_HOLD) =>
-            {
-                let argument = Expr::new(Node::Variable(target.clone()))?;
-                return self.walk(
-                    &Expr::new(Node::UserCall(ON_HOLD.into(), vec![argument]))?,
-                    parameters,
-                );
             }
             Node::Predicate(name, target) => {
                 if parameters.is_some() {
@@ -3880,11 +5959,6 @@ impl Expander<'_> {
                     evidence.clone(),
                     Box::new(self.walk(index, None)?),
                 )
-            }
-            // A 1.0 program may define `fn in_basis`; its calls keep their
-            // meaning (docs/COMPATIBILITY.md).
-            Node::InBasis(basis, children) if self.functions.contains_key(IN_BASIS) => {
-                return self.walk(&Expr::new(basis.as_call(children)?)?, parameters);
             }
             Node::InBasis(basis, children) => {
                 if parameters.is_some() {
@@ -3932,6 +6006,12 @@ impl Expander<'_> {
                 }
                 Node::Latest(name.clone())
             }
+            Node::GroundsOf(name) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::GroundsOf(name.clone())
+            }
             Node::Qualified(value, evidence, caveats) => {
                 if parameters.is_some() {
                     return Err(
@@ -3957,7 +6037,9 @@ impl Expander<'_> {
                 Box::new(self.walk(value, parameters)?),
             ),
             // A program may define `fn only_if`; its calls keep their meaning
-            // (spec/caveat-only-if-0.1.md).
+            // (spec/caveat-only-if-0.1.md). Keep this expansion-only: older
+            // releases validate unused bodies as the intrinsic, so resolving
+            // it during inference would refuse programs they loaded.
             Node::OnlyIf(condition, value) if self.functions.contains_key(ONLY_IF) => {
                 let call = Node::UserCall(
                     ONLY_IF.into(),
@@ -4026,7 +6108,7 @@ impl Expander<'_> {
                     .parameters
                     .iter()
                     .cloned()
-                    .zip(arguments.iter().cloned())
+                    .zip(0..arguments.len())
                     .collect();
                 self.active.push(name.clone());
                 let body = self.walk(&definition.body, Some(&bindings));
@@ -5508,5 +7590,208 @@ mod tests {
         assert!(parse(&"a".repeat(MAX_SOURCE_BYTES + 1))
             .unwrap_err()
             .contains("source limit"));
+    }
+
+    /// A small seeded generator, so the cases below are the same each run.
+    struct Seeded(u64);
+
+    impl Seeded {
+        fn below(&mut self, bound: usize) -> usize {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((self.0 >> 33) as usize) % bound.max(1)
+        }
+    }
+
+    /// Names from a small pool, so lists repeat names; some are long, so a
+    /// list can pass the byte limit before the identifier limit, and some
+    /// lists are long enough to pass the identifier limit.
+    fn some_names(seeded: &mut Seeded, pool: &[Name]) -> Vec<Name> {
+        let length = match seeded.below(8) {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => MAX_PROVENANCE_IDENTIFIERS - 1 + seeded.below(4),
+            _ => seeded.below(12),
+        };
+        (0..length)
+            .map(|_| match seeded.below(4) {
+                // A copy of a pool name made apart, so text, not sharing,
+                // decides what is the same name.
+                0 => Name::from(pool[seeded.below(pool.len())].as_str()),
+                _ => pool[seeded.below(pool.len())].clone(),
+            })
+            .collect()
+    }
+
+    fn name_pool(size: usize) -> Vec<Name> {
+        (0..size)
+            .map(|index| match index % 97 {
+                0 => Name::from(format!("{index}{}", "x".repeat(MAX_PROVENANCE_BYTES / 3))),
+                _ => Name::from(format!("n{index}")),
+            })
+            .collect()
+    }
+
+    /// Built directly, a lineage is the one its names added one by one make,
+    /// and past a limit it is refused with the same message.
+    #[test]
+    fn a_lineage_built_directly_is_the_one_its_names_added_in_turn_make() {
+        let mut seeded = Seeded(5);
+        let pool = name_pool(1_500);
+        for _ in 0..400 {
+            let evidence = some_names(&mut seeded, &pool);
+            let caveats = some_names(&mut seeded, &pool);
+            let direct = Provenance::from_shared(evidence.clone(), caveats.clone());
+            let in_turn = Provenance::added_one_by_one(
+                evidence
+                    .iter()
+                    .map(|name| (true, name.clone()))
+                    .chain(caveats.iter().map(|name| (false, name.clone()))),
+            );
+            match (direct, in_turn) {
+                (Ok(direct), Ok(in_turn)) => assert_eq!(direct, in_turn),
+                (Err(direct), Err(in_turn)) => assert_eq!(direct.message, in_turn.message),
+                (direct, in_turn) => panic!("built directly {direct:?}, in turn {in_turn:?}"),
+            }
+        }
+        // Each limit, passed by the given names.
+        let many = |count: usize| (0..count).map(|index| Name::from(format!("e{index}")));
+        assert!(Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS), []).is_ok());
+        assert!(
+            Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS + 1), [])
+                .unwrap_err()
+                .message
+                .contains("identifiers")
+        );
+        let long = Name::from("a".repeat(MAX_PROVENANCE_BYTES));
+        assert!(Provenance::from_shared([long.clone()], [long.clone()])
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        // Repeats count once: these fit, though the names given do not.
+        assert!(
+            Provenance::from_shared(many(MAX_PROVENANCE_IDENTIFIERS).chain(many(2)), []).is_ok()
+        );
+        assert!(Provenance::from_shared([long.clone(), long], []).is_ok());
+    }
+
+    /// Merging one name in place is merging the lineage of that one name:
+    /// the same lineage, and past a limit the same refusal, with the
+    /// lineage left as it was.
+    #[test]
+    fn merging_one_name_in_place_is_merging_its_lineage() {
+        let mut seeded = Seeded(11);
+        let pool = name_pool(1_500);
+        for _ in 0..600 {
+            let mut base = Provenance::from_shared(
+                some_names(&mut seeded, &pool),
+                some_names(&mut seeded, &pool),
+            )
+            .unwrap_or_default();
+            // Some evidence inherited, some caveats kept, and sometimes a
+            // marker, as reads leave them.
+            let evidence = base.evidence.iter().cloned().collect::<Vec<_>>();
+            for name in evidence.iter().filter(|_| seeded.below(3) == 0) {
+                base.inherited.insert(name.clone());
+            }
+            let caveats = base.caveats.iter().cloned().collect::<Vec<_>>();
+            for name in caveats.iter().filter(|_| seeded.below(3) == 0) {
+                base.kept.insert(name.clone());
+            }
+            if seeded.below(4) == 0
+                && base
+                    .size()
+                    .is_ok_and(|(count, _)| count < MAX_PROVENANCE_IDENTIFIERS)
+            {
+                base.departed.insert(
+                    "s".to_string(),
+                    Marker {
+                        read: 1,
+                        from: 1,
+                        through: 2,
+                        departed_at: 3,
+                        archive_ref: None,
+                    },
+                );
+            }
+            let name = match seeded.below(3) {
+                0 if !evidence.is_empty() => evidence[seeded.below(evidence.len())].clone(),
+                1 if !caveats.is_empty() => caveats[seeded.below(caveats.len())].clone(),
+                _ => pool[seeded.below(pool.len())].clone(),
+            };
+            let is_evidence = seeded.below(2) == 0;
+            let (one, other): (Vec<Name>, Vec<Name>) = if is_evidence {
+                (vec![name.clone()], Vec::new())
+            } else {
+                (Vec::new(), vec![name.clone()])
+            };
+            let mut merged = base.clone();
+            let by_merge =
+                Provenance::from_shared(one, other).and_then(|lineage| merged.merge(&lineage));
+            let mut in_place = base.clone();
+            let by_name = in_place.merge_name(name, is_evidence);
+            match (by_merge, by_name) {
+                (Ok(()), Ok(())) => {}
+                (Err(by_merge), Err(by_name)) => {
+                    assert_eq!(by_merge.message, by_name.message);
+                    assert_eq!(in_place, base);
+                }
+                (by_merge, by_name) => panic!("merged {by_merge:?}, in place {by_name:?}"),
+            }
+            assert_eq!(in_place, merged);
+        }
+        // A full lineage: a new name is refused, a held one is not.
+        let full = Provenance::from_shared(
+            (0..MAX_PROVENANCE_IDENTIFIERS).map(|index| Name::from(format!("e{index}"))),
+            [],
+        )
+        .unwrap();
+        let mut lineage = full.clone();
+        assert!(lineage
+            .merge_name(Name::from("k"), false)
+            .unwrap_err()
+            .message
+            .contains("identifiers"));
+        assert_eq!(lineage, full);
+        lineage.merge_name(Name::from("e7"), true).unwrap();
+        assert_eq!(lineage, full);
+        let wide =
+            Provenance::from_shared([Name::from("a".repeat(MAX_PROVENANCE_BYTES))], []).unwrap();
+        let mut lineage = wide.clone();
+        assert!(lineage
+            .merge_name(Name::from("k"), false)
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        assert_eq!(lineage, wide);
+        // A name past the byte limit on its own, merged into nothing.
+        let mut empty = Provenance::default();
+        assert!(empty
+            .merge_name(Name::from("a".repeat(MAX_PROVENANCE_BYTES + 1)), true)
+            .unwrap_err()
+            .message
+            .contains("name bytes"));
+        assert_eq!(empty, Provenance::default());
+    }
+
+    #[test]
+    fn expr_and_node_sizes_stay_compact_with_stored_numbers() {
+        // Keeping a parsed number directly in `Number` must not bump `Node`'s
+        // alignment to 8 bytes on 32-bit targets (wasm32), which would grow
+        // `Expr` from 36 to 48 bytes.
+        assert!(std::mem::align_of::<Number>() <= 4);
+        #[cfg(target_pointer_width = "32")]
+        {
+            assert_eq!(std::mem::size_of::<Node>(), 32);
+            assert_eq!(std::mem::size_of::<Expr>(), 36);
+        }
+        #[cfg(target_pointer_width = "64")]
+        {
+            assert_eq!(std::mem::size_of::<Node>(), 64);
+            assert_eq!(std::mem::size_of::<Expr>(), 72);
+        }
     }
 }

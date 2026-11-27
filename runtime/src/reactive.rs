@@ -4,6 +4,7 @@
 //! effects; an entire event publishes atomically or leaves the session intact.
 
 use crate::ast::{Program, Statement};
+use crate::chunked::Chunked;
 use crate::eval::ResourceLedger;
 use crate::fast_hash::{HashMap, HashSet};
 use crate::game_session::GameSymbol;
@@ -13,10 +14,12 @@ use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
 pub use crate::reactive_expr::{Marker, Name, NameSet, Provenance, Tracked};
+use crate::release_line::Release;
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::ops::RangeInclusive;
+use std::sync::{Arc, OnceLock};
 
 const LIMIT: f64 = 1_000_000_000_000.0;
 /// The caveat a withdrawal applies. See spec/caveat-withdrawal-0.1.md.
@@ -37,6 +40,88 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
 
+/// The lineage a withdrawal adds to a value read through a record: the
+/// `withdrawn` caveat alone. Built once rather than on every read.
+fn withdrawn_lineage() -> &'static Provenance {
+    static LINEAGE: OnceLock<Provenance> = OnceLock::new();
+    LINEAGE.get_or_init(|| {
+        let mut lineage = Provenance::default();
+        lineage.caveats.insert(WITHDRAWN);
+        lineage
+    })
+}
+
+/// The union of a lineage that holds nothing with `lineage`: `lineage`
+/// itself, checked as the union checks it, without copying it. Debug builds
+/// compare it with the union, error included.
+fn union_with_nothing(lineage: Provenance) -> Result<Provenance, EvalError> {
+    #[cfg(debug_assertions)]
+    let union = Provenance::default().union(&lineage);
+    let taken = lineage.validate().map(|()| lineage);
+    #[cfg(debug_assertions)]
+    assert_eq!(
+        taken, union,
+        "a lineage taken whole differs from its union with nothing"
+    );
+    taken
+}
+
+#[cfg(test)]
+mod union_with_nothing_tests {
+    use super::*;
+
+    #[test]
+    fn a_lineage_taken_whole_is_its_union_with_nothing() {
+        let names = |evidence: &[&str], caveats: &[&str]| {
+            Provenance::from_names(
+                evidence.iter().map(|name| name.to_string()),
+                caveats.iter().map(|name| name.to_string()),
+            )
+            .unwrap()
+        };
+        let mut inherited = names(&["a", "b"], &["k"]);
+        inherited.inherited.insert("a");
+        inherited.kept.insert("k");
+        let mut departed = names(&["s@1", "s@2"], &["k"]);
+        assert!(departed.depart("s@1", "s", 1, 5, "source"));
+        // Only a host could send these: what is inherited or kept with no
+        // name it belongs to.
+        let mut inherited_alone = Provenance::default();
+        inherited_alone.inherited.insert("a");
+        let mut kept_alone = Provenance::default();
+        kept_alone.kept.insert("k");
+        let mut identifiers = Provenance::default();
+        for at in 0..=reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            identifiers.evidence.insert(format!("e{at}"));
+        }
+        let mut bytes = Provenance::default();
+        bytes
+            .caveats
+            .insert("c".repeat(reactive_expr::MAX_PROVENANCE_BYTES + 1));
+        for (case, lineage) in [
+            ("nothing", Provenance::default()),
+            ("one name", names(&["a"], &[])),
+            ("names", names(&["a", "b"], &["k", "m"])),
+            ("inherited and kept", inherited),
+            ("departed", departed),
+            ("inherited alone", inherited_alone),
+            ("kept alone", kept_alone),
+            ("too many identifiers", identifiers),
+            ("too many bytes", bytes),
+        ] {
+            // Debug builds fail inside `union_with_nothing` first; the test's
+            // output names the case.
+            eprintln!("case: {case}");
+            assert_eq!(
+                union_with_nothing(lineage.clone()),
+                Provenance::default().union(&lineage),
+                "{case}"
+            );
+            assert_eq!(lineage.holds_nothing(), case == "nothing", "{case}");
+        }
+    }
+}
+
 /// The level `carries_any(…)` names after [`reactive_expr::ANY_CAVEAT`]: none
 /// for any caveat, or the least consequence it counts.
 fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
@@ -52,6 +137,15 @@ fn any_caveat_level(level: &str) -> Result<Option<Consequence>, String> {
 }
 /// A predicate on a live state's grounds, not on an evidence alias.
 const HAS_CAVEAT: &str = "has_caveat:";
+
+/// A read of a state declared `unset` that has no value. See
+/// spec/caveat-unset-states-0.1.md.
+fn unset_read(name: &str) -> EvalError {
+    EvalError::new(
+        EvalFailure::UnsetState,
+        format!("state {name} is unset: no rule has set it; read it inside is_set({name}) or after a rule sets it"),
+    )
+}
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
@@ -77,10 +171,28 @@ pub use view2::{
     ViewDeltaBase, REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
 };
 
+#[path = "reactive_view_patch.rs"]
+mod view_patch;
+pub use view_patch::{
+    DispatchViewPatchOutcome, DispatchViewPatchResult, Entry, Item, MapChange, MemberChange,
+    ViewPatch, ViewPatchBase, REACTIVE_VIEW_PATCH_SCHEMA,
+};
+
 #[path = "reactive_collector.rs"]
 mod collector;
 #[path = "reactive_departure.rs"]
 mod departure;
+#[path = "reactive_reach.rs"]
+mod reach;
+#[path = "reactive_relations.rs"]
+mod relations;
+#[path = "reactive_releases.rs"]
+mod releases;
+use releases::Readings;
+#[path = "reactive_reads.rs"]
+mod reads;
+#[path = "reactive_write.rs"]
+mod write;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
 #[cfg(feature = "collector-metrics")]
 pub use collector::WithdrawalCollectionMetrics;
@@ -88,6 +200,9 @@ use collector::{CollectorOwner, WithdrawalCollector};
 #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
+use write::{
+    Logged, NameTable, NamedRecords, Observations, RecordMap, Records, Same, Sealed, SealedGraph,
+};
 
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 #[path = "reactive_renewal_profile.rs"]
@@ -115,6 +230,10 @@ pub use check::{
 
 #[path = "reactive_interface.rs"]
 mod interface;
+
+#[cfg(test)]
+#[path = "reactive_unchanged_tests.rs"]
+mod unchanged_tests;
 use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
 pub use interface::{
     interface_source, InterfaceBinding, InterfaceCue, InterfaceDecisions, InterfaceEvent,
@@ -239,6 +358,14 @@ impl ParameterDomain {
     }
 }
 
+/// The caveats a `sample ... with` puts on the reading it takes, and the
+/// condition under which it does: spec/caveat-reading-caveats-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadingCaveats {
+    pub caveats: Vec<String>,
+    pub condition: Option<Expr>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
     Call {
@@ -254,6 +381,9 @@ pub enum Effect {
         /// `noting EXPRESSION`: the text of the identifier it names, kept
         /// with the reading. See spec/caveat-reading-notes-0.1.md.
         note: Option<Box<Expr>>,
+        /// `with CAVEAT[, CAVEAT…] [when CONDITION]`: caveats on this
+        /// reading alone. See spec/caveat-reading-caveats-0.1.md.
+        with: Option<Box<ReadingCaveats>>,
     },
     Emit {
         name: String,
@@ -305,6 +435,11 @@ pub enum Effect {
     Withdraw {
         target: EvidenceSelector,
         because: String,
+    },
+    /// `unset STATE`: take a state declared `unset` back to having no value,
+    /// lineage or grounds. See spec/caveat-unset-states-0.1.md.
+    Unset {
+        name: String,
     },
     Set {
         name: String,
@@ -477,10 +612,15 @@ fn expand_effect(
                 *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
-        Effect::Sample { value, note, .. } => {
+        Effect::Sample {
+            value, note, with, ..
+        } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
             if let Some(note) = note {
                 **note = reactive_expr::expand_with(note, functions, defines)?;
+            }
+            if let Some(condition) = with.as_mut().and_then(|with| with.condition.as_mut()) {
+                *condition = reactive_expr::expand_with(condition, functions, defines)?;
             }
         }
         Effect::Qualify { after, index, .. } => {
@@ -536,15 +676,90 @@ fn expand_effect(
 /// procedure's are its evaluated arguments, read two ways: `evaluate` reads
 /// each argument's lineage and `evaluate_grounds` its grounds, so a parameter
 /// grounds a value as its argument would inline (F268).
-#[derive(Default)]
-struct Parameters {
-    lineage: BTreeMap<String, Tracked<f64>>,
-    grounds: BTreeMap<String, Tracked<f64>>,
+enum Parameters<'a> {
+    /// An event's payload in declared parameter order: zero `BTreeMap` or key
+    /// `String` allocation on the hot JSON dispatch path.
+    Slots {
+        signature: &'a [Parameter],
+        values: &'a [f64],
+    },
+    /// An event's payload, read where it is: a plain value has the same
+    /// lineage and grounds, so nothing is copied for either.
+    Payload(&'a BTreeMap<String, f64>),
+    /// A procedure's arguments.
+    Arguments {
+        lineage: BTreeMap<String, Tracked<f64>>,
+        grounds: BTreeMap<String, Tracked<f64>>,
+    },
+}
+
+impl Default for Parameters<'_> {
+    /// No parameters, as for a binding or a state's initial value.
+    fn default() -> Self {
+        Self::Arguments {
+            lineage: BTreeMap::new(),
+            grounds: BTreeMap::new(),
+        }
+    }
+}
+
+impl Parameters<'_> {
+    /// The parameter `name`, with what its value rests on.
+    fn lineage(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Slots { signature, values } => signature
+                .iter()
+                .position(|parameter| parameter.name == name)
+                .map(|index| Tracked::plain(values[index])),
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { lineage, .. } => lineage.get(name).cloned(),
+        }
+    }
+
+    /// The parameter `name`, with what its grounds rest on.
+    fn grounds(&self, name: &str) -> Option<Tracked<f64>> {
+        match self {
+            Self::Slots { signature, values } => signature
+                .iter()
+                .position(|parameter| parameter.name == name)
+                .map(|index| Tracked::plain(values[index])),
+            Self::Payload(payload) => payload.get(name).map(|&value| Tracked::plain(value)),
+            Self::Arguments { grounds, .. } => grounds.get(name).cloned(),
+        }
+    }
 }
 
 struct ExecutionBudget {
     remaining: usize,
     depth: usize,
+}
+
+/// What remains of a rule's guard once its leading compiled route terms have
+/// matched the event payload.
+#[derive(Debug, Clone, Default)]
+enum RouteBody {
+    /// Every term of the guard was covered by `terms` (or the guard was `true`),
+    /// so a matching payload makes the guard `true` with empty provenance.
+    #[default]
+    AlwaysTrue,
+    /// The remainder after stripping `stripped_nodes` AST nodes of leading
+    /// route terms from the front of the guard.
+    Expr { expr: Expr, stripped_nodes: usize },
+}
+
+/// A rule's route, compiled at load (`compile_route`), and the work the rule
+/// counts when an event's payload routes it elsewhere.
+#[derive(Debug, Clone, Default)]
+struct Route {
+    /// Each term's parameter, by its place among the event's declared
+    /// parameters, and the value that keeps the route open.
+    terms: Vec<(usize, f64)>,
+    /// The steps `retain_skipped_effect` spends on the rule when its guard is
+    /// false and rests on nothing: one, and through a call one for each step
+    /// of its procedure, nested calls included.
+    steps: usize,
+    /// What still needs evaluating when `terms` match the payload.
+    body: RouteBody,
 }
 
 impl ExecutionBudget {
@@ -662,6 +877,8 @@ pub enum Directive {
     Identifiers {
         limit: usize,
     },
+    /// `work skips other routes;` See spec/caveat-routed-work-0.1.md.
+    RoutedWork,
     /// `agent NAME [sends EVENT, …];` See spec/caveat-agents-0.1.md.
     Agent {
         name: String,
@@ -680,6 +897,9 @@ pub enum Directive {
         initial: Expr,
         min: Number,
         max: Number,
+        /// `state NAME unset;`: no value until a rule sets it; `initial` is
+        /// unused. See spec/caveat-unset-states-0.1.md.
+        unset: bool,
     },
     Event {
         name: String,
@@ -690,6 +910,12 @@ pub enum Directive {
     Define {
         name: String,
         expression: Expr,
+    },
+    /// `threshold NAME = NUMBER;`: a named number a commitment lists when
+    /// it reads it. See spec/caveat-thresholds-0.1.md.
+    Threshold {
+        name: String,
+        value: Number,
     },
 }
 
@@ -825,6 +1051,10 @@ pub type QualifiedValue = Tracked<f64>;
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
+    /// The thresholds the commit named, with their values. Left out when it
+    /// named none. See spec/caveat-thresholds-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub thresholds: BTreeMap<String, f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -856,7 +1086,9 @@ pub struct ReadingStream {
     pub template: String,
     pub limit: usize,
     pub current: Option<String>,
-    pub occurrences: Vec<ReadingOccurrence>,
+    /// Each reading is shared with the copies of the stream, so a sample
+    /// copies the list of them and no reading.
+    pub occurrences: Vec<Arc<ReadingOccurrence>>,
     pub selection_qualifications: Provenance,
 }
 
@@ -898,7 +1130,9 @@ pub struct DecisionSeries {
 pub struct Renewal {
     pub limit: usize,
     /// First to current: the declared name, then `NAME@2`, `NAME@3`, ...
-    pub occurrences: Vec<String>,
+    /// Each name is shared with the copies of the record, so a renewal
+    /// copies the list of them and no name.
+    pub occurrences: Vec<Name>,
     /// The caveats declared on the evidence. Every occurrence inherits them.
     #[serde(skip)]
     template_caveats: Vec<NodeId>,
@@ -932,6 +1166,9 @@ struct LoadedGraph {
 struct StateRange {
     min: f64,
     max: f64,
+    /// Declared `state NAME unset;`: `unset` and `is_set` may name it. See
+    /// spec/caveat-unset-states-0.1.md.
+    unset: bool,
 }
 
 /// A state's current value, with its lineage, and what it is grounded on.
@@ -939,6 +1176,10 @@ struct StateRange {
 struct StateCell {
     value: QualifiedValue,
     grounds: Provenance,
+    /// A state declared `unset` that no rule has set, or that `unset` took
+    /// back: no value to read, and no lineage or grounds. See
+    /// spec/caveat-unset-states-0.1.md.
+    unset: bool,
 }
 
 impl StateCell {
@@ -949,6 +1190,94 @@ impl StateCell {
         self.value.value.to_bits() == other.value.value.to_bits()
             && self.value.provenance == other.value.provenance
             && self.grounds == other.grounds
+            && self.unset == other.unset
+    }
+
+    /// A state with no value: the program's start for a state declared
+    /// `unset`, and what `unset STATE` leaves.
+    fn unset() -> Self {
+        Self {
+            value: QualifiedValue {
+                value: 0.0,
+                provenance: Provenance::default(),
+            },
+            grounds: Provenance::default(),
+            unset: true,
+        }
+    }
+}
+
+/// A compact set of small dense load-time indices (state slots or history ids).
+/// Holds indices 0..64 inline with no heap allocation, spilling to `rest` only
+/// for programs with more than 64 states or histories.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SlotBits {
+    first: u64,
+    rest: Vec<u64>,
+}
+
+impl SlotBits {
+    #[inline]
+    fn insert(&mut self, slot: usize) {
+        if slot < 64 {
+            self.first |= 1_u64 << slot;
+        } else {
+            let word = (slot >> 6) - 1;
+            if self.rest.len() <= word {
+                self.rest.resize(word + 1, 0);
+            }
+            self.rest[word] |= 1_u64 << (slot & 63);
+        }
+    }
+
+    #[inline]
+    #[cfg(test)]
+    fn is_empty(&self) -> bool {
+        self.first == 0 && self.rest.is_empty()
+    }
+
+    #[inline]
+    #[cfg(test)]
+    fn contains(&self, slot: usize) -> bool {
+        if slot < 64 {
+            (self.first & (1_u64 << slot)) != 0
+        } else {
+            let word = (slot >> 6) - 1;
+            self.rest
+                .get(word)
+                .is_some_and(|bits| (bits & (1_u64 << (slot & 63))) != 0)
+        }
+    }
+
+    #[inline]
+    fn intersects(&self, other: &Self) -> bool {
+        (self.first & other.first) != 0
+            || (!self.rest.is_empty()
+                && !other.rest.is_empty()
+                && self
+                    .rest
+                    .iter()
+                    .zip(&other.rest)
+                    .any(|(left, right)| (left & right) != 0))
+    }
+
+    #[inline]
+    fn for_each_bit(&self, mut visit: impl FnMut(usize)) {
+        let mut bits = self.first;
+        while bits != 0 {
+            let tz = bits.trailing_zeros() as usize;
+            visit(tz);
+            bits &= bits - 1;
+        }
+        for (word_index, &word) in self.rest.iter().enumerate() {
+            let mut bits = word;
+            let base = (word_index + 1) << 6;
+            while bits != 0 {
+                let tz = bits.trailing_zeros() as usize;
+                visit(base + tz);
+                bits &= bits - 1;
+            }
+        }
     }
 }
 
@@ -1003,32 +1332,47 @@ impl States {
         Arc::make_mut(&mut Arc::make_mut(&mut self.cells)[slot])
     }
 
-    /// The states whose value, lineage or grounds differ from `old`'s.
-    fn changed_since(&self, old: &Self) -> HashSet<String> {
+    /// The slots of states whose value, lineage or grounds differ from `old`'s.
+    fn changed_since(&self, old: &Self) -> SlotBits {
+        let mut changed = SlotBits::default();
         if Arc::ptr_eq(&self.cells, &old.cells) {
-            return HashSet::default();
+            return changed;
         }
-        self.cells
-            .iter()
-            .zip(old.cells.iter())
-            .enumerate()
-            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && !new.same(old))
-            .map(|(slot, _)| self.names[slot].clone())
-            .collect()
+        for (slot, (new, old)) in self.cells.iter().zip(old.cells.iter()).enumerate() {
+            if !Arc::ptr_eq(new, old) && !new.same(old) {
+                changed.insert(slot);
+            }
+        }
+        changed
     }
 
     fn values(&self) -> BTreeMap<String, QualifiedValue> {
         self.names
             .iter()
             .zip(self.cells.iter())
+            .filter(|(_, cell)| !cell.unset)
             .map(|(name, cell)| (name.clone(), cell.value.clone()))
             .collect()
+    }
+
+    /// The states with no value, in name order.
+    fn unset_names(&self) -> Vec<String> {
+        let mut names = self
+            .names
+            .iter()
+            .zip(self.cells.iter())
+            .filter(|(_, cell)| cell.unset)
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
     }
 
     fn grounds(&self) -> BTreeMap<String, Provenance> {
         self.names
             .iter()
             .zip(self.cells.iter())
+            .filter(|(_, cell)| !cell.unset)
             .map(|(name, cell)| (name.clone(), cell.grounds.clone()))
             .collect()
     }
@@ -1086,9 +1430,12 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, note, .. } => {
+            Effect::Sample {
+                value, note, with, ..
+            } => {
                 expressions.push(value);
                 expressions.extend(note.as_deref());
+                expressions.extend(with.as_ref().and_then(|with| with.condition.as_ref()));
             }
             Effect::Commit {
                 using,
@@ -1166,11 +1513,14 @@ impl<'a> OrderStep<'a> {
     }
 }
 
-/// What a session shows: bindings, their lineage and what each cites.
+/// What a session shows: bindings, their lineage and what each cites, with
+/// what each binding group scoped to histories last consulted. Rules never
+/// read any of it.
 type Shown = (
     BTreeMap<String, BTreeMap<String, BindingValue>>,
     BTreeMap<String, BTreeMap<String, Provenance>>,
     BTreeMap<String, BTreeMap<String, Provenance>>,
+    Vec<Option<Arc<Consulted>>>,
 );
 
 /// Every `bind` declaration for one `TARGET.PROPERTY`, and what any of them
@@ -1181,137 +1531,503 @@ type Shown = (
 struct BindingGroup {
     target: String,
     property: String,
-    reads: Reads,
+    /// Declared state slots this group can read (constants never change).
+    states: SlotBits,
+    /// Queries the epistemic graph, a reading stream or a decision series.
+    graph: bool,
+    /// Reads the session clock independently of numeric state and the graph.
+    clock: bool,
+    /// Could read anything; never skip it.
+    anything: bool,
     /// When every graph read names a reading stream or decision series:
-    /// those histories. A graph change that touches none of them, and none
-    /// of the records every value's caveats are read from, leaves the group
-    /// as it was. `None` for any other graph read.
-    histories: Option<BTreeSet<String>>,
+    /// their load-time history ids. A graph change that touches none of them,
+    /// and none of the records every value's caveats are read from, leaves
+    /// the group as it was. `None` for any other graph read.
+    histories: Option<SlotBits>,
+    /// Indices into `binding_rules` belonging to this group, in source order.
+    rules: Vec<usize>,
+    /// Position of this group in `(target, property)` name order.
+    order_rank: usize,
     /// `number`, `boolean` or `text`: one type for every declaration.
     value_type: &'static str,
+}
+
+/// Inverted index over `binding_groups` built once at load so an event with
+/// scoped history/state changes finds its stale binding groups directly by
+/// integer slot without scanning every binding group in the program.
+#[derive(Debug, Default)]
+struct BindingIndex {
+    by_history: Vec<Vec<usize>>,
+    by_state: Vec<Vec<usize>>,
+    clock_groups: Vec<usize>,
+    unscoped_graph_groups: Vec<usize>,
+    anything_groups: Vec<usize>,
 }
 
 /// Each bound property's value type, by target and property.
 type BindingTypes = BTreeMap<(String, String), &'static str>;
 
-/// What one event changed that an expression can read: states whose value,
-/// lineage or grounds differ, and whether anything the graph queries read
-/// (graph, observation and predicate records, commitments, histories) did.
+/// What one evaluation of a binding group scoped to histories consulted of
+/// the qualification state that a read of any history can reach. A change
+/// to that state that touches none of it leaves the group as it was.
+/// Derived: never saved or shown, and compared only by the debug check of
+/// incremental evaluation. Names are noted by key (`consulted_key`). Once
+/// the evaluation has `settle`d it, each list of nodes or keys is sorted,
+/// without repeats; `listed` keeps the order the records were read in.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct Consulted {
+    /// Every node whose incoming `qualifies` relations, and their take-backs,
+    /// were followed: the roots of each search for caveats (evidence, the
+    /// claims it bears on, extra caveats) and every caveat it reached.
+    reached: Vec<NodeId>,
+    /// The evidence of each record read live: whether any of it is withdrawn,
+    /// and the late caveats that now qualify it.
+    listed: Vec<NameSet>,
+    /// Each name a withdrawal was looked up for.
+    withdrawals: Vec<u64>,
+    /// Each predicate dependency looked up, by kind and name, found or not.
+    predicates: Vec<u64>,
+    /// Each renewable evidence whose occurrences were looked up.
+    renewals: Vec<u64>,
+}
+
+impl Consulted {
+    fn clear(&mut self) {
+        self.reached.clear();
+        self.listed.clear();
+        self.withdrawals.clear();
+        self.predicates.clear();
+        self.renewals.clear();
+    }
+
+    fn settle(&mut self) {
+        for keys in [
+            &mut self.reached,
+            &mut self.withdrawals,
+            &mut self.predicates,
+            &mut self.renewals,
+        ] {
+            keys.sort_unstable();
+            keys.dedup();
+        }
+    }
+
+    /// Adds the notes of a read noted apart, or of a read made again.
+    fn absorb(&mut self, other: &Consulted) {
+        self.reached.extend_from_slice(&other.reached);
+        self.listed.extend(other.listed.iter().cloned());
+        self.withdrawals.extend_from_slice(&other.withdrawals);
+        self.predicates.extend_from_slice(&other.predicates);
+        self.renewals.extend_from_slice(&other.renewals);
+    }
+}
+
+/// The key a consulted name is noted under, in one process: equal names have
+/// equal keys. Names that share a key only make a group evaluate again when
+/// it need not, so a name is noted without copying it.
+fn consulted_key(kind: &str, name: &str) -> u64 {
+    use std::hash::BuildHasher;
+    crate::fast_hash::FastState::default().hash_one((kind, name))
+}
+
+#[inline]
+fn push_unique<T: PartialEq>(items: &mut Vec<T>, value: T) {
+    if !items.contains(&value) {
+        items.push(value);
+    }
+}
+
+/// What one event changed of the qualification state a read of any history
+/// can reach, when every change was an addition this can name. Stored by node
+/// id, pre-hashed consulted key and shared record name so checking every
+/// history-scoped binding group avoids copying or re-hashing text.
+#[derive(Debug, Default)]
+struct Requalified {
+    /// The node each new `qualifies` relation names, the evidence of each new
+    /// take-back, and the evidence of each new `supports` or `opposes`
+    /// relation, whose claims it now bears on.
+    nodes: Vec<NodeId>,
+    /// The names of the nodes new `qualifies` relations, take-backs and
+    /// withdrawals name, sharing the names index's copy when live.
+    listed: Vec<Name>,
+    /// `consulted_key("", evidence)` for each new withdrawal.
+    withdrawals: Vec<u64>,
+    /// `consulted_key(kind, name)` for each predicate dependency added,
+    /// changed or cleared.
+    predicates: Vec<u64>,
+    /// `consulted_key("", evidence)` for each renewable evidence whose
+    /// occurrences changed.
+    renewals: Vec<u64>,
+}
+
+impl Requalified {
+    fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+            && self.listed.is_empty()
+            && self.withdrawals.is_empty()
+            && self.predicates.is_empty()
+            && self.renewals.is_empty()
+    }
+
+    /// Whether this changed anything `consulted` holds.
+    fn reaches(&self, consulted: &Consulted) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        let noted = |keys: &[u64], key: u64| keys.binary_search(&key).is_ok();
+        (!self.nodes.is_empty()
+            && self
+                .nodes
+                .iter()
+                .any(|&node| noted(&consulted.reached, node)))
+            || (!self.listed.is_empty()
+                && consulted
+                    .listed
+                    .iter()
+                    .any(|listed| self.listed.iter().any(|name| listed.contains_name(name))))
+            || (!self.withdrawals.is_empty()
+                && self
+                    .withdrawals
+                    .iter()
+                    .any(|&key| noted(&consulted.withdrawals, key)))
+            || (!self.predicates.is_empty()
+                && self
+                    .predicates
+                    .iter()
+                    .any(|&key| noted(&consulted.predicates, key)))
+            || (!self.renewals.is_empty()
+                && self
+                    .renewals
+                    .iter()
+                    .any(|&key| noted(&consulted.renewals, key)))
+    }
+}
+
+thread_local! {
+    /// The records one binding evaluation fills, one for each stale group
+    /// scoped to histories. Their lists keep their room from one evaluation
+    /// to the next. Never part of a session or a transaction.
+    static CONSULTING: std::cell::RefCell<Vec<Consulted>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+    /// One more than the index in `CONSULTING` of the record being filled; 0
+    /// while none is.
+    static NOTING: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Notes what an evaluation consults, while a record is being filled.
+fn consult(note: impl FnOnce(&mut Consulted)) {
+    let noting = NOTING.get();
+    if noting != 0 {
+        CONSULTING.with_borrow_mut(|records| note(&mut records[noting - 1]));
+    }
+}
+
+/// Debug builds: runs `read`, noting what it consults in a record of its
+/// own, and returns those notes settled. The record being filled, if any, is
+/// left as it was.
+#[cfg(debug_assertions)]
+fn noted_apart<T>(read: impl FnOnce() -> T) -> (T, Consulted) {
+    // Puts the record being filled back however `read` ends.
+    struct Apart(usize);
+    impl Drop for Apart {
+        fn drop(&mut self) {
+            CONSULTING.with_borrow_mut(|records| records.pop());
+            NOTING.set(self.0);
+        }
+    }
+    let slot = CONSULTING.with_borrow_mut(|records| {
+        records.push(Consulted::default());
+        records.len()
+    });
+    let _apart = Apart(NOTING.replace(slot));
+    let value = read();
+    let mut notes = CONSULTING.with_borrow(|records| records[slot - 1].clone());
+    notes.settle();
+    (value, notes)
+}
+
+/// Runs `evaluate`, noting what it consults in record `slot` of
+/// `CONSULTING`, if there is one.
+fn consulting<T>(slot: Option<usize>, evaluate: impl FnOnce() -> T) -> T {
+    let Some(slot) = slot else {
+        return evaluate();
+    };
+    // Stops noting however `evaluate` ends.
+    struct Noted;
+    impl Drop for Noted {
+        fn drop(&mut self) {
+            NOTING.set(0);
+        }
+    }
+    NOTING.set(slot + 1);
+    let _noted = Noted;
+    evaluate()
+}
+
+/// What one event changed that an expression can read: state slots whose
+/// value, lineage or grounds differ, and whether anything the graph queries
+/// read (graph, observation and predicate records, commitments, histories) did.
 struct Changes {
-    names: HashSet<String>,
+    states: SlotBits,
     graph: bool,
     clock: bool,
-    /// When the graph changed: the reading streams and decision series whose
-    /// records changed, if every change belongs to one of them or to nothing
-    /// a history read reaches. `None` when a change could reach any of them.
-    histories: Option<BTreeSet<String>>,
+    /// When the graph changed: the load-time ids of the reading streams and
+    /// decision series whose records changed, if every change belongs to one
+    /// of them or to nothing a history read reaches. `None` when a change
+    /// could reach any of them.
+    histories: Option<SlotBits>,
+    /// With `histories`: what changed of the qualification state any history
+    /// read can reach. It reaches a group only if the group consulted it.
+    requalified: Requalified,
 }
 
 impl Changes {
     fn between(old: &ReactiveSession, new: &ReactiveSession) -> Self {
-        let names = new.states.changed_since(&old.states);
+        #[cfg(debug_assertions)]
+        {
+            old.symbols.check();
+            new.symbols.check();
+            old.graph.check();
+            new.graph.check();
+            old.check_observations();
+            new.check_observations();
+        }
+        let states = new.states.changed_since(&old.states);
         // Copy-on-write fields an event never wrote still share their pointer.
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
-        let graph = !(Arc::ptr_eq(&old.graph, &new.graph)
-            || (old.graph.edges == new.graph.edges && old.graph.nodes == new.graph.nodes))
-            || !same(&old.symbols, &new.symbols)
-            || !same(&old.observations, &new.observations)
-            || !same(
-                &old.observation_qualifications,
-                &new.observation_qualifications,
-            )
-            || !same(
-                &old.examination_qualifications,
-                &new.examination_qualifications,
-            )
-            || !same(&old.reopening_qualifications, &new.reopening_qualifications)
-            || !same(&old.predicate_qualifications, &new.predicate_qualifications)
-            || !same(&old.commitment_bases, &new.commitment_bases)
-            || !same(&old.commitment_grounds, &new.commitment_grounds)
-            || !same(&old.reading_streams, &new.reading_streams)
-            || !same(&old.decision_series, &new.decision_series)
-            || !same(&old.renewals, &new.renewals)
-            || !same(&old.retired, &new.retired)
-            || !same(&old.taken_back, &new.taken_back);
+        let graph = new.bindings_read_graph
+            && (!new.graph.unchanged_since(&old.graph)
+                || !(old.symbols.shares_all(&new.symbols) || old.symbols == new.symbols)
+                || old.observations != new.observations
+                || !new
+                    .observation_qualifications
+                    .unchanged_since(&old.observation_qualifications)
+                || !new
+                    .examination_qualifications
+                    .unchanged_since(&old.examination_qualifications)
+                || !new
+                    .reopening_qualifications
+                    .unchanged_since(&old.reopening_qualifications)
+                || !same(&old.predicate_qualifications, &new.predicate_qualifications)
+                || !new.commitment_bases.unchanged_since(&old.commitment_bases)
+                || !new
+                    .commitment_grounds
+                    .unchanged_since(&old.commitment_grounds)
+                || !new.reading_streams.unchanged_since(&old.reading_streams)
+                || !new.decision_series.unchanged_since(&old.decision_series)
+                || !same(&old.renewals, &new.renewals)
+                || !same(&old.retired, &new.retired)
+                || !same(&old.taken_back, &new.taken_back)
+                || !same(&old.withdrawals, &new.withdrawals));
+        let (histories, requalified) = if graph && new.bindings_scoped_to_histories {
+            match Self::histories_between(old, new) {
+                Some((histories, requalified)) => (Some(histories), requalified),
+                None => (None, Requalified::default()),
+            }
+        } else if !graph {
+            (Some(SlotBits::default()), Requalified::default())
+        } else {
+            (None, Requalified::default())
+        };
         Self {
-            names,
+            states,
             graph,
             // Signed zero is observable, for example through atan2.
             clock: old.elapsed.to_bits() != new.elapsed.to_bits(),
-            histories: if graph {
-                Self::histories_between(old, new)
-            } else {
-                Some(BTreeSet::new())
-            },
+            histories,
+            requalified,
         }
     }
 
-    /// The histories whose records an event changed, or `None` if it changed
-    /// something a read of any history can reach: a qualification, take-back,
-    /// withdrawal, renewal, retirement or permission, or a record it cannot
-    /// place in one history. A change to a record no history read consults
-    /// (a claim, or evidence outside every history) places nowhere.
-    fn histories_between(old: &ReactiveSession, new: &ReactiveSession) -> Option<BTreeSet<String>> {
+    /// The histories whose records an event changed, and what it changed of
+    /// the qualification state any history read can reach: new `qualifies`
+    /// relations, take-backs and withdrawals, changed predicate dependencies,
+    /// renewals, and new `supports` or `opposes` relations, which bring the
+    /// caveats of a claim to evidence a history read can list outside every
+    /// history (a withdrawal's reason, a reopening's cause or an outcome's
+    /// evidence, D036). `None` if it changed something else a read of any
+    /// history can reach: an examination, retirement or permission, a record
+    /// it cannot place in one history, or a record that was not only added to.
+    /// Any other change to a record no history read consults (a claim, or
+    /// evidence outside every history) places nowhere.
+    fn histories_between(
+        old: &ReactiveSession,
+        new: &ReactiveSession,
+    ) -> Option<(SlotBits, Requalified)> {
         fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
             Arc::ptr_eq(old, new) || **old == **new
         }
-        if !same(
-            &old.examination_qualifications,
-            &new.examination_qualifications,
-        ) || !same(&old.predicate_qualifications, &new.predicate_qualifications)
-            || !same(&old.renewals, &new.renewals)
+        if !new
+            .examination_qualifications
+            .unchanged_since(&old.examination_qualifications)
             || !same(&old.retired, &new.retired)
-            || !same(&old.taken_back, &new.taken_back)
-            || !same(&old.withdrawals, &new.withdrawals)
             || !same(&old.late_caveats, &new.late_caveats)
             || !same(&old.take_back_caveats, &new.take_back_caveats)
             || !same(&old.commitment_permissions, &new.commitment_permissions)
         {
             return None;
         }
-        // The history a record belongs to: a history itself, or `NAME@N`.
-        let history_of = |name: &str| -> Option<String> {
-            let is_history = |name: &str| {
-                new.reading_streams.contains_key(name) || new.decision_series.contains_key(name)
-            };
-            if is_history(name) {
-                return Some(name.to_string());
-            }
-            let (history, ordinal) = name.rsplit_once('@')?;
-            (is_history(history) && ordinal.bytes().all(|byte| byte.is_ascii_digit()))
-                .then(|| history.to_string())
-        };
-        let mut changed = BTreeSet::new();
-        // Keyed records: every changed key must place in a history.
-        fn keyed<V: PartialEq>(
-            old: &BTreeMap<String, V>,
-            new: &BTreeMap<String, V>,
-            added_only: bool,
-            place: &dyn Fn(&str) -> Option<String>,
-            changed: &mut BTreeSet<String>,
-        ) -> Option<()> {
-            if old.keys().any(|key| !new.contains_key(key)) {
+        let mut requalified = Requalified::default();
+        // Renewable evidence is declared at load. A renewal changes what its
+        // name means to a read that looks up its occurrences.
+        if !Arc::ptr_eq(&old.renewals, &new.renewals) {
+            if old.renewals.len() != new.renewals.len() {
                 return None;
             }
-            for (key, value) in new {
-                match old.get(key) {
-                    Some(previous) if previous == value => {}
-                    Some(_) if added_only => return None,
-                    _ => {
-                        changed.insert(place(key)?);
+            for (evidence, renewal) in new.renewals.iter() {
+                match old.renewals.get(evidence) {
+                    Some(previous) if previous == renewal => {}
+                    Some(_) => {
+                        push_unique(&mut requalified.renewals, consulted_key("", evidence));
+                    }
+                    None => return None,
+                }
+            }
+        }
+        // Take-backs and withdrawals are only added to here.
+        if !Arc::ptr_eq(&old.taken_back, &new.taken_back) {
+            for record in new.taken_back.strip_prefix(old.taken_back.as_slice())? {
+                let name = match new.symbols.get(&record.evidence) {
+                    Some(&id) => {
+                        push_unique(&mut requalified.nodes, id);
+                        new.symbols
+                            .shared_name_of(id)
+                            .unwrap_or_else(|| Name::from(record.evidence.as_str()))
+                    }
+                    None => Name::from(record.evidence.as_str()),
+                };
+                push_unique(&mut requalified.listed, name);
+            }
+        }
+        if !Arc::ptr_eq(&old.withdrawals, &new.withdrawals) {
+            for withdrawal in new.withdrawals.strip_prefix(old.withdrawals.as_slice())? {
+                let name = new
+                    .symbols
+                    .get(&withdrawal.evidence)
+                    .and_then(|&id| new.symbols.shared_name_of(id))
+                    .unwrap_or_else(|| Name::from(withdrawal.evidence.as_str()));
+                push_unique(&mut requalified.listed, name);
+                push_unique(
+                    &mut requalified.withdrawals,
+                    consulted_key("", &withdrawal.evidence),
+                );
+            }
+        }
+        if !Arc::ptr_eq(&old.predicate_qualifications, &new.predicate_qualifications) {
+            let (old, new) = (&old.predicate_qualifications, &new.predicate_qualifications);
+            for (kind, targets) in new.iter() {
+                for (name, dependency) in targets {
+                    if old.get(kind).and_then(|targets| targets.get(name)) != Some(dependency) {
+                        push_unique(&mut requalified.predicates, consulted_key(kind, name));
+                    }
+                }
+            }
+            for (kind, targets) in old.iter() {
+                for name in targets.keys() {
+                    if new
+                        .get(kind)
+                        .is_none_or(|targets| !targets.contains_key(name))
+                    {
+                        push_unique(&mut requalified.predicates, consulted_key(kind, name));
+                    }
+                }
+            }
+        }
+        // The history id a record belongs to: a history itself, or `NAME@N`.
+        let history_of = |name: &str| -> Option<usize> {
+            if let Some(&slot) = new.history_slots.get(name) {
+                return Some(slot);
+            }
+            let (history, ordinal) = name.rsplit_once('@')?;
+            let &slot = new.history_slots.get(history)?;
+            ordinal
+                .bytes()
+                .all(|byte| byte.is_ascii_digit())
+                .then_some(slot)
+        };
+        let mut changed = SlotBits::default();
+        // Keyed records: every changed key must place in a history. Only the
+        // records the event wrote can differ, when its log says which.
+        fn keyed<M: RecordMap>(
+            old: &Logged<M>,
+            new: &Logged<M>,
+            added_only: bool,
+            place: &dyn Fn(&str) -> Option<Option<usize>>,
+            changed: &mut SlotBits,
+        ) -> Option<()>
+        where
+            M::Value: Same,
+        {
+            #[cfg(debug_assertions)]
+            if new.written().is_some() {
+                let (mut logged, mut every) = (SlotBits::default(), SlotBits::default());
+                assert_eq!(
+                    places(old, new, new.written(), added_only, place, &mut logged)
+                        .map(|()| logged),
+                    places(old, new, None, added_only, place, &mut every).map(|()| every),
+                    "an event wrote a record its log does not name"
+                );
+            }
+            places(old, new, new.written(), added_only, place, changed)
+        }
+        // Adds to `changed` where the records of `written` changed, or of
+        // every name when `None`; `None` if one was removed, one that may
+        // only be added to changed, or one changed that does not place.
+        fn places<M: RecordMap>(
+            old: &Logged<M>,
+            new: &Logged<M>,
+            written: Option<&BTreeSet<String>>,
+            added_only: bool,
+            place: &dyn Fn(&str) -> Option<Option<usize>>,
+            changed: &mut SlotBits,
+        ) -> Option<()>
+        where
+            M::Value: Same,
+        {
+            let mut check = |name: &str, value: Option<&M::Value>| -> Option<()> {
+                match (old.record(name), value) {
+                    (Some(previous), Some(value)) if previous.same(value) => {}
+                    (None, None) => {}
+                    (Some(_), None) => return None,
+                    (Some(_), Some(_)) if added_only => return None,
+                    (_, Some(_)) => {
+                        if let Some(slot) = place(name)? {
+                            changed.insert(slot);
+                        }
+                    }
+                }
+                Some(())
+            };
+            match written {
+                Some(written) => {
+                    for name in written {
+                        check(name, new.record(name))?;
+                    }
+                }
+                None => {
+                    if let Some(name) = new.touched_one() {
+                        check(name, new.record(name))?;
+                    } else {
+                        if old.records().any(|(name, _)| new.record(name).is_none()) {
+                            return None;
+                        }
+                        for (name, value) in new.records() {
+                            check(name, Some(value))?;
+                        }
                     }
                 }
             }
             Some(())
         }
+        let placed = |name: &str| history_of(name).map(Some);
         if !Arc::ptr_eq(&old.reading_streams, &new.reading_streams) {
             keyed(
                 &old.reading_streams,
                 &new.reading_streams,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1320,7 +2036,7 @@ impl Changes {
                 &old.decision_series,
                 &new.decision_series,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1329,7 +2045,7 @@ impl Changes {
                 &old.commitment_bases,
                 &new.commitment_bases,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1338,7 +2054,7 @@ impl Changes {
                 &old.commitment_grounds,
                 &new.commitment_grounds,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1347,7 +2063,7 @@ impl Changes {
                 &old.reopening_qualifications,
                 &new.reopening_qualifications,
                 false,
-                &history_of,
+                &placed,
                 &mut changed,
             )?;
         }
@@ -1357,7 +2073,7 @@ impl Changes {
             &old.observation_qualifications,
             &new.observation_qualifications,
         ) {
-            let anywhere = |name: &str| Some(history_of(name).unwrap_or_default());
+            let anywhere = |name: &str| Some(history_of(name));
             keyed(
                 &old.observation_qualifications,
                 &new.observation_qualifications,
@@ -1366,73 +2082,75 @@ impl Changes {
                 &mut changed,
             )?;
         }
-        // Names only gain symbols.
-        if !Arc::ptr_eq(&old.symbols, &new.symbols)
-            && old
-                .symbols
-                .iter()
-                .any(|(name, id)| new.symbols.get(name) != Some(id))
-        {
+        // Names only gain symbols: every node named before keeps its name.
+        if !old.symbols.shares_all(&new.symbols) && !old.symbols.kept_in(&new.symbols) {
             return None;
         }
-        if !Arc::ptr_eq(&old.observations, &new.observations)
-            && !new.observations.starts_with(&old.observations)
-        {
+        if !old.observations.begins(&new.observations) {
             return None;
         }
         if !Arc::ptr_eq(&old.graph, &new.graph) {
-            // Edges are only added here; a `qualifies` edge reaches every
-            // value whose lineage lists its evidence.
-            let added = new.graph.edges.strip_prefix(old.graph.edges.as_slice())?;
-            if added
-                .iter()
-                .any(|edge| edge.relation == Relation::Qualifies)
-            {
-                return None;
-            }
-            let mut touched = added
-                .iter()
-                .flat_map(|edge| [edge.from, edge.to])
-                .collect::<HashSet<_>>();
-            if old
-                .graph
-                .nodes
-                .keys()
-                .any(|id| !new.graph.nodes.contains_key(id))
-            {
-                return None;
-            }
-            touched.extend(
-                new.graph
-                    .nodes
-                    .iter()
-                    .filter(|(id, node)| old.graph.nodes.get(id) != Some(*node))
-                    .map(|(id, _)| *id),
-            );
-            if !touched.is_empty() {
-                for (name, id) in new.symbols.iter() {
-                    if touched.contains(id) {
-                        if let Some(history) = history_of(name) {
-                            changed.insert(history);
+            // Edges are only added here. A `qualifies` edge reaches what
+            // follows the relations into the node it names. A `supports` or
+            // `opposes` edge makes its evidence bear on a claim, whose
+            // caveats the evidence then carries.
+            let (added, nodes) = new.graph.added_since(&old.graph)?;
+            let mut mark_touched = |id: NodeId| {
+                if let Some(name) = new.symbols.name_of(id) {
+                    if let Some(slot) = history_of(name) {
+                        changed.insert(slot);
+                    }
+                }
+            };
+            for edge in added {
+                match edge.relation {
+                    Relation::Qualifies => {
+                        if old.graph.nodes.contains_key(&edge.to) {
+                            push_unique(&mut requalified.nodes, edge.to);
+                            if let Some(name) = new.symbols.shared_name_of(edge.to) {
+                                push_unique(&mut requalified.listed, name);
+                            }
                         }
+                    }
+                    Relation::Supports | Relation::Opposes => {
+                        if old.graph.nodes.contains_key(&edge.from) {
+                            push_unique(&mut requalified.nodes, edge.from);
+                        }
+                        mark_touched(edge.from);
+                        mark_touched(edge.to);
+                    }
+                    _ => {
+                        mark_touched(edge.from);
+                        mark_touched(edge.to);
                     }
                 }
             }
+            for id in nodes {
+                mark_touched(id);
+            }
         }
-        changed.remove("");
-        Some(changed)
+        Some((changed, requalified))
     }
 
-    fn touch(&self, reads: &Reads, histories: Option<&BTreeSet<String>>) -> bool {
-        reads.anything
-            || (reads.graph
+    /// Whether `group` must be evaluated again. One scoped to `histories` is
+    /// when one of them changed, or when the qualification state changed in
+    /// something its last evaluation `consulted`; without that record, when
+    /// the qualification state changed at all.
+    fn touch(&self, group: &BindingGroup, consulted: Option<&Consulted>) -> bool {
+        group.anything
+            || (group.graph
                 && self.graph
-                && match (histories, &self.histories) {
-                    (Some(read), Some(changed)) => read.iter().any(|name| changed.contains(name)),
+                && match (&group.histories, &self.histories) {
+                    (Some(read), Some(changed)) => {
+                        changed.intersects(read)
+                            || consulted.map_or(!self.requalified.is_empty(), |consulted| {
+                                self.requalified.reaches(consulted)
+                            })
+                    }
                     _ => true,
                 })
-            || (reads.clock && self.clock)
-            || reads.names.iter().any(|name| self.names.contains(name))
+            || (group.clock && self.clock)
+            || self.states.intersects(&group.states)
     }
 }
 
@@ -1646,7 +2364,7 @@ pub struct ReactiveView<'a> {
     pub commitments: Vec<MapCommitment>,
     pub commitment_grounds: &'a BTreeMap<String, Provenance>,
     pub decision_series: &'a BTreeMap<String, DecisionSeries>,
-    pub decision_journal: &'a [JournalEntry],
+    pub decision_journal: &'a Chunked<JournalEntry>,
     pub relations: Vec<MapRelation>,
 }
 
@@ -1729,7 +2447,7 @@ pub struct ReactiveViewSelection<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decision_series: Option<&'a BTreeMap<String, DecisionSeries>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub decision_journal: Option<&'a [JournalEntry]>,
+    pub decision_journal: Option<&'a Chunked<JournalEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<MapRelation>>,
 }
@@ -1777,6 +2495,11 @@ pub struct ReactiveSnapshot {
     pub last_agent: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
+    /// The states declared `unset` that have no value now, in name order;
+    /// left out of `values` and `qualified_values`, and left out itself when
+    /// empty. See spec/caveat-unset-states-0.1.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unset: Vec<String>,
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
     pub reading_streams: BTreeMap<String, ReadingStream>,
     pub decision_series: BTreeMap<String, DecisionSeries>,
@@ -1832,20 +2555,66 @@ pub struct EventSignature {
     pub parameters: Vec<Parameter>,
 }
 
+/// How a module's `hold`/`release` references bind. The historical choice
+/// reproduces a positional linker bug for saves whose host identifies that
+/// interpretation; it is never the default for a new session.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ModuleBindings {
+    #[default]
+    Scoped,
+    LegacyHoldCapture,
+}
+
+/// An explicit interpretation for a historical save that does not record
+/// one. A saved discriminator takes precedence, and a conflicting option is
+/// refused rather than silently reinterpreting the saved session.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RestoreOptions {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_module_bindings"
+    )]
+    pub module_bindings: Option<ModuleBindings>,
+}
+
+/// Absence is the default; a present selector must name an interpretation,
+/// so `null` is not an alternative spelling of an absent choice.
+fn deserialize_module_bindings<'de, D>(deserializer: D) -> Result<Option<ModuleBindings>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    ModuleBindings::deserialize(serde::de::value::StrDeserializer::<D::Error>::new(&value))
+        .map(Some)
+}
+
 #[derive(Debug, Clone)]
 pub struct ReactiveSession {
-    source_id: String,
-    source_sha256: String,
+    source_id: Arc<str>,
+    source_sha256: Arc<str>,
     source_unrecorded_through: u64,
+    /// Written only when corrected and historical linking differ. The raw
+    /// source identity stays the same under either interpretation.
+    module_bindings: Option<ModuleBindings>,
     sequence: u64,
     last_event: Option<String>,
     states: States,
     // Copy-on-write: a transaction's copy shares these until an effect
     // changes one (`Arc::make_mut`), so an event pays for what it touches and
     // an untouched structure is recognised by pointer.
-    commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
-    reading_streams: Arc<BTreeMap<String, ReadingStream>>,
-    decision_series: Arc<BTreeMap<String, DecisionSeries>>,
+    commitment_bases: NamedRecords<CommitmentBasis>,
+    /// Whether the source declares a threshold, and the thresholds each
+    /// enclosing guard of the effect running now names: what a commit lists
+    /// (spec/caveat-thresholds-0.1.md). Empty unless the source has one.
+    has_thresholds: bool,
+    guard_thresholds: Vec<BTreeMap<String, f64>>,
+    /// Persistent ordered map: a sample copies only the leaf holding the
+    /// stream it adds to, and no other stream or key text.
+    reading_streams: NamedRecords<ReadingStream>,
+    decision_series: Records<DecisionSeries>,
     /// Irreversible series and the actions each forecloses, from the source.
     /// See spec/caveat-foreclosure-0.1.md.
     irreversible: Arc<BTreeMap<String, Vec<String>>>,
@@ -1858,13 +2627,13 @@ pub struct ReactiveSession {
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Empty retains legacy edge-derived observation ordering. The first neutral
     /// reveal materializes the complete order; all later observations append.
-    observations: Arc<Vec<String>>,
+    observations: Observations,
     /// Texts received for `id` parameters, in handle order.
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
-    withdrawals: Arc<Vec<Withdrawal>>,
+    withdrawals: Sealed<Vec<Withdrawal>>,
     /// Taken-back qualifications, in the order they were taken back.
-    taken_back: Arc<Vec<TakeBack>>,
+    taken_back: write::TakeBacks,
     /// The caveats some `unqualify` names, fixed at load; empty in a program
     /// that does not take back.
     take_back_caveats: Arc<BTreeSet<String>>,
@@ -1872,12 +2641,19 @@ pub struct ReactiveSession {
     /// the session runs, so the only ones a record may lack. See
     /// spec/caveat-caveat-sources-0.1.md.
     late_caveats: Arc<BTreeSet<String>>,
+    /// The nodes of `late_caveats`, each with its name, in node order. A
+    /// declared caveat's name and node are fixed when the program loads.
+    late_caveat_nodes: Arc<Vec<(NodeId, String)>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     retention_reasons: Arc<BTreeMap<String, BTreeMap<String, String>>>,
     /// Declared reopening triggers, by series in name order, each with the
     /// condition its reopening step runs under. Fixed at load.
     reopening_triggers: Arc<Vec<(String, Vec<ReopeningTrigger>, Expr)>>,
+    /// Pre-indexed reopening triggers by stream name, in series name order,
+    /// each paired with its pre-built `Effect::Reopen` so `sample` allocates
+    /// nothing when checking or firing triggers.
+    reopening_triggers_by_stream: Arc<HashMap<String, Vec<(usize, Effect)>>>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -1887,9 +2663,9 @@ pub struct ReactiveSession {
     /// The graph as the program declared it: events add nodes after
     /// `last_node` and edges after `edges`.
     loaded: LoadedGraph,
-    observation_qualifications: Arc<BTreeMap<String, Provenance>>,
-    examination_qualifications: Arc<BTreeMap<String, Provenance>>,
-    reopening_qualifications: Arc<BTreeMap<String, Provenance>>,
+    observation_qualifications: NamedRecords<Provenance>,
+    examination_qualifications: NamedRecords<Provenance>,
+    reopening_qualifications: NamedRecords<Provenance>,
     predicate_qualifications: Arc<BTreeMap<String, BTreeMap<String, Provenance>>>,
     // Fixed at load and shared by every transaction.
     ranges: Arc<BTreeMap<String, StateRange>>,
@@ -1898,21 +2674,55 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
+    /// For each of `rules`, its route (spec/caveat-routed-work-0.1.md):
+    /// the terms of its guard's route (`Expr::route_terms`) that compare one
+    /// of its event's parameters with a value fixed at load, compiled so that
+    /// an event skips the rules its payload routes elsewhere without
+    /// evaluating their guards.
+    rule_routes: Arc<Vec<Route>>,
+    /// `work skips other routes;`: a rule the payload routes elsewhere counts
+    /// no work. See spec/caveat-routed-work-0.1.md.
+    routed_work: bool,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     binding_groups: Arc<Vec<BindingGroup>>,
+    /// Load-time numeric id for each declared reading stream and decision
+    /// series, used by `Changes` to track history changes by number instead of
+    /// allocating history name sets.
+    history_slots: Arc<HashMap<String, usize>>,
+    /// Whether any binding group reads the graph or a history.
+    bindings_read_graph: bool,
+    /// Whether any binding group is scoped to specific histories.
+    bindings_scoped_to_histories: bool,
     /// For each of `binding_rules`, its index in `binding_groups`.
     binding_group_of: Arc<Vec<usize>>,
+    /// Every index of `binding_groups`, in the order of their targets and
+    /// properties: the order an evaluation shows them in.
+    binding_order: Arc<Vec<usize>>,
+    binding_index: Arc<BindingIndex>,
+    /// For each of `binding_groups` scoped to histories, what its last
+    /// evaluation consulted of the qualification state. Derived: every
+    /// evaluation writes it, nothing saves or shows it, and only the debug
+    /// check compares it. Like the shown bindings, it moves into a
+    /// transaction rather than being copied.
+    binding_consults: Vec<Option<Arc<Consulted>>>,
     define_rules: Arc<Vec<(String, Expr)>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
-    commitment_grounds: Arc<BTreeMap<String, Provenance>>,
+    /// The binding groups re-evaluated by the last accepted event, so the
+    /// View 0.1 patch inspects only what could have changed.
+    last_binding_groups: Vec<usize>,
+    /// Single key touched in `commitment_grounds` or `decision_series` by the
+    /// last accepted event, so the View 0.1 patch can check only that key.
+    last_grounds_written: Option<String>,
+    last_series_written: Option<String>,
+    commitment_grounds: Records<Provenance>,
     /// Each commitment's grounds evidence in first-observed order, frozen when
     /// it was made; only where that differs from name order. View 0.2 shows
     /// grounds in this order. See spec/caveat-view-0.2.md.
     evidence_order: Arc<BTreeMap<String, Vec<String>>>,
-    journal: Arc<Vec<JournalEntry>>,
+    journal: Chunked<JournalEntry>,
     /// The histories declared with `window N` instead of `limit N`, and the
     /// journal's window. Fixed at load. See spec/caveat-windows-0.1.md.
     windows: Arc<BTreeSet<String>>,
@@ -1920,6 +2730,14 @@ pub struct ReactiveSession {
     /// Each retired record, with the sequence of the event that retired it.
     /// A journal entry is named `journal@K`, K counting from 1.
     retired: Arc<BTreeMap<String, u64>>,
+    /// Unobserved declared evidence spelled like a journal entry, which a
+    /// declaration's `reopen` names and a save lists as retired, with the
+    /// sequence the save gives (D105). An older release took the entry's
+    /// retirement for the evidence's, so its sessions could cite the
+    /// evidence as retired. A session restored from such a save keeps the
+    /// evidence retired where a value may cite it, and lists it in `retired`
+    /// once the entry has departed too. Only restore fills it.
+    retired_causes: Arc<BTreeMap<String, u64>>,
     /// How many of the oldest journal entries have departed: entry `i` held
     /// is `journal@(journal_departed + i + 1)`. See spec/caveat-departure-0.1.md.
     journal_departed: usize,
@@ -1944,8 +2762,9 @@ pub struct ReactiveSession {
     cue_qualifications: Vec<Provenance>,
     controls: Arc<BTreeMap<String, Control>>,
     clock: Option<Clock>,
-    graph: Arc<EpistemicGraph>,
-    symbols: Arc<HashMap<String, NodeId>>,
+    graph: SealedGraph,
+    /// The names map, with each named record's name by node.
+    symbols: NameTable,
     resources: Option<ResourceLedger>,
     world: Arc<MapWorld>,
     labels: Arc<BTreeMap<String, String>>,
@@ -1962,14 +2781,37 @@ pub struct ReactiveSession {
     senders: Arc<BTreeMap<String, BTreeSet<String>>>,
     /// The agent the host said sent the last accepted event, if it named one.
     last_agent: Option<String>,
+    /// Which histories each part of what the session holds can carry
+    /// records of, from the program as it loaded: what restore bounds a
+    /// saved marker, name or cause by (findings D054 and D061). Computed
+    /// once per loaded program, the first time restore needs it, and shared
+    /// by every clone (`history_reach_bound`). Debug builds compute it as
+    /// the program loads, to check it after every event.
+    reach: Arc<OnceLock<reach::HistoryReach>>,
+    /// Whether the program of a bundle declares a function `MODULE__only_if`
+    /// for one of its modules: a release before rc.12 read that module's
+    /// `only_if(…)` as a call of it where the module declares `only_if` as
+    /// something other than a function, and this runtime reads the form
+    /// there. So `only_if` in such a program does not show that no release
+    /// before rc.12 loaded it (`may_load_before_rc12`, finding D083).
+    flat_only_if: bool,
+    /// The releases that could have loaded this program as it loaded here,
+    /// as far as what the session does not keep shows it: the first release
+    /// that reads every form its function bodies and state initial values
+    /// use, and the last before one that refused a function body this
+    /// runtime reads again (`reactive_expr::validate_functions_reading`).
+    /// `release_bounds` adds what the session keeps (finding D088).
+    loaded_releases: (Release, Release),
 }
 
 /// How many loaded programs `from_source_cached` keeps.
 const LOADED_PROGRAMS: usize = 4;
 
 thread_local! {
-    /// Programs this thread loaded recently, by source text, least recent first.
-    static LOADED: std::cell::RefCell<Vec<(String, ReactiveSession)>> =
+    /// Programs this thread loaded recently, by source and interpretation,
+    /// least recent first. Historical restoration must not contaminate a
+    /// subsequent fresh load of the same source, or its restore bounds.
+    static LOADED: std::cell::RefCell<Vec<(String, ModuleBindings, ReactiveSession)>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
@@ -1981,22 +2823,31 @@ impl ReactiveSession {
     /// last few programs that loaded are kept; a source that does not load is
     /// not, and fails the same way each time.
     pub fn from_source_cached(source: &str) -> Result<Self, String> {
+        Self::from_source_cached_with_bindings(source, ModuleBindings::Scoped)
+    }
+
+    fn from_source_cached_with_bindings(
+        source: &str,
+        module_bindings: ModuleBindings,
+    ) -> Result<Self, String> {
         let kept = LOADED.with_borrow_mut(|loaded| {
-            let index = loaded.iter().position(|(text, _)| text == source)?;
+            let index = loaded
+                .iter()
+                .position(|(text, bindings, _)| text == source && *bindings == module_bindings)?;
             let entry = loaded.remove(index);
-            let session = entry.1.clone();
+            let session = entry.2.clone();
             loaded.push(entry);
             Some(session)
         });
         if let Some(session) = kept {
             return Ok(session);
         }
-        let session = Self::from_source(source)?;
+        let session = Self::from_source_with_bindings(source, module_bindings)?;
         LOADED.with_borrow_mut(|loaded| {
             if loaded.len() == LOADED_PROGRAMS {
                 loaded.remove(0);
             }
-            loaded.push((source.to_string(), session.clone()));
+            loaded.push((source.to_string(), module_bindings, session.clone()));
         });
         Ok(session)
     }
@@ -2007,15 +2858,104 @@ impl ReactiveSession {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
-        Self::load_source(source).map_err(|error| crate::load_diagnostics::locate(source, error))
+        Self::from_source_with_bindings(source, ModuleBindings::Scoped)
     }
 
-    fn load_source(source: &str) -> Result<Self, String> {
+    fn from_source_with_bindings(source: &str, bindings: ModuleBindings) -> Result<Self, String> {
+        Self::load_source(source, bindings)
+            .map_err(|error| crate::load_diagnostics::locate(source, error))
+    }
+
+    fn load_source(source: &str, bindings: ModuleBindings) -> Result<Self, String> {
+        if source.starts_with(crate::link::BUNDLE_MARKER) {
+            return Readings::new(source).load(bindings);
+        }
+        Self::load_program(
+            source,
+            crate::parser::parse(&crate::link::link(source)?)?,
+            None,
+        )
+    }
+
+    /// Choose a program before applying state or replaying events. A save
+    /// cannot reveal which of two valid historical programs produced it.
+    /// `identity` checks what does not depend on the program, that this is a
+    /// save of `source`: a save of another program, or of an edited source,
+    /// is refused as such before a saved or requested choice is used, and
+    /// before the choice is asked for, since no choice could restore it.
+    /// `format` is the releases that wrote the save's format: no other
+    /// release can have written the save (finding D095).
+    fn load_for_restore(
+        source: &str,
+        saved_bindings: Option<ModuleBindings>,
+        options: &RestoreOptions,
+        format: RangeInclusive<Release>,
+        identity: impl FnOnce() -> Result<(), String>,
+    ) -> Result<Self, String> {
+        if let Some(bindings) = saved_bindings.or(options.module_bindings) {
+            identity()?;
+            if let (Some(saved), Some(requested)) = (saved_bindings, options.module_bindings) {
+                if saved != requested {
+                    return Err(
+                        "cannot restore save: moduleBindings conflicts with saved module_bindings"
+                            .into(),
+                    );
+                }
+            }
+            return Self::from_source_cached_with_bindings(source, bindings);
+        }
+        let scoped = Self::from_source_cached(source);
+        if scoped
+            .as_ref()
+            .is_ok_and(|session| session.module_bindings.is_none())
+            || !source.starts_with(crate::link::BUNDLE_MARKER)
+        {
+            return scoped;
+        }
+        let readings = Readings::new(source);
+        if !readings.affected {
+            return scoped;
+        }
+        // This runtime marks every save of such a bundle, so an unmarked one
+        // was written by a release that loaded it and wrote its format:
+        // before 1.2.0 with the module's own `hold`, or from 1.2.0 to 1.4.1
+        // with the program's (finding D091). Where releases of both kinds
+        // could have written it, and read it differently, the save cannot
+        // say which wrote it.
+        let legacy =
+            || Self::from_source_cached_with_bindings(source, ModuleBindings::LegacyHoldCapture);
+        let (scoped_writer, legacy_writer) = readings.writers(&format);
+        let ambiguous = match (scoped_writer, legacy_writer) {
+            (true, false) => return scoped,
+            (false, true) => return legacy(),
+            (true, true) => Some(readings.scoped_reading()) != readings.legacy_reading(),
+            // No release that wrote the save's format loaded it, so no
+            // release wrote the save.
+            (false, false) => match (scoped, legacy()) {
+                (Ok(_), Ok(_)) => Some(readings.scoped_reading()) != readings.legacy_reading(),
+                (Ok(session), Err(_)) | (Err(_), Ok(session)) => return Ok(session),
+                (Err(error), Err(_)) => return Err(error),
+            },
+        };
+        if !ambiguous {
+            return Self::from_source_cached(source);
+        }
+        identity()?;
+        Err(
+            "cannot restore save: this source has ambiguous historical module bindings; supply moduleBindings as scoped or legacy-hold-capture"
+                .into(),
+        )
+    }
+
+    fn load_program(
+        source: &str,
+        program: Program,
+        module_bindings: Option<ModuleBindings>,
+    ) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
         // keep referring to that. A source without the bundle marker links to
         // itself, so single-file programs are unaffected.
-        let program = crate::parser::parse(&crate::link::link(source)?)?;
         let mut declarations = Vec::new();
         let mut directives = Vec::new();
         for statement in &program.statements {
@@ -2068,16 +3008,50 @@ impl ReactiveSession {
                 }
             }
         }
-        reactive_expr::validate_functions(&functions)?;
+        let functions_reading = reactive_expr::validate_functions_reading(&functions)?;
+        // A bundle module that declares `only_if` as something other than a
+        // function reads `only_if(…)` as the form, where releases before
+        // rc.12 flattened the name, calling `MODULE__only_if` (link.rs). Only
+        // the bundle's program can declare that function: a module's own
+        // names have no `__`, and a module's own `fn only_if` links as its
+        // `MODULE__only_if`, under the module's `origin` line. See
+        // `flat_only_if`.
+        let flat_only_if = {
+            let mut parts = BTreeSet::new();
+            let mut part = None;
+            let mut flattened = Vec::new();
+            for statement in &program.statements {
+                match statement {
+                    Statement::Origin { part: name } => {
+                        parts.insert(name.as_str());
+                        part = Some(name.as_str());
+                    }
+                    Statement::Reactive(Directive::Function(function)) => {
+                        if let Some(module) = function.name.strip_suffix("__only_if") {
+                            flattened.push((module, part));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            flattened
+                .into_iter()
+                .any(|(module, part)| parts.contains(module) && part != Some(module))
+        };
         let mut defines = BTreeMap::new();
         for directive in &directives {
-            if let Directive::Define { name, expression } = directive {
-                if functions.contains_key(name) {
-                    return Err(format!("define {name} collides with a function"));
+            let (word, name, expression) = match directive {
+                Directive::Define { name, expression } => ("define", name, expression.clone()),
+                Directive::Threshold { name, value } => {
+                    ("threshold", name, Expr::threshold(name, *value)?)
                 }
-                if defines.insert(name.clone(), expression.clone()).is_some() {
-                    return Err(format!("duplicate define {name}"));
-                }
+                _ => continue,
+            };
+            if functions.contains_key(name) {
+                return Err(format!("{word} {name} collides with a function"));
+            }
+            if defines.insert(name.clone(), expression).is_some() {
+                return Err(format!("duplicate {word} {name}"));
             }
         }
         for directive in &mut directives {
@@ -2124,56 +3098,80 @@ impl ReactiveSession {
                 constants.insert(format!("{}.{axis}", position.target), coordinate.value());
             }
         }
+        let write::Declared {
+            graph,
+            symbols,
+            observations,
+            withdrawals,
+            taken_back,
+        } = write::seal_declared(evaluation.graph, evaluation.symbols);
         let mut session = Self {
-            source_id: source_identity(source),
-            source_sha256: source_digest(source),
+            source_id: Arc::from(source_identity(source)),
+            source_sha256: Arc::from(source_digest(source)),
             source_unrecorded_through: 0,
+            module_bindings,
             sequence: 0,
             last_event: None,
             states: States::default(),
-            commitment_bases: Arc::default(),
-            reading_streams: Arc::default(),
-            decision_series: Arc::default(),
+            commitment_bases: NamedRecords::default(),
+            has_thresholds: false,
+            guard_thresholds: Vec::new(),
+            reading_streams: NamedRecords::default(),
+            decision_series: Records::default(),
             irreversible: Arc::default(),
             foreclosures: Arc::default(),
             strict_irreversible: Arc::default(),
             renewals: Arc::default(),
-            observations: Arc::default(),
+            observations,
             identifiers: Arc::default(),
-            withdrawals: Arc::default(),
-            taken_back: Arc::default(),
+            withdrawals,
+            taken_back,
             take_back_caveats: Arc::default(),
             late_caveats: Arc::default(),
+            late_caveat_nodes: Arc::default(),
             commitment_permissions: Arc::default(),
             retention_reasons: Arc::default(),
             reopening_triggers: Arc::default(),
+            reopening_triggers_by_stream: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
             loaded: LoadedGraph::default(),
-            observation_qualifications: Arc::default(),
-            examination_qualifications: Arc::default(),
-            reopening_qualifications: Arc::default(),
+            observation_qualifications: NamedRecords::default(),
+            examination_qualifications: NamedRecords::default(),
+            reopening_qualifications: NamedRecords::default(),
             predicate_qualifications: Arc::default(),
             ranges: Arc::new(BTreeMap::new()),
             constants: Arc::new(constants),
             events: Arc::new(BTreeMap::new()),
             rules: Arc::new(Vec::new()),
             rules_by_event: Arc::default(),
+            rule_routes: Arc::default(),
+            routed_work: false,
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             binding_groups: Arc::new(Vec::new()),
+            history_slots: Arc::default(),
+            bindings_read_graph: false,
+            bindings_scoped_to_histories: false,
             binding_group_of: Arc::new(Vec::new()),
+            binding_order: Arc::new(Vec::new()),
+            binding_index: Arc::default(),
+            binding_consults: Vec::new(),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
-            commitment_grounds: Arc::default(),
+            last_binding_groups: Vec::new(),
+            last_grounds_written: None,
+            last_series_written: None,
+            commitment_grounds: Records::default(),
             evidence_order: Arc::default(),
-            journal: Arc::default(),
+            journal: Chunked::default(),
             windows: Arc::default(),
             journal_window: None,
             retired: Arc::default(),
+            retired_causes: Arc::default(),
             journal_departed: 0,
             archive: Vec::new(),
             pin_counts: Arc::default(),
@@ -2186,8 +3184,8 @@ impl ReactiveSession {
             cue_qualifications: Vec::new(),
             controls: Arc::default(),
             clock: None,
-            graph: Arc::new(evaluation.graph),
-            symbols: Arc::new(evaluation.symbols),
+            graph,
+            symbols,
             resources: evaluation.resources,
             world: Arc::new(map.world),
             labels: Arc::new(evaluation.display.into_iter().collect()),
@@ -2197,6 +3195,9 @@ impl ReactiveSession {
             agents: Arc::default(),
             senders: Arc::default(),
             last_agent: None,
+            reach: Arc::default(),
+            flat_only_if,
+            loaded_releases: (functions_reading.first, functions_reading.last),
         };
         // Reopening triggers: declared streams and claims, by series in name
         // order, each with its reopening condition.
@@ -2273,7 +3274,7 @@ impl ReactiveSession {
             match directive {
                 Directive::Readings { template, .. } => {
                     session.require_kind(template, "evidence")?;
-                    Arc::make_mut(&mut session.reading_streams).insert(
+                    session.reading_streams.insert(
                         name.clone(),
                         ReadingStream {
                             template: template.clone(),
@@ -2300,7 +3301,7 @@ impl ReactiveSession {
                     if *strict {
                         Arc::make_mut(&mut session.strict_irreversible).insert(name.clone());
                     }
-                    Arc::make_mut(&mut session.decision_series).insert(
+                    session.decision_series.insert(
                         name.clone(),
                         DecisionSeries {
                             limit,
@@ -2319,6 +3320,11 @@ impl ReactiveSession {
             match directive {
                 Directive::Define { name, expression } => Arc::make_mut(&mut session.define_rules)
                     .push((name.clone(), expression.clone())),
+                Directive::Threshold { name, value } => {
+                    session.has_thresholds = true;
+                    Arc::make_mut(&mut session.define_rules)
+                        .push((name.clone(), Expr::threshold(name, *value)?))
+                }
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
                         return Err(format!(
@@ -2350,6 +3356,12 @@ impl ReactiveSession {
                             .or_default()
                             .insert(name.clone());
                     }
+                }
+                Directive::RoutedWork => {
+                    if session.routed_work {
+                        return Err("work skips other routes is declared more than once".into());
+                    }
+                    session.routed_work = true;
                 }
                 Directive::JournalWindow { limit } => {
                     if session.journal_window.is_some() {
@@ -2394,7 +3406,7 @@ impl ReactiveSession {
                         .collect();
                     let renewal = Renewal {
                         limit: *limit,
-                        occurrences: vec![evidence.clone()],
+                        occurrences: vec![Name::from(evidence)],
                         template_caveats,
                     };
                     if Arc::make_mut(&mut session.renewals)
@@ -2446,9 +3458,22 @@ impl ReactiveSession {
                     initial,
                     min,
                     max,
+                    unset,
                 } => {
                     if session.states.contains_key(name) {
                         return Err(format!("duplicate reactive state {name}"));
+                    }
+                    if *unset {
+                        session.states.declare(name.clone(), StateCell::unset());
+                        Arc::make_mut(&mut session.ranges).insert(
+                            name.clone(),
+                            StateRange {
+                                min: min.value(),
+                                max: max.value(),
+                                unset: true,
+                            },
+                        );
+                        continue;
                     }
                     let numeric = session
                         .states
@@ -2478,6 +3503,12 @@ impl ReactiveSession {
                             if name == reactive_expr::ELAPSED_READ {
                                 return Ok(Some(Tracked::plain(session.elapsed)));
                             }
+                            if session.states.get(name).is_some_and(|cell| cell.unset) {
+                                return Err(format!(
+                                    "state {name} is declared unset, and an initializer runs before any rule sets it"
+                                )
+                                .into());
+                            }
                             Ok(session.states.value(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
                             }))
@@ -2490,6 +3521,8 @@ impl ReactiveSession {
                         unreachable!("validated number initializer")
                     };
                     check_range(name, number, min.value(), max.value())?;
+                    session.loaded_releases.0 =
+                        session.loaded_releases.0.max(initial.first_release());
                     let grounds = session
                         .evaluate_grounds(initial, &Parameters::default())?
                         .provenance;
@@ -2498,6 +3531,7 @@ impl ReactiveSession {
                         StateCell {
                             value: Tracked::new(number, value.provenance)?,
                             grounds,
+                            unset: false,
                         },
                     );
                     Arc::make_mut(&mut session.ranges).insert(
@@ -2505,6 +3539,7 @@ impl ReactiveSession {
                         StateRange {
                             min: min.value(),
                             max: max.value(),
+                            unset: false,
                         },
                     );
                 }
@@ -2681,7 +3716,27 @@ impl ReactiveSession {
                 }
             }
         }
+        let mut triggers_by_stream = HashMap::<String, Vec<(usize, Effect)>>::default();
+        for (index, (series, triggers, _)) in declared_triggers.iter().enumerate() {
+            let mut seen_streams = HashSet::default();
+            for trigger in triggers {
+                if seen_streams.insert(trigger.stream.as_str()) {
+                    triggers_by_stream
+                        .entry(trigger.stream.clone())
+                        .or_default()
+                        .push((
+                            index,
+                            Effect::Reopen {
+                                action: series.clone(),
+                                because: EvidenceSelector::Latest(trigger.stream.clone()),
+                                form: DecisionChange::Reopen,
+                            },
+                        ));
+                }
+            }
+        }
         session.reopening_triggers = Arc::new(declared_triggers);
+        session.reopening_triggers_by_stream = Arc::new(triggers_by_stream);
         session.check_foreclosures()?;
         let (binding_types, revision_series) = session.validate_rules()?;
         session.revision_series = Arc::new(revision_series);
@@ -2695,8 +3750,15 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        let mut steps = HashMap::default();
+        let rule_routes = session
+            .rules
+            .iter()
+            .map(|rule| session.compile_route(rule, &mut steps))
+            .collect();
+        session.rule_routes = Arc::new(rule_routes);
         session.loaded = LoadedGraph {
-            last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
+            last_node: session.graph.nodes.keys().max().unwrap_or(0),
             edges: session.graph.edges.len(),
             states: Arc::clone(&session.states.cells),
         };
@@ -2704,6 +3766,14 @@ impl ReactiveSession {
             .evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
         session.rebuild_departure_index();
+        // Restore computes the bound when it first needs it (findings D054
+        // and D061); debug builds compute it here and check it after every
+        // event.
+        #[cfg(debug_assertions)]
+        {
+            session.history_reach_bound();
+            session.check_history_reach_held(None);
+        }
         Ok(session)
     }
 
@@ -2787,7 +3857,7 @@ impl ReactiveSession {
             let symbol = arguments[parameter.position]
                 .as_name()
                 .filter(|symbol| match parameter.kind.as_str() {
-                    "readings" => self.reading_streams.contains_key(*symbol),
+                    "readings" => self.reading_streams.contains_key(symbol),
                     "decisions" => self.decision_series.contains_key(*symbol),
                     kind => self.require_kind(symbol, kind).is_ok(),
                 })
@@ -2967,22 +4037,39 @@ impl ReactiveSession {
     }
 
     fn group_bindings(&mut self, types: &BindingTypes) {
+        let mut history_slots = HashMap::default();
+        for name in self
+            .reading_streams
+            .keys()
+            .chain(self.decision_series.keys().map(String::as_str))
+        {
+            let slot = history_slots.len();
+            history_slots.insert(name.to_owned(), slot);
+        }
         let mut groups = Vec::<BindingGroup>::new();
+        let mut reads_per_group = Vec::<Reads>::new();
         let mut index_of = HashMap::<(String, String), usize>::default();
         let mut group_of = Vec::with_capacity(self.binding_rules.len());
-        for binding in self.binding_rules.iter() {
+        for (rule_index, binding) in self.binding_rules.iter().enumerate() {
             let key = (binding.target.clone(), binding.property.clone());
             let group = *index_of.entry(key).or_insert_with(|| {
                 groups.push(BindingGroup {
                     target: binding.target.clone(),
                     property: binding.property.clone(),
-                    reads: Reads::default(),
+                    states: SlotBits::default(),
+                    graph: false,
+                    clock: false,
+                    anything: false,
                     histories: None,
+                    rules: Vec::new(),
+                    order_rank: 0,
                     value_type: types[&(binding.target.clone(), binding.property.clone())],
                 });
+                reads_per_group.push(Reads::default());
                 groups.len() - 1
             });
-            let reads = &mut groups[group].reads;
+            groups[group].rules.push(rule_index);
+            let reads = &mut reads_per_group[group];
             binding.condition.collect_reads(reads);
             if let BindingExpression::Expression(value) = &binding.value {
                 value.collect_reads(reads);
@@ -2992,19 +4079,75 @@ impl ReactiveSession {
             }
             group_of.push(group);
         }
-        for group in &mut groups {
-            let reads = &group.reads;
+        let mut bindings_read_graph = false;
+        let mut bindings_scoped_to_histories = false;
+        let mut index = BindingIndex {
+            by_history: vec![Vec::new(); history_slots.len()],
+            by_state: vec![Vec::new(); self.states.len()],
+            clock_groups: Vec::new(),
+            unscoped_graph_groups: Vec::new(),
+            anything_groups: Vec::new(),
+        };
+        for (group_id, (group, reads)) in groups.iter_mut().zip(reads_per_group).enumerate() {
+            for name in &reads.names {
+                if let Some(slot) = self.states.slot(name) {
+                    group.states.insert(slot);
+                }
+            }
+            group.graph = reads.graph;
+            group.clock = reads.clock;
+            group.anything = reads.anything;
+            if reads.graph || reads.anything {
+                bindings_read_graph = true;
+            }
             let scoped = reads.graph
                 && !reads.anything
                 && !reads.graph_unnamed
-                && reads.graph_names.iter().all(|name| {
-                    self.reading_streams.contains_key(name)
-                        || self.decision_series.contains_key(name)
-                });
-            group.histories = scoped.then(|| reads.graph_names.clone());
+                && reads
+                    .graph_names
+                    .iter()
+                    .all(|name| history_slots.contains_key(name));
+            if scoped {
+                let mut histories = SlotBits::default();
+                for name in &reads.graph_names {
+                    histories.insert(history_slots[name]);
+                }
+                group.histories = Some(histories);
+                bindings_scoped_to_histories = true;
+            }
+            if reads.anything {
+                index.anything_groups.push(group_id);
+            } else {
+                if reads.clock {
+                    index.clock_groups.push(group_id);
+                }
+                if reads.graph {
+                    if let Some(histories) = &group.histories {
+                        histories.for_each_bit(|slot| index.by_history[slot].push(group_id));
+                    } else {
+                        index.unscoped_graph_groups.push(group_id);
+                    }
+                }
+                group
+                    .states
+                    .for_each_bit(|slot| index.by_state[slot].push(group_id));
+            }
         }
+        let mut order = (0..groups.len()).collect::<Vec<_>>();
+        order.sort_by(|&a, &b| {
+            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
+        });
+        for (rank, &group) in order.iter().enumerate() {
+            groups[group].order_rank = rank;
+        }
+        self.history_slots = Arc::new(history_slots);
+        self.bindings_read_graph = bindings_read_graph;
+        self.bindings_scoped_to_histories = bindings_scoped_to_histories;
+        self.binding_consults = vec![None; groups.len()];
         self.binding_groups = Arc::new(groups);
         self.binding_group_of = Arc::new(group_of);
+        self.binding_order = Arc::new(order);
+        self.binding_index = Arc::new(index);
     }
 
     fn validate_procedures(&self) -> Result<(), String> {
@@ -3110,7 +4253,7 @@ impl ReactiveSession {
             .iter()
             .filter_map(|(name, id)| {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
-                    .then_some(name.clone())
+                    .then_some(name.to_owned())
             })
             .collect::<HashSet<_>>();
         commitments.extend(self.decision_series.keys().cloned());
@@ -3209,18 +4352,21 @@ impl ReactiveSession {
                 }
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
+                reactive_expr::IS_SET => self.require_unset_state(symbol),
                 reactive_expr::ON_HOLD if self.decision_series.contains_key(symbol) => Ok(()),
                 reactive_expr::ON_HOLD => Err(format!(
                     "on_hold names a decision series; {symbol} is not one"
                 )),
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF
                     if self.decision_series.contains_key(symbol) =>
                 {
                     Ok(())
                 }
-                reactive_expr::RESOLVED | reactive_expr::OUTCOME => Err(format!(
-                    "{kind} names a decision series; {symbol} is not one"
-                )),
+                reactive_expr::RESOLVED | reactive_expr::OUTCOME | reactive_expr::GROUNDS_OF => {
+                    Err(format!(
+                        "{kind} names a decision series; {symbol} is not one"
+                    ))
+                }
                 reactive_expr::AT_REVISION_RESOLVED
                     if self.decision_series.contains_key(symbol) =>
                 {
@@ -3311,6 +4457,7 @@ impl ReactiveSession {
                     value,
                     stance,
                     note,
+                    with,
                 } => {
                     self.require_readings(stream)?;
                     if let Some((_, claim)) = stance {
@@ -3324,6 +4471,21 @@ impl ReactiveSession {
                             return Err(format!(
                                 "sample {stream} noting requires an identifier handle"
                             ));
+                        }
+                    }
+                    if let Some(with) = with {
+                        for caveat in &with.caveats {
+                            self.require_kind(caveat, "caveat")?;
+                            self.not_the_withdrawal_caveat(caveat, "sample with")?;
+                            self.not_a_take_back_caveat(caveat, "sample with")?;
+                        }
+                        if let Some(condition) = &with.condition {
+                            if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool
+                            {
+                                return Err(format!(
+                                    "sample {stream} with ... when requires a boolean condition"
+                                ));
+                            }
                         }
                     }
                 }
@@ -3416,6 +4578,7 @@ impl ReactiveSession {
                         return Err(format!("emit references undeclared cue {name}"));
                     }
                 }
+                Effect::Unset { name } => self.require_unset_state(name)?,
                 Effect::Set {
                     name,
                     value,
@@ -3573,11 +4736,15 @@ impl ReactiveSession {
             }
         }
         for (name, expression) in self.define_rules.iter() {
+            let define = match expression.as_threshold() {
+                Some(_) => "threshold",
+                None => "define",
+            };
             if self.states.contains_key(name) || self.constants.contains_key(name) {
-                return Err(format!("define {name} collides with a state"));
+                return Err(format!("{define} {name} collides with a state"));
             }
             if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
-                return Err(format!("define {name} collides with a history"));
+                return Err(format!("{define} {name} collides with a history"));
             }
             if self
                 .events
@@ -3585,7 +4752,7 @@ impl ReactiveSession {
                 .flatten()
                 .any(|parameter| parameter.name == *name)
             {
-                return Err(format!("define {name} collides with an event parameter"));
+                return Err(format!("{define} {name} collides with an event parameter"));
             }
             // On its own a define may name any event parameter; each place it
             // is used is validated again with that place's parameters.
@@ -3663,39 +4830,110 @@ impl ReactiveSession {
     /// evaluated in declaration order and explained in name order, so an error
     /// is the same one a full evaluation reports.
     fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
-        let groups = Arc::clone(&self.binding_groups);
-        let rules = Arc::clone(&self.binding_rules);
-        let stale = groups
-            .iter()
-            .map(|group| {
-                changes.is_none_or(|changes| changes.touch(&group.reads, group.histories.as_ref()))
-            })
-            .collect::<Vec<_>>();
-        if !stale.contains(&true) {
+        if self.binding_groups.is_empty() {
             return Ok(());
         }
-        let parameters = Parameters::default();
-        let mut guards = vec![Provenance::default(); groups.len()];
-        // The declaration that supplied each shown value: the last one to match.
-        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
-        for (index, binding) in rules.iter().enumerate() {
-            let group = self.binding_group_of[index];
-            if !stale[group] {
-                continue;
+        let groups = Arc::clone(&self.binding_groups);
+        // The stale groups in group order: nothing is allocated when an event
+        // touches none of them.
+        let mut stale = Vec::new();
+        let mut stale_rules = 0usize;
+        match changes {
+            None => {
+                stale.extend(0..groups.len());
+                stale_rules = self.binding_rules.len();
             }
+            Some(changes)
+                if !changes.graph
+                    || (changes.histories.is_some() && changes.requalified.is_empty()) =>
+            {
+                let index = &self.binding_index;
+                stale.extend_from_slice(&index.anything_groups);
+                if changes.clock {
+                    stale.extend_from_slice(&index.clock_groups);
+                }
+                if changes.graph {
+                    stale.extend_from_slice(&index.unscoped_graph_groups);
+                    if let Some(changed) = &changes.histories {
+                        changed.for_each_bit(|slot| {
+                            if let Some(list) = index.by_history.get(slot) {
+                                stale.extend_from_slice(list);
+                            }
+                        });
+                    }
+                }
+                changes.states.for_each_bit(|slot| {
+                    if let Some(list) = index.by_state.get(slot) {
+                        stale.extend_from_slice(list);
+                    }
+                });
+                if stale.len() > 1 {
+                    stale.sort_unstable();
+                    stale.dedup();
+                }
+                for &group in &stale {
+                    stale_rules += groups[group].rules.len();
+                }
+            }
+            Some(changes) => {
+                for (group, read) in groups.iter().enumerate() {
+                    let consulted = self.binding_consults.get(group).and_then(Option::as_deref);
+                    if changes.touch(read, consulted) {
+                        stale.push(group);
+                        stale_rules += read.rules.len();
+                    }
+                }
+            }
+        }
+        if stale.is_empty() {
+            self.last_binding_groups.clear();
+            return Ok(());
+        }
+        let rules = Arc::clone(&self.binding_rules);
+        // Each stale group scoped to histories notes what it consults in a
+        // record of its own, kept so that a later change to anything else
+        // leaves the group as it is.
+        let mut records = 0;
+        let slots = stale
+            .iter()
+            .map(|&group| {
+                groups[group].histories.is_some().then(|| {
+                    records += 1;
+                    records - 1
+                })
+            })
+            .collect::<Vec<_>>();
+        if records > 0 {
+            CONSULTING.with_borrow_mut(|kept| {
+                if kept.len() < records {
+                    kept.resize_with(records, Consulted::default);
+                }
+                kept[..records].iter_mut().for_each(Consulted::clear);
+            });
+        }
+        let parameters = Parameters::default();
+        // By each stale group's place.
+        let mut guards = vec![None::<Provenance>; stale.len()];
+        // The declaration that supplied each shown value: the last one to match.
+        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; stale.len()];
+        let mut eval_rule = |index: usize, at: usize| -> Result<(), DispatchFailure> {
+            let binding = &rules[index];
             let context = || format!("binding {}.{}", binding.target, binding.property);
-            let condition = self
-                .evaluate(&binding.condition, &parameters)
-                .map_err(|error| error.context(context()))?;
-            guards[group].merge(&condition.provenance)?;
+            let condition =
+                consulting(slots[at], || self.evaluate(&binding.condition, &parameters))
+                    .map_err(|error| error.context(context()))?;
+            let slot = &mut guards[at];
+            match slot {
+                Some(guard) if !guard.holds_nothing() => guard.merge(&condition.provenance)?,
+                _ => *slot = Some(union_with_nothing(condition.provenance)?),
+            }
             if condition.value != Value::Bool(true) {
-                continue;
+                return Ok(());
             }
             let value = match &binding.value {
                 BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
                 BindingExpression::Expression(expression) => {
-                    let value = self
-                        .evaluate(expression, &parameters)
+                    let value = consulting(slots[at], || self.evaluate(expression, &parameters))
                         .map_err(|error| error.context(context()))?;
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
@@ -3705,51 +4943,102 @@ impl ReactiveSession {
                     Tracked::new(primitive, value.provenance)?
                 }
             };
-            winners[group] = Some((index, value));
+            winners[at] = Some((index, value));
+            Ok(())
+        };
+        if stale.len() == 1 {
+            for &index in &groups[stale[0]].rules {
+                eval_rule(index, 0)?;
+            }
+        } else if stale_rules <= rules.len() / 2 {
+            let mut work = Vec::with_capacity(stale_rules);
+            for (at, &group) in stale.iter().enumerate() {
+                for &index in &groups[group].rules {
+                    work.push((index, at));
+                }
+            }
+            work.sort_unstable_by_key(|&(index, _)| index);
+            for (index, at) in work {
+                eval_rule(index, at)?;
+            }
+        } else {
+            let mut place = vec![None; groups.len()];
+            for (at, &group) in stale.iter().enumerate() {
+                place[group] = Some(at);
+            }
+            for index in 0..rules.len() {
+                let Some(at) = place[self.binding_group_of[index]] else {
+                    continue;
+                };
+                eval_rule(index, at)?;
+            }
         }
-        let mut order = (0..groups.len())
-            .filter(|&group| stale[group])
-            .collect::<Vec<_>>();
-        order.sort_by(|&a, &b| {
-            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
-        });
-        let mut shown = Vec::with_capacity(order.len());
-        for group in order {
+        let mut shown = Vec::with_capacity(stale.len());
+        let mut finish_group = |group: usize, at: usize| -> Result<(), DispatchFailure> {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            let guard = std::mem::take(&mut guards[group]);
-            let Some((index, value)) = winners[group].take() else {
+            let guard = guards[at].take().unwrap_or_default();
+            let Some((index, value)) = winners[at].take() else {
                 shown.push((group, None, guard));
-                continue;
+                return Ok(());
             };
-            let mut lineage = value.provenance;
-            lineage.merge(&guard)?;
+            let lineage = if value.provenance.holds_nothing() {
+                union_with_nothing(guard)?
+            } else {
+                let mut lineage = value.provenance;
+                lineage.merge(&guard)?;
+                lineage
+            };
             let explanation = match &rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => self.grounded_citation(
-                    &format!("binding {target}.{property}"),
-                    citations,
-                    &lineage,
-                    &parameters,
-                )?,
+                Some(citations) => consulting(slots[at], || {
+                    self.grounded_citation(
+                        &format!("binding {target}.{property}"),
+                        citations,
+                        &lineage,
+                        &parameters,
+                    )
+                })?,
             };
             shown.push((group, Some((value.value, explanation)), lineage));
+            Ok(())
+        };
+        if stale.len() == 1 {
+            finish_group(stale[0], 0)?;
+        } else if stale.len() <= groups.len() / 2 {
+            let mut ordered = stale
+                .iter()
+                .enumerate()
+                .map(|(at, &group)| (groups[group].order_rank, group, at))
+                .collect::<Vec<_>>();
+            ordered.sort_unstable_by_key(|&(rank, _, _)| rank);
+            for (_, group, at) in ordered {
+                finish_group(group, at)?;
+            }
+        } else {
+            let mut place = vec![None; groups.len()];
+            for (at, &group) in stale.iter().enumerate() {
+                place[group] = Some(at);
+            }
+            let order = Arc::clone(&self.binding_order);
+            for &group in order.iter() {
+                let Some(at) = place[group] else {
+                    continue;
+                };
+                finish_group(group, at)?;
+            }
         }
         for (group, value, lineage) in shown {
             let (target, property) = (&groups[group].target, &groups[group].property);
-            self.binding_qualifications
-                .entry(target.clone())
-                .or_default()
-                .insert(property.clone(), lineage);
+            set_shown(&mut self.binding_qualifications, target, property, lineage);
             match value {
                 Some((value, explanation)) => {
-                    self.bindings
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), value);
-                    self.binding_explanations
-                        .entry(target.clone())
-                        .or_default()
-                        .insert(property.clone(), explanation);
+                    set_shown(&mut self.bindings, target, property, value);
+                    set_shown(
+                        &mut self.binding_explanations,
+                        target,
+                        property,
+                        explanation,
+                    );
                 }
                 None => {
                     remove_shown(&mut self.bindings, target, property);
@@ -3757,6 +5046,32 @@ impl ReactiveSession {
                 }
             }
         }
+        if records > 0 {
+            // A host that kept a session whose event panicked may have lost
+            // the records with the shown bindings. A group without one is
+            // evaluated again after any change a read of a history reaches.
+            if self.binding_consults.len() < groups.len() {
+                self.binding_consults.resize(groups.len(), None);
+            }
+            CONSULTING.with_borrow_mut(|kept| {
+                for (&group, slot) in stale.iter().zip(slots) {
+                    let Some(slot) = slot else {
+                        continue;
+                    };
+                    let record = &mut kept[slot];
+                    record.settle();
+                    // The record it replaces keeps its room for the next
+                    // evaluation.
+                    match self.binding_consults[group].as_mut().and_then(Arc::get_mut) {
+                        Some(last) => std::mem::swap(last, record),
+                        None => {
+                            self.binding_consults[group] = Some(Arc::new(std::mem::take(record)));
+                        }
+                    }
+                }
+            });
+        }
+        self.last_binding_groups = stale;
         Ok(())
     }
 
@@ -3785,6 +5100,10 @@ impl ReactiveSession {
             assert_eq!(
                 self.binding_explanations, full.binding_explanations,
                 "incremental binding explanations differ"
+            );
+            assert_eq!(
+                self.binding_consults, full.binding_consults,
+                "a binding kept a record of what it consulted that the event changed"
             );
         }
     }
@@ -3848,7 +5167,7 @@ impl ReactiveSession {
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
@@ -3943,6 +5262,18 @@ impl ReactiveSession {
         }
     }
 
+    /// A state declared `unset`, as `unset` and `is_set` name. See
+    /// spec/caveat-unset-states-0.1.md.
+    fn require_unset_state(&self, name: &str) -> Result<(), String> {
+        match self.ranges.get(name) {
+            Some(range) if range.unset => Ok(()),
+            Some(_) => Err(format!(
+                "{name} always has a value; declare it `state {name} unset;` to use unset/is_set"
+            )),
+            None => Err(format!("unset/is_set references undeclared state {name}")),
+        }
+    }
+
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
         let node = self
             .symbols
@@ -3985,6 +5316,9 @@ impl ReactiveSession {
     fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
         if let HistoryRead::Outcome(index) = query {
             return self.outcome_read(name, index);
+        }
+        if query == HistoryRead::Grounds {
+            return self.grounds_read(name);
         }
         if query == HistoryRead::Latest {
             if let Some(stream) = self.reading_streams.get(name) {
@@ -4034,7 +5368,9 @@ impl ReactiveSession {
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
@@ -4065,11 +5401,41 @@ impl ReactiveSession {
                         )
                     })?
                 }
-                HistoryRead::Latest | HistoryRead::Outcome(_) => unreachable!(),
+                HistoryRead::Latest | HistoryRead::Outcome(_) | HistoryRead::Grounds => {
+                    unreachable!()
+                }
             };
             return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}").into())
+    }
+
+    /// `grounds_of(SERIES)`: the current revision's frozen `using` value, as
+    /// `latest(SERIES)` reads it, on the revision's frozen grounds instead of
+    /// its whole basis: what the commit rested on, without the predecessor's
+    /// basis, the reopening's witness and the guards. The series' current
+    /// head-selection dependencies and current withdrawals apply as for
+    /// `latest`. See spec/caveat-grounds-of-0.1.md.
+    fn grounds_read(&self, name: &str) -> Result<Tracked<f64>, EvalError> {
+        let series = self
+            .decision_series
+            .get(name)
+            .ok_or_else(|| format!("grounds_of names a decision series; {name} is not one"))?;
+        let Some(current) = &series.current else {
+            return Err(EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("decision series {name} has no commitment"),
+            ));
+        };
+        let value = self.commitment_bases[current].value.ok_or_else(|| {
+            EvalError::new(
+                EvalFailure::HistoryIndex,
+                format!("current decision {current} has no numeric using value"),
+            )
+        })?;
+        let mut provenance = self.commitment_grounds[current].clone();
+        self.inherit(&mut provenance, &series.selection_qualifications)?;
+        Tracked::new(value, self.with_current_withdrawals(provenance)?)
     }
 
     /// The outcome of a series' current revision, or of revision K. A
@@ -4178,6 +5544,162 @@ impl ReactiveSession {
         Err(format!("unknown history {name}").into())
     }
 
+    /// A rule's route (spec/caveat-routed-work-0.1.md): the leading terms of
+    /// its guard's route whose name is a parameter of the rule's event,
+    /// which no state shadows, compared with a number or a constant, which no
+    /// state or parameter of the event shadows. The route ends at the first
+    /// other term. Every name here reads a plain value, so a term the payload
+    /// makes false makes the guard false with no dependency.
+    fn compile_route(&self, rule: &Rule, steps: &mut HashMap<String, usize>) -> Route {
+        let steps = 1 + self.skipped_steps(&rule.effect, steps);
+        let Some(parameters) = self.events.get(&rule.event) else {
+            return Route {
+                terms: Vec::new(),
+                steps,
+                body: RouteBody::Expr {
+                    expr: rule.condition.clone(),
+                    stripped_nodes: 0,
+                },
+            };
+        };
+        let place_of = |name: &str| {
+            parameters
+                .iter()
+                .position(|parameter| parameter.name == name)
+        };
+        let accept = |name: &str, value: &reactive_expr::RouteValue| {
+            if self.states.contains_key(name) {
+                return None;
+            }
+            let place = place_of(name)?;
+            let value = match value {
+                reactive_expr::RouteValue::Number(value) => *value,
+                reactive_expr::RouteValue::Name(constant) => {
+                    if self.states.contains_key(constant) || place_of(constant).is_some() {
+                        return None;
+                    }
+                    *self.constants.get(constant)?
+                }
+            };
+            Some((place, value))
+        };
+        let (terms, remainder, stripped_nodes) = rule.condition.compile_route_expr(&accept);
+        let body = match remainder {
+            None => RouteBody::AlwaysTrue,
+            Some(expr) => RouteBody::Expr {
+                expr,
+                stripped_nodes,
+            },
+        };
+        Route { terms, steps, body }
+    }
+
+    /// The steps `retain_skipped_effect` spends below a skipped effect: none,
+    /// or through a call one for each step of its procedure and the steps
+    /// below that step. Load has refused cycles and procedures past the work
+    /// limit (`procedure_cost`), so this ends and stays small.
+    fn skipped_steps(&self, effect: &Effect, steps: &mut HashMap<String, usize>) -> usize {
+        let Effect::Call { name, .. } = effect else {
+            return 0;
+        };
+        if let Some(&known) = steps.get(name) {
+            return known;
+        }
+        let total = self.procedures[name]
+            .body
+            .iter()
+            .map(|step| 1 + self.skipped_steps(&step.effect, steps))
+            .sum();
+        steps.insert(name.clone(), total);
+        total
+    }
+
+    /// The payload's value for each of `event`'s declared parameters, in the
+    /// order they are declared: the places a compiled route reads.
+    fn declared_values(&self, event: &str, payload: &BTreeMap<String, f64>) -> Vec<Option<f64>> {
+        self.events
+            .get(event)
+            .into_iter()
+            .flatten()
+            .map(|parameter| payload.get(&parameter.name).copied())
+            .collect()
+    }
+
+    /// Debug builds: counting a routed-elsewhere rule's steps at once leaves
+    /// the budget as skipping it step by step does. In a program without a
+    /// window, the step-by-step skip of a guard that rests on nothing changes
+    /// nothing but the budget: a window's collector would read the effect,
+    /// and a write here would be kept in this build and left out in release.
+    #[cfg(debug_assertions)]
+    fn check_counted_skip(&mut self, effect: &Effect, budget: &ExecutionBudget, remaining: usize) {
+        let mut general = ExecutionBudget {
+            remaining: budget.remaining,
+            depth: budget.depth,
+        };
+        let collector = self.collector.clone();
+        // Held, so that a write below copies what it writes and shows as a
+        // new pointer: everything a skipped effect can write.
+        let held = (
+            Arc::clone(&self.predicate_qualifications),
+            Arc::clone(&self.reading_streams),
+            Arc::clone(&self.decision_series),
+            Arc::clone(&self.states.cells),
+        );
+        let result = if self.routed_work {
+            self.retain_routed_elsewhere(effect, &mut general)
+        } else {
+            general.spend().and_then(|()| {
+                self.retain_skipped_effect(effect, &Provenance::default(), &mut general)
+            })
+        };
+        assert!(
+            result.is_ok(),
+            "a skip counted at once fails step by step: {result:?}"
+        );
+        assert_eq!(
+            (general.remaining, general.depth),
+            (remaining, budget.depth),
+            "a skip counted at once counts differently"
+        );
+        assert!(
+            self.collector == collector,
+            "a skip counted at once leaves out what the collector reads"
+        );
+        assert!(
+            Arc::ptr_eq(&held.0, &self.predicate_qualifications)
+                && Arc::ptr_eq(&held.1, &self.reading_streams)
+                && Arc::ptr_eq(&held.2, &self.decision_series)
+                && Arc::ptr_eq(&held.3, &self.states.cells),
+            "a skip counted at once leaves out what skipping step by step writes"
+        );
+    }
+
+    /// What `retain_skipped_effect` does for a guard that rests on nothing,
+    /// without counting work: under `work skips other routes;`, a rule the
+    /// payload routes elsewhere costs no step (spec/caveat-routed-work-0.1.md). Only a windowed program's collector
+    /// reads a skipped effect, and through a call, each step of its
+    /// procedure; otherwise nothing is kept. A program whose calls nest too
+    /// deeply does not load, so the depth guard can only hold here.
+    fn retain_routed_elsewhere(
+        &mut self,
+        effect: &Effect,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
+        if !self.windowed() {
+            return Ok(());
+        }
+        self.collector_effect(effect);
+        if let Effect::Call { name, .. } = effect {
+            budget.enter()?;
+            let procedures = Arc::clone(&self.procedures);
+            for step in &procedures[name].body {
+                self.retain_routed_elsewhere(&step.effect, budget)?;
+            }
+            budget.depth -= 1;
+        }
+        Ok(())
+    }
+
     fn retain_skipped_effect(
         &mut self,
         effect: &Effect,
@@ -4207,56 +5729,65 @@ impl ReactiveSession {
             let mut guard = guard.clone();
             self.freeze_observation(&mut guard);
             for occurrence in self.every_occurrence(name)? {
-                Arc::make_mut(&mut self.predicate_qualifications)
-                    .entry(WITHDRAWN.into())
-                    .or_default()
-                    .entry(occurrence)
-                    .or_default()
-                    .merge(&guard)?;
+                self.merge_predicate_record(WITHDRAWN, occurrence, &guard)?;
             }
             return Ok(());
         }
         let target = match effect {
             Effect::Set { name, .. } => {
                 let slot = self.states.slot(name).expect("validated state");
+                let cell = self.states.get(name).expect("validated state");
+                // A state with no value carries no lineage: it stays as the
+                // program loaded it (spec/caveat-unset-states-0.1.md).
+                if cell.unset {
+                    return Ok(());
+                }
                 // A guard already in the lineage changes nothing; writing it
-                // anyway would copy the shared cell.
-                let current = &self
-                    .states
-                    .get(name)
-                    .expect("validated state")
-                    .value
-                    .provenance;
-                if guard.evidence.is_subset(&current.evidence)
+                // anyway would copy the shared cell. The whole guard counts:
+                // its markers, inherited names and kept caveats, and its
+                // reads of names the lineage holds only as inherited (D048).
+                // The first test is `merged`'s answer when none of those is
+                // there, without copying the lineage to find it.
+                let current = &cell.value.provenance;
+                if guard.departed.is_empty()
+                    && guard.inherited.is_empty()
+                    && guard.kept.is_empty()
+                    && current.inherited.is_empty()
+                    && guard.evidence.is_subset(&current.evidence)
                     && guard.caveats.is_subset(&current.caveats)
                 {
                     return Ok(());
                 }
-                return self
-                    .states
-                    .cell_mut(slot)
-                    .value
-                    .provenance
-                    .merge(guard)
-                    .map_err(Into::into);
+                if let Some(merged) = current.merged(guard)? {
+                    self.states.cell_mut(slot).value.provenance = merged;
+                }
+                return Ok(());
             }
+            // A guard the selection already holds writes nothing, so the
+            // shared map is not copied.
             Effect::Sample { stream, .. } => {
                 let guard = self.frozen(guard).into_owned();
-                return Arc::make_mut(&mut self.reading_streams)
-                    .get_mut(stream)
-                    .expect("validated stream")
+                let merged = self.reading_streams[stream]
                     .selection_qualifications
-                    .merge(&guard)
-                    .map_err(Into::into);
+                    .merged(&guard)?;
+                if let Some(merged) = merged {
+                    Self::stream_mut(&mut self.reading_streams, stream).selection_qualifications =
+                        merged;
+                }
+                return Ok(());
             }
             Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
                 let guard = self.frozen(guard).into_owned();
-                return Arc::make_mut(&mut self.decision_series)
-                    .get_mut(action)
-                    .unwrap()
+                let merged = self.decision_series[action]
                     .selection_qualifications
-                    .merge(&guard)
-                    .map_err(Into::into);
+                    .merged(&guard)?;
+                if let Some(merged) = merged {
+                    self.decision_series
+                        .get_mut(action)
+                        .unwrap()
+                        .selection_qualifications = merged;
+                }
+                return Ok(());
             }
             Effect::Reveal { evidence, .. }
             | Effect::Observe { evidence }
@@ -4281,14 +5812,77 @@ impl ReactiveSession {
         if let Some((kind, name)) = target {
             let mut guard = guard.clone();
             self.freeze_observation(&mut guard);
-            Arc::make_mut(&mut self.predicate_qualifications)
+            self.merge_predicate_record(kind, name, &guard)?;
+        }
+        Ok(())
+    }
+
+    /// Adds `guard` to the record of what the predicate `kind` over `name`
+    /// rests on. A record that already holds all of it is left as it is, so
+    /// the shared map is not copied to write the same record back.
+    fn merge_predicate_record(
+        &mut self,
+        kind: &str,
+        name: String,
+        guard: &Provenance,
+    ) -> Result<(), EvalError> {
+        let record = self
+            .predicate_qualifications
+            .get(kind)
+            .and_then(|targets| targets.get(&name));
+        let Some(record) = record else {
+            return Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
                 .entry(name)
                 .or_default()
-                .merge(&guard)?;
+                .merge(guard);
+        };
+        if let Some(merged) = record.merged(guard)? {
+            *Arc::make_mut(&mut self.predicate_qualifications)
+                .get_mut(kind)
+                .and_then(|targets| targets.get_mut(&name))
+                .expect("found above") = merged;
         }
         Ok(())
+    }
+
+    /// Adds `guard` to `records`' record for `name`, as `merge_predicate_record`
+    /// does for a predicate's.
+    fn merge_record(
+        records: &mut NamedRecords<Provenance>,
+        name: &str,
+        guard: &Provenance,
+    ) -> Result<(), EvalError> {
+        let Some(record) = records.get(name) else {
+            // The record is there, empty, before the merge that may fail.
+            records.insert(name.to_string(), Provenance::default());
+            return records.get_mut(name).expect("just added").merge(guard);
+        };
+        if let Some(merged) = record.merged(guard)? {
+            let replaced = records.replace(name, merged);
+            assert!(replaced, "found above");
+        }
+        Ok(())
+    }
+
+    /// The stream `name`, to write: copies only the path to this stream in
+    /// the persistent map and the stream itself if another session shares it.
+    fn stream_mut<'a>(
+        streams: &'a mut NamedRecords<ReadingStream>,
+        name: &str,
+    ) -> &'a mut ReadingStream {
+        streams.get_mut(name).expect("validated stream")
+    }
+
+    /// Writes each of `merged` over its record in `records`, copying a
+    /// shared map only when there is something to write, and no record that
+    /// is written over.
+    fn replace_records(records: &mut NamedRecords<Provenance>, merged: Vec<(String, Provenance)>) {
+        for (name, lineage) in merged {
+            let replaced = records.replace(&name, lineage);
+            assert!(replaced, "listed above");
+        }
     }
 
     pub fn dispatch_json(
@@ -4387,8 +5981,170 @@ impl ReactiveSession {
         payload_json: &str,
         agent: Option<&str>,
     ) -> Result<(), DispatchFailure> {
+        if let Some((values, len)) = self.try_resolve_payload_slots(event, payload_json) {
+            return self.apply_classified_slots(event, &values[..len], agent);
+        }
         let (payload, new_identifiers) = self.resolve_payload(event, payload_json)?;
         self.apply_classified(event, &payload, new_identifiers, agent)
+    }
+
+    /// Fast single-pass payload parser for declared events with at most 8
+    /// non-identifier parameters: writes values straight into declared-order
+    /// slots with zero `BTreeMap` or parameter-name allocations. Returns `None`
+    /// on any error, unknown/missing/duplicate parameter, or identifier
+    /// parameter so the general path reports the exact canonical diagnostic.
+    fn try_resolve_payload_slots(
+        &self,
+        event: &str,
+        payload_json: &str,
+    ) -> Option<([f64; 8], usize)> {
+        let signature = self.events.get(event)?;
+        if signature.len() > 8
+            || signature
+                .iter()
+                .any(|p| matches!(p.domain, ParameterDomain::Identifier { .. }))
+        {
+            return None;
+        }
+        let mut slots = [0.0f64; 8];
+        let mut present = 0u8;
+        let mut deserializer = serde_json::Deserializer::from_str(payload_json);
+        let seed = SlotPayloadSeed {
+            signature,
+            slots: &mut slots,
+            present: &mut present,
+        };
+        use serde::de::DeserializeSeed;
+        seed.deserialize(&mut deserializer).ok()?;
+        deserializer.end().ok()?;
+        let expected_mask = if signature.len() == 8 {
+            u8::MAX
+        } else {
+            (1u8 << signature.len()) - 1
+        };
+        (present == expected_mask).then_some((slots, signature.len()))
+    }
+
+    /// Positional-slot variant of `apply_classified`, skipping `BTreeMap`
+    /// lookups and key validation already proven by `try_resolve_payload_slots`.
+    fn apply_classified_slots(
+        &mut self,
+        event: &str,
+        values: &[f64],
+        agent: Option<&str>,
+    ) -> Result<(), DispatchFailure> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::TransactionPreparation);
+        self.check_agent(event, agent)?;
+        let events = Arc::clone(&self.events);
+        let signature = &events[event];
+        for (parameter, &value) in signature.iter().zip(values) {
+            check_range(
+                &parameter.name,
+                value,
+                parameter.min.value(),
+                parameter.max.value(),
+            )
+            .map_err(|message| {
+                DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::BoundExceeded,
+                    message,
+                )
+            })?;
+            if !parameter.domain.is_numeric() && value.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter {} takes a whole number from 1 to {} or a member's name, not {value}",
+                        parameter.name,
+                        parameter.max.value()
+                    ),
+                ));
+            }
+        }
+        if self.integer_clock() && self.time_event.as_deref() == Some(event) {
+            let dt = signature
+                .iter()
+                .position(|p| p.name == "dt")
+                .map_or(0.0, |i| values[i]);
+            if dt.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter dt takes a whole number of clock units, not {dt}"
+                    ),
+                ));
+            }
+        }
+        let shown = self.take_shown();
+        let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
+        let last_grounds_written = self.last_grounds_written.take();
+        let last_series_written = self.last_series_written.take();
+        let prev_effects = std::mem::take(&mut self.effects);
+        let prev_cues = std::mem::take(&mut self.cues);
+        let prev_cue_qualifications = std::mem::take(&mut self.cue_qualifications);
+        let prev_last_event = self.last_event.take();
+        let prev_last_agent = self.last_agent.take();
+        let archive = std::mem::take(&mut self.archive);
+        let windowed = self.windowed();
+        let mut next = if windowed {
+            let mut collector = std::mem::take(&mut self.collector);
+            collector.begin();
+            let mut next = self.clone();
+            next.collector = collector;
+            next
+        } else {
+            self.clone()
+        };
+        self.archive = archive;
+        next.put_shown(shown);
+        next.last_agent = agent.map(str::to_string);
+        match next.run_event_with(
+            self,
+            event,
+            Parameters::Slots { signature, values },
+            Some(values),
+            None,
+        ) {
+            Ok(()) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::CommitCleanup);
+                if windowed {
+                    next.collector.commit();
+                }
+                let mut archive = std::mem::take(&mut self.archive);
+                archive.append(&mut next.archive);
+                *self = next;
+                self.archive = archive;
+                if agent.is_some() {
+                    self.replay = None;
+                } else {
+                    self.record_replay_slots(event, values);
+                }
+                Ok(())
+            }
+            Err(error) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::RollbackCleanup);
+                self.put_shown(next.take_shown());
+                self.last_binding_groups = last_binding_groups;
+                self.last_grounds_written = last_grounds_written;
+                self.last_series_written = last_series_written;
+                self.effects = prev_effects;
+                self.cues = prev_cues;
+                self.cue_qualifications = prev_cue_qualifications;
+                self.last_event = prev_last_event;
+                self.last_agent = prev_last_agent;
+                if windowed {
+                    std::mem::swap(&mut self.collector, &mut next.collector);
+                    self.collector.rollback();
+                }
+                Err(error)
+            }
+        }
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its
@@ -4405,15 +6161,7 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<(BTreeMap<String, f64>, Vec<String>), DispatchFailure> {
-        // Typed map parsing rejects duplicate fields instead of last-write wins.
-        let payload: Payload = serde_json::from_str(payload_json).map_err(|error| {
-            DispatchFailure::rejected(
-                RejectionOrigin::Input,
-                RejectionCode::PayloadInvalid,
-                format!("invalid event payload: {error}"),
-            )
-        })?;
-        let signature = self.events.get(event);
+        let signature = self.events.get(event).map(Vec::as_slice);
         let payload_invalid = |message: String| {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
@@ -4421,67 +6169,44 @@ impl ReactiveSession {
                 message,
             )
         };
-        // Identifier texts wait until the others resolve, so that handles are
-        // given in declaration order whatever order the payload lists them in.
+        let mut resolved = BTreeMap::new();
         let mut texts = BTreeMap::new();
-        let mut resolved = payload
-            .0
-            .into_iter()
-            .filter_map(|(name, value)| {
-                let parameter = signature
-                    .and_then(|parameters| parameters.iter().find(|p| p.name == name));
-                let number = match (value, parameter.map(|p| &p.domain)) {
-                    (PayloadValue::Text(text), Some(ParameterDomain::Identifier { .. })) => {
-                        if let Err(message) = Identifiers::check_text(&text) {
-                            return Some(Err(payload_invalid(format!(
-                                "event {event} parameter {name}: {message}"
-                            ))));
-                        }
-                        texts.insert(name, text);
-                        return None;
-                    }
-                    (PayloadValue::Number(_), Some(ParameterDomain::Identifier { .. })) => {
-                        return Some(Err(payload_invalid(format!(
-                            "event {event} parameter {name} is an identifier: send its text"
-                        ))))
-                    }
-                    (PayloadValue::Number(number), _) => number,
-                    (PayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
-                        let Some(position) =
-                            domain.members().iter().position(|member| *member == text)
-                        else {
-                            return Some(Err(payload_invalid(format!(
-                                "event {event} parameter {name} does not accept {text}; expected one of {}",
-                                domain.members().join(", ")
-                            ))));
-                        };
-                        (position + 1) as f64
-                    }
-                    (PayloadValue::Text(_), _) => {
-                        return Some(Err(payload_invalid(format!(
-                            "event {event} parameter {name} expects a number"
-                        ))))
-                    }
-                };
-                Some(Ok((name, number)))
-            })
-            .collect::<Result<BTreeMap<_, _>, _>>()?;
+        let mut first_domain_error: Option<(String, String)> = None;
+        let mut deserializer = serde_json::Deserializer::from_str(payload_json);
+        let seed = PayloadSeed {
+            event,
+            signature,
+            resolved: &mut resolved,
+            texts: &mut texts,
+            first_domain_error: &mut first_domain_error,
+        };
+        use serde::de::DeserializeSeed;
+        seed.deserialize(&mut deserializer)
+            .map_err(|error| payload_invalid(format!("invalid event payload: {error}")))?;
+        deserializer
+            .end()
+            .map_err(|error| payload_invalid(format!("invalid event payload: {error}")))?;
+        if let Some((_, message)) = first_domain_error {
+            return Err(payload_invalid(message));
+        }
         let mut new_identifiers: Vec<String> = Vec::new();
-        for parameter in signature.into_iter().flatten() {
-            let Some(text) = texts.remove(&parameter.name) else {
-                continue;
-            };
-            let handle = match self.identifiers.handle(&text) {
-                Some(handle) => handle,
-                None => match new_identifiers.iter().position(|new| *new == text) {
-                    Some(index) => self.identifiers.len() + index + 1,
-                    None => {
-                        new_identifiers.push(text);
-                        self.identifiers.len() + new_identifiers.len()
-                    }
-                },
-            };
-            resolved.insert(parameter.name.clone(), handle as f64);
+        if !texts.is_empty() {
+            for parameter in signature.into_iter().flatten() {
+                let Some(text) = texts.remove(&parameter.name) else {
+                    continue;
+                };
+                let handle = match self.identifiers.handle(&text) {
+                    Some(handle) => handle,
+                    None => match new_identifiers.iter().position(|new| *new == text) {
+                        Some(index) => self.identifiers.len() + index + 1,
+                        None => {
+                            new_identifiers.push(text);
+                            self.identifiers.len() + new_identifiers.len()
+                        }
+                    },
+                };
+                resolved.insert(parameter.name.clone(), handle as f64);
+            }
         }
         Ok((resolved, new_identifiers))
     }
@@ -4601,7 +6326,11 @@ impl ReactiveSession {
         }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
-        // it has succeeded, so a failed event hands them back untouched.
+        // it has succeeded, so a failed event hands them back untouched. A
+        // windowed program's withdrawal collector moves in the same way, below.
+        // Neither comes back if the event unwinds instead of failing: this
+        // session is then left without its shown bindings and with an empty
+        // collector, so a host must discard it, as after any panic.
         if !self.identifiers.has_room_for(&new_identifiers) {
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Limit,
@@ -4613,10 +6342,37 @@ impl ReactiveSession {
             ));
         }
         let shown = self.take_shown();
+        let last_binding_groups = std::mem::take(&mut self.last_binding_groups);
+        let last_grounds_written = self.last_grounds_written.take();
+        let last_series_written = self.last_series_written.take();
+        // Transient per-event outputs are replaced by `run_event` on every
+        // accepted event; moving them out avoids cloning and immediately
+        // dropping them inside the transaction, while rollback restores them.
+        let prev_effects = std::mem::take(&mut self.effects);
+        let prev_cues = std::mem::take(&mut self.cues);
+        let prev_cue_qualifications = std::mem::take(&mut self.cue_qualifications);
+        let prev_last_event = self.last_event.take();
+        let prev_last_agent = self.last_agent.take();
         // The archive stays out of the transaction's copy: the event appends
         // to an empty one, kept only if it succeeds.
         let archive = std::mem::take(&mut self.archive);
-        let mut next = self.clone();
+        // A windowed program's withdrawal collector moves into the
+        // transaction rather than being copied: it writes its indexes in
+        // place and logs what undoes each write, so a refused event hands
+        // back exactly what it held. This session keeps an empty collector
+        // meanwhile; if `run_event` unwinds, that is all it keeps (see the
+        // shown bindings above). Without a window the collector is never
+        // written, so the copy shares it.
+        let windowed = self.windowed();
+        let mut next = if windowed {
+            let mut collector = std::mem::take(&mut self.collector);
+            collector.begin();
+            let mut next = self.clone();
+            next.collector = collector;
+            next
+        } else {
+            self.clone()
+        };
         self.archive = archive;
         next.put_shown(shown);
         if !new_identifiers.is_empty() {
@@ -4626,10 +6382,19 @@ impl ReactiveSession {
             }
         }
         next.last_agent = agent.map(str::to_string);
-        match next.run_event(self, event, parameters) {
+        match next.run_event_with(
+            self,
+            event,
+            Parameters::Payload(parameters),
+            None,
+            Some(parameters),
+        ) {
             Ok(()) => {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::CommitCleanup);
+                if windowed {
+                    next.collector.commit();
+                }
                 let mut archive = std::mem::take(&mut self.archive);
                 archive.append(&mut next.archive);
                 *self = next;
@@ -4646,6 +6411,18 @@ impl ReactiveSession {
                 #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
                 profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
+                self.last_binding_groups = last_binding_groups;
+                self.last_grounds_written = last_grounds_written;
+                self.last_series_written = last_series_written;
+                self.effects = prev_effects;
+                self.cues = prev_cues;
+                self.cue_qualifications = prev_cue_qualifications;
+                self.last_event = prev_last_event;
+                self.last_agent = prev_last_agent;
+                if windowed {
+                    std::mem::swap(&mut self.collector, &mut next.collector);
+                    self.collector.rollback();
+                }
                 Err(error)
             }
         }
@@ -4694,15 +6471,46 @@ impl ReactiveSession {
 
     /// The body of `apply`, run on the transaction's copy: `old` is the
     /// session as it was before the event.
+    #[cfg(test)]
     fn run_event(
         &mut self,
         old: &Self,
         event: &str,
-        parameters: &BTreeMap<String, f64>,
+        payload: &BTreeMap<String, f64>,
+    ) -> Result<(), DispatchFailure> {
+        self.run_event_with(
+            old,
+            event,
+            Parameters::Payload(payload),
+            None,
+            Some(payload),
+        )
+    }
+
+    fn run_event_with(
+        &mut self,
+        old: &Self,
+        event: &str,
+        parameters: Parameters<'_>,
+        declared_slots: Option<&[f64]>,
+        payload_map: Option<&BTreeMap<String, f64>>,
     ) -> Result<(), DispatchFailure> {
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
+        // What the event reads again before it writes is read once.
+        let _reads = reads::Scope::open(self);
         self.collector_begin();
+        let has_bindings = !self.binding_groups.is_empty();
+        // Before anything the event writes: a clock event's due
+        // qualifications below write observation and examination records.
+        // Only `Changes`'s graph check reads the write logs, so a program with
+        // no bindings (or none that read the graph) skips opening them.
+        if self.bindings_read_graph {
+            self.begin_write_log();
+        } else {
+            self.commitment_grounds.begin_touched();
+            self.decision_series.begin_touched();
+        }
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -4712,7 +6520,15 @@ impl ReactiveSession {
             .ok_or("reactive event sequence exhausted")?;
         self.last_event = Some(event.into());
         if self.time_event.as_deref() == Some(event) {
-            self.elapsed += parameters.get("dt").copied().unwrap_or(0.0);
+            let dt = match (&parameters, payload_map) {
+                (Parameters::Slots { signature, values }, _) => signature
+                    .iter()
+                    .position(|p| p.name == "dt")
+                    .map_or(0.0, |i| values[i]),
+                (_, Some(payload)) => payload.get("dt").copied().unwrap_or(0.0),
+                _ => 0.0,
+            };
+            self.elapsed += dt;
             // Unreachable through declared bounds and restore; refused anyway.
             if !self.elapsed.is_finite() {
                 return Err(DispatchFailure::rejected(
@@ -4732,29 +6548,120 @@ impl ReactiveSession {
             }
             self.apply_due_qualifications()?;
         }
-        let lineage: BTreeMap<_, _> = parameters
-            .iter()
-            .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
-            .collect();
-        let parameters = Parameters {
-            grounds: lineage.clone(),
-            lineage,
-        };
         let mut budget = ExecutionBudget {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
         };
         let rules = Arc::clone(&self.rules);
         let indexes = Arc::clone(&self.rules_by_event);
+        let routes = Arc::clone(&self.rule_routes);
+        let windowed = self.windowed();
+        // The payload's value for each of the event's declared parameters, by
+        // its place, read once for every route when not already supplied as
+        // positional slots.
+        let mut declared_inline = [None; 8];
+        let mut declared_len = 0usize;
+        let mut declared_heap: Option<Vec<Option<f64>>> = None;
+        let mut declared_ready = false;
+        // A rule inherits no lineage.
+        let nothing = Provenance::default();
         for &index in indexes.get(event).into_iter().flatten() {
             let rule = &rules[index];
-            let result = self.execute_guarded_effect(
-                &rule.condition,
-                &rule.effect,
-                &parameters,
-                &Provenance::default(),
-                &mut budget,
-            );
+            let route = &routes[index];
+            if !route.terms.is_empty() {
+                let elsewhere = if let Some(slots) = declared_slots {
+                    route
+                        .terms
+                        .iter()
+                        .any(|&(place, want)| slots.get(place).is_some_and(|&v| v != want))
+                } else {
+                    if !declared_ready {
+                        declared_ready = true;
+                        if let (Some(signature), Some(payload)) =
+                            (self.events.get(event), payload_map)
+                        {
+                            if signature.len() <= declared_inline.len() {
+                                declared_len = signature.len();
+                                for (slot, parameter) in
+                                    declared_inline[..declared_len].iter_mut().zip(signature)
+                                {
+                                    *slot = payload.get(&parameter.name).copied();
+                                }
+                            } else {
+                                declared_heap = Some(self.declared_values(event, payload));
+                            }
+                        }
+                    }
+                    let declared_slice = declared_heap
+                        .as_deref()
+                        .unwrap_or(&declared_inline[..declared_len]);
+                    routed_elsewhere(&route.terms, declared_slice)
+                };
+                if elsewhere {
+                    #[cfg(debug_assertions)]
+                    {
+                        let guard = self.evaluate(&rule.condition, &parameters);
+                        assert!(
+                            matches!(&guard, Ok(guard) if guard.value == Value::Bool(false) && guard.provenance.is_empty()),
+                            "routed-elsewhere rule {index} evaluated to {guard:?}"
+                        );
+                    }
+                    // Outside a windowed program, the skip below only counts
+                    // work, so the rule's steps are counted at once when the
+                    // budget holds them all. Otherwise the rule is skipped step by
+                    // step, and the work limit refuses it where it always did.
+                    if !windowed {
+                        let steps = if self.routed_work { 0 } else { route.steps };
+                        if let Some(remaining) = budget.remaining.checked_sub(steps) {
+                            #[cfg(debug_assertions)]
+                            self.check_counted_skip(&rule.effect, &budget, remaining);
+                            budget.remaining = remaining;
+                            continue;
+                        }
+                    }
+                    // What `execute_guarded_effect` does with a guard that is
+                    // false and rests on nothing: the parameters are plain. With
+                    // `work skips other routes;` it counts no work
+                    // (spec/caveat-routed-work-0.1.md).
+                    let result = if self.routed_work {
+                        self.retain_routed_elsewhere(&rule.effect, &mut budget)
+                    } else {
+                        budget.spend().and_then(|()| {
+                            self.retain_skipped_effect(&rule.effect, &nothing, &mut budget)
+                        })
+                    };
+                    result.map_err(|error| {
+                        error.context(format!("event {event}, rule {}", index + 1))
+                    })?;
+                    continue;
+                }
+            }
+            let result = match &route.body {
+                RouteBody::AlwaysTrue => {
+                    #[cfg(debug_assertions)]
+                    {
+                        let guard = self.evaluate(&rule.condition, &parameters);
+                        assert!(
+                            matches!(&guard, Ok(guard) if guard.value == Value::Bool(true) && guard.provenance.is_empty()),
+                            "routed-true rule {index} evaluated to {guard:?}"
+                        );
+                    }
+                    budget.spend().and_then(|()| {
+                        self.apply_effect(&rule.effect, &parameters, &nothing, &mut budget)
+                    })
+                }
+                RouteBody::Expr {
+                    expr,
+                    stripped_nodes,
+                } => self.execute_guarded_effect_charged(
+                    expr,
+                    *stripped_nodes,
+                    &rule.effect,
+                    &parameters,
+                    &nothing,
+                    &mut budget,
+                ),
+            };
             result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
         }
         // Retired records nothing pins any more leave, before the bindings
@@ -4763,14 +6670,38 @@ impl ReactiveSession {
         // Binding failures roll back the same numeric/graph/cue transaction.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::BindingEvaluation);
-        let changes = Changes::between(old, self);
-        let result = self.evaluate_bindings(Some(&changes));
-        #[cfg(debug_assertions)]
-        self.check_incremental_bindings(&result);
-        result?;
+        if has_bindings {
+            let changes = Changes::between(old, self);
+            self.last_grounds_written = self.commitment_grounds.take_touched_one();
+            self.last_series_written = self.decision_series.take_touched_one();
+            self.end_write_log();
+            let result = self.evaluate_bindings(Some(&changes));
+            #[cfg(debug_assertions)]
+            self.check_incremental_bindings(&result);
+            result?;
+        } else {
+            self.last_grounds_written = self.commitment_grounds.take_touched_one();
+            self.last_series_written = self.decision_series.take_touched_one();
+            #[cfg(debug_assertions)]
+            {
+                old.symbols.check();
+                self.symbols.check();
+                old.graph.check();
+                self.graph.check();
+                old.check_observations();
+                self.check_observations();
+                self.check_incremental_bindings(&Ok(()));
+            }
+        }
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::FinalSettlement);
         self.settle_archive_provenance(Some(old), true);
+        if windowed {
+            self.last_grounds_written = None;
+            self.last_series_written = None;
+        }
+        #[cfg(debug_assertions)]
+        self.check_history_reach_held(Some(old));
         Ok(())
     }
 
@@ -4779,13 +6710,15 @@ impl ReactiveSession {
             std::mem::take(&mut self.bindings),
             std::mem::take(&mut self.binding_qualifications),
             std::mem::take(&mut self.binding_explanations),
+            std::mem::take(&mut self.binding_consults),
         )
     }
 
-    fn put_shown(&mut self, (bindings, qualifications, explanations): Shown) {
+    fn put_shown(&mut self, (bindings, qualifications, explanations, consults): Shown) {
         self.bindings = bindings;
         self.binding_qualifications = qualifications;
         self.binding_explanations = explanations;
+        self.binding_consults = consults;
     }
 
     /// Dispatch and return the full snapshot.
@@ -4814,11 +6747,6 @@ impl ReactiveSession {
     }
 
     pub fn view(&self) -> ReactiveView<'_> {
-        let names = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.as_str()))
-            .collect::<HashMap<_, _>>();
         ReactiveView {
             schema: REACTIVE_VIEW_SCHEMA,
             sequence: self.sequence,
@@ -4827,25 +6755,16 @@ impl ReactiveSession {
             binding_explanations: &self.binding_explanations,
             cues: &self.cues,
             effects: &self.effects,
-            commitments: self.commitment_records(&names),
+            commitments: self.commitment_records(|id| self.symbols.name_of(*id)),
             commitment_grounds: &self.commitment_grounds,
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
-            relations: self.relation_records(&names),
+            relations: self.relation_records(),
         }
     }
 
     /// The view with only the selected fields.
     pub fn view_fields(&self, fields: ViewFields) -> ReactiveViewSelection<'_> {
-        let needs_names = fields.has("commitments") || fields.has("relations");
-        let names = if needs_names {
-            self.symbols
-                .iter()
-                .map(|(name, id)| (*id, name.as_str()))
-                .collect::<HashMap<_, _>>()
-        } else {
-            HashMap::default()
-        };
         let pick = |field: &str| fields.has(field);
         ReactiveViewSelection {
             schema: REACTIVE_VIEW_SCHEMA,
@@ -4856,55 +6775,90 @@ impl ReactiveSession {
                 .then_some(&self.binding_explanations),
             cues: pick("cues").then_some(self.cues.as_slice()),
             effects: pick("effects").then_some(self.effects.as_slice()),
-            commitments: pick("commitments").then(|| self.commitment_records(&names)),
+            commitments: pick("commitments")
+                .then(|| self.commitment_records(|id| self.symbols.name_of(*id))),
             commitment_grounds: pick("commitment_grounds").then_some(&self.commitment_grounds),
             decision_series: pick("decision_series").then_some(&self.decision_series),
-            decision_journal: pick("decision_journal").then_some(self.journal.as_slice()),
-            relations: pick("relations").then(|| self.relation_records(&names)),
+            decision_journal: pick("decision_journal").then_some(&self.journal),
+            relations: pick("relations").then(|| self.relation_records()),
         }
     }
 
-    fn commitment_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapCommitment> {
-        let mut sorted = self.symbols.iter().collect::<Vec<_>>();
-        sorted.sort_by_key(|(name, _)| *name);
-        sorted
-            .into_iter()
-            .filter_map(|(name, id)| match &self.graph.nodes[id] {
-                NodeKind::Commitment { open, .. } => Some(MapCommitment {
-                    action: name.clone(),
-                    open: *open,
-                    retained_authorship: crate::map::retained_authorship(
-                        &self.graph,
-                        *id,
-                        |node| names.get(&node).map(|name| (*name).to_string()),
-                    ),
-                    retained: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.from == *id && edge.relation == Relation::Retains)
-                        .map(|edge| names[&edge.to].to_string())
-                        .collect(),
-                    reopened_by: self
-                        .graph
-                        .edges
-                        .iter()
-                        .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
-                        .map(|edge| names[&edge.from].to_string())
-                        .collect(),
-                }),
+    /// One commitment record by node id, reading its own relation lists in
+    /// graph order without scanning the whole graph.
+    fn commitment_record<'n>(
+        &self,
+        id: NodeId,
+        name_of: &impl Fn(&NodeId) -> Option<&'n str>,
+    ) -> Option<MapCommitment> {
+        let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(&id) else {
+            return None;
+        };
+        let action = name_of(&id)?.to_owned();
+        let retained = self
+            .graph
+            .basis(id)
+            .iter()
+            .filter(|link| link.relation == Relation::Retains)
+            .map(|link| link.other)
+            .collect::<Vec<_>>();
+        let named = |node: &NodeId| name_of(node).expect("a named node").to_string();
+        let reopened_by = self
+            .graph
+            .reopeners(id)
+            .iter()
+            .map(|link| named(&link.other))
+            .collect();
+        Some(MapCommitment {
+            action,
+            open: *open,
+            retained_authorship: crate::map::retained_authorship_of(
+                &self.graph,
+                id,
+                &retained,
+                |node| name_of(&node).map(str::to_string),
+            ),
+            retained: retained.iter().map(named).collect(),
+            reopened_by,
+        })
+    }
+
+    /// The commitments by name, each with what it retains and what reopened
+    /// it in edge order. `name_of` names a node; a retained caveat or a
+    /// reopening cause it cannot name is a broken graph.
+    fn commitment_records<'n>(
+        &self,
+        name_of: impl Fn(&NodeId) -> Option<&'n str>,
+    ) -> Vec<MapCommitment> {
+        let mut commitments = self
+            .symbols
+            .iter()
+            .filter_map(|(name, id)| match self.graph.nodes.get(id) {
+                Some(NodeKind::Commitment { .. }) => Some((name, *id)),
                 _ => None,
             })
+            .collect::<Vec<_>>();
+        if commitments.is_empty() {
+            return Vec::new();
+        }
+        commitments.sort_by_key(|(name, _)| *name);
+        commitments
+            .into_iter()
+            .filter_map(|(_, id)| self.commitment_record(id, &name_of))
             .collect()
     }
 
-    fn relation_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapRelation> {
+    fn relation_records(&self) -> Vec<MapRelation> {
         self.graph
             .edges
             .iter()
             .map(|edge| MapRelation {
-                from: names[&edge.from].into(),
-                to: names[&edge.to].into(),
+                from: self
+                    .symbols
+                    .name_of(edge.from)
+                    .expect("a named node")
+                    .into(),
+                to: self.symbols.name_of(edge.to).expect("a named node").into(),
                 relation: relation_name(edge.relation).into(),
                 origin: "live".into(),
             })
@@ -4915,15 +6869,43 @@ impl ReactiveSession {
         &mut self,
         condition: &Expr,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
+        inherited: &Provenance,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
+        self.execute_guarded_effect_charged(condition, 0, effect, parameters, inherited, budget)
+    }
+
+    fn execute_guarded_effect_charged(
+        &mut self,
+        condition: &Expr,
+        stripped_nodes: usize,
+        effect: &Effect,
+        parameters: &Parameters<'_>,
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
         budget.spend()?;
-        let condition = self.evaluate(condition, parameters)?;
-        let guard = inherited.union(&condition.provenance)?;
-        if condition.value == Value::Bool(true) {
-            self.apply_effect(effect, parameters, &guard, budget)
+        let named = self.has_thresholds.then(|| {
+            let mut named = BTreeMap::new();
+            condition.collect_thresholds(&mut named);
+            named
+        });
+        let Tracked { value, provenance } =
+            self.evaluate_charged(condition, parameters, stripped_nodes)?;
+        let guard = if inherited.holds_nothing() {
+            union_with_nothing(provenance)?
+        } else {
+            inherited.union(&provenance)?
+        };
+        if value == Value::Bool(true) {
+            let Some(named) = named else {
+                return self.apply_effect(effect, parameters, &guard, budget);
+            };
+            self.guard_thresholds.push(named);
+            let applied = self.apply_effect(effect, parameters, &guard, budget);
+            self.guard_thresholds.pop();
+            applied
         } else {
             self.retain_skipped_effect(effect, &guard, budget)
         }
@@ -4932,31 +6914,23 @@ impl ReactiveSession {
     fn evaluate(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_tracked_with_identifiers(
-            &|name| {
-                if name == reactive_expr::ELAPSED_READ {
-                    return Ok(Some(Tracked::plain(self.elapsed)));
-                }
-                Ok(self.states.value(name).cloned().or_else(|| {
-                    parameters
-                        .lineage
-                        .get(name)
-                        .cloned()
-                        .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
-                }))
-            },
-            &|kind, name| match self.at_occurrence(kind, name) {
-                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, false),
-                Some((kind, Some(occurrence))) => self.predicate_tracked(kind, &occurrence),
-                Some((_, None)) => Ok(Tracked::plain(false)),
-                None => self.predicate_tracked(kind, self.predicate_target(kind, name)),
-            },
-            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
-            &|name, query| self.history_read(name, query),
-            &|handle| self.identifier_text(handle),
-        )
+        self.evaluate_charged(expression, parameters, 0)
+    }
+
+    fn evaluate_charged(
+        &self,
+        expression: &Expr,
+        parameters: &Parameters<'_>,
+        stripped_nodes: usize,
+    ) -> Result<Tracked<Value>, EvalError> {
+        let host = SessionEval {
+            session: self,
+            parameters,
+            grounds: false,
+        };
+        expression.evaluate_with_host(&host, false, stripped_nodes)
     }
 
     /// `id_text(handle)`: the text of an identifier the session holds.
@@ -4976,35 +6950,65 @@ impl ReactiveSession {
     fn evaluate_grounds(
         &self,
         expression: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<Tracked<Value>, EvalError> {
-        expression.evaluate_grounds_with_identifiers(
-            &|name| {
-                if name == reactive_expr::ELAPSED_READ {
-                    return Ok(Some(Tracked::plain(self.elapsed)));
+        let host = SessionEval {
+            session: self,
+            parameters,
+            grounds: true,
+        };
+        expression.evaluate_with_host(&host, true, 0)
+    }
+
+    /// Evaluate an expression once to get its value, its lineage, and its
+    /// grounds together. Debug builds cross-check against separate `evaluate`
+    /// and `evaluate_grounds` passes.
+    fn evaluate_both(
+        &self,
+        expression: &Expr,
+        parameters: &Parameters<'_>,
+    ) -> Result<(Value, Provenance, Provenance), EvalError> {
+        let host = SessionEvalDual {
+            session: self,
+            parameters,
+        };
+        let dual = expression.evaluate_both_with_host(&host);
+        #[cfg(debug_assertions)]
+        {
+            let lin = self.evaluate(expression, parameters);
+            let gnd = lin
+                .as_ref()
+                .ok()
+                .map(|_| self.evaluate_grounds(expression, parameters));
+            match (&dual, &lin, &gnd) {
+                (Ok((val, l, g)), Ok(el), Some(Ok(eg))) => {
+                    assert_eq!(val, &el.value, "dual value differs from evaluate");
+                    assert_eq!(val, &eg.value, "dual value differs from evaluate_grounds");
+                    assert_eq!(l, &el.provenance, "dual lineage differs from evaluate");
+                    assert_eq!(
+                        g, &eg.provenance,
+                        "dual grounds differs from evaluate_grounds"
+                    );
                 }
-                if let Some(cell) = self.states.get(name) {
-                    return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
+                (Err(e1), Err(e2), _) => {
+                    assert_eq!(e1, e2, "dual error differs from evaluate");
                 }
-                Ok(parameters
-                    .grounds
-                    .get(name)
-                    .cloned()
-                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
-            },
-            &|kind, name| match self.at_occurrence(kind, name) {
-                _ if kind == reactive_expr::IN_BASIS => self.in_basis(name, true),
-                Some((kind, Some(occurrence))) => self.predicate_grounds(kind, &occurrence),
-                Some((_, None)) => Ok(Tracked::plain(false)),
-                None => self.predicate_grounds(kind, self.predicate_target(kind, name)),
-            },
-            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, true),
-            &|name, query| self.history_read(name, query),
-            &|handle| self.identifier_text(handle),
-        )
+                (Err(e1), Ok(_), Some(Err(e2))) => {
+                    assert_eq!(e1, e2, "dual error differs from evaluate_grounds");
+                }
+                _ => panic!(
+                    "dual evaluation disagreed on Ok/Err: dual={dual:?}, lin={lin:?}, gnd={gnd:?}"
+                ),
+            }
+        }
+        dual
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if kind == reactive_expr::IS_SET {
+            let cell = self.states.get(name).expect("validated unset state");
+            return Tracked::new(!cell.unset, cell.grounds.clone());
+        }
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
@@ -5035,23 +7039,23 @@ impl ReactiveSession {
             }
             return Tracked::new(!series.on_hold.is_empty(), grounds);
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, true);
+        }
         let value = match kind {
             "has_sample" => return self.predicate_tracked(kind, name),
             _ => self.predicate(kind, name)?,
         };
         let provenance = match kind {
             "observed" if value => self.qualify_core(name, &[])?,
-            _ if kind.starts_with(CARRIES) => {
-                if self.predicate("observed", name)? {
-                    self.qualify_core(name, &[])?
-                } else {
-                    Provenance::default()
-                }
+            "examined" => {
+                let id = self.symbols[name];
+                Provenance::from_shared(
+                    [],
+                    std::iter::once(self.record_name(id, name))
+                        .chain(self.incoming_caveats([id], 1)),
+                )?
             }
-            "examined" => Provenance::from_names(
-                [],
-                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
-            )?,
             "committed" | "reopened" if value => {
                 let mut grounds = self
                     .commitment_grounds
@@ -5059,16 +7063,13 @@ impl ReactiveSession {
                     .cloned()
                     .unwrap_or_default();
                 if kind == "reopened" {
-                    let id = self.symbols[name];
-                    let by_id = self
-                        .symbols
-                        .iter()
-                        .map(|(name, id)| (*id, name))
-                        .collect::<HashMap<_, _>>();
-                    for edge in &self.graph.edges {
-                        if edge.to == id && edge.relation == Relation::Reopens {
-                            grounds.merge(&self.qualify_core(by_id[&edge.from], &[])?)?;
-                        }
+                    for link in self.graph.reopeners(self.symbols[name]) {
+                        let cause = self
+                            .symbols
+                            .name_of(link.other)
+                            .expect("a reopening's cause is named");
+                        self.require_reopening_cause(cause)?;
+                        grounds.merge(&self.qualify_core(cause, &[])?)?;
                     }
                 }
                 grounds
@@ -5078,12 +7079,15 @@ impl ReactiveSession {
         Tracked::new(value, provenance)
     }
 
-    fn predicate(&self, kind: &str, name: &str) -> Result<bool, String> {
+    fn predicate(&self, kind: &str, name: &str) -> Result<bool, EvalError> {
+        if kind == reactive_expr::IS_SET {
+            return Ok(self.states.get(name).is_some_and(|cell| !cell.unset));
+        }
         let Some(id) = self.symbols.get(name) else {
             return if matches!(kind, "committed" | "reopened") {
                 Ok(false)
             } else {
-                Err(format!("unknown graph symbol {name}"))
+                Err(format!("unknown graph symbol {name}").into())
             };
         };
         Ok(match kind {
@@ -5091,11 +7095,7 @@ impl ReactiveSession {
             "observed" => {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
                     && !self.is_retired(name)
-                    && (self.observations.iter().any(|observed| observed == name)
-                        || self.graph.edges.iter().any(|edge| {
-                            edge.from == *id
-                                && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                        }))
+                    && (self.observations.holds(*id) || !self.graph.stance(*id).is_empty())
             }
             "examined" => matches!(
                 self.graph.nodes.get(id),
@@ -5116,7 +7116,7 @@ impl ReactiveSession {
                         &kind[CARRIES.len()..],
                     )
             }
-            _ => return Err(format!("unknown graph predicate {kind}")),
+            _ => return Err(format!("unknown graph predicate {kind}").into()),
         })
     }
 
@@ -5149,88 +7149,236 @@ impl ReactiveSession {
         })
     }
 
-    fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
-        self.caveats_reaching(roots, true)
+    /// `carries(EVIDENCE, CAVEAT)` asked of `name`, with its lineage, or with
+    /// its grounds when `grounds` is set. It looks once at whether the
+    /// evidence is observed and searches once for what qualifies it; the
+    /// general path did each twice, for the value and again for what it rests
+    /// on, with the same result, the same error and the same notes of what it
+    /// consulted. Debug builds compare the two, each noting apart, and keep
+    /// only the notes of the read once, as a release build does.
+    fn carries_predicate(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        #[cfg(debug_assertions)]
+        {
+            let (read, notes) = noted_apart(|| self.carries_once(kind, caveat, name, grounds));
+            let (general, general_notes) = noted_apart(|| self.carries_twice(kind, name, grounds));
+            assert_eq!(
+                read, general,
+                "carries({name}, {caveat}) read once differs from the general path"
+            );
+            assert_eq!(
+                notes, general_notes,
+                "carries({name}, {caveat}) read once notes what it consulted differently"
+            );
+            consult(|record| record.absorb(&notes));
+            read
+        }
+        #[cfg(not(debug_assertions))]
+        self.carries_once(kind, caveat, name, grounds)
+    }
+
+    fn carries_once(
+        &self,
+        kind: &str,
+        caveat: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        // As `predicate` reads the value: an unknown name is refused, and a
+        // search past the provenance limit is refused as one (D037).
+        let Some(&id) = self.symbols.get(name) else {
+            return Err(format!("unknown graph symbol {name}").into());
+        };
+        let observed = matches!(self.graph.nodes.get(&id), Some(NodeKind::Evidence { .. }))
+            && !self.is_retired(name)
+            && (self.observations.holds(id) || !self.graph.stance(id).is_empty());
+        let core = if observed {
+            // Observed evidence is declared evidence that is not retired, so
+            // the search needs none of `qualify_core`'s checks.
+            Some(self.qualify_checked_id(id, name, &[])?)
+        } else {
+            None
+        };
+        let value = core
+            .as_ref()
+            .is_some_and(|core| self.carried(&core.caveats, caveat));
+        let mut provenance = core.unwrap_or_default();
+        if grounds {
+            return Tracked::new(value, provenance);
+        }
+        // The lineage `observed(name)` gives: what qualifies the evidence,
+        // what its observation was recorded with, and its dependency, which
+        // `qualify` and the predicate each add (joining departed archive
+        // traces identically to `carries_twice`). Then the dependency of this
+        // predicate.
+        if observed {
+            if let Some(observation) = self.observation_qualifications.get(name) {
+                provenance.merge(observation)?;
+            }
+            if let Some(dependency) = self.predicate_dependency("observed", name) {
+                provenance.merge(dependency)?;
+            }
+        }
+        if let Some(dependency) = self.predicate_dependency("observed", name) {
+            provenance.merge(dependency)?;
+        }
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
+    }
+
+    /// Debug builds: `carries` read as the general path reads it.
+    #[cfg(debug_assertions)]
+    fn carries_twice(
+        &self,
+        kind: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let value = self.predicate(kind, name)?;
+        if grounds {
+            let provenance = if self.predicate("observed", name)? {
+                self.qualify_core(name, &[])?
+            } else {
+                Provenance::default()
+            };
+            return Tracked::new(value, provenance);
+        }
+        let mut provenance = self.predicate_tracked("observed", name)?.provenance;
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
+            provenance.merge(dependency)?;
+        }
+        Tracked::new(value, provenance)
+    }
+
+    fn incoming_caveats(
+        &self,
+        roots: impl IntoIterator<Item = NodeId>,
+        before: usize,
+    ) -> Vec<Name> {
+        self.caveats_reaching(roots, true, before)
     }
 
     /// Caveats reaching `roots` through `qualifies` relations. With
     /// `honor_take_back` false, a taken-back relation still counts: what a
-    /// recorded entry could have carried when it was made.
+    /// recorded entry could have carried when it was made. `before` is how
+    /// many names the caller passes to `Provenance::from_names` ahead of
+    /// these.
     fn caveats_reaching(
         &self,
         roots: impl IntoIterator<Item = NodeId>,
         honor_take_back: bool,
-    ) -> Vec<String> {
+        before: usize,
+    ) -> Vec<Name> {
+        // Only `qualifies` relations lead anywhere. What this answer rests
+        // on: the relations into each node it visits.
+        if !self.graph.qualifies_any() {
+            consult(|record| record.reached.extend(roots));
+            return Vec::new();
+        }
         let mut frontier = roots.into_iter().collect::<Vec<_>>();
+        // Common case: none of the roots has any incoming `qualifies` edge, so
+        // skip allocating visited/caveats sets altogether.
+        if frontier
+            .iter()
+            .all(|&id| self.graph.qualifiers(id).is_empty())
+        {
+            consult(|record| record.reached.extend(frontier.iter().copied()));
+            return Vec::new();
+        }
         let mut visited = HashSet::default();
         let mut caveats = HashSet::default();
-        let marked = if honor_take_back {
-            self.marked_relations()
-        } else {
-            HashMap::default()
-        };
+        let marks = honor_take_back && !self.taken_back.is_empty();
+        let mut passed = HashMap::default();
         while let Some(id) = frontier.pop() {
             if !visited.insert(id) {
                 continue;
             }
-            let mut passed = HashMap::default();
-            for edge in self
-                .graph
-                .edges
-                .iter()
-                .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
-            {
+            let qualifiers = self.graph.qualifiers(id);
+            if qualifiers.is_empty() {
+                continue;
+            }
+            if marks {
+                passed.clear();
+            }
+            for link in qualifiers {
                 // A taken-back relation no longer qualifies what it names.
-                if let Some(count) = marked.get(&(edge.from, id)) {
-                    let seen = passed.entry(edge.from).or_insert(0);
-                    if *seen < *count {
+                let count = if marks {
+                    self.take_backs_naming(link.other, id)
+                } else {
+                    0
+                };
+                if count > 0 {
+                    let seen = passed.entry(link.other).or_insert(0);
+                    if *seen < count {
                         *seen += 1;
                         continue;
                     }
                 }
                 if matches!(
-                    self.graph.nodes.get(&edge.from),
+                    self.graph.nodes.get(&link.other),
                     Some(NodeKind::Caveat { .. })
                 ) {
-                    caveats.insert(edge.from);
-                    frontier.push(edge.from);
+                    caveats.insert(link.other);
+                    frontier.push(link.other);
                 }
             }
         }
-        self.symbols
-            .iter()
-            .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
-            .collect()
+        consult(|record| record.reached.extend(visited.iter().copied()));
+        if caveats.is_empty() {
+            return Vec::new();
+        }
+        // Their order can decide which limit `from_names` reports only when
+        // they and the names ahead of them pass the identifier limit. Short
+        // of it, none of them is the name past it, and the bytes they add up
+        // to do not depend on their order: node order. Past it, name order,
+        // the order a lineage keeps its names in, so the limit a refusal
+        // names is the same in every process and after a restore; the symbol
+        // table's own order is the hash seed's.
+        // Each is the names index's own copy of the name, found by node.
+        let past = before.saturating_add(caveats.len()) > reactive_expr::MAX_PROVENANCE_IDENTIFIERS;
+        let mut caveats = caveats.into_iter().collect::<Vec<_>>();
+        caveats.sort_unstable();
+        let mut names = caveats
+            .into_iter()
+            .filter_map(|id| self.symbols.shared_name_of(id))
+            .collect::<Vec<_>>();
+        if past {
+            names.sort_unstable();
+        }
+        names
     }
 
     /// Start explicit ordering only when an edge cannot represent observation.
-    fn record_observation(&mut self, evidence: &str, neutral: bool) {
+    fn record_observation(&mut self, evidence: NodeId, neutral: bool) {
         if self.observations.is_empty() && neutral {
-            let names = self
-                .symbols
-                .iter()
-                .map(|(name, id)| (*id, name))
-                .collect::<HashMap<_, _>>();
-            let mut observations = Vec::new();
+            let mut observed = Vec::new();
+            let mut seen = HashSet::default();
             for edge in &self.graph.edges {
                 if matches!(edge.relation, Relation::Supports | Relation::Opposes)
                     && matches!(
                         self.graph.nodes.get(&edge.from),
                         Some(NodeKind::Evidence { .. })
                     )
+                    && seen.insert(edge.from)
                 {
-                    let name = names[&edge.from];
-                    if !observations.contains(name) {
-                        observations.push(name.clone());
-                    }
+                    debug_assert!(
+                        self.symbols.name_of(edge.from).is_some(),
+                        "observed evidence is named"
+                    );
+                    observed.push(edge.from);
                 }
             }
-            self.observations = Arc::new(observations);
+            self.set_observations(observed);
         }
-        if (neutral || !self.observations.is_empty())
-            && !self.observations.iter().any(|name| name == evidence)
-        {
-            Arc::make_mut(&mut self.observations).push(evidence.to_string());
+        if (neutral || !self.observations.is_empty()) && !self.observations.holds(evidence) {
+            self.push_observation(evidence);
         }
     }
 
@@ -5250,25 +7398,13 @@ impl ReactiveSession {
 
     /// Where each name was first observed: its place in the observation
     /// ledger, or, for a session without one, the place of its first
-    /// `supports` or `opposes` edge. Built once, read for many names.
+    /// `supports` or `opposes` edge. Each name's rank is looked up where it
+    /// is kept: nothing is built to read them.
     pub(crate) fn observation_ranks(&self) -> ObservationRanks<'_> {
-        if self.observations.is_empty() {
-            let mut first = HashMap::default();
-            for (position, edge) in self.graph.edges.iter().enumerate() {
-                if matches!(edge.relation, Relation::Supports | Relation::Opposes) {
-                    first.entry(edge.from).or_insert(position);
-                }
-            }
-            ObservationRanks::Edges {
-                symbols: &self.symbols,
-                first,
-            }
-        } else {
-            let mut first = HashMap::default();
-            for (position, name) in self.observations.iter().enumerate() {
-                first.entry(name.as_str()).or_insert(position);
-            }
-            ObservationRanks::Ledger(first)
+        ObservationRanks {
+            symbols: &self.symbols,
+            ledger: (!self.observations.is_empty()).then_some(&self.observations),
+            graph: &self.graph,
         }
     }
 
@@ -5277,11 +7413,7 @@ impl ReactiveSession {
         if let Some(observation) = self.observation_qualifications.get(evidence) {
             provenance.merge(observation)?;
         }
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get("observed")
-            .and_then(|targets| targets.get(evidence))
-        {
+        if let Some(dependency) = self.predicate_dependency("observed", evidence) {
             provenance.merge(dependency)?;
         }
         Ok(provenance)
@@ -5314,30 +7446,20 @@ impl ReactiveSession {
     /// and any explicit extras: what a qualified value is *about*, without the
     /// guard that revealed the evidence.
     fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
-        self.qualify_core_with(evidence, extras, true)
+        self.require_qualifiable(evidence, extras)?;
+        self.qualify_checked(evidence, extras)
     }
 
-    /// `qualify_core` with taken-back relations still counted: the caveats
-    /// the evidence carried before any take-back, which a decision journal
-    /// entry made then may cite.
-    pub(crate) fn qualify_core_before_take_back(
-        &self,
-        evidence: &str,
-    ) -> Result<Provenance, String> {
-        self.qualify_core_with(evidence, &[], false)
-            .map_err(String::from)
-    }
-
-    fn qualify_core_with(
-        &self,
-        evidence: &str,
-        extras: &[String],
-        honor_take_back: bool,
-    ) -> Result<Provenance, EvalError> {
+    /// What `qualify_core` requires: `evidence` names evidence that is
+    /// observed or retired, and each extra names a caveat.
+    fn require_qualifiable(&self, evidence: &str, extras: &[String]) -> Result<(), EvalError> {
         self.require_kind(evidence, "evidence")?;
         // Retired evidence was observed when it was cited; what cites it
         // still carries it.
-        if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
+        if !self.is_retired(evidence)
+            && !self.predicate("observed", evidence)?
+            && !self.retired_cause(evidence)
+        {
             return Err(
                 format!("cannot qualify a value with unobserved evidence {evidence}").into(),
             );
@@ -5345,37 +7467,254 @@ impl ReactiveSession {
         for caveat in extras {
             self.require_kind(caveat, "caveat")?;
         }
+        Ok(())
+    }
+
+    /// What reading `reopened(…)` requires of a cause that reopened the
+    /// commitment: evidence that is observed or retired. Only a declaration
+    /// reopens with evidence not yet observed, and reading that reopening,
+    /// for its value or for its grounds, refuses the event as reading
+    /// `qualified(…)` of the evidence would (D045).
+    fn require_reopening_cause(&self, cause: &str) -> Result<(), EvalError> {
+        if !self.is_retired(cause)
+            && !self.predicate("observed", cause)?
+            && !self.retired_cause(cause)
+        {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {cause}"),
+            ));
+        }
+        Ok(())
+    }
+
+    /// `qualify_core` once `require_qualifiable` has passed.
+    fn qualify_checked(&self, evidence: &str, extras: &[String]) -> Result<Provenance, EvalError> {
         let id = self.symbols[evidence];
+        self.qualify_checked_id(id, evidence, extras)
+    }
+
+    fn qualify_checked_id(
+        &self,
+        id: NodeId,
+        evidence: &str,
+        extras: &[String],
+    ) -> Result<Provenance, EvalError> {
+        // What qualifies evidence alone is read once until something is
+        // written.
+        if extras.is_empty() {
+            return reads::qualified(self, id, || self.qualify_checked_once(id, evidence, extras));
+        }
+        self.qualify_checked_once(id, evidence, extras)
+    }
+
+    /// `qualify_checked` of `evidence`, node `id`, read now.
+    fn qualify_checked_once(
+        &self,
+        id: NodeId,
+        evidence: &str,
+        extras: &[String],
+    ) -> Result<Provenance, EvalError> {
+        // Common fast path: no explicit extras and no caveats on any claims
+        // the evidence bears on. Handles both 0 live caveats and 1 direct live
+        // caveat (with no meta-caveats) with zero Vec/HashSet/String allocations.
+        if extras.is_empty() {
+            let ev_name = || self.record_name(id, evidence);
+            if !self.graph.qualifies_any() {
+                consult(|record| {
+                    record.reached.push(id);
+                    for link in self.graph.stance(id) {
+                        if matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Claim { .. })
+                        ) {
+                            record.reached.push(link.other);
+                        }
+                    }
+                });
+                return Provenance::from_single_evidence(ev_name());
+            }
+            let claims_clean = self.graph.stance(id).iter().all(|link| {
+                !matches!(
+                    self.graph.nodes.get(&link.other),
+                    Some(NodeKind::Claim { .. })
+                ) || self.graph.qualifiers(link.other).is_empty()
+            });
+            if claims_clean {
+                let qualifiers = self.graph.qualifiers(id);
+                if qualifiers.is_empty() {
+                    consult(|record| {
+                        record.reached.push(id);
+                        for link in self.graph.stance(id) {
+                            if matches!(
+                                self.graph.nodes.get(&link.other),
+                                Some(NodeKind::Claim { .. })
+                            ) {
+                                record.reached.push(link.other);
+                            }
+                        }
+                    });
+                    return Provenance::from_single_evidence(ev_name());
+                }
+                // Check if all qualifiers resolve to 0 or 1 unique live leaf caveat.
+                let marks = !self.taken_back.is_empty();
+                let mut single_caveat: Option<NodeId> = None;
+                let mut fast_ok = true;
+                if !marks {
+                    for link in qualifiers {
+                        if matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Caveat { .. })
+                        ) {
+                            if !self.graph.qualifiers(link.other).is_empty() {
+                                fast_ok = false;
+                                break;
+                            }
+                            match single_caveat {
+                                None => single_caveat = Some(link.other),
+                                Some(prev) if prev == link.other => {}
+                                Some(_) => {
+                                    fast_ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if qualifiers.len() <= 4 {
+                    // Small-list check honoring take-backs without allocating a HashMap.
+                    let mut counts: [(NodeId, usize); 4] = [(0, 0); 4];
+                    let mut seen_len = 0usize;
+                    for link in qualifiers {
+                        let tb = self.take_backs_naming(link.other, id);
+                        if tb > 0 {
+                            let pos = counts[..seen_len]
+                                .iter()
+                                .position(|&(k, _)| k == link.other);
+                            let used = match pos {
+                                Some(p) => {
+                                    let u = counts[p].1;
+                                    counts[p].1 += 1;
+                                    u
+                                }
+                                None => {
+                                    counts[seen_len] = (link.other, 1);
+                                    seen_len += 1;
+                                    0
+                                }
+                            };
+                            if used < tb {
+                                continue;
+                            }
+                        }
+                        if matches!(
+                            self.graph.nodes.get(&link.other),
+                            Some(NodeKind::Caveat { .. })
+                        ) {
+                            if !self.graph.qualifiers(link.other).is_empty() {
+                                fast_ok = false;
+                                break;
+                            }
+                            match single_caveat {
+                                None => single_caveat = Some(link.other),
+                                Some(prev) if prev == link.other => {}
+                                Some(_) => {
+                                    fast_ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    fast_ok = false;
+                }
+                if fast_ok {
+                    consult(|record| {
+                        record.reached.push(id);
+                        for link in self.graph.stance(id) {
+                            if matches!(
+                                self.graph.nodes.get(&link.other),
+                                Some(NodeKind::Claim { .. })
+                            ) {
+                                record.reached.push(link.other);
+                            }
+                        }
+                        if let Some(c_id) = single_caveat {
+                            record.reached.push(c_id);
+                        }
+                    });
+                    return match single_caveat {
+                        None => Provenance::from_single_evidence(ev_name()),
+                        Some(c_id) => {
+                            let cav_name = self
+                                .symbols
+                                .shared_name_of(c_id)
+                                .expect("a caveat node is named");
+                            Provenance::from_evidence_and_caveat(ev_name(), cav_name)
+                        }
+                    };
+                }
+            }
+        }
+        // The evidence's name goes ahead of the caveats; the extras follow.
+        // Each is the names index's own copy, found by node: the roots list
+        // the evidence first, then each extra.
+        let roots = self.qualify_roots(id, extras);
+        let name = self.record_name(roots[0], evidence);
+        let extras = extras
+            .iter()
+            .zip(&roots[1..])
+            .map(|(caveat, &id)| self.record_name(id, caveat))
+            .collect::<Vec<_>>();
+        let caveats = self
+            .caveats_reaching(roots, true, 1)
+            .into_iter()
+            .chain(extras);
+        Provenance::from_shared([name], caveats)
+    }
+
+    /// The name of `id`'s record, `name`, as the names index holds it, so a
+    /// lineage shares that copy; a new copy only for a record the index
+    /// does not name so.
+    fn record_name(&self, id: NodeId, name: &str) -> Name {
+        match self.symbols.shared_name_of(id) {
+            Some(held) => {
+                debug_assert_eq!(held, name, "the names index names node {id}");
+                held
+            }
+            None => name.into(),
+        }
+    }
+
+    /// Where the caveats of `evidence` are found: the evidence itself, each
+    /// extra caveat, and each claim the evidence supports or opposes.
+    fn qualify_roots(&self, id: NodeId, extras: &[String]) -> Vec<NodeId> {
         let mut roots = vec![id];
         roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
         roots.extend(
             self.graph
-                .edges
+                .stance(id)
                 .iter()
-                .filter(|edge| {
-                    edge.from == id
-                        && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                        && matches!(self.graph.nodes.get(&edge.to), Some(NodeKind::Claim { .. }))
+                .filter(|link| {
+                    matches!(
+                        self.graph.nodes.get(&link.other),
+                        Some(NodeKind::Claim { .. })
+                    )
                 })
-                .map(|edge| edge.to),
+                .map(|link| link.other),
         );
-        let caveats = self
-            .caveats_reaching(roots, honor_take_back)
-            .into_iter()
-            .chain(extras.iter().cloned());
-        Provenance::from_names([evidence.into()], caveats)
+        roots
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if kind == reactive_expr::IS_SET {
+            let cell = self.states.get(name).expect("validated unset state");
+            return Tracked::new(!cell.unset, cell.value.provenance.clone());
+        }
         if kind == reactive_expr::RESOLVED {
             return self.resolved_predicate(name);
         }
         if let Some(mut result) = self.withdrawal_predicate(kind, name, false)? {
-            if let Some(dependency) = self
-                .predicate_qualifications
-                .get(WITHDRAWN)
-                .and_then(|targets| targets.get(name))
-            {
+            if let Some(dependency) = self.predicate_dependency(WITHDRAWN, name) {
                 result.provenance.merge(dependency)?;
             }
             return Ok(result);
@@ -5415,27 +7754,24 @@ impl ReactiveSession {
                     Tracked::plain(false)
                 };
                 self.inherit(&mut result.provenance, &series.selection_qualifications)?;
-                if let Some(dependency) = self
-                    .predicate_qualifications
-                    .get(kind)
-                    .and_then(|targets| targets.get(name))
-                {
+                if let Some(dependency) = self.predicate_dependency(kind, name) {
                     result.provenance.merge(dependency)?;
                 }
                 return Ok(result);
             }
         }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            return self.carries_predicate(kind, caveat, name, false);
+        }
         let value = self.predicate(kind, name)?;
         let mut provenance = match kind {
             "observed" if value => self.qualify(name, &[])?,
-            // Whether it carries the caveat or not, the answer rests on the
-            // evidence and what qualifies it.
-            _ if kind.starts_with(CARRIES) => self.predicate_tracked("observed", name)?.provenance,
             "examined" => {
                 let id = self.symbols[name];
-                let mut provenance = Provenance::from_names(
+                let mut provenance = Provenance::from_shared(
                     [],
-                    std::iter::once(name.into()).chain(self.incoming_caveats([id])),
+                    std::iter::once(self.record_name(id, name))
+                        .chain(self.incoming_caveats([id], 1)),
                 )?;
                 if let Some(examination) = self.examination_qualifications.get(name) {
                     provenance.merge(examination)?;
@@ -5456,49 +7792,34 @@ impl ReactiveSession {
                 if let Some(reopening) = self.reopening_qualifications.get(name) {
                     self.inherit(&mut provenance, reopening)?;
                 }
-                // Only the names these edges reach: the session may hold many.
-                let reached = self
-                    .graph
-                    .edges
-                    .iter()
-                    .filter_map(|edge| {
-                        if edge.from == id
-                            && matches!(edge.relation, Relation::Retains | Relation::ReliesOn)
-                        {
-                            Some(edge.to)
-                        } else if kind == "reopened"
-                            && edge.to == id
-                            && edge.relation == Relation::Reopens
-                        {
-                            Some(edge.from)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<_>>();
-                let by_id = if reached.is_empty() {
-                    HashMap::default()
-                } else {
+                let name_of = |id: NodeId| {
                     self.symbols
-                        .iter()
-                        .filter(|(_, id)| reached.contains(*id))
-                        .map(|(name, id)| (*id, name))
-                        .collect::<HashMap<_, _>>()
+                        .name_of(id)
+                        .expect("a commitment relates named records")
                 };
-                for edge in &self.graph.edges {
-                    if edge.from == id && edge.relation == Relation::Retains {
-                        provenance
-                            .merge(&Provenance::from_names([], [by_id[&edge.to].clone()])?)?;
-                    } else if edge.from == id && edge.relation == Relation::ReliesOn {
+                let shared_name_of = |id: NodeId| {
+                    self.symbols
+                        .shared_name_of(id)
+                        .expect("a commitment relates named records")
+                };
+                // What it retains and relies on, and what reopened it, in
+                // graph order.
+                let reopeners = if kind == "reopened" {
+                    self.graph.reopeners(id)
+                } else {
+                    &[]
+                };
+                for link in relations::in_graph_order(self.graph.basis(id), reopeners) {
+                    if link.relation == Relation::Retains {
+                        provenance.merge_name(shared_name_of(link.other), false)?;
+                    } else if link.relation == Relation::ReliesOn {
                         // Commitment basis is historical. Do not re-query its
                         // original value or replace its frozen qualifications.
-                        provenance
-                            .merge(&Provenance::from_names([by_id[&edge.to].clone()], [])?)?;
-                    } else if kind == "reopened"
-                        && edge.to == id
-                        && edge.relation == Relation::Reopens
-                    {
-                        provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
+                        provenance.merge_name(shared_name_of(link.other), true)?;
+                    } else {
+                        let cause = name_of(link.other);
+                        self.require_reopening_cause(cause)?;
+                        provenance.merge(&self.qualify(cause, &[])?)?;
                     }
                 }
                 // The basis is frozen, but the evidence it lists is read as it
@@ -5509,25 +7830,29 @@ impl ReactiveSession {
             }
             _ => Provenance::default(),
         };
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get(kind)
-            .and_then(|targets| targets.get(name))
-        {
+        if let Some(dependency) = self.predicate_dependency(kind, name) {
             provenance.merge(dependency)?;
         }
         if kind == "reopened" {
             // Whether a future action can be reopened also depends on the
             // earlier decision that left its commitment absent.
-            if let Some(dependency) = self
-                .predicate_qualifications
-                .get("committed")
-                .and_then(|targets| targets.get(name))
-            {
+            if let Some(dependency) = self.predicate_dependency("committed", name) {
                 provenance.merge(dependency)?;
             }
         }
         Tracked::new(value, provenance)
+    }
+
+    /// The predicate dependency recorded for `kind` of `name`, noted as
+    /// consulted whether there is one or not.
+    fn predicate_dependency(&self, kind: &str, name: &str) -> Option<&Provenance> {
+        consult(|record| record.predicates.push(consulted_key(kind, name)));
+        if self.predicate_qualifications.is_empty() {
+            return None;
+        }
+        self.predicate_qualifications
+            .get(kind)
+            .and_then(|targets| targets.get(name))
     }
 
     fn clear_predicate_dependency(&mut self, kind: &str, name: &str) {
@@ -5540,7 +7865,7 @@ impl ReactiveSession {
         {
             return;
         }
-        self.collector_dirty(CollectorOwner::Record(name.into()));
+        self.collector_dirty(|_| CollectorOwner::Record(name.into()));
         let dependencies = Arc::make_mut(&mut self.predicate_qualifications);
         let targets = dependencies.get_mut(kind).expect("checked above");
         targets.remove(name);
@@ -5552,7 +7877,7 @@ impl ReactiveSession {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -5561,7 +7886,8 @@ impl ReactiveSession {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
                 let procedure = &procedures[name];
-                let mut locals = Parameters::default();
+                let mut lineage = BTreeMap::new();
+                let mut grounds = BTreeMap::new();
                 let mut inherited = guard.clone();
                 // Freeze all arguments before the first body effect, including
                 // unused arguments. Their qualifications cannot be laundered
@@ -5573,15 +7899,12 @@ impl ReactiveSession {
                     let Value::Number(number) = value.value else {
                         return Err(format!("procedure {name} requires numeric arguments").into());
                     };
-                    let grounds = self.evaluate_grounds(argument, parameters)?.provenance;
+                    let read = self.evaluate_grounds(argument, parameters)?.provenance;
                     inherited.merge(&value.provenance)?;
-                    locals
-                        .lineage
-                        .insert(parameter.clone(), Tracked::new(number, value.provenance)?);
-                    locals
-                        .grounds
-                        .insert(parameter.clone(), Tracked::new(number, grounds)?);
+                    lineage.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                    grounds.insert(parameter.clone(), Tracked::new(number, read)?);
                 }
+                let locals = Parameters::Arguments { lineage, grounds };
                 budget.enter()?;
                 for (index, step) in procedure.body.iter().enumerate() {
                     self.execute_guarded_effect(
@@ -5602,6 +7925,7 @@ impl ReactiveSession {
                 value,
                 stance,
                 note,
+                with,
             } => {
                 self.history_room(stream)?;
                 // The previous reading's value, before taking this one can
@@ -5637,12 +7961,32 @@ impl ReactiveSession {
                     },
                     None => None,
                 };
-                let NodeKind::Evidence {
-                    description,
-                    source,
-                } = self.graph.nodes[&template].clone()
-                else {
-                    unreachable!("validated evidence template")
+                // `with ... when`: the condition is part of what the reading
+                // rests on whichever way it falls, as a guard is
+                // (spec/caveat-reading-caveats-0.1.md).
+                let mut own: &[String] = with.as_deref().map_or(&[], |with| &with.caveats);
+                let condition = match with.as_deref().and_then(|with| with.condition.as_ref()) {
+                    Some(condition) => {
+                        let condition = self.evaluate(condition, parameters)?;
+                        let Value::Bool(applies) = condition.value else {
+                            return Err("sample with ... when requires a boolean condition".into());
+                        };
+                        if !applies {
+                            own = &[];
+                        }
+                        Some(condition.provenance)
+                    }
+                    None => None,
+                };
+                let (reading_description, source) = match &self.graph.nodes[&template] {
+                    NodeKind::Evidence {
+                        description,
+                        source,
+                    } => (
+                        format!("{description} ({stream} reading {ordinal})"),
+                        source.clone(),
+                    ),
+                    _ => unreachable!("validated evidence template"),
                 };
                 // A withdrawn template's `withdrawn` is about its own
                 // observation. A reading is a new one, which only a withdrawal
@@ -5657,33 +8001,23 @@ impl ReactiveSession {
                 // qualification is live. Caveats about an earlier occurrence
                 // are not taken away: spec/caveat-renewal-0.1.md.
                 let current = self.symbols[self.occurrence(&readings.template)];
-                let mut inherited = self
-                    .graph
-                    .edges
-                    .iter()
-                    .filter(|edge| edge.to == template && edge.relation == Relation::Qualifies)
-                    .filter(|edge| {
-                        matches!(
-                            self.graph.nodes.get(&edge.from),
-                            Some(NodeKind::Caveat { .. })
-                        )
-                    })
-                    .map(|edge| edge.from)
-                    .filter(|caveat| Some(*caveat) != withdrawn)
-                    .collect::<Vec<_>>();
-                if current != template {
-                    let live = self
-                        .graph
-                        .edges
+                let caveats_of = |id: NodeId| {
+                    self.graph
+                        .qualifiers(id)
                         .iter()
-                        .filter(|edge| edge.to == current && edge.relation == Relation::Qualifies)
-                        .filter(|edge| {
+                        .filter(|link| {
                             matches!(
-                                self.graph.nodes.get(&edge.from),
+                                self.graph.nodes.get(&link.other),
                                 Some(NodeKind::Caveat { .. })
                             )
                         })
-                        .map(|edge| edge.from)
+                        .map(|link| link.other)
+                };
+                let mut inherited = caveats_of(template)
+                    .filter(|caveat| Some(*caveat) != withdrawn)
+                    .collect::<Vec<_>>();
+                if current != template {
+                    let live = caveats_of(current)
                         .filter(|caveat| {
                             Some(caveat) != self.symbols.get(WITHDRAWN)
                                 && !inherited.contains(caveat)
@@ -5691,30 +8025,45 @@ impl ReactiveSession {
                         .collect::<BTreeSet<_>>();
                     inherited.extend(live);
                 }
-                let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
-                    description: format!("{description} ({stream} reading {ordinal})"),
-                    source,
-                });
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
-                self.record_observation(&name, stance.is_none());
+                for caveat in own {
+                    let caveat = self.symbols[caveat];
+                    if !inherited.contains(&caveat) {
+                        inherited.push(caveat);
+                    }
+                }
+                let id = self.add_named(
+                    name.clone(),
+                    NodeKind::Evidence {
+                        description: reading_description,
+                        source,
+                    },
+                );
+                self.record_observation(id, stance.is_none());
                 if let Some((relation, claim)) = stance {
-                    Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
+                    self.relate(id, *relation, self.symbols[claim]);
                 }
                 for caveat in inherited {
-                    Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
+                    self.relate(caveat, Relation::Qualifies, id);
                 }
                 let mut observation = value.provenance.union(guard)?;
+                if let Some(condition) = &condition {
+                    observation = observation.union(condition)?;
+                }
                 self.freeze_observation(&mut observation);
-                Arc::make_mut(&mut self.observation_qualifications)
+                let mut provenance = self.qualify_checked_id(id, &name, &[])?;
+                if !observation.holds_nothing() {
+                    provenance.merge(&observation)?;
+                }
+                if let Some(dependency) = self.predicate_dependency("observed", &name) {
+                    provenance.merge(dependency)?;
+                }
+                self.observation_qualifications
                     .insert(name.clone(), observation);
-                let mut provenance = self.qualify(&name, &[])?;
                 self.freeze(&mut provenance);
-                let readings = Arc::make_mut(&mut self.reading_streams)
-                    .get_mut(stream)
-                    .unwrap();
+                let readings = Self::stream_mut(&mut self.reading_streams, stream);
                 readings.current = Some(name.clone());
                 readings.selection_qualifications = Provenance::default();
-                readings.occurrences.push(ReadingOccurrence {
+                readings.occurrences.push(Arc::new(ReadingOccurrence {
                     id: name.clone(),
                     ordinal,
                     sequence: self.sequence,
@@ -5730,7 +8079,7 @@ impl ReactiveSession {
                         .map(|(relation, _)| relation_name(*relation).into()),
                     claim: stance.as_ref().map(|(_, claim)| claim.clone()),
                     note: note.clone(),
-                });
+                }));
                 self.effects.push(EffectReport::Sample {
                     stream: stream.clone(),
                     id: name,
@@ -5803,10 +8152,15 @@ impl ReactiveSession {
                             )
                             .into());
                         }
+                        // A computed delay depends on what the session has
+                        // seen, so a negative one refuses the event rather
+                        // than ending the session (D042).
                         if after < 0.0 {
-                            return Err(
-                                "qualify after requires a nonnegative number of seconds".into()
-                            );
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                "qualify after requires a nonnegative number of seconds",
+                            )
+                            .into());
                         }
                         if self.scheduled.len() >= MAX_SCHEDULED_QUALIFICATIONS {
                             return Err(DispatchFailure::rejected(
@@ -5900,13 +8254,23 @@ impl ReactiveSession {
             }
             Effect::Renew { evidence } => {
                 self.history_room(evidence)?;
-                self.retire_oldest(evidence);
                 let ordinal = self.next_renewal_ordinal(evidence);
-                let renewal = &self.renewals[evidence];
                 let name = format!("{evidence}@{ordinal}");
+                // A program may declare `foo@2` beside `renewable foo` (load
+                // refuses such a name only beside a reading stream or a
+                // decision series). Renewals are made in order, so none gets
+                // past it: like a full limit, once `foo` holds the occurrence
+                // before it, this refuses every later `renew` too.
+                // spec/caveat-renewal-0.1.md (D103).
                 if self.symbols.contains_key(&name) {
-                    return Err(format!("generated occurrence {name} already exists").into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Limit,
+                        RejectionCode::RenewalLimit,
+                        format!("generated occurrence {name} already exists"),
+                    ));
                 }
+                self.retire_oldest(evidence);
+                let renewal = &self.renewals[evidence];
                 let template_caveats = renewal.template_caveats.clone();
                 let NodeKind::Evidence {
                     description,
@@ -5915,26 +8279,27 @@ impl ReactiveSession {
                 else {
                     unreachable!("validated renewable evidence")
                 };
-                let graph = Arc::make_mut(&mut self.graph);
-                let id = graph.add(NodeKind::Evidence {
-                    description: format!("{description} (occurrence {ordinal})"),
-                    source,
-                });
+                let id = self.add_named(
+                    name.clone(),
+                    NodeKind::Evidence {
+                        description: format!("{description} (occurrence {ordinal})"),
+                        source,
+                    },
+                );
                 for caveat in template_caveats {
-                    graph.relate(caveat, Relation::Qualifies, id);
+                    self.relate(caveat, Relation::Qualifies, id);
                 }
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 // The occurrence exists because this rule chose to renew.
                 if !guard.is_empty() {
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications).insert(name.clone(), guard);
+                    self.observation_qualifications.insert(name.clone(), guard);
                 }
                 Arc::make_mut(&mut self.renewals)
                     .get_mut(evidence)
                     .expect("validated renewable evidence")
                     .occurrences
-                    .push(name.clone());
+                    .push(Name::from(&name));
                 self.effects.push(EffectReport::Renew {
                     evidence: evidence.clone(),
                     occurrence: name,
@@ -5944,14 +8309,35 @@ impl ReactiveSession {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
             }
+            Effect::Unset { name } => {
+                let slot = self.states.slot(name).expect("validated state");
+                let previous_pins = self.states.cells[slot]
+                    .grounds
+                    .own_evidence()
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for record in previous_pins {
+                    self.release_pin(&record);
+                }
+                self.states.set(slot, StateCell::unset());
+            }
             Effect::Set {
                 name,
                 value: expression,
                 because,
             } => {
-                let value = self.evaluate(expression, parameters)?;
-                let Value::Number(number) = value.value else {
-                    return Err("numeric state expression returned a boolean".into());
+                let (number, value_lineage, evaluated_grounds) = if because.is_none() {
+                    let (val, lin, gnd) = self.evaluate_both(expression, parameters)?;
+                    let Value::Number(number) = val else {
+                        return Err("numeric state expression returned a boolean".into());
+                    };
+                    (number, lin, Some(gnd))
+                } else {
+                    let value = self.evaluate(expression, parameters)?;
+                    let Value::Number(number) = value.value else {
+                        return Err("numeric state expression returned a boolean".into());
+                    };
+                    (number, value.provenance, None)
                 };
                 let range = &self.ranges[name];
                 check_range(name, number, range.min, range.max).map_err(|message| {
@@ -5961,12 +8347,13 @@ impl ReactiveSession {
                         message,
                     )
                 })?;
-                let lineage = value.provenance.union(guard)?;
+                let lineage = value_lineage.union(guard)?;
                 // Grounds are read against the state before this write, like
                 // the value itself, and never take the rule's guard.
-                let grounds = match because {
-                    None => self.evaluate_grounds(expression, parameters)?.provenance,
-                    Some(citations) => self.grounded_citation(
+                let grounds = match (because, evaluated_grounds) {
+                    (None, Some(grounds)) => grounds,
+                    (None, None) => unreachable!(),
+                    (Some(citations), _) => self.grounded_citation(
                         &format!("state {name}"),
                         citations,
                         &lineage,
@@ -5990,6 +8377,7 @@ impl ReactiveSession {
                     StateCell {
                         value: Tracked::new(number, lineage)?,
                         grounds,
+                        unset: false,
                     },
                 );
             }
@@ -5999,11 +8387,8 @@ impl ReactiveSession {
                     self.clear_predicate_dependency("observed", &evidence);
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications)
-                        .entry(evidence.clone())
-                        .or_default()
-                        .merge(&guard)?;
-                    self.record_observation(&evidence, true);
+                    Self::merge_record(&mut self.observation_qualifications, &evidence, &guard)?;
+                    self.record_observation(self.symbols[&evidence], true);
                     self.effects.push(EffectReport::Reveal {
                         evidence,
                         relation: None,
@@ -6019,21 +8404,13 @@ impl ReactiveSession {
                 let evidence = &self.occurrence(evidence).to_string();
                 let from = self.symbols[evidence];
                 let to = self.symbols[claim];
-                if !self
-                    .graph
-                    .edges
-                    .iter()
-                    .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
-                {
+                if !self.graph.related(from, *relation, to) {
                     self.clear_predicate_dependency("observed", evidence);
                     let mut guard = guard.clone();
                     self.freeze_observation(&mut guard);
-                    Arc::make_mut(&mut self.observation_qualifications)
-                        .entry(evidence.clone())
-                        .or_default()
-                        .merge(&guard)?;
-                    self.record_observation(evidence, false);
-                    Arc::make_mut(&mut self.graph).relate(from, *relation, to);
+                    Self::merge_record(&mut self.observation_qualifications, evidence, &guard)?;
+                    self.record_observation(from, false);
+                    self.relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
                         relation: Some(relation_name(*relation).into()),
@@ -6069,11 +8446,24 @@ impl ReactiveSession {
                 resources.remaining -= cost;
                 resources.spent += cost;
                 resources.exhausted = resources.remaining == 0;
-                Arc::make_mut(&mut self.graph)
-                    .set_attention(self.symbols[caveat], Attention::Examined);
+                // A caveat examined before is not marked again, and a basis
+                // that adds nothing is not written back: either would copy a
+                // shared record to write what it already holds.
+                let id = self.symbols[caveat];
+                if !matches!(
+                    self.graph.nodes.get(&id),
+                    Some(NodeKind::Caveat {
+                        attention: Attention::Examined,
+                        ..
+                    })
+                ) {
+                    self.set_node_attention(id, Attention::Examined);
+                }
                 self.clear_predicate_dependency("examined", caveat);
-                Arc::make_mut(&mut self.examination_qualifications)
-                    .insert(caveat.clone(), attention_basis);
+                if self.examination_qualifications.get(caveat) != Some(&attention_basis) {
+                    self.examination_qualifications
+                        .insert(caveat.clone(), attention_basis);
+                }
                 self.effects.push(EffectReport::Examine {
                     caveat: caveat.clone(),
                     cost: *cost,
@@ -6101,11 +8491,14 @@ impl ReactiveSession {
                     .decision_series
                     .get(action)
                     .and_then(|series| series.current.clone());
-                if self.symbols.contains_key(action) {
+                if let Some(&id) = self.symbols.get(action) {
                     let message = format!("commitment {action} already exists");
-                    // A plain commitment is made once, reopened or not. See
+                    // A plain commitment is made once, reopened or not,
+                    // whether an event or a declaration made it (D044). See
                     // spec/caveat-dispatch-0.1.md, `already_committed`.
-                    if self.commitment_bases.contains_key(action) {
+                    if self.commitment_bases.contains_key(action)
+                        || matches!(self.graph.nodes.get(&id), Some(NodeKind::Commitment { .. }))
+                    {
                         return Err(DispatchFailure::rejected(
                             RejectionOrigin::Evaluation,
                             RejectionCode::AlreadyCommitted,
@@ -6155,12 +8548,12 @@ impl ReactiveSession {
                 // basis stay in the lineage recorded below.
                 let mut grounds = Provenance::from_names([], retaining.iter().cloned())?;
                 let used_value = if let Some(expression) = using {
-                    let value = self.evaluate(expression, parameters)?;
-                    let Value::Number(number) = value.value else {
+                    let (val, lin, gnd) = self.evaluate_both(expression, parameters)?;
+                    let Value::Number(number) = val else {
                         return Err("commit using requires a numeric value".into());
                     };
-                    provenance.merge(&value.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(expression, parameters)?.provenance)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                     Some(number)
                 } else {
                     None
@@ -6168,15 +8561,17 @@ impl ReactiveSession {
                 // `citing`: grounds and lineage as for `using`, with no value.
                 // See spec/caveat-citing-0.1.md.
                 for citation in citing {
-                    provenance.merge(&self.evaluate(citation, parameters)?.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(citation, parameters)?.provenance)?;
+                    let (_, lin, gnd) = self.evaluate_both(citation, parameters)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                 }
                 // A retained caveat's reason is read as `qualified(1, E)` and
                 // joins the grounds. See spec/caveat-retention-reasons-0.1.md.
                 let mut retention = BTreeMap::new();
                 for (caveat, evidence, reading, _) in reasons {
-                    provenance.merge(&self.evaluate(reading, parameters)?.provenance)?;
-                    grounds.merge(&self.evaluate_grounds(reading, parameters)?.provenance)?;
+                    let (_, lin, gnd) = self.evaluate_both(reading, parameters)?;
+                    provenance.merge(&lin)?;
+                    grounds.merge(&gnd)?;
                     retention.insert(caveat.clone(), self.occurrence(evidence).to_string());
                 }
                 // A `once` reason backs one commitment: none the session holds
@@ -6250,7 +8645,7 @@ impl ReactiveSession {
                     self.add_pin(record);
                 }
                 self.freeze(&mut grounds);
-                Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
+                self.commitment_grounds.insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
                 self.freeze(&mut provenance);
 
@@ -6265,42 +8660,48 @@ impl ReactiveSession {
                     .iter()
                     .map(|name| self.symbols[name])
                     .collect::<Vec<_>>();
-                let id =
-                    Arc::make_mut(&mut self.graph).commit_because(&name, &retained, reason.clone());
+                let id = self.commit_named(name.clone(), &retained, reason.clone());
                 self.clear_predicate_dependency("committed", action);
                 if ordinal.is_some() {
                     self.clear_predicate_dependency("reopened", action);
                 }
-                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 for evidence in &provenance.evidence {
                     self.require_kind(evidence, "evidence")?;
                     // A retired record reaches a new basis only through one
                     // that already cites it, such as the predecessor's.
-                    if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
+                    if !self.is_retired(evidence)
+                        && !self.predicate("observed", evidence)?
+                        && !self.retired_cause(evidence)
+                    {
                         return Err(format!(
                             "commitment basis includes unobserved evidence {evidence}"
                         )
                         .into());
                     }
-                    Arc::make_mut(&mut self.graph).relate(
-                        id,
-                        Relation::ReliesOn,
-                        self.symbols[evidence.as_str()],
-                    );
+                    self.relate(id, Relation::ReliesOn, self.symbols[evidence.as_str()]);
                 }
-                self.collector_reopens(
-                    &name,
-                    &provenance
-                        .evidence
+                self.collector_reopens(&name, provenance.evidence.iter().map(Name::as_str));
+                // The thresholds the commit named: its own expressions and
+                // each enclosing guard (spec/caveat-thresholds-0.1.md).
+                let mut thresholds = BTreeMap::new();
+                if self.has_thresholds {
+                    for named in &self.guard_thresholds {
+                        thresholds.extend(named.iter().map(|(name, value)| (name.clone(), *value)));
+                    }
+                    for expression in using
                         .iter()
-                        .map(|name| name.to_string())
-                        .collect::<Vec<_>>(),
-                );
-                Arc::make_mut(&mut self.commitment_bases).insert(
+                        .chain(citing)
+                        .chain(reasons.iter().map(|(_, _, expression, _)| expression))
+                    {
+                        expression.collect_thresholds(&mut thresholds);
+                    }
+                }
+                self.commitment_bases.insert(
                     name.clone(),
                     CommitmentBasis {
                         value: used_value,
                         provenance,
+                        thresholds,
                     },
                 );
                 if let Some(record) = &permission {
@@ -6317,9 +8718,7 @@ impl ReactiveSession {
                     Arc::make_mut(&mut self.retention_reasons).insert(name.clone(), retention);
                 }
                 if let Some(ordinal) = ordinal {
-                    let series = Arc::make_mut(&mut self.decision_series)
-                        .get_mut(action)
-                        .unwrap();
+                    let series = self.decision_series.get_mut(action).unwrap();
                     series.current = Some(name.clone());
                     series.selection_qualifications = Provenance::default();
                     series.revisions.push(DecisionRevision {
@@ -6365,7 +8764,7 @@ impl ReactiveSession {
                 }
                 self.retire_journal_entry();
                 self.pin_journal_entry(&entry);
-                Arc::make_mut(&mut self.journal).push(entry);
+                self.journal.push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
                     retained: retained_names,
@@ -6431,7 +8830,7 @@ impl ReactiveSession {
                                 for evidence in &causes {
                                     self.add_pin(evidence);
                                 }
-                                Arc::make_mut(&mut self.decision_series)
+                                self.decision_series
                                     .get_mut(action)
                                     .expect("on hold")
                                     .deferred
@@ -6457,7 +8856,7 @@ impl ReactiveSession {
                             for evidence in &reasons {
                                 self.add_pin(evidence);
                             }
-                            Arc::make_mut(&mut self.decision_series)
+                            self.decision_series
                                 .get_mut(action)
                                 .expect("a series")
                                 .on_hold
@@ -6485,7 +8884,7 @@ impl ReactiveSession {
     fn resolve(
         &mut self,
         resolution: &Resolution,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
     ) -> Result<(), DispatchFailure> {
         let action = &resolution.action;
@@ -6544,9 +8943,7 @@ impl ReactiveSession {
         let id = self.symbols[&revision];
         for caveat in &resolution.materialized {
             let caveat_id = self.symbols[caveat];
-            let retained = self.graph.edges.iter().any(|edge| {
-                edge.from == id && edge.to == caveat_id && edge.relation == Relation::Retains
-            });
+            let retained = self.graph.related(id, Relation::Retains, caveat_id);
             if !retained {
                 return Err(DispatchFailure::rejected(
                     RejectionOrigin::Evaluation,
@@ -6586,7 +8983,7 @@ impl ReactiveSession {
             event: self.last_event.clone().unwrap_or_default(),
             lineage,
         };
-        Arc::make_mut(&mut self.decision_series)
+        self.decision_series
             .get_mut(action)
             .expect("a series")
             .revisions[position]
@@ -6615,7 +9012,7 @@ impl ReactiveSession {
             materialized: resolution.materialized.clone(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
@@ -6627,7 +9024,7 @@ impl ReactiveSession {
         because: &EvidenceSelector,
         verb: &str,
         action: &str,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(Vec<String>, Provenance), DispatchFailure> {
         Ok(match because {
             EvidenceSelector::Every(_) => unreachable!("only withdraw parses every"),
@@ -6717,9 +9114,7 @@ impl ReactiveSession {
         {
             return Vec::new();
         }
-        let series = Arc::make_mut(&mut self.decision_series)
-            .get_mut(action)
-            .expect("a series");
+        let series = self.decision_series.get_mut(action).expect("a series");
         let held = std::mem::take(&mut series.on_hold);
         let deferred = std::mem::take(&mut series.deferred);
         for evidence in held.iter().chain(&deferred) {
@@ -6742,10 +9137,7 @@ impl ReactiveSession {
             .into_iter()
             .filter(|evidence| {
                 let from = self.symbols[evidence];
-                !kept.contains(evidence)
-                    && !self.graph.edges.iter().any(|edge| {
-                        edge.from == from && edge.to == id && edge.relation == Relation::Reopens
-                    })
+                !kept.contains(evidence) && !self.graph.related(from, Relation::Reopens, id)
             })
             .collect()
     }
@@ -6754,10 +9146,7 @@ impl ReactiveSession {
     /// reopening, and from 1.2 a hold, a deferred reopening or a release of
     /// it (spec/caveat-holds-0.1.md).
     fn join_reopening(&mut self, current: &str, basis: &Provenance) -> Result<(), DispatchFailure> {
-        Arc::make_mut(&mut self.reopening_qualifications)
-            .entry(current.to_string())
-            .or_default()
-            .merge(basis)?;
+        Self::merge_record(&mut self.reopening_qualifications, current, basis)?;
         Ok(())
     }
 
@@ -6794,7 +9183,7 @@ impl ReactiveSession {
             materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
@@ -6822,7 +9211,7 @@ impl ReactiveSession {
         let because = self.in_observation_order(because.iter());
         self.end_hold(action);
         let current = current.to_string();
-        self.collector_reopens(&current, &because);
+        self.collector_reopens(&current, because.iter().map(String::as_str));
         self.clear_predicate_dependency("reopened", &current);
         self.join_reopening(&current, basis)?;
         // Reported before the reopen that adds the entry.
@@ -6835,7 +9224,7 @@ impl ReactiveSession {
                     .into_iter()
                     .map(String::from),
             );
-            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
+            self.reopen_commitment(id, self.symbols[evidence]);
             self.effects.push(EffectReport::Reopen {
                 action: current.clone(),
                 because: evidence.clone(),
@@ -6860,26 +9249,38 @@ impl ReactiveSession {
             materialized: Vec::new(),
         };
         self.pin_journal_entry(&entry);
-        Arc::make_mut(&mut self.journal).push(entry);
+        self.journal.push(entry);
         Ok(())
     }
 
-    /// How many `CAVEAT qualifies OCCURRENCE` relations a take-back has
-    /// marked, by caveat and occurrence. The marked relations of a pair are
+    /// How many take-backs name `caveat` and `occurrence`. A take-back names
+    /// them by name, and a name has one node. Each takes back one relation:
     /// its first ones in graph order, since a take-back marks the one live
-    /// relation and a qualify adds one only when none is live. Empty unless
-    /// the program has taken something back. See spec/caveat-take-back-0.1.md.
-    fn marked_relations(&self) -> HashMap<(NodeId, NodeId), usize> {
-        let mut marked = HashMap::default();
-        for record in self.taken_back.iter() {
-            if let (Some(&caveat), Some(&occurrence)) = (
-                self.symbols.get(&record.caveat),
-                self.symbols.get(&record.evidence),
-            ) {
-                *marked.entry((caveat, occurrence)).or_insert(0) += 1;
-            }
+    /// relation and a qualify adds one only when none is live. Nothing in a
+    /// program that has taken nothing back. See spec/caveat-take-back-0.1.md.
+    fn take_backs_naming(&self, caveat: NodeId, occurrence: NodeId) -> usize {
+        if self.taken_back.is_empty() {
+            return 0;
         }
-        marked
+        let count = match (
+            self.symbols.name_of(caveat),
+            self.symbols.name_of(occurrence),
+        ) {
+            (Some(caveat), Some(occurrence)) => self.taken_back.count(caveat, occurrence),
+            _ => 0,
+        };
+        debug_assert_eq!(
+            count,
+            self.taken_back
+                .iter()
+                .filter(|record| {
+                    self.symbols.get(&record.caveat) == Some(&caveat)
+                        && self.symbols.get(&record.evidence) == Some(&occurrence)
+                })
+                .count(),
+            "take-back counts by node"
+        );
+        count
     }
 
     /// Whether `caveat qualifies occurrence` through a relation no take-back
@@ -6887,21 +9288,11 @@ impl ReactiveSession {
     fn has_live_relation(&self, caveat: NodeId, occurrence: NodeId) -> bool {
         let relations = self
             .graph
-            .edges
+            .qualifiers(occurrence)
             .iter()
-            .filter(|edge| {
-                edge.from == caveat && edge.to == occurrence && edge.relation == Relation::Qualifies
-            })
+            .filter(|link| link.other == caveat)
             .count();
-        let marked = self
-            .taken_back
-            .iter()
-            .filter(|record| {
-                self.symbols.get(&record.caveat) == Some(&caveat)
-                    && self.symbols.get(&record.evidence) == Some(&occurrence)
-            })
-            .count();
-        relations > marked
+        relations > self.take_backs_naming(caveat, occurrence)
     }
 
     /// A record holds the take-back caveats it carries: reading it back keeps
@@ -6925,7 +9316,7 @@ impl ReactiveSession {
             .iter()
             .filter(|caveat| {
                 !provenance.kept.contains(*caveat)
-                    && self.symbols.get(*caveat).is_some_and(|&from| {
+                    && self.symbols.get(caveat).is_some_and(|&from| {
                         provenance.evidence.iter().any(|name| {
                             self.symbols
                                 .get(name.as_str())
@@ -6963,7 +9354,11 @@ impl ReactiveSession {
         // stream `unqualify latest(…)` names.
         let occurrences = match (only, self.renewals.get(evidence)) {
             (Some(only), _) => vec![only.to_string()],
-            (None, Some(renewal)) => renewal.occurrences.clone(),
+            (None, Some(renewal)) => renewal
+                .occurrences
+                .iter()
+                .map(|name| name.as_str().to_owned())
+                .collect(),
             (None, None) => vec![evidence.to_string()],
         };
         let marked = occurrences
@@ -6980,9 +9375,8 @@ impl ReactiveSession {
             return Ok(());
         }
         let event = self.last_event.clone().unwrap_or_default();
-        let records = Arc::make_mut(&mut self.taken_back);
         for occurrence in &marked {
-            records.push(TakeBack {
+            self.push_take_back(TakeBack {
                 evidence: occurrence.clone(),
                 caveat: caveat.to_string(),
                 sequence: self.sequence,
@@ -7008,13 +9402,13 @@ impl ReactiveSession {
             .observation_qualifications
             .iter()
             .filter(|(_, lineage)| unkept(lineage))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name.to_string())
             .collect::<Vec<_>>();
         let examinations = self
             .examination_qualifications
             .iter()
             .filter(|(_, lineage)| unkept(lineage))
-            .map(|(name, _)| name.clone())
+            .map(|(name, _)| name.to_string())
             .collect::<Vec<_>>();
         let predicates = self
             .predicate_qualifications
@@ -7037,14 +9431,14 @@ impl ReactiveSession {
             .filter(|&(_, in_value, in_grounds)| in_value || in_grounds)
             .collect::<Vec<_>>();
         for name in observations {
-            Arc::make_mut(&mut self.observation_qualifications)
+            self.observation_qualifications
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
                 .remove(caveat);
         }
         for name in examinations {
-            Arc::make_mut(&mut self.examination_qualifications)
+            self.examination_qualifications
                 .get_mut(&name)
                 .expect("listed above")
                 .caveats
@@ -7059,7 +9453,9 @@ impl ReactiveSession {
                 .remove(caveat);
         }
         for (slot, in_value, in_grounds) in states {
-            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
+            self.collector_dirty(|session| {
+                CollectorOwner::State(session.states.names[slot].as_str().into())
+            });
             let cell = self.states.cell_mut(slot);
             if in_value {
                 cell.value.provenance.caveats.remove(caveat);
@@ -7088,12 +9484,12 @@ impl ReactiveSession {
         // Once per live relation: after a take-back, qualifying again adds a
         // new one. See spec/caveat-take-back-0.1.md.
         if !self.has_live_relation(from, to) {
-            Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
+            self.relate(from, Relation::Qualifies, to);
         }
         // The caveat and whatever qualifies it, as `qualified` inherits.
-        let added = Provenance::from_names(
+        let added = Provenance::from_shared(
             [],
-            std::iter::once(caveat.to_string()).chain(self.incoming_caveats([from])),
+            std::iter::once(self.record_name(from, caveat)).chain(self.incoming_caveats([from], 1)),
         )?;
         // Current values only. Commitment bases and grounds, reading
         // archives and the journal record what was known then.
@@ -7104,14 +9500,33 @@ impl ReactiveSession {
             if !(in_value || in_grounds) {
                 continue;
             }
-            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
-            let cell = self.states.cell_mut(slot);
-            if in_value {
-                cell.value.provenance.merge(&added)?;
-                cell.value.provenance.merge(guard)?;
-            }
-            if in_grounds {
-                cell.grounds.merge(&added)?;
+            self.collector_dirty(|session| {
+                CollectorOwner::State(session.states.names[slot].as_str().into())
+            });
+            // Merged on copies first: a cell that already holds all of it is
+            // left as it is, rather than copied to write the same lineage.
+            let cell = &self.states.cells[slot];
+            let value = if in_value {
+                let mut value = cell.value.provenance.clone();
+                value.merge(&added)?;
+                value.merge(guard)?;
+                Some(value).filter(|value| *value != cell.value.provenance)
+            } else {
+                None
+            };
+            let grounds = if in_grounds {
+                cell.grounds.merged(&added)?
+            } else {
+                None
+            };
+            if value.is_some() || grounds.is_some() {
+                let cell = self.states.cell_mut(slot);
+                if let Some(value) = value {
+                    cell.value.provenance = value;
+                }
+                if let Some(grounds) = grounds {
+                    cell.grounds = grounds;
+                }
             }
         }
         // An observation's or predicate's record lists what its guard read,
@@ -7135,29 +9550,59 @@ impl ReactiveSession {
             // Each record whose qualification gains the lineage's evidence
             // references it, so the withdrawal collector must recount that
             // record's references before departure runs (D016).
+            // Merged on copies first, in the same order: only a record the
+            // lineage adds to is written, and a map none of whose records
+            // changes is not copied. Only a program with a window keeps a
+            // collector to tell.
+            let windowed = self.windowed();
             let mut changed = BTreeSet::new();
-            for (name, record) in Arc::make_mut(&mut self.observation_qualifications).iter_mut() {
+            let mut change = |name: &str| {
+                if windowed {
+                    changed.insert(Name::from(name));
+                }
+            };
+            let mut observations = Vec::new();
+            for (name, record) in self.observation_qualifications.iter() {
                 if listed(record) {
-                    record.merge(&lineage)?;
-                    changed.insert(name.clone());
+                    if let Some(merged) = record.merged(&lineage)? {
+                        observations.push((name.to_string(), merged));
+                    }
+                    change(name);
                 }
             }
-            for (name, record) in Arc::make_mut(&mut self.examination_qualifications).iter_mut() {
+            let mut examinations = Vec::new();
+            for (name, record) in self.examination_qualifications.iter() {
                 if listed(record) {
-                    record.merge(&lineage)?;
-                    changed.insert(name.clone());
+                    if let Some(merged) = record.merged(&lineage)? {
+                        examinations.push((name.to_string(), merged));
+                    }
+                    change(name);
                 }
             }
-            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
-                for (name, record) in targets.iter_mut() {
+            let mut predicates = Vec::new();
+            for (kind, targets) in self.predicate_qualifications.iter() {
+                for (name, record) in targets {
                     if listed(record) {
-                        record.merge(&lineage)?;
-                        changed.insert(name.clone());
+                        if let Some(merged) = record.merged(&lineage)? {
+                            predicates.push((kind.clone(), name.clone(), merged));
+                        }
+                        change(name);
                     }
                 }
             }
+            Self::replace_records(&mut self.observation_qualifications, observations);
+            Self::replace_records(&mut self.examination_qualifications, examinations);
+            if !predicates.is_empty() {
+                let records = Arc::make_mut(&mut self.predicate_qualifications);
+                for (kind, name, merged) in predicates {
+                    *records
+                        .get_mut(&kind)
+                        .and_then(|targets| targets.get_mut(&name))
+                        .expect("listed above") = merged;
+                }
+            }
             for name in changed {
-                self.collector_dirty(CollectorOwner::Record(name));
+                self.collector_dirty(|_| CollectorOwner::Record(name));
             }
         }
         self.effects.push(EffectReport::Qualify {
@@ -7190,10 +9635,11 @@ impl ReactiveSession {
     /// What a source name means now: the current occurrence of renewable
     /// evidence, and the name itself for everything else.
     fn occurrence<'a>(&'a self, name: &'a str) -> &'a str {
-        self.renewals
-            .get(name)
-            .and_then(|renewal| renewal.occurrences.last())
-            .map_or(name, String::as_str)
+        let Some(renewal) = self.renewals.get(name) else {
+            return name;
+        };
+        consult(|record| record.renewals.push(consulted_key("", name)));
+        renewal.occurrences.last().map_or(name, Name::as_str)
     }
 
     /// A predicate's target as the source names it, resolved: predicates on
@@ -7225,12 +9671,11 @@ impl ReactiveSession {
                     .into(),
             );
         }
-        let graph = Arc::make_mut(&mut self.graph);
-        let id = graph.add_caveat(
+        self.add_named_caveat(
+            WITHDRAWN.into(),
             "withdrawn: the observation is no longer stood behind",
             Consequence::Material,
         );
-        Arc::make_mut(&mut self.symbols).insert(WITHDRAWN.into(), id);
         Ok(())
     }
 
@@ -7409,6 +9854,13 @@ impl ReactiveSession {
                 })
                 .collect(),
         );
+        let mut nodes = self
+            .late_caveats
+            .iter()
+            .filter_map(|caveat| self.symbols.get(caveat).map(|&id| (id, caveat.clone())))
+            .collect::<Vec<_>>();
+        nodes.sort_unstable();
+        self.late_caveat_nodes = Arc::new(nodes);
         Ok(())
     }
 
@@ -7470,7 +9922,7 @@ impl ReactiveSession {
             Arc::make_mut(&mut self.withdrawal_reasons).insert(evidence.clone(), because.clone());
             self.collector.withdrawal(&evidence, &because, true);
         }
-        Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
+        self.push_withdrawal(Withdrawal {
             evidence: evidence.clone(),
             because: because.clone(),
             sequence: self.sequence,
@@ -7495,13 +9947,18 @@ impl ReactiveSession {
             vec![name]
         } else {
             match self.renewals.get(name) {
-                Some(renewal) => listed.extend(renewal.occurrences.iter().cloned()),
+                Some(renewal) => listed.extend(
+                    renewal
+                        .occurrences
+                        .iter()
+                        .map(|name| name.as_str().to_owned()),
+                ),
                 None => listed.push(name.to_string()),
             }
             self.reading_streams
                 .iter()
                 .filter(|(_, stream)| stream.template == name)
-                .map(|(stream, _)| stream.as_str())
+                .map(|(stream, _)| stream)
                 .collect()
         };
         for stream in streams {
@@ -7541,24 +9998,27 @@ impl ReactiveSession {
         stream: &str,
         stance: Option<&(Relation, String)>,
         changed: bool,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        if self.reopening_triggers_by_stream.is_empty() {
+            return Ok(());
+        }
+        let by_stream = Arc::clone(&self.reopening_triggers_by_stream);
+        let Some(entries) = by_stream.get(stream) else {
+            return Ok(());
+        };
         let triggers = Arc::clone(&self.reopening_triggers);
-        for (series, watching, condition) in triggers.iter() {
+        for (index, reopen) in entries {
+            let (_, watching, condition) = &triggers[*index];
             if !watching
                 .iter()
                 .any(|trigger| trigger.matches(stream, stance) && (changed || !trigger.changed))
             {
                 continue;
             }
-            let reopen = Effect::Reopen {
-                action: series.clone(),
-                because: EvidenceSelector::Latest(stream.to_string()),
-                form: DecisionChange::Reopen,
-            };
-            self.execute_guarded_effect(condition, &reopen, parameters, guard, budget)?;
+            self.execute_guarded_effect(condition, reopen, parameters, guard, budget)?;
         }
         Ok(())
     }
@@ -7571,7 +10031,7 @@ impl ReactiveSession {
         &self,
         action: &str,
         clause: &PermissionClause,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(PermissionRecord, Provenance), DispatchFailure> {
         let refuse = |why: String| {
             DispatchFailure::rejected(
@@ -7646,14 +10106,51 @@ impl ReactiveSession {
     }
 
     fn withdrawal_of(&self, evidence: &str) -> Option<&Withdrawal> {
+        consult(|record| record.withdrawals.push(consulted_key("", evidence)));
+        self.find_withdrawal(evidence)
+    }
+
+    /// `withdrawal_of`, for a reader that notes what it consulted itself.
+    fn find_withdrawal(&self, evidence: &str) -> Option<&Withdrawal> {
         self.withdrawals
             .iter()
             .find(|withdrawal| withdrawal.evidence == evidence)
     }
 
-    /// Whether a record of a windowed history has retired.
+    /// Whether a record of a windowed history other than the journal has
+    /// retired. Under `journal window` only the journal reads an entry's
+    /// retirement, from `retired` (see `journal_entry_name`).
     pub(crate) fn is_retired(&self, record: &str) -> bool {
-        self.retired.contains_key(record)
+        self.retired.contains_key(record) && !self.journal_entry_name(record)
+    }
+
+    /// Whether `name` is declared evidence `retired_causes` keeps retired: a
+    /// value may cite it, as it may cite a retired record (D105).
+    fn retired_cause(&self, name: &str) -> bool {
+        !self.retired_causes.is_empty() && self.retired_causes.contains_key(name)
+    }
+
+    /// The `retired` a snapshot and a save list: each retired record, and
+    /// each declared cause `retired_causes` keeps retired (D105).
+    pub(crate) fn listed_retired(&self) -> BTreeMap<String, u64> {
+        let mut retired = (*self.retired).clone();
+        for (name, at) in self.retired_causes.iter() {
+            retired.entry(name.clone()).or_insert(*at);
+        }
+        retired
+    }
+
+    /// Whether `retired` and the departure candidates take `name` for one of
+    /// the journal's entries, which are named `journal@K` under `journal
+    /// window`. A record of a history named `journal`, or a name the program
+    /// declares, may be spelled so too, but none of them retires beside a
+    /// journal window: a windowed history may not be named `journal` there,
+    /// and declared evidence retires only as the first occurrence of
+    /// windowed renewable evidence, whose name has no `@`. So only the
+    /// journal reads an entry's retirement by its name, and no record or
+    /// node is looked up by it (D074, D105).
+    pub(crate) fn journal_entry_name(&self, name: &str) -> bool {
+        self.journal_window.is_some() && name.starts_with("journal@")
     }
 
     /// The index of a history's oldest live record. Retirement always takes
@@ -7662,7 +10159,7 @@ impl ReactiveSession {
         if self.retired.is_empty() {
             return 0;
         }
-        records.partition_point(|record| self.retired.contains_key(id(record)))
+        records.partition_point(|record| self.is_retired(id(record)))
     }
 
     /// The record to retire before one more is added to a full window.
@@ -7683,30 +10180,27 @@ impl ReactiveSession {
     #[inline(never)]
     fn history_room(&self, history: &str) -> Result<(), DispatchFailure> {
         let windowed = self.windows.contains(history);
-        let (held, limit, code, refusal) = if let Some(stream) = self.reading_streams.get(history) {
-            let limit = stream.limit;
+        let (held, limit, code, kind) = if let Some(stream) = self.reading_streams.get(history) {
             (
                 stream.occurrences.len(),
-                limit,
+                stream.limit,
                 RejectionCode::HistoryLimit,
-                format!("reading stream {history} reached its history limit {limit}"),
+                0u8,
             )
         } else if let Some(series) = self.decision_series.get(history) {
-            let limit = series.limit;
             (
                 series.revisions.len(),
-                limit,
+                series.limit,
                 RejectionCode::HistoryLimit,
-                format!("decision series {history} reached its history limit {limit}"),
+                1u8,
             )
         } else {
             let renewal = &self.renewals[history];
-            let limit = renewal.limit;
             (
                 renewal.occurrences.len(),
-                limit,
+                renewal.limit,
                 RejectionCode::RenewalLimit,
-                format!("renewable {history} reached its limit {limit}"),
+                2u8,
             )
         };
         if windowed && held >= MAX_WINDOWED_RECORDS {
@@ -7717,6 +10211,11 @@ impl ReactiveSession {
             ));
         }
         if !windowed && held >= limit {
+            let refusal = match kind {
+                0 => format!("reading stream {history} reached its history limit {limit}"),
+                1 => format!("decision series {history} reached its history limit {limit}"),
+                _ => format!("renewable {history} reached its limit {limit}"),
+            };
             return Err(DispatchFailure::rejected(
                 RejectionOrigin::Limit,
                 code,
@@ -7737,7 +10236,7 @@ impl ReactiveSession {
             self.oldest_live_beyond_window(&stream.occurrences, |record| &record.id, stream.limit)
         } else {
             let renewal = &self.renewals[history];
-            self.oldest_live_beyond_window(&renewal.occurrences, String::as_str, renewal.limit)
+            self.oldest_live_beyond_window(&renewal.occurrences, Name::as_str, renewal.limit)
         };
         if let Some(oldest) = oldest {
             self.retire(history, oldest);
@@ -7745,7 +10244,7 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
-        self.collector.queue(&record);
+        self.collector.retired(&record);
         Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {
@@ -7754,27 +10253,36 @@ impl ReactiveSession {
         });
     }
 
-    /// Before a journal entry is added under `journal window N`.
+    /// Before a journal entry is added under `journal window N`. The retired
+    /// entries are the journal's oldest, and `retired` holds them by name.
     fn retire_journal_entry(&mut self) {
         let Some(window) = self.journal_window else {
             return;
         };
-        let names = (0..self.journal.len())
-            .map(|index| self.journal_name(index))
-            .collect::<Vec<_>>();
-        if let Some(oldest) = self.oldest_live_beyond_window(&names, String::as_str, window) {
-            let index = names.iter().position(|name| name == &oldest).unwrap();
-            let released = self.journal[index]
-                .because
-                .iter()
-                .chain(&self.journal[index].permitted_by)
-                .cloned()
-                .collect::<Vec<_>>();
-            for record in released {
-                self.release_pin(&record);
-            }
-            self.retire("journal", oldest);
+        let index = (0..self.journal.len())
+            .take_while(|index| self.retired.contains_key(&self.journal_name(*index)))
+            .count();
+        if self.journal.len() - index < window {
+            return;
         }
+        let released = self.journal[index]
+            .because
+            .iter()
+            .chain(&self.journal[index].permitted_by)
+            .cloned()
+            .collect::<Vec<_>>();
+        for record in released {
+            self.release_pin(&record);
+        }
+        // No withdrawal is of an entry (one naming a record spelled like it
+        // is the record's), so the collector is not told.
+        let entry = self.journal_name(index);
+        Arc::make_mut(&mut self.departure_candidates).insert(entry.clone());
+        Arc::make_mut(&mut self.retired).insert(entry.clone(), self.sequence);
+        self.effects.push(EffectReport::Retire {
+            history: "journal".to_string(),
+            record: entry,
+        });
     }
 
     /// A value newly read from history carries `withdrawn` if what it rests on
@@ -7784,13 +10292,21 @@ impl ReactiveSession {
         &self,
         mut provenance: Provenance,
     ) -> Result<Provenance, EvalError> {
+        // Both what is withdrawn and the late caveats are read for the
+        // evidence the record lists, which `read_live` leaves as it is.
+        consult(|record| {
+            if !provenance.evidence.is_empty() {
+                record.listed.push(provenance.evidence.clone());
+            }
+        });
         self.read_live(&mut provenance)?;
-        if provenance
-            .evidence
-            .iter()
-            .any(|evidence| self.withdrawal_of(evidence).is_some())
+        if !self.withdrawals.is_empty()
+            && provenance
+                .evidence
+                .iter()
+                .any(|evidence| self.find_withdrawal(evidence).is_some())
         {
-            provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
+            provenance.merge(withdrawn_lineage())?;
         }
         Ok(provenance)
     }
@@ -7802,6 +10318,30 @@ impl ReactiveSession {
     /// matter. A caveat gained here is live: a take-back reaches it. See
     /// spec/caveat-caveat-sources-0.1.md.
     fn read_live(&self, provenance: &mut Provenance) -> Result<(), EvalError> {
+        if self.late_caveat_nodes.is_empty()
+            || !self.graph.qualifies_any()
+            || provenance.evidence.is_empty()
+        {
+            return Ok(());
+        }
+        // Fast check before allocating any sets: most readings carry no
+        // missing late caveats.
+        let late_name = |caveat: NodeId| {
+            self.late_caveat_nodes
+                .binary_search_by_key(&caveat, |&(id, _)| id)
+                .ok()
+                .map(|at| self.late_caveat_nodes[at].1.as_str())
+        };
+        let has_candidate = provenance.evidence.iter().any(|name| {
+            self.symbols.get(name.as_str()).is_some_and(|&evidence| {
+                self.graph.qualifiers(evidence).iter().any(|link| {
+                    late_name(link.other).is_some_and(|caveat| !provenance.caveats.contains(caveat))
+                })
+            })
+        });
+        if !has_candidate {
+            return Ok(());
+        }
         let reached = self
             .live_late_relations(provenance)
             .into_iter()
@@ -7810,53 +10350,89 @@ impl ReactiveSession {
         if reached.is_empty() {
             return Ok(());
         }
-        // The caveat and whatever qualifies it, as `qualify` adds them.
-        let names = self
-            .symbols
-            .iter()
-            .filter(|(_, id)| reached.contains(id))
-            .map(|(name, _)| name.clone())
-            .chain(self.incoming_caveats(reached.iter().copied()))
-            .collect::<Vec<_>>();
-        provenance.merge(&Provenance::from_names([], names)?)
+        // The caveat and whatever qualifies it, as `qualify` adds them. Each
+        // node has one name, so a reached caveat's name is its late name.
+        // Their order matters only past the identifier limit, where it
+        // decides which limit `from_names` reports: there they go in name
+        // order, as `caveats_reaching` gives caveats past it.
+        // Each is the names index's own copy of the name.
+        let mut names = if reached.len() > reactive_expr::MAX_PROVENANCE_IDENTIFIERS {
+            let mut names = reached
+                .iter()
+                .filter_map(|&id| self.symbols.shared_name_of(id))
+                .collect::<Vec<_>>();
+            names.sort_unstable();
+            names
+        } else {
+            self.late_caveat_nodes
+                .iter()
+                .filter(|(id, _)| reached.contains(id))
+                .map(|(id, name)| self.record_name(*id, name))
+                .collect::<Vec<_>>()
+        };
+        let before = names.len();
+        names.extend(self.incoming_caveats(reached.iter().copied(), before));
+        provenance.merge(&Provenance::from_shared([], names)?)
     }
 
     /// Each live `C qualifies E` relation for a late caveat C that
     /// `provenance` lacks, where it lists E: what `read_live` adds, as
     /// (C, E) pairs.
     fn live_late_relations(&self, provenance: &Provenance) -> BTreeSet<(NodeId, NodeId)> {
-        if self.late_caveats.is_empty() {
-            return BTreeSet::new();
-        }
-        // A handful of names each: sorted lists, not hash sets.
-        let mut late = self
-            .late_caveats
+        // A late caveat's name, by node. A handful of caveats each: a sorted
+        // list, not a hash set.
+        let late_name = |caveat: NodeId| {
+            self.late_caveat_nodes
+                .binary_search_by_key(&caveat, |&(id, _)| id)
+                .ok()
+                .map(|at| self.late_caveat_nodes[at].1.as_str())
+        };
+        let lacks = |caveat: NodeId| {
+            late_name(caveat).is_some_and(|name| !provenance.caveats.contains(name))
+        };
+        if self
+            .late_caveat_nodes
             .iter()
-            .filter(|caveat| !provenance.caveats.contains(*caveat))
-            .filter_map(|caveat| self.symbols.get(caveat).copied())
-            .collect::<Vec<_>>();
-        if late.is_empty() {
+            .all(|(_, caveat)| provenance.caveats.contains(caveat.as_str()))
+        {
             return BTreeSet::new();
         }
-        late.sort_unstable();
-        let mut listed = provenance
+        // Every relation from one of them into the evidence `provenance`
+        // lists, so a pair appears once for each of its relations.
+        let mut relations = provenance
             .evidence
             .iter()
             .filter_map(|name| self.symbols.get(name.as_str()).copied())
-            .collect::<Vec<_>>();
-        listed.sort_unstable();
-        self.graph
-            .edges
-            .iter()
-            .filter(|edge| {
-                edge.relation == Relation::Qualifies
-                    && late.binary_search(&edge.from).is_ok()
-                    && listed.binary_search(&edge.to).is_ok()
+            .flat_map(|evidence| {
+                self.graph
+                    .qualifiers(evidence)
+                    .iter()
+                    .filter(|link| lacks(link.other))
+                    .map(move |link| (link.other, evidence))
             })
-            .map(|edge| (edge.from, edge.to))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .filter(|&(caveat, evidence)| self.has_live_relation(caveat, evidence))
+            .collect::<Vec<_>>();
+        if relations.is_empty() {
+            return BTreeSet::new();
+        }
+        relations.sort_unstable();
+        // As `has_live_relation`: a pair is live while it has more relations
+        // than take-backs have marked. A take-back names the pair's caveat
+        // and evidence, and a name has one node.
+        let marked = |(caveat, evidence): (NodeId, NodeId)| {
+            if self.taken_back.is_empty() {
+                return 0;
+            }
+            let (Some(caveat), Some(evidence)) =
+                (late_name(caveat), self.symbols.name_of(evidence))
+            else {
+                return 0;
+            };
+            self.taken_back.count(caveat, evidence)
+        };
+        relations
+            .chunk_by(|left, right| left == right)
+            .filter(|run| run.len() > marked(run[0]))
+            .map(|run| run[0])
             .collect()
     }
 
@@ -7868,51 +10444,64 @@ impl ReactiveSession {
         name: &str,
         grounds: bool,
     ) -> Result<Option<Tracked<bool>>, EvalError> {
-        let withdrawn: Vec<&Withdrawal> = match kind {
-            WITHDRAWN => self.withdrawal_of(name).into_iter().collect(),
-            "withdrawn_latest" => self
-                .reading_streams
-                .get(name)
-                .and_then(|stream| stream.current.as_deref())
-                .and_then(|current| self.withdrawal_of(current))
-                .into_iter()
-                .collect(),
+        let single = match kind {
+            WITHDRAWN => Some(self.withdrawal_of(name)),
+            "withdrawn_latest" => Some(
+                self.reading_streams
+                    .get(name)
+                    .and_then(|stream| stream.current.as_deref())
+                    .and_then(|current| self.withdrawal_of(current)),
+            ),
             "permission_withdrawn" => {
                 let current = match self.decision_series.get(name) {
                     Some(series) => series.current.as_deref(),
                     None => Some(name),
                 };
-                current
-                    .and_then(|current| self.commitment_permissions.get(current))
-                    .and_then(|record| self.withdrawal_of(&record.grant))
-                    .into_iter()
-                    .collect()
+                Some(
+                    current
+                        .and_then(|current| self.commitment_permissions.get(current))
+                        .and_then(|record| self.withdrawal_of(&record.grant)),
+                )
             }
-            "rests_on_withdrawn" => {
-                let current = match self.decision_series.get(name) {
-                    Some(series) => series.current.as_deref(),
-                    None => Some(name),
-                };
-                let evidence = current
-                    .and_then(|current| self.commitment_grounds.get(current))
-                    .map(|grounds| grounds.evidence.clone())
-                    .unwrap_or_default();
-                evidence
-                    .iter()
-                    .filter_map(|evidence| self.withdrawal_of(evidence))
-                    .collect()
-            }
-            _ => return Ok(None),
+            _ => None,
         };
-        let mut provenance = Provenance::default();
-        for withdrawal in &withdrawn {
-            provenance.merge(&if grounds {
-                self.qualify_core(&withdrawal.because, &[])?
-            } else {
-                self.qualify(&withdrawal.because, &[])?
-            })?;
+        if let Some(found) = single {
+            return match found {
+                None => Ok(Some(Tracked::plain(false))),
+                Some(withdrawal) => {
+                    let provenance = if grounds {
+                        self.qualify_core(&withdrawal.because, &[])?
+                    } else {
+                        self.qualify(&withdrawal.because, &[])?
+                    };
+                    Tracked::new(true, provenance).map(Some)
+                }
+            };
         }
-        Tracked::new(!withdrawn.is_empty(), provenance).map(Some)
+        if kind != "rests_on_withdrawn" {
+            return Ok(None);
+        }
+        let current = match self.decision_series.get(name) {
+            Some(series) => series.current.as_deref(),
+            None => Some(name),
+        };
+        let evidence = current
+            .and_then(|current| self.commitment_grounds.get(current))
+            .map(|grounds| grounds.evidence.clone())
+            .unwrap_or_default();
+        let mut found_any = false;
+        let mut provenance = Provenance::default();
+        for ev in &evidence {
+            if let Some(withdrawal) = self.withdrawal_of(ev) {
+                found_any = true;
+                provenance.merge(&if grounds {
+                    self.qualify_core(&withdrawal.because, &[])?
+                } else {
+                    self.qualify(&withdrawal.because, &[])?
+                })?;
+            }
+        }
+        Tracked::new(found_any, provenance).map(Some)
     }
 
     /// A predicate asked of `occurrence(EVIDENCE, INDEX)` arrives as kind
@@ -7921,60 +10510,38 @@ impl ReactiveSession {
     /// other predicate, and otherwise the plain kind with the held occurrence
     /// the index names, or `None` when it names none: the predicate is then
     /// false. See spec/caveat-earlier-occurrence-0.1.md.
-    fn at_occurrence<'a>(&self, kind: &'a str, name: &str) -> Option<(&'a str, Option<String>)> {
-        if kind == reactive_expr::AT_REVISION || kind == reactive_expr::AT_REVISION_RESOLVED {
-            let revision = name
-                .rsplit_once('#')
-                .and_then(|(series, index)| self.held_revision(series, index.parse().ok()?));
-            let kind = if kind == reactive_expr::AT_REVISION {
-                "rests_on_withdrawn"
-            } else {
-                reactive_expr::RESOLVED
-            };
-            return Some((kind, revision));
-        }
-        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
-            return Some((kind, self.latest_target(name)));
-        }
-        let kind = kind.strip_prefix(reactive_expr::AT_OCCURRENCE)?;
-        let held = name
-            .rsplit_once('#')
-            .and_then(|(evidence, index)| Some((evidence, index.parse::<f64>().ok()?)))
-            .and_then(|(evidence, index)| self.held_occurrence(evidence, index));
-        Some((kind, held))
-    }
-
-    /// `in_basis(…)`, whose target arrives as `SERIES#K|KIND|NAME#N`: whether
-    /// the revision's grounds hold the evidence named. The answer rests on the
-    /// revision's record, as `committed(…)` asked of it does; a revision or a
-    /// reference that names nothing held answers false. See
-    /// spec/caveat-in-basis-0.1.md.
-    fn in_basis(&self, target: &str, grounds: bool) -> Result<Tracked<bool>, EvalError> {
-        let malformed =
-            || EvalError::from(format!("in_basis received a malformed target {target}"));
-        let mut parts = target.splitn(3, '|');
-        let (Some(revision), Some(kind), Some(reference)) =
-            (parts.next(), parts.next(), parts.next())
-        else {
-            return Err(malformed());
-        };
-        let (series, k) = revision.rsplit_once('#').ok_or_else(malformed)?;
-        let (name, n) = reference.rsplit_once('#').ok_or_else(malformed)?;
-        let revision = if k.is_empty() {
-            match self.decision_series.get(series) {
+    /// `in_basis(…)` resolved directly without formatting/parsing a synthetic
+    /// target string: whether the revision's grounds hold the evidence named.
+    /// The answer rests on the revision's record, as `committed(…)` asked of it
+    /// does; a revision or a reference that names nothing held answers false.
+    /// See spec/caveat-in-basis-0.1.md.
+    fn in_basis_direct(
+        &self,
+        series: &str,
+        revision_index: Option<f64>,
+        kind: &str,
+        name: &str,
+        at_index: Option<f64>,
+        grounds: bool,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let revision = match revision_index {
+            None => match self.decision_series.get(series) {
                 Some(series) => series.current.clone(),
                 None => self
                     .predicate("committed", series)?
                     .then(|| series.to_string()),
-            }
-        } else {
-            k.parse().ok().and_then(|k| self.held_revision(series, k))
+            },
+            Some(k) => self.held_revision(series, k),
         };
         let evidence = match kind {
             "named" => Some(self.occurrence(name).to_string()),
             "latest" => self.latest_target(name),
-            "at" => n.parse().ok().and_then(|n| self.held_occurrence(name, n)),
-            _ => return Err(malformed()),
+            "at" => at_index.and_then(|n| self.held_occurrence(name, n)),
+            _ => {
+                return Err(EvalError::from(format!(
+                    "in_basis received unknown kind {kind}"
+                )))
+            }
         };
         let (Some(revision), Some(evidence)) = (revision, evidence) else {
             return Ok(Tracked::plain(false));
@@ -8014,21 +10581,26 @@ impl ReactiveSession {
         // A stream's `k`th reading is `STREAM@k`, while the stream holds it:
         // spec/caveat-reading-index-0.1.md.
         if let Some(stream) = self.reading_streams.get(evidence) {
-            let name = format!("{evidence}@{index}");
+            if index > u64::MAX as f64 {
+                return None;
+            }
+            let target = index as u64;
             return stream
                 .occurrences
                 .iter()
-                .any(|occurrence| occurrence.id == name)
-                .then_some(name)
-                .filter(|name| !self.is_retired(name));
+                .find(|occurrence| occurrence.ordinal == target)
+                .filter(|occurrence| !self.is_retired(&occurrence.id))
+                .map(|occurrence| occurrence.id.clone());
         }
         let renewal = self.renewals.get(evidence)?;
+        consult(|record| record.renewals.push(consulted_key("", evidence)));
         let name = if index == 1.0 {
             evidence.to_string()
         } else {
             format!("{evidence}@{index}")
         };
-        (renewal.occurrences.contains(&name) && !self.is_retired(&name)).then_some(name)
+        (renewal.occurrences.iter().any(|held| *held == name) && !self.is_retired(&name))
+            .then_some(name)
     }
 
     /// `occurrence(EVIDENCE, INDEX)` in an effect: the held occurrence the
@@ -8038,7 +10610,7 @@ impl ReactiveSession {
         &mut self,
         evidence: &str,
         index: &Expr,
-        parameters: &Parameters,
+        parameters: &Parameters<'_>,
     ) -> Result<(String, Provenance), DispatchFailure> {
         let tracked = self.evaluate(index, parameters)?;
         let Value::Number(number) = tracked.value else {
@@ -8051,7 +10623,7 @@ impl ReactiveSession {
             )
             .into());
         };
-        self.collector_dirty(CollectorOwner::Record(occurrence.clone()));
+        self.collector_dirty(|_| CollectorOwner::Record(occurrence.as_str().into()));
         Ok((occurrence, tracked.provenance))
     }
 
@@ -8067,7 +10639,7 @@ impl ReactiveSession {
         let names = self
             .symbols
             .iter()
-            .map(|(name, id)| (*id, name.as_str()))
+            .map(|(name, id)| (*id, name))
             .collect::<HashMap<_, _>>();
         let mut sorted = self.symbols.iter().collect::<Vec<_>>();
         sorted.sort_by_key(|(name, _)| *name);
@@ -8089,7 +10661,7 @@ impl ReactiveSession {
                 ),
                 NodeKind::Commitment { open, .. } => {
                     commitments.push(MapCommitment {
-                        action: name.clone(),
+                        action: name.to_owned(),
                         open: *open,
                         retained_authorship: crate::map::retained_authorship(
                             &self.graph,
@@ -8117,7 +10689,7 @@ impl ReactiveSession {
                 NodeKind::Observation { .. } => ("observation", None, None, None),
             };
             symbols.push(GameSymbol {
-                name: name.clone(),
+                name: name.to_owned(),
                 kind: kind.into(),
                 source,
                 written_by: self.graph.origin(*id).map(str::to_string),
@@ -8131,9 +10703,9 @@ impl ReactiveSession {
             binding_qualifications: self.binding_qualifications.clone(),
             binding_explanations: self.binding_explanations.clone(),
             value_grounds: self.states.grounds(),
-            commitment_grounds: (*self.commitment_grounds).clone(),
-            decision_journal: (*self.journal).clone(),
-            retired: (*self.retired).clone(),
+            commitment_grounds: (**self.commitment_grounds).clone(),
+            decision_journal: self.journal.to_vec(),
+            retired: self.listed_retired(),
             windows: self
                 .windows
                 .iter()
@@ -8142,30 +10714,31 @@ impl ReactiveSession {
                 .collect(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
-            observations: (*self.observations).clone(),
+            observations: self.observation_names(),
             identifiers: self.identifiers.texts().to_vec(),
-            withdrawals: (*self.withdrawals).clone(),
-            taken_back: (*self.taken_back).clone(),
+            withdrawals: (**self.withdrawals).clone(),
+            taken_back: (**self.taken_back).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
             retention_reasons: (*self.retention_reasons).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
-            commitment_bases: (*self.commitment_bases).clone(),
-            reading_streams: (*self.reading_streams).clone(),
-            decision_series: (*self.decision_series).clone(),
+            unset: self.states.unset_names(),
+            commitment_bases: self.commitment_bases.to_map(),
+            reading_streams: self.reading_streams.to_map(),
+            decision_series: (**self.decision_series).clone(),
             irreversible: (*self.irreversible).clone(),
             forecloses: (*self.foreclosures).clone(),
-            observation_qualifications: (*self.observation_qualifications).clone(),
-            examination_qualifications: (*self.examination_qualifications).clone(),
-            reopening_qualifications: (*self.reopening_qualifications).clone(),
+            observation_qualifications: self.observation_qualifications.to_map(),
+            examination_qualifications: self.examination_qualifications.to_map(),
+            reopening_qualifications: self.reopening_qualifications.to_map(),
             predicate_qualifications: (*self.predicate_qualifications).clone(),
             controls: (*self.controls).clone(),
             clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
-            source_id: self.source_id.clone(),
-            source_sha256: self.source_sha256.clone(),
+            source_id: self.source_id.to_string(),
+            source_sha256: self.source_sha256.to_string(),
             source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
@@ -8174,6 +10747,7 @@ impl ReactiveSession {
                 .states
                 .names()
                 .zip(self.states.cells.iter())
+                .filter(|(_, cell)| !cell.unset)
                 .map(|(name, cell)| (name.clone(), cell.value.value))
                 .collect(),
             world: (*self.world).clone(),
@@ -8228,6 +10802,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             value,
             stance,
             note,
+            with,
         } => Effect::Sample {
             stream: rename(stream),
             value: value.rename_symbols(names),
@@ -8237,6 +10812,15 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             note: note
                 .as_ref()
                 .map(|note| Box::new(note.rename_symbols(names))),
+            with: with.as_ref().map(|with| {
+                Box::new(ReadingCaveats {
+                    caveats: with.caveats.iter().map(&rename).collect(),
+                    condition: with
+                        .condition
+                        .as_ref()
+                        .map(|condition| condition.rename_symbols(names)),
+                })
+            }),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
         Effect::Qualify {
@@ -8283,6 +10867,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
         },
+        Effect::Unset { name } => Effect::Unset { name: name.clone() },
         Effect::Set {
             name,
             value,
@@ -8401,6 +10986,29 @@ fn rename_selector(
     }
 }
 
+/// Show `value` as `TARGET.PROPERTY`, in place when it is shown already, so
+/// that the names are copied only when they are first shown.
+fn set_shown<T>(
+    shown: &mut BTreeMap<String, BTreeMap<String, T>>,
+    target: &str,
+    property: &str,
+    value: T,
+) {
+    let Some(properties) = shown.get_mut(target) else {
+        shown.insert(
+            target.to_owned(),
+            BTreeMap::from([(property.to_owned(), value)]),
+        );
+        return;
+    };
+    match properties.get_mut(property) {
+        Some(held) => *held = value,
+        None => {
+            properties.insert(property.to_owned(), value);
+        }
+    }
+}
+
 /// Stop showing `TARGET.PROPERTY`, and the target once it shows nothing.
 fn remove_shown<T>(
     shown: &mut BTreeMap<String, BTreeMap<String, T>>,
@@ -8447,6 +11055,31 @@ fn source_identity(source: &str) -> String {
 fn source_digest(source: &str) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(source.as_bytes()))
+}
+
+/// `CAVEAT[, CAVEAT...] [when CONDITION]`, the words after a sample's
+/// `with`, or None when they do not have that shape: each caveat once, and
+/// a condition that parses.
+fn reading_caveats(words: &[&str]) -> Option<ReadingCaveats> {
+    let at = words.iter().position(|word| *word == "when");
+    let (list, condition) = match at {
+        Some(at) if at + 1 < words.len() => (
+            &words[..at],
+            Some(reactive_expr::parse_unresolved(&words[at + 1..].join(" ")).ok()?),
+        ),
+        Some(_) => return None,
+        None => (words, None),
+    };
+    let list = list.join(" ");
+    let mut caveats = Vec::new();
+    for caveat in list.split(',') {
+        let caveat = identifier(caveat.trim()).ok()?;
+        if caveat == "when" || caveats.contains(&caveat) {
+            return None;
+        }
+        caveats.push(caveat);
+    }
+    Some(ReadingCaveats { caveats, condition })
 }
 
 fn identifier(name: &str) -> Result<String, String> {
@@ -8540,6 +11173,11 @@ pub(crate) fn parse_directive_at(
     position: crate::parser::Position,
 ) -> Option<Result<Directive, String>> {
     let words = syntax_words(line);
+    // spec/caveat-routed-work-0.1.md: only this exact statement, so a relation
+    // about evidence named `work` still reads as one.
+    if matches!(words.as_slice(), ["work", "skips", "other", "routes"]) {
+        return Some(Ok(Directive::RoutedWork));
+    }
     let keyword = words.first().copied()?;
     if !matches!(
         keyword,
@@ -8559,13 +11197,34 @@ pub(crate) fn parse_directive_at(
             | "agent"
             | "proc"
             | "define"
+            | "threshold"
     ) {
+        return None;
+    }
+    // A relation about evidence named `agent` or `threshold` (`agent
+    // supports c;`) is a relation, as it was before those words began
+    // statements (1.4.0 and the Thresholds draft). Neither statement has a
+    // three-word form with a relation word in second place.
+    if matches!(keyword, "agent" | "threshold")
+        && matches!(
+            words.as_slice(),
+            [_, "supports" | "opposes" | "qualifies", _]
+        )
+    {
         return None;
     }
     Some((|| {
         match keyword {
         "proc" => parse_procedure(line, position),
         "define" => parse_define(line),
+        "threshold" => match words.as_slice() {
+            ["threshold", name, "=", value] => Ok(Directive::Threshold {
+                name: identifier(name)?,
+                value: Number::parse(value)
+                    .map_err(|_| "threshold expects NAME = NUMBER".to_string())?,
+            }),
+            _ => Err("threshold expects NAME = NUMBER".into()),
+        },
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, clause @ ("limit" | "window"), limit] => {
@@ -8798,6 +11457,26 @@ pub(crate) fn parse_directive_at(
             })),
             _ => Err("clock expects EVENT every STEP [integer]".into()),
         },
+        // `state NAME unset [min LOW max HIGH];`, which did not load before
+        // spec/caveat-unset-states-0.1.md. An assignment such as
+        // `state n= unset` still initializes from an ordinary name.
+        "state" if words.get(2) == Some(&"unset") && !line.contains('=') => {
+            let (min, max) = match &words[3..] {
+                [] => (
+                    Number::parse("-1000000000000")?,
+                    Number::parse("1000000000000")?,
+                ),
+                ["min", min, "max", max] => bounds(min, max)?,
+                _ => return Err("state expects NAME = EXPRESSION or NAME unset, each [min LOW max HIGH]".into()),
+            };
+            Ok(Directive::State {
+                name: identifier(words[1])?,
+                initial: reactive_expr::parse_unresolved("0")?,
+                min,
+                max,
+                unset: true,
+            })
+        }
         "state" => {
             let (name, initial) = line
                 .trim_start_matches("state")
@@ -8823,6 +11502,7 @@ pub(crate) fn parse_directive_at(
                 initial: reactive_expr::parse_unresolved(&tokens[..end].join(" "))?,
                 min,
                 max,
+                unset: false,
             })
         }
         "event" => {
@@ -8955,6 +11635,13 @@ fn effect_candidates(words: &[&str]) -> Vec<usize> {
                     | "withdraw"
             )
         {
+            candidates.push(index);
+        }
+        // `unset` came in 1.5 and is a legal name: it is an effect word only
+        // as the last two words, `unset STATE`, so a rule that does not load
+        // reports the error it reported before
+        // (spec/caveat-unset-states-0.1.md).
+        if depth == 0 && *token == "unset" && index + 2 == words.len() {
             candidates.push(index);
         }
         // `hold` and `release` came after 1.0 and are legal names: one is an
@@ -9614,8 +12301,23 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         }
         ["sample", stream, "=", rest @ ..] if !rest.is_empty() => {
             // The stance is optional: spec/caveat-neutral-sample-0.1.md.
-            const FORM: &str =
-                "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]";
+            const FORM: &str = "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]";
+            // `with` is a word only where what follows parses as caveats:
+            // spec/caveat-reading-caveats-0.1.md. Before it, no 1.x program
+            // could have such words after a sample's value.
+            let with = rest
+                .iter()
+                .rposition(|word| *word == "with")
+                .and_then(|at| {
+                    if at == 0 {
+                        return None;
+                    }
+                    reading_caveats(&rest[at + 1..]).map(|with| (at, with))
+                });
+            let (rest, with) = match with {
+                Some((at, with)) => (&rest[..at], Some(Box::new(with))),
+                None => (rest, None),
+            };
             // `noting` is a word only where what follows parses: a 1.0
             // program may name a state `noting` (spec/caveat-reading-notes-0.1.md).
             let noting = rest
@@ -9657,13 +12359,17 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .map_err(|error| format!("{FORM}: {error}"))?,
                 stance,
                 note: note.map(Box::new),
+                with,
             })
         }
         ["sample", ..] => Err(
-            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION]"
+            "sample expects STREAM = EXPRESSION [supports|opposes CLAIM] [noting EXPRESSION] [with CAVEAT[, CAVEAT...] [when CONDITION]]"
                 .into(),
         ),
         ["emit", name] => Ok(Effect::Emit {
+            name: identifier(name)?,
+        }),
+        ["unset", name] => Ok(Effect::Unset {
             name: identifier(name)?,
         }),
         ["set", name, "=", rest @ ..] if !rest.is_empty() => {
@@ -9882,90 +12588,1142 @@ fn parameter_difference(signature: &[Parameter], parameters: &BTreeMap<String, f
     text
 }
 
-enum PayloadValue {
+/// Statically dispatched expression evaluator host over a `ReactiveSession`.
+/// Serves both lineage (`grounds == false`) and grounds (`grounds == true`)
+/// evaluation in one monomorphization, with direct structured resolution for
+/// `occurrence`/`reading`/`revision` and `in_basis`.
+struct SessionEval<'a> {
+    session: &'a ReactiveSession,
+    parameters: &'a Parameters<'a>,
+    grounds: bool,
+}
+
+impl reactive_expr::EvalHost for SessionEval<'_> {
+    fn number(&self, name: &str) -> Result<Option<Tracked<f64>>, EvalError> {
+        if name == reactive_expr::ELAPSED_READ {
+            return Ok(Some(Tracked::plain(self.session.elapsed)));
+        }
+        if let Some(cell) = self.session.states.get(name) {
+            if cell.unset {
+                return Err(unset_read(name));
+            }
+            return Ok(Some(if self.grounds {
+                Tracked::new(cell.value.value, cell.grounds.clone())?
+            } else {
+                cell.value.clone()
+            }));
+        }
+        let param = if self.grounds {
+            self.parameters.grounds(name)
+        } else {
+            self.parameters.lineage(name)
+        };
+        Ok(param.or_else(|| {
+            self.session
+                .constants
+                .get(name)
+                .copied()
+                .map(Tracked::plain)
+        }))
+    }
+
+    fn predicate(&self, kind: &str, name: &str) -> Result<Tracked<bool>, EvalError> {
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return match self.session.latest_target(name) {
+                Some(occurrence) => {
+                    if self.grounds {
+                        self.session.predicate_grounds(kind, &occurrence)
+                    } else {
+                        self.session.predicate_tracked(kind, &occurrence)
+                    }
+                }
+                None => Ok(Tracked::plain(false)),
+            };
+        }
+        let target = self.session.predicate_target(kind, name);
+        if self.grounds {
+            self.session.predicate_grounds(kind, target)
+        } else {
+            self.session.predicate_tracked(kind, target)
+        }
+    }
+
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+    ) -> Result<Tracked<bool>, EvalError> {
+        let (resolved_kind, target) = if kind == reactive_expr::AT_REVISION {
+            (
+                "rests_on_withdrawn",
+                self.session.held_revision(evidence, index),
+            )
+        } else if kind == reactive_expr::AT_REVISION_RESOLVED {
+            (
+                reactive_expr::RESOLVED,
+                self.session.held_revision(evidence, index),
+            )
+        } else {
+            (kind, self.session.held_occurrence(evidence, index))
+        };
+        let Some(target) = target else {
+            return Ok(Tracked::plain(false));
+        };
+        if self.grounds {
+            self.session.predicate_grounds(resolved_kind, &target)
+        } else {
+            self.session.predicate_tracked(resolved_kind, &target)
+        }
+    }
+
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+    ) -> Result<Tracked<bool>, EvalError> {
+        self.session
+            .in_basis_direct(series, revision, kind, name, at, self.grounds)
+    }
+
+    fn qualify(&self, evidence: &str, caveats: &[String]) -> Result<Provenance, EvalError> {
+        self.session
+            .qualify_read(self.session.occurrence(evidence), caveats, self.grounds)
+    }
+
+    fn history(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
+        self.session.history_read(name, query)
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        self.session.identifier_text(handle)
+    }
+}
+
+/// Statically dispatched expression evaluator host that computes value,
+/// lineage, and grounds in a single AST pass (`Effect::Commit` / `Effect::Set`).
+struct SessionEvalDual<'a> {
+    session: &'a ReactiveSession,
+    parameters: &'a Parameters<'a>,
+}
+
+impl SessionEvalDual<'_> {
+    fn predicate_dual(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        if quiet_grounds {
+            let tracked = self.session.predicate_tracked(kind, name)?;
+            return Ok((tracked.value, tracked.provenance, Provenance::default()));
+        }
+        if kind == "has_sample" {
+            let tracked = self.session.predicate_tracked("has_sample", name)?;
+            let grounds = tracked.provenance.clone();
+            return Ok((tracked.value, tracked.provenance, grounds));
+        }
+        if kind == reactive_expr::IS_SET {
+            let cell = self
+                .session
+                .states
+                .get(name)
+                .expect("validated unset state");
+            return Ok((
+                !cell.unset,
+                cell.value.provenance.clone(),
+                cell.grounds.clone(),
+            ));
+        }
+        if kind == reactive_expr::RESOLVED {
+            let tracked = self.session.resolved_predicate(name)?;
+            let grounds = tracked.provenance.clone();
+            return Ok((tracked.value, tracked.provenance, grounds));
+        }
+        if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
+            let state = self.session.state_with_caveat(name, caveat)?;
+            return Ok((
+                state.grounds.caveats.contains(caveat),
+                state.value.provenance.clone(),
+                state.grounds.clone(),
+            ));
+        }
+        if let Some(caveat) = kind.strip_prefix(CARRIES) {
+            let Some(&id) = self.session.symbols.get(name) else {
+                return Err(format!("unknown graph symbol {name}").into());
+            };
+            let observed = matches!(
+                self.session.graph.nodes.get(&id),
+                Some(NodeKind::Evidence { .. })
+            ) && !self.session.is_retired(name)
+                && (self.session.observations.holds(id)
+                    || !self.session.graph.stance(id).is_empty());
+            let core = if observed {
+                Some(self.session.qualify_checked_id(id, name, &[])?)
+            } else {
+                None
+            };
+            let value = core
+                .as_ref()
+                .is_some_and(|core| self.session.carried(&core.caveats, caveat));
+            let grounds = core.unwrap_or_default();
+            let mut lineage = grounds.clone();
+            if observed {
+                if let Some(observation) = self.session.observation_qualifications.get(name) {
+                    lineage.merge(observation)?;
+                }
+                if let Some(dependency) = self.session.predicate_dependency("observed", name) {
+                    lineage.merge(dependency)?;
+                }
+            }
+            if let Some(dependency) = self.session.predicate_dependency("observed", name) {
+                lineage.merge(dependency)?;
+            }
+            if let Some(dependency) = self.session.predicate_dependency(kind, name) {
+                lineage.merge(dependency)?;
+            }
+            return Ok((value, lineage, grounds));
+        }
+        let withdrawn_lookup = match kind {
+            WITHDRAWN => Some(self.session.withdrawal_of(name)),
+            "withdrawn_latest" => Some(
+                self.session
+                    .reading_streams
+                    .get(name)
+                    .and_then(|stream| stream.current.as_deref())
+                    .and_then(|current| self.session.withdrawal_of(current)),
+            ),
+            "permission_withdrawn" => {
+                let current = match self.session.decision_series.get(name) {
+                    Some(series) => series.current.as_deref(),
+                    None => Some(name),
+                };
+                Some(
+                    current
+                        .and_then(|current| self.session.commitment_permissions.get(current))
+                        .and_then(|record| self.session.withdrawal_of(&record.grant)),
+                )
+            }
+            _ => None,
+        };
+        if let Some(found) = withdrawn_lookup {
+            let (value, grounds, mut lineage) = match found {
+                None => (false, Provenance::default(), Provenance::default()),
+                Some(withdrawal) => {
+                    let core = self.session.qualify_core(&withdrawal.because, &[])?;
+                    let mut lin = core.clone();
+                    if let Some(obs) = self
+                        .session
+                        .observation_qualifications
+                        .get(&withdrawal.because)
+                    {
+                        lin.merge(obs)?;
+                    }
+                    if let Some(dep) = self
+                        .session
+                        .predicate_dependency("observed", &withdrawal.because)
+                    {
+                        lin.merge(dep)?;
+                    }
+                    (true, core, lin)
+                }
+            };
+            if let Some(dep) = self.session.predicate_dependency(WITHDRAWN, name) {
+                lineage.merge(dep)?;
+            }
+            return Ok((value, lineage, grounds));
+        }
+        let lin = self.session.predicate_tracked(kind, name)?;
+        let gnd = self.session.predicate_grounds(kind, name)?;
+        Ok((lin.value, lin.provenance, gnd.provenance))
+    }
+}
+
+impl reactive_expr::DualEvalHost for SessionEvalDual<'_> {
+    fn number(
+        &self,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<Option<(f64, Provenance, Provenance)>, EvalError> {
+        if name == reactive_expr::ELAPSED_READ {
+            return Ok(Some((
+                self.session.elapsed,
+                Provenance::default(),
+                Provenance::default(),
+            )));
+        }
+        if let Some(cell) = self.session.states.get(name) {
+            if cell.unset {
+                return Err(unset_read(name));
+            }
+            let gnd = if quiet_grounds {
+                Provenance::default()
+            } else {
+                cell.grounds.clone()
+            };
+            return Ok(Some((cell.value.value, cell.value.provenance.clone(), gnd)));
+        }
+        match self.parameters {
+            Parameters::Slots { signature, values } => {
+                if let Some(index) = signature.iter().position(|p| p.name == name) {
+                    return Ok(Some((
+                        values[index],
+                        Provenance::default(),
+                        Provenance::default(),
+                    )));
+                }
+            }
+            Parameters::Payload(values) => {
+                if let Some(&value) = values.get(name) {
+                    return Ok(Some((value, Provenance::default(), Provenance::default())));
+                }
+            }
+            Parameters::Arguments { lineage, grounds } => {
+                if let Some(lin) = lineage.get(name) {
+                    let gnd = if quiet_grounds {
+                        Provenance::default()
+                    } else {
+                        grounds
+                            .get(name)
+                            .map(|t| t.provenance.clone())
+                            .unwrap_or_default()
+                    };
+                    return Ok(Some((lin.value, lin.provenance.clone(), gnd)));
+                }
+            }
+        }
+        Ok(self
+            .session
+            .constants
+            .get(name)
+            .copied()
+            .map(|v| (v, Provenance::default(), Provenance::default())))
+    }
+
+    fn predicate(
+        &self,
+        kind: &str,
+        name: &str,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        if let Some(kind) = kind.strip_prefix(reactive_expr::AT_LATEST) {
+            return match self.session.latest_target(name) {
+                Some(occurrence) => self.predicate_dual(kind, &occurrence, quiet_grounds),
+                None => Ok((false, Provenance::default(), Provenance::default())),
+            };
+        }
+        let target = self.session.predicate_target(kind, name);
+        self.predicate_dual(kind, target, quiet_grounds)
+    }
+
+    fn at_occurrence(
+        &self,
+        kind: &str,
+        evidence: &str,
+        index: f64,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        let (resolved_kind, target) = if kind == reactive_expr::AT_REVISION {
+            (
+                "rests_on_withdrawn",
+                self.session.held_revision(evidence, index),
+            )
+        } else if kind == reactive_expr::AT_REVISION_RESOLVED {
+            (
+                reactive_expr::RESOLVED,
+                self.session.held_revision(evidence, index),
+            )
+        } else {
+            (kind, self.session.held_occurrence(evidence, index))
+        };
+        let Some(target) = target else {
+            return Ok((false, Provenance::default(), Provenance::default()));
+        };
+        self.predicate_dual(resolved_kind, &target, quiet_grounds)
+    }
+
+    fn in_basis(
+        &self,
+        series: &str,
+        revision: Option<f64>,
+        kind: &str,
+        name: &str,
+        at: Option<f64>,
+        quiet_grounds: bool,
+    ) -> Result<(bool, Provenance, Provenance), EvalError> {
+        let rev = match revision {
+            None => match self.session.decision_series.get(series) {
+                Some(series) => series.current.clone(),
+                None => self
+                    .session
+                    .predicate("committed", series)?
+                    .then(|| series.to_string()),
+            },
+            Some(k) => self.session.held_revision(series, k),
+        };
+        let evidence = match kind {
+            "named" => Some(self.session.occurrence(name).to_string()),
+            "latest" => self.session.latest_target(name),
+            "at" => at.and_then(|n| self.session.held_occurrence(name, n)),
+            _ => {
+                return Err(EvalError::from(format!(
+                    "in_basis received unknown kind {kind}"
+                )))
+            }
+        };
+        let (Some(rev), Some(evidence)) = (rev, evidence) else {
+            return Ok((false, Provenance::default(), Provenance::default()));
+        };
+        let held = self
+            .session
+            .commitment_grounds
+            .get(&rev)
+            .is_some_and(|grounds| grounds.evidence.contains(&evidence));
+        let (_, lin, gnd) = self.predicate_dual("committed", &rev, quiet_grounds)?;
+        Ok((held, lin, gnd))
+    }
+
+    fn qualify(
+        &self,
+        evidence: &str,
+        caveats: &[String],
+        quiet_grounds: bool,
+    ) -> Result<(Provenance, Provenance), EvalError> {
+        let target = self.session.occurrence(evidence);
+        self.session.require_kind(target, "evidence")?;
+        if !self.session.predicate("observed", target)? {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {target}"),
+            ));
+        }
+        let core = self.session.qualify_checked(target, caveats)?;
+        let gnd = if quiet_grounds {
+            Provenance::default()
+        } else {
+            core.clone()
+        };
+        let mut lin = core;
+        if let Some(obs) = self.session.observation_qualifications.get(target) {
+            lin.merge(obs)?;
+        }
+        if let Some(dep) = self.session.predicate_dependency("observed", target) {
+            lin.merge(dep)?;
+        }
+        Ok((lin, gnd))
+    }
+
+    fn history(
+        &self,
+        name: &str,
+        query: HistoryRead,
+        quiet_grounds: bool,
+    ) -> Result<(f64, Provenance, Provenance), EvalError> {
+        let tracked = self.session.history_read(name, query)?;
+        let gnd = if quiet_grounds {
+            Provenance::default()
+        } else {
+            tracked.provenance.clone()
+        };
+        Ok((tracked.value, tracked.provenance, gnd))
+    }
+
+    fn identifier(&self, handle: f64) -> Result<String, String> {
+        self.session.identifier_text(handle)
+    }
+}
+
+enum BorrowedPayloadValue<'de> {
     Number(f64),
-    Text(String),
+    Text(std::borrow::Cow<'de, str>),
 }
 
 // By hand rather than `#[serde(untagged)]`, whose error names the Rust enum
 // ("did not match any variant of untagged enum PayloadValue"); this one says
 // what a parameter takes and what it was given.
-impl<'de> serde::Deserialize<'de> for PayloadValue {
+impl<'de> serde::Deserialize<'de> for BorrowedPayloadValue<'de> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct Visitor;
-        impl serde::de::Visitor<'_> for Visitor {
-            type Value = PayloadValue;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = BorrowedPayloadValue<'de>;
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("a number or text")
             }
-            fn visit_f64<E>(self, value: f64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value))
+            fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value))
             }
-            fn visit_i64<E>(self, value: i64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value as f64))
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value as f64))
             }
-            fn visit_u64<E>(self, value: u64) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Number(value as f64))
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Number(value as f64))
             }
-            fn visit_str<E>(self, value: &str) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Text(value.to_string()))
+            fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Borrowed(
+                    value,
+                )))
             }
-            fn visit_string<E>(self, value: String) -> Result<PayloadValue, E> {
-                Ok(PayloadValue::Text(value))
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Owned(
+                    value.to_string(),
+                )))
+            }
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+                Ok(BorrowedPayloadValue::Text(std::borrow::Cow::Owned(value)))
             }
         }
         deserializer.deserialize_any(Visitor)
     }
 }
 
-struct Payload(BTreeMap<String, PayloadValue>);
+struct SlotPayloadSeed<'a> {
+    signature: &'a [Parameter],
+    slots: &'a mut [f64; 8],
+    present: &'a mut u8,
+}
 
-impl<'de> serde::Deserialize<'de> for Payload {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Payload;
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an object of unique event parameters")
+impl<'de> serde::de::DeserializeSeed<'de> for SlotPayloadSeed<'_> {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de> serde::de::Visitor<'de> for SlotPayloadSeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("an object of unique event parameters")
+    }
+
+    fn visit_map<M: serde::de::MapAccess<'de>>(self, mut map: M) -> Result<(), M::Error> {
+        while let Some((key, value)) =
+            map.next_entry::<std::borrow::Cow<'de, str>, BorrowedPayloadValue<'de>>()?
+        {
+            let Some(index) = self
+                .signature
+                .iter()
+                .position(|parameter| parameter.name == key.as_ref())
+            else {
+                return Err(serde::de::Error::custom("fallback"));
+            };
+            let bit = 1u8 << index;
+            if (*self.present & bit) != 0 {
+                return Err(serde::de::Error::custom("fallback"));
             }
-            fn visit_map<M: serde::de::MapAccess<'de>>(
-                self,
-                mut map: M,
-            ) -> Result<Self::Value, M::Error> {
-                let mut values = BTreeMap::new();
-                while let Some((key, value)) = map.next_entry::<String, PayloadValue>()? {
-                    if values.insert(key.clone(), value).is_some() {
-                        return Err(serde::de::Error::custom(format!(
-                            "duplicate parameter {key}"
-                        )));
+            let number = match (value, &self.signature[index].domain) {
+                (BorrowedPayloadValue::Number(number), _) => number,
+                (BorrowedPayloadValue::Text(text), domain) if !domain.is_numeric() => {
+                    let Some(position) = domain
+                        .members()
+                        .iter()
+                        .position(|member| member == text.as_ref())
+                    else {
+                        return Err(serde::de::Error::custom("fallback"));
+                    };
+                    (position + 1) as f64
+                }
+                _ => return Err(serde::de::Error::custom("fallback")),
+            };
+            self.slots[index] = number;
+            *self.present |= bit;
+        }
+        Ok(())
+    }
+}
+
+struct PayloadSeed<'a> {
+    event: &'a str,
+    signature: Option<&'a [Parameter]>,
+    resolved: &'a mut BTreeMap<String, f64>,
+    texts: &'a mut BTreeMap<String, String>,
+    first_domain_error: &'a mut Option<(String, String)>,
+}
+
+impl PayloadSeed<'_> {
+    fn record_error(&mut self, key: &str, message: String) {
+        if self
+            .first_domain_error
+            .as_ref()
+            .is_none_or(|(existing, _)| key < existing.as_str())
+        {
+            *self.first_domain_error = Some((key.to_owned(), message));
+        }
+    }
+}
+
+impl<'de> serde::de::DeserializeSeed<'de> for PayloadSeed<'_> {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de> serde::de::Visitor<'de> for PayloadSeed<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("an object of unique event parameters")
+    }
+
+    fn visit_map<M: serde::de::MapAccess<'de>>(mut self, mut map: M) -> Result<(), M::Error> {
+        let mut seen_invalid: Option<BTreeSet<String>> = None;
+        while let Some((key, value)) =
+            map.next_entry::<std::borrow::Cow<'de, str>, BorrowedPayloadValue<'de>>()?
+        {
+            if self.resolved.contains_key(key.as_ref())
+                || self.texts.contains_key(key.as_ref())
+                || seen_invalid
+                    .as_ref()
+                    .is_some_and(|set| set.contains(key.as_ref()))
+            {
+                return Err(serde::de::Error::custom(format!(
+                    "duplicate parameter {key}"
+                )));
+            }
+            let parameter = self
+                .signature
+                .and_then(|parameters| parameters.iter().find(|p| p.name == key.as_ref()));
+            match (value, parameter.map(|p| &p.domain)) {
+                (BorrowedPayloadValue::Text(text), Some(ParameterDomain::Identifier { .. })) => {
+                    if let Err(message) = Identifiers::check_text(&text) {
+                        let msg = format!("event {} parameter {key}: {message}", self.event);
+                        self.record_error(key.as_ref(), msg);
+                        seen_invalid
+                            .get_or_insert_with(BTreeSet::new)
+                            .insert(key.into_owned());
+                    } else {
+                        self.texts.insert(key.into_owned(), text.into_owned());
                     }
                 }
-                Ok(Payload(values))
+                (BorrowedPayloadValue::Number(_), Some(ParameterDomain::Identifier { .. })) => {
+                    let msg = format!(
+                        "event {} parameter {key} is an identifier: send its text",
+                        self.event
+                    );
+                    self.record_error(key.as_ref(), msg);
+                    seen_invalid
+                        .get_or_insert_with(BTreeSet::new)
+                        .insert(key.into_owned());
+                }
+                (BorrowedPayloadValue::Number(number), _) => {
+                    self.resolved.insert(key.into_owned(), number);
+                }
+                (BorrowedPayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
+                    if let Some(position) = domain
+                        .members()
+                        .iter()
+                        .position(|member| member == text.as_ref())
+                    {
+                        self.resolved
+                            .insert(key.into_owned(), (position + 1) as f64);
+                    } else {
+                        let msg = format!(
+                            "event {} parameter {key} does not accept {text}; expected one of {}",
+                            self.event,
+                            domain.members().join(", ")
+                        );
+                        self.record_error(key.as_ref(), msg);
+                        seen_invalid
+                            .get_or_insert_with(BTreeSet::new)
+                            .insert(key.into_owned());
+                    }
+                }
+                (BorrowedPayloadValue::Text(_), _) => {
+                    let msg = format!("event {} parameter {key} expects a number", self.event);
+                    self.record_error(key.as_ref(), msg);
+                    seen_invalid
+                        .get_or_insert_with(BTreeSet::new)
+                        .insert(key.into_owned());
+                }
             }
         }
-        deserializer.deserialize_map(Visitor)
+        Ok(())
     }
 }
 
 /// First-observation ranks; see `ReactiveSession::observation_ranks`. A name
 /// never observed ranks last, so a sort by `(rank, name)` puts it after the
 /// observed ones, in name order.
-pub(crate) enum ObservationRanks<'a> {
-    Ledger(HashMap<&'a str, usize>),
-    Edges {
-        symbols: &'a HashMap<String, NodeId>,
-        first: HashMap<NodeId, usize>,
-    },
+pub(crate) struct ObservationRanks<'a> {
+    symbols: &'a NameTable,
+    /// The observation ledger, in a session that has one.
+    ledger: Option<&'a Observations>,
+    graph: &'a SealedGraph,
 }
 
 impl ObservationRanks<'_> {
-    pub(crate) fn rank(&self, name: &str) -> usize {
-        match self {
-            Self::Ledger(first) => first.get(name).copied(),
-            Self::Edges { symbols, first } => {
-                symbols.get(name).and_then(|id| first.get(id).copied())
-            }
+    /// The number the ledger gave the record named `name`, or without a
+    /// ledger the number of the first relation by which it supports or
+    /// opposes a claim: the relations a record keeps are in graph order, and
+    /// so are their numbers.
+    pub(crate) fn rank(&self, name: &str) -> u64 {
+        self.symbols
+            .get(name)
+            .and_then(|id| match self.ledger {
+                Some(ledger) => ledger.rank(*id),
+                None => self.graph.stance(*id).first().map(|link| link.serial),
+            })
+            .unwrap_or(u64::MAX)
+    }
+}
+
+/// Whether a rule's route, read against the payload's values of its event's
+/// declared parameters (`declared_values`), finds a term false before any
+/// term it cannot read: the guard is then false and rests on nothing. A
+/// parameter the payload lacks ends the route unread, so the guard is
+/// evaluated as written.
+fn routed_elsewhere(route: &[(usize, f64)], declared: &[Option<f64>]) -> bool {
+    for &(place, value) in route {
+        match declared[place] {
+            Some(actual) if actual == value => {}
+            Some(_) => return true,
+            None => return false,
         }
-        .unwrap_or(usize::MAX)
+    }
+    false
+}
+
+#[cfg(test)]
+mod consulted_tests {
+    use super::*;
+
+    /// The binding groups an event makes stale, as `evaluate_bindings`
+    /// decides it.
+    fn stale_after(session: &mut ReactiveSession, event: &str, payload: &str) -> Vec<String> {
+        let before = session.clone();
+        let outcome = session.dispatch_outcome_json(event, payload).unwrap();
+        let outcome = serde_json::to_value(outcome).unwrap();
+        assert_eq!(outcome["outcome"], "accepted", "{event}: {outcome}");
+        let changes = Changes::between(&before, session);
+        before
+            .binding_groups
+            .iter()
+            .enumerate()
+            .filter(|(group, read)| {
+                let consulted = before.binding_consults[*group].as_deref();
+                changes.touch(read, consulted)
+            })
+            .map(|(_, read)| format!("{}.{}", read.target, read.property))
+            .collect()
+    }
+
+    /// Two checks' reports and a decision on both, as in the release gate
+    /// benchmark (bench/carmack/programs/release-gate.cav).
+    const GATE: &str = r#"
+claim releasable;
+caveat flaky consequence material;
+evidence tool from "the tool";
+evidence recheck from "a recheck";
+readings tests from tool limit 8;
+readings audit from tool limit 8;
+decisions gate limit 8;
+event report_tests;
+event report_audit;
+event decide;
+event flag;
+event unflag;
+event withdraw;
+on report_tests sample tests = 1 supports releasable;
+on report_audit sample audit = 1 supports releasable;
+on decide commit gate because enough using latest(tests) * latest(audit);
+on flag qualify latest(tests) with flaky;
+on unflag unqualify latest(tests) with flaky;
+on withdraw reveal recheck;
+on withdraw withdraw latest(audit) because recheck;
+bind tests.count = history_count(tests);
+bind tests.pass = latest(tests) when has_sample(tests);
+bind audit.count = history_count(audit);
+bind audit.pass = latest(audit) when has_sample(audit);
+bind gate.v = latest(gate) when committed(gate);
+"#;
+
+    #[test]
+    fn a_doubt_about_one_report_reaches_only_the_bindings_that_read_it() {
+        let mut session = ReactiveSession::from_source(GATE).unwrap();
+        for event in ["report_tests", "report_audit", "decide"] {
+            stale_after(&mut session, event, "{}");
+        }
+        // A count's lineage, a reading's and the decision's basis all list
+        // the report, so each carries the doubt.
+        let tests = ["tests.count", "tests.pass", "gate.v"];
+        assert_eq!(stale_after(&mut session, "flag", "{}"), tests);
+        assert_eq!(stale_after(&mut session, "unflag", "{}"), tests);
+        assert_eq!(
+            stale_after(&mut session, "withdraw", "{}"),
+            ["audit.count", "audit.pass", "gate.v"]
+        );
+        // A new report changes its own history only.
+        assert_eq!(
+            stale_after(&mut session, "report_tests", "{}"),
+            ["tests.count", "tests.pass"]
+        );
+    }
+
+    #[test]
+    fn a_relation_reaches_only_the_bindings_that_read_its_evidence() {
+        let source = r#"
+claim c1;
+claim c2;
+caveat k consequence material;
+k qualifies c2;
+evidence a from "what the decision used";
+evidence b from "a second look";
+a supports c1;
+b supports c1;
+evidence tool from "the tool";
+readings s from tool limit 4;
+decisions d limit 4;
+event go;
+event retract;
+event relate;
+on go sample s = 1;
+on go commit d because enough using qualified(1, a);
+on retract withdraw latest(s) because b;
+on relate reveal b supports c2;
+bind x.gone = 1 when withdrawn(latest(s));
+bind x.r = "open";
+bind x.r = "reopened" when reopened(d);
+bind x.v = latest(d) when committed(d);
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        stale_after(&mut session, "go", "{}");
+        stale_after(&mut session, "retract", "{}");
+        assert_eq!(stale_after(&mut session, "relate", "{}"), ["x.gone"]);
+    }
+
+    #[test]
+    fn a_renewal_reaches_a_record_that_looked_up_its_occurrences() {
+        let mut consulted = Consulted::default();
+        consulted.renewals.push(consulted_key("", "ci"));
+        consulted.settle();
+        let renewed = |evidence: &str| Requalified {
+            renewals: vec![consulted_key("", evidence)],
+            ..Requalified::default()
+        };
+        assert!(renewed("ci").reaches(&consulted));
+        assert!(!renewed("tree").reaches(&consulted));
+        assert!(!renewed("ci").reaches(&Consulted::default()));
+    }
+
+    #[test]
+    fn slot_bits_handles_inline_and_overflow_slots() {
+        let mut a = SlotBits::default();
+        let mut b = SlotBits::default();
+        assert!(a.is_empty());
+        assert!(!a.intersects(&b));
+        for slot in [0, 63, 64, 127, 128, 200] {
+            let mut single = SlotBits::default();
+            single.insert(slot);
+            assert!(!single.is_empty());
+            assert!(single.contains(slot));
+            assert!(!single.contains(slot + 1));
+            assert!(!a.intersects(&single));
+            a.insert(slot);
+            assert!(a.contains(slot));
+            assert!(a.intersects(&single));
+        }
+        b.insert(199);
+        assert!(!a.intersects(&b));
+        b.insert(200);
+        assert!(a.intersects(&b));
+    }
+
+    #[test]
+    fn changes_by_number_tracks_states_and_histories_past_64_slots() {
+        let mut source = String::from("evidence tool from \"tool\";\n");
+        for i in 0..70 {
+            source.push_str(&format!(
+                "state s{i} = 0 min 0 max 10;\n\
+                 readings r{i} from tool limit 4;\n\
+                 bind st.v{i} = s{i};\n\
+                 bind hi.c{i} = history_count(r{i});\n"
+            ));
+        }
+        for i in [0, 63, 64, 69] {
+            source.push_str(&format!(
+                "event set_{i};\non set_{i} set s{i} = 1;\n\
+                 event rec_{i};\non rec_{i} sample r{i} = 1;\n"
+            ));
+        }
+        let mut session = ReactiveSession::from_source(&source).unwrap();
+        for i in [0, 63, 64, 69] {
+            assert_eq!(
+                stale_after(&mut session, &format!("set_{i}"), "{}"),
+                vec![format!("st.v{i}")]
+            );
+            assert_eq!(
+                stale_after(&mut session, &format!("rec_{i}"), "{}"),
+                vec![format!("hi.c{i}")]
+            );
+        }
+    }
+
+    #[test]
+    fn no_bindings_program_skips_write_log_and_preserves_state() {
+        let source = r#"
+claim ok;
+caveat k consequence low;
+evidence e from "tool";
+readings r from e limit 4;
+state n = 0 min 0 max 10;
+event step;
+on step set n = n + 1;
+on step sample r = n supports ok;
+on step qualify latest(r) with k;
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        assert!(session.binding_groups.is_empty());
+        assert!(!session.bindings_read_graph);
+        assert!(!session.bindings_scoped_to_histories);
+        for _ in 0..3 {
+            let outcome = session.dispatch_outcome_json("step", "{}").unwrap();
+            assert_eq!(
+                serde_json::to_value(outcome).unwrap()["outcome"],
+                "accepted"
+            );
+        }
+        assert_eq!(session.reading_streams.written(), None);
+        assert_eq!(session.observation_qualifications.written(), None);
+        assert!(session.bindings.is_empty());
+        assert_eq!(session.states.value("n").unwrap().value, 3.0);
+        let saved = session.save_json().unwrap();
+        let restored = ReactiveSession::restore_json(source, &saved).unwrap();
+        assert_eq!(restored.save_json().unwrap(), saved);
+    }
+
+    #[test]
+    fn a_renewal_reaches_only_the_bindings_that_name_the_evidence() {
+        let source = r#"
+claim ok;
+caveat k consequence material;
+evidence ci from "the CI run";
+renewable ci limit 8;
+readings s from ci limit 8;
+decisions d limit 4;
+event run;
+event rerun;
+event report;
+event decide;
+event doubt;
+on run reveal ci supports ok;
+on rerun renew ci;
+on report sample s = 1;
+on decide commit d because enough using qualified(1, ci);
+on doubt qualify ci with k;
+bind x.n = history_count(s);
+bind x.v = latest(d) when committed(d);
+bind y.seen = 1 when observed(ci);
+"#;
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for event in ["run", "report", "decide"] {
+            stale_after(&mut session, event, "{}");
+        }
+        // The reading and the decision list the first occurrence, which a
+        // renewal leaves as it was; `observed(ci)` means the current one.
+        assert_eq!(stale_after(&mut session, "rerun", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "run", "{}"), ["y.seen"]);
+        assert_eq!(stale_after(&mut session, "doubt", "{}"), ["y.seen"]);
+        // A reading of the new occurrence changes its own history, and the
+        // graph that `observed(ci)` reads.
+        assert_eq!(stale_after(&mut session, "report", "{}"), ["x.n", "y.seen"]);
+    }
+}
+
+#[cfg(test)]
+mod caveat_order_tests {
+    use super::*;
+
+    /// Evidence `e`, which `flag` qualifies with `caveats` caveats.
+    fn qualified_by(caveats: usize) -> ReactiveSession {
+        let mut source = String::from(
+            "evidence e from \"tool\";\nevent report;\nevent flag;\non report reveal e;\n",
+        );
+        for caveat in 0..caveats {
+            source.push_str(&format!("caveat c{caveat} consequence low;\n"));
+        }
+        for caveat in 0..caveats {
+            source.push_str(&format!("on flag qualify e with c{caveat};\n"));
+        }
+        let mut session = ReactiveSession::from_source(&source).unwrap();
+        for event in ["report", "flag"] {
+            let outcome = session.dispatch_outcome_json(event, "{}").unwrap();
+            assert_eq!(
+                serde_json::to_value(outcome).unwrap()["outcome"],
+                "accepted"
+            );
+        }
+        session
+    }
+
+    /// Findings: the caveats reaching a node took node order at exactly 1,024
+    /// of them, though every caller puts a name ahead of them, so the last was
+    /// the name past the identifier limit (#432 review); and past the limit
+    /// they came in the symbol table's order, which the per-process hash seed
+    /// sets, so which provenance limit a refusal named changed from process
+    /// to process. Past it they come in name order; short of it, node order.
+    #[test]
+    fn caveats_reaching_past_the_identifier_limit_come_in_name_order_not_symbol_table_order() {
+        let session = qualified_by(reactive_expr::MAX_PROVENANCE_IDENTIFIERS);
+        let e = session.symbols["e"];
+        let by_symbol = session
+            .symbols
+            .iter()
+            .filter(|(name, _)| name.starts_with('c'))
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+        let mut by_name = by_symbol.clone();
+        by_name.sort_unstable();
+        let mut by_node = by_symbol.clone();
+        by_node.sort_by_key(|name| session.symbols[name]);
+        // The table does not walk 1,024 names in name order, so the order it
+        // walks them in cannot pass the checks below.
+        assert_ne!(by_symbol, by_name);
+        // Alone they stay short of the limit, and node order cannot matter.
+        assert_eq!(session.caveats_reaching([e], true, 0), by_node);
+        assert_eq!(session.incoming_caveats([e], 0), by_node);
+        // With one name ahead, the last of them is the name past the limit.
+        assert_eq!(session.caveats_reaching([e], true, 1), by_name);
+        assert_eq!(session.caveats_reaching([e], false, 1), by_name);
+        assert_eq!(session.incoming_caveats([e], 1), by_name);
+    }
+}
+
+#[cfg(test)]
+mod provenance_limit_order_tests {
+    use super::*;
+
+    /// 1,023 caveat names of 16 bytes (`s...`), to be declared first, then
+    /// 1,023 of 112 bytes (`L...`), which name order puts first. In name
+    /// order a lineage passes 65,536 name bytes at its 586th name, short of
+    /// the identifier limit; in declaration (node) order it passes 1,024
+    /// identifiers first.
+    fn caveat_names(salt: usize) -> Vec<String> {
+        let short = (0..1023).map(|i| format!("s{salt:03}_{i:04}_{}", "x".repeat(6)));
+        let long = (0..1023).map(|i| format!("L{salt:03}_{i:04}_{}", "x".repeat(102)));
+        short.chain(long).collect()
+    }
+
+    /// `caveats` as the session's symbol table walks them, and in name order.
+    fn walked_and_sorted(
+        session: &ReactiveSession,
+        caveats: &[String],
+    ) -> (Vec<String>, Vec<String>) {
+        let caveats = caveats.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        let walked = session
+            .symbols
+            .keys()
+            .filter(|name| caveats.contains(name))
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let mut sorted = walked.clone();
+        sorted.sort_unstable();
+        (walked, sorted)
+    }
+
+    /// The limit `Provenance::from_names` reports for `ahead`, then `names`.
+    fn limit(ahead: &[&str], names: &[String]) -> String {
+        Provenance::from_names(
+            ahead.iter().map(|name| name.to_string()),
+            names.iter().cloned(),
+        )
+        .unwrap_err()
+        .message
+    }
+
+    fn accepted(session: &mut ReactiveSession, event: &str) {
+        let outcome = session.dispatch_outcome_json(event, "{}").unwrap();
+        assert_eq!(
+            serde_json::to_value(outcome).unwrap()["outcome"],
+            "accepted",
+            "{event}"
+        );
+    }
+
+    /// Finding: `qualified(V, E)` listed the caveats past the identifier limit
+    /// in the symbol table's order, so whether its refusal named the
+    /// identifier limit or the byte limit changed from process to process.
+    /// Here the table's order and node order reach the identifier limit and
+    /// name order the byte limit, so of the three only name order passes; a
+    /// restored session refuses alike.
+    #[test]
+    fn a_refusal_past_both_provenance_limits_names_the_limit_name_order_reaches_first() {
+        for salt in 0..64 {
+            let names = caveat_names(salt);
+            let mut source = String::from(
+                "evidence e from \"tool\";\nstate v = 0;\nevent report;\nevent check;\n\
+                 on report reveal e;\non check set v = qualified(1, e);\n",
+            );
+            for name in &names {
+                source.push_str(&format!("caveat {name} consequence low;\n"));
+            }
+            for name in &names {
+                source.push_str(&format!("{name} qualifies e;\n"));
+            }
+            let mut session = ReactiveSession::from_source(&source).unwrap();
+            accepted(&mut session, "report");
+            let (walked, sorted) = walked_and_sorted(&session, &names);
+            let expected = limit(&["e"], &sorted);
+            if limit(&["e"], &walked) == expected {
+                // This table's order reaches the same limit: other names.
+                continue;
+            }
+            let message = format!("event check, rule 2: {expected}");
+            let mut restored = ReactiveSession::restore(&source, &session.save().unwrap()).unwrap();
+            for session in [&mut session, &mut restored] {
+                let outcome =
+                    serde_json::to_value(session.dispatch_outcome_json("check", "{}").unwrap())
+                        .unwrap();
+                assert_eq!(outcome["code"], "provenance_limit");
+                assert_eq!(outcome["message"], message.as_str());
+            }
+            return;
+        }
+        panic!("no names put the symbol table's order on the other limit");
+    }
+
+    /// Finding: past 1,024 reached late caveats `read_live` listed them in the
+    /// symbol table's order, so which limit its refusal named changed from
+    /// process to process. Here the table's order and node order reach the
+    /// identifier limit and name order the byte limit.
+    #[test]
+    fn read_live_past_the_identifier_limit_names_the_limit_name_order_reaches_first() {
+        for salt in 0..64 {
+            let names = caveat_names(salt);
+            let mut source = String::from(
+                "evidence e from \"tool\";\nevent report;\nevent flag;\non report reveal e;\n",
+            );
+            for name in &names {
+                source.push_str(&format!("caveat {name} consequence low;\n"));
+            }
+            for name in &names {
+                source.push_str(&format!("on flag qualify e with {name};\n"));
+            }
+            let mut session = ReactiveSession::from_source(&source).unwrap();
+            accepted(&mut session, "report");
+            accepted(&mut session, "flag");
+            let (walked, sorted) = walked_and_sorted(&session, &names);
+            let expected = limit(&[], &sorted);
+            if limit(&[], &walked) == expected {
+                continue;
+            }
+            // A value read through a record that lists `e`, without the
+            // caveats learned since: every one of them is read live.
+            let mut read = Provenance::from_names(["e".to_string()], []).unwrap();
+            assert_eq!(session.read_live(&mut read).unwrap_err().message, expected);
+            return;
+        }
+        panic!("no names put the symbol table's order on the other limit");
     }
 }

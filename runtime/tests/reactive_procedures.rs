@@ -428,3 +428,46 @@ fn history_arguments_freeze_their_value_and_occurrence_before_body_sampling() {
         &["calibration"],
     );
 }
+
+/// A call whose argument holds only a departed record: the argument reads a
+/// state that a skipped effect left resting on the window's first reading,
+/// which has since departed. The body's commitment still rests on it.
+#[test]
+fn a_call_passes_on_an_argument_that_holds_only_a_departed_record() {
+    let mut program = ReactiveSession::from_source(
+        r#"
+        evidence probe from "probe";
+        readings w from probe window 1;
+        decisions merge limit 8;
+        state level = 0;
+        event read_w v min 0 max 9;
+        event skip;
+        event decide;
+        proc decide_with(x) { commit merge because enough using 1; };
+        on read_w sample w = v;
+        on skip when latest(w) > 100 set level = 1;
+        on decide call decide_with(level);
+    "#,
+    )
+    .unwrap_or_else(|error| panic!("fixture failed: {error}"));
+    for (event, payload) in [
+        ("read_w", r#"{"v": 1}"#),
+        ("skip", "{}"),
+        ("read_w", r#"{"v": 2}"#),
+        ("read_w", r#"{"v": 3}"#),
+    ] {
+        program.dispatch_json(event, payload).unwrap();
+    }
+    let result = program.dispatch_json("decide", "{}").unwrap();
+    for lineage in [
+        &result.qualified_values["level"].provenance,
+        &result.commitment_bases["merge@1"].provenance,
+    ] {
+        trace(lineage, &[], &[]);
+        assert_eq!(
+            lineage.departed.keys().collect::<Vec<_>>(),
+            ["w"],
+            "{lineage:?}"
+        );
+    }
+}

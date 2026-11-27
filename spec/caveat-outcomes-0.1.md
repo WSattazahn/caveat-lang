@@ -112,7 +112,9 @@ came true. It is not evidence for or against a claim, so it takes no stance.
 - **materialized**: the caveats named, in source order;
 - the event's sequence and name;
 - **lineage**: `VALUE`'s lineage, `E`'s lineage and the effect's guard,
-  frozen, as a reopening's basis is.
+  frozen, as a reopening's basis is. In `resolve revision(SERIES, K)`, `K`'s
+  lineage joins it too, as an occurrence's index joins `E`'s
+  ([Earlier Occurrence 0.1](caveat-earlier-occurrence-0.1.md)).
 
 `resolve SERIES` names the series' current revision. `resolve
 revision(SERIES, K)` names revision `K`, current or superseded: outcomes
@@ -245,6 +247,15 @@ The outcome's evidence stays pinned against
 hold's reasons are. A series has no window and a revision holds at most one
 outcome, so the pins are bounded by the series' `limit`.
 
+Its lineage pins nothing, but, as a basis does, it keeps withdrawal
+collection from taking a record it names
+([Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md), rule 4).
+When a record the lineage names departs, the name leaves it and joins its
+history's marker, as in a basis
+([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), and restore
+checks its markers, `inherited` names and kept caveats as it checks every
+other provenance's.
+
 ## 5. Views and explain
 
 - `caveat-reactive-view/0.1` and `/0.2` show the journal entries and the
@@ -296,7 +307,8 @@ At this profile's revision:
 - `runtime/src/reactive_expr.rs` parses `resolved(…)` and `outcome(…)`, and
   hands a program's own `fn resolved` or `fn outcome` its calls.
 - `runtime/src/reactive_save.rs` restores and validates outcomes as section
-  4 says; `runtime/src/reactive_departure.rs` pins an outcome's evidence.
+  4 says; `runtime/src/reactive_departure.rs` pins an outcome's evidence
+  and compacts its lineage.
 - `runtime/src/link.rs` protects `resolve` and `materialized` by position in
   a module.
 - `runtime/tests/outcomes.rs` covers an outcome that changes nothing else, a
@@ -306,9 +318,40 @@ At this profile's revision:
   with and without an outcome, forged outcomes refused on restore, a
   withdrawn outcome's caveat, the calibration example, and a procedure
   resolving in a windowed program.
+- `runtime/tests/d041_outcome_lineage_compacts.rs` covers an outcome's
+  lineage when a record it names departs: its marker, the archive, and
+  restore.
+- `runtime/tests/d058_resolve_value_caveats_restore.rs` covers an outcome
+  whose lineage carries a caveat that its value, its revision index or its
+  occurrence index attached, resolved by a rule or by a procedure: each save
+  restores, as does that of a state and a commitment that read the outcome,
+  and a caveat nothing attaches is still refused.
 - The kit's types, `explain` and the starter's assessment carry the new
   journal change and revision field.
 
 ## Changes
 
 - 2026-10-24: drafted and implemented for 1.3.
+- 2026-11-14 (D088): the module linker keeps `resolve` and `materialized`
+  bare by position, as from 1.3.0, which made a module's
+  `fn resolve (y) = …`, with a space before its parameters, or its
+  `event resolve revision`, stop loading. Before 1.3.0 the words were the
+  module's own there. A bundle that only those releases could load is read
+  as they linked it ([Caveat 0.5](caveat-0.5-draft.md)). Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.
+- 2026-11-12 (D058): restore accepts an outcome whose lineage carries a
+  caveat that its `resolve` attached, in its value, its revision index or
+  its occurrence index. Before, restore refused the save written after such
+  a `resolve`. "An outcome" now says that `K`'s lineage joins the outcome's
+  in `resolve revision(SERIES, K)`, as it has since 1.3. See
+  [Save 0.1](caveat-save-0.1.md), "Changes".
+- 2026-11-07 (D047): an outcome's lineage keeps withdrawal collection from
+  taking a record it names. Before, collection could take a self-withdrawn
+  record that only the lineage named, and `outcome(…)` lost `withdrawn`. See
+  [Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md),
+  "Changes".
+- 2026-11-07 (D041): an outcome's lineage compacts when a record it names
+  departs, and restore checks its markers, `inherited` names and kept
+  caveats. Before, the departed names stayed in it and restore refused each
+  later save that still held them. See
+  [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md), "Changes".

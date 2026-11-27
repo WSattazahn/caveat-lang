@@ -39,6 +39,7 @@ on cancel_into_heavy when committed(stance) and not reopened(stance) and rests_o
 on cancel_into_heavy when reopened(stance) commit stance because enough using qualified(2, feint);
 
 # No reason, no switch: this is what the host cannot do.
+# caveat check: allow commit-on-withdrawable
 on parry_again commit stance because enough using qualified(1, attack_rhythm);
 
 bind boss.stance = "neutral";

@@ -191,7 +191,7 @@ mod extraction_profile_tests {
 /// Move matching withdrawals once, preserving the append order of survivors.
 /// The removed records use the departing map's lexical order for attachment;
 /// archive publication retains its separate history/number order.
-fn extract_departing_withdrawals(
+pub(super) fn extract_departing_withdrawals(
     withdrawals: &mut Arc<Vec<Withdrawal>>,
     departing: &BTreeMap<String, (String, u64)>,
 ) -> Vec<Withdrawal> {
@@ -524,8 +524,12 @@ impl ReactiveSession {
                 }
             }
         }
+        // An entry retires only under `journal window`. Without one, a
+        // retired record named `journal@K` is a stream's or a renewable
+        // evidence's, and the `K`th entry still pins what it cites (D059).
+        let retires = self.journal_window.is_some();
         for (index, entry) in self.journal.iter().enumerate() {
-            if !self.retired.contains_key(&self.journal_name(index)) {
+            if !(retires && self.retired.contains_key(&self.journal_name(index))) {
                 for name in entry.because.iter().chain(&entry.permitted_by) {
                     pin(name, "journal entry");
                 }
@@ -593,8 +597,9 @@ impl ReactiveSession {
     }
 
     pub(crate) fn add_pin(&mut self, name: &str) {
+        // A pin only adds support: nothing it gives can leave a record
+        // unreachable, so the collector is not told.
         if self.windowed() {
-            self.collector.queue(name);
             *Arc::make_mut(&mut self.pin_counts)
                 .entry(name.to_string())
                 .or_insert(0) += 1;
@@ -605,7 +610,7 @@ impl ReactiveSession {
         if !self.windowed() {
             return;
         }
-        self.collector.queue(name);
+        self.collector.released(name);
         let counts = Arc::make_mut(&mut self.pin_counts);
         let count = counts
             .get_mut(name)
@@ -613,7 +618,7 @@ impl ReactiveSession {
         *count -= 1;
         if *count == 0 {
             counts.remove(name);
-            if self.retired.contains_key(name) {
+            if self.is_retired(name) {
                 Arc::make_mut(&mut self.departure_candidates).insert(name.to_string());
             }
         }
@@ -641,16 +646,20 @@ impl ReactiveSession {
     }
 
     /// The history and number of a retired record that may depart: not a
-    /// renewable evidence's declared first occurrence.
+    /// renewable evidence's declared first occurrence. A journal entry
+    /// leaves through `depart_unpinned`'s own set, never through here.
     pub(super) fn departable(&self, record: &str) -> Option<(String, u64)> {
-        if let Some(number) = record
-            .strip_prefix("journal@")
-            .filter(|_| self.journal_window.is_some())
-        {
-            return Some(("journal".into(), number.parse().ok()?));
-        }
+        debug_assert!(!self.journal_entry_name(record), "{record}");
         let (history, number) = save::occurrence_parts(record)?;
         Some((history.to_string(), number as u64))
+    }
+
+    /// Whether `departable` names a place for `record`, without building it:
+    /// the collector asks this of every record and holder it looks at.
+    pub(super) fn departable_name(&self, record: &str) -> bool {
+        let departable = save::occurrence_parts(record).is_some();
+        debug_assert_eq!(departable, self.departable(record).is_some(), "{record}");
+        departable
     }
 
     /// At the end of an event: every retired record that nothing pins
@@ -665,23 +674,44 @@ impl ReactiveSession {
         #[cfg(debug_assertions)]
         self.check_departure_index();
         let mut departing = BTreeMap::new();
+        // A retired journal entry departs: nothing pins one. It leaves apart
+        // from everything a record's or a declared name keys, the maps of a
+        // record or declared name spelled like it included (D074, D105).
+        let mut journal = BTreeSet::new();
         // Only retirements and released pins queue candidates. Resolve the
         // complete withdrawal cascade before compaction so effects and archive
-        // entries are globally ordered, not ordered by cascade depth.
-        while let Some(record) = Arc::make_mut(&mut self.departure_candidates).pop_first() {
-            if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
+        // entries are globally ordered, not ordered by cascade depth. Each
+        // set is checked before it is written, so an event with nothing
+        // queued, or a record with no reason, copies no shared set.
+        while !self.departure_candidates.is_empty() {
+            let record = Arc::make_mut(&mut self.departure_candidates)
+                .pop_first()
+                .expect("not empty");
+            if !self.retired.contains_key(&record) {
+                continue;
+            }
+            if self.journal_entry_name(&record) {
+                journal.insert(record);
+                continue;
+            }
+            if self.pin_counts.contains_key(&record) {
                 continue;
             }
             if let Some(place) = self.departable(&record) {
-                if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                if self.withdrawal_reasons.contains_key(&record) {
+                    let reason = Arc::make_mut(&mut self.withdrawal_reasons)
+                        .remove(&record)
+                        .expect("checked above");
                     self.collector.withdrawal(&record, &reason, false);
                     self.release_pin(&reason);
                 }
                 departing.insert(record, place);
             }
         }
-        self.collect_withdrawals(&mut departing);
-        if departing.is_empty() {
+        if self.windowed() {
+            self.collect_withdrawals(&mut departing);
+        }
+        if departing.is_empty() && journal.is_empty() {
             #[cfg(debug_assertions)]
             self.check_withdrawal_collector();
             return Ok(());
@@ -734,29 +764,30 @@ impl ReactiveSession {
                 &mut holders,
             );
         }
-        if self
+        let basis_names = self
             .commitment_bases
-            .values()
-            .any(|basis| names_any(&basis.provenance, &departing))
-        {
-            for (name, basis) in Arc::make_mut(&mut self.commitment_bases).iter_mut() {
-                compact(
-                    &mut basis.provenance,
-                    &departing,
-                    &live_take_backs,
-                    sequence,
-                    &self.source_id,
-                    holder("commitment", name, "basis"),
-                    &mut holders,
-                );
-            }
+            .iter()
+            .filter(|(_, basis)| names_any(&basis.provenance, &departing))
+            .map(|(name, _)| name.to_owned())
+            .collect::<Vec<_>>();
+        for name in basis_names {
+            let basis = self.commitment_bases.get_mut(&name).expect("listed above");
+            compact(
+                &mut basis.provenance,
+                &departing,
+                &live_take_backs,
+                sequence,
+                &self.source_id,
+                holder("commitment", &name, "basis"),
+                &mut holders,
+            );
         }
         if self
             .commitment_grounds
             .values()
             .any(|grounds| names_any(grounds, &departing))
         {
-            for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {
+            for (name, grounds) in self.commitment_grounds.make_mut().iter_mut() {
                 compact(
                     grounds,
                     &departing,
@@ -768,45 +799,58 @@ impl ReactiveSession {
                 );
             }
         }
-        if self.reading_streams.values().any(|stream| {
-            names_any(&stream.selection_qualifications, &departing)
-                || stream
-                    .occurrences
-                    .iter()
-                    .any(|reading| names_any(&reading.provenance, &departing))
-        }) {
-            for (name, stream) in Arc::make_mut(&mut self.reading_streams).iter_mut() {
+        let stream_names = self
+            .reading_streams
+            .iter()
+            .filter(|(_, stream)| {
+                names_any(&stream.selection_qualifications, &departing)
+                    || stream
+                        .occurrences
+                        .iter()
+                        .any(|reading| names_any(&reading.provenance, &departing))
+            })
+            .map(|(name, _)| name.to_owned())
+            .collect::<Vec<_>>();
+        for name in stream_names {
+            let stream = self.reading_streams.get_mut(&name).expect("listed above");
+            compact(
+                &mut stream.selection_qualifications,
+                &departing,
+                &live_take_backs,
+                sequence,
+                &self.source_id,
+                holder("stream", &name, "selection_qualifications"),
+                &mut holders,
+            );
+            for reading in &mut stream.occurrences {
+                // A reading that names no departing record is not
+                // compacted, so it stays shared.
+                if departing.contains_key(&reading.id)
+                    || !names_any(&reading.provenance, &departing)
+                {
+                    continue;
+                }
+                let reading = Arc::make_mut(reading);
                 compact(
-                    &mut stream.selection_qualifications,
+                    &mut reading.provenance,
                     &departing,
                     &live_take_backs,
                     sequence,
                     &self.source_id,
-                    holder("stream", name, "selection_qualifications"),
+                    holder("stream", &reading.id, "provenance"),
                     &mut holders,
                 );
-                for reading in &mut stream.occurrences {
-                    if departing.contains_key(&reading.id) {
-                        continue;
-                    }
-                    compact(
-                        &mut reading.provenance,
-                        &departing,
-                        &live_take_backs,
-                        sequence,
-                        &self.source_id,
-                        holder("stream", &reading.id, "provenance"),
-                        &mut holders,
-                    );
-                }
             }
         }
-        if self
-            .decision_series
-            .values()
-            .any(|series| names_any(&series.selection_qualifications, &departing))
-        {
-            for (name, series) in Arc::make_mut(&mut self.decision_series).iter_mut() {
+        if self.decision_series.values().any(|series| {
+            names_any(&series.selection_qualifications, &departing)
+                || series
+                    .revisions
+                    .iter()
+                    .filter_map(|revision| revision.outcome.as_ref())
+                    .any(|outcome| names_any(&outcome.lineage, &departing))
+        }) {
+            for (name, series) in self.decision_series.make_mut().iter_mut() {
                 compact(
                     &mut series.selection_qualifications,
                     &departing,
@@ -816,6 +860,22 @@ impl ReactiveSession {
                     holder("series", name, "selection_qualifications"),
                     &mut holders,
                 );
+                // An outcome's lineage is frozen, as a basis is, and compacts
+                // as a basis does: the outcome pins only its `because`. See
+                // spec/caveat-outcomes-0.1.md.
+                for revision in &mut series.revisions {
+                    if let Some(outcome) = &mut revision.outcome {
+                        compact(
+                            &mut outcome.lineage,
+                            &departing,
+                            &live_take_backs,
+                            sequence,
+                            &self.source_id,
+                            holder("series", &revision.id, "outcome"),
+                            &mut holders,
+                        );
+                    }
+                }
             }
         }
         for (field, map) in [
@@ -832,24 +892,25 @@ impl ReactiveSession {
                 &mut self.reopening_qualifications,
             ),
         ] {
-            if map
-                .values()
-                .any(|provenance| names_any(provenance, &departing))
-            {
-                for (name, provenance) in Arc::make_mut(map).iter_mut() {
-                    if departing.contains_key(name) {
-                        continue;
-                    }
-                    compact(
-                        provenance,
-                        &departing,
-                        &live_take_backs,
-                        sequence,
-                        &self.source_id,
-                        holder("qualification", name, field),
-                        &mut holders,
-                    );
-                }
+            // Compaction changes only what names a departing record, so
+            // only those records are written, in the order of their names.
+            let named = map
+                .iter()
+                .filter(|(name, provenance)| {
+                    names_any(provenance, &departing) && !departing.contains_key(*name)
+                })
+                .map(|(name, _)| name.to_string())
+                .collect::<Vec<_>>();
+            for name in named {
+                compact(
+                    map.get_mut(&name).expect("listed above"),
+                    &departing,
+                    &live_take_backs,
+                    sequence,
+                    &self.source_id,
+                    holder("qualification", &name, field),
+                    &mut holders,
+                );
             }
         }
         if self.predicate_qualifications.values().any(|targets| {
@@ -907,56 +968,34 @@ impl ReactiveSession {
         // Removal and payload construction are interleaved in this phase.
         #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
         profile.switch(EventPhase::ArchiveConstructionAndRemoval);
-        let names = self
-            .symbols
-            .iter()
-            .map(|(name, id)| (*id, name.clone()))
-            .collect::<HashMap<_, _>>();
         let ids = departing
             .keys()
             .filter_map(|record| self.symbols.get(record).map(|id| (*id, record.clone())))
             .collect::<HashMap<_, _>>();
         let mut relations: BTreeMap<String, Vec<[String; 3]>> = BTreeMap::new();
         if !ids.is_empty() {
-            let graph = Arc::make_mut(&mut self.graph);
-            graph.edges.retain(|edge| {
-                let record = ids.get(&edge.from).or_else(|| ids.get(&edge.to));
-                let Some(record) = record else {
-                    return true;
-                };
+            self.depart_records(&ids, |edge, from, to| {
+                let record = ids
+                    .get(&edge.from)
+                    .or_else(|| ids.get(&edge.to))
+                    .expect("a removed edge touches a departing record");
                 relations.entry(record.clone()).or_default().push([
-                    names[&edge.from].clone(),
+                    from.to_string(),
                     relation_name(edge.relation).into(),
-                    names[&edge.to].clone(),
+                    to.to_string(),
                 ]);
-                false
             });
-            for id in ids.keys() {
-                graph.nodes.remove(id);
-                graph.origins.remove(id);
-            }
-            let symbols = Arc::make_mut(&mut self.symbols);
-            for record in ids.values() {
-                symbols.remove(record);
-            }
         }
-        if self
-            .observations
-            .iter()
-            .any(|name| departing.contains_key(name))
-        {
-            Arc::make_mut(&mut self.observations).retain(|name| !departing.contains_key(name));
-        }
-        let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
-            .into_iter()
-            .peekable();
+        // A record the ledger holds has a name, so a departing one is in `ids`.
+        self.depart_observations(ids.keys().copied());
+        let mut withdrawals = self.depart_withdrawals(&departing).into_iter().peekable();
         let mut taken_back = BTreeMap::<String, Vec<TakeBack>>::new();
         if self
             .taken_back
             .iter()
             .any(|record| departing.contains_key(&record.evidence))
         {
-            Arc::make_mut(&mut self.taken_back).retain(|record| {
+            self.retain_taken_back(|record| {
                 if departing.contains_key(&record.evidence) {
                     taken_back
                         .entry(record.evidence.clone())
@@ -970,7 +1009,7 @@ impl ReactiveSession {
         }
         // Stage the final boxes so ordering retains handles rather than a
         // full inline record buffer alongside the published archive.
-        let mut entries = BTreeMap::new();
+        let mut entries = Vec::with_capacity(departing.len() + journal.len());
         for (record, (history, number)) in &departing {
             let mut qualifications = BTreeMap::new();
             for (kind, map) in [
@@ -978,9 +1017,9 @@ impl ReactiveSession {
                 ("examination", &mut self.examination_qualifications),
                 ("reopening", &mut self.reopening_qualifications),
             ] {
-                if map.contains_key(record) {
-                    qualifications
-                        .insert(kind.to_string(), Arc::make_mut(map).remove(record).unwrap());
+                if let Some(provenance) = map.get(record).cloned() {
+                    map.remove(record);
+                    qualifications.insert(kind.to_string(), provenance);
                 }
             }
             if self
@@ -998,13 +1037,7 @@ impl ReactiveSession {
             }
             let withdrawal = withdrawals.next_if(|withdrawal| &withdrawal.evidence == record);
             let mut reading = None;
-            let mut journal_entry = None;
-            if history == "journal"
-                && self.journal_window.is_some()
-                && record.starts_with("journal@")
-            {
-                journal_entry = Some(());
-            } else if let Some(stream) = self.reading_streams.get(history) {
+            if let Some(stream) = self.reading_streams.get(history) {
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                 let mut profile = renewal_profile::Block::readings(stream.occurrences.len());
                 let index = stream.occurrences.iter().position(|r| &r.id == record);
@@ -1012,20 +1045,24 @@ impl ReactiveSession {
                 profile.searched(index);
                 if let Some(index) = index {
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
-                    profile.start_cow(Arc::strong_count(&self.reading_streams) > 1);
-                    let streams = Arc::make_mut(&mut self.reading_streams);
+                    profile.start_stream_cow(
+                        Arc::strong_count(&self.reading_streams) > 1,
+                        Arc::strong_count(&self.reading_streams) > 1,
+                    );
+                    let stream = self.reading_streams.get_mut(history).unwrap();
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.finish_cow();
-                    reading = Some(streams.get_mut(history).unwrap().occurrences.remove(index));
+                    // The session this event began from still holds the
+                    // reading, so the archive takes a copy of its own.
+                    reading = Some(Arc::unwrap_or_clone(stream.occurrences.remove(index)));
                     #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                     profile.removed();
                 }
+                // Only the written stream's slots are copied: each stream has
+                // its own pointer.
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
                 profile.finish(self.reading_streams.len(), || {
-                    self.reading_streams
-                        .values()
-                        .map(|stream| stream.occurrences.len())
-                        .sum()
+                    self.reading_streams[history].occurrences.len()
                 });
             } else if let Some(renewal) = self.renewals.get(history) {
                 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
@@ -1056,26 +1093,20 @@ impl ReactiveSession {
                 .expect("a departing record is retired");
             let mut entry_holders = holders.remove(record).unwrap_or_default();
             entry_holders.sort();
-            entries.insert(
-                record.clone(),
-                (
-                    journal_entry.is_some(),
-                    Box::new(ArchiveEntry {
-                        record: record.clone(),
-                        history: history.clone(),
-                        number: *number,
-                        retired_at,
-                        departed_at: sequence,
-                        relations: relations.remove(record).unwrap_or_default(),
-                        qualifications,
-                        reading,
-                        journal_entry: None,
-                        withdrawal,
-                        taken_back: taken_back.remove(record).unwrap_or_default(),
-                        holders: entry_holders,
-                    }),
-                ),
-            );
+            entries.push(Box::new(ArchiveEntry {
+                record: record.clone(),
+                history: history.clone(),
+                number: *number,
+                retired_at,
+                departed_at: sequence,
+                relations: relations.remove(record).unwrap_or_default(),
+                qualifications,
+                reading,
+                journal_entry: None,
+                withdrawal,
+                taken_back: taken_back.remove(record).unwrap_or_default(),
+                holders: entry_holders,
+            }));
         }
         debug_assert!(
             withdrawals.peek().is_none(),
@@ -1084,26 +1115,51 @@ impl ReactiveSession {
         // The exhausted IntoIter still owns its buffer. Free it before journal
         // transfer and archive publication allocate their own output buffers.
         drop(withdrawals);
-        // Departing journal entries are the oldest held: nothing pins one.
-        let journal_departing = entries.values().filter(|(journal, _)| *journal).count();
-        if journal_departing > 0 {
-            let journal = Arc::make_mut(&mut self.journal);
-            for (index, entry) in journal.drain(..journal_departing).enumerate() {
-                let name = format!("journal@{}", self.journal_departed + index + 1);
-                if let Some((_, archived)) = entries.get_mut(&name) {
-                    archived.journal_entry = Some(entry);
-                } else {
+        // Departing journal entries are the oldest held: nothing pins one. An
+        // entry's archive entry holds the entry alone: no relation,
+        // qualification, withdrawal or holder is an entry's.
+        if !journal.is_empty() {
+            let drained = self.journal.drain_front(journal.len());
+            let count = drained.len();
+            for (index, entry) in drained.into_iter().enumerate() {
+                let number = self.journal_departed + index + 1;
+                let name = format!("journal@{number}");
+                if !journal.contains(&name) {
+                    return Err(format!("journal entry {name} departed out of order"));
+                }
+                let retired_at = Arc::make_mut(&mut self.retired)
+                    .remove(&name)
+                    .expect("a departing entry is retired");
+                entries.push(Box::new(ArchiveEntry {
+                    record: name,
+                    history: "journal".to_string(),
+                    number: number as u64,
+                    retired_at,
+                    departed_at: sequence,
+                    relations: Vec::new(),
+                    qualifications: BTreeMap::new(),
+                    reading: None,
+                    journal_entry: Some(entry),
+                    withdrawal: None,
+                    taken_back: Vec::new(),
+                    holders: Vec::new(),
+                }));
+            }
+            // An entry the journal no longer holds cannot depart: each one
+            // still retired after the drain was not among the oldest held.
+            if count < journal.len() {
+                if let Some(name) = journal
+                    .iter()
+                    .find(|name| self.retired.contains_key(name.as_str()))
+                {
                     return Err(format!("journal entry {name} departed out of order"));
                 }
             }
-            self.journal_departed += journal_departing;
+            self.journal_departed += count;
         }
 
         // 3. Reported after every other effect, by history and number.
-        let mut order = entries
-            .into_values()
-            .map(|(_, entry)| entry)
-            .collect::<Vec<_>>();
+        let mut order = entries;
         order.sort_by(|a, b| a.history.cmp(&b.history).then(a.number.cmp(&b.number)));
         for entry in order {
             self.effects.push(EffectReport::Depart {
@@ -1131,6 +1187,17 @@ impl ReactiveSession {
     pub fn undrained(&self) -> usize {
         self.archive.len()
     }
+}
+
+/// Whether every departed marker `provenance` holds has its root settled:
+/// settling it again would publish nothing.
+fn settled(provenance: &Provenance) -> bool {
+    provenance.departed.values().all(|marker| {
+        marker
+            .archive_ref
+            .as_ref()
+            .is_none_or(|root| root.is_settled())
+    })
 }
 
 fn settle_provenance(
@@ -1181,26 +1248,55 @@ impl ReactiveSession {
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
-            for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {
+            let unsettled = self
+                .commitment_bases
+                .iter()
+                .filter(|(_, basis)| !settled(&basis.provenance))
+                .map(|(name, _)| name.to_owned())
+                .collect::<Vec<_>>();
+            for name in unsettled {
+                let basis = self.commitment_bases.get_mut(&name).expect("listed above");
                 settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
-            for grounds in Arc::make_mut(&mut self.commitment_grounds).values_mut() {
+            for grounds in self.commitment_grounds.make_mut().values_mut() {
                 settle_provenance(grounds, &mut nodes, &mut seen);
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
-            for stream in Arc::make_mut(&mut self.reading_streams).values_mut() {
+            let unsettled = self
+                .reading_streams
+                .iter()
+                .filter(|(_, stream)| {
+                    !settled(&stream.selection_qualifications)
+                        || stream
+                            .occurrences
+                            .iter()
+                            .any(|reading| !settled(&reading.provenance))
+                })
+                .map(|(name, _)| name.to_owned())
+                .collect::<Vec<_>>();
+            for name in unsettled {
+                let stream = self.reading_streams.get_mut(&name).expect("listed above");
                 settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
+                // A reading with only settled roots stays shared too.
                 for reading in &mut stream.occurrences {
-                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                    if !settled(&reading.provenance) {
+                        let reading = Arc::make_mut(reading);
+                        settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                    }
                 }
             }
         }
         if old.is_none_or(|old| !Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
-            for series in Arc::make_mut(&mut self.decision_series).values_mut() {
+            for series in self.decision_series.make_mut().values_mut() {
                 settle_provenance(&mut series.selection_qualifications, &mut nodes, &mut seen);
+                for revision in &mut series.revisions {
+                    if let Some(outcome) = &mut revision.outcome {
+                        settle_provenance(&mut outcome.lineage, &mut nodes, &mut seen);
+                    }
+                }
             }
         }
         for (map, unchanged) in [
@@ -1218,9 +1314,21 @@ impl ReactiveSession {
             ),
         ] {
             if unchanged.is_none_or(|old| !Arc::ptr_eq(old, map)) {
-                for provenance in Arc::make_mut(map).values_mut() {
+                // Settling a settled root publishes nothing, so only a
+                // record that holds an unsettled one is written.
+                let unsettled = map
+                    .iter()
+                    .filter(|(_, provenance)| !settled(provenance))
+                    .map(|(name, _)| name.to_string())
+                    .collect::<Vec<_>>();
+                for name in unsettled {
+                    let provenance = map.get_mut(&name).expect("listed above");
                     settle_provenance(provenance, &mut nodes, &mut seen);
                 }
+                debug_assert!(
+                    map.values().all(settled),
+                    "a qualification record holds a root left unsettled"
+                );
             }
         }
         if old.is_none_or(|old| {

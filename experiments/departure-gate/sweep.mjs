@@ -16,8 +16,8 @@ const originalWindows = [
   'c3-windows.cav', 'guarded-skip.cav', 'kit-explain-window.cav',
   'kit-types-window.cav', 'runtime-windows-world.cav',
 ].map(name => `experiments/departure-gate/${name}`);
-// Programs written in syntax rc.15 cannot load have no rc.15 behavior to
-// preserve. Each is named here, and must use that syntax.
+// Programs rc.15 cannot load have no rc.15 behavior to preserve. Each is
+// named here, and must retain the source construct that rc.15 refuses.
 const newerThanBaseline = {
   'experiments/take-back-sweep/programs/guarded.cav': /\bunqualify\b/,
   'experiments/take-back-sweep/programs/round8.cav': /\bunqualify\b/,
@@ -38,6 +38,15 @@ const newerThanBaseline = {
   'bench/carmack/programs/release-gate.cav': /\bunqualify\b/,
   'kit/examples/intel-betrayal/intel.cav': /\bwithdraw every\b|\bsum\s*\(\s*for\s/,
   'python/tests/fixtures/agents.cav': /^agent \w+ sends\b/m,
+  'scripts/review-shortlist/fixture.cav': /\bunqualify\b/,
+  'scripts/done-check/done.cav': /\bciting\b/,
+  'scripts/release-gate/release-gate.cav': /\bin_basis\b/,
+  'examples/lean-bridge/grounds.cav': /\bunqualify\b/,
+  // rc.15 treats only_if as an authored numeric function and refuses the
+  // boolean argument. 1.4 began accepting this unused body through intrinsic
+  // inference; its genuine 1.4.1 save has a dedicated restore regression.
+  // The three numeric-call 1.0 fixtures remain in the exact rc.15 sweep.
+  'runtime/tests/fixtures/only-if-functions/v1.4.1-unused.cav': /\bfn only_if\(x, y\) = x \+ y;\s*fn unused\(x\) = only_if\(x > 0, 1\);/,
 };
 
 

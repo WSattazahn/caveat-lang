@@ -4,8 +4,8 @@ caveat-lang's decisions about caveat-lang, kept in Caveat. `project.cav` is
 the program, `events.jsonl` the record of what happened in the order it
 happened, `project.scenarios.json` the tests of what the ledger must say,
 and `replay-check.mjs` the check that the record still replays. It loads and
-passes on the published 1.0.0, 1.0.2 and 1.0.3 runtimes as well as on `main`, so
-every thread that has `caveat` installed can ask it.
+passes across the published 1.x runtimes (from 1.0.0 through 1.5.0) as well as
+on `main`, so every thread that has `caveat` installed can ask it.
 
 This exists because the language's claim is that a decision should carry
 what it rested on, with its caveats, and should be found when that evidence
@@ -77,10 +77,10 @@ The withdrawn inference reads the same way:
 | Kind | Names | Meaning |
 | --- | --- | --- |
 | claims | `divergences_were_runtime`, `fix_complete`, `patch_safe`, `minor_safe`, `runtime_correct`, `approved_by_owner`, `plugin_listable` | what evidence bears on |
-| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed`, `notes_name_old_runtime` | what a reader must see next to a piece of evidence |
-| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), main runs at a minor release (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
-| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing`, `minor_release` (value: the minor, 110 for 1.1.0) | series: each may be reopened and revised, never overwritten |
-| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `main_run`, `ship_minor`, `find`, `review`, the `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
+| caveats | `inferred_not_traced`, `changes_saves`, `uncovered_windows`, `latent_since_1_0_0`, `fix_regressed`, `notes_name_old_runtime`, `chosen_by_team` | what a reader must see next to a piece of evidence |
+| evidence | the all-nine inference, the D012 repro, the 1.0.0 bisect, fuzz reruns (a stream of divergence counts), CI runs (renewable), release trees (renewable), main runs at a minor release (renewable), findings (a stream of D-numbers), named findings decisions rest on, the randomized checks, the reports decisions rest on, OpenAI's plugin review, owner approvals (a stream of item codes) | sources, each declared with where it comes from |
+| decisions | `merge_259`, `release` (value: the version), `scope_1_0_2`, `record_fix`, `gaps_1_1`, `latest_gap_1_1`, `next_1_2`, `openai_listing`, `minor_release` (value: the minor, 110 for 1.1.0), `restore_size` (value: the option chosen for restore's 16 MiB limit) | series: each may be reopened and revised, never overwritten |
+| events | one per thing that happens: `rerun`, `ci_run`, `approve`, `merge`, `cherry_pick`, `ship`, `main_run`, `ship_minor`, `find`, `release_build_shows`, `review`, the `report_*` reports and `decide_*` cards, `plugin_review`, `publish_plugin` | what gets appended to the record |
 
 A decision is refused until its grounds exist and the owner has approved
 that item: `merge` needs a rerun with 0 divergences, a green CI run and
@@ -94,6 +94,11 @@ value is the item code: a PR number, a version (101, 102, 103, 110, 120), or a c
 (1021/1022 for 1.0.2's scope, 41–42 for the record fix's order, 1101–1103 for
 the two forms' place in 1.1, 1111–1113 for `carries(latest(STREAM), C)` in 1.1, 1201–1204 for what follows 1.1,
 1301–1303 for what to explore after 1.2 (study first, 1303), 1311–1313 for its follow-up (the authoring card, 1311),
+1501–1503 for the general layer's task languages (Python and JavaScript 1501, a Caveat task language 1502,
+WebAssembly from any language 1503; the owner chose all three, approved in the order 1501, 1503, 1502),
+1511–1514 for restore's 16 MiB save size limit (D070: remove it 1511, keep it and refuse the events
+that would pass it 1512, raise it 1513, keep a default that hosts can raise 1514; the owner left the choice
+to the team, which removed it, 1511, and the decision's grounds carry the caveat `chosen_by_team`),
 7000 plus the version for publishing the OpenAI plugin, so 7111 for 1.1.1).
 
 ## Keep it going
@@ -117,10 +122,19 @@ Every thread that makes or informs a decision appends to the record:
 5. **A doubt learned later**: `qualify` the evidence with the caveat, then
    `review`. The decisions whose basis carries it are reopened by name.
 
-Then `npm run test:ledger`. The record must replay with every event
-accepted, the scenarios must pass, and L04 mirrors the record, so a new event
-is added to both. Keep `explain` honest: if a decision's `based on` line does
-not say what it actually rested on, the rule is wrong, not the record.
+Then `npm run test:ledger`. The complete record must replay with every event
+accepted, and the scenarios must pass. L04 preserves the historical prefix
+through 1.3.0; `replay-check.mjs` checks every event in the growing record.
+Add a scenario when new behavior needs an expectation. Keep `explain` honest:
+if a decision's `based on` line does not say what it actually rested on, the
+rule is wrong, not the record.
+
+Only add lines at the end of `events.jsonl`. A push that does nothing else,
+such as a pull request's "green CI and approval" commit, replays the record
+in core semantics and runs carmack in full, and the runtime jobs that never
+read this file carry round 1's result instead of running again
+([round-1 carry](../scripts/ci-reuse/README.md)). A push that edits or
+removes a line runs everything.
 
 ## Where it pinches
 
@@ -128,27 +142,30 @@ Kept here because the pinches are findings about the language, and the point
 of the ledger is to find them on the project's own decisions.
 
 - **A caveat on a reading.** A finding is naturally a reading in a stream
-  (`findings`, value the D-number), but `qualify latest(findings) with …`
-  does not load: a caveat can go on named evidence only. So every finding a
+  (`findings`, value the D-number), but in 1.0 `qualify latest(findings) with …`
+  did not load: a caveat could go on named evidence only. So every finding a
   decision rests on is declared twice, as a reading for the count and as
-  named evidence for its caveats. This is one of the two gaps planned for
-  1.1 (`qualify latest(stream)`).
+  named evidence for its caveats. (`qualify latest(STREAM)` landed in 1.1.0;
+  `project.cav` keeps the 1.0 form so earlier 1.x runtimes can still replay it.)
 - **A past decision resting on doubted evidence.** A late `qualify` leaves a
   decision's recorded grounds alone, by design, so finding the decisions that
   rest on newly doubted evidence goes through a state: each decision commits
   `using` a basis state computed from `qualified(…)` reads, the late caveat
   reaches the state, and `reopen D because caveated(STATE, CAVEAT)` names the
-  evidence. One state per decision series. This is the other 1.1 gap (a
-  question over past decision revisions), and the ledger shows the shape
-  authors build by hand until it lands.
+  evidence. One state per decision series. (Past-revision queries
+  `in_basis` and `rests_on_withdrawn(revision(…))` landed in 1.1.0; the ledger
+  preserves the 1.0 shape.)
 - **Approvals are numbers.** The owner's go is a reading whose value is an
   item code, checked by `permitted by latest(approvals) for CODE`. It works,
   and `explain` shows `permitted by approvals@3 for 101`, but a code table is
   a convention the program cannot check.
-- **The approvals stream is nearly full.** `approvals` holds at most 64
-  readings, and after 1.4.1 it holds 54, so each closeout records one
-  approval for the release rather than one per merged PR; a fuller record
-  needs a larger limit or a second stream.
+- **The record fills at its limits.** Each merged PR adds one `ci` run and
+  one approval. `ci` holds at most 1024 runs and `approvals` at most 256
+  readings, the runtime's largest limits for a renewable and a stream;
+  after #430 they hold 129 and 107. `findings` holds at most 256 too,
+  raised from 64 when D100 was the 65th finding filed. The event past a
+  limit is refused (`limit/renewal_limit` or `limit/history_limit`), so a
+  fuller record then needs a second renewable or stream.
 - **A patch from main is a `ship_minor`.** 1.4.1 was cut from `main`, so it
   is recorded as `ship_minor` 141 on main's Runtime run, which supersedes
   1.4.0 in `minor_release`; `release` and `ship` stay the 1.0.x line's, cut

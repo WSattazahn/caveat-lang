@@ -1,6 +1,6 @@
 # An agent with an undo list
 
-*A 15-minute, hands-on tutorial for caveat-lang 1.3.0.*
+*A 15-minute, hands-on tutorial for caveat-lang 1.5.0.*
 
 An AI agent looks things up with its tools, then acts: it refunds a customer,
 files a claim, sends a credit. Later one of its tools turns out to have been
@@ -22,7 +22,7 @@ In an empty folder:
 
 ```sh
 npm init -y
-npm install caveat-lang@1.3.0
+npm install caveat-lang@1.5.0
 npx --no-install caveat-lang --version
 ```
 

@@ -151,3 +151,7 @@ tests, which pin these outputs, pass unchanged.
 - 2026-10-25: drafted for 1.4 and implemented. It came from the outcome
   review demo, which showed a payout that hinged on an unchecked email read
   only by a guard ([Review 0.1](caveat-review-0.1.md)).
+- 2026-11-14 (D088): the module linker keeps `strict` after `irreversible`
+  bare by position, as from 1.4.0; before 1.4.0 the word was the module's own
+  there. A bundle that only those releases could load is read as they linked
+  it ([Caveat 0.5](caveat-0.5-draft.md)).

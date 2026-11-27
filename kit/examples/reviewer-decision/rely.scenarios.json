@@ -22,6 +22,7 @@
        {"send": "registry_changed"},
        {"expect": {"/bindings/decision/status": "reopened: the registry reading was withdrawn",
                    "/bindings/decision/revisions": 1}}
-     ]}
+     ]},
+    {"id": "R04", "title": "commit-on-withdrawable: the withdrawn registry reading cannot ground a new decision", "steps": [{"send": "fetch_registry"}, {"send": "fetch_npm"}, {"send": "read_record"}, {"send": "decide"}, {"send": "registry_changed"}, {"send": "decide", "rejected": "The registry reading was withdrawn; it cannot ground a new decision."}, {"expect": {"/bindings/decision/revisions": 1}}]}
   ]
 }

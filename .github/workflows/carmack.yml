@@ -19,8 +19,12 @@ on:
       - 'examples/*.cav'
       - 'caveatism/canon/archive.cav'
       - 'scripts/build-web.mjs'
+      - 'scripts/test-break-recovery.mjs'
+      - 'web/break*'
       - 'rust-toolchain.toml'
       - '.github/workflows/carmack.yml'
+      - '.github/actions/playwright-browsers/**'
+      - '.github/ci/retry-download.sh'
   workflow_dispatch:
 
 concurrency:
@@ -34,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
@@ -46,11 +50,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: carmack-runtime
           path: dist/pkg-reactive
           retention-days: 7
+      # Times are reported, never gated; a case that ends other than accepted
+      # or with its documented refusal fails the job.
+      - name: Stress cases end accepted or with their documented refusal
+        run: node bench/carmack/stress.mjs --runtime dist/pkg-reactive
+      - name: Stress summary
+        if: always()
+        run: cat test-results/carmack/stress.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
   replay:
     name: replay / ${{ matrix.os }}
@@ -71,16 +82,28 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install the browsers
+      # Use the shared browser action so Playwright browsers and their Ubuntu
+      # system packages are cached and time-bounded with retry, matching
+      # runtime.yml instead of re-fetching 150+ .deb packages uncached.
+      - uses: ./.github/actions/playwright-browsers
         if: runner.os == 'Linux'
-        run: npx playwright install --with-deps chromium firefox webkit
+        with:
+          browsers: chromium firefox webkit
       - name: Replay seeded sequences with a save and restore
         shell: bash
         run: |
           browsers=""
           if [[ "$RUNNER_OS" == "Linux" ]]; then browsers="--browsers chromium,firefox,webkit"; fi
           node bench/carmack/replay.mjs --runtime carmack-runtime --out test-results/carmack $browsers
-      - uses: actions/upload-artifact@v7
+      # WebKit 26.0 trapped in about 1% of fresh pages at session creation;
+      # 200 fresh pages catch a return of that rate about four times in five.
+      - name: Start the runtime in 200 fresh WebKit pages
+        if: runner.os == 'Linux'
+        run: node bench/carmack/webkit-stress.mjs --runtime carmack-runtime --pages 200
+      - name: The break page recovers from a trap at session creation
+        if: runner.os == 'Linux'
+        run: node scripts/test-break-recovery.mjs --runtime carmack-runtime --browsers webkit,chromium
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: carmack-replay-${{ matrix.os }}
@@ -109,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - uses: actions/download-artifact@v7
         with:
           name: carmack-runtime
@@ -130,7 +153,7 @@ jobs:
       - name: Summary
         if: always()
         run: cat test-results/carmack/target.md test-results/carmack/footprint.md test-results/carmack/profile.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: carmack-measures

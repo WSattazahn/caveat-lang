@@ -10,7 +10,7 @@ export const groups = [
     name: 'statement heads of the other profiles',
     words: ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer', 'require', 'observe',
       'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route', 'overview',
-      'start_at', 'program', 'origin', 'rule', 'agent'],
+      'start_at', 'program', 'origin', 'rule', 'agent', 'threshold'],
     // At a statement start, including in a `for` body.
     probe: ['@ x;', 'y; @ x;', 'for k as $r {\n  @ $r;\n};', 'for k as $r { @ $r_x; };'],
     scope: 'keyword.other.statement',
@@ -143,6 +143,12 @@ export const groups = [
   { name: 'integer clocks', words: ['integer'], probe: 'clock tick every 16 @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'history windows', words: ['window'], probe: 'readings r from e @ 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'journal windows', words: ['journal'], probe: '@ window 8;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  // `work skips other routes;` (spec/caveat-routed-work-0.1.md): the four
+  // words are a keyword only together, in that one statement.
+  { name: 'routed work', words: ['work'], probe: ['@ skips other routes;', 'x = 1; @ skips other routes;'], scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;', '@ supports x;', '@ skips other;'] },
+  { name: 'routed work skips', words: ['skips'], probe: 'work @ other routes;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  { name: 'routed work other', words: ['other'], probe: 'work skips @ routes;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
+  { name: 'routed work routes', words: ['routes'], probe: 'work skips other @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;', 'work skips other @ now;'] },
   {
     name: 'changed triggers',
     words: ['changed'],
@@ -158,6 +164,21 @@ export const groups = [
     scope: 'keyword.other.effect',
     // Evidence, events and decisions may be named `hold` or `release`.
     notKeyword: ['state @ = 1;', 'set x = @;', 'on @ commit d because t;', 'on e commit @ because t;', 'on e reopen d because @;'],
+  },
+  // spec/caveat-unset-states-0.1.md: a clause word after a state's name and
+  // an effect before one. A state may itself be named `unset`.
+  {
+    name: 'unset declarations',
+    words: ['unset'],
+    probe: ['state x @;', 'state x @ min 0 max 9;'],
+    scope: 'keyword.other',
+    notKeyword: ['state @ = 1;', 'set x = @;', 'on @ set x = 1;', 'on e set @ = 1;'],
+  },
+  {
+    name: 'unset effects',
+    words: ['unset'],
+    probe: ['on e @ x;', 'on e when is_set(x) @ x;', 'proc p() {\n  when true @ x;\n};'],
+    scope: 'keyword.other.effect',
   },
   {
     name: 'outcomes',
@@ -219,7 +240,7 @@ export const groups = [
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
       'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'],
+      'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of', 'is_set'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],
@@ -247,10 +268,12 @@ export const highlightedWords = new Set(groups
 
 // The scope a statement head must have, if it is a keyword. Positional
 // words need their following source too: journal is a declaration only in
-// `journal window N`, and remains a name in a relation or expression.
+// `journal window N`, work only in `work skips other routes;`, and each
+// remains a name in a relation or expression.
 const headOrder = ['statement heads of the other profiles', 'declarations', 'control', 'effects', 'logical operators'];
 export function expectedHeadScope(word, following = '') {
   if (word === 'journal' && /^\s+window\b/.test(following)) return group('journal windows').scope;
+  if (word === 'work' && /^[ \t]+skips[ \t]+other[ \t]+routes[ \t]*;/.test(following)) return group('routed work').scope;
   for (const name of headOrder) if (group(name).words.includes(word)) return group(name).scope;
   return null;
 }

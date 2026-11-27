@@ -1,0 +1,12 @@
+claim c;
+evidence e from "fixture";
+caveat uncertainty consequence low;
+uncertainty qualifies e;
+fn only_if(x, y) = x > y;
+fn wrapped(x) = only_if(x, 2);
+state n = 0;
+event go v min 0 max 10;
+on go when not observed(e) reveal e supports c;
+on go set n = if(wrapped(qualified(v, e)), 1, 0);
+on go when not committed(d) commit d because enough using n;
+bind hud.label = text(n);

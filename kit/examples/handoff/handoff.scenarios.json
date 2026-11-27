@@ -490,6 +490,7 @@
      }
     }
    ]
-  }
+  },
+    {"id": "H11", "title": "commit-on-withdrawable: a withdrawn schema review or report grounds no new plan or ship", "steps": [{"send": "main_request"}, {"send": "main_retract_schema"}, {"send": "main_request", "rejected": "The schema review was withdrawn; the plan cannot rest on it again."}, {"send": "sub_report", "payload": {"result": "pass", "coverage": "full"}}, {"send": "main_retract_report"}, {"send": "main_ship", "rejected": "The latest report was withdrawn."}, {"send": "main_ship_on_linux", "rejected": "The latest report was withdrawn."}]}
  ]
 }

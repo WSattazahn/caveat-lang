@@ -2,7 +2,7 @@
 // runtime.check from the library.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -217,6 +217,29 @@ test('runtime.check returns the report and throws a load error as open does', ()
   assert.throws(() => createRuntime(Older).check(FROST), /this runtime build has no check/);
 });
 
+// Check reads no bundle, so runtime.check refuses one first, as the command
+// and the runtime do, without restoring its save: a save a release wrote of
+// a bundle whose module's hold the releases read two ways would otherwise
+// ask for a module binding reading check does not take (D097).
+test('runtime.check refuses a bundle before restoring its save', async () => {
+  const fixture = name => readFile(new URL(`../../runtime/tests/fixtures/module-bindings/${name}`, import.meta.url), 'utf8');
+  const notBundle = error => error instanceof CaveatError && error.kind === 'load' && /single-file program, not a bundle/.test(error.message);
+  const collision = await fixture('collision.bundle');
+  const initial = await fixture('collision-v1.4.1-initial.json');
+  assert.throws(() => real.restore(collision, initial), /supply moduleBindings/);
+  for (const [bundle, saved] of [
+    ['collision.bundle', 'collision-v1.4.1-initial.json'],
+    // Only 1.2.0 to 1.4.1 loaded this one; a fresh session does not.
+    ['legacy-only.bundle', 'legacy-only-v1.4.1-state.json'],
+  ]) {
+    const source = await fixture(bundle);
+    const save = await fixture(saved);
+    assert.throws(() => real.check(source, { records: true, save }), notBundle, bundle);
+    assert.throws(() => real.check(source, { records: true, save: '{}' }), notBundle, bundle);
+    assert.throws(() => real.check(source), notBundle, bundle);
+  }
+});
+
 // Issue #219: a rewrite left `b` behind. C007 is reported only when asked
 // for, so a program that checked clean on 1.0 still does.
 const LEFTOVER = `claim a;
@@ -343,6 +366,49 @@ test('--records reports reads of a decision record; --save the values a save hol
   assert.throws(() => createRuntime(Older).check(RECORDS, { records: true }), /predates caveat check --records/);
 });
 
+// A commit on a study the program can retract, with no guard and no
+// reopening (spec/caveat-check-0.1.md, C010 and C011).
+const WITHDRAWALS = `claim harms;
+evidence study from "a registry study";
+evidence retraction from "the study's retraction";
+state study_ok = 0;
+decisions conclude limit 2;
+event published;
+event decide;
+event retracted;
+on published reveal study supports harms;
+on published set study_ok = qualified(1, study);
+on decide commit conclude because enough using study_ok;
+on retracted reveal retraction;
+on retracted withdraw study because retraction;
+`;
+
+test('--withdrawals reports a commit on a withdrawable source and a decision no withdrawal reopens', async () => {
+  await withProgram(WITHDRAWALS, async program => {
+    const plain = caveat(['check', '--strict', program]);
+    assert.equal(plain.status, 0, plain.stdout);
+    assert.equal(plain.stdout.trim(), 'frost.cav: no warnings.');
+
+    const json = caveat(['check', '--json', '--strict', '--withdrawals', program]);
+    assert.equal(json.status, 1, json.stderr);
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(report.diagnostics.map(warning => [warning.code, warning.name, warning.line]),
+      [['C011', 'withdrawal-not-reopened', 5], ['C010', 'commit-on-withdrawable', 11]]);
+    assert.deepEqual(report.diagnostics[1].related, [{ line: 13, column: 1, note: '`study` is withdrawn here' }]);
+    const text = caveat(['check', '--withdrawals', program]);
+    assert.equal(text.status, 0, text.stderr);
+    assert.match(text.stdout, /frost\.cav:11:1: warning C010 commit-on-withdrawable: this commit of `conclude` on `decide` reads `study`/);
+  });
+  assert.deepEqual(real.check(WITHDRAWALS).diagnostics, []);
+  assert.deepEqual(real.check(WITHDRAWALS, { withdrawals: true }).diagnostics.map(warning => warning.code), ['C011', 'C010']);
+  const fixed = WITHDRAWALS
+    .replace('on decide commit', 'on decide when withdrawn(study) reject "Retracted.";\non decide commit')
+    + 'on retracted when committed(conclude) and not reopened(conclude) and rests_on_withdrawn(conclude) reopen conclude because retraction;\n';
+  assert.deepEqual(real.check(fixed, { withdrawals: true }).diagnostics, []);
+  class Older { constructor(source) { this.inner = new Real(source); } static check(source) { return Real.check(source); } }
+  assert.throws(() => createRuntime(Older).check(WITHDRAWALS, { withdrawals: true }), /predates caveat check --withdrawals/);
+});
+
 // caveat test checks each program first (rc.15): round 7's C2 and C3 authors
 // met this binding only when it won at dispatch, as ungrounded_citation.
 test('caveat test prints check warnings with the run and still runs', async () => {
@@ -375,6 +441,35 @@ bind ui.text = "seen often" when seen > 5 because other;
     const allowed = caveat(['test', file]);
     assert.equal(allowed.status, 0, allowed.stderr);
     assert.match(allowed.stdout, /^glow\.cav:6:1: allowed C006 citation-unreachable/m);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+// Found by the Primeagen test: a misspelled commit target ran as a plain
+// commitment and every check stayed quiet.
+test('--names reports a commit that misspells a decision series, and only when asked', async () => {
+  const source = `claim rain_likely;
+evidence forecast from "the morning forecast";
+readings rain_chance from forecast limit 4;
+decisions umbrella limit 4;
+event read_forecast chance min 0 max 100;
+on read_forecast sample rain_chance = chance supports rain_likely;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrela because enough using latest(rain_chance);
+`;
+  const runtime = real;
+  assert.deepEqual(runtime.check(source).diagnostics, []);
+  assert.deepEqual(runtime.check(source, { names: true }).diagnostics.map(item => [item.code, item.line]), [['C012', 7]]);
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-check-names-'));
+  try {
+    const file = path.join(directory, 'umbrella.cav');
+    await writeFile(file, source);
+    const plain = caveat(['check', '--strict', file]);
+    assert.equal(plain.status, 0, plain.stdout + plain.stderr);
+    const named = caveat(['check', '--strict', '--names', file]);
+    assert.equal(named.status, 1, named.stderr);
+    assert.match(named.stdout, /C012 near-miss-commitment: `commit umbrela`/);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

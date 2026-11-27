@@ -227,6 +227,23 @@ $('#sound').addEventListener('click', () => {
   if (soundEnabled) unlockSound(); else audioContext?.suspend().catch(() => {});
 });
 
+// WebKit 26.0 could trap while creating the first session (bench/carmack/README.md).
+// Nothing has been played yet, so load the page once more for a fresh runtime.
+const RUNTIME_RETRY = 'runtime-retry';
+function retryAfterTrap(error) {
+  const url = new URL(location.href);
+  if (!(error instanceof WebAssembly.RuntimeError) || url.searchParams.has(RUNTIME_RETRY)) return false;
+  url.searchParams.set(RUNTIME_RETRY, '1');
+  location.replace(url);
+  return true;
+}
+function forgetRuntimeRetry() {
+  const url = new URL(location.href);
+  if (!url.searchParams.has(RUNTIME_RETRY)) return;
+  url.searchParams.delete(RUNTIME_RETRY);
+  history.replaceState(history.state, '', url);
+}
+
 async function boot() {
   const response = await fetch('./light_the_way.cav');
   if (!response.ok) throw new Error('The game source could not load.');
@@ -247,10 +264,12 @@ async function boot() {
     get rendered() { return Boolean(world); }, get screen() { return app.dataset.screen; },
     projected(x, z) { const p = world.projected(x, z), r = canvas.getBoundingClientRect(); return p ? { x: r.left + p.x * r.width, y: r.top + p.y * r.height, visible: p.visible } : null; },
   }) });
+  forgetRuntimeRetry();
   requestAnimationFrame(frame);
 }
 
 boot().catch(error => {
+  if (retryAfterTrap(error)) return;
   console.error(error); app.dataset.screen = 'error';
   $('#start-actions').innerHTML = `<div class="error-box">The rescue could not start. ${escape(error.message || error)}<br><button class="secondary" id="reload">Try again</button></div>`;
   $('#reload').addEventListener('click', () => location.reload());

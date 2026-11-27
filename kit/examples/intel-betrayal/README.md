@@ -45,14 +45,14 @@ The north plan: you were played
 | Need | How | Scenario |
 | --- | --- | --- |
 | Each report carries who said it | one stream per gate and informant, `readings north_ocelot from ocelot_word` | I01 |
-| A plan rests on the reports it read | `commit $g_plan because enough using sum(for informant as $i: $g_$i_ok)`, which adds one term per informant (draft) | I01 |
+| A plan rests on the reports it read | `commit $g_plan because enough using sum(for informant as $i: $g_$i_ok)`, which adds one term per informant (from 1.5.0) | I01 |
 | An exposed informant's plans are reopened, with their grounds kept | `rests_on_withdrawn($g_plan)` reopens; `commitment_grounds` still holds `north_ocelot@1` | I01 |
 | Someone else's exposure leaves a plan alone | only plans whose grounds hold a withdrawn report are reopened | I02 |
-| Everything the informant said is withdrawn, not just the latest | `withdraw every $i_word because $i_betrayal` reaches every report sampled from that informant (draft for 1.4) | I03 |
+| Everything the informant said is withdrawn, not just the latest | `withdraw every $i_word because $i_betrayal` reaches every report sampled from that informant (from 1.4.0) | I03 |
 | The player can't set out on nothing, or twice | `reject` rules whose messages the host shows | I04 |
 
 A new informant is one `entity` line: every rule and sum is written once per
-kind. `sum(for KIND as $x: E)` is a draft ([across members](../../docs/reference/spec/caveat-across-members-0.1.md));
+kind. `sum(for KIND as $x: E)` is from 1.5.0 ([across members](../../../spec/caveat-across-members-0.1.md));
 it expands to `$g_ocelot_ok + $g_eva_ok` here.
 
 See [Caveat in a game](../../docs/GAMES.md) for the loop, saves and cost.

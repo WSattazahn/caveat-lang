@@ -172,8 +172,9 @@ program needs its own guard only to give its own message. The same holds for a
 is refused as `{"origin": "evaluation", "code": "decision_in_force"}`. So is
 an event that acts on evidence no event has observed (`unobserved_evidence`),
 reopens a decision never committed (`not_committed`), fails an arithmetic or
-history read such as a division by zero or `latest` of an empty history
-(`expression`), or fails a `require` (`requirement_failed`). A clock event
+history read such as a division by zero or `latest` of an empty history, or
+computes a negative `qualify … after` delay (`expression`), or fails a
+`require` (`requirement_failed`). A clock event
 whose sum would make the session clock nonfinite is refused as
 `{"origin": "evaluation", "code": "bound_exceeded"}`, and a `qualify … after`
 while 4,096 qualifications are already waiting as
@@ -480,9 +481,8 @@ For timing exact to the event, use clock steps that are powers of two, such as
 `0.0625`; otherwise expect a schedule to apply within an event of its nominal
 time.
 
-From rc.15, a program that needs timing exact to the event can declare an
-[integer clock](../spec/caveat-elapsed-0.1.md#integer-clocks) instead. (The
-runtime accepts the declaration from rc.15's PR 3; check the package version.)
+A program that needs timing exact to the event can declare an
+[integer clock](../spec/caveat-elapsed-0.1.md#integer-clocks) instead.
 
 1. Choose the unit so that every delay and every `dt` the host sends is a
    whole number of it. Glowcap's `tick` in `0..0.1` seconds becomes a `step`
@@ -583,7 +583,7 @@ for example in a guard that refuses to flag a reading twice. To ask whether
 it carries any caveat at all, write `carries_any(latest(STREAM))`, or
 `carries_any(latest(STREAM), material)` for any of consequence `material` or
 above, `withdrawn` included, rather than listing caveats by name: a caveat
-declared later is then covered too (1.4 draft,
+declared later is then covered too (from 1.4.0,
 [carries any](../spec/caveat-carries-any-0.1.md)).
 `in_basis(DECISION, E)` is true when the decision's current revision rests on
 `E`, `latest(STREAM)` or `reading(STREAM, N)`; `in_basis(revision(SERIES, K), …)`
@@ -591,10 +591,52 @@ asks the same of the Kth revision. A later reading is never in an earlier
 decision's basis. See [reading index](../spec/caveat-reading-index-0.1.md) and
 [in basis](../spec/caveat-in-basis-0.1.md).
 
+When a source publishes a correction, such as an inspector restating a load
+from 44 t to 42 t, record it as one event on the same stream: withdraw the
+reading the correction replaces, because of the correction, and sample the
+corrected value. Do not declare a second piece of evidence for the corrected
+report; the stream already says which report it is, and a new name splits its
+history in two.
+
+```caveat
+evidence report from "inspection report R102";
+evidence erratum from "the inspector's published correction";
+readings capacity from report limit 4;
+event correct tonnes min 0 max 100;
+on correct when not has_sample(capacity) reject "nothing filed";
+on correct reveal erratum;
+on correct withdraw latest(capacity) because erratum;
+on correct sample capacity = tonnes supports safe;
+on correct when committed(verdict) and not reopened(verdict) and rests_on_withdrawn(verdict)
+    reopen verdict because erratum;
+```
+
+The rules run in order, so `withdraw latest(capacity)` names the old reading
+and the `sample` after it adds the new one, which does not carry `withdrawn`.
+The withdrawal record and the new reading share the event's sequence, which is
+how a reader pairs the two. A decision made on the old value reopens; the next
+one is made on 42 t.
+
 When a reading's source said something in words, such as a version range,
 keep the words with the number: `sample node_min = minimum supports compatible
 noting range;`, where `range` is an `id` parameter. Decisions still compare the
 number. See [reading notes](../spec/caveat-reading-notes-0.1.md).
+
+When a reading is a probability or a score and some values of it are weak,
+say so on the reading as it is taken: `sample beliefs = p supports door_open
+with uncertain when p > 0.3 and p < 0.9;`. Only that reading carries
+`uncertain`, so an irreversible decision resting on it must retain it, and a
+sure reading carries nothing. Prefer this to declaring the caveat on the
+evidence, which marks every reading, or to a second rule that qualifies
+`latest(STREAM)` afterwards (from 1.5.0,
+[reading caveats](../spec/caveat-reading-caveats-0.1.md)).
+
+When a decision compares a number with a bar, name the bar:
+`threshold go_bar = 0.9;` and then `using if(latest(beliefs) >= go_bar, 2, 1)`.
+The decision's record and `caveat explain` then list `go_bar = 0.9`, so a
+reviewer sees what the number was compared with without reading the source.
+A `define` would be inlined and leave no trace (from 1.5.0,
+[thresholds](../spec/caveat-thresholds-0.1.md)).
 
 When a decision also needs someone's permission, say what permits it rather
 than folding the permission into the value it rests on:
@@ -656,7 +698,7 @@ decisions payout limit 1 irreversible strict;
 ```
 
 A decision that can be undone may rule options out too, for as long as it
-stands (1.4 draft):
+stands (from 1.4.0):
 
 ```caveat
 decisions no_rewrite limit 4 forecloses rewrite;
@@ -747,7 +789,7 @@ No new string matcher is part of this candidate.
 
 ## Consulting a source without taking a stance
 
-In rc.7, `on consult reveal memory;` observes the current evidence occurrence
+`on consult reveal memory;` observes the current evidence occurrence
 without claiming that it supports or opposes anything. `observed(memory)` then
 becomes true and `qualified(value, memory)`, late qualification and withdrawal
 can use it. Sampling from a source still does not observe the source itself.
@@ -789,6 +831,26 @@ a newly committed decision alone do not establish the right grounds.
 
 For hypotheses, see [branching with a separate runtime](../kit/examples/agent-evidence/BRANCHING.md).
 A second session sharing a WASM instance cannot isolate a trap.
+
+A caveat that may later be cleared for some of its evidence should be applied
+by an event, not declared. `kx7_gauge qualifies r003;` holds for the whole
+session and nothing takes it off. Applied with `qualify`, it can be taken back
+from the evidence a later finding clears and stay on the rest:
+
+```caveat
+caveat kx7_gauge consequence material;
+event flag_gauge;
+event clear_r003;
+on flag_gauge qualify r003 with kx7_gauge;
+on flag_gauge qualify r011 with kx7_gauge;
+on clear_r003 reveal finding;
+on clear_r003 unqualify r003 with kx7_gauge;
+```
+
+After `clear_r003`, a value computed from `r003` alone no longer carries
+`kx7_gauge`, one that also reads `r011` still does, and the snapshot's
+`taken_back` records what was cleared and by which event
+([Take Back 0.1](../spec/caveat-take-back-0.1.md)).
 
 ## Record "not ready" with its reasons
 
@@ -853,7 +915,7 @@ its reason.
 
 ## Act on text from a source that may turn out bad
 
-Draft for 1.4 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
+From 1.4.0 ([Untrusted Sources 0.1](../spec/caveat-untrusted-sources-0.1.md)).
 An agent that acts on text it read, such as an instruction in an email, gives
 that text a caveat and every action resting on it carries the caveat. Three
 forms keep such a program short:
@@ -896,9 +958,15 @@ decision's grounds then name both readings
 When several sources vote and a decision should rest on the ones that agreed,
 add one `only_if(AGREES, VOTE)` term per source to its `using`. A condition in
 `if(...)` would make every vote it read a ground, dissenters included.
-`only_if`'s condition is lineage only, as a rule's `when` is. Draft for 1.4
-([Only If 0.1](../spec/caveat-only-if-0.1.md); the
+`only_if`'s condition is lineage only, as a rule's `when` is (from 1.4.0,
+[Only If 0.1](../spec/caveat-only-if-0.1.md); the
 [model-votes experiment](../experiments/model-votes/README.md)).
+
+When a decision reads another decision, `using latest(D)` carries `D`'s whole
+basis: after a reopening, that holds the predecessor's evidence, withdrawn or
+not. `using grounds_of(D)` carries `D`'s grounds alone, what `D` rested on,
+so the new decision carries `withdrawn` exactly when `rests_on_withdrawn(D)`
+is true (from 1.5.0, [Grounds Of 0.1](../spec/caveat-grounds-of-0.1.md)).
 
 ## What a withdrawal adds to a decision's grounds
 

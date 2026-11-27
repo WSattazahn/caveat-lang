@@ -28,7 +28,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
   'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
-  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if'];
+  'permission_withdrawn', 'occurrence', 'revision', 'reading', 'in_basis', 'on_hold', 'resolved', 'outcome', 'only_if', 'grounds_of', 'is_set'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a
@@ -36,7 +36,7 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
 // relation (`camera supports door_open`).
 export const profileHeads = ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer',
   'require', 'observe', 'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route',
-  'overview', 'start_at', 'program', 'origin', 'agent'];
+  'overview', 'start_at', 'program', 'origin', 'agent', 'threshold'];
 // Clauses and action steps that mean something only inside those statements.
 const profileClauses = ['options', 'requires_open', 'steps'];
 const actionSteps = ['inspect', 'operate', 'open', 'through', 'move', 'observe'];
@@ -430,6 +430,9 @@ export const grammar = {
         // `window N` in place of `limit N`, and `journal window N`.
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}window\b(?=[ \t]+\d)` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}journal\b(?=[ \t]+window[ \t]+\d)` },
+        // `work skips other routes;`, one exact statement
+        // (spec/caveat-routed-work-0.1.md); elsewhere the four words are names.
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}work[ \t]+skips[ \t]+other[ \t]+routes(?=[ \t]*;)` },
         // `reopened by changed STREAM`: a stream may itself be named `changed`.
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}changed\b(?=[ \t]+[A-Za-z_]\w*[ \t]*(?:[,;]|supporting\b|opposing\b))` },
       ],
@@ -451,6 +454,10 @@ export const grammar = {
         // `hold SERIES because …`, `release SERIES because …`: a series or
         // evidence may itself be named `hold` or `release` (spec/caveat-holds-0.1.md).
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}(?:hold|release)\b(?=[ \t]+[A-Za-z_][\w:$]*[ \t]+because\b)` },
+        // `state NAME unset [min …]` and `unset NAME;`
+        // (spec/caveat-unset-states-0.1.md); elsewhere `unset` is a name.
+        { name: 'keyword.other.caveat', match: String.raw`(?<=[\w$][ \t])unset\b(?=[ \t]*(?:;|min\b))` },
+        { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}unset\b(?=[ \t]+[A-Za-z_$][\w:$]*[ \t]*;)` },
         // `resolve SERIES = …`, `resolve revision(SERIES, K) = …` and its
         // `materialized CAVEAT, …` (spec/caveat-outcomes-0.1.md); elsewhere both are names.
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}resolve\b(?=[ \t]+(?:revision[ \t]*\(|[A-Za-z_][\w:$]*[ \t]*=(?!=)))` },

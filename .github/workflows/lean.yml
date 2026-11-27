@@ -19,23 +19,20 @@ jobs:
         with:
           node-version: 22
       - name: Install the pinned Lean release for this job
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/lean-4.34.1-linux.tar.zst"
-          curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.34.1/lean-4.34.1-linux.tar.zst \
-            --output "$archive"
-          echo "47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4  $archive" | sha256sum --check
-          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
-          echo "CAVEAT_LEAN_BIN=$RUNNER_TEMP/lean-4.34.1-linux/bin" >> "$GITHUB_ENV"
+        uses: ./.github/actions/lean-toolchain
       - name: Test audit failure controls
         run: npm run test:lean-gate
       - name: Inventory, audit and replay the scaffold proofs
         run: npm run verify:lean
-      - uses: actions/upload-artifact@v7
+      - name: Lean grounds check unit tests
+        run: npm run test:lean-grounds
+      - name: Check the Lean theorems Caveat evidence names, with failure controls
+        run: npm run verify:lean-grounds
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: lean-scaffold-verification
-          path: test-results/lean-verification/
+          path: |
+            test-results/lean-verification/
+            test-results/lean-grounds/
           if-no-files-found: error

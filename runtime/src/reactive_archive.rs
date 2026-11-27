@@ -76,6 +76,10 @@ fn digest(value: &impl Serialize) -> String {
 const DOMAIN: &str = "caveat-archive-provenance/0.1";
 
 impl ArchiveTrace {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
     pub(crate) fn record(source_id: &str, history: &str, record: &str, departed_at: u64) -> Self {
         let id = digest(&(DOMAIN, "record", source_id, history, record, departed_at));
         let entry = ArchiveProvenance {

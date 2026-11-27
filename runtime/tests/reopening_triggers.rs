@@ -366,3 +366,97 @@ fn declarations_are_checked_when_the_program_loads() {
         assert!(error.contains(expected), "{declaration}: {error}");
     }
 }
+
+/// What both forms below share: evidence a reading's guard can rest on.
+const GUARDED: &str = r#"
+claim changed;
+evidence note from "a note";
+evidence push from "a new commit";
+readings pushes from push limit 32;
+event see; event noted_push;
+on see reveal note;
+"#;
+
+/// A reading taken under a guard that rests on evidence: the trigger inherits
+/// the guard, so the reopening it skips, with nothing committed yet, still
+/// rests on that evidence, as the same step does in a procedure called under
+/// that guard.
+#[test]
+fn a_skipped_trigger_rests_on_the_guard_of_its_reading() {
+    let view = "bind view.r = if(reopened(merge), 1, 0);";
+    let mut declared = session(&format!(
+        "{GUARDED}decisions merge limit 8 reopened by pushes;
+         on noted_push when observed(note) sample pushes = 1 supports changed;
+         {view}"
+    ));
+    let mut written = session(&format!(
+        "{GUARDED}decisions merge limit 8;
+         proc push() {{
+             sample pushes = 1 supports changed;
+             when committed(merge) and not reopened(merge) reopen merge because latest(pushes);
+         }};
+         on noted_push when observed(note) call push();
+         {view}"
+    ));
+    for event in ["see", "noted_push"] {
+        assert_eq!(send(&mut declared, event, json!({}))["outcome"], "accepted");
+        assert_eq!(send(&mut written, event, json!({}))["outcome"], "accepted");
+        assert_eq!(snapshot(&declared), snapshot(&written), "after {event}");
+    }
+    let shot = snapshot(&declared);
+    let reopened = &shot["predicate_qualifications"]["reopened"]["merge"];
+    assert_eq!(reopened["evidence"], json!(["note"]));
+    assert_eq!(
+        shot["binding_qualifications"]["view"]["r"]["evidence"],
+        json!(["note"])
+    );
+}
+
+/// The same with a guard that holds only a departed record: the guard reads a
+/// state that a skipped effect left resting on the window's first reading,
+/// which has since departed.
+#[test]
+fn a_skipped_trigger_keeps_a_guard_that_holds_only_a_departed_record() {
+    let mut game = session(
+        r#"
+claim changed;
+evidence probe from "probe";
+evidence push from "a new commit";
+readings w from probe window 1;
+readings pushes from push limit 32;
+decisions merge limit 8 reopened by pushes;
+state level = 0;
+event read_w v min 0 max 9;
+event skip;
+event noted_push;
+on read_w sample w = v;
+on skip when latest(w) > 100 set level = 1;
+on noted_push when level >= 0 sample pushes = 1 supports changed;
+bind view.r = if(reopened(merge), 1, 0);
+"#,
+    );
+    for (event, payload) in [
+        ("read_w", json!({"v": 1})),
+        e("skip"),
+        ("read_w", json!({"v": 2})),
+        ("read_w", json!({"v": 3})),
+        e("noted_push"),
+    ] {
+        assert_eq!(
+            send(&mut game, event, payload)["outcome"],
+            "accepted",
+            "{event}"
+        );
+    }
+    let shot = snapshot(&game);
+    let only_departed = |lineage: &Value| {
+        assert_eq!(lineage["evidence"], json!([]), "{lineage}");
+        assert_eq!(lineage["caveats"], json!([]), "{lineage}");
+        let markers = lineage["departed"].as_array().unwrap();
+        assert_eq!(markers.len(), 1, "{lineage}");
+        assert_eq!(markers[0]["history"], "w", "{lineage}");
+    };
+    only_departed(&shot["qualified_values"]["level"]["provenance"]);
+    only_departed(&shot["predicate_qualifications"]["reopened"]["merge"]);
+    only_departed(&shot["binding_qualifications"]["view"]["r"]);
+}

@@ -62,6 +62,58 @@ test('explain reports what the snapshot records, decision by decision', () => {
   assert.doesNotMatch(text, /retaining: calibration_offset/);
 });
 
+test('a revision lists the thresholds its commit named, and others list none', () => {
+  // spec/caveat-thresholds-0.1.md: the graded-belief note's robot.
+  const source = `claim door_open; evidence estimator from "the state estimator";
+    readings beliefs from estimator limit 8; decisions plan limit 8 reopened by beliefs;
+    threshold go_bar = 0.9; threshold look_bar = 0.3; event belief p min 0 max 1;
+    on belief sample beliefs = p supports door_open;
+    on belief when not committed(plan) or reopened(plan) commit plan because enough
+      using if(latest(beliefs) >= go_bar, 2, if(latest(beliefs) >= look_bar, 1, 0));`;
+  const session = real.open(source);
+  session.dispatch('belief', { p: 0.55 });
+  const report = explain(session.snapshot(), []);
+  session.close();
+  const [revision] = report.decisions[0].revisions;
+  assert.deepEqual(revision.thresholds, { go_bar: 0.9, look_bar: 0.3 });
+  assert.match(formatExplanation(report, 'robot'),
+    /plan@1 = 1 {2}in force\n {6}based on beliefs@1\n {6}thresholds: go_bar = 0\.9, look_bar = 0\.3\n/);
+
+  const plain = real.open(thermostat);
+  plain.dispatch('read', { value: 17 });
+  const without = explain(plain.snapshot(), []);
+  plain.close();
+  assert.ok(without.decisions[0].revisions.every(item => !('thresholds' in item)));
+  assert.doesNotMatch(formatExplanation(without, 'thermostat'), /thresholds:/);
+});
+
+test('each observation is described once, however many revisions rest on it', () => {
+  const source = `claim ok;
+evidence gauge from "a gauge";
+readings level from gauge limit 8;
+decisions verdict limit 8;
+event read v min 0 max 100;
+event decide;
+event recheck;
+on read sample level = v supports ok;
+on decide commit verdict because enough using fold_history(level, latest(level), max);
+on recheck when committed(verdict) and not reopened(verdict) reopen verdict because latest(level);`;
+  const session = real.open(source);
+  const sent = [];
+  for (const [event, payload] of [['read', { v: 3 }], ['read', { v: 5 }], ['decide', {}], ['recheck', {}], ['decide', {}]]) {
+    const { snapshot, ...outcome } = session.dispatch(event, payload);
+    sent.push({ event, payload, outcome, sequence: snapshot.sequence, effects: snapshot.effects });
+  }
+  const text = formatExplanation(explain(session.snapshot(), sent), 'probe.cav');
+  session.close();
+  // Both revisions rest on both readings; each reading's observation is
+  // described under the first revision only, and both list it in their grounds.
+  assert.equal(text.match(/level@1: observed at #1 read \{"v":3\}/g)?.length, 1);
+  assert.equal(text.match(/level@2: observed at #2 read \{"v":5\}/g)?.length, 1);
+  assert.equal(text.match(/based on level@1, level@2/g)?.length, 2);
+  assert.ok(text.indexOf('level@1: observed at') < text.indexOf('verdict@2 ='), text);
+});
+
 test('a session with no decisions, evidence or bindings says so', () => {
   const session = real.open('state count = 0;\nevent poke;\non poke set count = count + 1;');
   const text = formatExplanation(explain(session.snapshot()), 'empty');
@@ -178,6 +230,99 @@ test('a withdrawn observation is marked where a decision rests on it, which keep
   const text = formatExplanation(report, 'ledger');
   assert.match(text, /based on checks@1\n {6}checks@1 has since been withdrawn at #3 because recheck/);
   assert.match(text, /checks@1 = 1 supports safe .*withdrawn at #3 because recheck/);
+});
+
+const LATER = `claim effect;
+    evidence study from "a study"; evidence critique from "a critique";
+    caveat disputed consequence material;
+    state ok = 0; decisions conclude limit 2;
+    event publish; event decide; event dispute; event recheck;
+    on publish reveal study supports effect;
+    on publish set ok = qualified(1, study);
+    on decide commit conclude because enough using ok;
+    on dispute reveal critique;
+    on dispute qualify study with disputed;
+    on recheck when committed(conclude) reopen conclude because critique;
+    on recheck when committed(conclude) and reopened(conclude) commit conclude because enough using ok;`;
+
+test('with laterCaveats, explain lists live caveat names absent from the decision record', async () => {
+  const session = real.open(LATER);
+  for (const event of ['publish', 'decide', 'dispute', 'recheck']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  const plain = explain(snapshot);
+  assert.equal(plain.decisions[0].revisions[0].qualified_since, undefined, 'off by default');
+  assert.doesNotMatch(formatExplanation(plain), /absent from this record/);
+
+  const report = explain(snapshot, [], { laterCaveats: true });
+  const [first, second] = report.decisions[0].revisions;
+  assert.deepEqual(first.grounds.caveats, [], 'the record keeps its own caveats');
+  assert.deepEqual(first.qualified_since, [{ evidence: 'study', caveats: ['disputed'] }]);
+  assert.deepEqual(second.grounds.caveats, ['disputed']);
+  assert.deepEqual(second.qualified_since, [], 'a decision made after the qualify already holds it');
+  assert.match(formatExplanation(report), /based on study\n {6}study now carries disputed, absent from this record/);
+
+  await withFiles({ 'later.cav': LATER, 'events.jsonl': ['publish', 'decide', 'dispute'].map(event => JSON.stringify({ event })).join('\n') }, file => {
+    const before = run(file('later.cav'), file('events.jsonl'));
+    const after = run('--later-caveats', file('later.cav'), file('events.jsonl'));
+    assert.equal(after.status, 0, after.stderr);
+    assert.doesNotMatch(before.stdout, /absent from this record/);
+    assert.match(after.stdout, /study now carries disputed, absent from this record/);
+    assert.equal(after.stdout.replace(/\n {6}study now carries disputed, absent from this record/, ''), before.stdout);
+    const refused = spawnSync(process.execPath, [cli, 'check', '--later-caveats', file('later.cav')], { encoding: 'utf8' });
+    assert.equal(refused.status, 2);
+    assert.match(refused.stderr, /unknown option --later-caveats for check/);
+    const mistyped = run('--later-caveatz', file('later.cav'));
+    assert.equal(mistyped.status, 2);
+    assert.match(mistyped.stderr, /did you mean --later-caveats\?/);
+    const json = JSON.parse(run('--json', file('later.cav'), file('events.jsonl')).stdout);
+    const enabled = JSON.parse(run('--json', '--later-caveats', file('later.cav'), file('events.jsonl')).stdout);
+    for (const decision of enabled.decisions) for (const revision of decision.revisions) delete revision.qualified_since;
+    assert.deepEqual(enabled, json);
+  });
+});
+
+const REDECIDED = `claim effect;
+    evidence old_study from "the first study"; evidence retraction from "its retraction";
+    evidence new_study from "a later study";
+    state old_ok = 0; state new_ok = 0; decisions conclude limit 2;
+    event publish; event decide; event retract; event replicate; event redecide;
+    on publish reveal old_study supports effect;
+    on publish set old_ok = qualified(1, old_study);
+    on decide commit conclude because enough using old_ok;
+    on retract reveal retraction;
+    on retract withdraw old_study because retraction;
+    on retract when committed(conclude) and rests_on_withdrawn(conclude) reopen conclude because retraction;
+    on replicate reveal new_study supports effect;
+    on replicate set new_ok = qualified(1, new_study);
+    on redecide when reopened(conclude) commit conclude because enough using new_ok;`;
+
+test('with lineageNotes, lineage that came with the revision before is marked with it', async () => {
+  const session = real.open(REDECIDED);
+  for (const event of ['publish', 'decide', 'retract', 'replicate', 'redecide']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  const plain = explain(snapshot);
+  assert.equal(plain.decisions[0].revisions[1].lineage_from, undefined, 'off by default');
+  assert.match(formatExplanation(plain), /could also have been influenced by old_study, retraction\n/);
+
+  const report = explain(snapshot, [], { lineageNotes: true });
+  const [first, second] = report.decisions[0].revisions;
+  assert.deepEqual(first.lineage_from, []);
+  assert.deepEqual(second.grounds.evidence, ['new_study'], 'the grounds are unchanged');
+  assert.deepEqual(second.lineage_from, [
+    { evidence: 'old_study', revision: 'conclude@1', as: 'grounds' },
+    { evidence: 'retraction', revision: 'conclude@1', as: 'reopening' },
+  ]);
+  assert.match(formatExplanation(report),
+    /could also have been influenced by old_study \(conclude@1 rested on it\), retraction \(it reopened conclude@1\)\n/);
+
+  await withFiles({ 'redecided.cav': REDECIDED, 'events.jsonl': ['publish', 'decide', 'retract', 'replicate', 'redecide'].map(event => JSON.stringify({ event })).join('\n') }, file => {
+    const before = run(file('redecided.cav'), file('events.jsonl'));
+    const after = run('--lineage-notes', file('redecided.cav'), file('events.jsonl'));
+    assert.equal(after.status, 0, after.stderr);
+    assert.equal(after.stdout.replace(' (conclude@1 rested on it)', '').replace(' (it reopened conclude@1)', ''), before.stdout);
+  });
 });
 
 test('a permission is shown as what permitted a decision, apart from what it rests on', async () => {

@@ -290,10 +290,13 @@ export function lateRequest(fixture, index, beforeRecord) {
 
 const commitmentMutationAnchor = '        // Current values only. Commitment bases and grounds, reading\n' +
   '        // archives and the journal record what was known then.\n';
-const basisMutation = '        for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {\n' +
-  '            if basis.provenance.evidence.contains(evidence) {\n' +
-  '                basis.provenance.merge(&added)?;\n' +
-  '            }\n' +
+// make_mut writes any record, and tells the event's write log so.
+const basisMutation = '        let mutated_bases: Vec<String> = self.commitment_bases.iter()\n' +
+  '            .filter(|(_, basis)| basis.provenance.evidence.contains(evidence))\n' +
+  '            .map(|(name, _)| name.to_owned())\n' +
+  '            .collect();\n' +
+  '        for name in mutated_bases {\n' +
+  '            self.commitment_bases.get_mut(&name).unwrap().provenance.merge(&added)?;\n' +
   '        }\n';
 const commitmentMutations = {
   basis: '        // Deliberate mutation: the late caveat reaches recorded commitment bases.\n' + basisMutation,
@@ -301,12 +304,14 @@ const commitmentMutations = {
   // so this mutant rewrites all three and restore validation still accepts its
   // saves: only the comparison with the model can catch it.
   records: '        // Deliberate mutation: the late caveat reaches every commitment record.\n' + basisMutation +
-    '        for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {\n' +
+    '        for (name, grounds) in self.commitment_grounds.make_mut().iter_mut() {\n' +
     '            if grounds.evidence.contains(evidence) {\n' +
     '                grounds.merge(&added)?;\n' +
-    '                for entry in Arc::make_mut(&mut self.journal).iter_mut() {\n' +
-    '                    if entry.change == "committed" && &entry.commitment == name {\n' +
-    '                        entry.caveats = grounds.caveats.iter().map(|name| name.to_string()).collect();\n' +
+    '                for index in 0..self.journal.len() {\n' +
+    '                    if self.journal[index].change == "committed" && &self.journal[index].commitment == name {\n' +
+    '                        if let Some(entry) = self.journal.get_mut(index) {\n' +
+    '                            entry.caveats = grounds.caveats.iter().map(|name| name.to_string()).collect();\n' +
+    '                        }\n' +
     '                    }\n' +
     '                }\n' +
     '            }\n' +
@@ -475,22 +480,34 @@ export function reopenRequest(fixture, index, beforeRecord) {
     commitment: r.commitment, evidence: r.evidence, caveats: [...EVIDENCE_CAVEATS[r.evidence]], guard } };
 }
 
-const reopenAnchor = '            Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);\n';
+// The session writes its graph only through reactive_write.rs, so the
+// retained-caveats mutant edits the reopening there. It removes edges, so it
+// seals the graph again. A newly sealed graph's log says that anything may
+// have changed, and its relation lists are made from its edges, which is
+// what every write that removes edges must leave.
+const reopenAnchor = '        self.graph.write().reopen(commitment, because);\n';
 const journalAnchor = '            because,\n            caveats: caveats.into_iter().collect(),\n';
 const reopenMutations = {
   // The reopened commitment loses the caveats it retained.
-  retained: [reopenAnchor, reopenAnchor +
-    '            // Deliberate mutation: reopening drops the retained caveats.\n' +
-    '            Arc::make_mut(&mut self.graph).edges.retain(|edge| !(edge.from == id && edge.relation == Relation::Retains));\n'],
+  retained: ['reactive_write.rs', reopenAnchor, reopenAnchor +
+    '        // Deliberate mutation: reopening drops the retained caveats.\n' +
+    '        let mut graph = (*self.graph.graph).clone();\n' +
+    '        graph.edges.retain(|edge| !(edge.from == commitment && edge.relation == Relation::Retains));\n' +
+    '        self.graph = SealedGraph::new(graph);\n'],
   // The journal records the cause without its caveats.
-  cause: [journalAnchor,
+  cause: ['reactive.rs', journalAnchor,
     '            because,\n' +
     '            // Deliberate mutation: the reopening entry drops its cause\'s caveats.\n' +
     '            caveats: Vec::new(),\n'],
 };
+// The runtime source file, under runtime/src, that a reopening mutation edits.
+export function reopenMutationFile(field) {
+  if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');
+  return reopenMutations[field][0];
+}
 export function reopenMutation(source, field) {
   if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');
-  const [anchor, replacement] = reopenMutations[field];
+  const [, anchor, replacement] = reopenMutations[field];
   const normalized = source.replaceAll('\r\n', '\n');
   if (normalized.split(anchor).length !== 2) {
     throw new InfrastructureFailure('Reopening mutation anchor must occur exactly once');
@@ -530,30 +547,48 @@ export function compare(expected, actual, caseId, runner) {
 }
 
 const mutationAnchor = [
-  '                let Some(tracked) = numbers(name)? else {',
-  '                    return Ok(None);',
-  '                };',
+  '                let tracked = host',
+  '                    .number(name)?',
+  '                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;',
   '                let value = finite(tracked.value)?;',
-  '                keep(&tracked.provenance)?;',
+  '                keep(tracked.provenance)?;',
+].join('\n');
+
+const dualMutationAnchor = [
+  '                let (val, lin, gnd) = host',
+  '                    .number(name, quiet_grounds)?',
+  '                    .ok_or_else(|| format!("unknown numeric identifier {name}"))?;',
+  '                let value = finite(val)?;',
+  '                keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;',
 ].join('\n');
 
 export function dependencyDropMutation(source, name = "a") {
   if (!["a", "b", "g"].includes(name)) throw new InfrastructureFailure("Unregistered metadata-drop state");
   const normalized = source.replaceAll('\r\n', '\n');
-  if (normalized.split(mutationAnchor).length !== 2) throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
-  return normalized.replace(mutationAnchor, mutationAnchor.replace(
-    'keep(&tracked.provenance)?;',
-    'if name != ' + JSON.stringify(name) + ' { keep(&tracked.provenance)?; }'));
+  if (normalized.split(mutationAnchor).length !== 2 || normalized.split(dualMutationAnchor).length !== 2) {
+    throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
+  }
+  return normalized
+    .replace(mutationAnchor, mutationAnchor.replace(
+      'keep(tracked.provenance)?;',
+      'if name.as_str() != ' + JSON.stringify(name) + ' { keep(tracked.provenance)?; }'))
+    .replace(dualMutationAnchor, dualMutationAnchor.replace(
+      'keep_both(lineage, grounds, quiet_grounds, lin, gnd)?;',
+      'if name.as_str() != ' + JSON.stringify(name) + ' { keep_both(lineage, grounds, quiet_grounds, lin, gnd)?; }'));
 }
 
-const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values(\n                        numbers,\n                        predicate,\n                        qualify,\n                        history,\n                        identifiers,\n                        remaining,\n                    )\n                } else {\n                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)\n                }\n            }\n";
-const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                let no_value = no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
+const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values_host(host, provenance, remaining)\n                } else {\n                    no.evaluate_values_host(host, provenance, remaining)\n                }\n            }\n";
+const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values_host(host, provenance, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values_host(host, provenance, remaining)?;\n                let no_value = no.evaluate_values_host(host, provenance, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
+const dualBranchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_both_values(host, lineage, grounds, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_both_values(host, lineage, grounds, remaining)\n                } else {\n                    no.evaluate_both_values(host, lineage, grounds, remaining)\n                }\n            }\n";
+const dualBranchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_both_values(host, lineage, grounds, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_both_values(host, lineage, grounds, remaining)?;\n                let no_value = no.evaluate_both_values(host, lineage, grounds, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
 export function unselectedBranchMutation(source) {
   const normalized = source.replaceAll('\r\n', '\n');
-  if (normalized.split(branchMutationAnchor).length !== 2) {
+  if (normalized.split(branchMutationAnchor).length !== 2 || normalized.split(dualBranchMutationAnchor).length !== 2) {
     throw new InfrastructureFailure('Untaken-branch mutation anchor must occur exactly once');
   }
-  return normalized.replace(branchMutationAnchor, branchMutationReplacement);
+  return normalized
+    .replace(branchMutationAnchor, branchMutationReplacement)
+    .replace(dualBranchMutationAnchor, dualBranchMutationReplacement);
 }
 
 function capture(session) { return { snapshot: session.snapshot(), save: session.save(), view: session.view() }; }
@@ -948,7 +983,7 @@ export async function verifyConformance({ caseId } = {}) {
     // lineage and grounds; no output projection or shadow evaluator fabricates it.
     const mutantRoot = stageMutantRuntime(root, output);
     // Each mutant changes exactly one file; every other mutable file is restored first.
-    const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs'].map(file =>
+    const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs', 'reactive_write.rs'].map(file =>
       [file, readFileSync(join(root, 'runtime/src', file), 'utf8')]));
     const mutantTarget = join(root, 'runtime/target/lean-mutants');
     report.runtimeMutations = [];
@@ -994,7 +1029,7 @@ export async function verifyConformance({ caseId } = {}) {
     }
     // A runtime whose reopening changed the commitment it reopened must be caught.
     for (const [id, field] of [['reopen-drops-retained', 'retained'], ['reopen-drops-cause-caveats', 'cause']]) {
-      const mutant = buildMutant(id, 'reopen-' + field, 'reactive.rs', source => reopenMutation(source, field));
+      const mutant = buildMutant(id, 'reopen-' + field, reopenMutationFile(field), source => reopenMutation(source, field));
       for (const fixtureId of ['reopen-retains-caveats', 'reopen-cause-caveats']) {
         const fixture = reopenCorpus.find(item => item.id === fixtureId);
         const rendered = reopenSources.get(fixtureId);

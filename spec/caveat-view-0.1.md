@@ -81,7 +81,17 @@ event are those of `dispatch_view_outcome`.
 `decisionHistory` reads `decision_series`, `decision_journal` and
 `commitments`, so a view meant for it names all three.
 
+### Reused view
+
+`session.dispatchView(event, payload, { reuse: true })` in the developer kit
+returns the same view, read-only, built from a patch of what the event
+changed, with every part it left alone the same object as before. See
+[View Patch 0.1](caveat-view-patch-0.1.md).
+
 ## Changes
+
+- 2026-10-31: the reused view, built from the [view patch](caveat-view-patch-0.1.md).
+  The full view and every other call are unchanged.
 
 - 2026-10-19: `dispatch_view_fields_outcome` returns a view with only the
   fields a host names. A host that reads a few fields no longer pays to build

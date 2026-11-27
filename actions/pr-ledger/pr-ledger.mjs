@@ -86,7 +86,7 @@ export function authorOf(pull, commits = []) {
   return { role: 'author', name: login, agent: false };
 }
 
-async function pages(api, url, key) {
+export async function pages(api, url, key) {
   const values = [];
   for (let page = 1; ; page++) {
     const response = await api(`${url}${url.includes('?') ? '&' : '?'}per_page=100&page=${page}`);
@@ -396,7 +396,7 @@ export function describeMerge(kit, template, chapters, number) {
 
 // ---- The command line ------------------------------------------------------
 
-function githubApi() {
+export function githubApi() {
   const base = process.env.GITHUB_API_URL || 'https://api.github.com';
   const headers = { accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
   if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;

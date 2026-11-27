@@ -34,7 +34,10 @@ what the archive entry must name.
 
 **A program without a window is unchanged**: no record of it ever departs, so
 no marker ever appears, and its lineages, grounds, snapshots, saves, views and
-scenario outcomes are exactly as before.
+scenario outcomes are exactly as before. Restore bounds the names its saves
+hold as it bounds any program's, a procedure's parameter there grounding on
+its argument's whole lineage as well when a release before rc.12 may have
+loaded the program (D061, D083; "Save and restore").
 
 ## The finding
 
@@ -80,7 +83,13 @@ inherits through a selection or reopening qualification: [Reactive 0.5](caveat-r
 has later `latest`, `has_sample` and current-series predicates inherit a
 skipped sample's or skipped series commit's guard. Those inherited names are
 not the value's own reads. They pin nothing and compact like lineage, so a
-grounds may hold a marker, and only through such a qualification.
+grounds may hold a marker through such a qualification. It may also hold one
+through a read of an outcome: a value that reads one, through `outcome(…)` or
+a true `resolved(…)`, takes the outcome's lineage into its grounds, markers
+included, and those markers pin nothing either (see "Outcomes" below). And it
+may hold one through a `because` citation: what the citation gives grounds can
+hold a marker, which pins nothing and which the state's lineage may lack (see
+"Meaning").
 
 These are the reasons the language promises to keep. The original argument
 expected them to be bounded by the source, not the run: a grounds replaces the
@@ -158,11 +167,56 @@ a history, as C3's journal slots do, has `read` equal to the range's departed
 count, and is exact. Grounds narrow lineage. A grounds marker is within the
 lineage's marker for the same history: its `from` is not lower, its `through`
 is not higher, and its `departed_at` is not later. So **grounds ⊆ lineage**
-still holds ([Explanations 0.2](caveat-explanations-0.2.md)).
+still holds ([Explanations 0.2](caveat-explanations-0.2.md)), with one
+exception, which only a `because` citation starts. The citation is checked by
+the names it holds, so it can cite what holds a marker of records that
+departed before the citing `set`, records the value never read, and the
+state's grounds then hold a marker that its lineage does not (D057). While
+those records are still held, the same citation names them and is refused as
+`ungrounded_citation`. A record the citation reads itself, or only names,
+leaves no such marker: the grounds pin it ("What stays exact"), so it does not
+depart while they cite it. Nor do the reasons of the withdrawals a withdrawal
+predicate finds, or the causes `on_hold` and `reopened` name: the grounds hold
+those by name too. What a cited reading holds can, and so can its stream's
+selection, and a state's, a commitment's or a parameter's grounds and a
+commitment's basis, outcome and selection that the citation reads (D099).
+What reads those grounds takes the marker along,
+into grounds whose lineage or basis lacks it too: any read whose grounds take
+a state's grounds, a procedure parameter's, or a commitment's through
+`committed`, `reopened` or `in_basis`, such as a set whose value reads the
+state, a commit that uses or cites it, or a call given it. So a grounds marker
+beyond the lineage or the basis is of a history that the program's citations
+can bring there, this way; restore refuses any other ("Save and restore").
+Like the rest of restore's bounds, this one is of histories. Within a history
+it carries, restore does not bound the marker's range beyond the checks every
+marker meets, nor require the lineage or the basis to hold a marker of that
+history, and a citation of a state, a commitment or a parameter carries every
+history their grounds, and a commitment's basis, outcome and selection that
+it reads, can hold, those their own reads pin among them. What a cited
+reading, outcome or basis holds is bounded as restore bounds those parts
+([Save 0.1](caveat-save-0.1.md), "Restore validation"), by what the reads
+that wrote it can read as they read it. A value read of a stream there,
+wherever the effect evaluates it (its guard, its values, what it cites or
+selects, or a call's arguments), takes that stream's readings and
+selection, and nothing that joins its observation records later (D100).
+`reopened` and `on_hold`, and with them the next revision's basis, read
+what reopened a commitment through its records as they stand then, so
+what an effect writes from those reads, and a citation of it, can hold
+what joined those records after a reading that reopened it was taken,
+even where the effect also reads that reading's stream by value.
 
 **Caveats.** A provenance's caveats are names of declared caveats, a set that
 cannot grow with play. They are kept exactly. A departed record's
-qualifications stay in every provenance that carried them.
+qualifications stay in every provenance that carried them. A take-back caveat
+a citation brings kept can stay in grounds whose lineage no longer carries it,
+within the same bound ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+save", D098). A reading keeps the take-back caveats its template gave it when
+it was taken, so a citation of the reading brings those kept even where the
+lineage carries them live. Restore accepts such a caveat beyond a lineage that
+carries it live where the grounds name a reading of a stream that a rule
+samples and a citation reads, and whose template the caveat can qualify; a
+lineage that does not carry it at all, or a commitment's basis, which keeps
+what the readings it holds were taken keeping, needs the bound above (D099).
 
 **Bounded marker representation; unresolved total-retention bound.** A
 compacting provenance holds at most one marker per windowed history, and a
@@ -181,10 +235,12 @@ be discarded merely to satisfy that expectation.
 
 The departure specification defines the archive that the host drains. Under
 this profile, each departed record's archive entry also names the provenances
-that held it when it departed: the states, commitments, journal entries,
-withdrawals and permission records. Their number follows the retained
-provenance holders. A universal bound from declarations and windows alone is
-not established while withdrawal retention can grow; see the
+that held it when it departed, as [Departure 0.1](caveat-departure-0.1.md)'s
+`holders` lists them: states, commitments, decision series (their selection
+qualifications and their revisions' outcome lineages), reading streams and
+readings, scheduled guards, cues and qualifications. Their number follows the
+retained provenance holders. A universal bound from declarations and windows
+alone is not established while withdrawal retention can grow; see the
 [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md).
 Holder rows describe the instant of departure. They cannot by themselves
 identify a holder's membership after copying, merging or replacement. Exact
@@ -321,7 +377,8 @@ provenances, and on no other:
 10. an examination qualification (`examination_qualifications.C`);
 11. a reopening qualification (`reopening_qualifications.C`);
 12. a predicate qualification (`predicate_qualifications.P.N`);
-13. a cue's qualification (`cue_qualifications[i]`).
+13. a cue's qualification (`cue_qualifications[i]`);
+14. an outcome's lineage (`decision_series.D.revisions[i].outcome.lineage`).
 
 These are all the provenances the save schema holds. A later profile that
 adds a provenance to the save adds it to this list. Only 2, and 4 for a
@@ -338,10 +395,11 @@ reads. Snapshots show `inherited` wherever the session holds it.
 
 When an inherited name departs, it leaves both `evidence` and `inherited` and
 joins the grounds' marker for its history. Every name in `inherited` is
-therefore still in `evidence`, and every marker in a grounds is inherited, as
-the rule in "What stays exact" requires. An own read never departs while it
-is cited, because it pins. The next `set` replaces the whole grounds, its
-`inherited` list and markers included, as it replaces the names today.
+therefore still in `evidence`, and every marker in a grounds is inherited or
+came with an outcome's lineage, as the rule in "What stays exact" requires.
+An own read never departs while it is cited, because it pins. The next `set`
+replaces the whole grounds, its `inherited` list and markers included, as it
+replaces the names today.
 
 A windowed save written by rc.15 has no `inherited` field, and none of its
 records have departed. Restore reads each missing list as empty, so every
@@ -398,9 +456,20 @@ Restore refuses a save when:
 - a provenance holds two markers for one history, or names a departed record
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
-  commitment's grounds marker is not within its basis's;
+  commitment's grounds marker is not within its basis's, and no `because`
+  citation of the program can bring a marker of that history there, through
+  what the provenances it reads hold (not a record it reads itself or only
+  names, which the grounds pin) or through what reads the grounds it gave
+  (see "Meaning");
+- a marker or a record's name is in a provenance, or a record is named as
+  the cause of an outcome, a hold, a
+  deferral, a `reopens` relation an event added or a withdrawal, in a part
+  of the session that no rule, procedure, reopening trigger or declaration
+  of the program can carry that history's records into, as
+  [Save 0.1](caveat-save-0.1.md)'s "Restore validation" bounds each part;
+  no provenance can hold a marker of the journal, whose entries none names;
 - a name in `inherited` is not also in the same provenance's `evidence`;
-- `inherited` appears in a save of a program without a window. The 13
+- `inherited` appears in a save of a program without a window. The 14
   holders above are every provenance the schema has, so a field anywhere
   else is already an unknown field, and restore refuses it as such.
 
@@ -431,7 +500,18 @@ inherited chain as one range.
 **The journal.** Under `journal window N`, a retired journal entry departs by
 the same rule. An entry still in the window keeps its `because` exact. That
 pins what it cites, which is bounded by the window. Its basis compacts. Nothing
-else cites journal entries.
+else cites journal entries. A provenance that names a record or a declared
+name spelled like an entry, `journal@K`, names that record or declared name,
+not the entry, and the entry's departure leaves the provenance as it is
+([Departure 0.1](caveat-departure-0.1.md)).
+
+**Outcomes.** An outcome's lineage ([Outcomes 0.1](caveat-outcomes-0.1.md))
+is frozen when the revision is resolved, as a basis is, and compacts as a
+basis does: when a record it names departs, the name leaves the lineage and
+joins its history's marker. Only the outcome's `because` stays exact and
+pinned. A value that reads the outcome, through `outcome(…)` or a true
+`resolved(…)`, takes the lineage into its grounds, markers included, and
+those markers pin nothing.
 
 ## Gate
 
@@ -474,7 +554,9 @@ adapter's figure, and the gate is measured on the runtime.
 
 For every program without a window, the implementation's gate is the seeded
 save sweep (`runtime/examples/save_sweep.rs`) over the repository's reactive
-programs, with digests identical before and after.
+programs, with digests identical before and after. Since D061 restore applies
+the bound of "Save and restore" to those programs too, so a save the sweep
+writes that the bound refused would change its digest.
 
 ## Decision
 
@@ -534,6 +616,14 @@ provenance read in its range.
 
 ## Changes
 
+- 2026-11-22 (D074, D105): journal entry `journal@K`'s departure no longer
+  compacts a provenance that names a record or a declared name spelled
+  `journal@K` beside `journal window`. It gave that provenance a `journal`
+  marker, which no provenance can hold: a debug build stopped at the end of
+  that event on the history reach audit (D054), and restore refused the
+  session's save, first on what the same departure had removed, for
+  example "observations omits reading journal@1". See
+  [Departure 0.1](caveat-departure-0.1.md), "Changes".
 - 2026-10-05 (rc.16, specified): new profile. A value's own citations (state
   grounds, the revision in force's grounds, in-window journal entries'
   `because`) stay exact and pin their records. Lineage and inherited bases
@@ -574,3 +664,100 @@ provenance read in its range.
   about D. One current revision per series bounds what this pins. No output,
   save or exit status changes. The owner chose this reading on 2026-10-18.
   The riders and older Changes entries keep their original words.
+- 2026-11-07 (D041): an outcome's lineage compacts. Outcomes 0.1 (1.3)
+  added the lineage to the save but not to the list in "Save and restore",
+  and departure never compacted it, so a record it named departed and its
+  name stayed. A value that read the outcome copied the departed names, and
+  restore refused each later save that still held them, naming the first
+  holder it checked, as in "outcome of D@K: R must name a declared evidence"
+  or "state S: R must name a declared evidence". Some events that read such
+  an outcome, as a rule's commit `using outcome(D)` did, were fatal ("event
+  E, rule N: R must name a declared evidence"); they are now accepted. A
+  marker the outcome's value joined as it resolved was never published to
+  the archive. Departure now compacts the lineage and lists it among the
+  departed record's holders, the archive publishes its markers' membership,
+  and restore checks its markers, `inherited` names and kept caveats as it
+  checks every other provenance's. The list in "Save and restore" gains it
+  as its 14th provenance. "What stays exact" and the grounds rule in "Save
+  and restore" now say that a value reading an outcome takes the lineage's
+  markers into its grounds, and "The archive entry" lists the holders as
+  Departure 0.1 does; it named journal entries, withdrawals and permission
+  records, which the runtime never lists as holders. The lineage pins
+  nothing, as before; only the outcome's `because` pins. A session in which
+  no outcome's lineage holds a departed record gives the same saves,
+  snapshots, views and archive as before.
+- 2026-11-13 (D054): in a program with a window, restore refuses a marker
+  or a record's name in a part of the session that no rule, procedure,
+  reopening trigger or declaration of the program can carry that history's
+  records into, and a cause named outside its part's bound. Restore checked
+  a marker's range, count and date, but not which provenance held it, so a
+  marker copied into a provenance its program never carries that history
+  into restored. "Save and restore" lists the check;
+  [Save 0.1](caveat-save-0.1.md) says how each part's bound is derived.
+- 2026-11-13 (D061): restore refuses a record's name, or a cause, outside
+  its part's bound in a program without a window too, where it read none.
+  Such a program keeps no marker, but a lineage citing evidence no rule
+  carries into it restored, with the caveats that follow the name. A
+  procedure's parameter there grounds on its argument's whole lineage as
+  well, as releases before rc.12 grounded it, and in every program a step's
+  grounds take an argument only through the parameter the step reads.
+  "Save and restore" lists the check; [Save 0.1](caveat-save-0.1.md) says
+  how each part's bound is derived.
+- 2026-11-13 (D083): a procedure's parameter grounds on its argument's
+  whole lineage only in a program a release before rc.12 may have loaded,
+  not in every program without a window: one that uses something the
+  language gained after rc.11, such as `only_if`, has no save that old.
+  [Save 0.1](caveat-save-0.1.md) lists what the check reads.
+- 2026-11-21 (D100): "Meaning" no longer says that a cited reading takes in
+  the observation records of a stream its sample read by value. A value
+  read of a stream, wherever an effect evaluates it (its guard, its values,
+  what it cites or selects, or a call's arguments), the `latest(S)` a
+  `because` or a `permitted by` selects among them, takes the stream's
+  readings and selection, as the runtime reads them ([Save
+  0.1](caveat-save-0.1.md), "Restore validation"), so what it writes into a
+  reading, an outcome or a basis holds nothing that joins those observation
+  records later. Restore refuses a forged marker beyond the lineage that
+  only such a join could give, in the citing state's grounds and in grounds
+  that read them. A `reopen ... because latest(S)` is the exception:
+  `reopened` and `on_hold` of the commitment, and with them its next
+  revision's basis, read the reading that reopened it through its records
+  as they stand then, so what an effect writes from those reads, and
+  grounds that cite it or read those, can hold what joined them, even
+  where the effect also reads S by value. The commitment's reopening
+  record is bounded with what `reopened` reads, and `committed` and
+  `in_basis` carry that bound, so restore still accepts such a marker
+  there, in what an effect that reads them writes and in grounds that cite
+  that. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+- 2026-11-14 (D099): a `because` citation brings a marker beyond the lineage
+  only through what the provenances it reads hold, never as a marker of a
+  record it reads itself or only names, which the grounds pin, nor of the
+  reasons and causes a withdrawal predicate, `on_hold` or `reopened` names. A
+  cited reading brings what it holds and its stream's selection, not what
+  joins its observation records after it is taken. Restore accepted a forged
+  marker of such a
+  history beyond the lineage or the basis, in the citing state's grounds and
+  in grounds that read them, which no session writes, and refuses it again
+  with the message it gave before D057. "Meaning" says so, gives the readers
+  in general, and says what the bound leaves unchecked; "Caveats" says which
+  kept caveats a cited reading brings, and where restore accepts them; the
+  D057 entry below now says how long
+  its refusals lasted. Tests: `runtime/tests/d099_citations_pin_what_they_read.rs`,
+  and `runtime/tests/d057_readers_carry_cited_markers.rs` for the readers.
+- 2026-11-14 (D098): "Caveats" says that a take-back caveat a citation
+  brings kept can stay in grounds whose lineage no longer carries it, within
+  the bound of D057 ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+  save"). Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
+- 2026-11-14 (D057): a state's or a commitment's grounds may hold a marker
+  that its lineage or basis does not, where a `because` citation of the
+  program can bring that history there, directly or through what reads the
+  grounds it gave. A `because` citation is checked by the names it holds, so
+  citing a basis that held only a marker of records the value never read was
+  accepted, and the state's grounds took the marker.
+  Every release since rc.16 then refused that save, and every later one
+  while some grounds held such a marker, as a grounds marker outside its
+  lineage or basis: a state's grounds held it until the state was set from
+  grounds without it (setting it again by the same citation took the marker
+  again, and a state set from it kept the marker after that), and a
+  commitment's for as long as the commitment was kept. "Meaning" and "Save and restore" say
+  so; the live check is unchanged.

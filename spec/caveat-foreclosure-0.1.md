@@ -73,7 +73,9 @@ nothing. A series, stream or claim named `irreversible` or `forecloses` keeps
 loading, and `decisions irreversible limit 1 irreversible;` declares an
 irreversible series named `irreversible`. Only a module of a draft 0.5 bundle
 ([Caveat 0.5](caveat-0.5-draft.md)) may not declare them, as for every clause
-word, since its rewriter reads words, not positions.
+word, since its rewriter reads words, not positions. Before 1.2.0 a module
+could, and a bundle that only those releases could load is read as they
+linked it, the names the module's own (finding D088).
 
 These do not load, each with its own message:
 
@@ -344,3 +346,7 @@ No accepted program changes.
 - 2026-10-25: [Foreclosure 0.2](caveat-foreclosure-0.2.md), a 1.4 draft,
   answers question 5: a reversible series may foreclose while it is in force.
   The load error for `forecloses` without `irreversible` goes with it.
+- 2026-11-14 (D088): a bundle whose module declares `irreversible` or
+  `forecloses`, which only releases before 1.2.0 could load, is read as they
+  linked it, the names the module's own. Test:
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.

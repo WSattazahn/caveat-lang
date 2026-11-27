@@ -67,6 +67,10 @@ pub struct InterfaceState {
     pub name: String,
     pub min: f64,
     pub max: f64,
+    /// Declared `state NAME unset;`; left out otherwise. See
+    /// spec/caveat-unset-states-0.1.md.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub unset: bool,
 }
 
 /// A bound property. `type` is `number`, `boolean` or `text`. `always` is
@@ -149,6 +153,7 @@ impl ReactiveSession {
                 name: name.clone(),
                 min: self.ranges[name].min,
                 max: self.ranges[name].max,
+                unset: self.ranges[name].unset,
             })
             .collect::<Vec<_>>();
         states.sort_by(|a, b| a.name.cmp(&b.name));
@@ -198,7 +203,7 @@ impl ReactiveSession {
             .reading_streams
             .iter()
             .map(|(name, stream)| InterfaceReadings {
-                name: name.clone(),
+                name: name.to_owned(),
                 evidence: stream.template.clone(),
                 limit: stream.limit,
             })
@@ -216,7 +221,7 @@ impl ReactiveSession {
                 Some(NodeKind::Claim { .. }) => "claim",
                 _ => continue,
             };
-            symbols.entry(kind).or_default().push(name.clone());
+            symbols.entry(kind).or_default().push(name.to_owned());
         }
         let mut names = |kind| {
             let mut names = symbols.remove(kind).unwrap_or_default();

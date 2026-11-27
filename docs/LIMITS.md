@@ -26,6 +26,19 @@ page; the numbers here are the record behind that summary.
   by tests and by sampled agreement with that model, not by proof
   ([what is checked, and how](VERIFICATION.md)).
 
+## Module syntax before 1.5.0
+
+[D090](../experiments/agent-decisions/README.md#2026-11-14-draft-unset-module-finding)
+recorded two bugs found while `unset`-profile module syntax was still in draft
+before 1.5.0: a procedure's effect word could be renamed, and UTF-8 text could
+displace a declaration's keyword position (which could silently capture a root
+name). Both were fixed before 1.5.0 shipped (`unset` is stable from 1.5.0,
+[Unset States 0.1](../spec/caveat-unset-states-0.1.md)); 1.0.0 through 1.4.1 do
+not load `unset` syntax, so the fix did not affect earlier releases' module
+bindings. See the
+[regressions](../runtime/tests/unset_name_compatibility.rs) and
+[compatibility follow-up](reviews/2026-11-14-compatibility-follow-up.md).
+
 ## What it costs
 
 Measured 2026-10-25 on `caveat-lang@1.3.0` from npm, Node 22.22.0, Linux, a
@@ -57,6 +70,35 @@ Memory and save size grow with retained history. Window sizes alone do not
 bound live memory or saves; see the
 [history integration guide](../kit/docs/HISTORY.md). A host that opens many
 sessions without closing them can exhaust the runtime's WebAssembly memory.
+Restore takes a state save of any size, and its time and memory grow with the
+save. Measured 2026-11-08 with Node 22.23.4 in a 4-core Linux container
+(2.1 GHz Xeon) and the release WebAssembly runtime built from dc1ef01f on
+main, one restore grew the instance's memory by 1.85 times the save's length
+for a save of 1,626,915 characters and by 1.99 times for one of 16,266,842
+characters, both written by a session whose states hold long lineages, and by
+8.4 times for a save of 14,306,946 characters that holds one windowed history
+at its limit of 65,536 records. In a native release build in the same
+container, restoring saves of that shape with 16,384 to 65,536 records raised
+peak resident memory by 13.5 to 13.9 times their length. Restore's time grows
+faster than the save in the steps the
+[save contract](../spec/caveat-save-0.1.md) lists. Timed by the restoring
+thread's CPU clock in native release builds in the same container, at load
+averages of 3.8 to 8.2, the save of that shape with 65,536 records took 5.0 to
+5.6 seconds to restore, and saves of the form a session writes that hold a
+reading stream at the same limit took 14.9 to 47.0 seconds. Before D071 made
+the check of retired records linear, the save of that shape took 9.6 to 10.1
+seconds in the native builds, and 12.5 seconds by wall clock in the
+WebAssembly runtime above at load average 2.9 (66 seconds at load average
+about 25). Before D070 it
+refused a state save over 16 MiB, though a session could write one
+([save contract](../spec/caveat-save-0.1.md#changes)). A restore that runs out
+of WebAssembly memory is not refused: it traps the instance, and every session
+on it is lost. The kit's error then says the runtime ran out of memory while
+restoring a save (or, in `runtime.check`, checking one), and gives the save's
+length in characters. A JavaScript host cannot pass or receive a save longer
+than its engine's longest string (about 512 Mi characters in V8). A host that
+restores saves from a party it does not trust bounds their size itself, as the
+MCP server does at 2 MiB.
 
 The throughput program, run with `node perf.mjs` beside an installed
 `caveat-lang@1.3.0`:
@@ -124,7 +166,8 @@ state that adds two new renewable occurrences to its own lineage every event
 cost about 250 µs per event at 200 names and about 590 µs near 1,000. An
 event that would take a value past the cap is refused with
 `limit/provenance_limit`, and the session goes on (from 1.4.0; before it,
-such an event ended the session as fatal `unclassified`).
+such an event ended the session as fatal `unclassified`, and a `carries`
+or `carries_any` read past the cap still did until 1.5.0, finding D037).
 
 **Expression work.** One expression evaluates at most 65,536 nodes, and a
 history fold reads at most 256 records
@@ -132,6 +175,14 @@ history fold reads at most 256 records
 reach the node cap once its stream holds enough readings. Such an event is
 refused with `limit/evaluation_limit` (from 1.4.0; before it, fatal
 `unclassified`).
+
+**Expansion.** A program's expression expands to at most 4,096 nodes, with
+its function calls and `define`s inlined, or the program does not load. Each
+call's arguments are expanded once and its body reads them by position, so a
+function that reads a parameter twice, as `min` and `max` do, does not copy
+the argument (from 1.5.0, finding D034). Before it, each read copied the
+argument, so `min` nested to the right over eight values passed the limit
+although the same `min` written balanced loaded.
 
 **Text.** A text value, bound or computed, holds at most 65,536 bytes. An
 event whose expression would make a longer one is refused with

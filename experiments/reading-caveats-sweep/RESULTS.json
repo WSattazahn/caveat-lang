@@ -1,0 +1,29 @@
+{
+  "programs": 212,
+  "samples_with_the_word_with": [],
+  "names_with": [],
+  "qualify_latest": 4,
+  "programs_with_qualify_latest": 2,
+  "qualify_latest_statements": [
+    {
+      "file": "bench/carmack/programs/release-gate.cav",
+      "line": 92,
+      "text": "on flag qualify latest($c_$k) with $f"
+    },
+    {
+      "file": "kit/examples/handoff/handoff.cav",
+      "line": 145,
+      "text": "on sub_report when coverage == coverage.linux qualify latest(reports) with linux_only"
+    },
+    {
+      "file": "kit/examples/handoff/handoff.cav",
+      "line": 146,
+      "text": "on sub_report when coverage == coverage.sample qualify latest(reports) with sample_data_only"
+    },
+    {
+      "file": "kit/examples/handoff/handoff.cav",
+      "line": 147,
+      "text": "on sub_report qualify latest(reports) with style_unchecked"
+    }
+  ]
+}

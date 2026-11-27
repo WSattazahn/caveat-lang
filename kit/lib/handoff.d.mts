@@ -49,6 +49,9 @@ export declare class ScopedSession {
   dispatchView(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
   dispatchView(event: string, payload: object, options: DispatchOptions & { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   dispatchViewDelta(event: string, payload?: object, options?: DispatchOptions): DispatchViewDeltaOutcome;
+  /** What `dispatchView` would return through this scope, without sending the event. */
+  whatIf(event: string, payload?: object, options?: DispatchOptions): DispatchViewOutcome;
+  whatIf(event: string, payload: object, options: DispatchOptions & { fields: readonly ViewField[] }): DispatchViewOutcome<ViewSelection>;
   snapshot(): Snapshot;
   snapshotText(): string;
   view(options?: { schema?: '0.1' }): View;

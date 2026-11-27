@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
-import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
+import { isRelative, markdownLinks, packageLinkPath, packageLinks, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
 import { checkMcpClient, checkMcpStatelessProbe } from './test-mcp-client.mjs';
@@ -77,6 +77,13 @@ const HANDOFF = ['README.md', 'handoff.cav', 'handoff.scenarios.json', 'host.mjs
 const INTEL = ['README.md', 'intel.cav', 'intel.scenarios.json', 'host.mjs'].map(file => `examples/intel-betrayal/${file}`);
 // The retracted-studies example (1.4): a program, its timeline and its scenarios.
 const RETRACTIONS = ['README.md', 'retraction.cav', 'retraction.events.jsonl', 'retraction.scenarios.json'].map(file => `examples/retractions/${file}`);
+// The kit's own documents link to repository files where the repository keeps
+// them, so the links work on GitHub. Packing writes each one in its packed
+// form, its links to copied files pointing into docs/reference/, and puts the
+// committed source back afterwards.
+const PACKED_KIT_DOCS = [...KIT_DOCS, ...EXAMPLE_FILES, ...READINESS, ...PROCEDURE_HANDLES, ...HANDOFF, ...INTEL, ...RETRACTIONS].filter(file => file.endsWith('.md'));
+const packedKitDoc = (file, text) => packageLinks(text, { from: `kit/${file}`, shipped });
+const kitDocSources = new Map();
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -116,8 +123,22 @@ async function stageRuntime() {
     if (source.endsWith('.md')) await writeFile(path.join(kit, target), staged(source, await readFile(path.join(root, source), 'utf8')).text);
     else await copyFile(path.join(root, source), path.join(kit, target));
   }
+  // Every packed form is worked out before any source is replaced, so a link
+  // the package cannot hold stops packing with the sources untouched.
+  const packed = [];
+  for (const file of PACKED_KIT_DOCS) {
+    const source = await readFile(path.join(kit, file), 'utf8');
+    const { text } = packedKitDoc(file, source);
+    if (text !== source) packed.push([file, source, text]);
+  }
+  for (const [file, source, text] of packed) {
+    kitDocSources.set(file, source);
+    await writeFile(path.join(kit, file), text);
+  }
 }
 async function removeRuntime() {
+  for (const [file, source] of kitDocSources) await writeFile(path.join(kit, file), source);
+  kitDocSources.clear();
   for (const file of LEGAL_FILES) if (existsSync(path.join(kit, file))) await unlink(path.join(kit, file));
   // Staged documentation: the copied files, then their now-empty directories,
   // deepest first. Nothing here is removed recursively.
@@ -238,6 +259,11 @@ for (const [source, target] of STAGED_DOCS) {
   const expected = staged(source, await readFile(path.join(root, source), 'utf8'));
   assert.equal(await readFile(path.join(installed, target), 'utf8'), expected.text, `installed ${target} matches ${source}, its links rewritten`);
   rewrittenLinks += expected.rewritten.length;
+}
+// The kit's own documents ship in their packed form.
+for (const file of PACKED_KIT_DOCS) {
+  const expected = packedKitDoc(file, await readFile(path.join(kit, file), 'utf8'));
+  assert.equal(await readFile(path.join(installed, file), 'utf8'), expected.text, `installed ${file} matches kit/${file}, its links to copied files packed`);
 }
 // Every relative link in every installed document resolves inside the package.
 const installedDocs = [];

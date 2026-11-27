@@ -91,3 +91,23 @@ test('with renewable evidence for versions, the new conclusion also rests on the
     session.close();
   }
 });
+
+test('with --withdrawals the example checks clean, and without a guard or a reopen rule it does not', () => {
+  const codes = program => real.check(program, { withdrawals: true }).diagnostics.map(warning => warning.code);
+  assert.deepEqual(codes(source), []);
+  const guard = 'on pause_announced when withdrawn(lancet_registry) reject "The study it would rest on is retracted.";\n';
+  assert.deepEqual(codes(source.replace(guard, '')), ['C010']);
+  const reopen = 'on retracted when committed(pause_arm) and not reopened(pause_arm) and rests_on_withdrawn(pause_arm)\n    reopen pause_arm because lancet_retraction;\n';
+  assert.equal(source.split(reopen).length, 2);
+  assert.deepEqual(codes(source.replace(reopen, '')), ['C011']);
+});
+
+test('Check 0.1\'s withdrawal example reports C011 and C010, and its reopen rule with a guard keeps it quiet', async () => {
+  const spec = await readFile(new URL('../../spec/caveat-check-0.1.md', import.meta.url), 'utf8');
+  const section = spec.slice(spec.indexOf('### C010'), spec.indexOf('## Allowing a pattern'));
+  const [program, rule] = [...section.matchAll(/```caveat\n([\s\S]*?)```/g)].map(match => match[1]);
+  const codes = text => real.check(text, { withdrawals: true }).diagnostics.map(warning => warning.code);
+  assert.deepEqual(codes(program), ['C011', 'C010']);
+  const fixed = program.replace('on decide commit', 'on decide when withdrawn(study) reject "Retracted.";\non decide commit') + rule;
+  assert.deepEqual(codes(fixed), []);
+});

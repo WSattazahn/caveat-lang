@@ -32,9 +32,10 @@ const quantile = (values, q) => {
 const round = (n) => Number(n.toFixed(1));
 
 // One pass of a workload; fields null is the whole view a host reads, [] is
-// the dispatch alone (the view's header only).
+// the dispatch alone (the view's header only), and 'reuse' the whole view
+// reused from the last one (spec/caveat-view-patch-0.1.md).
 function pass(workload, source, fields) {
-  const options = fields === null ? {} : { fields };
+  const options = fields === null ? {} : fields === 'reuse' ? { reuse: true } : { fields };
   const byKind = {};
   const all = [];
   const save = { state: [], compact: [], restoreState: [], restoreCompact: [], stateBytes: 0, compactBytes: 0 };
@@ -76,6 +77,7 @@ for (const workload of WORKLOADS) {
   pass({ ...workload, reps: Math.min(5, workload.reps) }, source, null); // warm the JIT and the allocator
   const full = pass(workload, source, null);
   const bare = pass(workload, source, []);
+  const reused = pass(workload, source, 'reuse');
   const kinds = {};
   for (const [kind, samples] of Object.entries(full.byKind)) {
     const dispatch = quantile(bare.byKind[kind], 0.5);
@@ -85,6 +87,7 @@ for (const workload of WORKLOADS) {
       p95_us: round(quantile(samples, 0.95)),
       dispatch_only_median_us: round(dispatch),
       view_median_us: round(Math.max(0, quantile(samples, 0.5) - dispatch)),
+      reused_median_us: round(quantile(reused.byKind[kind], 0.5)),
     };
   }
   const entry = {
@@ -96,6 +99,8 @@ for (const workload of WORKLOADS) {
       event_p95_us: round(quantile(full.all, 0.95)),
       event_mean_us: round(full.all.reduce((a, b) => a + b, 0) / full.all.length),
       dispatch_only_median_us: round(quantile(bare.all, 0.5)),
+      reused_event_median_us: round(quantile(reused.all, 0.5)),
+      reused_event_p95_us: round(quantile(reused.all, 0.95)),
       by_kind: kinds,
       load_median_ms: round(quantile(full.load, 0.5) / 1000),
       save: {
@@ -137,7 +142,7 @@ writeFileSync(path.join(out, 'profile.json'), `${JSON.stringify(report, null, 2)
 const lines = ['# Where the time per event goes', '', `Node ${process.version}, ${process.platform}/${process.arch}, ${report.host.cpu ?? 'unknown CPU'}.`, ''];
 for (const [name, w] of Object.entries(report.workloads)) {
   lines.push(`## ${name} (${w.program}, ${w.events_per_rep} events x ${w.reps})`, '');
-  lines.push(`WebAssembly: median ${w.wasm.event_median_us} µs per event with the whole view, p95 ${w.wasm.event_p95_us} µs; dispatch alone ${w.wasm.dispatch_only_median_us} µs.`);
+  lines.push(`WebAssembly: median ${w.wasm.event_median_us} µs per event with the whole view, p95 ${w.wasm.event_p95_us} µs; with the whole view reused, ${w.wasm.reused_event_median_us} µs, p95 ${w.wasm.reused_event_p95_us} µs; dispatch alone ${w.wasm.dispatch_only_median_us} µs.`);
   lines.push(`Reopening the program (load cache warm) ${w.wasm.load_median_ms} ms. Save ${w.wasm.save.state_bytes} bytes (${w.wasm.save.state_median_us} µs), compact ${w.wasm.save.compact_bytes} bytes (${w.wasm.save.compact_median_us} µs). Restore ${w.wasm.save.restore_state_median_ms} ms, from compact ${w.wasm.save.restore_compact_median_ms} ms.`, '');
   if (w.native) {
     const m = w.native.mean_per_event;
@@ -145,11 +150,11 @@ for (const [name, w] of Object.entries(report.workloads)) {
     const pct = (x) => `${Math.round((100 * x) / total)}%`;
     lines.push(`Native: median ${w.native.event_median_us} µs. Mean per event: rules ${m.rules_us} µs (${pct(m.rules_us)}), record keeping ${m.record_us} µs (${pct(m.record_us)}), transaction ${m.transaction_us} µs (${pct(m.transaction_us)}), payload and view building ${m.unphased_us} µs (${pct(m.unphased_us)}), view JSON ${m.view_json_us} µs (${pct(m.view_json_us)}).`, '');
   }
-  lines.push('| Event | Count | Wasm median µs | Wasm p95 µs | Dispatch alone µs | View µs |' + (w.native ? ' Native rules µs | Native record µs | Native transaction µs |' : ''));
-  lines.push('| --- | ---: | ---: | ---: | ---: | ---: |' + (w.native ? ' ---: | ---: | ---: |' : ''));
+  lines.push('| Event | Count | Wasm median µs | Wasm p95 µs | Dispatch alone µs | View µs | Reused view median µs |' + (w.native ? ' Native rules µs | Native record µs | Native transaction µs |' : ''));
+  lines.push('| --- | ---: | ---: | ---: | ---: | ---: | ---: |' + (w.native ? ' ---: | ---: | ---: |' : ''));
   for (const [kind, k] of Object.entries(w.wasm.by_kind)) {
     const n = w.native?.by_kind[kind];
-    lines.push(`| ${kind} | ${k.events} | ${k.median_us} | ${k.p95_us} | ${k.dispatch_only_median_us} | ${k.view_median_us} |` + (n ? ` ${n.rules_us} | ${n.record_us} | ${n.transaction_us} |` : ''));
+    lines.push(`| ${kind} | ${k.events} | ${k.median_us} | ${k.p95_us} | ${k.dispatch_only_median_us} | ${k.view_median_us} | ${k.reused_median_us} |` + (n ? ` ${n.rules_us} | ${n.record_us} | ${n.transaction_us} |` : ''));
   }
   lines.push('');
 }

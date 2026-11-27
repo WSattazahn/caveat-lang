@@ -2,6 +2,7 @@
 import type { RuntimeIdentity, Snapshot } from './session.mjs';
 
 export declare const AUTHORING_SCHEMA: 'caveat-authoring/0.1';
+export declare const DISPATCH_STEP_SCHEMA: 'caveat-dispatch-step/0.1';
 export declare const AUTHORING_LIMITS: Readonly<Record<string, number>>;
 export declare class AuthoringError extends Error {
   constructor(kind: 'input' | 'limit' | 'runtime', message: string);
@@ -17,4 +18,6 @@ export interface AuthoringResult {
 }
 export declare function validateAuthoringArguments(toolName: string, args: unknown): Record<string, unknown>;
 export declare function describeValidation(snapshot: Snapshot, program?: string): Record<string, unknown>;
+/** Internal restore-error classification shared with the CLI; does not validate the save. */
+export declare function hasBindingMarker(saved: string): boolean;
 export declare function runAuthoringOperation(toolName: string, args: unknown, options?: { runtimeDirectory?: string }): Promise<AuthoringResult>;

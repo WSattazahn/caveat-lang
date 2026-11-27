@@ -135,6 +135,24 @@ export interface ExplainedRevision {
   /** Grounds withdrawn since the decision was made. */
   withdrawn: Withdrawal[];
   /**
+   * With `laterCaveats`: current live caveat names on each grounds occurrence
+   * that are absent from both the revision's frozen grounds and its retained
+   * caveats. Not a per-occurrence qualification history: a name already held
+   * elsewhere in the revision is excluded. Taken-back qualifications and
+   * `withdrawn` are excluded. Only snapshot relations contribute; supplied
+   * archive records do not establish current qualifications on departed
+   * grounds. An empty list does not establish that no qualification occurred.
+   * The frozen record is unchanged; this field is absent without the option.
+   */
+  qualified_since?: { evidence: string; caveats: string[] }[];
+  /**
+   * With `lineageNotes`: each lineage evidence outside the grounds that the
+   * previous revision rested on (`as: 'grounds'`), was reopened because of
+   * (`as: 'reopening'`) or could have been influenced by (`as: 'lineage'`).
+   * Empty for a first revision; absent without the option.
+   */
+  lineage_from?: { evidence: string; revision: string; as: 'grounds' | 'reopening' | 'lineage' }[];
+  /**
    * For each grounds evidence, in grounds order, the accepted event whose
    * `reveal` or `sample` effect first observed it, with its payload. Present
    * when the events given to `explain` carry their effects; all null when
@@ -143,6 +161,8 @@ export interface ExplainedRevision {
   observed_by?: GroundsObservation[];
   /** From 1.3: how it turned out, once a `resolve` recorded it (spec/caveat-outcomes-0.1.md). */
   outcome?: Outcome;
+  /** From 1.5.0: the thresholds its commit named, with their values (spec/caveat-thresholds-0.1.md). */
+  thresholds?: Record<string, number>;
   history: RevisionChange[];
 }
 
@@ -180,10 +200,21 @@ export interface ExplainedEvidence {
   event: string | null;
   /** From 1.4: the agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
   agent?: string;
+  /** The caveats that qualify it through a live relation; a taken-back one is listed under `taken_back` instead (D029). */
   caveats: string[];
+  /** From 1.5: the take-backs recorded against it, in record order; absent when none (spec/caveat-take-back-0.1.md). */
+  taken_back?: TakeBackNote[];
   withdrawn: WithdrawalNote | null;
   /** The sequence at which it retired from its window; absent while live. */
   retired_at?: number;
+}
+
+export interface TakeBackNote {
+  caveat: string;
+  sequence: number;
+  event: string;
+  /** The agent the host said sent it; absent when it named none (spec/caveat-agents-0.1.md). */
+  agent?: string;
 }
 
 export interface WithdrawalNote {
@@ -213,6 +244,18 @@ export interface ExplainOptions {
    * payloads or prove the supplied archive is exhaustive.
    */
   archive?: ArchiveEntry[];
+  /**
+   * Also list current caveat names on grounds that the revision did not
+   * record (`qualified_since`, with the limits documented there). Off by
+   * default, so the report and its text stay as before.
+   */
+  laterCaveats?: boolean;
+  /**
+   * Also say, for each revision, which of its lineage evidence came with the
+   * revision before it (`lineage_from`). Off by default, so the report and
+   * its text stay as before.
+   */
+  lineageNotes?: boolean;
 }
 
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */
@@ -234,6 +277,8 @@ export interface DependentsReport {
   withdrawals: Withdrawal[];
   /** Withdrawals whose reason is selected by the query. */
   reasonForWithdrawals: Withdrawal[];
+  /** From 1.5: take-backs of the subject caveat, or of a caveat on the subject evidence; absent when none (D029). */
+  taken_back?: DependentTakeBack[];
   /** Supporting/opposing relations from query-matched evidence. */
   claims: DependentClaim[];
   decisions: DependentDecision[];
@@ -259,10 +304,15 @@ export interface DependentDecision {
   id: string;
   value: number | null;
   status: RevisionStatus;
-  basis: 'grounds' | 'permission' | 'retained' | 'lineage' | 'may rest on';
+  /** From 1.5, `kept`: a caveat the revision retains that its grounds do not carry, kept through its lineage (D029). */
+  basis: 'grounds' | 'permission' | 'retained' | 'kept' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
+}
+
+export interface DependentTakeBack extends TakeBackNote {
+  evidence: string;
 }
 
 export interface DependentChange {
@@ -327,7 +377,7 @@ export declare function formatDependents(report: DependentsFormatInput, title?: 
 export declare const UNDO_SCHEMA: 'caveat-undo/0.1';
 
 /**
- * The undo list (spec/caveat-untrusted-sources-0.1.md, draft for 1.4): every
+ * The undo list (spec/caveat-untrusted-sources-0.1.md, from 1.4.0): every
  * decision revision whose frozen grounds hold withdrawn evidence.
  */
 export interface UndoReport {

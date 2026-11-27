@@ -114,12 +114,21 @@ test('the package README links resolve on npm and Socket', async () => {
 test('the MCP server name matches the GitHub login exactly and the versions agree (rc.14)', async () => {
   const name = 'io.github.WSattazahn/caveat-lang';
   const manifest = { ...candidate, mcpName: name };
-  const server = { name, version: candidate.version, packages: [{ registryType: 'npm', identifier: 'caveat-lang', version: candidate.version }] };
+  const server = {
+    name,
+    description: 'Caveat authoring bridge.',
+    version: candidate.version,
+    packages: [{ registryType: 'npm', identifier: 'caveat-lang', version: candidate.version }],
+  };
   assert.deepEqual(checkRegistryIdentity(manifest, server), { name, version: candidate.version });
+  assert.deepEqual(checkRegistryIdentity(manifest, { ...server, description: 'a'.repeat(100) }), { name, version: candidate.version });
   const lowercase = 'io.github.wsattazahn/caveat-lang';
   assert.throws(() => checkRegistryIdentity({ ...manifest, mcpName: lowercase }, server), /mcpName must be/);
   assert.throws(() => checkRegistryIdentity(manifest, { ...server, name: lowercase }), /server\.json: name must be/);
   assert.throws(() => checkRegistryIdentity({ ...manifest, mcpName: undefined }, server), /mcpName must be/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, description: undefined }), /description must be a string/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, description: '   ' }), /description must not be empty/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, description: 'a'.repeat(101) }), /exceeds the MCP Registry limit of 100/);
   assert.throws(() => checkRegistryIdentity(manifest, { ...server, version: previous.version }), /version must equal/);
   assert.throws(() => checkRegistryIdentity(manifest, { ...server, packages: [{ ...server.packages[0], version: previous.version }] }), /package version must equal/);
   assert.throws(() => checkRegistryIdentity(manifest, { ...server, packages: [] }), /one npm package entry/);

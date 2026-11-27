@@ -30,7 +30,39 @@ let resumed = ReactiveSession::restore(source, &save)?;
 ```
 
 Restoring costs what loading the program costs plus the size of the save, not
-the length of the game. With the same source and runtime contract, restoring
+the length of the game. Restore takes a state save of any length, and its time
+and memory grow with the save. Some parts cost more than their size. One is a
+decision journal whose causes share caveats (see the D039 entry under
+[Changes](#changes)). Another is a windowed history that holds many records:
+restore looks each reading or renewal occurrence the graph holds up among the
+records its history holds, and reads those records again for each `departed`
+marker on the history and each effect of the last event that names a record of
+it, so that time grows with the records one history holds times the number of
+those occurrences, markers and effects, and is spent again for each such
+history a save holds. Other steps search lists that span the whole save, so
+splitting the same readings among several histories does not make them
+cheaper: for each reading sampled without a stance, restore searches every
+relation in the graph and the observations; for each evidence observed, it
+searches the observations, the graph's edges and the session's names; and for
+each reading with a note, it searches the identifiers. For each commitment,
+restore also copies the causes it was reopened for once per cause, so a
+commitment reopened for k causes costs time with the square of k; a session
+refuses an event that would give one more than 1,024. Timed by the restoring
+thread's CPU clock in native release builds on a shared 4-core container at
+load averages of 3.8 to 9, a save in which one renewable evidence holds its
+limit of 65,536 records, 65,535 of them retired, took 5.0 to 5.6 seconds to
+restore (the [limits](../docs/LIMITS.md) give its memory). Saves of the form a
+session writes, each holding a reading stream of 65,536 readings that
+reopenings cite, took 14.9 to 47.0 seconds over six programs, the longest for
+readings sampled without a stance. In saves built by hand that restore
+accepts, a history of 8,191 records with a `departed` marker in the
+observation qualification of each occurrence took 11.5 seconds, and one of
+8,193 records after an event that departed 8,192 others took 11.1 seconds. A
+history's retired records are checked in time that grows with their number
+(see the D071 entry). A restore that runs out of memory is not refused: in
+WebAssembly it traps the runtime instance and every session on it. A host that
+restores saves from a party it does not trust bounds their size itself, as the
+MCP server does at 2 MiB. With the same source and runtime contract, restoring
 the intact save text produced by the runtime preserves the saved session's
 full snapshot and the outcomes and effects of later events. Acceptance of an
 edited save does not promise equivalence to the session before the edit.
@@ -55,8 +87,10 @@ the program names it:
   so `{"value": 3}` is a state with no evidence;
 - what events did to the graph since the program loaded: the nodes they
   created (reading and renewal occurrences, rebuilt from their names, and
-  commitments with their reason), the relations they added in order (their
-  order is observation order), caveats' attention and open commitments;
+  commitments with their reason) and the relations they added in order
+  (their order is observation order); and every caveat's attention other
+  than `unexamined` and every open commitment, including those a
+  declaration left as the program loaded;
 - `evidence_order`, for each commitment whose grounds evidence was first
   observed in an order other than name order, that order (see
   [View 0.2](caveat-view-0.2.md#ordered-evidence-in-grounds)). A save made
@@ -91,6 +125,83 @@ encoded again can lose a zero's sign. The
 [save-text host example](../kit/examples/agent-evidence/save-text.mjs) writes and
 reads that string intact, then restores it and uses its signed zero in a decision.
 
+## Module binding interpretation
+
+The module linker scopes a module's references named `hold` or `release` as
+its own. Releases from 1.2.0 to 1.4.1 instead captured a same-named root
+declaration when such a reference appeared two words before `because`. Fresh
+loads now use the corrected scoped interpretation, and otherwise read a bundle
+as the newest release that could load it linked it
+([Caveat 0.5](caveat-0.5-draft.md)).
+
+For affected source, state saves and both replay-save formats carry the
+optional field `"module_bindings":"scoped"` or
+`"module_bindings":"legacy-hold-capture"`. It is omitted when reading a
+module's `hold` and `release` either way links the same source. The original
+source bytes, `source_id` and source digest do not change. A present marker
+must be one of these two strings.
+
+Restore selects the interpretation before applying saved state or replaying
+events. This runtime marks every save of affected source, so an unmarked one
+was written by a release: one before 1.2.0, which read a module's `hold`
+and `release` as its own (`scoped`), or one from 1.2.0 to 1.4.1, which read
+a `hold` or `release` two words before `because` as the root's
+(`legacy-hold-capture`).
+An unmarked save uses the interpretation of the releases that could have
+written it, as they linked its source ([Caveat 0.5](caveat-0.5-draft.md)),
+even where a fresh load reads the source otherwise or refuses it. Those are
+the releases that could load the source and that wrote the save's format.
+Every release wrote state saves, those from rc.17 on with `source_sha256`,
+so only release candidates before rc.17 wrote one without it. Releases from
+1.1.0 on wrote [Replay Save 0.1](caveat-replay-save-0.1.md), and releases
+from 1.2.0 on wrote [Replay Save 0.2](caveat-replay-save-0.2.md), so no
+release before 1.2.0 wrote a positional replay save. Where releases of one
+kind linked the source differently, as later minors added forms, it is read
+as the newest of them that could load it linked it: a save an older one
+wrote continues as that release would have continued it, or is refused
+where it holds an event that release would not accept. Where releases of
+both kinds could,
+and their readings differ, restore requires an explicit choice: the same
+source and initial save can have been written by 1.0 with scoped behavior or
+by 1.4 with root capture. Where no release could, an unmarked save uses the
+interpretation that loads, and requires a choice if both load and read the
+source differently. Saved state is not used to guess which history
+occurred. A save of another program, or of an edited source, is refused as
+such, as releases refuse an unmarked one, before a marker or a choice is used
+and before a choice is asked for, since no choice could restore it.
+
+In the kit, pass `runtime.restore(source, saved, { moduleBindings: 'scoped' })`
+or `{ moduleBindings: 'legacy-hold-capture' }`. The kit's other restore paths
+take the same choice: `caveat serve --restore-module-bindings` and its
+`restore` request ([Serve 0.1](caveat-serve-0.1.md)), the MCP tool
+`caveat_dispatch` as `moduleBindings` beside `save`, `savedEvents` and
+`carrySave` as their last argument, and the starter's `openHost` as
+`moduleBindings`, for its checkpoint. The Python package's
+`caveat_lang.restore` takes it as `module_bindings`. Native callers use
+`restore_with_options` or `restore_json_with_options` with
+`RestoreOptions.module_bindings`; the raw WASM method is
+`restore_options(source, saved, options_json)`. With `scoped` the source is
+read as a fresh session reads it, and with `legacy-hold-capture` as the
+newest release from 1.2.0 to 1.4.1 that could load it read it, or, where no
+release could, as this runtime links it with the root's `hold` and
+`release`. Where only releases before 1.2.0 could load it, none read it with
+root capture: `legacy-hold-capture` then changes nothing where the root's
+`hold` and `release` would not change how they read it, and is refused where
+they would. An option conflicting with a save's marker is refused.
+Subsequent saves retain the selected interpretation, so no option is needed
+next time.
+
+Older runtimes that do not recognize the marker refuse a marked save.
+Do not strip it to force an older runtime to accept the file: that can
+silently choose different behavior. Unaffected saves still omit it.
+
+Choose from the known history, not from the desired next result. This selects
+how to continue that history; it does not migrate previously stored state,
+frozen decisions or reasons to corrected semantics. A fresh session uses
+corrected semantics. A marker is ordinary editable data, not proof of origin
+or authority. All source identity, state, provenance and replay checks still
+apply. See the [correction record](../docs/reviews/2026-11-14-module-binding-correction.md).
+
 ## Restore validation
 
 A save is data a host stored and may hand back changed. Restoring loads the
@@ -118,7 +229,9 @@ save is refused with an error, and never crashes the runtime, when:
   passed included; `withdraw`'s generated `withdrawn`; a reading inheriting
   whatever can qualify its stream's template; and a renewal carrying its
   evidence's declared caveats. An occurrence counts as its stream or
-  renewable evidence. Only `qualify ... after` schedules a qualification.
+  renewable evidence, and a name the program declares as itself, however it
+  is spelled (finding D102). Only `qualify ... after` schedules a
+  qualification.
   Conditions are not evaluated: the pair is one the program could make, not
   one an event is shown to have made;
 - a provenance carries a caveat that no mechanism of the loaded source can
@@ -133,15 +246,139 @@ save is refused with an error, and never crashes the runtime, when:
   commitment its `retaining` caveats. Conditions are not evaluated: the
   caveat is one the program could have attached, not one an event is shown
   to have attached;
-- a caveat's saved attention is one no examination of the loaded source can
-  leave. A reactive event leaves a caveat only `examined`, so `deferred` and
-  `examining` are refused. An `examined` caveat is refused when the program
-  has no attention budget, or when no `examine` in a rule, or in a procedure
-  a rule reaches, names it; and the examined caveats together are refused
-  when the least cost at which the source examines each one sums to more
-  than the budget's `spent`. Conditions are not evaluated and an examination
-  is counted once: the attention is one the program could have left, not one
-  an event is shown to have left;
+- a provenance holds a departure marker of a history, or the name of a
+  record of one, that no rule, procedure,
+  reopening trigger or declaration of the loaded source can carry into it,
+  or an outcome, a hold, a deferral, a `reopens` relation that an event
+  added or a withdrawal names as its cause a record that none can carry into
+  the part the cause belongs to
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)). A relation a
+  declaration makes is the program's: a save holds none, and restore makes
+  it again from the source, so its cause, which can be a caveat, a claim or
+  a commitment, is not read. Each part of what a session holds has its own
+  bound, from what writes it: a state's lineage, and its grounds, which take
+  what its initializer's and its sets' values, or their citations, ground on
+  as the runtime evaluates grounds, so never the guard of the rule that sets
+  the state, though what a value reads can hold the guard of the rule that
+  wrote it; a reading stream's readings, their observation and `observed`
+  records, and its selection, which only a skipped sample's guard writes; an
+  evidence's observation and `observed` records; the `withdrawn` records of
+  an evidence or of a stream's readings, which take the guards of its
+  skipped withdrawals; a decision series' or a commitment's bases, its
+  `committed` record, which takes the guards of a commitment's skipped
+  commits (a series' skipped commit writes its selection instead), its
+  `reopened` record, which takes the guards of its skipped reopenings, its
+  grounds (what its commits use, cite and give as reasons, as they ground
+  on), its outcomes and the evidence they name (only what its resolves
+  select), its reopening records and the evidence that reopened it or that a
+  hold defers (only what its `reopen` effects select, the stream a reopening
+  trigger watches and the evidence a declaration reopens it with), the
+  reasons of its hold (only what its `hold` effects select), and its
+  selection, which only a skipped commit's guard writes; the guards
+  scheduled on each evidence or stream, which take what its
+  `qualify ... after` effects evaluate; a caveat's examination records; the
+  withdrawals' reasons (only what a withdrawal's `because` selects); and
+  each cue, which takes the guards of its own emits. What a `release`
+  selects goes into the reopening record, and the series keeps none of it as
+  a cause. What an effect evaluates (its guard, its values, what it cites or
+  selects, and a call's arguments) flows into what it writes, skipped or
+  not; a procedure's steps run on what any call of it passes; a parameter
+  grounds a value on what its argument gives grounds, and in a program a
+  release before rc.12 may have loaded also on what the argument carries,
+  its whole lineage, as those releases grounded it, since only such a
+  program can have a save that old, and a step's grounds take an argument
+  only through the parameter the step reads; a reopening
+  trigger reads its condition and the stream it watches, whose reading it
+  names as the cause; and each declaration carries what it leaves. No
+  release before rc.12 loads a program that, as it loaded, declares a
+  window, a threshold, an agent, `work skips other routes`, an irreversible
+  series or one that forecloses, an integer clock, a state `unset` or a
+  `reopened by changed` trigger, or has, in a rule, a procedure, a template
+  a call specializes, a binding or a define: `unqualify`, `unset`,
+  `resolve`, `hold`, `release`, `withdraw every`, a withdrawal of, a
+  reopening because of or a qualification of `occurrence(...)` or
+  `reading(...)`, a qualification of `latest(...)`, a neutral sample or one
+  `noting` or `with`, a commit `citing` or `retaining ... because`, or the
+  expressions `in_basis`, `grounds_of`, `outcome`, `resolved`, `on_hold`,
+  `is_set`, a threshold's value, `carries_any`, `carries` asked of
+  `latest(...)`, `occurrence(...)`, `reading(...)` or `revision(...)`, and
+  `only_if` unless the program of a bundle declares a function
+  `MODULE__only_if` for one of its modules, which those releases call for it
+  in that module when the module declares `only_if` as something else
+  (finding D083). Each came after rc.11, as the release binaries from rc.1
+  to rc.11 confirm. The check reads only what the loaded program keeps, so a
+  program keeps the wider bound when its only later construct sits in a
+  state's initial value, in a function nothing the loaded program keeps
+  calls or in a template no call specializes, or is a nested `for` block or
+  an across-members form, which leave nothing once expanded (what they
+  expand to is read like the rest), or an expansion larger than rc.11
+  allowed. A read carries the parts the runtime reads for it, and no
+  other part of what it names. A read of evidence or of a stream carries the record's name and
+  what its observation and `observed` records can hold, and a read of a
+  stream also what its readings and its selection can. A value read of a
+  stream (`latest`, `history_at`, `history_count` or a fold), `has_sample`,
+  and the `latest(STREAM)` a `because` or a `permitted by` selects, carry
+  only the record's name and what the readings and the selection can hold:
+  the runtime reads the reading as it was taken, which keeps what its sample
+  read then, and what a qualification or a withdrawal joins to the observation
+  records later never reaches the reading (finding D100). Of a series or
+  a commitment, a value read (`latest`, `history_at`, `history_count` or a
+  fold) carries the bases, `grounds_of` the grounds, `outcome` and
+  `resolved` the outcomes, `committed` and `in_basis` the bases, the
+  reopening records and the `committed` records, and `reopened` and
+  `on_hold` those and the `reopened` records, each with the selection. The
+  runtime reads the selection for `outcome` and `in_basis` never, and for
+  `resolved` only while the series has no outcome, but a selection flows
+  into the outcomes and the bases anyway, so this widens no bound.
+  `in_basis` carries nothing of the evidence it looks for, and `qualified`
+  nothing of a caveat it attaches by name. A withdrawal predicate
+  (`withdrawn`, `rests_on_withdrawn` or `permission_withdrawn`) carries the
+  `withdrawn` records of what it asks about and the reason of each
+  withdrawal, read through its records, and nothing else of the evidence or
+  the decision it asks about. In grounds, `qualified`, `observed` and
+  `carries` give only the name of the evidence they ask about, and a cause
+  that an outcome, a series or a withdrawal keeps is the name its `because`
+  selects. Two reads take a name from what the session holds and read it
+  through its records: a `because caveated(STATE, CAVEAT)` reads, with the
+  state's lineage, each evidence the state's grounds name; and `reopened`
+  and `on_hold`, and with them the next revision's basis, read each evidence
+  that reopened the commitment again, as its records stand then. What the
+  second finds is bounded with the reopening records, so a read that carries
+  those carries it. A part's content also flows into what takes it whole,
+  whatever wrote it: grounds into their lineage or basis, a cause into its
+  outcome or reopening, a selection into what inherits it, and a reopening
+  and a `reopened` record into the next revision's basis. The guard of a
+  qualification or a withdrawal, and a scheduled guard when it applies,
+  joins each state lineage and each observation, examination or predicate
+  record that lists the record it qualifies then; readings, bases, outcomes,
+  reopening records, grounds, selections, scheduled guards and cues keep
+  what was read when they were written, and no record or guard joins them
+  later: a qualification adds only caveats to a state's grounds. A part can
+  hold a history's records, and so its marker, only when such flows lead to
+  it from a read of that history or from a name of one, and a reading also
+  holds its own name. So each part's content moves only into parts whose
+  bound contains its own, and a session restored from a save this check
+  accepts stays within the bound as it plays on. A journal entry's name
+  never enters a provenance, so none holds a marker of the journal.
+  Conditions are not evaluated: the marker is one the program could have
+  left there, not one an event is shown to have left;
+- a caveat's saved attention is neither the one the declarations leave it
+  in as the program loads nor one an examination of the loaded source can
+  leave. A declaration can leave a caveat `examined`, `examining` or
+  `deferred` (`examine stale cost 1;`, `examine stale;`, `defer stale;`),
+  and a reactive event leaves a caveat only `examined`, so `deferred` and
+  `examining` are refused unless the declarations leave the caveat so, and
+  `unexamined` is refused when they leave it otherwise. An `examined`
+  caveat the declarations do not leave `examined` is refused when the
+  program has no attention budget, or when no `examine` in a rule, or in a
+  procedure a rule reaches, names it; and the examined caveats are refused
+  together when the least cost at which the source examines each one,
+  added to what the declarations spent, sums to more than the budget's
+  `spent`. A caveat the declarations leave `examined` adds nothing to that
+  sum unless its examination record shows an event examined it again,
+  since no event need have examined it. Conditions are not evaluated and an
+  examination is counted once: the attention is one the program could have
+  left, not one an event is shown to have left;
 - a relation connects kinds of node no event relates. Events add `supports`
   and `opposes` from evidence to a claim, `qualifies` from a caveat to
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
@@ -168,6 +405,24 @@ save is refused with an error, and never crashes the runtime, when:
   `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
   renewals list an occurrence the graph does not hold, out of order, or more
   occurrences than the declared limit;
+- the renewals list, past the evidence itself, the least name `foo@N`, N
+  from 2, that the program declares as a claim, evidence, caveat or
+  commitment, or any entry past it. Renewals of `foo` make `foo@2`, `foo@3`
+  and so on in order, and a `renew` that would make such a name fails, since
+  the name is taken, so no renewal makes it or gets past it. Load accepts
+  such a name beside renewable `foo`, and refuses one spelled like a record
+  of a reading stream or a decision series; a place or an entity is no node,
+  so its name stops no renewal. Wherever restore reads a name as a record of
+  a history, as these checks read an occurrence, a reading or a revision, a
+  name the program declares counts as itself, however it is spelled. A
+  journal entry is no node: the journal names its entries `journal@K`
+  whatever the program declares, so restore reads a name among the journal's
+  records by its spelling (finding D102);
+- the renewals list an occurrence of evidence that no `renew` in a rule, or
+  in a procedure a rule reaches, names, guarded or not: only a renewal makes
+  an occurrence (finding D063). Conditions are not evaluated, so an
+  occurrence of evidence some rule renews restores whether or not an event
+  made it;
 - the graph and a reading stream disagree: the graph holds a reading
   `STREAM@N` that is not entry N of that stream's occurrences, or the
   occurrences list a reading the graph does not hold, or out of order;
@@ -178,30 +433,101 @@ save is refused with an error, and never crashes the runtime, when:
 - a qualification record is keyed by a name its record cannot belong to:
   an observation record by evidence that is neither observed nor an
   occurrence a renewal made, an examination record by a caveat the save does
-  not leave examined, a reopening record by a commitment no `reopens`
+  not leave examined or that no `examine` in a rule, or in a procedure a rule
+  reaches, names, a reopening record by a commitment no `reopens`
   relation names, and a skipped effect's predicate guard by a name of the
   wrong kind (`observed` evidence, `examined` a caveat, `committed` and
   `reopened` an action a rule commits or reopens, a decision series or a
   restored commitment);
+- an observation record is keyed by a name that no `reveal`, `sample` or
+  `renew` in a rule, or in a procedure a rule reaches, leaves a record on. A
+  `reveal` leaves one on its evidence's current occurrence when it gives
+  that occurrence a stance it lacks or, neutral, finds it unobserved, so on
+  evidence a declaration relates to a claim only with a stance no
+  declaration gives it. A `sample` leaves one on the reading it takes. A
+  `renew` leaves one on the occurrence it makes when its guard rests on
+  something, since the record is what the guard rests on
+  ([Renewal 0.1](caveat-renewal-0.1.md)). Its guard is made of the
+  conditions on its rule, its step and the steps on the way to it, with the
+  arguments of the calls on the way, and only a read of a state, the graph
+  or a history rests on anything: a payload field, a constant, the clock and
+  a literal are plain, and a procedure's parameter rests on what its
+  argument does. Conditions are not evaluated: restore takes a `reveal` or
+  `sample` to leave its record whatever its conditions hold, and a `renew`
+  to leave one whenever one of those conditions or arguments reads a state,
+  the graph or a history, whatever that rests on. It does not establish that
+  an event left the record, or could have;
 - the graph records a membership without the record every event that adds
   it leaves: evidence an event observed (a restored `supports` or `opposes`
   relation, or an entry of `observations`) without an observation record, a
   caveat the save leaves `examined` without an examination record, or a
   commitment a `reopens` relation names without a reopening record.
-  Evidence a declaration relates to a claim, and a caveat a declaration
-  examines, are observed and examined as the program loads and need none. A
-  record removed together with its membership is still accepted;
+  Evidence a declaration relates to a claim, and a caveat the declarations
+  leave `examined`, are observed and examined as the program loads and need
+  none, but a stance no declaration gives that evidence is an event's, and
+  needs the evidence's observation record (finding D065). A record removed
+  together with its membership is still accepted;
+- an observation record on evidence a declaration relates to a claim sits
+  beside no stance of that evidence that no declaration gives it: only a
+  `reveal` that gives it such a stance leaves that record, and it adds the
+  stance in the same step (finding D064);
+- a `supports` or `opposes` relation is not one an event adds: one a
+  declaration gives, one listed twice, one from a reading other than the
+  stance the reading was taken with, or one from other evidence that no
+  `reveal` in a rule, or in a procedure a rule reaches, gives that
+  evidence. An occurrence a renewals list holds counts as that list's
+  evidence, and a name the program declares as itself, however it is
+  spelled. A `reveal` adds the stance it names when its evidence's current
+  occurrence lacks it, and a `sample` gives the reading it takes the stance
+  it is taken with; the declarations give theirs as the program loads, and
+  a save holds none of them. Conditions are not evaluated: the relation
+  could have been added, not shown to have been (finding D101);
+- a `qualifies` relation is one a declaration gives. The declarations give
+  theirs as the program loads, and a save holds none of them, since no event
+  adds one again: a qualification adds a relation only when none is live,
+  and load refuses a program that takes back a caveat a declaration applies
+  (finding D102);
+- a relation is listed more often than events add it: a `retains`,
+  `relies_on` or `reopens` relation more than once, or at all where a
+  declaration gives it; a `retains` or `relies_on` relation from a
+  commitment the program declares at all; and a `qualifies` relation more
+  than once where no take-back of that caveat on that evidence is saved,
+  or, where it qualifies an occurrence a renewal made or a reading, more
+  often than the program declares the caveat on the renewable evidence or
+  on the stream's template, where it declares it there more than once. A
+  commitment an event makes is made once, and relates once to each caveat
+  it retains and each piece of evidence it relies on, and no event commits
+  a commitment the program declares; a reopening an event makes adds only
+  the `reopens` relations its commitment lacks; a qualification adds a
+  relation only when none is live, so again only after a take-back, whose
+  records [Take-back 0.1](caveat-take-back-0.1.md#snapshot-and-save) pairs
+  with the relations; and a renewal carries its evidence's declared
+  caveats, and a reading what qualifies its stream's template, each as
+  often as it is there, which is more than once only where the program
+  declares it more than once. Declarations may repeat a relation, but a
+  save holds none of theirs (finding D104);
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
+- a reading names an event that reaches no `sample` of its stream, in a rule
+  or a procedure a rule calls, with the reading's relation and claim (or with
+  neither, for a neutral reading). Conditions are not evaluated: the event
+  could have taken the reading, not shown to have;
 - it shows a cue that no `emit` the last event's rules reach, directly or
   through the procedures they call, can show. A save with no last event shows
   none;
 - an effect's names do not have the kinds its place needs, or the save does
   not hold what it reports: a `sample` its reading in the stream and its
   relation, a `qualify` or `reopen` its relation, a `commit` a basis holding
-  the caveats it retains, an `examine` attention spent at least its cost, a
-  `renew` its occurrence in the renewals, a `withdraw` its withdrawal record;
+  the caveats it retains, an `examine` attention spent at least its cost
+  besides what the declarations spent, a `renew` its occurrence in the
+  renewals, a `withdraw` its withdrawal record. The last event paid for
+  each `examine` it reports, in full, so the save is also refused when the
+  costs of all its `examine` effects, added to what the declarations
+  spent, sum to more than the budget's `spent`, a caveat examined twice
+  counting twice. That sum is checked apart from the least costs above:
+  the least costs of the caveats examined before the last event are not
+  added to it, so neither check refuses a save that meets each sum alone;
 - it reports an effect that no rule effect the last event reaches could make:
   one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
   `qualify`, `renew` or `withdraw`) on the same names, where a renewable
@@ -235,11 +561,24 @@ save is refused with an error, and never crashes the runtime, when:
   any other, past the bound too: a session resumed from an edited save at or
   near the bound plays on, but its saves past the bound are refused.
 
+A state save is not refused for its length. Nothing bounds the save a session
+writes, so restore parses a save of any length, at the cost described at the
+top of this document: time and memory that grow with the save, faster than
+the save in the steps listed there, and a trap, not a refusal, when the
+runtime runs out of memory. A host that restores saves from a party it does
+not trust bounds their size before restoring them, as the MCP server does at
+2 MiB. A [replay save](caveat-replay-save-0.1.md) keeps its bound of 4,096
+bytes, since the runtime never writes a longer one.
+
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
 current caveats: later qualification does not rewrite history. In a program
 that takes back, current caveats may also lack one a historical record keeps:
 a [take-back](caveat-take-back-0.1.md) does not rewrite history either.
+The provenance limits bound a lineage, not a journal entry, so restore checks
+an entry's names without them: a reopening that ends a hold cites every
+deferred cause and the caveats of each, more names together than one lineage
+may hold, and the current caveats an entry is checked against have no bound.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
 30,000 when asked, and remove each of its records in turn. Each altered save
@@ -325,6 +664,756 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-11-22 (D074, D105): under `journal window`, a reading stream or
+  evidence named `journal` is read as itself where restore asks which
+  take-back caveats grounds can keep. A take-back caveat on such a stream's
+  readings or such evidence's occurrences can reach a state's or a
+  commitment's grounds through a citation, beyond their lineage or basis
+  (D098), as it can for any other name. Restore took the history `journal`
+  there for the decision journal, whose entries no caveat qualifies, and
+  refused the saves the session wrote from then on, for example with
+  "state t grounds keep a caveat its lineage does not keep"; a debug build
+  stopped in the event instead. The session's saves change too, as
+  [Departure 0.1](caveat-departure-0.1.md) says: a journal entry departs
+  in the event that retires it, so a save no longer holds an entry that a
+  pin on a record or declared name of its spelling kept retired, and keeps
+  the records and declared nodes such an entry's departure used to take.
+  Restore refused many of the saves that departure left, for example with
+  "reveal effect has no matching graph relation" once a declared claim
+  `journal@1` had departed with its declared relation; such a save an
+  older release wrote is refused as before. A state save an older release
+  wrote that holds an entry such a pin kept retired restores to the same
+  save, and the restored session departs the entry at the end of its next
+  accepted event. Its reads of a record or declared name spelled like the
+  entry no longer take the entry's retirement for their own, so a view
+  over a stream named `journal` can differ from that release's from the
+  start. Only declared evidence a declaration's `reopen` names that no
+  declaration observes keeps that retirement, since the older release
+  read `reopened(…)` through it and what read it cites the evidence: the
+  restored session keeps the evidence retired, where the older release's
+  departure of the entry took the evidence and its later reads cited
+  nothing, and a save it writes lists it in `retired` still once the entry
+  has departed ([Windows 0.1](caveat-windows-0.1.md), "Save and
+  restore"). A compact save that is a replay save replays its events under
+  these rules, so it restores the session those events make now, and is
+  refused, naming the event, when that session refuses one of them: for
+  example a `renew` onto a declared claim `journal@2` the older release
+  accepted once the entry's departure had taken that claim, or a read of
+  `reopened(…)` through such evidence, which the older release took for
+  retired, where the state save of the same session restores. Tests:
+  `runtime/tests/d074_a_history_named_journal_beside_journal_window.rs`,
+  `runtime/tests/d105_a_declared_name_spelled_like_a_journal_entry.rs`,
+  and `a_journal_entry_keeps_its_name` in
+  `runtime/tests/d102_declared_names_are_no_occurrences.rs`.
+- 2026-11-22 (D104): restore holds a relation to the number of times events
+  add it. A commitment an event makes is made once, and relates once to
+  each caveat it retains and each piece of evidence it relies on, and no
+  event commits a commitment the program declares; a reopening an event
+  makes adds only the `reopens` relations its commitment lacks; and a
+  qualification adds a `qualifies` relation only when none is live, so
+  again only after a take-back of it. Declarations may repeat a relation,
+  but a save holds none of theirs. Restore refused a stance listed twice or
+  one a declaration gives (D101), and a qualification a declaration gives
+  (D102); another relation listed again was refused only where an older
+  check caught it. A save that listed an event-made `qualifies`, `retains`
+  or `relies_on` relation twice restored: only a take-back caveat's
+  `qualifies` relation listed again was refused, and only beside a saved
+  take-back, since restore pairs such relations with the take-back records
+  once a save holds any. A `reopens` relation listed twice, or one a
+  declaration gives, restored too once the decision journal had let
+  entries depart, and one a declaration gives restored beside a journal
+  that holds every entry when the save also journaled a reopening that
+  would make it, with its reopening record; otherwise a journal that holds
+  every entry refuses it, as reopening history that differs from the
+  graph, or as a reopening that repeats an existing cause where the save
+  journals that cause again. The restored session related each copy, so it
+  showed the relation twice in every later snapshot and save, and a
+  commitment retained `["k", "k"]` where every live session retains
+  `["k"]`. A `retains` or `relies_on` relation from a commitment
+  the program declares restored as well beside a basis the save gave that
+  commitment, which then retained or relied on what it does in no live
+  session; without such a basis, restore refuses the relation as outside
+  the commitment's basis, as before. Restore now refuses a `retains`,
+  `relies_on` or `reopens` relation listed twice, with "relation F RELATION
+  T is listed twice"; one a declaration gives, with "relation F RELATION T:
+  a declaration gives it, and no event adds it again"; and any other
+  `retains` or `relies_on` relation from a commitment the program declares,
+  with "relation F RELATION T: the program declares F, so no event commits
+  it". It refuses a `qualifies` relation listed twice with no take-back of
+  it saved, with "relation C qualifies E is listed twice", adding ", and no
+  take-back of it is saved" for a caveat the program takes back. A renewal
+  carries its evidence's declared caveats, and a reading what qualifies its
+  stream's template, each as often as it is there, so a program that
+  declares `C qualifies E` twice writes it twice on every occurrence a
+  renewal of `E` makes and on every reading of a stream from `E`; restore
+  refuses one listed more often than that, with "relation C qualifies O is
+  listed more than the D times the program declares C qualifies E". Each
+  message names the first copy past what events add, as D101's does. The
+  check runs after every older check, so a save refused before keeps its
+  message, and it looks up how often the declarations give each relation,
+  so its time grows with the save and the program, not with their product.
+  Saves the program writes restore as before. Tests:
+  `runtime/tests/d104_relations_listed_once.rs`, and
+  `d104_declared_relations_are_looked_up_not_scanned` in
+  `runtime/src/reactive_save.rs`.
+- 2026-11-21 (D102): restore reads a name the program declares as itself,
+  however it is spelled. A program may declare `foo@2` beside
+  `renewable foo`, as evidence or as a claim, caveat or commitment (load
+  refuses such a name spelled like a record of a reading stream or a
+  decision series, but not this one), and no renewal makes that name or one
+  past it: a `renew` that would make it fails, since the name is taken, and
+  renewals are made in order. A place or an entity is no node, and its name
+  stops no renewal. Restore took the declared name for `foo`'s second
+  occurrence wherever it read a name as a record of a history. So it refused
+  saves the program writes once a caveat reaches `foo@2` through its own
+  declarations, such as one that qualifies a claim `foo@2` supports: it
+  looked for the caveat on `foo`, and refused with, for example, "state x:
+  kd cannot qualify any of its evidence". 1.4.1 refuses those saves too, as
+  has every release since 0.1.0-rc.13, which began holding a provenance's
+  caveats to its evidence. And it accepted edited saves that list `foo@2`
+  among `foo`'s renewals, after which a restored `renew` of `foo` made
+  `foo@3`, where every live one fails, and, with a window, retired the
+  declared evidence and removed it; that, with a window, list an occurrence
+  past `foo@2`, after which a restored `renew` made the next one, where
+  every live one fails; that give `foo@2` what only `foo`'s occurrences
+  take: an observation record, a `qualifies` relation, a take-back with the
+  qualification it takes back, a withdrawal or a scheduled qualification a
+  rule makes on `foo`, a caveat only `foo` can carry, a place among the
+  observed evidence or in the flows that carry `foo`'s records, a departure
+  of one of `foo`'s records, or the last event's reveal, qualification or
+  take-back of `foo`; or that give `foo` a place in the flows that carry
+  only `foo@2`'s records, such as a lineage that cites `foo` where only a
+  declaration's `reopen ... because foo@2` reaches. A program that declares
+  `foo@2` beside `foo` with no renewal was read the same way in those
+  reports. Restore now refuses a renewals list of `foo` that holds, past
+  `foo` itself, the least name M spelled `foo@K`, K from 2, that the program
+  declares as a claim, evidence, caveat or commitment, with "renewable E
+  occurrence M: no renewal makes M, which the program declares", or any
+  entry O past it, declared or not, with "renewable E occurrence O: no
+  renewal gets past M, which the program declares", where E is `foo`, after
+  every older check; and every other check reads a declared name as itself,
+  refusing it where it is no record the program can give it. The journal
+  names its entries `journal@K` whatever the program declares, so a name
+  among the journal's records is read by its spelling, as before. Restore
+  also read `foo@2` as `foo` in a saved `qualifies` relation, and so refused
+  one the declarations give, listed again, only by that misreading: a repeat
+  of a caveat's declared qualification of other evidence restored, and the
+  restored session showed the relation twice in later snapshots and listed
+  it in later saves, where no save of the program lists it. Restore now
+  refuses a `qualifies` relation a declaration gives, with "relation C
+  qualifies N: a declaration gives it, and no event adds it again", as D101
+  does for a stance; a repeat of a declared `qualifies` relation that does
+  not run from a caveat to evidence is refused by the kind check first, as
+  before. A save of a program that declares no claim, evidence, caveat or
+  commitment spelled `NAME@N` restores, or is refused, as before, unless it
+  repeats a caveat's declared qualification of evidence. For a program that
+  declares one, an edited save an older check refused may now get another
+  check's message, or the same check's message naming the declared name
+  where it named `foo`. For example, an observation record on such evidence
+  with a declared stance is now refused as one no rule of the program
+  reveals, where D064's or D101's check, or the reach check, refused it; one
+  on such evidence with no stance, as a record of evidence that is neither
+  observed nor a renewed occurrence; the qualification check and the reach
+  check name `foo@2` where they named `foo`; a take-back record, a report of
+  a take-back, a withdrawal or a windowed retirement that names `foo@2` gets
+  the message of a check that reads it as itself; and a caveat's declared
+  qualification of evidence listed again gets the message above. Tests:
+  `runtime/tests/d102_declared_names_are_no_occurrences.rs`.
+- 2026-11-21 (D101): restore holds a `supports` or `opposes` relation to the
+  effects that add one. As the session runs, only a `reveal` gives evidence
+  a stance, the one it names, when its current occurrence lacks it, and only
+  a `sample` gives a reading one, the one it is taken with; the declarations
+  give theirs as the program loads, and a save holds none of them. Restore
+  held a saved stance to its ends' kinds and to the records beside it, such
+  as the evidence's observation record, never to what the program's reveals
+  give, so a save could give evidence a stance on a claim no rule gives it,
+  and a later read of that evidence carried the caveats that qualify that
+  claim, which no session of the program carries; beside a forged record on
+  declared evidence, such a stance also met the pairing of D064. A stance a
+  declaration gives, or one listed twice, restored as a second relation,
+  which snapshots and saves showed while its evidence stayed. Restore now
+  refuses a stance no `reveal` in a rule, or in a procedure a rule reaches,
+  gives its evidence, with "relation F RELATION CLAIM: no rule of this
+  program, or procedure one calls, reveals E RELATION CLAIM", where E is F,
+  or, for an occurrence a renewals list holds, that list's evidence; a
+  reading's stance other than the one it was taken with, with "relation R
+  RELATION CLAIM: reading R was not taken with that stance"; a stance a
+  declaration gives, with "relation F RELATION CLAIM: a declaration gives
+  it, and no event adds it again"; and a stance listed twice, with
+  "relation F RELATION CLAIM is listed twice". A name the program declares
+  counts as itself, however it is spelled, so evidence declared as
+  `sensor@2` beside renewable `sensor` is no occurrence of it. Conditions
+  are not evaluated. The check runs after every older check, so a save
+  refused before keeps its message. Saves the program writes restore as
+  before. Tests: `runtime/tests/d101_stances_need_a_revealing_rule.rs`.
+- 2026-11-21 (D064, D065): restore pairs the stances an event gives declared
+  evidence with that evidence's observation record. Evidence a declaration
+  relates to a claim is observed as the program loads, without a record, and
+  a `reveal` that gives it a stance no declaration gives it adds that
+  relation and leaves the record in the same step. Nothing later removes
+  either: a withdrawal, a qualification and its take-back keep both, and the
+  evidence's own name never departs, even once a renewal retires it. Restore
+  skipped such evidence when it paired stances with records (rc.13,
+  F317–F322), and held its record only to the reveals a rule reaches (D052).
+  So a save could keep the record without the stance (D064) or the stance
+  without the record (D065), and the restored session's later reads of the
+  evidence carried what no session of the program carries. Restore now
+  refuses a record on declared evidence that has no stance but those its
+  declarations give it, with "observation of E: E has no stance but those
+  its declarations give it", and a stance no declaration gives declared
+  evidence beside no record of it, with "evidence E has no observation
+  record, though it RELATION CLAIM, a stance no declaration gives it". The
+  stances the declarations give need no record, as before. The checks run
+  after every older check, so a save refused before keeps its message. Saves
+  the program writes restore as before. Tests:
+  `runtime/tests/d064_observation_record_needs_its_stance.rs` and
+  `runtime/tests/d065_event_stance_needs_its_record.rs`.
+- 2026-11-21 (D063): restore refuses a renewals list that names an
+  occurrence of renewable evidence no rule renews. Only a `renew` makes an
+  occurrence, and restore held the list to its first entry, its order, its
+  kind and the declared limit, and the graph to the list, but never the list
+  to the program's rules. So a save of a program with no `renew` could list
+  `sensor@2`, with the graph node to match, and the restored session read it
+  as the evidence's current occurrence: a later `qualified(1, sensor)` was
+  refused as `unobserved_evidence` where the live session accepted it.
+  Restore now refuses such a list, with "renewable E occurrence E@N: no rule
+  or procedure of this program renews E", unless a `renew` of E in a rule,
+  or in a procedure a rule reaches, guarded or not, could have made it.
+  Conditions are not evaluated, so a listed occurrence of evidence some rule
+  renews restores whether or not an event made it. The check runs after
+  every older check, so a save refused before keeps its message. Saves the
+  program writes restore as before.
+  Tests: `runtime/tests/d063_renewals_need_a_renewing_rule.rs`.
+- 2026-11-21 (D100): a value read of a stream (`latest`, `history_at`,
+  `history_count` or a fold), `has_sample`, and the `latest(STREAM)` a
+  `because` or a `permitted by` selects, carry only the record's name and
+  what the stream's readings and selection can hold ("Restore validation").
+  D054 bounded each as any other read of the stream, by what the
+  observation records can hold too, though the runtime reads only the
+  reading as it was taken (`select_because` and the permission check call
+  `latest`), and what a qualification or a withdrawal later joins to the
+  observation records never reaches the reading. So wherever an effect
+  evaluated such a read (its guard, its values, what it cites or selects,
+  or a call's arguments) and wrote a part that keeps what it read, restore
+  accepted a forged marker of a history that only such a join could hold:
+  in the readings a sample takes, a stream's or a series' selection, a
+  commitment's basis, an outcome, a reopening record, a scheduled
+  qualification's guard and a cue, with a forged kept take-back caveat
+  beside the marker, and in grounds that read or cite such a part and in
+  grounds that read those. In grounds that cite such a part, and in grounds
+  that read those, it accepted a forged kept take-back caveat alone as well
+  (D057, D098). No session writes these saves, and restore now refuses them
+  as it refuses such a marker or caveat elsewhere. A state's lineage, and
+  an observation, examination or predicate record, still takes what joins
+  a record it lists, and a read through the records (`observed`,
+  `carries`, `qualified`, and a `because` that names evidence or an
+  occurrence) what joins them. So do `reopened` and `on_hold` of a
+  commitment that a `reopen ... because latest(S)` reopened, and with them
+  its next revision's basis: they read the reading that reopened it
+  through its records as they stand then, so what an effect writes from
+  those reads, and grounds that cite it or read those, can hold or keep
+  what joined S's observation records after the reading was taken, even
+  where the effect also reads S by value. That commitment's reopening
+  record is still bounded with what `reopened` reads, and `committed` and
+  `in_basis` carry that bound, so restore still accepts such a marker
+  there, in what an effect that reads `committed` or `in_basis` of the
+  commitment writes and in grounds that cite that, and such a caveat in
+  those grounds.
+  Tests: `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+- 2026-11-14 (D099): the bound of D057 and D098 starts with what the
+  provenances a `because` citation reads can hold: of a stream it reads,
+  what the readings and the selection hold, not what joins the observation
+  records after a reading is taken, though a reading is bounded as "Restore
+  validation" bounds it, so it takes in what its sample can read, the
+  observation records of another stream read there by value among them
+  until D100 (above). A record it
+  reads itself or only names, and a reason or cause a withdrawal predicate,
+  `on_hold` or `reopened` names, adds nothing of its
+  own history: the grounds hold it by name, which pins it, so it never
+  departs while cited and leaves no marker, and a caveat a `qualify` puts on
+  it reaches the grounds live ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md),
+  "Meaning"). A reading keeps the take-back caveats its template gave it
+  when it was taken, so a citation of its stream still lets the grounds keep
+  those, where the lineage carries them live and the grounds name such a
+  reading, but never lets a commitment's grounds keep them beyond its basis
+  ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and save").
+  Restore accepted a forged marker, or a forged kept take-back caveat, of a
+  history that only such a record or name brought, or only what joins a
+  cited stream's observation records later, in the citing state's grounds
+  and in grounds that read them, which no session writes. It
+  refuses them again with the same messages as before D057. No release
+  accepted them. The D057
+  entry below now gives the readers in general and says how long its
+  refusals lasted. Tests: `runtime/tests/d099_citations_pin_what_they_read.rs`,
+  and `runtime/tests/d057_readers_carry_cited_markers.rs` for the readers.
+- 2026-11-14 (D098): restore accepts a state's or a commitment's grounds
+  that keep a take-back caveat its lineage or basis does not keep, or that
+  keep one the lineage or basis no longer carries, where the caveat can
+  qualify records of a history a `because` citation of the program can bring
+  there (D057's bound). A record keeps the take-back caveats it holds: a
+  commitment's frozen basis, a stored selection or reopening qualification,
+  a departed record ([Take-back 0.1](caveat-take-back-0.1.md), "Kept
+  caveats"). A citation of such a record gives the state's grounds the caveat
+  kept, while its lineage carries it live through the record its value read,
+  so restore refused the save the runtime wrote with "state S grounds keep a
+  caveat its lineage does not keep"; once an `unqualify` took it back, the
+  lineage no longer carried it and the grounds still kept it, refused as
+  "state S grounds include caveat C outside its lineage". A commitment citing
+  such a state took the caveat into grounds its basis lacks, and since a
+  commitment's grounds never change, every later save of the session was
+  refused, breaking the promise that a 1.x save restores. 1.4.1 refuses the
+  finding's saves alike. A kept caveat beyond the lineage or the basis that
+  no citation of the program can bring there is refused with the same
+  messages as before ([Take-back 0.1](caveat-take-back-0.1.md), "Snapshot and
+  save"). Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
+- 2026-11-14 (D057): restore accepts a state's or a commitment's grounds
+  marker that its lineage or basis does not hold, where a `because` citation
+  of the program can bring that history there. `set S = V because C` takes
+  C's grounds as the state's, and the live check compares the names C holds
+  with the lineage. Once the records C rests on have departed, C holds only
+  their history's marker, so the citation is accepted although the value
+  never read them, and the state's grounds hold a marker that its lineage
+  lacks. Any read whose grounds take those grounds, such as a set whose value
+  reads the state, a commit whose `using` or `citing` reads it, a procedure's
+  parameter given it, or a read of such a commitment through `committed`,
+  `reopened` or `in_basis`, takes the marker into grounds whose lineage or
+  basis lacks it the same way. Restore required each grounds marker to lie
+  within the lineage's or the basis's, so it refused the save the runtime
+  wrote, and every later save while some grounds held such a marker (a
+  state's until it was set from grounds without the marker: setting it
+  again by the same citation took the marker again, and a state set from it
+  kept the marker after that; a commitment's for as long as the commitment
+  was kept), with "state S grounds hold departed H records outside
+  its lineage" or the same for the commitment, breaking the promise that a
+  1.x save restores. Every release since rc.16, when records began to
+  depart, did this; 1.0.0 and 1.4.1 refuse the finding's saves alike. A
+  marker beyond the lineage or the basis that no citation of the program can
+  bring there is refused with the same message as before. The live check is
+  unchanged ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md),
+  "Meaning"). Tests: `runtime/tests/d057_citations_carry_departed_markers.rs`.
+- 2026-11-14 (D095): the releases that could have written an unmarked save
+  of affected source are those that could load the source and wrote the
+  save's format: Replay Save 0.1 came in 1.1.0 and 0.2 in 1.2.0, and every
+  release from rc.17 on wrote `source_sha256` in a state save. Restore
+  asked for a choice for 1.4.1's positional replay save of a bundle every
+  release loads, though no release before 1.2.0 wrote that format, and for
+  a state save of it without `source_sha256`, which only release candidates
+  before rc.17 wrote; it now continues the first as 1.4.1 read the bundle
+  and the second as those candidates did, with no choice. Where no release
+  that wrote a save's format could load its source, a choice is needed only
+  where both readings load and read the source differently, as where releases
+  of both kinds could have written it. Tests:
+  `runtime/tests/module_binding_restore.rs`.
+- 2026-11-14 (D094): the MCP tool `caveat_dispatch`, the kit's `savedEvents`
+  and `carrySave`, the starter's `openHost` and the Python package's
+  `restore` take the module binding choice
+  ([Module binding interpretation](#module-binding-interpretation)).
+  Tests: `kit/test/authoring.test.mjs`, `kit/test/mcp.test.mjs`,
+  `kit/test/module-bindings.test.mjs`, `kit/test/starter.test.mjs`,
+  `python/tests/test_session.py`.
+- 2026-11-14 (D091, D088): saves of a bundle whose module's `hold` or
+  `release` reads otherwise with root capture carry `module_bindings`
+  ([Module binding interpretation](#module-binding-interpretation)). A fresh
+  session reads a module's `hold` and `release` as its own, and otherwise a
+  bundle as the newest release that could load it linked it. An unmarked
+  save restores as the releases that could have written it read the bundle,
+  and needs a choice where releases of both kinds could have written it and
+  read it differently, or, where no release could load the source, where
+  both readings load. A save of another program is refused as such before a
+  marker or a choice is used, and `legacy-hold-capture` is refused where
+  only releases before 1.2.0 could load the source and root capture would
+  change how they read it. Tests: `runtime/tests/module_binding_restore.rs`,
+  `runtime/tests/d088_module_names_older_releases_loaded.rs`.
+- 2026-11-13 (D083): a procedure's parameter grounds, for restore's bound,
+  on what its argument carries only in a program a release before rc.12 may
+  have loaded, not in every program without a window. D061 gave the
+  allowance to every program without a window, but one that uses something
+  the language gained after rc.11 has no save that old either: in a program
+  that sets `g` with `only_if`, which came in 1.4.0, and passes `g` to a
+  procedure that sets `sc`, a save whose `sc` grounds were its lineage
+  restored, and a commitment using `sc` then rested on what `g` carried, so
+  `rests_on_withdrawn` answered yes where the saved session answers no.
+  Restore now refuses those grounds there ("state sc grounds: no rule or
+  declaration of this program carries records of x into it"), and a
+  program rc.11 loads keeps them. "Restore validation" lists the
+  constructs the check reads, each checked against the release binaries
+  from rc.1 to rc.11.
+- 2026-11-13 (D061): restore applies the bound of D054 in every program,
+  not only in one with a window. A program without a window keeps no
+  departure marker, but its provenances and causes name records all the
+  same, and caveats and grounds follow those names. So in a program whose
+  only rule that sets `seen` reads `seen` alone, a save whose `seen`
+  lineage cited the observed evidence `e` restored, and later events kept
+  `e` there; an outcome or a basis could name evidence no rule of the
+  program gives it the same way. In a program without a window a
+  procedure's parameter grounds on what its argument carries as well as on
+  what it gives grounds, because releases before rc.12 grounded a parameter
+  on its argument's whole lineage, and only such a program can have a save
+  that old: windows came in rc.15. The rc.11 save in
+  `runtime/tests/fixtures/` restores and plays on as before. Each parameter
+  has its own bound, and a step's grounds take an argument only through the
+  parameter the step reads, with a window or without one: D054 gave each
+  step's grounds what all of a call's arguments give grounds, so grounds
+  naming what an argument reads restored on a step such as `set s = 5`,
+  though no release grounds that step on anything. The bound is
+  computed once per loaded program, when restore first needs it, rather
+  than as each program with a window loads. The check still runs after
+  every other, so a save refused before is refused with the same message,
+  and saves the runtime writes restore as before. A host that restores a
+  state save, and `caveat check --save`, refuse what restore refuses.
+
+- 2026-11-13 (D054): in a program with a window, restore refuses a departure
+  marker, or the name of a record, in a part of the session that no rule,
+  procedure, reopening trigger or declaration of the program can carry that
+  history's records into, and a cause that an outcome, a hold, a deferral, a
+  `reopens` relation an event added or a withdrawal names outside its part's
+  bound. A marker stands where a provenance named records that have since
+  departed. Since rc.16 restore has checked a marker's history, range, count
+  and date against what departed, but not which provenance held it. So a
+  save of a program whose `b` samples never read `a` could hold, in a
+  commitment on `latest(b)`, a marker of `a`'s departed readings, copied
+  from the save of a program whose sample guard reads `a`. With that save's
+  grounds and the caveat its journal entry records, which D049 accepts with
+  the grounds' marker, the restored commitment carried a caveat no event of
+  its own program gives it. A live record's name in such a provenance would
+  have become such a marker when it departed, and a read of a cause takes
+  what qualifies it. Restore now derives, once per program, which histories
+  each part can carry records of. A state's lineage and its grounds, a
+  stream's readings, their observation and `observed` records and its
+  selection, an evidence's observation and `observed` records, the
+  `withdrawn` records of each, a series' bases, grounds, outcomes,
+  reopenings, `committed` and `reopened` records and selection, the causes
+  its outcomes and reopenings name, the reasons of its hold, the guards
+  scheduled on each evidence or stream, the withdrawals' reasons and each
+  cue have their own bound. A read carries only the parts the runtime reads
+  for it, and each part's content moves only into parts whose bound contains
+  its own. Grounds take what the values and citations that write them ground
+  on, as the runtime evaluates grounds, so a commitment's grounds can hold a
+  marker, and its journal entry the caveat that comes with it, only where
+  what its commits use, cite or give as reasons can carry it. Guards are not
+  evaluated, so a marker some rule could carry restores whether or not one
+  did. The check runs after every other, so a save refused before is refused
+  with the same message, and saves the runtime writes restore as before.
+
+- 2026-11-12 (D062): restore holds a revision's `held`, `deferred`,
+  `released` and `reopened` journal entries, its series' `on_hold` and
+  `deferred`, its reopening record and its reopening in the graph to each
+  other
+  ([Holds 0.1](caveat-holds-0.1.md), section 4). It held each to the program
+  only, so it accepted a save whose journal left out the entry of a hold in
+  force, of a deferred reopening or of a release. The check runs after every
+  other, so a save refused before is refused with the same message, and a
+  save the runtime wrote restores as before.
+
+- 2026-11-12 (D060): restore refuses a retirement that the save's other
+  dates contradict: one dated at the save's `sequence` that the last event's
+  effects do not report, and a retired reading or journal entry not dated at
+  the sequence of the record that took its place in the window
+  ([Windows 0.1](caveat-windows-0.1.md), "Save and restore"). Restore held
+  such a date only to the save's `sequence` and to the retired record's own,
+  so it accepted a retirement dated at an event that added nothing to the
+  record's history. Both checks run after every other, so a save refused
+  before is refused with the same message, and a save the runtime wrote
+  restores as before.
+
+- 2026-11-12 (D059): restore accepts the saves of a program that names a
+  windowed reading stream or renewable evidence `journal` and has no
+  `journal window`. Such a history's records are named `journal@K`, as the
+  decision journal's entries are under a journal window
+  ([Windows 0.1](caveat-windows-0.1.md)), and two of restore's steps took
+  the name for the journal's without asking whether the journal has a
+  window. Restore refused the save written by each event that retired such
+  a record with "retire effect is not one the last event can make", since
+  without a journal window no event retires a journal entry. And when it
+  counted the pins of the records a save holds, it left out those of the
+  `K`th journal entry once the record `journal@K` had retired, as if that
+  entry had retired: it refused a save in which only that entry pinned a
+  retired record with "retired R is pinned by nothing, so it would have
+  departed", and where another pin let the save restore, the restored
+  session later let the record depart while the session that wrote the
+  save still held it. Both broke the promise that a 1.x save restores and
+  plays on. Debug builds, which count pins again after every event, stopped
+  on "incremental pin counts". Restore now reads `journal` as the journal's
+  history only in a program with a journal window, as its other steps did.
+  A program with a journal window, and one with no history named `journal`,
+  is checked as before: its saves restore, or are refused with the same
+  message.
+
+- 2026-11-12 (D058): restore accepts a caveat that a `resolve` attached. An
+  outcome's lineage takes its value's lineage, that of `K` in `resolve
+  revision(D, K)` and that of an occurrence's index
+  ([Outcomes 0.1](caveat-outcomes-0.1.md)), so a `qualified(VALUE, EVIDENCE,
+  CAVEAT)` or an `examined(CAVEAT)` in one of them puts the caveat in it.
+  Restore accepts a caveat in a saved provenance when an expression of the
+  source can attach it (the rc.13 entry below), and it read the expressions
+  of every effect but `resolve`. It refused the save the runtime wrote after
+  `resolve r = qualified(v, e, k3) because latest(c);`, and every later save
+  that still held the outcome, with "outcome of R@K: C cannot qualify any of
+  its evidence", breaking the promise that a 1.x save restores. The same
+  expression in a `set` or a `sample` restored. Restore now reads a
+  resolve's value, its revision index and its occurrence index as it reads
+  the expressions of the other effects, in a rule or in a procedure a rule
+  reaches. The bound is the program's, as before: a caveat a `resolve` can
+  attach to some evidence is accepted in any provenance that names that
+  evidence, since a state or a commitment that reads `outcome(D)` carries
+  it. A caveat that no expression of the source attaches, or attaches only
+  to evidence the provenance does not name, is still refused with the same
+  message. A save that carries no caveat only a `resolve` attaches restores,
+  or is refused with the same message, as before.
+
+- 2026-11-08 (D071): restore checks a windowed history's retired records in
+  time that grows with their number, not with its square. For each retired
+  record it read the records its history holds until it found it, and for a
+  reading read them again for its sequence; for each reopening in the decision
+  journal it read every retired record. A save in which one renewable evidence
+  holds its limit of 65,536 records, 65,535 of them retired, took 9.6 to 10.1
+  seconds to restore in native release builds, timed by the restoring thread's
+  CPU clock at load averages of 3.9 to 5.6, four to five times as long as a
+  save with half as many records. In the release WebAssembly runtime built
+  from dc1ef01f, which checks retired records as restore did before this
+  change, it took 12.5 seconds by wall clock in Node at load average 2.9. A
+  journal of 16,640 entries, all but 2 retired, took 0.88 seconds in one of
+  the native builds, 3.8 times as long as one with half as many entries.
+  Restore now lists the records each windowed history holds once, looks each
+  retired record up there, and looks each reopening's causes up among the
+  retired records, checking them in the same order as before. In the same
+  native builds the same saves now take 5.0 to 5.6 and 0.13 seconds. Restore
+  still reads a history's records for each of its occurrences in the graph,
+  which takes time that grows with the square of the records one history
+  holds: a build with that step indexed as well, which this change does not
+  make, restored the first save in 0.60 seconds against 5.0. The other steps
+  described at the top of this document are unchanged. Every save restores, or
+  is refused with the same message, as before, and a save with several faults
+  is refused for the same one.
+
+- 2026-11-08 (D070): restore takes a state save of any length. It refused
+  one longer than 16 MiB (16,777,216 bytes) with "cannot restore save:
+  larger than 16777216 bytes", but nothing bounds the save a session
+  writes, so it refused saves the runtime itself wrote, breaking the promise
+  above that restoring the intact save text the runtime produced preserves
+  the saved session: a program whose states each held a lineage at the
+  provenance limits accepted every event, and its save of 19.4 MB
+  (19,436,363 bytes) was refused. Restore now parses a state save of any
+  length; its time and memory grow with the save, as above, and a save too
+  large for the runtime's memory traps the instance where it was refused
+  before. A host that restores saves from a party it does not trust bounds
+  their size itself, as the MCP server does at 2 MiB. Every save restore
+  accepted before restores as before, and every save it refused for another
+  reason is refused with the same message. A replay save keeps its bound of
+  4,096 bytes.
+
+- 2026-11-08 (D055): restore refuses a save in which the last event's
+  reopening of a series names a cause that event could not name, in a
+  program that can hold the series but cannot withdraw. A reopening names
+  causes deferred by earlier events only when it ends a hold: at a release,
+  or when it breaks through the hold for a withdrawal
+  ([Holds 0.1](caveat-holds-0.1.md)). Restore let a reopening of any series
+  the program can hold, by a rule or a trigger, name any cause, whatever its
+  event could do. So in a program that holds a series but cannot withdraw,
+  it accepted a save whose last event's `reopen`, or trigger, named
+  evidence only another event's `reopen` selects, though no session of the
+  program writes one. It now lets such a reopening name a cause its own
+  selector does not select only when the program can withdraw, since only a
+  withdrawal breaks through a hold, as the D050 check does. A release needs
+  no exception: restore reads the causes it reopens for as the release's
+  own effect. Such a save is now refused with "reopen effect is not one the
+  last event can make", as it is in a program that holds nothing. Saves the
+  program writes restore as before. In a program that withdraws, or that
+  holds no series, every save restores, or is refused with the same
+  message, as before.
+
+- 2026-11-08 (D053): restore refuses a save whose last event's `examine`
+  effects cost more together than its budget spent besides what the
+  declarations spent. It checked each effect's cost on its own. An event
+  pays for every examination it makes, in full, after what the
+  declarations and earlier events spent, so a session's `spent` is at
+  least what the declarations spent plus all the last event's examine
+  costs. A save whose `spent` covered each `examine` alone but not their
+  sum was accepted, though no session of the program writes it: with rules
+  that examine `a` and `b` for 3 each on `check` and for 1 each on
+  `cheap`, a save after `check` was accepted with its `spent` edited from
+  6 to 3. The gap predates D046 and does not depend on declarations.
+  Restore now refuses such a save, with "examine effects spend 6 attention
+  together, more than the 3 the budget spent" (which also names what the
+  declarations spent, when they spent any), after every other check, so a
+  save it refused before is refused with the same message, and only a save
+  whose last event reports two or more `examine` effects can be refused
+  where it was accepted before. The last event's examines are not added to
+  the least costs of the caveats examined before it, which are checked
+  apart as before, so neither check refuses a save that meets each sum
+  alone. The saves sessions write restore as before.
+
+- 2026-11-08 (D052): restore checks an observation record's key against the
+  effects that leave records. Only an event's `reveal`, `sample` or `renew`
+  leaves an observation record, and evidence a declaration relates to a
+  claim is observed as the program loads without one (rc.13, F317–F322).
+  Restore accepted a record keyed by any observed evidence, so a save could
+  hold one that no session of the program holds, and the restored session's
+  later reads of that evidence carried what it lists. Restore now refuses an
+  observation record on a name that no `reveal`, `sample` or `renew` in a
+  rule, or in a procedure a rule reaches, leaves a record on, with
+  "observation of E: no rule or procedure of this program reveals E". A
+  `reveal` leaves its record on the evidence's current occurrence, and only
+  when it gives that occurrence a stance it lacks or, neutral, finds it
+  unobserved. On evidence a declaration relates to a claim, then, only a
+  reveal with a stance no declaration gives it leaves one, and a record
+  there is refused otherwise, with "... reveals E with a stance no
+  declaration gives it". A `renew` leaves one only on the occurrence it
+  makes, and only when its guard rests on something. Its guard is made of
+  the conditions on its rule, its step and the steps on the way, with the
+  arguments of the calls on the way, and only a read of a state, the graph
+  or a history rests on anything: a payload field, a constant, the clock and
+  a literal are plain, and a procedure's parameter rests on what its
+  argument does. A record on an occurrence is refused with "... reveals E,
+  or renews it with a guard" when no rule reveals E and none of those
+  conditions and arguments, for any `renew` of E, reads a state, the graph
+  or a history, and with "... reveals or renews E" when no rule reveals or
+  renews E. Conditions and arguments are not evaluated, and a read of a
+  state counts whatever the state rests on, so a record on a name these
+  effects leave records on restores whether or not an event left it there.
+  Saves the program writes restore as before, including records on evidence
+  both a declaration and a rule observe, on evidence no declaration relates
+  to a claim that a rule reveals neutrally, on the occurrences reveals and
+  renewals leave them on, and on readings, and so does every kit fixture
+  save. A save that holds no such record restores, or is refused with the
+  same message, as before.
+
+- 2026-11-07 (D050): restore accepts a reopening that broke through a hold
+  and cites a cause the hold had deferred, which retired while it waited. A
+  hold never keeps in force a revision that rests on withdrawn evidence: a
+  `reopen` of it, by a rule or a trigger, goes ahead because of its own
+  causes and every deferred one ([Holds 0.1](caveat-holds-0.1.md)). The hold
+  keeps each deferred cause from departing, not from retiring. Restore let a
+  reopening cite a record that had retired before it only when its event
+  could release the series. It refused the save the runtime wrote after such
+  a break-through, and every later save that still held the reopening, with
+  "D@K reopened after R retired reads it", breaking the promise that a 1.x
+  save restores. It now also lets a reopening of a series the program can
+  hold cite one when the program can withdraw, since only a withdrawal
+  breaks through a hold. Otherwise a save in which a reopening cites a
+  record that retired before it is still refused, unless the reopening's
+  event could release the series. Every other save restores, or is refused
+  with the same message, as before.
+
+- 2026-11-07 (D049): restore accepts a commit's journal entry when the
+  commitment's grounds carried one of its caveats through a record that had
+  departed before the commit. A departed record's qualifications stay in
+  every provenance that carried them, and the grounds hold its history's
+  marker, as the commitment's basis does, which accounts for the caveat in
+  the basis ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)).
+  The entry records the grounds' evidence and caveats but not their markers,
+  and restore checked its caveats without them. It refused the save the
+  runtime wrote after such a commit, and every later save that still held
+  the entry, with "decision journal: K cannot qualify any of its evidence",
+  breaking the promise that a 1.x save restores. A commit `using
+  outcome(D)`, accepted since D041, reached it once a record the outcome
+  named had departed, as did commits whose grounds carried `withdrawn` or a
+  stream's caveat through a reading that had departed. Restore now checks a
+  commit's entry with its grounds' markers. Every other save restores, or is
+  refused with the same message, as before.
+
+- 2026-11-07 (D046): restore refuses four kinds of save no session of the
+  program leaves, each about what its declarations leave or spend as it
+  loads (D043). It accepted `unexamined` on a caveat the declarations leave
+  `examined`, `examining` or `deferred`, though no event leaves a caveat
+  unexamined, and on a caveat they leave `examined` the restored session
+  then read `examined(...)` as false; an examination record for a caveat no
+  rule or procedure examines, though only an event's examination leaves one;
+  examined caveats whose least costs fit the budget's `spent` only because
+  what the declarations spent was left out, or because a caveat the
+  declarations leave `examined` was left out though its examination record
+  shows an event examined it again; and a last event's `examine` whose cost
+  fits `spent` only with what the declarations spent. Saves the program
+  writes restore as before. A save of a program whose declarations leave
+  every caveat unexamined restores, or is refused with the same message, as
+  before. For a program whose declarations spend attention, a refusal of the
+  least cost now also names what they spent; for one whose declarations
+  attend to a caveat but spend nothing, it keeps its message.
+
+- 2026-11-07 (D043): restore accepts the attention a declaration leaves. A
+  declaration such as `examine stale cost 1;`, `examine stale;` or `defer
+  stale;` leaves the caveat `examined`, `examining` or `deferred` as the
+  program loads, and a save holds that attention until an event examines
+  the caveat, but restore checked it as if an event had left it. It refused
+  every save that still held a declared `examining` or `deferred`, which no
+  reactive event leaves, or a declared `examined` that no rule examines; and
+  when a rule could examine a declared `examined` caveat, it counted that
+  rule's least cost against the budget's `spent` and refused whenever
+  `spent` fell short: with `examine stale cost 1;` and a rule that examines
+  `stale` for 3, the save written before any event was refused. That broke
+  the promise that a 1.x save restores. Restore now accepts the attention
+  the declarations leave, and leaves a caveat they leave `examined` out of
+  the least cost `spent` must cover. A save that holds no attention the
+  declarations left restores, or is refused with the same message, as
+  before.
+
+- 2026-11-07 (D041): departure compacts an outcome's lineage, so restore no
+  longer refuses a save for the departed names an outcome kept. An outcome's
+  lineage is frozen, as a reopening's basis is
+  ([Outcomes 0.1](caveat-outcomes-0.1.md)), and a frozen lineage replaces a
+  departed record's name with its history's marker
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), but
+  departure never compacted an outcome's lineage. It kept the departed names,
+  and a value that read the outcome copied them. Restore refused each later
+  save that still held them, naming the first holder it checked, as in
+  "outcome of D@K: R must name a declared evidence" or, while a state held a
+  value read from the outcome, "state S: R must name a declared evidence",
+  breaking the promise that a 1.x save restores. Some events that read such
+  an outcome, as a rule's commit `using outcome(D)` did, were fatal ("event
+  E, rule N: R must name a declared evidence"); they are now accepted.
+  Departure now compacts the lineage. A save an earlier runtime wrote after
+  such a departure, while anything in it still named the departed records,
+  is still refused, as that runtime refused it. Restore now also checks the
+  lineage's markers, `inherited` names and kept caveats as it checks every
+  other provenance's, so it refuses one that no source mechanism produces.
+  Every other save restores, or is refused with the same message, as before.
+
+- 2026-11-07 (D040): restore accepts the retirement of a journal entry
+  reported by an event that reaches a `resolve`. A resolve records an entry
+  in the decision journal ([Outcomes 0.1](caveat-outcomes-0.1.md)), and an
+  entry added to a full `journal window` first retires the oldest
+  ([Windows 0.1](caveat-windows-0.1.md)), but restore accepted that
+  retirement only from an event that reaches a commit, a reopening or a
+  sample. It refused the save the runtime wrote after such a resolve with
+  "retire effect is not one the last event can make", so no save of the
+  session restored until its next accepted event, breaking the promise that
+  a 1.x save restores. Every other save restores, or is refused with the
+  same message, as before.
+
+- 2026-11-07 (D039): restore checks the decision journal against what it
+  reads of the graph once, instead of reading the graph again for each
+  entry. For each reopening it read every relation once for each record its
+  walk reached, for each witness it read the observation ledger and every
+  relation to find it observed, and for each series a record asked about it
+  read every effect of the program. A save the runtime wrote, of 2 MB, took
+  15 minutes to restore where loading its program took a tenth of a second,
+  against the promise above that restoring costs what loading costs plus the
+  size of the save. Restore now reads the relations, the observations and
+  the series the program can hold once, and walks what reaches each cause
+  once for the whole journal, keeping those walks while they fit in the size
+  of the graph. Past that, as when caveats qualify caveats that many causes
+  share, a cause is walked again for each entry that cites it, so such a
+  journal can still cost more than its size. Every save restores, or is
+  refused with the same message, as before.
+
+- 2026-11-02 (D038): restore no longer holds a decision journal entry's
+  names to the provenance limits of 1,024 names and 65,536 bytes of them.
+  An entry is not a lineage. A reopening that ends a hold, by a release or by
+  a withdrawal breaking through it, cites every deferred cause and the
+  caveats of each, more together than one value may hold. And the caveats an
+  entry other than a commit cites were checked against what reaches each of
+  its causes now, taken-back relations included, as one lineage per cause:
+  that grows with every later qualification of a cause and counts the
+  relations taken back before the entry. Restore refused such a save, which
+  the runtime itself writes, with "value provenance exceeds limit ...", so
+  no save of the session restored while the entry stayed in the journal,
+  breaking the promise that a 1.x save restores. The names are checked as
+  before, without the limits: each is declared or created evidence or a
+  caveat, the evidence is observed, a commit's names are its frozen grounds,
+  another entry's caveats each reach one of its causes, and each caveat is
+  one the source can attach. Every save restore accepted before is accepted
+  alike.
 
 - 2026-10-11 (rc.18, specified; implemented in P4): the additive `taken_back`
   and `kept` fields and their restore checks

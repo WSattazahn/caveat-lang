@@ -24,7 +24,14 @@ Started with `--state FILE`, the line also carries
 `"state":{"path":"FILE","restored":true}`, where `restored` says whether the
 session came from the file (see "State file"). A file that is not a save of the
 program, or one that cannot be read or written, is reported the same way with
-`"kind":"state"`, and the server exits with status 2 without serving.
+`"kind":"state"`, and the server exits with status 2 without serving. An
+unmarked file of a bundle is read as the releases that could have written it
+read the bundle ([Save 0.1](caveat-save-0.1.md#module-binding-interpretation)),
+which a fresh session may not load: where the fresh load fails otherwise than
+the file's restore did, the restore's error is reported, with `"kind":"state"`.
+When the runtime fails while restoring the file, as when the save is too large
+for its memory, the line has `"kind":"fatal"` and the runtime's error, and the
+server exits with status 2 without serving.
 
 ## Requests
 
@@ -42,10 +49,17 @@ are skipped.
 | `explain` | optional `archive`: array of archive item objects | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
 | `dependents` | `of`: evidence, a reading stream or a caveat; optional `archive`: array of archive item objects | `report`: the `caveat-dependents/0.1` report of what rests on it |
 | `save` | optional `compact: true` | `save`: the text of the session's save; with `compact: true`, its compact save ([Replay Save 0.1](caveat-replay-save-0.1.md)) |
-| `restore` | `save`: text from `save` | `sequence`. The restored session replaces the current one. |
+| `restore` | `save`: text from `save`; optional `moduleBindings`: `"scoped"` or `"legacy-hold-capture"` | `sequence`. The restored session replaces the current one. |
 | `close` | | none. The server then exits with status 0. |
 
 ## Responses
+
+The optional restore selection is for
+[ambiguous historical module saves](caveat-save-0.1.md#module-binding-interpretation).
+It applies only to that request and cannot override a conflicting saved
+marker. Invalid options or a refused restore leave the current session
+unchanged. The library's `createServer({ restore, restoreOptions })` accepts
+the same `moduleBindings` choice inside `restoreOptions` for initial restore.
 
 Every response echoes the request's `id`, or `null` when the request could not
 be read.
@@ -115,6 +129,16 @@ that stops and starts again loses nothing and writes no save logic of its own.
 The file is the host's: nothing else reads or writes it, and the host may copy
 it or pass it to `restore` elsewhere.
 
+For an unmarked historical file that requires a choice, start with
+`caveat serve --state FILE --restore-module-bindings scoped PROGRAM`,
+or select `legacy-hold-capture` when that is its known history. Started
+without the flag, the server reports such a file with `"kind":"state"` and a
+message naming the flag, and exits with status 2 without serving. The flag
+requires `serve`, `--state` and an existing state file. A successful
+explicit restore atomically checkpoints the marked save before the ready
+line, even without a new event. A refused restore leaves the file unchanged.
+Later starts use the saved marker without the flag.
+
 ## Limits
 
 One server holds one session of one program. Requests are answered in order,
@@ -123,7 +147,31 @@ requests since the session opened or was last restored. Windowed snapshots
 retain live records and compact departed summaries; exact departed history
 requires the archive kept by the host.
 
+A `restore` takes a state save of any size, as the runtime does
+([Save 0.1](caveat-save-0.1.md)); a restore that runs out of memory is fatal,
+not a request error, and so is restoring the state file at start (see
+"Starting"). A host that passes on saves from a party it does not trust bounds
+their size first.
+
 ## Changes
+
+- 2026-11-14 (D096): a state file that does not restore, of a bundle a fresh
+  session does not load, is reported with `"kind":"state"` and the restore's
+  error where the restore failed otherwise than the fresh load. An unmarked
+  file of a bundle that only releases from 1.2.0 to 1.4.1 loaded is read as
+  they read it, so the fresh load's refusal said nothing about the file; it
+  was reported with `"kind":"load"` and the fresh load's error. Tests:
+  `kit/test/serve.test.mjs`.
+
+- 2026-11-08 (D070): `restore` takes a state save of any size, as the runtime
+  now does; a save longer than 16 MiB was a request error. A `restore` request
+  that runs out of memory is fatal, and the server exits with status 1. A
+  state file whose restore at start fails the runtime, as when it runs out of
+  memory, is reported on the first line with `"kind":"fatal"` and the
+  runtime's error, and the server exits with status 2 as for any file it
+  cannot start from. The first line said `"kind":"load"` and "this runtime
+  instance trapped; load a fresh one" for such a file, and `"kind":"state"`
+  for a state file longer than 16 MiB.
 
 - 2026-10-18: `view` request, and `view: true` on `dispatch`, for a display
   that does not need the snapshot; `--state FILE` keeps the session in a file

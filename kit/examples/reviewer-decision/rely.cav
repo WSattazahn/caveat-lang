@@ -40,6 +40,7 @@ on see_socket when not observed(socket_page) reveal socket_page supports rc14_on
 # grounds nor its lineage (it bears on the alerts, not on the listing). It
 # retains the snapshot caveat, which is the one a later fetch can resolve.
 on decide when committed(rely) and not reopened(rely) reject "Already decided; reopen it with evidence first.";
+on decide when withdrawn(registry_api) reject "The registry reading was withdrawn; it cannot ground a new decision.";
 on decide commit rely because enough
   using qualified(1, registry_api) + qualified(1, npm_view) + qualified(1, publication_record)
   retaining snapshot;

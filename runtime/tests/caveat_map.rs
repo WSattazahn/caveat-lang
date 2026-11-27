@@ -88,3 +88,37 @@ fn world_trace_reaches_stairwell_through_declared_topology() {
         .iter()
         .any(|node| node.symbol == "stair_flight_down"));
 }
+
+/// Finding: with several player-facing actions that have no world action plan,
+/// the map named whichever came first in a hash set, so its load error changed
+/// from process to process. It names the first in source order, as a game
+/// without plans does. The options are chosen so that the set the old check
+/// built would not walk the first of them first.
+#[test]
+fn several_unplanned_player_facing_actions_name_the_first_in_source_order_not_hash_order() {
+    for salt in 0..64 {
+        let options = (0..4)
+            .map(|index| format!("go{salt}x{index}"))
+            .collect::<Vec<_>>();
+        let walked = std::iter::once(&options)
+            .flat_map(|options| options.iter())
+            .collect::<caveat_runtime::fast_hash::HashSet<_>>();
+        if walked.iter().next() == Some(&&options[0]) {
+            continue;
+        }
+        let source = format!(
+            "place a kind corridor; start_at a; action wait from a to a steps stay; \
+             choice route options {};",
+            options.join(", ")
+        );
+        assert_eq!(
+            CaveatMap::from_source(&source).map(|_| ()).unwrap_err(),
+            format!(
+                "player-facing action {} has no world action plan",
+                options[0]
+            )
+        );
+        return;
+    }
+    panic!("no options put a hash set's first against source order");
+}

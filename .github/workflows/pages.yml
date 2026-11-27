@@ -67,7 +67,7 @@ jobs:
       # The bytes a host pins. Pages keeps only the latest build, so this is
       # where an older revision's runtime can still be fetched from.
       - name: Keep the published runtime for host pinning
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact
         with:
           name: caveat-runtime-${{ needs.candidate.outputs.source_sha }}
           path: |
@@ -164,7 +164,7 @@ jobs:
         run: .github/ci/retry-once.sh 4 npm run test:glowcap-page
       - name: Play live Trail Rescue on desktop and mobile
         run: .github/ci/retry-once.sh 4 npm run test:trail-rescue-page
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: evidence-games-live-visuals
@@ -240,7 +240,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: mr-caveat-live-visuals

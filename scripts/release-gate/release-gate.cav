@@ -1,0 +1,99 @@
+scene "The npm release gate: may this revision be published, and on which tested run and package does that rest?";
+
+# scripts/release-publish.mjs fetches what GitHub says about the Runtime runs
+# and artifacts for the release revision and sends each fact here as an
+# event; this program decides. The facts are what the script compared, one
+# per field, so no judgement is made outside the program.
+
+claim publishable;   # the tagged revision's tested package may go to npm
+
+evidence runtime_ci from "a Runtime run (.github/workflows/runtime.yml) at the release revision, as GitHub reports it";
+readings runs from runtime_ci limit 100;          # value: the run id; sent oldest first
+evidence run_recheck from "a finding that a Runtime run cannot be trusted";
+evidence candidate_artifact from "a kit-package-candidate artifact of the chosen run, as GitHub reports it";
+readings candidates from candidate_artifact limit 100;  # value: the artifact id
+
+# The newest run's facts, as the last run event left them.
+state run_workflow = 0;
+state run_repository = 0;
+state run_push = 0;
+state run_main = 0;
+state run_revision = 0;
+state run_completed = 0;
+state run_success = 0;
+state candidate_expired = 0;
+state candidate_belongs = 0;
+
+decisions tested_run limit 4;   # value: the Runtime run the release rests on
+# A second artifact after the release was allowed means the run no longer has
+# exactly one, so it reopens the release.
+decisions publish limit 4 reopened by candidates;  # value: the same run, once its package is found
+
+event run id min 1 max 1000000000000,
+    workflow min 0 max 1, repository min 0 max 1,
+    push min 0 max 1, main min 0 max 1, revision min 0 max 1,
+    completed min 0 max 1, success min 0 max 1;
+event withdraw_run;   # the newest run cannot be trusted after all
+event choose_run;     # the script asks: does the newest run qualify?
+event artifact id min 1 max 1000000000000, expired min 0 max 1, belongs min 0 max 1;
+event decide;         # the script asks: may the release be published?
+
+# Every run is recorded; the newest is the one that counts, so an older
+# success cannot hide a newer failure.
+on run when has_sample(runs) and id <= latest(runs) reject "Runtime runs must arrive oldest first.";
+on run when workflow == 1 and repository == 1 and push == 1 and main == 1 and revision == 1
+    and completed == 1 and success == 1
+    sample runs = id supports publishable;
+on run when not (workflow == 1 and repository == 1 and push == 1 and main == 1 and revision == 1
+    and completed == 1 and success == 1)
+    sample runs = id opposes publishable;
+on run set run_workflow = workflow;
+on run set run_repository = repository;
+on run set run_push = push;
+on run set run_main = main;
+on run set run_revision = revision;
+on run set run_completed = completed;
+on run set run_success = success;
+
+on withdraw_run when not has_sample(runs) reject "There is no Runtime run to withdraw.";
+on withdraw_run when withdrawn(latest(runs)) reject "The newest Runtime run is already withdrawn.";
+on withdraw_run reveal run_recheck;
+on withdraw_run withdraw latest(runs) because run_recheck;
+on withdraw_run when committed(tested_run) and not reopened(tested_run) and in_basis(tested_run, latest(runs))
+    reopen tested_run because run_recheck;
+on withdraw_run when committed(publish) and not reopened(publish) and in_basis(publish, latest(runs))
+    reopen publish because run_recheck;
+
+# The checks in the order the script has always made them; the first that
+# fails is the refusal.
+on choose_run when not has_sample(runs) reject "No Runtime run from a push to main tested the revision.";
+on choose_run when run_workflow == 0 reject "The selected run is not the Runtime workflow.";
+on choose_run when run_repository == 0 reject "The Runtime run must belong to this repository.";
+on choose_run when run_push == 0 or run_main == 0 or run_revision == 0
+    reject "The Runtime run must be a push to main at the tagged revision.";
+on choose_run when run_completed == 0 or run_success == 0 reject "The newest Runtime run has not succeeded.";
+on choose_run when withdrawn(latest(runs)) reject "The newest Runtime run has been withdrawn.";
+on choose_run when committed(tested_run) and not reopened(tested_run) reject "A Runtime run is already chosen.";
+on choose_run commit tested_run because enough using latest(runs);
+
+on artifact when not committed(tested_run) or reopened(tested_run) reject "Choose the Runtime run before its artifacts.";
+on artifact sample candidates = id;
+on artifact set candidate_expired = expired;
+on artifact set candidate_belongs = belongs;
+
+on decide when not committed(tested_run) or reopened(tested_run) reject "No Runtime run is chosen.";
+on decide when rests_on_withdrawn(tested_run) reject "The chosen Runtime run has been withdrawn.";
+on decide when not has_sample(candidates) or history_count(candidates) != 1
+    reject "The chosen run must have exactly one kit-package-candidate artifact.";
+on decide when candidate_expired == 1 reject "The tested kit-package-candidate has expired; it cannot be published.";
+on decide when candidate_belongs == 0 reject "The artifact does not belong to the selected run and revision.";
+on decide reveal candidate_artifact supports publishable;
+on decide when committed(publish) and not reopened(publish) reject "The release is already allowed.";
+# The release rests on the chosen run and its package: `0 *` only puts the
+# artifact reading in the grounds, so the value stays the run id.
+on decide commit publish because enough using latest(tested_run) + 0 * latest(candidates);
+
+bind release.run = latest(tested_run) when committed(tested_run) and not reopened(tested_run);
+bind release.artifact = latest(candidates) when has_sample(candidates);
+bind release.allowed = "refused";
+bind release.allowed = "allowed" when committed(publish) and not reopened(publish);

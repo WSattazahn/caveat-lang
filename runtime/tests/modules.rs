@@ -1538,6 +1538,66 @@ fn a_strict_irreversible_survives_a_module_that_declares_strict() {
 }
 
 #[test]
+fn a_threshold_survives_a_module_that_declares_threshold() {
+    // `threshold NAME = NUMBER` arrives in 1.5 (spec/caveat-thresholds-0.1.md).
+    // A module may declare a threshold, whose name is the module's own, and
+    // may name a state `threshold` and keep the statement word.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state threshold = 1;\n\
+             threshold bar = 0.5;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(source.contains("state m__threshold = 1;"), "{source}");
+    assert!(source.contains("threshold m__bar = 0.5;"), "{source}");
+}
+
+#[test]
+fn unset_survives_a_module_that_declares_unset() {
+    // `state NAME unset` and `unset NAME` arrive in 1.5
+    // (spec/caveat-unset-states-0.1.md). A 1.x module may name a state
+    // `unset` and keep it, and may use both new words beside that name.
+    let old = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state unset = 1;\n\
+             event go;\n\
+             on go set unset = unset + 1;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(old.contains("state m__unset = 1;"), "{old}");
+    assert!(
+        old.contains("on m__go set m__unset = m__unset + 1;"),
+        "{old}"
+    );
+    let both = linked(&[
+        (
+            "m",
+            "module m;\n\
+             state unset = 1;\n\
+             state part unset;\n\
+             event go;\n\
+             on go when is_set(part) set unset = part;\n\
+             on go unset part;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "state m__unset = 1;",
+        "state m__part unset;",
+        "on m__go when is_set(m__part) set m__unset = m__part;",
+        "on m__go unset m__part;",
+    ] {
+        assert!(both.contains(expected), "{expected}: {both}");
+    }
+}
+
+#[test]
 fn a_hold_survives_a_module_that_declares_its_words() {
     // `hold SERIES because …` and `release SERIES because …` arrive in 1.2
     // (spec/caveat-holds-0.1.md). A module may name evidence `hold` or
@@ -1801,6 +1861,8 @@ const POSITIONAL: &[&str] = &[
     "materialized",
     "once",
     "strict",
+    "threshold",
+    "unset",
 ];
 
 /// Words that only ever appear in a statement a module may not contain —
@@ -1821,13 +1883,19 @@ const OUTSIDE_MODULES: &[&str] = &[
     "open",
     "operate",
     "options",
+    // `work skips other routes;` is the program's: link.rs refuses it in a
+    // module (spec/caveat-routed-work-0.1.md).
+    "other",
     "otherwise",
     "requires_open",
+    "routes",
     "select",
+    "skips",
     "start_at",
     "stay",
     "then",
     "when_committed",
+    "work",
 ];
 
 #[test]
@@ -1879,4 +1947,23 @@ fn a_module_cannot_contain_the_statements_outside_modules_names() {
         message.contains("which executes; a module may only declare"),
         "a module must still refuse executing statements: {message}"
     );
+}
+
+#[test]
+fn unset_still_clears_a_state_when_the_module_also_declares_unset() {
+    let source = bundle(&[
+        (
+            "m",
+            "module m;\nstate value unset;\nstate unset = 1;\nevent go;\n\
+             on go set value = 5;\non go unset value;\n",
+        ),
+        ("main", "use m;\n"),
+    ]);
+    let linked = link::link(&source).unwrap();
+    assert!(linked.contains("unset m__value;"), "{linked}");
+    let mut session = ReactiveSession::from_source(&source).unwrap();
+    session.dispatch_json("m__go", "{}").unwrap();
+    let snapshot = serde_json::to_value(session.snapshot()).unwrap();
+    assert_eq!(snapshot["unset"], serde_json::json!(["m__value"]));
+    assert_eq!(snapshot["values"]["m__unset"], 1.0);
 }

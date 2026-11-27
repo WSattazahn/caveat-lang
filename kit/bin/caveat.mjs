@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
-// caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+// caveat explain [--runtime <dir>] [--json] [--later-caveats] [--lineage-notes] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
-// caveat review [--runtime <dir>] [--json] --all <directory>
+// caveat review [--runtime <dir>] [--json] [--summary] --all <directory>
+// caveat find [--runtime <dir>] [--json] <directory> <word>...
 // caveat undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
 // caveat validate [--runtime <dir>] [--json] <program.cav>
-// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--records [--save <save.json>]] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] [--unused] [--names] [--records [--save <save.json>]] [--withdrawals] <program.cav>
 // caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
@@ -21,27 +22,29 @@ import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.m
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, formatUndoList, parseEvents, undoList } from '../lib/explain.mjs';
 import { formatReview } from '../lib/review.mjs';
-import { formatConsulted, reviewLedgers, reviewWithConsulted } from '../lib/ledgers.mjs';
+import { findDecisions, formatConsulted, formatFound, formatSummary, reviewLedgers, reviewWithConsulted, summarizeLedgers } from '../lib/ledgers.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { declarations } from '../lib/types.mjs';
 import { doctor, formatDoctor } from '../lib/doctor.mjs';
 import { runAgentDemo, formatAgentDemo } from '../lib/demo.mjs';
 import { serveMcp } from '../lib/mcp.mjs';
-import { describeValidation } from '../lib/authoring.mjs';
+import { describeValidation, hasBindingMarker } from '../lib/authoring.mjs';
 
 const USAGE = `CAVEAT Language — Programs that remember why.
 
 Usage:
   caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
-  caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+  caveat-lang explain [--runtime <dir>] [--json] [--later-caveats] [--lineage-notes]
+                      <program.cav> [<events.jsonl>]
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang review [--runtime <dir>] [--json] <program.cav> <revision> <events.jsonl>
-  caveat-lang review [--runtime <dir>] [--json] --all <directory>
+  caveat-lang review [--runtime <dir>] [--json] [--summary] --all <directory>
+  caveat-lang find [--runtime <dir>] [--json] <directory> <word>...
   caveat-lang undo-list [--runtime <dir>] [--json] <program.cav> <events.jsonl>
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
-  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused]
-                    [--records [--save <save.json>]] <program.cav>
+  caveat-lang check [--runtime <dir>] [--json] [--strict] [--unused] [--names]
+                    [--records [--save <save.json>]] [--withdrawals] <program.cav>
   caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] [--state <file>] <program.cav>
@@ -64,6 +67,12 @@ explain sends the events, one JSON object per line such as
 {"event": "read", "payload": {"value": 17}}, then shows each decision with what
 it rests on and its history, the evidence and its caveats, and why each
 displayed value is what it is. Refused events are listed and change nothing.
+With --later-caveats it also lists current caveat names on grounds absent
+from that revision's frozen grounds and retained caveats. This is not every
+qualification: names already recorded elsewhere in the revision, take-backs,
+withdrawals and departed grounds are omitted.
+With --lineage-notes, evidence a decision could have been influenced by only
+because the revision before it rested on it is marked "(D@1 rested on it)".
   Exit status: 0 explained, 1 an event failed fatally (the explanation is of
   the session before it), 2 the program or events file could not be used.
 
@@ -86,8 +95,19 @@ review, in every ledger under a directory: each NAME.cav beside NAME.events.json
 whose source is "caveat-review:<program sha256>#<revision>" records a past
 review the program consulted; a review lists it, and --all says whether the
 directory holds that ledger and what its review says came true
-(spec/caveat-ledger-sets-0.1.md). Exit status: 0 reviewed, 1 an event failed
-fatally, 2 the directory holds no ledger or a ledger could not be used.
+(spec/caveat-ledger-sets-0.1.md). --summary counts recorded outcomes by exact
+caveat and evidence names, pooling equal names across programs without
+establishing source identity; with --json it is the last line.
+Exit status: 0 reviewed, 1 an event failed fatally, 2 the
+directory holds no ledger or a ledger could not be used.
+
+find searches the same ledgers for past decisions: every revision, with or
+without an outcome, whose decision, program path, evidence, evidence sources,
+claims, caveats or retention reasons contain every word given (ignoring case).
+It shows each with its value, whether it is still in force, what it rests on,
+what changed it, how it turned out, and where each word matched
+(spec/caveat-find-0.1.md). It reads the records and changes nothing. Exit
+status as for review --all; 0 also when nothing matched.
 
 undo-list sends the events the same way, then lists every decision revision,
 current or past, whose grounds hold withdrawn evidence: in force first, then
@@ -103,12 +123,17 @@ not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load. --unused also
 reports a claim, evidence, caveat or state that nothing else names (C007), such
-as one left behind by a rewrite. --records also reports each rule, procedure or
+as one left behind by a rewrite. --names also reports a commit whose name is
+one or two edits from a declared decision series (C012), which loads and runs
+as a separate plain commitment. --records also reports each rule, procedure or
 binding that reads a decision's record in a program that qualifies evidence
 (C008): from 1.1 a later qualify of the evidence the record lists reaches a
 value set that way. With --save it also restores the save and reports each
 value it holds without such a caveat (C009), as a 1.0.x runtime saved it; 2
-when the save does not restore.
+when the save does not restore. --withdrawals also reports each commit that
+reads something the program can withdraw without asking whether it is
+withdrawn (C010), and each decision committed on such a source that no rule
+reopens when it is withdrawn (C011).
 
 types prints TypeScript declarations for a program: each event's payload, the
 displayed values and their types, and its state, cue, decision, stream,
@@ -127,9 +152,13 @@ input, one JSON object per line, with one JSON object per line on standard
 output (spec/caveat-serve-0.1.md). With --state, it starts from the file when
 one exists and rewrites it after every accepted event and every restore, so a
 host that stops and starts again loses nothing and keeps no save logic of its
-own; the file holds the compact save where the runtime has one. Exit status:
+own; the file holds the compact save where the runtime has one.
+--restore-module-bindings chooses scoped or legacy-hold-capture for an older
+--state save and records the choice in that file before accepting requests.
+Exit status:
 0 closed, 1 a fatal outcome ended the session or the state file could not be
-written, 2 the program does not load or the state file is not a save of it.
+written, 2 the program does not load, the state file is not a save of it, or
+the runtime failed restoring it.
 
 doctor checks Node, package/runtime identity, a real test session and PATH
 command ownership. It inspects other executables without running them.
@@ -140,7 +169,7 @@ Its illustrative inputs are supplied, not independently verified. Output shows
 actual decision grounds and preserved history. It writes no files.
   Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
 
-mcp serves five authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
+mcp serves seven authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
 It takes inline source, runs each call in a fresh subprocess, and exposes no
 persistent session or file access. stdout contains protocol messages only.
 
@@ -149,14 +178,24 @@ into a directory (default: the current one). It refuses to overwrite a file.
 
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
   --state <file>   (serve) the session's save: read on start, rewritten on change
+  --restore-module-bindings <scoped|legacy-hold-capture>
+                   (serve) choose the interpretation of an existing --state save
   --json           print the machine report instead of text
   --strict         (check) exit 1 when there is a warning
   --unused         (check) also report claims, evidence, caveats and states
                    that nothing else in the program names
+  --names          (check) also report a commit that misspells a declared
+                   decision series
   --records        (check) also report reads of a decision's record that a
                    later qualify reaches from 1.1
   --save <file>    (check, with --records) also report the values that save
                    holds without such a caveat
+  --withdrawals    (check) also report commits on sources the program can
+                   withdraw that nothing guards or reopens
+  --later-caveats  (explain) show live caveat names on grounds absent from
+                   each decision's frozen grounds and retained caveats
+  --lineage-notes  (explain) mark lineage evidence that came with the
+                   revision before
   --from <module>  (types) where the declarations import TypedSession from
                    (default caveat-lang/types)`;
 
@@ -166,6 +205,7 @@ const COMMANDS = {
   explain: [1, 2, 'name a program and, optionally, an events file'],
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
   review: [3, 3, 'name a program, a revision such as choose@1 and an events file'],
+  find: [2, Infinity, 'name a directory of ledgers and at least one word to find'],
   'undo-list': [2, 2, 'name a program and an events file'],
   validate: [1, 1, 'name one program'],
   check: [1, 1, 'name one program'],
@@ -179,12 +219,13 @@ const COMMANDS = {
 };
 
 // Which command takes each option, as parseArguments reads them.
-const OPTIONS = ['--json', '--all', '--strict', '--unused', '--records', '--save', '--from', '--state', '--runtime'];
+const OPTIONS = ['--json', '--all', '--summary', '--strict', '--unused', '--names', '--records', '--save', '--from', '--state', '--restore-module-bindings', '--runtime', '--withdrawals', '--later-caveats', '--lineage-notes'];
 function optionFor(option, command) {
   return ({
     '--json': !['replay', 'serve', 'init', 'mcp'].includes(command),
-    '--all': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--records': command === 'check', '--save': command === 'check',
-    '--from': command === 'types', '--state': command === 'serve', '--runtime': command !== 'init',
+    '--all': command === 'review', '--summary': command === 'review', '--strict': command === 'check', '--unused': command === 'check', '--names': command === 'check', '--records': command === 'check', '--save': command === 'check',
+    '--from': command === 'types', '--state': command === 'serve', '--restore-module-bindings': command === 'serve', '--runtime': command !== 'init',
+    '--withdrawals': command === 'check', '--later-caveats': command === 'explain', '--lineage-notes': command === 'explain',
   })[option];
 }
 
@@ -210,14 +251,19 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}${nearest(command, [...Object.keys(COMMANDS), 'help', 'version'])}` };
-  const options = { command, files: [], all: false, json: false, strict: false, unused: false, records: false, save: null, runtime: null, from: null, state: null };
+  const options = { command, files: [], all: false, summary: false, json: false, strict: false, unused: false, names: false, records: false, withdrawals: false, laterCaveats: false, lineageNotes: false, save: null, runtime: null, from: null, state: null, restoreModuleBindings: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--all' && command === 'review') options.all = true;
+    else if (argument === '--summary' && command === 'review') options.summary = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--unused' && command === 'check') options.unused = true;
+    else if (argument === '--names' && command === 'check') options.names = true;
     else if (argument === '--records' && command === 'check') options.records = true;
+    else if (argument === '--withdrawals' && command === 'check') options.withdrawals = true;
+    else if (argument === '--later-caveats' && command === 'explain') options.laterCaveats = true;
+    else if (argument === '--lineage-notes' && command === 'explain') options.lineageNotes = true;
     else if (argument === '--save' && command === 'check') {
       options.save = rest[++index];
       if (!options.save) return { error: '--save needs a save file' };
@@ -230,6 +276,12 @@ function parseArguments(argv) {
       options.state = rest[++index];
       if (!options.state) return { error: '--state needs a file' };
     }
+    else if (argument === '--restore-module-bindings' && command === 'serve') {
+      options.restoreModuleBindings = rest[++index];
+      if (!['scoped', 'legacy-hold-capture'].includes(options.restoreModuleBindings)) {
+        return { error: '--restore-module-bindings needs scoped or legacy-hold-capture' };
+      }
+    }
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
       if (!options.runtime) return { error: '--runtime needs a directory' };
@@ -239,6 +291,8 @@ function parseArguments(argv) {
   const [fewest, most, message] = options.all ? [1, 1, 'name one directory of ledgers with --all'] : COMMANDS[command];
   if (options.files.length < fewest || options.files.length > most) return { error: message };
   if (options.save && !options.records) return { error: '--save is read with --records' };
+  if (options.summary && !options.all) return { error: '--summary is read with --all' };
+  if (options.restoreModuleBindings !== null && options.state === null) return { error: '--restore-module-bindings requires --state' };
   return options;
 }
 
@@ -314,7 +368,7 @@ async function explainProgram(options) {
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
   const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
-  const result = explain(snapshot, sent, { archive });
+  const result = explain(snapshot, sent, { archive, laterCaveats: options.laterCaveats, lineageNotes: options.lineageNotes });
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
     console.log(formatExplanation(result, path.basename(program)));
@@ -393,13 +447,14 @@ async function findLedgers(directory) {
   return found;
 }
 
-async function reviewAll(options) {
-  const [directory] = options.files;
+// The ledgers under `directory` with their sources and events, and the
+// runtime; null after reporting why they cannot be read.
+async function readLedgers(options, directory) {
   let found;
-  try { found = await findLedgers(directory); } catch (error) { console.error(`cannot read ${directory}: ${error.message}`); return 2; }
-  if (!found.length) { console.error(`${directory} holds no ledger: name NAME.cav beside NAME.events.jsonl`); return 2; }
+  try { found = await findLedgers(directory); } catch (error) { console.error(`cannot read ${directory}: ${error.message}`); return null; }
+  if (!found.length) { console.error(`${directory} holds no ledger: name NAME.cav beside NAME.events.jsonl`); return null; }
   const runtime = await loadRuntime(options);
-  if (!runtime) return 2;
+  if (!runtime) return null;
   const ledgers = [];
   let unusable = false;
   for (const item of found) {
@@ -407,6 +462,15 @@ async function reviewAll(options) {
     if (!inputs) { unusable = true; continue; }
     ledgers.push({ ...item, source: inputs.source, events: inputs.events.map(({ event, payload }) => ({ event, payload })) });
   }
+  return { runtime, ledgers, unusable };
+}
+
+async function reviewAll(options) {
+  const [directory] = options.files;
+  const read = await readLedgers(options, directory);
+  if (!read) return 2;
+  const { runtime, ledgers } = read;
+  let { unusable } = read;
   const entries = reviewLedgers(source => runtime.open(source), ledgers);
   for (const entry of entries) {
     if (entry.error) { unusable = true; console.error(`${entry.program} does not load: ${entry.error}`); continue; }
@@ -414,9 +478,33 @@ async function reviewAll(options) {
     else console.log([formatReview(entry, entry.program), ...formatConsulted(entry.consulted), ''].join('\n'));
   }
   const reviewed = entries.filter(entry => !entry.error);
+  if (options.summary) {
+    const summary = summarizeLedgers(entries);
+    if (options.json) console.log(JSON.stringify(summary));
+    else for (const line of formatSummary(summary)) console.log(line);
+  }
   if (!options.json) console.log(`${reviewed.length} revision${reviewed.length === 1 ? '' : 's'} reviewed in ${ledgers.length} ledger${ledgers.length === 1 ? '' : 's'}.`);
   if (unusable) return 2;
   return reviewed.some(entry => entry.fatal !== null) ? 1 : 0;
+}
+
+async function findIn(options) {
+  const [directory, ...words] = options.files;
+  const read = await readLedgers(options, directory);
+  if (!read) return 2;
+  // Words match a program's path under the directory, not the directory's own.
+  const ledgers = read.ledgers.map(item => ({ ...item, name: path.relative(directory, item.program) }));
+  const report = findDecisions(source => read.runtime.open(source), ledgers, words.join(' '));
+  for (const entry of report.searched) if (entry.error) console.error(`${entry.program} does not load: ${entry.error}`);
+  if (options.json) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log(formatFound(report));
+    for (const entry of report.searched) {
+      if (entry.fatal) console.log(`\nIn ${entry.program}, event ${entry.fatal.index + 1} failed; its decisions above are of the session before it.`);
+    }
+  }
+  if (read.unusable || report.searched.some(entry => entry.error)) return 2;
+  return report.searched.some(entry => entry.fatal) ? 1 : 0;
 }
 
 // As the source declares it: `target kind mushroom`, `sort in glowcap
@@ -474,7 +562,7 @@ async function checkProgram(options) {
   if (options.save) {
     try { save = await readFile(options.save, 'utf8'); } catch (error) { console.error(`cannot read ${options.save}: ${error.message}`); return 2; }
   }
-  const asked = { unused: options.unused, ...(options.records ? { records: true } : {}), ...(save !== undefined ? { save } : {}) };
+  const asked = { unused: options.unused, ...(options.names ? { names: true } : {}), ...(options.records ? { records: true } : {}), ...(options.withdrawals ? { withdrawals: true } : {}), ...(save !== undefined ? { save } : {}) };
   let report;
   try { report = runtime.check(inputs.source, asked); } catch (error) {
     if (error.kind !== 'restore') return refuse(`does not load: ${error.message}`);
@@ -531,6 +619,9 @@ async function writeState(file, text) {
   await rename(partial, file);
 }
 
+// The runtime's refusal of an unmarked save that needs a binding choice.
+const AMBIGUOUS_BINDINGS = 'this source has ambiguous historical module bindings';
+
 async function serveProgram(options) {
   const [program] = options.files;
   const write = value => process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -546,27 +637,58 @@ async function serveProgram(options) {
       return 2;
     }
   }
+  if (options.restoreModuleBindings !== null && restore === null) {
+    write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: '--restore-module-bindings requires an existing --state save' } });
+    return 2;
+  }
+  const restoreOptions = options.restoreModuleBindings === null ? undefined : { moduleBindings: options.restoreModuleBindings };
   let server;
-  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore }); } catch (error) {
+  try { server = createServer({ runtime, source: inputs.source, program: path.basename(program), restore, restoreOptions }); } catch (error) {
     // The runtime reads the save before the program, so a program that does
-    // not load is told apart by opening it fresh: that is a load error.
+    // not load is told apart by opening it fresh: that is a load error. A
+    // runtime that trapped restoring the file, as when the save is too large
+    // for its memory (D070), cannot open anything again: its own error
+    // stands, as fatal.
     let kind = 'load';
     let message = error.message;
-    if (restore !== null) {
+    if (restore !== null && runtime.trapped) kind = 'fatal';
+    else if (restore !== null && (restoreOptions !== undefined || hasBindingMarker(restore))) {
+      // A fresh scoped load cannot diagnose a failed historical restore.
+      // Preserve the selected profile's error and leave its file untouched.
+      kind = 'state';
+      message = `cannot restore ${options.state}: ${error.message}`;
+    } else if (restore !== null) {
+      // A save of this program that older releases of both kinds could have
+      // written is refused until its history is chosen: it is still a save of
+      // the program.
+      const needsChoice = () => `${options.state} needs --restore-module-bindings scoped or legacy-hold-capture: ${error.message}`;
       try {
         runtime.open(inputs.source).close();
         kind = 'state';
-        message = `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
-      } catch (loadError) { message = loadError.message; }
+        message = error.message.includes(AMBIGUOUS_BINDINGS)
+          ? needsChoice()
+          : `${options.state} is not a save of ${path.basename(program)}: ${error.message}`;
+      } catch (loadError) {
+        // An unmarked save of a bundle can be read as the releases that could
+        // have written it read the bundle, which a fresh load does not: a
+        // fresh load that fails otherwise than the restore did cannot say
+        // whether that reading loads, so the restore's error stands (D096).
+        if (inputs.source.startsWith('#caveat-bundle') && loadError.message !== error.message) {
+          kind = 'state';
+          message = error.message.includes(AMBIGUOUS_BINDINGS) ? needsChoice() : `cannot restore ${options.state}: ${error.message}`;
+        } else message = loadError.message;
+      }
     }
     write({ schema: 'caveat-serve/0.1', ready: false, error: { kind, message } });
     return 2;
   }
-  // A fresh session writes its state file on start, so the file exists before
-  // the first event; a restored one is unchanged until something changes it.
+  // A fresh session writes its state before the first event. Explicitly
+  // selecting an older save's bindings also checkpoints immediately, so the
+  // next process can restore the recorded selection without another flag.
   const checkpoint = options.state === null ? null : () => writeState(options.state, server.save().text);
-  if (checkpoint !== null && restore === null) {
+  if (checkpoint !== null && (restore === null || restoreOptions !== undefined)) {
     try { await checkpoint(); } catch (error) {
+      server.close();
       write({ schema: 'caveat-serve/0.1', ready: false, error: { kind: 'state', message: `cannot write ${options.state}: ${error.message}` } });
       return 2;
     }
@@ -724,7 +846,7 @@ async function main() {
   }
   if (options.error) { console.error(`${options.error}\nRun caveat-lang help for every command and option.`); return 2; }
   const run = {
-    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, 'undo-list': undoListOf,
+    test: testScenarios, explain: explainProgram, dependents: dependentsOf, review: reviewOf, find: findIn, 'undo-list': undoListOf,
     validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
     mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];

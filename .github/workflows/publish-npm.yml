@@ -62,9 +62,20 @@ jobs:
           git fetch --no-tags --depth=1 origin "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           test "$(git cat-file -t "refs/tags/${RELEASE_TAG}")" = tag
           test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$GITHUB_SHA"
-      - name: Find the Runtime run that tested this revision
+      # The release gate is a Caveat program (scripts/release-gate/release-gate.cav),
+      # run on a released kit pinned by its SHA256 in scripts/release-gate/pin.json,
+      # not on the runtime being released.
+      - name: Install the released Caveat kit the release gate runs on
+        shell: bash
+        run: |
+          eval "$(node scripts/release-gate/pin.mjs --shell)"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gate-kit.tgz" "$GATE_KIT_TARBALL"
+          echo "$GATE_KIT_SHA256  $RUNNER_TEMP/gate-kit.tgz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/gate-kit" && tar -xzf "$RUNNER_TEMP/gate-kit.tgz" -C "$RUNNER_TEMP/gate-kit"
+          echo "CAVEAT_GATE_KIT=$RUNNER_TEMP/gate-kit/package" >> "$GITHUB_ENV"
+      - name: Find the Runtime run that tested this revision (the release gate decides and keeps its record)
         id: select
-        run: node scripts/release-publish.mjs select
+        run: node scripts/release-publish.mjs select candidate
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Download the exact tested package
@@ -87,7 +98,7 @@ jobs:
         run: |
           npm publish "$TARBALL" --dry-run --access public --tag "$RELEASE_DIST_TAG" --registry https://registry.npmjs.org 2>&1 | tee candidate/publish-dry-run.txt
           grep -F "with tag ${RELEASE_DIST_TAG} and public access (dry-run)" candidate/publish-dry-run.txt
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: npm-publish-candidate
           path: candidate/
@@ -150,7 +161,7 @@ jobs:
           node scripts/verify-npm-publication.mjs
           --version "$RELEASE_VERSION" --sha256 "$RELEASE_SHA256" --revision "$GITHUB_SHA"
           --dist-tag "$RELEASE_DIST_TAG" --tarball "$TARBALL"
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: npm-publication-verification

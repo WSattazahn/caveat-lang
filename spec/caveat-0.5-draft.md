@@ -95,6 +95,13 @@ commit hold_course because enough retaining weather::fog_refraction;
 A file's own declarations stay bare. There is no wildcard import and no
 aliasing in this draft.
 
+References named `hold` or `release` follow this same scope rule, including
+in function arguments and procedure calls near `because`. Only actual
+effect keywords remain unqualified. A corrected linker applies this rule
+to fresh loads and public `link::link`. Historical saves that depended on
+root capture can explicitly retain that interpretation; see
+[Save 0.1](caveat-save-0.1.md#module-binding-interpretation).
+
 Both omissions are deliberate. If two modules could contribute a bare
 `low_visibility`, the linker would have to either merge them into one graph node
 or pick one. Merging invents a relation nobody authored: every edge attached to
@@ -182,6 +189,62 @@ group, and may shadow an existing function only with another function:
 `fn abs(...)` in a module is its own `abs` and every call inside it resolves
 there, while `claim abs;` would make every `abs(...)` in that module resolve to
 a claim, so it is refused.
+
+A word the language took after modules is kept by position rather than
+reserved, so a module that declared it keeps loading: among others `hold` and
+`release` before `because`, `unset`, `strict` after a series' limit, and
+`changed` where it leads a trigger. `irreversible` and `forecloses` are
+reserved, as from 1.2.0. A module that declares `only_if` as a state or
+define reads `only_if(…)` as the form ([Only If 0.1](caveat-only-if-0.1.md)).
+
+Releases did not all link a module's names so, and a bundle is read as the
+newest release that could load it linked it, with a module's `hold` and
+`release` its own (finding D088). The releases differ in these ways:
+
+- From 1.2.0 to 1.4.1, a module's `hold` or `release` two words before
+  `because` was left bare, naming the program's where it declares one. A
+  fresh load corrects this (finding D091), and a save says which way its
+  writer read the bundle
+  ([Save 0.1](caveat-save-0.1.md#module-binding-interpretation)).
+- Before 1.4.0, in a module that declares `only_if` as something other than a
+  function, `only_if(…)` called the module's flattened name,
+  `fn MODULE__only_if`, which the bundle's program may declare.
+- Before 1.4.0, a module's `once` after a `because` where the item ends, once
+  `retaining` has come in the statement, was its own, and so were its
+  `every` after `withdraw` and `strict` after `irreversible`. 1.4.0 kept
+  them bare there for `because once`, `withdraw every`
+  ([Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md)) and
+  `irreversible strict`
+  ([Strict Irreversible 0.1](caveat-strict-irreversible-0.1.md)), so from
+  1.4.0 a module's `retaining gap because once ;`, with a space before its
+  end, named the program's `once`.
+- Before 1.3.0, a module's `resolve` before a name and `=`, or before
+  `revision`, was its own, and so was `materialized` after its `because`.
+  1.3.0 kept them bare there for outcomes
+  ([Outcomes 0.1](caveat-outcomes-0.1.md)), so from 1.3.0 a module's
+  `fn resolve (y) = …`, with a space before its parameters, did not load.
+- Before 1.2.0, a module could declare `irreversible` and `forecloses`, which
+  were then its own names
+  ([Foreclosure 0.1](caveat-foreclosure-0.1.md)).
+- Before 1.1.0, `changed` led no trigger, so a module's own `changed` was its
+  own wherever it stood. From 1.1.0 a trigger in `reopened by` ends only at a
+  word that ends in `,` or `;`, so in `reopened by changed ,r` a module's
+  `changed` stays bare and names the program's stream `changed`
+  ([Changed Triggers 0.1](caveat-changed-triggers-0.1.md)).
+
+A release could load a bundle as it linked it when that program loads here,
+uses no form that came after the release, and has no function body that the
+release refused, such as a call of the program's own `fn only_if` that 1.4.0
+read as the form (finding D093). The first release of each form is listed in
+`runtime/src/release_line.rs`. Where the newest such release loaded the bundle
+only by reading a module's `hold` or `release` as the program's, the newest
+older one whose reading loads with the module's own is taken, and a bundle
+that no release could load so is read as this runtime links it, which may
+refuse it. So a bundle 1.4.1 loads is read as 1.4.1 linked it, corrected,
+where that loads. What a release could load is judged from what the loaded
+program keeps: a template no call specializes, a nested `for` block, an
+across-members form and the size of an expansion are not looked at, the places
+finding D089 lists.
 
 The flat name is a linking mechanism, not the record of who declared what.
 [caveat-authorship-0.1](caveat-authorship-0.1.md) puts that in the graph, so

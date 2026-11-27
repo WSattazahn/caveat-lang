@@ -4,6 +4,7 @@ import type { CaveatSession } from './session.mjs';
 import type { Review, ReviewEvent } from './review.mjs';
 
 export declare const LEDGER_REVIEW_SCHEMA: 'caveat-ledger-review/0.1';
+export declare const LEDGER_SUMMARY_SCHEMA: 'caveat-ledger-summary/0.1';
 /** `caveat-review:<program sha256>#<revision>`, as an evidence source. */
 export declare const CONSULTED_SOURCE: RegExp;
 
@@ -73,5 +74,88 @@ export declare function reviewLedgers(
   options?: { limit?: number },
 ): (LedgerReview | LedgerError)[];
 
+export interface CaveatCount {
+  /** Reviewed revisions with an outcome whose grounds carry this caveat. */
+  retained: number;
+  /** Those revisions whose recorded outcome says it materialized. */
+  came_true: number;
+}
+
+export interface LedgerSummary {
+  schema: 'caveat-ledger-summary/0.1';
+  revisions: number;
+  caveats: (CaveatCount & { caveat: string; by_evidence: (CaveatCount & { evidence: string })[] })[];
+}
+
+/**
+ * Counts recorded outcomes, grouped by exact caveat/evidence identifier strings.
+ * Equal names across programs pool; occurrence suffixes remain distinct. This
+ * neither resolves source identity nor attributes causation. Error entries and
+ * entries without an outcome are omitted; a fatal suffix does not erase an
+ * earlier recorded outcome. Each supplied entry counts as a revision.
+ */
+export declare function summarizeLedgers(entries: readonly (LedgerReview | LedgerError)[]): LedgerSummary;
+
+/** Text lines for a summary; none when no caveat was retained. */
+export declare function formatSummary(summary: LedgerSummary): string[];
+
 /** Text lines for what a review consulted. */
 export declare function formatConsulted(consulted: readonly Consulted[]): string[];
+
+export declare const FIND_SCHEMA: 'caveat-find/0.1';
+
+/** A query's words: lowercased, split on white space. */
+export declare function queryWords(query: string): string[];
+
+export interface FindLedger extends Ledger {
+  /** The text query words match as the program's; defaults to `program`. */
+  name?: string;
+}
+
+export type FoundSearch =
+  | { program: string; events: string; program_sha256: string; revisions: number;
+      fatal: { index: number; event: string; message: string } | null }
+  | { program: string; events: string; error: string };
+
+export interface FoundDecision {
+  program: string;
+  events: string;
+  program_sha256: string;
+  series: string;
+  revision: string;
+  current: boolean;
+  value: unknown;
+  status: 'in force' | 'reopened' | 'superseded';
+  grounds: { evidence: string[]; caveats: string[] };
+  retained: string[];
+  retention_reasons?: Record<string, string>;
+  withdrawn: { evidence: string; because?: string; sequence?: number; event?: string }[];
+  decided: { sequence: number; event: string } | null;
+  outcome: Record<string, unknown> | null;
+  /** Each grounds evidence's declared source text, or null. */
+  sources: Record<string, string | null>;
+  history: Record<string, unknown>[];
+  /** For each word, the terms it matched, as `KIND TEXT`. */
+  matched: Record<string, string[]>;
+}
+
+export interface FindReport {
+  schema: 'caveat-find/0.1';
+  query: string;
+  words: string[];
+  searched: FoundSearch[];
+  found: FoundDecision[];
+}
+
+/**
+ * The decision revisions, in every ledger, whose terms hold every word of
+ * `query` (spec/caveat-find-0.1.md). Throws when the query has no word.
+ */
+export declare function findDecisions(
+  open: (source: string) => CaveatSession,
+  ledgers: readonly FindLedger[],
+  query: string,
+): FindReport;
+
+/** The found decisions as text, ending with a count. */
+export declare function formatFound(report: FindReport): string;

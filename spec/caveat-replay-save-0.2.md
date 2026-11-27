@@ -2,6 +2,15 @@
 
 **Status:** stable from 1.2.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); drafted for 1.2. It adds to [Replay Save 0.1](caveat-replay-save-0.1.md) and changes nothing that 0.1 writes or restores.
 
+From 1.5.0: affected module saves carry an optional
+[binding interpretation](caveat-save-0.1.md#module-binding-interpretation).
+Releases wrote this format from 1.2.0 on. Those that wrote it unmarked,
+1.2.0 to 1.4.1, all read a module's `hold` or `release` two words before
+`because` as the root's, so an unmarked one is read, with no choice, as the
+newest of them that could load its source linked it, where one of them could.
+The byte-equivalence statements below describe the positional-format
+addition; the later marker is omitted only for unaffected source.
+
 A [replay save](caveat-replay-save-0.1.md) writes each event as its name and
 a payload object that names every parameter. For a program whose events carry
 several parameters, the names take most of the bytes:
@@ -31,7 +40,8 @@ base-36 digits, one per value:
 ```
 
 It is the same replay save in every other respect: the same events, restored
-the same way, with the same bound.
+the same way, with the same bound, except which releases can have written an
+unmarked one of affected module source (see the amendment above).
 
 ```js
 const saved = session.save({ compact: true, positional: true });
@@ -86,11 +96,16 @@ Schema `caveat-replay-save/0.2`, as JSON:
   text instead, one lowercase base-36 digit (`0`–`9`, `a`–`z`) per value.
   Otherwise it is a JSON list.
 
-Every field is required, and none other is allowed.
+The fields above are required. The optional `module_bindings` field selects
+`"scoped"` or `"legacy-hold-capture"` for affected module source, as
+[Save 0.1](caveat-save-0.1.md#module-binding-interpretation) specifies.
+No other field is allowed.
 
 ## Restore
 
-Restore is 0.1's: the source is loaded and each event is sent to it in order,
+Restore is 0.1's, except which releases count as the writers of an unmarked
+save ([Save 0.1](caveat-save-0.1.md#module-binding-interpretation)): the
+module interpretation is selected before decoding event positions, the source is loaded and each event is sent to it in order,
 through the same path as `dispatch`. The restored session holds both forms of
 replay save for the events it replayed, as far as each form fits.
 

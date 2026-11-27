@@ -336,7 +336,10 @@ fn main() {
     let evaluation =
         eval::evaluate(&program).unwrap_or_else(|error| fail(format!("evaluation error: {error}")));
     println!("\n--- Decision record ---");
-    for (name, id) in &evaluation.symbols {
+    // In name order, as the game snapshot and the map list commitments.
+    let mut names = evaluation.symbols.iter().collect::<Vec<_>>();
+    names.sort_by_key(|(name, _)| *name);
+    for (name, id) in names {
         if let Some(NodeKind::Commitment { open, .. }) = evaluation.graph.nodes.get(id) {
             println!(
                 "{}: {}",

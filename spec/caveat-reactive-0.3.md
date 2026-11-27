@@ -202,3 +202,20 @@ position's computational provenance. That does not mean observation changed the
 external field: comparisons of physical force must hold position and time fixed.
 Keeping the physical model independent of knowledge is a source-design invariant
 verified by the game's tests, not a general prohibition enforced by the compiler.
+
+## Changes
+
+- 2026-11-07 (D048): a `set` whose condition was false added the condition's
+  provenance to its target only when the condition named evidence or caveats
+  the target lacked. Later profiles give a provenance more than those two
+  sets: departure markers and names inherited through a qualification
+  ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)), and kept
+  caveats ([Take-back 0.1](caveat-take-back-0.1.md)). A condition that added
+  only those changed nothing, nor did one that read a name the target held
+  only as inherited. So the target lost a marker of a history its condition
+  read, or lost a kept caveat, which a later take-back then removed, or went
+  on holding as inherited a name its condition had read itself. The runtime
+  now adds the whole provenance, as "Decisions and control flow" says and as
+  a skipped `sample` or `commit` already did. A program with neither a window
+  nor an `unqualify` holds none of these, and its saves, snapshots and views
+  are unchanged.

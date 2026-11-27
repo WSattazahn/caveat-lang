@@ -73,6 +73,42 @@ try {
     assert.match(await page.locator('#loading-status').innerText(), /blocked|could not load|could not start/);
   });
 
+  // A WebAssembly trap while creating the first session (WebKit 26.0's
+  // tier-up fault) gets one reload for a fresh runtime, and only one.
+  async function trapAtSessionCreation(page, call, always) {
+    const loads = [];
+    await page.route('**/pkg/caveat_runtime.js', async route => {
+      const glue = await (await route.fetch()).text();
+      assert.ok(glue.includes(call), `the runtime glue no longer makes ${call}`);
+      const when = always ? 'true' : "!location.search.includes('runtime-retry')";
+      loads.push(route.request().url());
+      await route.fulfill({ contentType: 'text/javascript', body: glue.replace(call, `if (${when}) throw new WebAssembly.RuntimeError('injected trap'); ${call}`) });
+    });
+    return loads;
+  }
+  for (const game of [
+    { page: 'rescue.html', call: 'const ret = wasm.webreactivesession_new(ptr0, len0);', ready: () => window.__rescue?.rendered === true },
+    { page: 'last-beacon.html', call: 'const ret = wasm.webgamesession_new(ptr0, len0);', ready: () => Boolean(window.__beacon) },
+  ]) {
+    await check(`${game.page} starts on a fresh runtime after a trap at session creation`, async page => {
+      const loads = await trapAtSessionCreation(page, game.call, false);
+      const errors = [];
+      page.on('pageerror', error => errors.push(error.message));
+      await page.goto(`${base}/${game.page}`);
+      await page.waitForFunction(game.ready);
+      assert.equal(loads.length, 2, 'the page should load the runtime once more after the trap');
+      assert.equal(new URL(page.url()).searchParams.has('runtime-retry'), false, 'the retry marker should leave the address');
+      assert.deepEqual(errors, []);
+    });
+    await check(`${game.page} shows its error after a second trap instead of reloading again`, async page => {
+      const loads = await trapAtSessionCreation(page, game.call, true);
+      await page.goto(`${base}/${game.page}`);
+      await page.getByRole('button', { name: 'Try again', exact: true }).waitFor();
+      assert.equal(loads.length, 2);
+      assert.equal(new URL(page.url()).searchParams.get('runtime-retry'), '1');
+    });
+  }
+
   await check('disabled JavaScript leaves a readable browser instruction', async page => {
     await page.goto(`${base}/rescue.html`);
     assert.equal(await page.locator('noscript .error-box').isVisible(), true);

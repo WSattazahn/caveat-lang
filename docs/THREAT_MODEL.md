@@ -50,9 +50,14 @@ outside itself.
   corrupting host memory.
 - **Resource exhaustion.** Each event and each procedure is bounded by a work
   limit (`MAX_EVENT_STEPS`, `MAX_PROCEDURE_STEPS` in
-  [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it;
-  from 1.4.0 an expression whose lineage or evaluation would outgrow its
-  caps is refused as `limit/provenance_limit` or `limit/evaluation_limit`
+  [reactive.rs](../runtime/src/reactive.rs)) and refused when it exceeds it.
+  A program that declares `work skips other routes;`
+  ([Routed Work 0.1](../spec/caveat-routed-work-0.1.md), from 1.5.0) does
+  not count the rules an event's payload routes elsewhere; their cost is
+  bounded by the program's size instead: the rules on the event and, in a
+  program with a window, the procedures they call. From 1.4.0 an expression
+  whose lineage or evaluation would outgrow its caps is refused as
+  `limit/provenance_limit` or `limit/evaluation_limit`
   instead of ending the session, and from 1.4.1 a text value past 65,536
   bytes as `limit/text_limit`;
   streams and decision series have declared limits. Memory
@@ -60,7 +65,9 @@ outside itself.
   fresh one ([kit README](../kit/README.md)).
 - **A partial update.** A refused event leaves the session exactly as it was
   (`runtime/tests/atomic_refusal.rs`), so a bad event cannot leave a
-  half-applied decision.
+  half-applied decision. Reused views (`dispatchView(..., { reuse: true })`,
+  from 1.5.0) validate every patch before applying it and report a malformed
+  binary or JSON patch as `fatal` rather than returning a partial view.
 
 ### Tampered or forged saves
 
@@ -72,13 +79,20 @@ outside itself.
   not prove a save came from a real event history. A host that needs that
   stores saves where they cannot be altered, or keeps the event log and
   replays it.
+- Restore does not bound a state save's size: nothing bounds the size of the
+  state save a session writes, and restoring one costs time and memory that
+  grow with it. A save too large for the runtime's memory traps the instance
+  and every session on it rather than being refused. A host that restores
+  saves from a party it does not trust bounds their size first, as the MCP
+  server's `caveat_dispatch` does at 2 MiB ([MCP server](../kit/docs/MCP.md)).
 
 ### The MCP server
 
-- Tools take program source and scenario text as arguments, not file paths,
-  and do their work in an isolated worker process with a timeout; messages
-  are capped at 4 MiB, JSON nesting at 64 levels and request IDs per
-  connection ([mcp.mjs](../kit/lib/mcp.mjs)).
+- Tools take program source, event/record data, saves and scenario text as
+  arguments, not file paths, and do their work in an isolated worker process
+  with a timeout; messages are capped at 4 MiB, JSON nesting at 64 levels,
+  request IDs per connection at 4,096, `caveat_dispatch` saves at 2 MiB, and
+  `caveat_find` inline records at 64 records / 1 MiB ([mcp.mjs](../kit/lib/mcp.mjs)).
 - The hosted server runs the published package in a Cloudflare Worker,
   stores and logs nothing, and adds a per-address rate limit and a step cap
   on `caveat_test` ([hosted MCP README](../hosted-mcp/README.md)).

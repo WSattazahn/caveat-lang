@@ -1,7 +1,7 @@
 # MCP authoring tools
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@1.4.1`**.
+Package: **`caveat-lang@1.5.0`**.
 <!-- /caveat-package:identity -->
 
 This package exposes existing Caveat authoring operations to a local MCP
@@ -61,14 +61,19 @@ The process writes protocol messages on stdout and no startup banner.
 | caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
+| caveat_dispatch | source, optional save, optional moduleBindings, optional events | One step of a running ledger: the explanation after the events, and the save to pass back (from 1.5.0) |
+| caveat_find | source, records, query | Past decisions in the records whose names, evidence, sources, claims or caveats hold every word, with their standing (from 1.5.0, [Find 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-find-0.1.md)) |
 
 Choose `caveat_validate` for a load/declaration check, `caveat_check` for static
 authoring diagnostics, and `caveat_test` to assert behavior after events. A
 successful load or a clean check does not establish that a scenario passes.
 Use `caveat_explain` to understand the resulting decisions and their reasons;
 use `caveat_dependents` to trace the impact of one named evidence item, reading
-stream, reading record or caveat. Each call starts fresh, so supply the event
-history again when moving from an explanation to a dependency query.
+stream, reading record or caveat. Use `caveat_find` before deciding, to ask
+whether past runs of the program already decided the same question, on what,
+and whether that still stands: each record is one past run's events. Each call
+starts fresh, so supply the event history again when moving from an
+explanation to a dependency query.
 
 `strict` defaults to `false`. With `true`, any unsuppressed diagnostic makes
 `caveat_check` return `exitCode: 1`; suppressed diagnostics do not count. The
@@ -77,7 +82,7 @@ before scenarios if it finds an error-severity diagnostic; advisory diagnostics
 are included in its report and do not stop the scenarios.
 
 `source` is inline program text. Events are objects with `event` and optional
-`payload`. `scenarios` is a [scenario document](reference/spec/caveat-scenarios-0.1.md)
+`payload`. `scenarios` is a [scenario document](../../spec/caveat-scenarios-0.1.md)
 whose source, including per-scenario overrides, must be `inline.cav`. The bridge
 has no user-file lookup: the supplied text is its only virtual source file.
 Unknown argument fields are rejected.
@@ -116,6 +121,49 @@ good snapshot. Inspect each reported outcome. For `caveat_dependents`,
 record ID such as `readings@1`, or a caveat name; an unknown subject returns
 `exitCode: 2`.
 
+## Keeping one ledger across calls
+
+`caveat_dispatch` (from 1.5.0) lets an agent keep one ledger for a whole task
+without replaying its history each time. The first call sends the program and
+its first events and no `save`. Each result's `report.save` is the session's
+save text; the next call passes it back unchanged as `save`, with the same
+source, and sends only the new events. It is the smallest save the session
+holds: the positional replay save while the accepted events fit in one
+([Replay save 0.2](../../spec/caveat-replay-save-0.2.md), 4,096 bytes), and the
+state save after that. Both restore to the same session. An agent writes the
+save back on every call, so the smaller save saves it tokens: a six-event
+ledger's save is about 80 tokens instead of 1,100. The server keeps nothing between calls,
+so the host or agent holds the ledger, and any number of independent ledgers
+can share one server.
+
+The report is `caveat-dispatch-step/0.1`: the `caveat-explain/0.1` report of
+the state after this call's events (named in `explainSchema`), plus `restored`
+(whether a save was restored) and `save`. Its `events` list only this call's
+events. For a reading observed in an earlier call, `observed_by` names the
+reading with `event`, `payload` and `sequence` set to `null`, since the report
+lists only this call's events; its grounds, caveats and withdrawals are kept.
+The departure archive is not part of a save (Departure 0.1), so archive history
+covers only this call.
+
+A save binds its exact source: with any other source, or text that is not a
+save, the call returns `exitCode: 2` with `restored: false` and the restore
+error. Restoring never repairs a save or checks its history; to change the
+program, replay the events against the new source instead. A fatal event stops
+the step with `exitCode: 1` and returns the explanation and save of the last
+good state. A save is limited to 2 MiB in both directions.
+
+A save that a release wrote of a bundle whose modules use `hold` or
+`release` may need its history named: where releases before 1.2.0 and
+releases from 1.2.0 to 1.4.1 could both have written it and read it
+differently, the call returns `exitCode: 2` with `restored: false` and an
+error that asks for `moduleBindings`
+([Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation)).
+Pass it beside `save`: `scoped` reads the bundle as a fresh session does,
+each module's `hold` and `release` its own, and `legacy-hold-capture` as
+1.2.0 to 1.4.1 read it. The save the call returns names that reading, so
+later calls omit `moduleBindings`; a choice that differs from a save's own is
+refused.
+
 Every completed operation returns `caveat-authoring/0.1` with operation,
 sourceSha256, runtime identity, exitCode and the existing report. Both the JSON
 text and structuredContent carry that same object. Read exitCode: a completed
@@ -128,7 +176,7 @@ No report authorizes an external action or authenticates its evidence.
 ## Limits and lifecycle
 
 Each call starts a fresh subprocess and runtime and retains no session handle,
-under either protocol. `tools/list` returns the same five tools in a fixed
+under either protocol. `tools/list` returns the same seven tools in a fixed
 order; 2026-07-28 results mark it cacheable for an hour (`ttlMs: 3600000`,
 `cacheScope: "public"`), since the list changes only with the installed package.
 Only one call runs at once; concurrent calls receive a busy error. A tool gets
@@ -166,6 +214,6 @@ timeout, cancellation and recovery retain separate checks.
 This reduces unnecessary environment exposure. It does not turn the subprocess
 into an operating-system sandbox, authenticate the selected runtime, or mean
 that a third-party scanner's capability notices have been cleared.
-The [interface review](reference/docs/MCP_AUTHORING_DESIGN.md) defines the
+The [interface review](../../docs/MCP_AUTHORING_DESIGN.md) defines the
 protocol choices, resource limits and required regression evidence. The
 [agent quickstart](AGENT_START.md) introduces the same tools through the CLI.

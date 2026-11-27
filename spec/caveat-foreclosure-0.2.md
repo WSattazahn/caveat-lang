@@ -101,8 +101,10 @@ revision.
 - **Holds.** A hold keeps `D` in force, so it keeps the exclusion while the
   reopenings it defers wait. Its release applies them and lifts the
   exclusion. A hold never keeps a revision in force on withdrawn evidence
-  ([Holds 0.1](caveat-holds-0.1.md)): a withdrawal that reaches a held
-  revision reopens it, and the exclusion lifts with it.
+  ([Holds 0.1](caveat-holds-0.1.md), "A withdrawal is not held"): the
+  withdrawal itself reopens nothing, held or not, but a `reopen` of the held
+  revision once it rests on withdrawn evidence goes ahead instead of being
+  deferred, and the exclusion lifts with it.
 - **Only later commits.** As in Foreclosure 0.1, a revision of `ACTION`
   already committed keeps its status, basis and caveats. Whether `D` may be
   committed while `ACTION` is in force is the author's policy, written as a
@@ -230,5 +232,9 @@ digest for every program before this change and after it.
 
 ## Changes
 
+- 2026-10-26: the "Holds" paragraph said a withdrawal reaching a held
+  revision reopens it; Holds 0.1 and the runtime have the program's `reopen`
+  do that, going ahead despite the hold. Wording only (D028, found by the
+  Conway test of the 1.4 features).
 - 2026-10-25: drafted and implemented for 1.4. Its random test found D021
   ([Holds 0.1](caveat-holds-0.1.md), Changes).

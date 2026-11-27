@@ -1,0 +1,72 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "release-gate.cav",
+  "scenarios": [
+    {"id": "G01", "title": "The newest run and its one fresh package allow the release, which rests on both",
+     "steps": [
+       {"send": "run", "payload": {"id": 10, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "run", "payload": {"id": 12, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "choose_run"},
+       {"send": "artifact", "payload": {"id": 99, "expired": 0, "belongs": 1}},
+       {"send": "decide"},
+       {"expect": {"/bindings/release/allowed": "allowed", "/bindings/release/run": 12, "/bindings/release/artifact": 99,
+                   "/commitment_grounds/publish@1": {"evidence": {"$set": ["candidates@1", "runs@2"]}}}}
+     ]},
+    {"id": "G02", "title": "An older success cannot hide a newer failure",
+     "steps": [
+       {"send": "run", "payload": {"id": 10, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "run", "payload": {"id": 12, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 0}},
+       {"send": "choose_run", "rejected": "The newest Runtime run has not succeeded."},
+       {"send": "decide", "rejected": "No Runtime run is chosen."},
+       {"expect": {"/bindings/release/allowed": "refused"}}
+     ]},
+    {"id": "G03", "title": "The checks refuse in the order the gate has always made them",
+     "steps": [
+       {"send": "choose_run", "rejected": "No Runtime run from a push to main tested the revision."},
+       {"send": "run", "payload": {"id": 5, "workflow": 0, "repository": 0, "push": 0, "main": 1, "revision": 1, "completed": 0, "success": 0}},
+       {"send": "choose_run", "rejected": "The selected run is not the Runtime workflow."},
+       {"send": "run", "payload": {"id": 6, "workflow": 1, "repository": 0, "push": 0, "main": 1, "revision": 1, "completed": 0, "success": 0}},
+       {"send": "choose_run", "rejected": "The Runtime run must belong to this repository."},
+       {"send": "run", "payload": {"id": 7, "workflow": 1, "repository": 1, "push": 0, "main": 1, "revision": 1, "completed": 0, "success": 0}},
+       {"send": "choose_run", "rejected": "The Runtime run must be a push to main at the tagged revision."},
+       {"send": "run", "payload": {"id": 8, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 0, "success": 0}},
+       {"send": "choose_run", "rejected": "The newest Runtime run has not succeeded."},
+       {"send": "run", "payload": {"id": 8, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}, "rejected": "Runtime runs must arrive oldest first."}
+     ]},
+    {"id": "G04", "title": "The package must be the one tested: one artifact, not expired, of this run",
+     "steps": [
+       {"send": "artifact", "payload": {"id": 1, "expired": 0, "belongs": 1}, "rejected": "Choose the Runtime run before its artifacts."},
+       {"send": "run", "payload": {"id": 12, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "choose_run"},
+       {"send": "decide", "rejected": "The chosen run must have exactly one kit-package-candidate artifact."},
+       {"send": "artifact", "payload": {"id": 98, "expired": 1, "belongs": 0}},
+       {"send": "decide", "rejected": "The tested kit-package-candidate has expired; it cannot be published."},
+       {"send": "artifact", "payload": {"id": 99, "expired": 0, "belongs": 0}},
+       {"send": "decide", "rejected": "The chosen run must have exactly one kit-package-candidate artifact."}
+     ]},
+    {"id": "G05", "title": "A run withdrawn after the release was allowed reopens both decisions and refuses the release",
+     "steps": [
+       {"send": "withdraw_run", "rejected": "There is no Runtime run to withdraw."},
+       {"send": "run", "payload": {"id": 12, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "choose_run"},
+       {"send": "artifact", "payload": {"id": 99, "expired": 0, "belongs": 1}},
+       {"send": "decide"},
+       {"expect": {"/bindings/release/allowed": "allowed"}},
+       {"send": "withdraw_run"},
+       {"send": "withdraw_run", "rejected": "The newest Runtime run is already withdrawn."},
+       {"expect": {"/bindings/release/allowed": "refused"}},
+       {"send": "decide", "rejected": "No Runtime run is chosen."},
+       {"send": "choose_run", "rejected": "The newest Runtime run has been withdrawn."}
+     ]},
+    {"id": "G06", "title": "A second package found after the release was allowed reopens it",
+     "steps": [
+       {"send": "run", "payload": {"id": 12, "workflow": 1, "repository": 1, "push": 1, "main": 1, "revision": 1, "completed": 1, "success": 1}},
+       {"send": "choose_run"},
+       {"send": "artifact", "payload": {"id": 99, "expired": 0, "belongs": 1}},
+       {"send": "decide"},
+       {"send": "artifact", "payload": {"id": 100, "expired": 0, "belongs": 1}},
+       {"expect": {"/bindings/release/allowed": "refused"}},
+       {"send": "decide", "rejected": "The chosen run must have exactly one kit-package-candidate artifact."}
+     ]}
+  ]
+}

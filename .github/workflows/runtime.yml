@@ -16,9 +16,20 @@ jobs:
   changes:
     name: regression scope
     runs-on: ubuntu-24.04
+    # Reading this pull request's earlier runs needs actions and checks.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
     outputs:
       legacy_door: ${{ steps.scope.outputs.legacy_door }}
       games: ${{ steps.scope.outputs.games }}
+      reuse: ${{ steps.reuse.outputs.reuse }}
+      round1_url: ${{ steps.reuse.outputs.url }}
+      round1_tree: ${{ steps.reuse.outputs.tree }}
+      round1_finished: ${{ steps.reuse.outputs.finished }}
+      carried_names: ${{ steps.reuse.outputs.names }}
+      decided_attempt: ${{ steps.reuse.outputs.attempt }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,7 +50,12 @@ jobs:
             legacy=true
           else
             files="$(git diff --name-only "$base" "$head")"
+            # A file name is printed as text, never read as a workflow
+            # command such as the tested-tree record the round-1 carry reads.
+            stop="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+            echo "::stop-commands::$stop"
             printf '%s\n' "$files"
+            echo "::$stop::"
             if printf '%s\n' "$files" | grep -Eq '^(runtime/|game/the_door_round2\.cav$|web/3d\.html$|web/the_door_round2\.cav$)'; then
               legacy=true
             else
@@ -60,6 +76,56 @@ jobs:
           fi
           echo "games=$games" >> "$GITHUB_OUTPUT"
           echo "Game browser QA required: $games"
+      # The round-1 carry (scripts/ci-reuse/README.md). Every pull request run
+      # leaves the tree it tests. When a push only adds lines at the end of the
+      # ledger's events and round 1 ran green on the same tree, the jobs that
+      # never read those events carry round 1's result instead of running
+      # again. Any doubt or error runs everything; a push to main, a manual
+      # run and a pull request from a fork never carry. The jobs carry only in
+      # the attempt that decided, so a re-run of failed jobs, which keeps
+      # this job's outputs, runs them in full.
+      - id: reuse
+        name: Record the tested tree and decide whether round 1's result carries over
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GAMES: ${{ steps.scope.outputs.games }}
+          LEGACY_DOOR: ${{ steps.scope.outputs.legacy_door }}
+          ROUND1_REUSE: ${{ vars.ROUND1_REUSE }}
+        run: node scripts/ci-reuse/reuse.mjs
+
+  # Runs only when this run carries round 1's result: its success names the
+  # round-1 run and the jobs carried, so the PR ledger and the done check
+  # record the carry along with the merge that rests on it.
+  round1-carry:
+    name: round-1 carry
+    needs: changes
+    if: needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Name the round-1 run whose result this run carries
+        shell: bash
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+          FINISHED: ${{ needs.changes.outputs.round1_finished }}
+          CARRIED: ${{ needs.changes.outputs.carried_names }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Round-1 carry::$ROUND1 (finished $FINISHED) ran these jobs to success on tree $TREE: $CARRIED. This push only adds lines at the end of the ledger's events, which they never read. Core semantics replays the new events here, and the run on main runs every job again."
+          {
+            echo "### Carried from round 1"
+            echo
+            echo "$ROUND1 (finished $FINISHED) ran these jobs to success on tree \`$TREE\`: $CARRIED."
+            echo
+            echo "This push only adds lines at the end of the ledger's events, which they never read (scripts/ci-reuse/README.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   core:
     name: core semantics
@@ -67,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
@@ -80,8 +146,6 @@ jobs:
         run: node --test scripts/game-qa-retries.test.mjs
       - name: Stabilization trial reruns a stalled trial but fails a real slowdown
         run: node --test experiments/stabilization-trial/run.test.mjs
-      - name: npm publication gate refuses untested, mismatched or unattested packages
-        run: node --test scripts/release-publish.test.mjs
       - name: Release bill of materials covers every compiled-in crate and refuses gaps
         run: node --test scripts/release-sbom.test.mjs
       - name: Distribution closeout check refuses unexplained channel or registry mismatches
@@ -94,6 +158,16 @@ jobs:
       - run: npm ci
       - name: Build browser distribution
         run: npm run build
+      - name: npm publication gate refuses untested, mismatched or unattested packages, deciding in Caveat as the legacy checks did
+        run: npm run test:release-gate
+      - name: The release gate runs on the released kit publish-npm pins
+        shell: bash
+        run: |
+          eval "$(node scripts/release-gate/pin.mjs --shell)"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gate-kit.tgz" "$GATE_KIT_TARBALL"
+          echo "$GATE_KIT_SHA256  $RUNNER_TEMP/gate-kit.tgz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/gate-kit" && tar -xzf "$RUNNER_TEMP/gate-kit.tgz" -C "$RUNNER_TEMP/gate-kit"
+          CAVEAT_GATE_KIT="$RUNNER_TEMP/gate-kit/package" node --test scripts/release-publish.test.mjs scripts/release-gate/release-gate.test.mjs
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
       - name: Elapsed clock WebAssembly checks
@@ -110,6 +184,8 @@ jobs:
         run: npm run test:before-the-rain
       - name: Caveatist canon loads, checks clean and passes its scenarios
         run: npm run test:caveatism
+      - name: Lean bridge example checks clean and passes its scenarios
+        run: npm run test:lean-bridge
       - name: Try to break this page checker, its examples and mutation controls
         run: npm run test:break
       - name: Installable Caveatist skill copy and plugin metadata
@@ -132,8 +208,14 @@ jobs:
         run: npm run test:kit
       - name: The project's own decision ledger replays and its scenarios pass
         run: npm run test:ledger
+      - name: The pull request done check decides in Caveat
+        run: npm run test:done-check
       - name: The PR ledger Action's host keeps its record in Caveat
         run: npm run test:pr-ledger
+      - name: The round-1 carry refuses every unproven case and skips only the jobs it names
+        run: npm run test:ci-reuse
+      - name: The review shortlist lists what rests on an agent's word alone
+        run: npm run test:review-shortlist
       - name: The agent undo-list tutorial runs as written
         run: npm run test:tutorial
       - name: Adoption scorer mutation controls (no trial agents)
@@ -142,19 +224,19 @@ jobs:
         run: python3 -B experiments/agent-adoption/v1/runner-capture.test.py
       - name: Converted Trail Rescue and Glowcap scenarios
         run: npm run test:scenario-conversion
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: slime-glow-wasm-report
           overwrite: true
           path: test-results/slime-glow-wasm.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: trail-rescue-policy-report
           overwrite: true
           path: test-results/trail-rescue.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         with:
           name: browser-dist
           overwrite: true
@@ -182,43 +264,88 @@ jobs:
       - name: Codex plugin connects the server this Worker deploys
         run: node -e 'const fs = require("fs"); const name = /^name = "(.+)"/m.exec(fs.readFileSync("hosted-mcp/wrangler.toml", "utf8"))[1]; const url = JSON.parse(fs.readFileSync("plugins/caveat/.codex-plugin/mcp.json", "utf8")).mcpServers["caveat-lang"].url; if (url !== `https://${name}.waltersattazahn.workers.dev/mcp`) throw new Error(url)'
 
+  # The native checks run as three jobs side by side. Each runs the same
+  # commands it ran when they were one job; they share no build, so each
+  # compiles what it tests. As one job the two debug test suites ran one after
+  # the other, about 14 minutes each, and made the whole run about 34 minutes.
+  #
+  # The jobs from here to light-the-way that say REUSED can carry round 1's
+  # result (scripts/ci-reuse/README.md): each step but the first is skipped
+  # when the regression scope proved that this push only adds lines at the
+  # end of the ledger's events, which these jobs never read, and round 1 ran
+  # them to success on the same tree. Each full run puts those events out of
+  # its reach (.github/ci/hide-ledger-events.sh): reading the file fails, and
+  # git gives a placeholder line for it. Four of them use the browser build
+  # core makes with the events in reach; the reproducible job requires every
+  # file of it to match its own rebuild without them. They carry only in the
+  # attempt that decided: a re-run of failed jobs keeps the regression
+  # scope's outputs, and runs them in full. A failed regression scope runs
+  # native, native-reactive, compatibility, lean-conformance and reproducible
+  # in full; last-beacon and light-the-way need its games output and are
+  # skipped then, as they were before the carry.
   native:
     name: native runtime
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
+    # Line tables keep panic locations and backtraces while cutting a clean
+    # debug test build from about 17 GB to 7 GB, and do not change generated
+    # code or stack use. The disk and memory reports are there because a run
+    # on #417 died without a log; a runner showed 69 GB still free after this
+    # job, so a full disk is not a likely cause.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Free disk and memory before the build
+        if: env.REUSED != 'true'
+        run: df -h / && free -m
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
-      - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
-      - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
+        if: env.REUSED != 'true'
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
+      - if: env.REUSED != 'true'
+        run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+      - if: env.REUSED != 'true'
+        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
+      # nextest runs the same tests as cargo test --all-targets, each in its own
+      # process, up to one per CPU at a time; cargo test ran the ~190 test
+      # files one after another. On a 4-CPU machine the reactive-only suite
+      # took 319 s instead of 1,021 s, all 1,583 tests passing both ways.
       # The maximum supported call depth needs more stack in unoptimized tests.
-      # Keep the optimized runtime independently checked with the default stack.
-      - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+      # Keep the optimized runtime independently checked with the default stack
+      # (native-optimized below).
+      - if: env.REUSED != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/cargo-nextest
+          key: cargo-nextest-0.9.151-${{ runner.os }}
+      - if: env.REUSED != 'true'
+        run: command -v cargo-nextest >/dev/null || cargo install cargo-nextest --version 0.9.151 --locked
+      - if: env.REUSED != 'true'
+        run: cargo nextest run --manifest-path runtime/Cargo.toml --all-targets
         env:
           RUST_MIN_STACK: 16777216
-      - name: Lint the reactive-only runtime
-        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
-      - name: Test the reactive-only runtime
-        run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
-        env:
-          RUST_MIN_STACK: 16777216
-      - name: Maximum supported call depth on the optimized default stack
-        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
-      - name: Withdrawal collector diagnostics and paired retention cases
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection --test collector_index_compaction --test withdrawal_batch_extraction
-        env:
-          RUST_MIN_STACK: 16777216
-      - name: Native withdrawal-extraction diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features withdrawal-extraction-profile --lib withdrawal_profile
-      - name: Native renewal-removal diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features renewal-removal-profile --lib renewal_profile
-      - name: Native event-phase diagnostic recorder
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
-      - name: Native event-phase allocation-origin mode
-        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
-      - name: Withdrawal collector at the real storage capacity
-        run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
       - name: CLI and CAVEAT Map playthroughs
+        if: env.REUSED != 'true'
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
@@ -226,33 +353,154 @@ jobs:
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+      - name: Free disk and memory after the build
+        if: always() && env.REUSED != 'true'
+        run: df -h / && free -m && du -sh runtime/target
+
+  native-reactive:
+    name: native runtime, reactive-only and diagnostic features
+    needs: changes
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
+    steps:
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Free disk and memory before the build
+        if: env.REUSED != 'true'
+        run: df -h / && free -m
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
+      - name: Install the toolchain rust-toolchain.toml pins
+        if: env.REUSED != 'true'
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
+      - name: Lint the reactive-only runtime
+        if: env.REUSED != 'true'
+        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
+      - if: env.REUSED != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/cargo-nextest
+          key: cargo-nextest-0.9.151-${{ runner.os }}
+      - if: env.REUSED != 'true'
+        run: command -v cargo-nextest >/dev/null || cargo install cargo-nextest --version 0.9.151 --locked
+      - name: Test the reactive-only runtime
+        if: env.REUSED != 'true'
+        run: cargo nextest run --manifest-path runtime/Cargo.toml --all-targets --no-default-features
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Withdrawal collector diagnostics and paired retention cases
+        if: env.REUSED != 'true'
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection --test collector_index_compaction --test withdrawal_batch_extraction
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Native withdrawal-extraction diagnostic recorder
+        if: env.REUSED != 'true'
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features withdrawal-extraction-profile --lib withdrawal_profile
+      - name: Native renewal-removal diagnostic recorder
+        if: env.REUSED != 'true'
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features renewal-removal-profile --lib renewal_profile
+      - name: Native event-phase diagnostic recorder
+        if: env.REUSED != 'true'
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
+      - name: Native event-phase allocation-origin mode
+        if: env.REUSED != 'true'
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
+      - name: Free disk and memory after the build
+        if: always() && env.REUSED != 'true'
+        run: df -h / && free -m && du -sh runtime/target
+
+  native-optimized:
+    name: native runtime, optimized builds
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - name: Free disk and memory before the build
+        run: df -h / && free -m
+      - uses: actions/checkout@v5
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
+      - name: Maximum supported call depth on the optimized default stack
+        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
+      - name: Withdrawal collector at the real storage capacity
+        run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
+      - name: Free disk and memory after the build
+        if: always()
+        run: df -h / && free -m && du -sh runtime/target
 
   # The rc.15 compatibility and departure gates build their own browser
   # distribution so they can run beside core; core's browser-dist stays the
   # one artifact the browser jobs and Pages use.
   compatibility:
     name: rc.15 compatibility and departure gates
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
+    env:
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
-      - uses: actions/cache@v5
+        if: env.REUSED != 'true'
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
+      - if: env.REUSED != 'true'
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - uses: actions/setup-node@v7
+      - if: env.REUSED != 'true'
+        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - if: env.REUSED != 'true'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - if: env.REUSED != 'true'
+        run: npm ci
       - name: Build browser distribution
+        if: env.REUSED != 'true'
         run: npm run build
       - name: Departure save bound, exact rc.15 compatibility, and restore continuation
+        if: env.REUSED != 'true'
         run: node experiments/departure-gate/run.mjs
-      - uses: actions/upload-artifact@v7
-        if: always()
+      - uses: ./.github/actions/upload-artifact
+        if: always() && env.REUSED != 'true'
         with:
           name: departure-gates
           path: |
@@ -264,9 +512,10 @@ jobs:
             test-results/*-reviewed.json
           if-no-files-found: warn
       - name: View 0.2 delta gate over the whole corpus
+        if: env.REUSED != 'true'
         run: node experiments/view-delta-gate/run.mjs
-      - uses: actions/upload-artifact@v7
-        if: always()
+      - uses: ./.github/actions/upload-artifact
+        if: always() && env.REUSED != 'true'
         with:
           name: view-delta-gate
           path: |
@@ -297,39 +546,58 @@ jobs:
 
   lean-conformance:
     name: Lean runtime comparison
-    needs: core
+    needs: [core, changes]
+    if: ${{ !cancelled() && needs.core.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v8
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
+      - if: env.REUSED != 'true'
+        uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v7
+      - if: env.REUSED != 'true'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Install the pinned Rust toolchain
-        run: rustup toolchain install && rustc --version
+        if: env.REUSED != 'true'
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
       - name: Install the pinned Lean toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/lean-4.34.1-linux.tar.zst"
-          curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.34.1/lean-4.34.1-linux.tar.zst \
-            --output "$archive"
-          echo "47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4  $archive" | sha256sum --check
-          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
-          echo "CAVEAT_LEAN_BIN=$RUNNER_TEMP/lean-4.34.1-linux/bin" >> "$GITHUB_ENV"
+        if: env.REUSED != 'true'
+        uses: ./.github/actions/lean-toolchain
       - name: Check fixture and infrastructure failure handling
+        if: env.REUSED != 'true'
         run: npm run test:lean-conformance
       - name: Compare proved operations with production runtimes and semantic mutants
+        if: env.REUSED != 'true'
         run: npm run verify:lean-conformance
       - name: Compare the runtime with the Caveat Sources model on random histories
+        if: env.REUSED != 'true'
         run: npm run verify:lean-sources
-      - uses: actions/upload-artifact@v7
-        if: always()
+      - uses: ./.github/actions/upload-artifact
+        if: always() && env.REUSED != 'true'
         with:
           name: lean-runtime-comparison
           path: |
@@ -347,41 +615,77 @@ jobs:
   # checkout path and cargo home and require an exact match.
   reproducible:
     name: reproducible WebAssembly
-    needs: core
+    needs: [core, changes]
+    if: ${{ !cancelled() && needs.core.result == 'success' }}
     runs-on: ubuntu-24.04
+    env:
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     defaults:
       run:
         working-directory: elsewhere/caveat-lang
     steps:
-      - uses: actions/checkout@v5
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
         with:
           path: elsewhere/caveat-lang
-      - uses: actions/download-artifact@v8
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
+      - if: env.REUSED != 'true'
+        uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: first-build
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
-      - uses: actions/cache@v5
+        if: env.REUSED != 'true'
+        run: .github/ci/retry-download.sh rustup toolchain install && rustc --version
+      - if: env.REUSED != 'true'
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - uses: actions/setup-node@v7
+      - if: env.REUSED != 'true'
+        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - if: env.REUSED != 'true'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm ci
+      - if: env.REUSED != 'true'
+        run: npm ci
       - name: Rebuild with another checkout path and cargo home
+        if: env.REUSED != 'true'
         env:
           CARGO_HOME: ${{ runner.temp }}/another cargo home
         run: npm run build
       - name: Require identical bytes
+        if: env.REUSED != 'true'
         run: |
           first="$GITHUB_WORKSPACE/first-build"
           for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js pkg-reactive/caveat_runtime_bg.wasm pkg-reactive/caveat_runtime.js build-info.json; do
             sha256sum "$first/$file" "dist/$file"
             cmp "$first/$file" "dist/$file"
           done
+          # Every other file as well. Core semantics built this browser build
+          # with the ledger's events in reach, and jobs that can carry round
+          # 1's result test it; this rebuild ran with them out of reach, so a
+          # file that came to depend on them fails here, in round 1. The
+          # artifact leaves out hidden files (.nojekyll), so the comparison
+          # leaves out the rebuild's.
+          diff -r --exclude='.*' "$first" dist
           if grep -a -q -e "$HOME" -e "$RUNNER_TEMP" "$first/pkg/caveat_runtime_bg.wasm"; then
             echo "::error::the WASM records a builder-specific path"
             exit 1
@@ -416,14 +720,14 @@ jobs:
       - name: Pack the developer kit and use it from a fresh install
         id: kit_package
         run: npm run test:kit-package
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: kit-package-report
           overwrite: true
           path: test-results/kit-package/*/report.json
       - name: Retain the tested developer kit candidate
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact
         if: steps.kit_package.outcome == 'success'
         with:
           name: kit-package-candidate
@@ -443,7 +747,7 @@ jobs:
           mapfile -t tarballs < <(find test-results/kit-package -name 'caveat-lang-*.tgz' -type f)
           test "${#tarballs[@]}" -eq 1
           node scripts/release-sbom.mjs --tarball "${tarballs[0]}" --revision HEAD --out test-results/caveat-lang.cdx.json
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: glowcap-page-qa
@@ -472,10 +776,22 @@ jobs:
         with:
           name: browser-dist
           path: dist
+      # Building the checker took about 2.5 of this job's 3 minutes. It is the
+      # same pinned build every time; the audit still checks its version and
+      # records its hash, and the advisories are fetched fresh below. This job
+      # runs on every push, because those advisories change from day to day.
+      - uses: actions/cache@v5
+        with:
+          path: test-results/security-tools/bin/cargo-audit
+          key: cargo-audit-0.22.2-${{ runner.os }}
       - name: Install pinned Rust advisory checker locally
-        run: cargo install cargo-audit --version 0.22.2 --locked --root test-results/security-tools
+        run: |
+          .github/ci/retry-download.sh rustup toolchain install
+          test -x test-results/security-tools/bin/cargo-audit || cargo install cargo-audit --version 0.22.2 --locked --root test-results/security-tools
       - name: Fetch the current public RustSec advisory database
-        run: git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
+        # A clone that fails after its fetch keeps the directory, so each
+        # attempt starts from none.
+        run: .github/ci/retry-download.sh bash -c 'rm -rf test-results/security-tools/advisory-db && git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db'
       - name: Exercise security gate refusal controls
         run: node --test scripts/audit-kit-security.test.mjs scripts/kit-capabilities.test.mjs
       - name: Audit the exact tested package and its build lockfile
@@ -484,7 +800,7 @@ jobs:
           mapfile -t reports < <(find test-results/security-candidate -name report.json -type f)
           test "${#reports[@]}" -eq 1
           node scripts/audit-kit-security.mjs --package-report "${reports[0]}" --audit-bin "$PWD/test-results/security-tools/bin/cargo-audit" --advisory-db "$PWD/test-results/security-tools/advisory-db"
-      - uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/upload-artifact
         if: always()
         with:
           name: kit-security-receipts-${{ github.run_attempt }}
@@ -498,28 +814,54 @@ jobs:
     if: needs.changes.outputs.games == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v8
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - if: env.REUSED != 'true'
+        uses: actions/checkout@v5
+      - name: Put the ledger's events out of this job's reach
+        if: env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
+      - if: env.REUSED != 'true'
+        uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v7
+      - if: env.REUSED != 'true'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - uses: ./.github/actions/playwright-browsers
+      - if: env.REUSED != 'true'
+        run: npm ci
+      - if: env.REUSED != 'true'
+        uses: ./.github/actions/playwright-browsers
         with:
           browsers: chromium webkit
       - name: Play desktop and mobile routes
+        if: env.REUSED != 'true'
         run: .github/ci/retry-once.sh 8 npm run test:beacon
       - name: Verify launch failures and recovery
+        if: env.REUSED != 'true'
         run: |
           npm run package:game
           .github/ci/retry-once.sh 5 npm run test:launch
-      - uses: actions/upload-artifact@v7
-        if: always()
+      - uses: ./.github/actions/upload-artifact
+        if: always() && env.REUSED != 'true'
         with:
           name: last-beacon-browser-qa
           overwrite: true
@@ -538,34 +880,52 @@ jobs:
     # unexpanded name and would leave the required checks waiting.
     env:
       GAMES: ${{ needs.changes.outputs.games }}
+      REUSED: ${{ needs.changes.result == 'success' && needs.changes.outputs.reuse == 'true' && needs.changes.outputs.decided_attempt == github.run_attempt }}
     steps:
-      - if: env.GAMES != 'true'
+      - name: Carry round 1's result
+        if: env.REUSED == 'true'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          ROUND1: ${{ needs.changes.outputs.round1_url }}
+          TREE: ${{ needs.changes.outputs.round1_tree }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request || ! "$TREE" =~ ^[0-9a-f]{40}$ || "$ROUND1" != "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/"* ]]; then
+            echo "::error::Only a pull request run whose regression scope proved the carry may carry round 1's result."
+            exit 1
+          fi
+          echo "::notice title=Carried from round 1::$ROUND1 ran this job to success on tree $TREE. This push only adds lines at the end of the ledger's events, which this job never reads (scripts/ci-reuse/README.md)."
+          echo "Not run again: $ROUND1 ran this job to success on tree \`$TREE\`, and this push only adds lines at the end of the ledger's events (scripts/ci-reuse/README.md)." >> "$GITHUB_STEP_SUMMARY"
+      - if: env.GAMES != 'true' && env.REUSED != 'true'
         run: echo "Docs-only pull request; Light the Way QA not needed."
-      - if: env.GAMES == 'true'
+      - if: env.GAMES == 'true' && env.REUSED != 'true'
         uses: actions/checkout@v5
-      - if: env.GAMES == 'true'
+      - name: Put the ledger's events out of this job's reach
+        if: env.GAMES == 'true' && env.REUSED != 'true'
+        run: .github/ci/hide-ledger-events.sh
+      - if: env.GAMES == 'true' && env.REUSED != 'true'
         uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - if: env.GAMES == 'true'
+      - if: env.GAMES == 'true' && env.REUSED != 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - if: env.GAMES == 'true'
+      - if: env.GAMES == 'true' && env.REUSED != 'true'
         run: npm ci
-      - if: env.GAMES == 'true'
+      - if: env.GAMES == 'true' && env.REUSED != 'true'
         uses: ./.github/actions/playwright-browsers
         with:
           browsers: ${{ matrix.browser }}
       - name: Steer the ferry with mouse, keyboard and touch
-        if: env.GAMES == 'true'
+        if: env.GAMES == 'true' && env.REUSED != 'true'
         run: .github/ci/retry-once.sh 15 npm run test:rescue
         env:
           BROWSERS: ${{ matrix.browser }}
-      - uses: actions/upload-artifact@v7
-        if: always() && env.GAMES == 'true'
+      - uses: ./.github/actions/upload-artifact
+        if: always() && env.GAMES == 'true' && env.REUSED != 'true'
         with:
           name: light-the-way-${{ matrix.browser }}-qa
           overwrite: true
@@ -685,7 +1045,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: mr-caveat-visual-qa
@@ -699,6 +1059,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      # This job uses little disk; the report rules disk in or out when a
+      # step fails without a log.
+      - name: Free disk and memory at the start
+        run: df -h / && free -m
       - uses: actions/checkout@v5
         with:
           path: .ci
@@ -752,7 +1116,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: moon-garden-visual-qa
@@ -825,7 +1189,7 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: moon-garden-3d-visual-qa
@@ -875,7 +1239,7 @@ jobs:
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           .ci/.github/ci/retry-once.sh 6 node play.cjs
-      - uses: actions/upload-artifact@v7
+      - uses: ./.ci/.github/actions/upload-artifact
         if: always()
         with:
           name: caveat-all-route-visual-qa
@@ -900,6 +1264,16 @@ jobs:
         run: npm run package --prefix editors/vscode
       - name: Provide a display for VS Code
         run: command -v xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
+      - name: Find the oldest supported VS Code
+        id: oldest-vscode
+        run: |
+          echo "version=$(node -p "require('./editors/vscode/package.json').engines.vscode.replace(/^\^/, '')")" >> "$GITHUB_OUTPUT"
+      # With the oldest VS Code cached, its check needs no network at all.
+      - name: Cache the oldest supported VS Code
+        uses: actions/cache@v5
+        with:
+          path: test-results/vscode-download/vscode-linux-x64-${{ steps.oldest-vscode.outputs.version }}
+          key: vscode-linux-x64-${{ steps.oldest-vscode.outputs.version }}
       - name: Install the .vsix in the oldest supported VS Code and compare its tokens
         run: xvfb-run -a npm run test:editor --prefix editors/vscode
       - name: Install the .vsix in current VS Code and compare its tokens
@@ -907,7 +1281,7 @@ jobs:
         env:
           CAVEAT_VSCODE_VERSION: stable
       - name: Retain the tested .vsix
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact
         with:
           name: caveat-vscode-extension
           path: |

@@ -248,8 +248,32 @@ Restoring refuses a save when:
   last may have one. A record without its relation, or a pair with two live
   relations, is refused;
 - a provenance's `kept` names a caveat that is not a take-back caveat or that
-  the provenance does not carry, or a grounds keeps a caveat its lineage does
-  not keep.
+  the provenance does not carry, or a grounds keeps a caveat its lineage (a
+  commitment's grounds, its basis) does not keep that no `because` citation
+  of the program can bring there (below).
+
+A `because` citation can give grounds a kept caveat that their lineage does
+not keep (D098). `set S = V because C` takes C's grounds as the state's, so
+a citation of a record that keeps a take-back caveat gives the state's
+grounds the caveat kept, while its lineage carries it live, through the
+record its value read; after a take-back the lineage no longer carries it,
+and the grounds still keep it. Whatever reads those grounds takes the kept
+caveat along, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+("Meaning") traces a departed marker a citation carries: any read whose
+grounds take a state's grounds, a procedure parameter's, or a commitment's
+through `committed`, `reopened` or `in_basis`, such as a set whose value
+reads the state, a commit that uses or cites it, or a call given it. Restore
+accepts a caveat grounds keep beyond their lineage or basis, and its name
+where the lineage or basis no longer carries it, only where it can qualify
+records of a history those citations can bring there. A reading keeps the
+take-back caveats its template gave it when it was taken, so a citation of
+the reading gives the grounds those kept even while the lineage carries them
+live. Restore accepts such a caveat beyond a lineage that carries it live
+where the grounds name a reading of a stream that a rule samples and the
+citations read, and whose template the caveat can qualify. The lineage names
+that reading too, and no take-back reaches what a reading copies from its
+template, so the lineage does not lose the caveat; and a commitment's basis,
+frozen with the reading in it, keeps the caveat itself (D099).
 
 The existing rules apply unchanged. A `qualifies` relation must still pair a
 caveat and evidence some `qualify` of the source can pair, and a take-back
@@ -303,7 +327,13 @@ These rules apply only to a program with a window.
 - A commitment's frozen basis and grounds, what it retains and relies on, and
   its journal entries are left as they are. Reading `committed(…)` or
   `reopened(…)` after a take-back carries what the commitment retains,
-  as a kept caveat.
+  as a kept caveat. So does `latest(SERIES)`, whose basis holds every
+  predecessor's ([Reactive 0.5](caveat-reactive-0.5.md)): a revision made
+  after the take-back still carries the caveat its predecessor was made
+  under, and an irreversible commit resting on it is refused
+  `caveated_irreversible`, since a take-back caveat cannot be retained. A
+  commit that means to rest on the revision's own grounds reads
+  `grounds_of(SERIES)` ([Grounds Of 0.1](caveat-grounds-of-0.1.md)).
 - A take-back reopens nothing and commits nothing. A program states what it
   means for its decisions, as it does for a withdrawal.
 - Permission records are frozen records and do not change.
@@ -358,6 +388,56 @@ the implementation.
 
 ## Changes
 
+- 2026-11-21 (D100): a cited reading, outcome or basis brings no kept
+  caveat that only what joins a stream's observation records later could
+  give, where a value read of the stream wrote it, wherever the effect
+  evaluated the read (its guard, its values, what it cites or selects, or a
+  call's arguments; [Save 0.1](caveat-save-0.1.md), "Restore validation"):
+  restore refuses such a forged kept caveat in the citing state's grounds
+  and in grounds that read them, as it refuses one no citation brings. A
+  `reopen ... because latest(S)` is the exception: `reopened` and
+  `on_hold` of the commitment, and with them its next revision's basis,
+  read the reading that reopened it through its records as they stand
+  then, so what an effect writes from those reads can keep such a caveat,
+  even where the effect also reads S by value, and so can grounds that
+  cite it or read those. The commitment's reopening record is bounded with
+  what `reopened` reads, and `committed` and `in_basis` carry that bound,
+  so restore still accepts such a caveat in grounds that cite what an
+  effect that reads them writes. Tests:
+  `runtime/tests/d100_value_reads_take_readings_as_taken.rs`.
+- 2026-11-14 (D099): a citation brings a kept caveat only through what the
+  provenances it reads hold, as [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+  ("Meaning") bounds a marker. A caveat a `qualify` puts on a record the
+  citation reads, or on one it or a withdrawal predicate, `on_hold` or
+  `reopened` only names, reaches the grounds live. A reading keeps what it
+  carried when it was taken, the take-back caveats its template gave it
+  among them, so a citation of the reading brings those kept ("Snapshot and
+  save"): restore accepts one only where the lineage carries it live and the
+  grounds name such a reading, and never in a commitment's grounds beyond
+  its basis. Restore refuses again a forged kept caveat that only a live
+  relation of such a record, or of a record only what joins the cited
+  stream's observation records later lists, could give, which it accepted
+  after D098, and refuses one a reading was taken keeping elsewhere. Tests:
+  `runtime/tests/d099_citations_pin_what_they_read.rs`.
+- 2026-11-14: restore accepts grounds that keep a take-back caveat their
+  lineage or basis does not keep, or no longer carries, where a `because`
+  citation of the program can bring it there ("Snapshot and save", D098). A
+  citation of a frozen basis, a stored selection qualification or a departed
+  record that keeps the caveat gave the state's grounds the caveat kept,
+  while the lineage carried it live, and restore refused the save the
+  runtime wrote ("grounds keep a caveat its lineage does not keep"); after an
+  `unqualify` it refused it as "grounds include caveat ... outside its
+  lineage". A commitment citing such a state took the caveat into grounds
+  its basis lacks, and since a commitment's grounds never change, every
+  later save of the session was refused. 1.4.1 refuses the finding's saves
+  alike. A kept caveat no citation can bring there is refused as before.
+  Tests: `runtime/tests/d098_citations_carry_kept_caveats.rs`.
+- 2026-10-26: "Withdrawal, decisions and permission" says that `latest(SERIES)`
+  carries a kept take-back caveat through the lineage, what that means for an
+  irreversible commit, and that `grounds_of(SERIES)` reads the revision's own
+  grounds (the AI change review demo's friction item 1, triaged by the bug
+  hunt as the specified behavior). Test:
+  `runtime/tests/grounds_of.rs`, `a_reviewed_revision_releases_on_its_grounds_not_its_lineage`.
 - 2026-10-11: specified (rc.18 P3).
 - 2026-10-11: implemented (rc.18 P4). Tests: `runtime/tests/take_back.rs`
   (round 8 item 1, including CR20's doubt, renew and take-back) and the

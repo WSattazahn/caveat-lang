@@ -17,7 +17,7 @@ material or anything else that shares the repository.
 | CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
 | Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, `./handoff` (sessions scoped to some events, and replay between sessions), `./saves` (from 1.4.0: a replay save's events read back by name, and replayed onto a changed program), and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
-| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
+| MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge, and from 1.5.0 `caveat_dispatch`, which continues one ledger through the save it returns, and `caveat_find`, which searches past decisions ([Find 0.1](../spec/caveat-find-0.1.md)) | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
 | Saves and archives | As stated under "Saves, archives and source" | [Save 0.1](../spec/caveat-save-0.1.md), [Replay Save 0.1](../spec/caveat-replay-save-0.1.md) (from 1.1.0), [Replay Save 0.2](../spec/caveat-replay-save-0.2.md) (from 1.2.0), [Departure 0.1](../spec/caveat-departure-0.1.md) |
 
@@ -25,9 +25,11 @@ material or anything else that shares the repository.
 
 `caveat-dispatch/0.1`, `caveat-reactive-view/0.1`, `caveat-reactive-view/0.2`,
 `caveat-reactive-view-delta/0.2`,
+`caveat-reactive-view-patch/0.1` (from 1.5.0),
 `caveat-reactive-save/0.1`, `caveat-replay-save/0.1` (from 1.1.0),
 `caveat-replay-save/0.2` (from 1.2.0), `caveat-explain/0.1`, `caveat-dependents/0.1`,
-`caveat-check/0.1`, `caveat-interface/0.1`, `caveat-archive-provenance/0.1`.
+`caveat-check/0.1`, `caveat-interface/0.1`, `caveat-archive-provenance/0.1`,
+`caveat-dispatch-step/0.1` (from 1.5.0), `caveat-find/0.1` (from 1.5.0).
 Package 1.0 does not rename them. A schema changes its version only by a new
 name beside the old one.
 
@@ -43,7 +45,7 @@ The origins are `policy`, `input`, `evaluation` and `limit`. The codes in
 `already_committed`, from 1.2.0 `foreclosed` and
 `caveated_irreversible`, from 1.3.0 `already_resolved` and
 `not_retained`, and from 1.4.0 `reason_spent`, `provenance_limit`,
-`evaluation_limit` and `wrong_agent`, and from 1.4.1 `text_limit`. A 1.x
+`evaluation_limit` and `wrong_agent`, and from 1.4.1 `text_limit`, and from 1.5.0 `unset_state`. A 1.x
 release never renames or removes
 one, and never moves an input from one code to another. It may add a code only
 for an input that was refused or fatal before, or for new syntax. Hosts should
@@ -56,10 +58,9 @@ line, under its title, says which it is, and `kit/test/compatibility.test.mjs`
 checks that the two agree.
 
 - Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
-  `caveat-0.5-draft.md` and `caveat-member-symbols-0.1.md`, which nothing
-  implements yet.
-- The 1.5 draft `caveat-across-members-0.1.md`, which becomes stable when a
-  1.x release ships it.
+  `caveat-0.5-draft.md`, `caveat-member-symbols-0.1.md`,
+  `caveat-reinstatement-0.1.md`, `caveat-evidence-triggers-0.1.md` and
+  `caveat-choices-0.1.md`, which nothing implements yet.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
   `caveat3d-0.2.md` and `presentation.md`.
 - Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
@@ -159,17 +160,40 @@ something, that promise stands.
 
 ## Saves, archives and source
 
+**Module-binding correction (from 1.5.0).** Fresh loads now honor module-local
+`hold` and `release` references instead of accidentally capturing a root
+name. This is a correction to the scope promise and can change previously
+accepted programs' results, or refuse a program that loaded only because it
+captured the wrong declaration. Historical saves remain restorable under
+their selected interpretation. There is a narrow qualification to automatic
+restore: an unmarked save that releases before 1.2.0 and from 1.2.0 to
+1.4.1 could both have written, since both could load its source and wrote
+its format, and that they read differently, needs an explicit
+`moduleBindings` choice. A positional replay save never does where a release
+from 1.2.0 to 1.4.1 could load its source, since no earlier release wrote
+that format, nor a state save without `source_sha256` where a release before
+1.1.0 could, since only release candidates before rc.17 wrote one. Published
+1.0 and 1.4 produced byte-identical
+initial saves with different continuations, so automatic preservation of
+both is impossible. New affected saves record the choice. Unaffected save
+bytes remain unchanged. Older runtimes refuse the new marker; removing it is
+not a safe downgrade. See
+[the save contract](../spec/caveat-save-0.1.md#module-binding-interpretation)
+and [the evidence and limits](reviews/2026-11-14-module-binding-correction.md).
+
 - A save binds the exact source it was made under. Restore refuses a save made
   under any other source text, including one that differs only in a comment
   ("it belongs to a different program"). This stays as it is in 1.x.
 - With that same source and any later 1.x runtime, a save written by an
   earlier 1.x runtime restores, and later events give the outcomes the earlier
-  runtime would have given.
+  runtime would have given, with the explicit historical interpretation
+  required for the ambiguous module-binding case above.
 - A compact save (`save({ compact: true })`, from 1.1.0) is a replay save
   while the session's accepted events fit in 4,096 bytes and that is smaller,
   and otherwise the same state save `save()` writes. Later 1.x runtimes
   restore it like any save. A runtime before 1.1.0 does not, so a host that
-  may move saves back to one keeps using `save()`, which is unchanged.
+  may move saves back to one keeps using `save()`, subject to the
+  module-marker restriction above.
 - A save is not a promise across edited source. A host that changes its
   program starts new sessions, or migrates its own data outside Caveat.
 - Archives drained from a 1.x session stay readable by `explain` and
@@ -214,7 +238,10 @@ change their numbers only upward:
 Each row names the steps of the runtime workflow
 (`.github/workflows/runtime.yml`) that run its checks on every pull request
 and on the release candidate; `kit/test/compatibility.test.mjs` checks that
-each named step exists.
+each named step exists. On a push that only adds lines to the ledger's
+events, some of these steps carry round 1's result, from a tree that differs
+only by those lines, instead of running again ([round-1 carry](../scripts/ci-reuse/README.md)); a release
+pull request and the run on main always run them.
 
 | Promise | Check | CI steps |
 | --- | --- | --- |

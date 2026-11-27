@@ -108,7 +108,15 @@ export function review(open, events, revisionId, { limit = EXHAUSTIVE_LIMIT } = 
   if (deciding === undefined) throw new Error(`the journal no longer says which event committed ${revisionId}`);
 
   const evidenceById = new Map(report.evidence.map(item => [item.id, item]));
-  const caveatsOf = id => evidenceById.get(id)?.caveats ?? [];
+  // The caveats a piece of evidence carried for this revision: those its
+  // frozen grounds hold that the evidence carries, or carried before a
+  // take-back (spec/caveat-take-back-0.1.md; D029). A retained caveat no
+  // grounds evidence carries reached the revision through its lineage.
+  const everCarried = id => {
+    const item = evidenceById.get(id);
+    return [...(item?.caveats ?? []), ...(item?.taken_back ?? []).map(record => record.caveat)];
+  };
+  const caveatsOf = id => revision.grounds.caveats.filter(name => everCarried(id).includes(name));
   const observedAt = observerIndices(full.sent);
   const grounds = revision.grounds.evidence;
   // Lineage evidence outside the grounds: read by the deciding rule's guard,
@@ -199,7 +207,11 @@ function failureText(because) {
 export function formatReview(report, title = 'the program') {
   const lines = [`${title}: review of ${report.revision} = ${report.value}  ${report.status}`,
     `  decided at #${report.decided_by.sequence} ${report.decided_by.event}${report.decided_by.agent === undefined ? '' : ` by ${report.decided_by.agent}`}`,
-    `  based on ${list(report.grounds.map(item => item.evidence))}${caveatNote(report.retained)}`];
+    `  based on ${list(report.grounds.map(item => item.evidence))}${caveatNote(report.grounds.flatMap(item => item.caveats))}`];
+  // A retained caveat no grounds evidence carries now reached the revision
+  // through its lineage, or was taken back since (D029).
+  const kept = report.retained.filter(name => !report.grounds.some(item => item.caveats.includes(name)));
+  if (kept.length) lines.push(`  also carrying, through its lineage: ${list(kept)}`);
   if (report.control.length) lines.push(`  control outside its grounds: ${list(report.control)}`);
   if (report.outcome) {
     const { value, because, materialized = [], sequence, event } = report.outcome;

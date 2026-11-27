@@ -7,7 +7,8 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isRelative, markdownLinks, packageLinkPath, resolveLink, rewriteLinks } from './links.mjs';
+import { isRelative, markdownLinks, packageLinkPath, packageLinks, resolveLink, rewriteLinks } from './links.mjs';
+import { trackedFiles } from '../../scripts/kit-docs.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.join(kit, '..');
@@ -114,4 +115,49 @@ test('every link in a copied document resolves inside the package or is rewritte
     rewrittenLinks += rewritten.length;
   }
   assert.ok(rewrittenLinks > 0, 'no copied document links outside the package');
+});
+
+// A kit document links to repository files as the repository holds them, so
+// GitHub shows working links; the packed copy points into docs/reference/.
+test('a kit document\'s links to copied files are packed to the copies, and kit links are kept', () => {
+  const markdown = '[spec](../../spec/caveat-dispatch-0.1.md#origins), [guide](../../docs/AI_AUTHORING.md) and [start](GETTING_STARTED.md).\n';
+  assert.deepEqual(packageLinks(markdown, { from: 'kit/docs/README.md', shipped }).text,
+    '[spec](reference/spec/caveat-dispatch-0.1.md#origins), [guide](reference/docs/AI_AUTHORING.md) and [start](GETTING_STARTED.md).\n');
+  assert.equal(packageLinks('[spec](../../../spec/caveat-dispatch-0.1.md)', { from: 'kit/examples/handoff/README.md', shipped }).text,
+    '[spec](../../docs/reference/spec/caveat-dispatch-0.1.md)');
+  assert.throws(() => packageLinks('[gone](../../spec/caveat-0.5-draft.md)', { from: 'kit/docs/README.md', shipped }), /does not ship spec\/caveat-0.5-draft.md/);
+  assert.throws(() => packageLinks('', { from: 'docs/README.md', shipped }), /not a kit document/);
+});
+
+// Every relative link in the repository's Markdown names a file or directory
+// on main, so none is a 404 on GitHub. Each exception is a document kept
+// byte for byte as recorded, whose links point into a bundle or a trial's
+// own workspace rather than the repository.
+const RECORDED = new Set([
+  ...['node_modules/caveat-lang/lib/session.d.mts', 'node_modules/caveat-lang/lib/node.d.mts', 'node_modules/caveat-lang/docs/reference/spec/caveat-serve-0.1.md',
+    'node_modules/caveat-lang/docs/MCP.md', 'node_modules/caveat-lang/examples/agent-evidence/BRANCHING.md']
+    .map(target => `experiments/agent-adoption/v1/results/2026-10-02/A01/submission/FEATURE_REQUEST.md -> ${target}`),
+  'experiments/agent-adoption/v1/results/2026-10-02/A01/submission/final-response.md -> <TRIAL_A01>/RESULTS.md',
+  'experiments/agent-adoption/v1/results/2026-10-02/A03/submission/final-response.md -> /<TRIAL_A03>/RESULTS.md',
+  'experiments/departure-gate/release-evidence/high-degree-confirmation/REVIEW.md -> run-001/analysis-2026-10-08T20-38-11.961032+00-00.md',
+  'experiments/departure-gate/release-evidence/high-degree-confirmation/REVIEW.md -> BUNDLE-CONTENTS.md',
+]);
+test('every relative link in the repository\'s Markdown names a tracked file', async () => {
+  const tracked = trackedFiles(repo);
+  const directories = new Set();
+  for (const file of tracked) for (let at = file.lastIndexOf('/'); at > 0; at = file.lastIndexOf('/', at - 1)) directories.add(file.slice(0, at));
+  const broken = [];
+  const recorded = new Set();
+  for (const from of [...tracked].filter(file => file.endsWith('.md'))) {
+    for (const { target } of markdownLinks(await readFile(path.join(repo, from), 'utf8'))) {
+      if (!isRelative(target)) continue;
+      const file = resolveLink(from, decodeURIComponent(target)).path.replace(/\/$/, '');
+      if (file === '.' || tracked.has(file) || directories.has(file)) continue;
+      const link = `${from} -> ${target}`;
+      if (RECORDED.has(link)) recorded.add(link);
+      else broken.push(link);
+    }
+  }
+  assert.deepEqual(broken, [], 'relative links that are a 404 on GitHub');
+  assert.deepEqual([...RECORDED].filter(link => !recorded.has(link)), [], 'recorded exceptions that no longer occur');
 });

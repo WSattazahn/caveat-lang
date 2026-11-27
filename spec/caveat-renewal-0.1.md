@@ -66,6 +66,14 @@ after it.
   as with any refusal, so a rule that renews on every clock event stops time
   once the limit is reached. The limit bounds how much graph a program can
   grow, like a reading stream's.
+- A `renew` that would make a name the program declares as evidence, a
+  claim, a caveat or a commitment, such as `foo@2` beside `renewable foo`,
+  refuses the event as `limit/renewal_limit` too (a place or an entity is no
+  node, so its name stops no renewal). No renewal makes that name, and
+  renewals are made in order, so none gets past it: once `foo`'s current
+  occurrence is the one before that name, every `renew` of `foo` is refused,
+  with a limit or a window. A `renew` past the declared limit is refused for
+  the limit first.
 - `effects` reports `{"kind": "renew", "evidence": "taste_cave",
   "occurrence": "taste_cave@2"}`, and `renewals` in the snapshot lists every
   occurrence of each renewable evidence, first to current.
@@ -124,6 +132,14 @@ arise. Its delay must be a whole number in `0..2^53 − 1`: a literal that is
 not is rejected when the program loads, and a computed one that is not refuses
 the event as `evaluation/expression`.
 
+A delay is never negative. Under the binary64 clock a negative delay,
+computed or written as a literal, refuses the event that runs it as
+`evaluation/expression` ([Dispatch 0.1](caveat-dispatch-0.1.md)). Under an
+integer clock the rule above applies: a negative literal is rejected when
+the program loads, and a negative computed delay refuses the event. Minus
+zero is not negative: it schedules, and the qualification applies on the
+next time event.
+
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
 qualifications can wait at once; scheduling another refuses the event as
 `limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
@@ -143,6 +159,23 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-11-22 (D103): a `renew` that would make a name the program declares
+  as evidence, a claim, a caveat or a commitment, such as evidence `foo@2`
+  beside `renewable foo`, refuses the event as `limit/renewal_limit`; once
+  `foo` holds the occurrence just before that name, so does every later
+  `renew` of `foo`. Before, such an event was fatal `unclassified`, so a host
+  lost the session, although the runtime had already rolled the event back.
+  The rollback and the diagnostic text are unchanged. A `renew` past the
+  declared limit is refused for the limit first, as before. Load still
+  accepts such a program, as 1.4.1 does.
+
+- 2026-11-07 (D042, Version Lab F262): under the binary64 clock a negative
+  delay refuses the event that runs it as `evaluation/expression`. Before,
+  that event was fatal, and a host lost the session
+  ([Dispatch 0.1](caveat-dispatch-0.1.md), "Changes"). Under an integer
+  clock nothing changes: a negative literal delay is rejected when the
+  program loads, and a negative computed one refuses the event.
 
 - 2026-10-25 (1.4.0): a reading sampled from renewable evidence inherits the
   caveats qualifying the occurrence current when it is taken, not only the

@@ -1,0 +1,12 @@
+#caveat-bundle 1
+#module m 105
+module m;
+state hold = 7;
+state v = 0;
+fn add(a,b) = a+b;
+event go;
+on go set v = add( hold , because );
+#module main 43
+use m;
+state because = 3;
+state hold = 11;

@@ -3,6 +3,7 @@
 // issue for any job and command that needed its retry too often.
 // Keep counting separate from GitHub's transport so it is testable.
 import { pathToFileURL } from 'node:url';
+import { CARRIED_NAMES, CARRY_NOTICE } from './ci-reuse/reuse.mjs';
 
 export const RETRY_MARK = 'trying once more';
 export const DAYS = 7;
@@ -20,10 +21,23 @@ export function retriedCommand(message) {
   return message.replace(/ failed\b.*$/s, '').replace(/^'(.*)'$/, '$1').trim();
 }
 
-// checkRuns: [{ name, html_url, annotations: [{ annotation_level, message }] }]
+// checkRuns: [{ name, html_url, conclusion, carried, annotations: [{ annotation_level, message }] }]
+// A carried check run carried round 1's result over without running
+// (scripts/ci-reuse), so it could not retry. Each entry keeps how many runs
+// its job had (skipped ones left out) and how many of them carried, and is
+// judged as if every one of them had run (see expectedCount), so the guard
+// needs no more flakiness per run to open an issue than before results were
+// carried.
 export function tallyRetries(checkRuns) {
   const counts = new Map();
+  const jobs = new Map();
   for (const run of checkRuns) {
+    if (run.conclusion === 'skipped') continue;
+    const job = jobs.get(run.name) || { runs: 0, carried: 0 };
+    job.runs += 1;
+    if (run.carried) job.carried += 1;
+    jobs.set(run.name, job);
+    if (run.carried) continue;
     for (const annotation of run.annotations || []) {
       if (annotation.annotation_level !== 'warning') continue;
       const command = retriedCommand(annotation.message);
@@ -35,17 +49,32 @@ export function tallyRetries(checkRuns) {
       counts.set(key, entry);
     }
   }
-  return [...counts.values()].sort((a, b) => b.count - a.count || a.job.localeCompare(b.job));
+  return [...counts.values()].map(entry => ({ ...entry, ...jobs.get(entry.job) }))
+    .sort((a, b) => b.count - a.count || a.job.localeCompare(b.job));
 }
+
+// The count had every run of the job run: with none carried, the count itself.
+export function expectedCount({ count, runs = 0, carried = 0 }) {
+  return carried > 0 && runs > carried ? count * runs / (runs - carried) : count;
+}
+
+// One decimal, rounded up, so a count past the threshold never prints at or
+// below it. The small allowance keeps float noise in a whole number (3 as
+// 3.0000000000000004) from rounding up.
+const shown = value => Math.ceil(value * 10 - 1e-9) / 10;
 
 export function issueTitle({ job, command }) {
   return `Game QA retries: ${job} / ${command}`;
 }
 
 export function issueBody(entry, { days = DAYS, threshold = THRESHOLD } = {}) {
+  const carried = entry.carried > 0
+    ? [`${entry.carried} of the job's ${entry.runs} runs carried round 1's result over without running (scripts/ci-reuse), so the ${entry.count} retries count as ${shown(expectedCount(entry))}, as if every run had run.`, '']
+    : [];
   return [
     `\`${entry.command}\` in **${entry.job}** needed its automatic retry ${entry.count} times in the last ${days} days (more than ${threshold} opens this issue).`,
     '',
+    ...carried,
     'A retry hides a red X, so a test that is getting flakier shows up here instead. Find the cause; do not raise the limit.',
     '',
     'Runs that retried:',
@@ -54,7 +83,7 @@ export function issueBody(entry, { days = DAYS, threshold = THRESHOLD } = {}) {
 }
 
 export function overThreshold(tally, threshold = THRESHOLD) {
-  return tally.filter(entry => entry.count > threshold);
+  return tally.filter(entry => expectedCount(entry) > threshold);
 }
 
 async function pages(api, path, key) {
@@ -83,9 +112,15 @@ export async function collect({ api, repository, since }) {
     if (!run.check_suite_id) continue;
     const suiteRuns = await pages(api, `/repos/${repository}/check-suites/${run.check_suite_id}/check-runs?filter=all`, 'check_runs');
     for (const checkRun of suiteRuns) {
-      if (!(checkRun.output?.annotations_count > 0)) continue;
-      const annotations = await pages(api, `/repos/${repository}/check-runs/${checkRun.id}/annotations`);
-      checkRuns.push({ name: checkRun.name, html_url: checkRun.html_url, annotations });
+      const annotations = checkRun.output?.annotations_count > 0
+        ? await pages(api, `/repos/${repository}/check-runs/${checkRun.id}/annotations`)
+        : [];
+      // A job that carried round 1's result says so on its own check run, in
+      // its carry step's notice. Each attempt has its own check runs, so a
+      // re-run that ran the job in full is counted as run.
+      const carried = CARRIED_NAMES.includes(checkRun.name)
+        && annotations.some(annotation => annotation.annotation_level === 'notice' && annotation.title === CARRY_NOTICE);
+      checkRuns.push({ name: checkRun.name, html_url: checkRun.html_url, conclusion: checkRun.conclusion, carried, annotations: carried ? [] : annotations });
     }
   }
   return checkRuns;
@@ -134,7 +169,7 @@ async function main() {
   const since = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1000);
   const tally = tallyRetries(await collect({ api, repository, since }));
   console.log(tally.length
-    ? tally.map(entry => `${entry.count}\t${entry.job}\t${entry.command}`).join('\n')
+    ? tally.map(entry => `${entry.count}\t${entry.job}\t${entry.command}${entry.carried ? `\t(${entry.carried} of ${entry.runs} runs carried)` : ''}`).join('\n')
     : `No game QA retries since ${since.toISOString()}.`);
   await report({ api, repository, tally });
 }

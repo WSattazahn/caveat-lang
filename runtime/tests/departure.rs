@@ -128,7 +128,7 @@ fn refused(source: &str, save: &Value, expected: &str) {
     }
 }
 
-// The 13 holders are every provenance the save schema has, so `inherited`
+// The 14 holders are every provenance the save schema has, so `inherited`
 // anywhere else is an unknown field (spec/caveat-lineage-compaction-0.1.md).
 #[test]
 fn inherited_on_a_journal_entry_is_an_unknown_field() {

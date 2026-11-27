@@ -49,15 +49,33 @@ only if:
 
 - a record of one of its histories changed: the history itself, one of its
   readings or revisions (`NAME@N`), a commitment basis or ground, a reopening's
-  qualification, or a graph node or edge that touches one of them; or
-- the event changed something a read of any history can reach. That covers a
-  `qualifies` edge, a qualification that is not a new reading's, a take-back,
-  a withdrawal, a renewal, a retirement or a permission. It also covers a
-  record no history owns but that a scoped read consults, or any removal.
+  qualification, or a graph node or edge that touches one of them;
+- the event changed something its last evaluation consulted, of what a read
+  of any history can reach outside it: a `qualifies` relation into a node it
+  searched for caveats, or a take-back of one; a `supports` or `opposes`
+  relation from evidence it searched; a qualification, take-back or withdrawal
+  of evidence that a value it read lists; a withdrawal it looked up; the guard
+  of a skipped effect it looked up, found or not; or the occurrences of
+  renewable evidence it looked up, through a renewal; or
+- the event changed something no evaluation notes: an examination's
+  qualification, a qualification an earlier observation was recorded with, a
+  retirement or a permission, or it removed anything. A new reading or
+  occurrence is recorded with its own qualification, which nothing read
+  before.
 
-A change to a claim or to evidence outside every history reaches no scoped
+Each evaluation of a scoped declaration notes what it consulted, so a doubt
+about one reading evaluates again only the declarations whose values list that
+reading. A relation from evidence counts because it brings the caveats of the
+claim it names to that evidence, and a scoped read can list evidence that
+belongs to no history: the reason a reading was withdrawn for, the cause a
+decision was reopened by, or what an outcome was recorded because of. Any other
+change to a claim or to evidence outside every history reaches no scoped
 declaration. A sample of `api_tests` or a commitment in `api_gate` leaves the
 declarations that read only `web_tests` as they were.
+
+The notes are not part of the session's state: no save holds them and nothing
+shows them. A restored session evaluates every binding in full, which notes
+them again.
 
 For an author this means `bind hud.elapsed = elapsed();` is evaluated when the
 clock changes, and a binding that reads only `support` is evaluated when
@@ -82,7 +100,8 @@ session until an effect writes to it:
 
 Debug builds, which is what `cargo test` runs, evaluate every binding in full
 after every event as well, and fail if the incremental result differs in any
-value, lineage or explanation, or in whether the event succeeds. Values are
+value, lineage or explanation, in what a scoped declaration noted it
+consulted, or in whether the event succeeds. Values are
 compared as JSON text, which tells `-0` from `0` where `==` does not. The whole
 test suite is therefore also a test of the equivalence. Breaking the change
 detection on purpose makes it fail at once, which is how the check itself was
@@ -104,3 +123,20 @@ cargo run --release --no-default-features --example profile_dispatch -- PROGRAM.
   ([Save 0.1](caveat-save-0.1.md#changes)). The debug check failed on that
   angle, but it compared values with `==` too, so a binding showing the zero
   itself, `bind hud.x = x`, passed with the wrong sign.
+- 2026-11-01: a `supports` or `opposes` relation revealed from evidence
+  already in the graph makes every scoped declaration evaluate again (D036).
+  It was placed in no history, so a binding that read that evidence as a
+  withdrawal's reason, a reopening's cause or an outcome's evidence kept its
+  old lineage, without the caveats the relation brought, until something else
+  made it evaluate again; a restored session showed them. The debug check
+  failed on it.
+- 2026-11-01: a scoped declaration notes what each evaluation consulted, and
+  a change to a qualification, a take-back, a withdrawal, a `supports` or
+  `opposes` relation or a skipped effect's guard evaluates again only the
+  scoped declarations whose notes it reaches. Each such change evaluated every
+  scoped declaration again before. What every binding shows is unchanged.
+- 2026-11-01: a renewal evaluates again only the scoped declarations that
+  looked up the renewed evidence's occurrences. A scoped declaration names
+  only histories; it can list an occurrence, which a renewal leaves as it was.
+  Each renewal evaluated every scoped declaration again before. What every
+  binding shows is unchanged.

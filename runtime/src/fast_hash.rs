@@ -2,8 +2,11 @@
 //!
 //! The standard hasher, SipHash, was about a tenth of an event's work. These
 //! tables use a multiply-rotate hash instead, seeded once per process so a
-//! host cannot choose colliding keys ahead of time. Iteration order was
-//! already unspecified, and nothing written depends on it.
+//! host cannot choose colliding keys ahead of time. So the order a table
+//! walks its keys in changes from one process to the next, and between native
+//! and WebAssembly builds. Nothing written may follow it: an outcome, a
+//! message, a save or a listing walks a sorted list, an ordered map or set,
+//! or the program's statements, never a table's own order.
 
 use std::hash::{BuildHasher, Hasher};
 use std::sync::OnceLock;

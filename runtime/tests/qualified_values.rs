@@ -625,3 +625,42 @@ fn repeated_dataflow_deduplicates_provenance_without_changing_numeric_projection
         serde_json::json!(["chart"])
     );
 }
+
+#[test]
+fn a_declared_commitment_predicate_carries_the_caveats_it_retains() {
+    // A declared commitment has no frozen basis: what `committed(course)`
+    // carries is what the commitment retains in the graph.
+    let mut game = session(
+        r#"
+        commit course because enough retaining manual;
+        state action = 0;
+        event act;
+        on act when committed(course) set action = 1;
+    "#,
+    );
+    let acted = game.dispatch_json("act", "{}").unwrap();
+    assert_eq!(acted.values["action"], 1.0);
+    trace(
+        &acted.qualified_values["action"].provenance,
+        &[],
+        &["manual"],
+    );
+}
+
+#[test]
+fn evidence_that_qualifies_evidence_is_not_retained_as_a_caveat() {
+    // `qualifies` can name evidence as what qualifies, but only a caveat is
+    // retained uncertainty: the sample keeps none of the qualifying
+    // evidence, nor the caveats that qualify that evidence in turn.
+    let game = session("gauge qualifies chart; state sample = qualified(8, chart); event go;");
+    chart_trace(&game.snapshot(), "sample");
+}
+
+#[test]
+fn evidence_that_supports_evidence_does_not_bring_that_evidence_caveats() {
+    // A sample inherits the caveats of the claims its evidence bears on.
+    // Evidence that `supports` other evidence bears on no claim through it,
+    // so the caveats of that evidence stay out.
+    let game = session("chart supports gauge; state sample = qualified(8, chart); event go;");
+    chart_trace(&game.snapshot(), "sample");
+}

@@ -129,6 +129,12 @@ program would do about it.
   makes the whole runtime instance unusable, as on any path.
 - A runtime build that predates it has no `what_if_view_outcome`, and the kit
   throws `CaveatError("load")` without touching the session.
+- `what_if_view_outcome_as` and `what_if_view_fields_outcome_as` (in the kit,
+  `whatIf(event, payload, { agent })`) answer for an event the host says
+  `agent` sent, as `dispatch_view_outcome_as` would
+  ([Agents 0.1](caveat-agents-0.1.md#6-hosts)); from 1.5.0. Without an
+  agent the what-if path answers as a dispatch with no agent would, so in a
+  program that lists the event under some agent the answer is `wrong_agent`.
 
 It is an additional entry point. No program's meaning, no existing entry point
 and no output changes.
@@ -147,22 +153,23 @@ and no output changes.
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
-| `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
-| `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0), or that a reversible decision in force forecloses ([Foreclosure 0.2](caveat-foreclosure-0.2.md), 1.4 draft). |
+| `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed, or reads `reopened(ACTION)`, or cites it with `because reopened(ACTION)`, while evidence a declaration reopened ACTION with is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
+| `evaluation` | `already_committed` | An executed `commit` names a plain commitment, one with no `decisions` declaration, that the session already holds, whether an event or a declaration made it and whether it is in force or reopened. A plain commitment is made once; a decision that may be made again is a series (from 1.1.0). |
+| `evaluation` | `foreclosed` | An executed `commit` names an action that a committed irreversible decision forecloses ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0), or that a reversible decision in force forecloses ([Foreclosure 0.2](caveat-foreclosure-0.2.md), from 1.4.0). |
 | `evaluation` | `caveated_irreversible` | An executed `commit` of an irreversible series rests on a caveat of consequence `material` or above that its `retaining` clause does not name ([Foreclosure 0.1](caveat-foreclosure-0.1.md), from 1.2.0). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)), or an executed `resolve` names a series with no revision, or an index that names none ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
 | `evaluation` | `already_resolved` | An executed `resolve` names a revision that already has an outcome whose evidence is not withdrawn ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
 | `evaluation` | `reason_spent` | An executed `commit` names a `once` reason whose current occurrence is already the reason of a retained caveat in a commitment the session holds ([Untrusted Sources 0.1](caveat-untrusted-sources-0.1.md), from 1.4.0). |
 | `evaluation` | `not_retained` | An executed `resolve … materialized CAVEAT` names a caveat the revision does not retain ([Outcomes 0.1](caveat-outcomes-0.1.md), from 1.3.0). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or `outcome(…)` of a revision with no outcome ([Outcomes 0.1](caveat-outcomes-0.1.md)), or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a `qualify … after` delay under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or `outcome(…)` of a revision with no outcome ([Outcomes 0.1](caveat-outcomes-0.1.md)), or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a negative `qualify … after` delay ([Renewal 0.1](caveat-renewal-0.1.md#scheduled-qualification)), or one under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
+| `evaluation` | `unset_state` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, reads a state declared `unset` that has no value, outside `is_set(…)` ([Unset States 0.1](caveat-unset-states-0.1.md), from 1.5.0). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
-| `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
+| `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. In a program that declares `work skips other routes;`, a top-level rule whose route the payload makes false counts no step ([Routed Work 0.1](caveat-routed-work-0.1.md), from 1.5.0). |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
 | `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
-| `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit ([Renewal 0.1](caveat-renewal-0.1.md)). |
+| `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit, or would make an occurrence whose name the program declares as evidence, a claim, a caveat or a commitment, such as `foo@2` beside `renewable foo` ([Renewal 0.1](caveat-renewal-0.1.md)). |
 | `limit` | `scheduled_limit` | A `qualify … after` would schedule a qualification while 4,096 are already waiting ([Late Qualification 0.1](caveat-late-qualification-0.1.md)). |
 | `limit` | `provenance_limit` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, would give a value a lineage of more than 1,024 identifiers or more than 65,536 bytes of their names (from 1.4.0). |
 | `limit` | `evaluation_limit` | One expression evaluated by the event would visit more than 65,536 nodes, as a `fold_history` over a long stream with a heavy step does (from 1.4.0). |
@@ -271,6 +278,51 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-11-22 (D103): a `renew` that would make an occurrence whose name the
+  program declares as evidence, a claim, a caveat or a commitment is
+  `limit/renewal_limit`, as one past the declared limit already was. A
+  program may declare such a name, for example `foo@2` beside
+  `renewable foo`, and no renewal makes that name or gets past it. Before, a
+  `renew` that would make it was fatal `unclassified`, so a host lost the
+  session, although the runtime had already rolled the event back. The
+  rollback and the diagnostic text are unchanged, no accepted event changes,
+  and no code is added or reassigned. A `renew` past the declared limit is
+  refused for the limit first, as before.
+
+- 2026-11-07 (D045): an event that reads `reopened(ACTION)`, or cites it
+  with `because reopened(ACTION)`, while evidence a declaration reopened
+  ACTION with is not observed is `evaluation/unobserved_evidence`, as
+  reading `qualified(…)` of that evidence is. A `reopen` in a rule refuses
+  unobserved evidence, but a declaration such as `reopen hold because
+  sensor;` loads before anything is observed, and both the value
+  `reopened(hold)` reads and the grounds a citation of it cites carry that
+  evidence. Before it, such an event was fatal `unclassified`, although the
+  runtime had already rolled it back, so a host lost the session over what
+  the session had not yet seen. The rollback and the diagnostic text are
+  unchanged, no accepted event changes, and no code is added or reassigned.
+  A binding that reads it as the program loads is still rejected when the
+  program loads.
+
+- 2026-11-07 (D044): a `commit` of a commitment the program declared is
+  `evaluation/already_committed`, as a second `commit` of one an event made
+  already was. A declaration such as `commit hold because enough;` makes a
+  plain commitment as the program loads, and the session holds it from then
+  on. A rule that committed it again, in force or reopened, ended the
+  session as fatal `unclassified`, although the runtime had already rolled
+  the event back. The rollback and the diagnostic text are unchanged, no
+  accepted event changes, and no code is added or reassigned.
+
+- 2026-11-07 (D042, Version Lab F262): a negative `qualify … after` delay
+  is `evaluation/expression` under the binary64 clock too, as one an
+  integer clock cannot wait already was. Before it, the event that ran the
+  delay was fatal `unclassified`, although the runtime had already rolled it
+  back, so a host lost the session over a number the session computed. The
+  rollback and the diagnostic text are unchanged, no accepted event
+  changes, and no code is added or reassigned. Under the binary64 clock a
+  program with a negative literal delay still loads, as before, and the
+  event that runs it is refused; under an integer clock such a program is
+  still rejected when it loads.
 
 - 2026-10-05 (rc.15, specified): three sites of the
   [integer clock](caveat-elapsed-0.1.md#integer-clocks) join existing codes:
@@ -386,6 +438,9 @@ from an outcome schema match; the save contract governs restoration.
   [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
   not check. Declared bounds and restore keep the clock finite, so no
   supported path reaches it, and no existing outcome changes.
+- 2026-10-26: the what-if path takes an agent, `what_if_view_outcome_as`
+  and `what_if_view_fields_outcome_as` (D027, from 1.5.0). No existing entry
+  point, output or code changes.
 - 2026-10-25: the [what-if path](#the-what-if-path),
   `what_if_view_outcome` and `what_if_view_fields_outcome`, in the developer
   kit `session.whatIf`, runs an event on a dropped copy of the session and
@@ -425,3 +480,19 @@ from an outcome schema match; the save contract governs restoration.
   past the limit still fails to load. The cap is unchanged; the regression
   case is `runtime/tests/d025_text_limit.rs`, and the save sweep over every
   tracked program is byte-identical with 1.4.0.
+- 2026-11-01 (1.5.0): `evaluation/unset_state` refuses a read of a state
+  declared `unset` that has no value ([Unset States 0.1](caveat-unset-states-0.1.md)).
+  No program that loaded before declares such a state, so no outcome changes.
+- 2026-11-01 (1.5.0): `limit/provenance_limit` also classifies an event in
+  which a `carries` or `carries_any` read would give its answer a lineage past
+  the cap. On 1.4.0 and 1.4.1 such an event was fatal `unclassified`, although
+  the runtime had already rolled it back and every other read past the cap,
+  `observed` among them, was refused: the predicate that searched for the
+  caveats qualifying the evidence kept only the error's text. So the 1.4.1
+  entry's `text_limit` was not the last such fault. Finding D037 reached it
+  with one evidence that 1,024 caveats qualify, read by `carries` in an
+  effect, a guard and a binding, and by `carries_any`. Each now refuses the
+  event with the text the fatal error carried, and the session goes on, as for
+  D022. The cap is unchanged; the regression case is
+  `runtime/tests/d037_carries_past_provenance_limit.rs`, and the outcome and
+  binding sweeps over every tracked program print the same as before it.

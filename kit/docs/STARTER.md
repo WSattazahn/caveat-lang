@@ -44,7 +44,16 @@ await host.close();
 ```
 
 `openHost` opens the program fresh when the store is empty. Otherwise it
-resumes from the store's checkpoint. With [`caveat types`](REFERENCE.md), write
+resumes from the store's checkpoint. A checkpoint that a release up to 1.4.1
+wrote of a bundle whose modules use `hold` or `release` can need its reading
+named ([Save 0.1](../../spec/caveat-save-0.1.md#module-binding-interpretation)):
+pass `moduleBindings: 'scoped'` or `'legacy-hold-capture'`, and the host
+writes the checkpoint again before it opens, naming it, so later opens need no
+choice. If that write fails, `openHost` throws a `StarterError` of kind
+`store` and the store keeps the checkpoint it had. An empty store holds no
+checkpoint to read, so `openHost` refuses `moduleBindings` there, as
+`caveat serve` refuses `--restore-module-bindings` without a state file.
+With [`caveat types`](REFERENCE.md), write
 `openHost<Program>(...)`, and `send` takes only the program's events and
 payloads.
 
@@ -58,7 +67,7 @@ A send answers each of these questions separately:
 | Field | Meaning |
 | --- | --- |
 | `handled` | The request reached the session. False: the payload cannot be sent as JSON, or the session failed (`error.kind` is `payload` or `fatal`). Nothing changed. |
-| `accepted` | The program accepted the event. False: `rejection` holds the origin, code and message ([dispatch outcomes](reference/spec/caveat-dispatch-0.1.md)), and the session is unchanged. |
+| `accepted` | The program accepted the event. False: `rejection` holds the origin, code and message ([dispatch outcomes](../../spec/caveat-dispatch-0.1.md)), and the session is unchanged. |
 | `durable` | The store holds a checkpoint at the session's current sequence. Accepted but not durable means a restart would resume from the event before; `flush()` retries. |
 | `archived` | No drained archive item is still waiting for the store. An item that waits is in the checkpoint, so it is not lost, and it is retried. |
 

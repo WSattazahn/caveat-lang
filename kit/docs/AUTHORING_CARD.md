@@ -3,15 +3,16 @@
 One program, the commands that check it and the mistakes that cost the most,
 on one page. It is for an agent writing a program for a task: read this first,
 then look up only what it lacks in [Caveat on one page](REFERENCE.md). The
-[authoring guide](reference/docs/AI_AUTHORING.md) and the
+[authoring guide](../../docs/AI_AUTHORING.md) and the
 [documentation index](README.md) are for questions this card and the
 reference leave open.
 
 ## The loop
 
 1. Write the program and its scenarios (below).
-2. `npx --no-install caveat check --unused PROGRAM`: does it load, and is
-   anything declared that nothing uses?
+2. `npx --no-install caveat check --unused --names PROGRAM`: does it load, is
+   anything declared that nothing uses, and does a `commit` misspell a
+   decision series?
 3. `npx --no-install caveat test SCENARIOS`: does it do what the task says?
 4. `npx --no-install caveat explain PROGRAM EVENTS` when a test fails: what
    each decision rests on, and which event observed it.
@@ -77,7 +78,7 @@ for site as $s routed by site {
         on flag when committed($s_open) and not reopened($s_open) and in_basis($s_open, latest($s_$a))
             reopen $s_open because latest($s_$a);
 
-        # Every caveat is named here: there is no "carries any caveat" form.
+        # Caveats listed explicitly here; from 1.4.0, carries_any(latest($s_$a)) also matches any caveat.
         define $s_$a_doubted = withdrawn(latest($s_$a)) or carries(latest($s_$a), mislabeled)
             or carries(latest($s_$a), expired_kit);
         define $s_$a_ok = if(has_sample($s_$a), if($s_$a_doubted, 0, latest($s_$a)), 0);
@@ -94,6 +95,21 @@ What each part does:
   `for site as $s routed by site { … }` writes the body once per member and
   runs a member's rules only for events whose `site` names it. A `for` block
   may hold another, and `$s_$a` names one copy per pair.
+- **Write a rule once.** Before writing the same rules a second time, reach
+  for one of these. Copies make the program, and every later reader's
+  context, grow with the number of items. For several items, list them as
+  members and write one `for` block, as above. For several streams fed the
+  same way, write one procedure and call it from each event; `check` warns
+  (C001) when two events repeat each other's rules:
+
+  ```text
+  proc record_gust(s readings, value) {
+      sample s = value supports safe;
+      when latest(s) > 30 and committed(crossing) and not reopened(crossing) reopen crossing because latest(s);
+  };
+  on gust call record_gust(wind, kt);
+  on pier_gust call record_gust(pier, kt);
+  ```
 - **Readings.** `readings S from E limit N;` keeps up to N readings, `S@1`,
   `S@2` and so on; the next is refused as `limit/history_limit`. `sample S = V
   supports C` adds one. `latest(S)` reads the newest; `reading(S, N)` names
@@ -192,9 +208,9 @@ PASS W03  A decision made after a withdrawal is grounded on the withdrawal's rea
   X's evidence and caveats to every step, samples included, even when the
   body never reads X. Pass a procedure only what it reads; never pass a flag
   to one that samples.
-- **"Any caveat" has to be spelled out.** There is no form for "carries any
-  caveat". Name every caveat, as `$s_$a_doubted` does, and add a new caveat
-  there too.
+- **Checking any caveat.** From 1.4.0, `carries_any(E)` (or
+  `carries_any(E, material)` for `material` or worse) matches any caveat
+  without listing each name by hand, so caveats declared later are covered too.
 - **`unqualify E with C` reaches every held occurrence of E.** To take a
   caveat back from the newest reading only, write `unqualify latest(S) with C`.
 - **A guard passes its evidence to what it guards.** Grounds are only what
@@ -227,4 +243,4 @@ const save = session.save({ compact: true, positional: true });
   far larger: 34,488 bytes for this program after 514 events, about 64 bytes
   more for each event after that (measured on 1.2.0). Events a host can send
   without end, such as flag and unflag, need a cap when the store has a size
-  limit ([what grows the save](reference/docs/AI_AUTHORING.md#what-grows-the-save)).
+  limit ([what grows the save](../../docs/AI_AUTHORING.md#what-grows-the-save)).

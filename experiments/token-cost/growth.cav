@@ -1,0 +1,13 @@
+scene "How explain output grows with grounds and revisions";
+claim ok;
+evidence gauge from "a gauge";
+caveat drift consequence low;
+drift qualifies gauge;
+readings level from gauge limit 64;
+decisions verdict limit 64;
+event read v min 0 max 100;
+event decide;
+event recheck;
+on read sample level = v supports ok;
+on decide commit verdict because enough using fold_history(level, latest(level), max);
+on recheck when committed(verdict) and not reopened(verdict) reopen verdict because latest(level);

@@ -15,6 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustfmt --version
+        run: .github/ci/retry-download.sh rustup toolchain install && rustfmt --version
       - name: Verify canonical Rust formatting
         run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check

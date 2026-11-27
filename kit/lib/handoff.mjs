@@ -96,6 +96,21 @@ export class ScopedSession {
       : this.#session.dispatchViewDelta(event, payload, sent)));
   }
 
+  // What the event would do sent through this scope, without sending it: an
+  // event outside the scope is answered as dispatch would refuse it.
+  whatIf(event, payload = {}, options = {}) {
+    const sent = this.#options(options);
+    if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+    copy(payload);
+    if (!this.#allowed.has(event)) {
+      return {
+        schema: DISPATCH_SCHEMA, outcome: 'rejected', origin: 'input', code: 'unknown_event',
+        message: `${event} is not one of this session's events: ${this.#events.join(', ')}`,
+      };
+    }
+    return this.#session.whatIf(event, payload, sent);
+  }
+
   // Reading the session is open to every agent: the ledger is what it hands over.
   snapshot() { return this.#session.snapshot(); }
   snapshotText() { return this.#session.snapshotText(); }

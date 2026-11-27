@@ -306,3 +306,58 @@ fn scheduled_qualifications_apply_on_the_first_due_clock_event_and_not_before() 
         "the alphabet barely exercised the queue: {applied} / {waited}"
     );
 }
+
+/// A clock tick applies a due qualification before the event's rules run.
+/// Here `slow qualifies e` is already live, so the tick adds no edge: what it
+/// changes is f's observation record, which lists e and gains the scheduling
+/// guard's g. The event's log of what it writes must already be open then,
+/// or the tick would read that change as nothing written and leave view.f as
+/// it was.
+#[test]
+fn a_due_qualification_on_a_live_relation_reaches_the_ticks_bindings() {
+    let source = r#"
+caveat slow consequence low;
+claim ok;
+evidence e from "tool";
+evidence f from "operator";
+evidence g from "sensor";
+event see_e;
+event see_g;
+event see_f;
+event flag;
+event later;
+event tick dt min 0 max 0.1;
+clock tick every 0.1;
+on see_e reveal e supports ok;
+on see_g reveal g;
+on see_f when observed(e) reveal f;
+on flag qualify e with slow;
+on later when observed(g) qualify e with slow after 0.1;
+bind view.f = qualified(1, f) when observed(f);
+"#;
+    let mut session = ReactiveSession::from_source(source).unwrap();
+    let none = std::collections::BTreeMap::new();
+    for event in ["see_e", "see_g", "see_f", "flag", "later"] {
+        session.apply(event, &none).unwrap();
+    }
+    let view = |session: &ReactiveSession| serde_json::to_value(session.view()).unwrap();
+    assert_eq!(
+        view(&session)["binding_explanations"]["view"]["f"],
+        serde_json::json!({"caveats": ["slow"], "evidence": ["e", "f"]})
+    );
+    session
+        .apply(
+            "tick",
+            &std::collections::BTreeMap::from([("dt".to_string(), 0.1)]),
+        )
+        .unwrap();
+    let after = view(&session);
+    assert_eq!(
+        after["effects"],
+        serde_json::json!([{"caveat": "slow", "evidence": "e", "kind": "qualify"}])
+    );
+    assert_eq!(
+        after["binding_explanations"]["view"]["f"],
+        serde_json::json!({"caveats": ["slow"], "evidence": ["e", "f", "g"]})
+    );
+}
