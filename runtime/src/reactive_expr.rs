@@ -2856,7 +2856,7 @@ impl Expr {
     }
 
     /// The route of a guard: the `NAME == VALUE` terms its `and` chain
-    /// evaluates first, in evaluation order, passing over a `true`, up to the
+    /// evaluates first, in evaluation order, reading past a `true`, up to the
     /// first term of any other shape, where VALUE is a number literal, signed
     /// or not, a threshold, or a name. A routed copy's guard starts with them
     /// (spec/caveat-routed-repetition-0.1.md). The host decides which names
@@ -2870,8 +2870,8 @@ impl Expr {
     ///
     /// Matches `route_terms()` (including thresholds and signed literals for
     /// `spec/caveat-routed-work-0.1.md`), except that a `true` in the chain,
-    /// written out or from a define, is passed over, as the spec's Routes
-    /// section says and 1.5.0 reads it, where `route_terms()` ends the run
+    /// written out or from a define, is read past, as 1.5.0 reads it and the
+    /// spec's Routes section says, where `route_terms()` ends the run
     /// (D116). If any matched term contains a `Node::Threshold`, or if
     /// stripping would exceed `MAX_EVALUATED_NODES`, the compiled `terms` are
     /// still returned for routed-elsewhere skipping while the full expression
@@ -2958,7 +2958,7 @@ impl Expr {
 
     /// The leading `NAME == VALUE` terms of the guard's `and` chain, up to the
     /// first term of any other shape, a `true` included. The runtime reads
-    /// routes with [`Expr::compile_route_expr`], which passes over a `true`
+    /// routes with [`Expr::compile_route_expr`], which reads past a `true`
     /// (spec/caveat-routed-work-0.1.md, D116).
     pub fn route_terms(&self) -> Vec<(String, RouteValue)> {
         fn walk(expr: &Expr, out: &mut Vec<(String, RouteValue)>) -> bool {

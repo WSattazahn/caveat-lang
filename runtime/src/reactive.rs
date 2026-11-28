@@ -738,12 +738,14 @@ struct ExecutionBudget {
 /// matched the event payload.
 #[derive(Debug, Clone, Default)]
 enum RouteBody {
-    /// Every term of the guard was covered by `terms` (or the guard was `true`),
-    /// so a matching payload makes the guard `true` with empty provenance.
+    /// Every term of the guard was covered by `terms` or was a `true` the
+    /// route reads past (or the guard was `true`), so a matching payload
+    /// makes the guard `true` with empty provenance.
     #[default]
     AlwaysTrue,
     /// The remainder after stripping `stripped_nodes` AST nodes of leading
-    /// route terms from the front of the guard.
+    /// route terms, and of any `true` the route reads past, from the front
+    /// of the guard.
     Expr { expr: Expr, stripped_nodes: usize },
 }
 
@@ -5547,9 +5549,10 @@ impl ReactiveSession {
     /// A rule's route (spec/caveat-routed-work-0.1.md): the leading terms of
     /// its guard's route whose name is a parameter of the rule's event,
     /// which no state shadows, compared with a number or a constant, which no
-    /// state or parameter of the event shadows. The route ends at the first
-    /// other term. Every name here reads a plain value, so a term the payload
-    /// makes false makes the guard false with no dependency.
+    /// state or parameter of the event shadows. The route reads past a `true`
+    /// and ends at the first other term. Every name here reads a plain value,
+    /// so a term the payload makes false makes the guard false with no
+    /// dependency.
     fn compile_route(&self, rule: &Rule, steps: &mut HashMap<String, usize>) -> Route {
         let steps = 1 + self.skipped_steps(&rule.effect, steps);
         let Some(parameters) = self.events.get(&rule.event) else {
