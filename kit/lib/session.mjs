@@ -338,9 +338,14 @@ function patchedView(held, patch) {
 // ------------------------------------------------ binary view-patch decoder
 
 const VIEW_SCHEMA_0_1 = 'caveat-reactive-view/0.1';
-const EMPTY_ARRAY = Object.freeze([]);
+// An empty list the patch builds: a new one each time, since a rebuilt view
+// has every part a new object (spec/caveat-view-patch-0.1.md), and no two
+// members or sessions share one (D115).
+const emptyList = () => Object.freeze([]);
 const RELATION_NAMES = ['supports', 'opposes', 'qualifies', 'in_context', 'retains', 'reopens', 'relies_on'];
-const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
+// ignoreBOM keeps a leading U+FEFF, which is part of the text: by default a
+// TextDecoder drops it from the start of every string it decodes (D113).
+const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const F64_BYTES = new Uint8Array(8);
 const F64_VIEW = new Float64Array(F64_BYTES.buffer);
 const F64_DV = new DataView(F64_BYTES.buffer);
@@ -365,14 +370,28 @@ function decodeBinaryViewPatch(buf, held) {
     for (;;) {
       if (pos >= end) throw new TypeError('truncated binary view patch');
       b = buf[pos++];
-      if (shift === 63) {
-        if (b > 1) throw new TypeError('varint overflow in binary view patch');
-        return val + b * (2 ** 63);
-      }
+      if (shift === 49) return readLargeVarint(val, b);
       if (b < 0x80) return shift < 28 ? val | (b << shift) : val + b * (2 ** shift);
       val = shift < 28 ? val | ((b & 0x7f) << shift) : val + (b & 0x7f) * (2 ** shift);
       shift += 7;
     }
+  }
+
+  // The rest of a varint from bit 49 on, where a number no longer holds every
+  // integer: added up exactly and rounded once, as JSON.parse rounds the
+  // same integer's digits (D114). `low` holds bits 0 to 48, and `b` is the
+  // byte of bits 49 to 55.
+  function readLargeVarint(low, b) {
+    let val = BigInt(low) + (BigInt(b & 0x7f) << 49n);
+    let shift = 56n;
+    while (b >= 0x80) {
+      if (pos >= end) throw new TypeError('truncated binary view patch');
+      b = buf[pos++];
+      if (shift === 63n && b > 1) throw new TypeError('varint overflow in binary view patch');
+      val += BigInt(b & 0x7f) << shift;
+      shift += 7n;
+    }
+    return Number(val);
   }
 
   function readF64() {
@@ -425,7 +444,7 @@ function decodeBinaryViewPatch(buf, held) {
 
   function readStrList() {
     const len = readVarint();
-    if (len === 0) return EMPTY_ARRAY;
+    if (len === 0) return emptyList();
     if (len > end - pos) throw new TypeError('truncated string list in binary view patch');
     const arr = new Array(len);
     for (let i = 0; i < len; i += 1) arr[i] = readStr();
@@ -515,7 +534,7 @@ function decodeBinaryViewPatch(buf, held) {
     const authLen = readVarint();
     let retained_authorship;
     if (authLen === 0) {
-      retained_authorship = EMPTY_ARRAY;
+      retained_authorship = emptyList();
     } else {
       if (authLen > end - pos) throw new TypeError('truncated retained authorship in binary view patch');
       retained_authorship = new Array(authLen);
@@ -539,7 +558,7 @@ function decodeBinaryViewPatch(buf, held) {
     const revLen = readVarint();
     let revisions;
     if (revLen === 0) {
-      revisions = EMPTY_ARRAY;
+      revisions = emptyList();
     } else {
       if (revLen > end - pos) throw new TypeError('truncated revisions in binary view patch');
       revisions = new Array(revLen);
@@ -803,7 +822,7 @@ function decodeBinaryViewPatch(buf, held) {
     for (let i = 0; i < keyCount; i += 1) keys[i] = readStr();
     const setCount = readVarint();
     if (setCount > keyCount) throw new TypeError('commitments set exceeds keys in binary view patch');
-    if (keyCount === 0) return EMPTY_ARRAY;
+    if (keyCount === 0) return emptyList();
     let byAction = null;
     if (heldList && heldList.length > 0 && setCount < keyCount) {
       byAction = new Map();
@@ -850,7 +869,7 @@ function decodeBinaryViewPatch(buf, held) {
 
   function applyBinList(heldList, readItem) {
     const itemCount = readVarint();
-    if (itemCount === 0) return EMPTY_ARRAY;
+    if (itemCount === 0) return emptyList();
     if (itemCount > end - pos) throw new TypeError('truncated list in binary view patch');
     const tag0 = readByte();
     if (tag0 === 0) {
@@ -929,7 +948,7 @@ function decodeBinaryViewPatch(buf, held) {
   if (mask & 4) {
     const cuesTag = readByte();
     if (cuesTag === 0) {
-      cues = EMPTY_ARRAY;
+      cues = emptyList();
     } else if (cuesTag === 1) {
       const parsed = JSON.parse(readStr());
       if (!Array.isArray(parsed)) throw new TypeError('malformed cues in binary view patch');
@@ -944,7 +963,7 @@ function decodeBinaryViewPatch(buf, held) {
   if (mask & 8) {
     const n = readVarint();
     if (n === 0) {
-      effects = EMPTY_ARRAY;
+      effects = emptyList();
     } else {
       if (n > end - pos) throw new TypeError('truncated effects in binary view patch');
       effects = new Array(n);

@@ -331,3 +331,89 @@ bind b.y = y;`;
     assert.equal(second.view.bindings.b, first.view.bindings.b, 'unchanged target reused across refusal');
   } finally { session.close(); }
 });
+
+// The parts of a view, every object and array in it.
+function parts(view) {
+  const found = [];
+  const walk = value => {
+    if (value === null || typeof value !== 'object') return;
+    found.push(value);
+    for (const member of Object.values(value)) walk(member);
+  };
+  walk(view);
+  return found;
+}
+
+test('D113: a reused view keeps a leading U+FEFF, in text and in refusal messages', () => {
+  const source = `identifiers limit 4096;
+state head = 0;
+event pushed commit id;
+event checks commit id;
+on pushed set head = commit;
+on checks when commit != head reject "\uFEFFChecks for a commit that is not the head.";
+bind pr.head = id_text(head);`;
+  const plain = real.open(source);
+  const reused = real.open(source);
+  try {
+    for (const commit of ['\uFEFF602bdbec', '\uFEFF', 'x\uFEFF']) {
+      const expected = plain.dispatchView('pushed', { commit });
+      const outcome = reused.dispatchView('pushed', { commit }, { reuse: true });
+      assert.equal(JSON.stringify(outcome), JSON.stringify(expected), JSON.stringify(commit));
+      assert.equal(outcome.view.bindings.pr.head, commit);
+      // A host can send back the identifier the view shows.
+      const echoed = reused.dispatchView('checks', { commit: outcome.view.bindings.pr.head }, { reuse: true });
+      assert.equal(echoed.outcome, 'accepted', JSON.stringify(commit));
+      plain.dispatchView('checks', { commit });
+    }
+    const expected = plain.dispatchView('checks', { commit: 'other' });
+    const refused = reused.dispatchView('checks', { commit: 'other' }, { reuse: true });
+    assert.equal(refused.outcome, 'rejected');
+    assert.equal(refused.message, '\uFEFFChecks for a commit that is not the head.');
+    assert.equal(JSON.stringify(refused), JSON.stringify(expected));
+  } finally { plain.close(); reused.close(); }
+});
+
+test('D114: a reused view shows an examine cost of 2^56 or more as dispatchView does', () => {
+  for (const cost of ['72057594037927937', '81064793292668951', '9223372036854775809', '18446744073709551615']) {
+    const source = `budget 18446744073709551615;
+caveat k consequence material;
+event look;
+on look examine k cost ${cost};
+bind ui.text = "x";`;
+    const plain = real.open(source);
+    const reused = real.open(source);
+    try {
+      const expected = plain.dispatchView('look', {});
+      const outcome = reused.dispatchView('look', {}, { reuse: true });
+      assert.equal(outcome.outcome, 'accepted', cost);
+      assert.equal(outcome.view.effects[0].cost, JSON.parse(cost), cost);
+      assert.equal(JSON.stringify(outcome), JSON.stringify(expected), cost);
+    } finally { plain.close(); reused.close(); }
+  }
+});
+
+test('D115: a rebuilt reused view is all new objects, shared with no other member or session', () => {
+  const source = `state v = 0 min 0 max 10;
+event go x min 0 max 10;
+on go set v = x;
+bind ui.v = v;`;
+  const session = real.open(source);
+  const other = real.open(source);
+  try {
+    const first = session.dispatchView('go', { x: 1 }, { reuse: true });
+    session.dispatch('go', { x: 2 });
+    // dispatch() ended the reuse, so the next view is built again.
+    const rebuilt = session.dispatchView('go', { x: 3 }, { reuse: true });
+    const elsewhere = other.dispatchView('go', { x: 1 }, { reuse: true });
+    const before = new Set(parts(first.view));
+    const there = new Set(parts(elsewhere.view));
+    const seen = new Set();
+    for (const part of parts(rebuilt.view)) {
+      assert.ok(!before.has(part), `a part of the rebuilt view is the earlier view's: ${JSON.stringify(part)}`);
+      assert.ok(!there.has(part), `a part of the view is another session's: ${JSON.stringify(part)}`);
+      assert.ok(!seen.has(part), `two members of the view are one object: ${JSON.stringify(part)}`);
+      seen.add(part);
+    }
+    assert.ok(seen.size > 1);
+  } finally { session.close(); other.close(); }
+});
