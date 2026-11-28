@@ -2517,7 +2517,7 @@ on go set s = s + 1;
     /// checked against those releases' binaries (D083): a declaration, an
     /// effect or an expression that came later, and such an expression in
     /// each place the loaded program keeps one.
-    const LATER: [(&str, &str); 55] = [
+    const LATER: [(&str, &str); 58] = [
         ("journal window", "journal window 5;"),
         ("readings window", "readings r from e window 3;"),
         ("renewable window", "renewable e window 3;"),
@@ -2545,6 +2545,9 @@ on go set s = s + 1;
         ("commit citing", "decisions d limit 3;\non go commit d because enough citing s;"),
         ("retaining because", "decisions d limit 3;\ncaveat k consequence low;\nk qualifies e;\non go reveal e supports c;\non go commit d because enough retaining k because e;"),
         ("only_if", "on go set s = only_if(s > 0, 1);"),
+        ("choose", "on go set s = choose(s > 0, 1, 2);"),
+        ("lowest", "on go set s = lowest(s, 1);"),
+        ("highest", "on go set s = highest(s, 1);"),
         ("in_basis", "decisions d limit 3;\non go when in_basis(d, e) set s = 1;"),
         ("observed occurrence", "renewable e limit 3;\non go when observed(occurrence(e, 1)) set s = 1;"),
         ("withdrawn reading", "readings r from e limit 3;\non go when withdrawn(reading(r, 1)) set s = 1;"),
@@ -2578,7 +2581,7 @@ on go set s = s + 1;
     /// Lines that keep a program rc.11 loads, each checked against its
     /// binary: names spelled like a later word, functions named like a
     /// later form, and forms rc.11 reads.
-    const OLDER: [(&str, &str); 31] = [
+    const OLDER: [(&str, &str); 34] = [
         ("base", ""),
         ("procedure", "proc p(v) { set s = v; };\non go call p(1);"),
         ("state named unset", "state unset = 0;"),
@@ -2592,6 +2595,9 @@ on go set s = s + 1;
         ("fn carries_any", "fn carries_any(a) = a;\non go set s = carries_any(s);"),
         ("fn in_basis", "state t = 0;\nfn in_basis(a, b) = a + b;\non go set s = in_basis(s, t);"),
         ("fn is_set", "fn is_set(a) = a > 0;\non go when is_set(s) set s = 0;"),
+        ("fn choose", "fn choose(a, b, c) = a + b + c;\non go set s = choose(s, 1, 2);"),
+        ("fn lowest", "fn lowest(a, b) = a + b;\non go set s = lowest(s, 1);"),
+        ("fn highest", "fn highest(a, b) = a + b;\non go set s = highest(s, 1);"),
         ("withdrawn latest", "readings r from e limit 3;\non go when withdrawn(latest(r)) set s = 1;"),
         ("rests_on_withdrawn", "decisions d limit 3;\non go when rests_on_withdrawn(d) set s = 1;"),
         ("history", "decisions d limit 3;\non go set s = history_count(d);"),
