@@ -377,10 +377,10 @@ function decodeBinaryViewPatch(buf, held) {
     }
   }
 
-  // The rest of a varint from bit 49 on, where a number no longer holds every
-  // integer: added up exactly and rounded once, as JSON.parse rounds the
-  // same integer's digits (D114). `low` holds bits 0 to 48, and `b` is the
-  // byte of bits 49 to 55.
+  // The rest of a varint from bit 49 on, whose groups can take it past 2^53,
+  // above which a number no longer holds every integer: added up exactly and
+  // rounded once, as JSON.parse rounds the same integer's digits (D114).
+  // `low` holds bits 0 to 48, and `b` is the byte of bits 49 to 55.
   function readLargeVarint(low, b) {
     let val = BigInt(low) + (BigInt(b & 0x7f) << 49n);
     let shift = 56n;

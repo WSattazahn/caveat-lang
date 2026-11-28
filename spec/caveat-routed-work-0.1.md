@@ -49,9 +49,11 @@ rules its modules contribute. A module may still use the four words as names.
 
 ## Routes
 
-A top-level rule's **route** is the run of terms its guard evaluates first
-that have the form `NAME == VALUE`, joined by `and`, however parenthesized.
-The run ends at the first term of any other form. In each term:
+A top-level rule's **route** is the run of `NAME == VALUE` terms that its
+guard evaluates first, joined by `and`, however parenthesized. The run reads
+past a `true`, which is true whatever the payload is and rests on nothing, so
+a `true` neither joins the route nor ends it. The run ends at the first term
+that is neither `NAME == VALUE` nor `true`. In each term of the route:
 
 - `NAME` is a parameter of the rule's event.
 - `VALUE` is a number literal or a [threshold](caveat-thresholds-0.1.md),
@@ -64,15 +66,20 @@ The run ends at the first term of any other form. In each term:
   neither is a signed name such as `-reef.x`.
 
 Routes are read after `define`s are expanded, so a define written in a guard
-reads as the expression it names. A function call is a term of another form,
-whatever its body.
+reads as the expression it names, and one that names `true`, such as
+`define enabled = true;`, is read past as `true` is. A function call is a
+term of another form, whatever its body.
 
 A routed copy's guard starts with its route, `P == $index`
 ([Routed Repetition 0.1](caveat-routed-repetition-0.1.md), section 3). A guard
 written by hand, such as `target == $index and …` in a plain block or
-`report == report.r5 and …`, has one too. A guard that starts with a term of
-any other form has none: `$index == target`, `target != 2`, `target == n` where
-`n` is a state, `loud > 0`, and `n >= 0 and target == 2`.
+`report == report.r5 and …`, has one too. A guard has none when its first
+term past any `true` is of another form: `$index == target`, `target != 2`,
+`target == n` where `n` is a state, `loud > 0`, `n >= 0 and target == 2`, and
+`true and loud > 0`. A guard that is only `true` has none either. The route of
+`true and target == 2` is `target == 2`, and, where `loud` is a parameter of
+the event too, the route of `target == 2 and true and loud == 1` is
+`target == 2 and loud == 1`.
 
 When the payload gives a term's parameter a value other than the term's, the
 rule is **routed elsewhere**. Its guard is then false and rests on nothing,
@@ -146,11 +153,12 @@ steps ([Reactive 0.7](caveat-reactive-0.7.md)).
 2. **The program's, not a block's.** A plain block with its selection written
    by hand, and a rule outside any block, run into the limit as a routed block
    does, and an event has one budget across the program.
-3. **Only leading `NAME == VALUE` terms.** Their result follows from the
-   payload alone and rests on nothing, so skipping the rule is exactly what
-   evaluating its guard would find. A term that reads a state, a history or a
-   function call can rest on something, and a skipped effect retains what its
-   guard rests on.
+3. **Only leading `NAME == VALUE` terms, past any `true`.** Their result
+   follows from the payload alone and rests on nothing, so skipping the rule
+   is exactly what evaluating its guard would find. A `true` is true for every
+   payload and rests on nothing, so reading past it keeps the skip exact. A
+   term that reads a state, a history or a function call can rest on
+   something, and a skipped effect retains what its guard rests on.
 4. **No new code or field.** A refusal keeps its code. No view, save,
    explanation or check result names the declaration.
 
@@ -168,3 +176,13 @@ dispatches of `runtime/examples/outcome_sweep.rs` and the 2,751,335 lines of
 `runtime/examples/caveat_sweep.rs`. With rules routed elsewhere counted as
 free in every program, as if each declared the statement, the output was the
 same as well: none of their events reaches the limit.
+
+## Changes
+
+- 2026-11-28 (D116): "Routes" says that the run reads past a `true`, written
+  out, in parentheses or named by a define, and gives examples, and
+  "Questions settled" 3 says why that keeps the skip exact. Before, "Routes"
+  said only that the run ends at the first term of any other form, a rule
+  that covers a `true`, but 1.5.0 reads past one. The text now says what
+  1.5.0 does, so no outcome, refusal or save of 1.5.0 changes. Test:
+  `runtime/tests/d116_a_true_does_not_end_a_route.rs`.
