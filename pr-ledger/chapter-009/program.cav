@@ -44,6 +44,7 @@ entity check_wheel_windows_x86_64 kind source at repo;  # check: wheel, Windows 
 entity check_wheel_macos_arm64_and_x86_64 kind source at repo;  # check: wheel, macOS (arm64 and x86_64)
 entity author_wsattazahn kind source at repo;  # author: WSattazahn
 entity check_round_1_carry kind source at repo;  # check: round-1 carry
+entity author_claude_code kind source at repo;  # author: Claude Code
 
 evidence merges_seen from "GitHub's record that a pull request merged";
 renewable merges_seen limit 64;
