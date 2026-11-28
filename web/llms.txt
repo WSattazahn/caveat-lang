@@ -9,6 +9,7 @@ Use Caveat when decisions get revisited — agent undo lists after bad tool outp
 - [What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html): one-page overview, runnable example, and limitations.
 - [Hello, world](https://github.com/WSattazahn/caveat-lang/blob/main/kit/README.md#hello-world): a 12-line program with one piece of evidence, one decision, and one withdrawal that reopens it, then `caveat-lang explain`.
 - [An agent with an undo list](https://github.com/WSattazahn/caveat-lang/blob/main/docs/tutorials/agent-undo-list/README.md): a 15-minute hands-on tutorial on `caveat-lang@1.5.0`. A support agent refunds, files a claim, and sends a credit; one source turns out wrong, and Caveat lists what to undo and why each action was taken.
+- [Three agents, one record](https://wsattazahn.github.io/caveat-lang/agents.html): interactive browser demo of three named agents sharing one release ledger, with live `caveat explain` and `caveat dependents`.
 - [Try to break this](https://wsattazahn.github.io/caveat-lang/break.html): interactive browser checker testing Caveat's five withdrawal rules step by step.
 - [Limits](https://github.com/WSattazahn/caveat-lang/blob/main/docs/LIMITS.md): what Caveat does not do and what it costs, with measurements.
 
