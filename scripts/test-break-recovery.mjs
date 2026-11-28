@@ -140,6 +140,7 @@ async function staleCompletionCase(page, test) {
     await page.goto(base);
     older = await held;
     if (test.race === 'edit') {
+      await page.locator('#editor > summary').click();
       await page.locator('#events').fill('{"event":"gather"}');
       await waitStatus(page, 'Inputs changed; run the checks again.');
     } else {

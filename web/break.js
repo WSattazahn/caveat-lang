@@ -48,13 +48,13 @@ async function start() {
       lastReport = null;
       $('report').hidden = true;
       $('results').innerHTML = '';
-      $('status').textContent = 'Inputs changed; run the checks again.';
+      say('Inputs changed; run the checks again.');
     });
     $('report').addEventListener('click', report);
     $('run').disabled = false;
     await load('apartment');
   } catch (error) {
-    $('status').textContent = `The runtime did not load: ${error.message ?? error}`;
+    say(`The runtime did not load: ${error.message ?? error}`, 'fail');
   }
 }
 
@@ -63,7 +63,7 @@ async function load(name) {
   lastReport = null;
   $('report').hidden = true;
   $('results').innerHTML = '';
-  $('status').textContent = 'Loading the example.';
+  say('Loading the example.');
   const example = EXAMPLES[name];
   try {
     const response = await fetch(example.program);
@@ -75,7 +75,7 @@ async function load(name) {
     $('events').value = eventText;
     run(false, { generation, source, eventText });
   } catch (error) {
-    if (generation === runGeneration) $('status').textContent = `The example did not load: ${error.message ?? error}`;
+    if (generation === runGeneration) say(`The example did not load: ${error.message ?? error}`, 'fail');
   }
 }
 
@@ -105,18 +105,23 @@ function open(source) {
   }
 }
 
+function say(text, tone = '') {
+  $('status').textContent = text;
+  $('status').className = tone;
+}
+
 // WebKit 26.0 can trap while starting a session, an engine fault in its
 // WebAssembly tier-up (bench/carmack/README.md), not the program's. A run is
 // deterministic, so a run that trapped is repeated once on a fresh instance.
 function retryAfterTrap(retried, attempt) {
   if (retried || !runtime.trapped) return false;
-  $('status').textContent = 'The WebAssembly runtime trapped; running again on a fresh runtime.';
+  say('The WebAssembly runtime trapped; running again on a fresh runtime.');
   loadRuntime(RUNTIME).then(fresh => {
     if (attempt.generation !== runGeneration) return;
     runtime = fresh;
     run(true, attempt);
   }, error => {
-    if (attempt.generation === runGeneration) $('status').textContent = `The runtime did not reload: ${error.message ?? error}`;
+    if (attempt.generation === runGeneration) say(`The runtime did not reload: ${error.message ?? error}`, 'fail');
   });
   return true;
 }
@@ -130,12 +135,12 @@ function run(retried = false, attempt = null) {
   $('report').hidden = true;
   lastReport = null;
   let events;
-  try { events = parseEvents(eventText); } catch (error) { $('status').textContent = error.message; return; }
+  try { events = parseEvents(eventText); } catch (error) { say(error.message, 'fail'); return; }
   let opened;
   try { opened = open(source); } catch (error) {
-    if (!retryAfterTrap(retried, attempt)) $('status').textContent = runtime.trapped
+    if (!retryAfterTrap(retried, attempt)) say(runtime.trapped
       ? `The runtime failed after a fresh-instance retry: ${error.message}`
-      : `The program does not load: ${error.message}`;
+      : `The program does not load: ${error.message}`, 'fail');
     return;
   }
   const { session } = opened;
@@ -175,12 +180,13 @@ function run(retried = false, attempt = null) {
   }
   out.innerHTML = table(rows) + (before ? decisions(before) : '') + findingsList(findings) + [...notes].map(note => `<p class="note">${esc(note)}</p>`).join('');
   if (!opened.probed) out.innerHTML += '<p class="note">R3 could not be checked: the checker could not add its display lines to this program.</p>';
-  $('status').textContent = failure
+  const status = failure
     ? `The run did not complete: ${failure.message}`
     : findings.length
       ? `${findings.length} rule ${findings.length === 1 ? 'failure' : 'failures'} found.`
       : `Every rule held on ${rows.length} ${rows.length === 1 ? 'event' : 'events'}.`;
 
+  say(status, failure || findings.length ? 'fail' : 'pass');
   if (findings.length) {
     lastReport = { version, source, events: eventText, findings };
     $('report').hidden = false;
@@ -210,13 +216,14 @@ function decisions(snapshot) {
     for (const revision of record.revisions) {
       const grounds = snapshot.commitment_grounds?.[revision.id]?.evidence ?? [];
       const status = revision.id !== record.current ? 'superseded' : reopened.get(revision.id) ? 'reopened' : 'in force';
-      const marked = grounds.map(name => (withdrawn.has(name) ? `<s>${esc(name)}</s> (withdrawn)` : esc(name)));
+      const cls = { 'in force': 'force', reopened: 'reopened', superseded: 'superseded' }[status];
+      const chips = grounds.map(name => `<span class="chip${withdrawn.has(name) ? ' gone' : ''}" title="${withdrawn.has(name) ? 'withdrawn' : 'holds'}">${esc(name)}</span>`);
       const rests = snapshot.bindings?.[PROBE]?.[series];
-      const restsText = revision.id === record.current && rests !== undefined ? `; rests_on_withdrawn(${esc(series)}) = ${rests === 1}` : '';
-      lines.push(`<li><code>${esc(revision.id)}</code> ${status}, grounds: ${marked.join(', ') || 'none'}${restsText}</li>`);
+      const restsText = revision.id === record.current && rests !== undefined ? `<code>rests_on_withdrawn(${esc(series)})</code> = ${rests === 1}` : '';
+      lines.push(`<div class="dec"><b>${esc(revision.id)}</b><span class="st ${cls}">${status}</span><div class="chips">${chips.join('') || '<span class="note">no grounds</span>'}</div>${restsText}</div>`);
     }
   }
-  return lines.length ? `<h3>Decisions at the end</h3><ul>${lines.join('')}</ul>` : '';
+  return lines.length ? `<h3>Decisions at the end</h3><p class="note">Each with its grounds; crossed out means withdrawn.</p>${lines.join('')}` : '';
 }
 
 function findingsList(findings) {
