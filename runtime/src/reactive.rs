@@ -2675,10 +2675,10 @@ pub struct ReactiveSession {
     /// Each event's rules, as indexes into `rules` in source order.
     rules_by_event: Arc<HashMap<String, Vec<usize>>>,
     /// For each of `rules`, its route (spec/caveat-routed-work-0.1.md):
-    /// the terms of its guard's route (`Expr::route_terms`) that compare one
-    /// of its event's parameters with a value fixed at load, compiled so that
-    /// an event skips the rules its payload routes elsewhere without
-    /// evaluating their guards.
+    /// the terms of its guard's route (`Expr::compile_route_expr`) that
+    /// compare one of its event's parameters with a value fixed at load,
+    /// compiled so that an event skips the rules its payload routes elsewhere
+    /// without evaluating their guards.
     rule_routes: Arc<Vec<Route>>,
     /// `work skips other routes;`: a rule the payload routes elsewhere counts
     /// no work. See spec/caveat-routed-work-0.1.md.

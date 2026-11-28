@@ -1662,7 +1662,7 @@ impl Grounded {
 
 /// What a route term compares its name with: a number in the source, or a
 /// name, which the host reads at load if it names a fixed value. See
-/// [`Expr::route_terms`].
+/// [`Expr::compile_route_expr`].
 #[derive(Debug, Clone, PartialEq)]
 pub enum RouteValue {
     Number(f64),
@@ -2856,9 +2856,9 @@ impl Expr {
     }
 
     /// The route of a guard: the `NAME == VALUE` terms its `and` chain
-    /// evaluates first, in evaluation order, up to the first term of any
-    /// other shape, where VALUE is a number literal, signed or not, a
-    /// threshold, or a name. A routed copy's guard starts with them
+    /// evaluates first, in evaluation order, passing over a `true`, up to the
+    /// first term of any other shape, where VALUE is a number literal, signed
+    /// or not, a threshold, or a name. A routed copy's guard starts with them
     /// (spec/caveat-routed-repetition-0.1.md). The host decides which names
     /// it can read at load; a term whose name reads a plain number unequal to
     /// its value makes the guard false with no dependency, exactly as
@@ -2868,13 +2868,15 @@ impl Expr {
     /// consumed by the route or is trivially `true`) and the exact number of
     /// AST nodes stripped from the front.
     ///
-    /// Preserves `route_terms()` matching (including thresholds and signed
-    /// literals for `spec/caveat-routed-work-0.1.md`). If any matched term
-    /// contains a `Node::Threshold`, or if stripping would exceed
-    /// `MAX_EVALUATED_NODES`, the compiled `terms` are still returned for
-    /// routed-elsewhere skipping while the full expression is kept for
-    /// matching-route evaluation so threshold collection and node budgets stay
-    /// exact.
+    /// Matches `route_terms()` (including thresholds and signed literals for
+    /// `spec/caveat-routed-work-0.1.md`), except that a `true` in the chain,
+    /// written out or from a define, is passed over, as the spec's Routes
+    /// section says and 1.5.0 reads it, where `route_terms()` ends the run
+    /// (D116). If any matched term contains a `Node::Threshold`, or if
+    /// stripping would exceed `MAX_EVALUATED_NODES`, the compiled `terms` are
+    /// still returned for routed-elsewhere skipping while the full expression
+    /// is kept for matching-route evaluation so threshold collection and node
+    /// budgets stay exact.
     pub fn compile_route_expr(
         &self,
         accept: &impl Fn(&str, &RouteValue) -> Option<(usize, f64)>,
@@ -2954,6 +2956,10 @@ impl Expr {
         }
     }
 
+    /// The leading `NAME == VALUE` terms of the guard's `and` chain, up to the
+    /// first term of any other shape, a `true` included. The runtime reads
+    /// routes with [`Expr::compile_route_expr`], which passes over a `true`
+    /// (spec/caveat-routed-work-0.1.md, D116).
     pub fn route_terms(&self) -> Vec<(String, RouteValue)> {
         fn walk(expr: &Expr, out: &mut Vec<(String, RouteValue)>) -> bool {
             match &expr.node {
